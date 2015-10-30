@@ -10,8 +10,8 @@ from numpy import multiply
 
 from graph_tool.spectral import adjacency
 
-from .graph_generation import gen_er, gen_fs, gen_edr
-from .graph_measure import *
+#~ from .graph_generation import gen_er, gen_fs, gen_edr
+#~ from .graph_measure import *
 
 
 
@@ -23,12 +23,14 @@ from .graph_measure import *
 class GraphClass:
 	
 	"""
+	.. py:currentmodule:: core
+	
 	The basic class that contains a graph_tool graph and its properties,
 	with the possibility of generating it out of various topologies.
 	
 	Parameters
-    ----------
-    di_prop: dict (optional)
+	----------
+	di_prop: dict (optional)
 		A dictionary containing the desired properties of the graph that
 		will be generated. By default an empty graph is generated.
 	graph: graph_tool.Graph (optional)
@@ -45,27 +47,27 @@ class GraphClass:
 
 	def __init__ (self, dicProp={"Name": "Graph", "Type": "None", "Weighted": False}, graph=None):
 		''' init from properties '''
-		self.dicProperties = deepcopy(dicProp)
-		self.dicGetProp = { "Reciprocity": get_reciprocity, "Clustering": get_clustering, "Assortativity": get_assortativity,
-							"Diameter": get_diameter, "SCC": get_num_scc, #"Spectral radius": get_spectral_radius, 
-							"WCC": get_num_wcc, "InhibFrac": get_inhib_frac }
-		self.dicGenGraph = { "Erdos-Renyi": gen_er, "Free-scale": gen_fs, "EDR": gen_edr }
-		# create a graph
-		if graph != None:
-			# use the one furnished
-			self.__graph = graph
-			self.update_prop()
-			self.bPropToDate = True
-		elif dicProp["Type"] == "None":
-			# create an empty graph
-			self.__graph = Graph()
-			self.bPropToDate = False
-		else:
-			# generate a graph of the requested type
-			self.__graph = self.dicGenGraph[dicProp["Type"]](self.dicProperties)
-			self.update_prop()
-			self.set_name()
-			self.bPropToDate = True
+		#~ self.dicProperties = deepcopy(dicProp)
+		#~ self.dicGetProp = { "Reciprocity": get_reciprocity, "Clustering": get_clustering, "Assortativity": get_assortativity,
+							#~ "Diameter": get_diameter, "SCC": get_num_scc, #"Spectral radius": get_spectral_radius, 
+							#~ "WCC": get_num_wcc, "InhibFrac": get_inhib_frac }
+		#~ self.dicGenGraph = { "Erdos-Renyi": gen_er, "Free-scale": gen_fs, "EDR": gen_edr }
+		#~ # create a graph
+		#~ if graph != None:
+			#~ # use the one furnished
+			#~ self.__graph = graph
+			#~ self.update_prop()
+			#~ self.bPropToDate = True
+		#~ elif dicProp["Type"] == "None":
+			#~ # create an empty graph
+			#~ self.__graph = Graph()
+			#~ self.bPropToDate = False
+		#~ else:
+			#~ # generate a graph of the requested type
+			#~ self.__graph = self.dicGenGraph[dicProp["Type"]](self.dicProperties)
+			#~ self.update_prop()
+			#~ self.set_name()
+			#~ self.bPropToDate = True
 
 	@classmethod
 	def from_graph_class(cls, graphToCopy):

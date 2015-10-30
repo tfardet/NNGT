@@ -20,77 +20,58 @@ n_MAXTESTS = 10000 # ensure that generation will finish
 # Erdos-Renyi
 #------------------------
 
-def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1):
+def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
+				reciprocity=-1., directed=True, multigraph=False):
 	"""
-	Generate a random graph as defined by Erdos and Renyi.
+	Generate a random graph as defined by Erdos and Renyi but with a
+	reciprocity that can be chosen.
 	
 	Parameters
-    ----------
-    nodes: int
+	----------
+	
+	nodes : int
 		The number of nodes in the graph.
-	density: double (optional, default = 0.1)
-		Structural density given by edges / (nodes*nodes).
-	edges: int (optional)
+	density : double, optional (default: 0.1)
+		Structural density given by `edges` / `nodes`:math:`^2`.
+	edges : int (optional)
 		The number of connections between the nodes
-	avg_deg: double (optional)
-		Average degree of the neurons given by edges / nodes.
+	avg_deg : double, optional
+		Average degree of the neurons given by `edges` / `nodes`.
+	reciprocity : double, optional (default: -1 to let it free)
+		Fraction of connections that are bidirectional (only for
+		directed graphs -- undirected graphs have a reciprocity of 1 by
+		definition)
+	directed : bool, optional (default: True)
+		Whether the graph is directed or not.
+	multigraph : bool, optional (default: False)
+		Whether the graph can contain multiple connections between two
+		nodes.
 	
 	Returns
-    -------
+	-------
     graph_tool.Graph object.
 	"""
 	
 	np.random.seed()
 	edges = _compute_edges(nodes, density, edges, avg_deg)
+	if not directed:
+		edges = int(edges/2)
+	elif reciprocity > 0.:
+		a
 	
-	graphER = Graph()
-	nNodes = 0
-	nEdges = 0
-	rDens = 0.0
-	if "Nodes" in dicProperties.keys():
-		nNodes = dicProperties["Nodes"]
-		graphER.add_vertex(nNodes)
-		if "Edges" in dicProperties.keys():
-			nEdges = dicProperties["Edges"]
-			rDens = nEdges / float(nNodes**2)
-			dicProperties["Density"] = rDens
-		else:
-			rDens = dicProperties["Density"]
-			nEdges = int(np.floor(rDens*nNodes**2))
-			dicProperties["Edges"] = nEdges
-	else:
-		nEdges = dicProperties["Edges"]
-		rDens = dicProperties["Density"]
-		nNodes = int(np.floor(np.sqrt(nEdges/rDens)))
-		graphER.add_vertex(nNodes)
-		dicProperties["Nodes"] = nNodes
+	graph_er = Graph(directed=directed)
 	# generate edges
-	numTest,numCurrentEdges = 0,0
-	while numCurrentEdges != nEdges and numTest < n_MAXTESTS:
-		lstEdges = np.random.randint(0,nNodes,(nEdges-numCurrentEdges,2))
-		graphER.add_edge_list(lstEdges)
-		# remove loops and duplicate edges
-		remove_self_loops(graphER)
-		remove_parallel_edges(graphER)
-		numCurrentEdges = graphER.num_edges()
-		numTest += 1
-	graphER.reindex_edges()
-	nEdges = graphER.num_edges()
-	rDens = nEdges / float(nNodes**2)
-	# generate types
-	rInhibFrac = dicProperties["InhibFrac"]
-	lstTypesGen = np.random.uniform(0,1,nEdges)
-	lstTypeLimit = np.full(nEdges,rInhibFrac)
-	lstIsExcitatory = np.greater(lstTypesGen,lstTypeLimit)
-	nExc = np.count_nonzero(lstIsExcitatory)
-	epropType = graphER.new_edge_property("int",np.multiply(2,lstIsExcitatory)-np.repeat(1,nEdges)) # excitatory (True) or inhibitory (False)
-	graphER.edge_properties["type"] = epropType
-	# and weights
-	if dicProperties["Weighted"]:
-		lstWeights = dicGenWeights[dicProperties["Distribution"]](graphER,dicProperties,nEdges,nExc) # generate the weights
-		epropW = graphER.new_edge_property("double",lstWeights) # crée la propriété pour stocker les poids
-		graphER.edge_properties["weight"] = epropW
-	return graphER
+	num_test,num_current_edges = 0,0
+	while num_current_edges != edges and num_test < n_MAXTESTS:
+		ia_edges = np.random.randint(0,nodes,(edges-num_current_edges,2))
+		graph_er.add_edge_list(ia_edges)
+		remove_self_loops(graph_er)
+		if not multigraph:
+			remove_parallel_edges(graph_er)
+		num_current_edges = graph_er.num_edges()
+		num_test += 1
+	graph_er.reindex_edges()
+	return graph_er
 
 
 #
@@ -98,8 +79,40 @@ def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1):
 # Scale-free models
 #------------------------
 
-def random_free_scale(nodes, density=0.1, edges=-1, avg_deg=-1):
+def random_free_scale(nodes, density=0.1, edges=-1, avg_deg=-1,
+					reciprocity=0., in_exp=2.5, out_exp = 2.5,
+					directed=True, multigraph=False):
+	"""
+	Generate a free-scale graph of given reciprocity and otherwise
+	devoid of correlations.
+	
+	Parameters 
+	----------
+	
+	nodes : int
+		The number of nodes in the graph.
+	density: double, optional (default: 0.1)
+		Structural density given by `edges` / (`nodes`*`nodes`).
+	edges : int (optional)
+		The number of connections between the nodes
+	avg_deg : double, optional
+		Average degree of the neurons given by `edges` / `nodes`.
+	directed : bool, optional (default: True)
+		Whether the graph is directed or not.
+	multigraph : bool, optional (default: False)
+		Whether the graph can contain multiple connections between two
+		nodes.
+	
+	Returns
+    -------
+    
+    :class:`graph_tool.Graph`
+	"""
 	np.random.seed()
+	edges = _compute_edges(nodes, density, edges, avg_deg)
+	if not directed:
+		edges = int(edges/2)
+		
 	graphFS = Graph()
 	# on définit la fraction des arcs à utiliser la réciprocité
 	f = dicProperties["Reciprocity"]
@@ -110,23 +123,6 @@ def random_free_scale(nodes, density=0.1, edges=-1, avg_deg=-1):
 	nNodes = 0
 	nEdges = 0
 	rDens = 0.0
-	if "Nodes" in dicProperties.keys():
-		nNodes = dicProperties["Nodes"]
-		graphFS.add_vertex(nNodes)
-		if "Edges" in dicProperties.keys():
-			nEdges = dicProperties["Edges"]
-			rDens = nEdges / float(nNodes**2)
-			dicProperties["Density"] = rDens
-		else:
-			rDens = dicProperties["Density"]
-			nEdges = int(np.floor(rDens*nNodes**2))
-			dicProperties["Edges"] = nEdges
-	else:
-		nEdges = dicProperties["Edges"]
-		rDens = dicProperties["Density"]
-		nNodes = int(np.floor(np.sqrt(nEdges/rDens)))
-		graphFS.add_vertex(nNodes)
-		dicProperties["Nodes"] = nNodes
 	# on définit le nombre d'arcs à créer
 	nArcs = int(np.floor(rDens*nNodes**2)/(1+rFracRecip))
 	# on définit les paramètres fonctions de probabilité associées F(x) = A x^{-tau}

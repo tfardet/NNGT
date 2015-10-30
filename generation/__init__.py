@@ -1,7 +1,6 @@
 """
-========================
 GENERATION MODULE
-========================
+=================
 
 Functions that generates the underlying connectivity of graphs, as well
 as the synaptic properties (weight/strength and delay).
@@ -13,7 +12,7 @@ erdos_renyi				Random graph studied by Erdos and Renyi
 random_free_scale		An uncorrelated free-scale graph
 price_free_scale		Price's network (Barabasi-Albert if undirected)
 newman_watts			Newman-Watts small world network
-distance_rule			Distance-dependent connection probability 
+distance_rule			Distance-dependent connection probability
 ====================== =================================================
 
 ====================== =================================================
@@ -27,18 +26,24 @@ correlated_fixed_eprop	Computed from an edge property
 correlated_proba_eprop	Randomly drawn, correlated to an edge property
 ====================== =================================================
 
-====================== =================================================
-Functions (utilities)
-========================================================================
-_prop_from_dict			Graph generation properties from a dictionary
-====================== =================================================
+Summary
+-------
+
+.. autosummary::
+	:nosignatures:
+
+	erdos_renyi
+	random_free_scale
+
+Contents
+--------
 
 """
 
 from __future__ import absolute_import
-from .graph_structure import *
-from .synaptic_properties import *
-from .utilities import *
+from .graph_connectivity import *
+#~ from .synaptic_properties import *
+#~ from .utilities import *
 
 depends = ['graph_tool']
 

@@ -35,7 +35,7 @@ def _compute_inhib_exc(nodes, edges, inodes_frac, iedges_frac):
 	
 	Parameters
     ----------
-    nodes: int
+	nodes: int
 		number of nodes in the graph.
 	edges: int
 		Number of connections in the graph.
@@ -70,7 +70,7 @@ def _compute_edges(nodes, density, edges, avg_deg):
 	
 	Parameters
     ----------
-    nodes: int
+	nodes: int
 		number of nodes in the graph.
 	density: double
 		Defined as edges / (nodes*nodes).
