@@ -16,12 +16,10 @@ import sys
 import os
 import shlex
 
-sys.path.insert(0,"../")
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('../'))
 
 # -- General configuration ------------------------------------------------
 
@@ -37,7 +35,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
-    'numpydoc',
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -287,13 +285,15 @@ texinfo_documents = [
 #texinfo_domain_indices = True
 
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
-#texinfo_show_urls = 'footnote'
+texinfo_show_urls = 'inline'
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
 autodoc_default_flags = ['members', 'undoc-members']
-numpydoc_show_class_members = False
+napoleon_include_special_with_doc = False
+napoleon_use_param = False
+napoleon_use_rtype = False
 autodoc_docstring_signature = False
 autodoc_member_order = 'bysource'
 autoclass_content = 'both'

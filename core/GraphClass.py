@@ -30,15 +30,15 @@ class GraphClass:
 	
 	Parameters
 	----------
-	di_prop: dict (optional)
+	di_prop : dict, optional
 		A dictionary containing the desired properties of the graph that
 		will be generated. By default an empty graph is generated.
-	graph: graph_tool.Graph (optional)
-		An optional graph_tool.Graph to serve as base.
+	graph : :class:`graph_tool.Graph`, optional
+		An optional :class:`graph_tool.Graph` to serve as base.
 	
 	Returns
-    -------
-    GraphClass object.
+	-------
+	:class:`~core.GraphClass`
 	"""
 
 	#------------#
@@ -47,7 +47,7 @@ class GraphClass:
 
 	def __init__ (self, dicProp={"Name": "Graph", "Type": "None", "Weighted": False}, graph=None):
 		''' init from properties '''
-		#~ self.dicProperties = deepcopy(dicProp)
+		self.dicProperties = deepcopy(dicProp)
 		#~ self.dicGetProp = { "Reciprocity": get_reciprocity, "Clustering": get_clustering, "Assortativity": get_assortativity,
 							#~ "Diameter": get_diameter, "SCC": get_num_scc, #"Spectral radius": get_spectral_radius, 
 							#~ "WCC": get_num_wcc, "InhibFrac": get_inhib_frac }

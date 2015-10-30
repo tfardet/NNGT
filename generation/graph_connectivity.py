@@ -28,7 +28,6 @@ def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
 	
 	Parameters
 	----------
-	
 	nodes : int
 		The number of nodes in the graph.
 	density : double, optional (default: 0.1)
@@ -49,7 +48,7 @@ def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
 	
 	Returns
 	-------
-    graph_tool.Graph object.
+    :class:`graph_tool.Graph`
 	"""
 	
 	np.random.seed()

@@ -14,7 +14,7 @@ indent_mode=2
 
 [project]
 name=AGNet
-base_path=/home/tfardet/CloudStation/AGNet
+base_path=/home/silmathoron/Documents/PhD_NNGA/AGNet
 description=
 file_patterns=*.py;
 
@@ -23,21 +23,7 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=5
-FILE_NAME_0=428;Python;0;EUTF-8;1;1;0;%2Fhome%2Ftfardet%2FCloudStation%2FNEST%2FCode%2Fvar_param_adexp.py;0;4
-FILE_NAME_1=126;Python;0;EUTF-8;1;1;0;%2Fhome%2Ftfardet%2FCloudStation%2FNEST%2FCode%2Finit_nest_adexp.py;0;4
-FILE_NAME_2=0;Python;0;EUTF-8;1;1;0;%2Fhome%2Ftfardet%2FCloudStation%2FNEST%2FCode%2Ffiring_patterns_adexp.py;0;4
-FILE_NAME_3=1263;Python;0;EUTF-8;1;1;0;%2Fhome%2Ftfardet%2FCloudStation%2FAGNet%2F__init__.py;0;4
-FILE_NAME_4=498;Python;0;EUTF-8;1;1;0;%2Fhome%2Ftfardet%2FCloudStation%2FAGNet%2Fnest%2F__init__.py;0;4
-FILE_NAME_5=952;Python;0;EUTF-8;1;1;0;%2Fhome%2Ftfardet%2FCloudStation%2FAGNet%2Fcore%2F__init__.py;0;4
-FILE_NAME_6=468;Python;0;EUTF-8;1;1;0;%2Fhome%2Ftfardet%2FCloudStation%2FAGNet%2Fnest%2Fnest_graph.py;0;4
-FILE_NAME_7=137;Python;0;EUTF-8;1;1;0;%2Fhome%2Ftfardet%2FCloudStation%2FAGNet%2Fcore%2FGraphClass.py;0;4
+current_page=0
 
 [VTE]
-last_dir=/home/tfardet
-
-[gproject]
-source_patterns=*.py;
-header_patterns=*.h;*.H;*.hpp;*.hxx;*.h++;*.hh;*.m;
-ignored_dirs_patterns=.*;CVS;
-generate_tags=false
+last_dir=/home
