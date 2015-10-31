@@ -1,2 +1,1 @@
-requests[security]
-graph_tool
+--allow-external graph_tool --allow-unverified graph_tool graph_tool
