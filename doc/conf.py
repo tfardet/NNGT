@@ -24,7 +24,12 @@ sys.path.insert(0, os.path.abspath('../src/'))
 
 if on_rtd:
 	import mock
-	sys.modules["graph_tool"] = mock.Mock()
+	mock_object = mock.Mock()
+	sys.modules["graph_tool"] = mock_object
+	sys.modules["graph_tool.spectral"] = mock_object
+	sys.modules["graph_tool.generation"] = mock_object
+	sys.modules["graph_tool.utils"] = mock_object
+	sys.modules["graph_tool.stats"] = mock_object
 
 from nngt import __version__
 
