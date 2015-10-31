@@ -1,4 +1,2 @@
-pyopenssl
-ndg-httpsclient
-pyasn1
+requests[security]
 graph_tool
