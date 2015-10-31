@@ -307,7 +307,5 @@ intersphinx_mapping = {'python': ('http://docs.python.org/3', None),
                        'numpy': ('http://docs.scipy.org/doc/numpy', None),
                        'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
                        'matplotlib': ('http://matplotlib.sourceforge.net', None),
-                       'cairo': ('http://www.cairographics.org/documentation/pycairo/3/', None),
                        'ipython': ('http://ipython.org/ipython-doc/stable/', None),
-                       'panda': ('http://pandas.pydata.org/pandas-docs/stable/', None),
                        'graphtool': ('http://graph-tool.skewed.de/static/doc/', None)}
