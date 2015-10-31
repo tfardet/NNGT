@@ -10,9 +10,9 @@ Basic dependencies
 ++++++++++++++++++
 
 Regardless of your needs, the following libraries are required:
-	* numpy 
-	* scipy
-	* `graph_tool <http://graph-tool.skewed.de>`
+	* `numpy <http://www.numpy.org/>`_ 
+	* `scipy <http://www.scipy.org/scipylib/index.html>`_
+	* `graph_tool <http://graph-tool.skewed.de>`_
 
 Using NEST
 ++++++++++

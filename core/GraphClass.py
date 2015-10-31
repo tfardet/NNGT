@@ -38,7 +38,12 @@ class GraphClass:
 	
 	Returns
 	-------
-	:class:`~core.GraphClass`
+	self : :class:`~core.GraphClass`
+
+	Attributes
+	----------
+	di_properties : dict
+		Dictionary containing the properties of the :class:`graph_tool.Graph` object
 	"""
 
 	#------------#
@@ -47,6 +52,7 @@ class GraphClass:
 
 	def __init__ (self, dicProp={"Name": "Graph", "Type": "None", "Weighted": False}, graph=None):
 		''' init from properties '''
+		#: Dictionary containing the :class:`graph_tool.Graph` properties
 		self.dicProperties = deepcopy(dicProp)
 		#~ self.dicGetProp = { "Reciprocity": get_reciprocity, "Clustering": get_clustering, "Assortativity": get_assortativity,
 							#~ "Diameter": get_diameter, "SCC": get_num_scc, #"Spectral radius": get_spectral_radius, 

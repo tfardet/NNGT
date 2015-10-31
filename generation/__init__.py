@@ -30,10 +30,9 @@ Summary
 -------
 
 .. autosummary::
-	:nosignatures:
-
-	erdos_renyi
-	random_free_scale
+	:toctree:	
+	generation.erdos_renyi
+	generation.random_free_scale
 
 Contents
 --------

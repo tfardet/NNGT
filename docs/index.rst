@@ -6,11 +6,17 @@
 Welcome to AGNet's documentation!
 =================================
 
-Contents:
+.. toctree::
+   :hidden:
+
+   self
+
+.. user:
 
 .. toctree::
    :maxdepth: 2
-   
+   :caption: User Documentation
+
    user/intro
    user/install
    user/graph-generation
@@ -21,16 +27,22 @@ Main classes
 
 AGNet uses three main classes:
 
-* :class:`GraphClass`, which provides a very simple implementation over `graph_tool.Graph` (namely the addition of a name, management of excitatory and inhibitory connections, and simple access to basic graph properties
-* :class:`NeuralNetwork`, which provides more detailed characteristics to emulate biological neural networks, such as classes of inhibitory and excitatory neurons, synaptic properties...
-* :class:`InputConnect`, which is a basic connectivity to feed external signals to a network
+:class:`~core.GraphClass`
+	provides a very simple implementation over `graph_tool.Graph` (namely the addition of az name, management of excitatory and inhibitory connections, and simple access to basic graph properties
+:class:`NeuralNetwork`
+	provides more detailed characteristics to emulate biological neural networks, such as classes of inhibitory and excitatory neurons, synaptic properties...
+:class:`InputConnect`
+	is a basic connectivity to feed external signals to a network
 
 Generation of graphs
 --------------------
 
-* **Structured connectivity:** connectivity between the nodes can be chosen from various well-known graph models
-* **Populations:** populations of neurons are distributed afterwards on the structured connectivity, and can be set to respect various constraints (for instance a given fraction of inhibitory neurons and synapses)
-* **Synaptic properties:** synaptic weights and delays can be set from various distributions or correlated to edge properties
+Structured connectivity:
+	connectivity between the nodes can be chosen from various well-known graph models
+Populations:
+	populations of neurons are distributed afterwards on the structured connectivity, and can be set to respect various constraints (for instance a given fraction of inhibitory neurons and synapses)
+Synaptic properties:
+	synaptic weights and delays can be set from various distributions or correlated to edge properties
 
 Interacting with NEST
 ---------------------

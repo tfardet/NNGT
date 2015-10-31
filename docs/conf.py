@@ -36,6 +36,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -160,7 +161,9 @@ html_static_path = ['.static']
 html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {
+   '**': ['globaltoc.html', 'sourcelink.html', 'searchbox.html'],
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -294,7 +297,17 @@ autodoc_default_flags = ['members', 'undoc-members']
 napoleon_include_special_with_doc = False
 napoleon_use_param = False
 napoleon_use_rtype = False
-autodoc_docstring_signature = False
+autodoc_docstring_signature = True
+autosummary_generate = True
 autodoc_member_order = 'bysource'
-autoclass_content = 'both'
+autoclass_content = 'class'
 imported_members = True
+
+intersphinx_mapping = {'python': ('http://docs.python.org/3', None),
+                       'numpy': ('http://docs.scipy.org/doc/numpy', None),
+                       'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
+                       'matplotlib': ('http://matplotlib.sourceforge.net', None),
+                       'cairo': ('http://www.cairographics.org/documentation/pycairo/3/', None),
+                       'ipython': ('http://ipython.org/ipython-doc/stable/', None),
+                       'panda': ('http://pandas.pydata.org/pandas-docs/stable/', None),
+                       'graphtool': ('http://graph-tool.skewed.de/static/doc/', None)}

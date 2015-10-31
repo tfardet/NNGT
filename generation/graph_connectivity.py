@@ -9,6 +9,7 @@ from graph_tool import Graph
 from graph_tool.generation import geometric_graph
 from graph_tool.stats import remove_self_loops, remove_parallel_edges
 from graph_tool.util import find_vertex
+from graph_tool.spectral import adjacency
 
 
 
@@ -28,6 +29,7 @@ def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
 	
 	Parameters
 	----------
+	
 	nodes : int
 		The number of nodes in the graph.
 	density : double, optional (default: 0.1)
@@ -48,27 +50,43 @@ def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
 	
 	Returns
 	-------
-    :class:`graph_tool.Graph`
+	
+	graph_er : :class:`graph_tool.Graph`
 	"""
 	
 	np.random.seed()
 	edges = _compute_edges(nodes, density, edges, avg_deg)
+	frac_recip = 0.
+	pre_recip_edges = edges
 	if not directed:
 		edges = int(edges/2)
 	elif reciprocity > 0.:
-		a
-	
+		frac_recip = reciprocity/(2.0-reciprocity)
+		pre_recip_edges = edges / (1+frac_recip)
+		
 	graph_er = Graph(directed=directed)
 	# generate edges
 	num_test,num_current_edges = 0,0
-	while num_current_edges != edges and num_test < n_MAXTESTS:
-		ia_edges = np.random.randint(0,nodes,(edges-num_current_edges,2))
+	while num_current_edges != pre_recip_edges and num_test < n_MAXTESTS:
+		ia_edges = np.random.randint(0,nodes,(pre_recip_edges-num_current_edges,2))
 		graph_er.add_edge_list(ia_edges)
 		remove_self_loops(graph_er)
 		if not multigraph:
 			remove_parallel_edges(graph_er)
 		num_current_edges = graph_er.num_edges()
 		num_test += 1
+	if directed and reciprocity > 0.:
+		coo_adjacency = adjacency(graph_er).tocoo()
+		while num_current_edges != edges and num_test < n_MAXTESTS:
+			ia_indices = np.random.randint(0,num_current_edges,edges-num_current_edges)
+			ia_edges = np.array([coo_adjacency.col[ia_indices],coo_adjacency.row[ia_indices]])
+			graph_er.add_edge_list(ia_edges)
+			remove_self_loops(graph_er)
+			if not multigraph:
+				remove_parallel_edges(graph_er)
+			num_current_edges = graph_er.num_edges()
+			num_test += 1
+	
 	graph_er.reindex_edges()
 	return graph_er
 
@@ -103,9 +121,9 @@ def random_free_scale(nodes, density=0.1, edges=-1, avg_deg=-1,
 		nodes.
 	
 	Returns
-    -------
-    
-    :class:`graph_tool.Graph`
+	-------
+	
+	graph_fs : :class:`graph_tool.Graph`
 	"""
 	np.random.seed()
 	edges = _compute_edges(nodes, density, edges, avg_deg)
