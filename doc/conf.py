@@ -16,10 +16,16 @@ import sys
 import os
 import shlex
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 sys.path.insert(0, os.path.abspath('../src/'))
+
+''' if on rtd, graph_tool is not available so I need to mock it using
+	the mock library '''
+
+if on_rtd:
+	import mock
+	sys.modules["graph_tool"] = mock.Mock()
+
 from nngt import __version__
 
 # -- General configuration ------------------------------------------------
@@ -30,24 +36,38 @@ from nngt import __version__
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+#~ extensions = [
+    #~ 'sphinx.ext.mathjax',
+    #~ 'sphinx.ext.viewcode',
+    #~ 'sphinx.ext.intersphinx'
+#~ ]
 extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx'
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.doctest',
+    'sphinx.ext.napoleon'
 ]
 
-# Add auto tools if outside a virtualenv (ie on the local machine)
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if not on_rtd:
-	extensions += [ 'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.doctest' ]
-	# configure them
-	autodoc_default_flags = ['members', 'undoc-members']
-	autodoc_docstring_signature = True
-	autosummary_generate = True
-	autodoc_member_order = 'bysource'
-	autoclass_content = 'class'
+autodoc_default_flags = ['members', 'undoc-members']
+autodoc_docstring_signature = True
+autosummary_generate = True
+autodoc_member_order = 'bysource'
+autoclass_content = 'class'
 
-extensions.append('sphinx.ext.napoleon')
+#~ # Add auto tools if outside a virtualenv (ie on the local machine)
+#~ if not on_rtd:
+	#~ extensions += [ 'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.doctest' ]
+	#~ # configure them
+	#~ autodoc_default_flags = ['members', 'undoc-members']
+	#~ autodoc_docstring_signature = True
+	#~ autosummary_generate = True
+	#~ autodoc_member_order = 'bysource'
+	#~ autoclass_content = 'class'
+#~ 
+#~ extensions.append('sphinx.ext.napoleon')
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
@@ -158,8 +178,8 @@ html_theme = 'sphinx_rtd_theme'
 # Set differently depending on the location?
 
 html_static_path = ['.static']
-if on_rtd:
-	html_static_path = ['static']
+#~ if on_rtd:
+	#~ html_static_path = ['static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
