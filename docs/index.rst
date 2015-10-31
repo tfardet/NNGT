@@ -53,7 +53,7 @@ The generated graphs can be used to easily create complex networks using the NES
 Indices and tables
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
+* `General index <genindex.html>`_
+* `Module index <py-modindex.html>`_
 * :ref:`search`
 
