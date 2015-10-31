@@ -1,3 +1,3 @@
-.. automodule:: generation
+.. automodule:: nngt.generation
     :members:
     :undoc-members:

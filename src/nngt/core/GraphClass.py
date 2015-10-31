@@ -3,8 +3,6 @@
 
 """ GraphClass: graph generation and management """
 
-from __future__ import absolute_import
-
 from copy import deepcopy
 from numpy import multiply
 
@@ -45,10 +43,6 @@ class GraphClass:
 	di_properties : dict
 		Dictionary containing the properties of the :class:`graph_tool.Graph` object
 	"""
-
-	#------------#
-	# Initialize #
-	#------------#
 
 	def __init__ (self, dicProp={"Name": "Graph", "Type": "None", "Weighted": False}, graph=None):
 		''' init from properties '''

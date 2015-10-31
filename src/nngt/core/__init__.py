@@ -29,8 +29,8 @@ Summary
 .. autosummary::
 	:nosignatures:
 
-	GraphClass
-	InputConnect
+	nngt.core.GraphClass
+	nngt.core.InputConnect
 
 Contents
 ++++++++
@@ -38,13 +38,15 @@ Contents
 """
 
 from .GraphClass import GraphClass
+from NeuralNetwork import NeuralNetwork
 from .InputConnect import InputConnect
+from .errors import InvalidArgument
 
 depends = ['graph_tool']
 
 __all__ = [
 	'GraphClass',
 	'InputConnect',
-	'NeuralNetwork'
+	'NeuralNetwork',
 	'InvalidArgument'
 ]

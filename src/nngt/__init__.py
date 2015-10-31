@@ -1,9 +1,11 @@
 """
 ======
-AGNet
+NNGT
 ======
 
-Provides tools for
+Neural Networks Growth and Topology analyzing tool.
+
+Provides algorithms for
   1. growing networks
   2. analyzing their activity
   3. studying the graph theoretical properties of those networks
@@ -63,8 +65,6 @@ provided:
 """
 
 from __future__ import absolute_import
-
-from graph_tool import Graph
 
 from .core import *
 #~ from . import lib

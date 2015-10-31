@@ -31,8 +31,8 @@ Summary
 
 .. autosummary::
 	:toctree:	
-	generation.erdos_renyi
-	generation.random_free_scale
+	nngt.generation.erdos_renyi
+	nngt.generation.random_free_scale
 
 Contents
 --------

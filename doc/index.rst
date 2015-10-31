@@ -1,9 +1,9 @@
-.. AGNet documentation master file, created by
+.. NNGT documentation master file, created by
    sphinx-quickstart on Fri Oct 30 15:32:21 2015.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to AGNet's documentation!
+Welcome to NNGT's documentation!
 =================================
 
 .. toctree::
@@ -22,10 +22,16 @@ Welcome to AGNet's documentation!
    user/graph-generation
 
 
+Principle
+----------
+
+The Neural Network Growth and Topology (NNGT) module provides tools to grow and study detailed biological networks by interfacing efficient graph libraries with highly distributed activity simulators. 
+
+
 Main classes
 ------------
 
-AGNet uses three main classes:
+NNGT uses three main classes:
 
 :class:`~core.GraphClass`
 	provides a very simple implementation over `graph_tool.Graph` (namely the addition of az name, management of excitatory and inhibitory connections, and simple access to basic graph properties
