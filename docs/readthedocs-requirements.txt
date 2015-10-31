@@ -1,1 +1,1 @@
--e git+ssh://git@git.skewed.de:count0/graph-tool.git#egg=graph-tool
+-e git+https://git.skewed.de/count0/graph-tool.git#egg=graph-tool
