@@ -56,24 +56,6 @@ extensions = [
     'sphinx.ext.napoleon'
 ]
 
-autodoc_default_flags = ['members', 'undoc-members']
-autodoc_docstring_signature = True
-autosummary_generate = True
-autodoc_member_order = 'bysource'
-autoclass_content = 'class'
-
-#~ # Add auto tools if outside a virtualenv (ie on the local machine)
-#~ if not on_rtd:
-	#~ extensions += [ 'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.doctest' ]
-	#~ # configure them
-	#~ autodoc_default_flags = ['members', 'undoc-members']
-	#~ autodoc_docstring_signature = True
-	#~ autosummary_generate = True
-	#~ autodoc_member_order = 'bysource'
-	#~ autoclass_content = 'class'
-#~ 
-#~ extensions.append('sphinx.ext.napoleon')
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
 
@@ -183,8 +165,6 @@ html_theme = 'sphinx_rtd_theme'
 # Set differently depending on the location?
 
 html_static_path = ['.static']
-#~ if on_rtd:
-	#~ html_static_path = ['static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -332,6 +312,11 @@ texinfo_show_urls = 'inline'
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
+autodoc_default_flags = ['members', 'undoc-members']
+autodoc_docstring_signature = True
+autosummary_generate = True
+autodoc_member_order = 'bysource'
+autoclass_content = 'class'
 napoleon_include_special_with_doc = False
 napoleon_use_param = False
 napoleon_use_rtype = False

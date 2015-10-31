@@ -1,3 +1,4 @@
+Generation module
+=================
+
 .. automodule:: nngt.generation
-    :members:
-    :undoc-members:
