@@ -1,2 +1,2 @@
---upgrade ndg-httpsclient
+install --upgrade ndg-httpsclient
 graph-tool
