@@ -37,7 +37,8 @@ extensions = [
 ]
 
 # Add auto tools if outside a virtualenv (ie on the local machine)
-if not hasattr(sys, 'real_prefix'):
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if not on_rtd:
 	extensions += [ 'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.doctest' ]
 	# configure them
 	autodoc_default_flags = ['members', 'undoc-members']
@@ -157,7 +158,7 @@ html_theme = 'sphinx_rtd_theme'
 # Set differently depending on the location?
 
 html_static_path = ['.static']
-if hasattr(sys, 'real_prefix'):
+if on_rtd:
 	html_static_path = ['static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
