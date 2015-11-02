@@ -22,8 +22,8 @@ Welcome to NNGT's documentation!
    user/graph-generation
 
 
-Principle
-----------
+Overview
+---------
 
 The Neural Network Growth and Topology (NNGT) module provides tools to grow and study detailed biological networks by interfacing efficient graph libraries with highly distributed activity simulators. 
 
@@ -33,11 +33,11 @@ Main classes
 
 NNGT uses three main classes:
 
-:class:`~core.GraphClass`
-	provides a very simple implementation over `graph_tool.Graph` (namely the addition of az name, management of excitatory and inhibitory connections, and simple access to basic graph properties
-:class:`NeuralNetwork`
+:class:`~nngt.core.GraphClass`
+	provides a very simple implementation over `graph_tool.Graph` (namely the addition of a name, management of excitatory and inhibitory connections, and simple access to basic graph properties
+:class:`~nngt.core.NeuralNetwork`
 	provides more detailed characteristics to emulate biological neural networks, such as classes of inhibitory and excitatory neurons, synaptic properties...
-:class:`InputConnect`
+:class:`~nngt.core.InputConnect`
 	is a basic connectivity to feed external signals to a network
 
 Generation of graphs

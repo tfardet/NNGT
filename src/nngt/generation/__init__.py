@@ -1,5 +1,5 @@
 """
-GENERATION MODULE
+Generation module
 =================
 
 Functions that generates the underlying connectivity of graphs, as well
@@ -26,13 +26,6 @@ correlated_fixed_eprop	Computed from an edge property
 correlated_proba_eprop	Randomly drawn, correlated to an edge property
 ====================== =================================================
 
-Summary
--------
-
-.. autosummary::
-	:toctree:	
-	nngt.generation.erdos_renyi
-	nngt.generation.random_free_scale
 
 Contents
 --------
@@ -44,7 +37,7 @@ from .graph_connectivity import *
 #~ from .synaptic_properties import *
 #~ from .utilities import *
 
-depends = ['graph_tool']
+depends = ['graph_tool','NeuralNetwork']
 
 __all__ = [
 	'erdos_renyi',

@@ -44,31 +44,31 @@ def betweenness_list(gtGraph, bWeights=True):
 # Scalar pproperties
 #------------------------
 
-def get_assortativity(gtGraph):
+def assortativity(gtGraph):
 	return assortativity(gtGraph,"total")[0]
 
-def get_reciprocity(gtGraph):
+def reciprocity(gtGraph):
 	return edge_reciprocity(gtGraph)
 
-def get_clustering(gtGraph):
+def clustering(gtGraph):
 	return global_clustering(gtGraph)[0]
 
-def get_inhib_frac(gtGraph):
+def edge_inhib_frac(gtGraph):
 	numInhib = len(gtGraph.edge_properties["type"].a < 0)
 	return float(numInhib)/gtGraph.num_edges()
 
-def get_num_scc(gtGraph):
+def num_scc(gtGraph):
 	vpropComp,lstHisto = label_components(gtGraph,directed=True)
 	return len(lstHisto)
 
-def get_num_wcc(gtGraph):
+def num_wcc(gtGraph):
 	vpropComp,lstHisto = label_components(gtGraph,directed=False)
 	return len(lstHisto)
 
-def get_diameter(gtGraph):
+def diameter(gtGraph):
 	return pseudo_diameter(gtGraph)[0]
 
-def get_spectral_radius(gtGraph):
+def spectral_radius(gtGraph):
 	weights = gtGraph.edge_properties["type"].copy()
 	if "weight" in gtGraph.edge_properties.keys():
 		weights.a = np.multiply(weights.a,gtGraph.edge_properties["weight"].a)

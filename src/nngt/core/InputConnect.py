@@ -17,6 +17,13 @@ import scipy.sparse as ssp
 #------------------------
 
 class InputConnect:
+
+	'''
+	.. py:currentmodule:: nngt.core
+
+	Connectivity class to input external signals on a :class:`~nngt.core.GraphClass`
+	or :class:`~nngt.core.NeuralNetwork` object.
+	'''
 	
 	numConnectivities = 0
 

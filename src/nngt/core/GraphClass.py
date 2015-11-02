@@ -3,13 +3,14 @@
 
 """ GraphClass: graph generation and management """
 
+import warnings
 from copy import deepcopy
 from numpy import multiply
 
+from graph_tool import Graph
 from graph_tool.spectral import adjacency
 
-#~ from .graph_generation import gen_er, gen_fs, gen_edr
-#~ from .graph_measure import *
+from graph_measure import *
 
 
 
@@ -18,111 +19,138 @@ from graph_tool.spectral import adjacency
 # GraphClass
 #------------------------
 
-class GraphClass:
+class GraphClass(object):
 	
 	"""
-	.. py:currentmodule:: core
+	.. py:currentmodule:: nggt.core
 	
-	The basic class that contains a graph_tool graph and its properties,
-	with the possibility of generating it out of various topologies.
-	
-	Parameters
-	----------
-	di_prop : dict, optional
-		A dictionary containing the desired properties of the graph that
-		will be generated. By default an empty graph is generated.
-	graph : :class:`graph_tool.Graph`, optional
-		An optional :class:`graph_tool.Graph` to serve as base.
-	
-	Returns
-	-------
-	self : :class:`~core.GraphClass`
+	The basic class that contains a :class:`graph_tool.Graph` and some
+	of is properties or methods to easily access them.
 
-	Attributes
-	----------
-	di_properties : dict
-		Dictionary containing the properties of the :class:`graph_tool.Graph` object
+	:ivar id: :class:`int`
+		unique id that identifies the instance.
+	:ivar graph: :class:`graph_tool.Graph`
+		main attribute of the class instance.
 	"""
 
-	def __init__ (self, dicProp={"Name": "Graph", "Type": "None", "Weighted": False}, graph=None):
-		''' init from properties '''
-		#: Dictionary containing the :class:`graph_tool.Graph` properties
-		self.dicProperties = deepcopy(dicProp)
-		#~ self.dicGetProp = { "Reciprocity": get_reciprocity, "Clustering": get_clustering, "Assortativity": get_assortativity,
-							#~ "Diameter": get_diameter, "SCC": get_num_scc, #"Spectral radius": get_spectral_radius, 
-							#~ "WCC": get_num_wcc, "InhibFrac": get_inhib_frac }
-		#~ self.dicGenGraph = { "Erdos-Renyi": gen_er, "Free-scale": gen_fs, "EDR": gen_edr }
-		#~ # create a graph
-		#~ if graph != None:
-			#~ # use the one furnished
-			#~ self.__graph = graph
-			#~ self.update_prop()
-			#~ self.bPropToDate = True
-		#~ elif dicProp["Type"] == "None":
-			#~ # create an empty graph
-			#~ self.__graph = Graph()
-			#~ self.bPropToDate = False
-		#~ else:
-			#~ # generate a graph of the requested type
-			#~ self.__graph = self.dicGenGraph[dicProp["Type"]](self.dicProperties)
-			#~ self.update_prop()
-			#~ self.set_name()
-			#~ self.bPropToDate = True
+	#------------------#
+	# Class attributes #
+	#------------------#
 
+	__num_graphs = 0
+	__max_id = 0
+	__di_property_func = {
+			"reciprocity": reciprocity, "clustering": clustering,
+			"assortativity": assortativity, "diameter": diameter,
+			"scc": num_scc, "wcc": num_wcc, "radius": spectral_radius, 
+			"edges_inhib_frac": edge_inhib_frac }
+	__properties = __di_property_func.keys()
+	
 	@classmethod
-	def from_graph_class(cls, graphToCopy):
-		''' create new GraphClass instance as a deepcopy of another '''
-		dicProperties = deepcopy(graphToCopy.get_dict_properties())
-		gtGraph = graphToCopy.get_graph().copy()
-		# create
-		graphClass = cls(dicProperties, gtGraph)
-		# set state of properties
-		bPropToDate = deepcopy(graphToCopy.bPropToDate)
-		bBetwToDate = deepcopy(graphToCopy.bBetwToDate)
-		graphClass.bPropToDate = bPropToDate
-		graphClass.bBetwToDate = bBetwToDate
-		return graphClass
+	def num_graphs(cls):
+		''' Returns the number of alive instances. '''
+		return cls.__num_graphs
+
+	#----------------------------#
+	# Instance-related functions #
+	#----------------------------#
+
+	def __init__ (self, nodes=0, name="Graph",
+				  weighted=True, directed=True, graph=None):
+		'''
+		Initialize GraphClass instance
+
+		Parameters
+		----------
+		nodes : int, optional (default: 0)
+			Number of nodes in the graph.
+		name : string, optional (default: "Graph")
+			The name of this :class:`GraphClass` instance.
+		weighted : bool, optional (default: True)
+			Whether the graph edges have weight properties.
+		directed : bool, optional (default: True)
+			Whether the graph is directed or undirected.
+		graph : :class:`graph_tool.Graph`, optional
+			An optional :class:`graph_tool.Graph` to serve as base.
+		
+		Returns
+		-------
+		self : :class:`~nggt.core.GraphClass`
+		'''
+		self.__id = self.__class__.max_id
+		self.__di_prop = {
+			"id": self.__id,
+			"name": name,
+			"weighted": weighted,
+			"directed": directed,
+		}
+		if graph != None:
+			self._graph = graph
+		else:
+			self._graph = Graph(directed=directed)
+		self.__class__.num_graphs += 1
+		self.__class__.max_id += 1
+
+	@property
+	def id(self):
+		''' unique :class:`int` identifying the instance '''
+		return self.__id
+	
+	@property
+	def graph(self):
+		''' :class:`graph_tool.Graph` attribute of the instance '''
+		return self._graph
+
+	@graph.setter
+	def graph(self, new_graph):
+		if new_graph.__class__ == Graph:
+			self._graph = new_graph
+		else:
+			raise TypeError("The object passed is not a\
+			< class 'graph_tool.Graph' > but a {}".format(new_graph.__class__))
 
 	def copy(self):
-		''' returns a deepcopy of the graphClass instance '''
-		graphCopy = GraphClass()
-		graphCopy.set_graph(self.__graph.copy())
-		graphCopy.update_prop()
-		graphCopy.set_name(self.dicProperties["Name"]+'_copy')
-		return graphCopy
+		'''
+		Returns a deepcopy of the current :class:`~nngt.core.GraphClass`
+		instance
+		'''
+		gc_instance = GraphClass(
+							name=self.__di_prop["name"]+'_copy',
+							weighted=self.__di_prop["weighted"],
+							graph=self._graph.copy())
+		return gc_instance
 
 	#---------------------------#
 	# Manipulating the gt graph #
 	#---------------------------#
 
-	def set_graph(self, gtGraph):
-		''' acquire a graph_tool graph as its own '''
-		if gtGraph.__class__ == Graph:
-			self.__graph = gtGraph
-		else:
-			raise TypeError("The object passed to 'copy_gt_graph' is not a < class 'graph_tool.Graph' > but a {}".format(gtGraph.__class__))
-
 	def inhibitory_subgraph(self):
-		''' create a GraphClass instance which graph contains only
-		the inhibitory connections of the current instance's graph '''
-		graph = self.graph.copy()
-		epropType = graph.new_edge_property("bool",-graph.edge_properties["type"].a+1)
-		graph.set_edge_filter(epropType)
-		inhibGraph = GraphClass()
-		inhibGraph.set_graph(Graph(graph,prune=True))
-		inhibGraph.set_prop("Weighted", True)
-		return inhibGraph
+		''' Create a :class:`~nngt.core.GraphClass` instance which graph
+		contains only the inhibitory connections of the current instance's
+		:class:`graph_tool.Graph` '''
+		eprop_b_type = self._graph.new_edge_property(
+					   "bool",-self._graph.edge_properties["type"].a+1)
+		self._graph.set_edge_filter(eprop_b_type)
+		inhib_graph = GraphClass(
+							name=self.__di_prop["name"]+'_inhib',
+							weighted=self.__di_prop["weighted"],
+							graph=Graph(self._graph,prune=True))
+		self._graph.clear_filters()
+		return inhib_graph
 
 	def excitatory_subgraph(self):
-		''' create a GraphClass instance which graph contains only
-		the excitatory connections of the current instance's graph '''
-		graph = self.graph.copy()
-		epropType = graph.new_edge_property("bool",graph.edge_properties["type"].a+1)
-		graph.set_edge_filter(epropType)
-		excGraph = GraphClass()
-		excGraph.set_graph(Graph(graph,prune=True))
-		excGraph.set_prop("Weighted", True)
-		return excGraph
+		''' create a :class:`~nngt.core.GraphClass` instance which graph
+		contains only the excitatory connections of the current instance's
+		:class:`graph_tool.Graph` '''
+		eprop_b_type = self._graph.new_edge_property(
+					   "bool",self._graph.edge_properties["type"].a+1)
+		self._graph.set_edge_filter(eprop_b_type)
+		exc_graph = GraphClass(
+							name=self.__di_prop["name"]+'_exc',
+							weighted=self.__di_prop["weighted"],
+							graph=Graph(self._graph,prune=True))
+		self._graph.clear_filters()
+		return exc_graph
 
 	#-------------------------#
 	# Set or update functions #
@@ -131,26 +159,14 @@ class GraphClass:
 	def set_name(self,name=""):
 		''' set graph name '''
 		if name != "":
-			self.dicProperties["Name"] = name
+			self.__di_prop["name"] = name
 		else:
-			strName = self.dicProperties["Type"]
-			tplIgnore = ("Type", "Name", "Weighted")
-			for key,value in self.dicProperties.items():
+			strName = self.__di_prop["type"]
+			tplIgnore = ("type", "name", "weighted")
+			for key,value in self.__di_prop.items():
 				if key not in tplIgnore and (value.__class__ != dict):
 					strName += '_' + key[0] + str(value)
-			self.dicProperties["Name"] = strName
-
-	def update_prop(self, lstProp=[]):
-		''' update part or all of the graph properties '''
-		if lstProp:
-			for strPropName in lstProp:
-				if strPropName in self.dicGetProp.keys():
-					self.dicProperties[strPropName] = self.dicGetProp[strPropName](self.__graph)
-				else:
-					print("Ignoring unknown property '{}'".format(strPropName))
-		else:
-			self.dicProperties.update({ strPropName: self.dicGetProp[strPropName](self.__graph) for strPropName in self.dicGetProp.keys() })
-			self.bPropToDate = True
+			self.__di_prop["name"] = strName
 
 	#---------------#
 	# Get functions #
@@ -159,80 +175,93 @@ class GraphClass:
 	## basic properties
 
 	def get_name(self):
-		return self.dicProperties["Name"]
+		return self.__di_prop["name"]
 	
 	def num_vertices(self):
-		return self.__graph.num_vertices()
+		return self._graph.num_vertices()
 
 	def num_edges(self):
-		return self.__graph.num_edges()
+		return self._graph.num_edges()
 
 	def get_density(self):
-		return self.__graph.num_edges()/float(self.__graph.num_vertices()**2)
+		return self._graph.num_edges()/float(self._graph.num_vertices()**2)
 
 	def is_weighted(self):
-		return self.dicProperties["Weighted"]
+		return self.__di_prop["weighted"]
 
-	## graph and adjacency matrix
-	
-	def get_graph(self):
-		self.bPropToDate = False
-		self.bBetwToDate = False
-		self.wBetweeness = False
-		return self.__graph
+	def is_directed(self):
+		return self.__di_prop["directed"]
+
+	## adjacency matrix
 
 	def get_mat_adjacency(self):
-		return adjacency(self.__graph, self.get_weights())
+		return adjacency(self._graph, self.get_weights())
 
 	## complex properties
 	
-	def get_prop(self, strPropName):
-		if strPropName in self.dicProperties.keys():
-			if not self.bPropToDate:
-				self.dicProperties[strPropName] = self.dicGetProp[strPropName](self.__graph)
-			return self.dicProperties[strPropName]
+	def get_property(self, s_property):
+		''' Return the desired property or None for an incorrect one. '''
+		if s_property in GraphClass.__properties:
+			return GraphClass.__di_property_func[s_property](self._graph)
 		else:
-			print("Ignoring request for unknown property '{}'".format(strPropName))
+			warnings.warn("Ignoring request for unknown property \
+						  '{}'".format(s_property))
+			return None
 
-	def get_dict_properties(self):
-		return self.dicProperties
+	def get_properties(self, a_properties):
+		'''
+		Return a dictionary containing the desired properties
+
+		Parameters
+		----------
+		a_properties : sequence
+			List or tuple of strings of the property names.
+
+		Returns
+		-------
+		di_result : dict
+			A dictionary of values with the property names as keys.
+		'''
+		di_result = { prop: self.get_property(prop) for prop in a_properties }
+		return di_result
 
 	def get_degrees(self, strType="total", bWeights=True):
 		lstValidTypes = ["in", "out", "total"]
 		if strType in lstValidTypes:
-			return degree_list(self.__graph, strType, bWeights)
+			return degree_list(self._graph, strType, bWeights)
 		else:
-			print("Ignoring invalid degree type '{}'".format(strType))
+			warnings.warn("Ignoring invalid degree type '{}'".format(strType))
 			return None
 
 	def get_betweenness(self, bWeights=True):
 		if bWeights:
 			if not self.bWBetwToDate:
-				self.wBetweeness = betweenness_list(self.__graph, bWeights)
+				self.wBetweeness = betweenness_list(self._graph, bWeights)
 				self.wBetweeness = True
 			return self.wBetweeness
 		if not self.bBetwToDate and not bWeights:
-			self.betweenness = betweenness_list(self.__graph, bWeights)
+			self.betweenness = betweenness_list(self._graph, bWeights)
 			self.bBetwToDate = True
 			return self.betweenness
 
-	def get_types(self):
-		if "type" in self.graph.edge_properties.keys():
-			return self.__graph.edge_properties["type"].a
+	def get_edge_types(self):
+		if "type" in self._graph.edge_properties.keys():
+			return self._graph.edge_properties["type"].a
 		else:
-			return repeat(1, self.__graph.num_edges())
+			return repeat(1, self._graph.num_edges())
 	
 	def get_weights(self):
-		if self.dicProperties["Weighted"]:
-			epropW = self.__graph.edge_properties["weight"].copy()
-			epropW.a = multiply(epropW.a, self.__graph.edge_properties["type"].a)
+		if self.is_weighted():
+			epropW = self._graph.edge_properties["weight"].copy()
+			epropW.a = multiply(epropW.a,
+								self._graph.edge_properties["type"].a)
 			return epropW
 		else:
-			return self.__graph.edge_properties["type"].copy()
+			return self._graph.edge_properties["type"].copy()
 
 	#--------#
 	# Delete #
 	#--------#
 
-	#~ def __del__(self):
-		#~ print("graph died")
+	def __del__(self):
+		self.__class__.__num_graphs -= 1

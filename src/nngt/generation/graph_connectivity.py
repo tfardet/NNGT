@@ -3,6 +3,8 @@
 
 """ Connectivity generators for GraphClass """
 
+from __future__ import absolute_import
+
 import numpy as np
 
 from graph_tool import Graph
@@ -10,6 +12,13 @@ from graph_tool.generation import geometric_graph
 from graph_tool.stats import remove_self_loops, remove_parallel_edges
 from graph_tool.util import find_vertex
 from graph_tool.spectral import adjacency
+
+from ..constants import default_neuron, default_synapse
+from ..core.GraphClass import GraphClass
+from ..core.SpatialGraph import SpatialGraph
+from ..core.NeuralNetwork import NeuralNetwork
+from ..core.SpatialNetwork import SpatialNetwork
+from ..core.Shape import Shape
 
 
 
@@ -22,14 +31,16 @@ n_MAXTESTS = 10000 # ensure that generation will finish
 #------------------------
 
 def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
-				reciprocity=-1., directed=True, multigraph=False):
+				reciprocity=-1., directed=True, multigraph=False,
+                cls="SpatialNetwork", shape=Shape(), positions=None,
+                neural_model="iaf_neuron", syn_model="static_synapse",
+                initial_graph=None):
 	"""
 	Generate a random graph as defined by Erdos and Renyi but with a
 	reciprocity that can be chosen.
 	
 	Parameters
 	----------
-	
 	nodes : int
 		The number of nodes in the graph.
 	density : double, optional (default: 0.1)
@@ -47,11 +58,28 @@ def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
 	multigraph : bool, optional (default: False)
 		Whether the graph can contain multiple connections between two
 		nodes.
+    cls : string, optional (default: "SpatialNetwork")
+        Class of the return object, chose between "GraphClass", "SpatialGraph",
+         "NeuralNetwork", and "SpatialNetwork".
+    shape : :class:`~nngt.core.Shape`, optional (default: Shape())
+        Shape of the neurons' environment
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space
+    neural_model : :class:`string`, optional (default: "iaf_neuron"
+        Neural model to be used when generating the network with NEST
+    syn_model : :class:`string`, optional (default: "static_synapse"
+        Synaptic model to be used when generating the network with NEST
+    initial_graph : :class:`GraphClass` or :class:`NeuralNetwork`, optional (default: None)
+        Initial graph whose nodes are to be connected.
 	
 	Returns
 	-------
-	
 	graph_er : :class:`graph_tool.Graph`
+
+    Notes
+    -----
+    If an `initial_graph` is provided, all preexistant connections in the
+    object will be deleted before the new connectivity is implemented.
 	"""
 	
 	np.random.seed()

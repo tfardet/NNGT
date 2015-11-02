@@ -4,13 +4,14 @@ LIB MODULE
 ========================
 
 ==================== =========================================================
-Functions
+Errors
 ==============================================================================
-make_nest_network    Create a network in NEST from a Graph object
-get_nest_network     Create a Graph object from a NEST network
+InvalidArgument		Argument passed to the function are not valid
 ==================== =========================================================
 
 """
 
 from __future__ import absolute_import
+from .errors import *
 
+__all__ = ['InvalidArgument']
