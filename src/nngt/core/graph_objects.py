@@ -40,7 +40,7 @@ class GtGraph(GraphLib):
         super(GtGraph,self).__init__(g,directed,prune,vorder)
         self.add_vertex(nodes)
     
-    def add_node(self, n=1,
+    def new_node(self, n=1,
                  position=None, neuron_type=None, neural_model=None):
         '''
         Adding a node to the graph, with optional properties.
@@ -63,7 +63,7 @@ class GtGraph(GraphLib):
         node = self.add_vertex(n=1)
         return node
     
-    def add_connection(source, target, add_missing=True,
+    def new_edge(source, target, add_missing=True,
                        sweight=1., syn_model=None, syn_delay=None):
         '''
         Adding a connection to the graph, with optional properties.
@@ -90,7 +90,7 @@ class GtGraph(GraphLib):
         connection = self.add_edge(source, target, add_missing)
         return connection
     
-    def add_connection_list(lst_connections, hashed=False,
+    def new_edges(lst_connections, hashed=False,
                             string_vals=False, eprops=None):
         '''
         Adds a list of connections to the graph
@@ -99,7 +99,11 @@ class GtGraph(GraphLib):
         '''
         self.add_edge_list(edge_list, hashed, string_vals, eprops)
     
-    def clear_connections(self):
+    def remove_edge(self, edge):
+        raise NotImplementedError("This function has been removed because it \
+            makes using nodes and edges properties too complicated")
+    
+    def rm_all_edges(self):
         ''' Remove all connections in the graph '''
         self.clear_edges()
 
@@ -138,7 +142,7 @@ class SnapGraph(GraphLib):
         if not self._directed:
             snap.MakeUnDir(self)
     
-    def add_node(self, n=1,
+    def new_node(self, n=1,
                  position=None, neuron_type=None, neural_model=None):
         '''
         Adding a node to the graph, with optional properties.
@@ -160,7 +164,7 @@ class SnapGraph(GraphLib):
         '''
         pass
     
-    def add_connection(source, target, add_missing=True,
+    def new_edge(source, target, add_missing=True,
                        sweight=1., syn_model=None, syn_delay=None):
         '''
         Adding a connection to the graph, with optional properties.
@@ -190,7 +194,7 @@ class SnapGraph(GraphLib):
             pass
         pass
     
-    def add_connection_list(lst_connections, hashed=False,
+    def new_edges(lst_connections, hashed=False,
                             string_vals=False, eprops=None):
         '''
         Adds a list of connections to the graph
