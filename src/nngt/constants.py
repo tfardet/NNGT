@@ -16,3 +16,5 @@ default_neuron = "iaf_neuron"
 ''' :class:`string`, the default NEST neuron model '''
 default_synapse = "static_synapse"
 ''' :class:`string`, the default NEST synaptic model '''
+default_delay = 1.
+''' :class:`double`, the default synaptic delay in NEST '''

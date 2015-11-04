@@ -5,7 +5,6 @@
 
 
 import numpy as np
-import scipy as sp
 import scipy.sparse.linalg as spl
 
 from graph_tool.centrality import betweenness
@@ -53,7 +52,7 @@ def reciprocity(gtGraph):
 def clustering(gtGraph):
 	return global_clustering(gtGraph)[0]
 
-def edge_inhib_frac(gtGraph):
+def num_iedges(gtGraph):
 	numInhib = len(gtGraph.edge_properties["type"].a < 0)
 	return float(numInhib)/gtGraph.num_edges()
 

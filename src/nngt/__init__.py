@@ -1,5 +1,4 @@
 """
-
 NNGT
 =====
 
@@ -72,13 +71,35 @@ provided:
 """
 
 from __future__ import absolute_import
+import sys
+
+# Requires Python > 2.6
+assert sys.hexversion > 0x02060000
+
+try:
+    import graph_tool
+except:
+    try:
+        import snap
+    except:
+        raise ImportError(
+            "This module needs either `graph_tool` or `SNAP` to work")
+
+from .core import *
+from .core.graph_classes import (GraphClass, SpatialGraph, Network,
+                                 SpatialNetwork)
+from .core.graph_objects import GraphObject
+from .core.Shape import Shape
+from .core.InputConnect import InputConnect
+from . import core
 
 from .constants import *
-from .core import *
-from . import core
-from . import generation
+
 from . import lib
+from . import generation
 #~ from . import io
 #~ from . import random
 
 __all__ = core.__all__ + cst__all__
+
+__all__.extend([])

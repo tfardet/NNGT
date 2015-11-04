@@ -3,22 +3,12 @@
 
 """ Connectivity generators for GraphClass """
 
-from __future__ import absolute_import
-
 import numpy as np
 
-from graph_tool import Graph
-from graph_tool.generation import geometric_graph
-from graph_tool.stats import remove_self_loops, remove_parallel_edges
-from graph_tool.util import find_vertex
-from graph_tool.spectral import adjacency
-
-from ..constants import default_neuron, default_synapse
-from ..core.GraphClass import GraphClass
-from ..core.SpatialGraph import SpatialGraph
-from ..core.NeuralNetwork import NeuralNetwork
-from ..core.SpatialNetwork import SpatialNetwork
-from ..core.Shape import Shape
+from .. import GraphClass, SpatialGraph, GraphObject
+from ..lib.utils import (delete_self_loops, delete_parallel_edges,
+                         adjacency_matrix, make_spatial)
+from ..lib.connect_tools import *
 
 
 
@@ -30,93 +20,99 @@ n_MAXTESTS = 10000 # ensure that generation will finish
 # Erdos-Renyi
 #------------------------
 
-def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
-				reciprocity=-1., directed=True, multigraph=False,
-                cls="SpatialNetwork", shape=Shape(), positions=None,
-                neural_model="iaf_neuron", syn_model="static_synapse",
-                initial_graph=None):
-	"""
-	Generate a random graph as defined by Erdos and Renyi but with a
-	reciprocity that can be chosen.
-	
-	Parameters
-	----------
-	nodes : int
-		The number of nodes in the graph.
-	density : double, optional (default: 0.1)
-		Structural density given by `edges` / `nodes`:math:`^2`.
-	edges : int (optional)
-		The number of connections between the nodes
-	avg_deg : double, optional
-		Average degree of the neurons given by `edges` / `nodes`.
-	reciprocity : double, optional (default: -1 to let it free)
-		Fraction of connections that are bidirectional (only for
-		directed graphs -- undirected graphs have a reciprocity of 1 by
-		definition)
-	directed : bool, optional (default: True)
-		Whether the graph is directed or not.
-	multigraph : bool, optional (default: False)
-		Whether the graph can contain multiple connections between two
-		nodes.
-    cls : string, optional (default: "SpatialNetwork")
-        Class of the return object, chose between "GraphClass", "SpatialGraph",
-         "NeuralNetwork", and "SpatialNetwork".
-    shape : :class:`~nngt.core.Shape`, optional (default: Shape())
+def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
+                reciprocity=-1., directed=True, multigraph=False,
+                name="ER", shape=None, positions=None, initial_graph=None):
+    """
+    Generate a random graph as defined by Erdos and Renyi but with a
+    reciprocity that can be chosen.
+
+    Parameters
+    ----------
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    density : double, optional (default: 0.1)
+        Structural density given by `edges` / `nodes`:math:`^2`.
+    edges : int (optional)
+        The number of edges between the nodes
+    avg_deg : double, optional
+        Average degree of the neurons given by `edges` / `nodes`.
+    reciprocity : double, optional (default: -1 to let it free)
+        Fraction of edges that are bidirectional (only for
+        directed graphs -- undirected graphs have a reciprocity of 1 by
+        definition)
+    directed : bool, optional (default: True)
+        Whether the graph is directed or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.core.Shape`, optional (default: None)
         Shape of the neurons' environment
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space
-    neural_model : :class:`string`, optional (default: "iaf_neuron"
-        Neural model to be used when generating the network with NEST
-    syn_model : :class:`string`, optional (default: "static_synapse"
-        Synaptic model to be used when generating the network with NEST
     initial_graph : :class:`GraphClass` or :class:`NeuralNetwork`, optional (default: None)
         Initial graph whose nodes are to be connected.
-	
-	Returns
-	-------
-	graph_er : :class:`graph_tool.Graph`
+
+    Returns
+    -------
+    graph_er : :class:`~nngt.GraphClass`, or subclass
+        A new generated graph or the modified `initial_graph`.
 
     Notes
     -----
-    If an `initial_graph` is provided, all preexistant connections in the
+    `nodes` is required unless `initial_graph` is provided.
+    If an `initial_graph` is provided, all preexistant edges in the
     object will be deleted before the new connectivity is implemented.
-	"""
-	
-	np.random.seed()
-	edges = _compute_edges(nodes, density, edges, avg_deg)
-	frac_recip = 0.
-	pre_recip_edges = edges
-	if not directed:
-		edges = int(edges/2)
-	elif reciprocity > 0.:
-		frac_recip = reciprocity/(2.0-reciprocity)
-		pre_recip_edges = edges / (1+frac_recip)
-		
-	graph_er = Graph(directed=directed)
-	# generate edges
-	num_test,num_current_edges = 0,0
-	while num_current_edges != pre_recip_edges and num_test < n_MAXTESTS:
-		ia_edges = np.random.randint(0,nodes,(pre_recip_edges-num_current_edges,2))
-		graph_er.add_edge_list(ia_edges)
-		remove_self_loops(graph_er)
-		if not multigraph:
-			remove_parallel_edges(graph_er)
-		num_current_edges = graph_er.num_edges()
-		num_test += 1
-	if directed and reciprocity > 0.:
-		coo_adjacency = adjacency(graph_er).tocoo()
-		while num_current_edges != edges and num_test < n_MAXTESTS:
-			ia_indices = np.random.randint(0,num_current_edges,edges-num_current_edges)
-			ia_edges = np.array([coo_adjacency.col[ia_indices],coo_adjacency.row[ia_indices]])
-			graph_er.add_edge_list(ia_edges)
-			remove_self_loops(graph_er)
-			if not multigraph:
-				remove_parallel_edges(graph_er)
-			num_current_edges = graph_er.num_edges()
-			num_test += 1
-	
-	graph_er.reindex_edges()
-	return graph_er
+    """
+
+    np.random.seed()
+    nodes = nodes if initial_graph is None else initial_graph.node_nb()
+    edges = _compute_connections(nodes, density, edges, avg_deg)
+    frac_recip = 0.
+    pre_recip_edges = edges
+    if not directed:
+        edges = int(edges/2)
+    elif reciprocity > 0.:
+        frac_recip = reciprocity/(2.0-reciprocity)
+        pre_recip_edges = edges / (1+frac_recip)
+
+    # generate graph object
+    
+    graph_obj_er = (GraphObject(nodes, directed=directed) if
+                    initial_graph == None else initial_graph.graph)
+    graph_obj_er.clear_edges()
+    num_test,num_current_edges = 0,0
+    
+    while num_current_edges != pre_recip_edges and num_test < n_MAXTESTS:
+        ia_edges = np.random.randint(0,nodes,(pre_recip_edges-num_current_edges,2))
+        graph_obj_er.add_edge_list(ia_edges)
+        delete_self_loops(graph_obj_er)
+        if not multigraph:
+            delete_parallel_edges(graph_obj_er)
+        num_current_edges = graph_obj_er.edge_nb()
+        num_test += 1
+        
+    if directed and reciprocity > 0.:
+        coo_adjacency = adjacency_matrix(graph_er).tocoo()
+        while num_current_edges != edges and num_test < n_MAXTESTS:
+            ia_indices = np.random.randint(0, num_current_edges,
+                                           edges-num_current_edges)
+            ia_edges = np.array([coo_adjacency.col[ia_indices],
+                                 coo_adjacency.row[ia_indices]])
+            graph_er.add_edge_list(ia_edges)
+            delete_self_loops(graph_er)
+            if not multigraph:
+                delete_parallel_edges(graph_er)
+            num_current_edges = graph_er.edge_nb()
+            num_test += 1
+    
+    graph_er = (GraphClass(name=name, graph=graph_obj_er) if
+                initial_graph is None else initial_graph)
+    if shape is not None:
+        make_spatial(graph_er, shape, positions)
+    return graph_er
 
 
 #
@@ -124,139 +120,278 @@ def erdos_renyi(nodes, density=0.1, edges=-1, avg_deg=-1,
 # Scale-free models
 #------------------------
 
-def random_free_scale(nodes, density=0.1, edges=-1, avg_deg=-1,
-					reciprocity=0., in_exp=2.5, out_exp = 2.5,
-					directed=True, multigraph=False):
-	"""
-	Generate a free-scale graph of given reciprocity and otherwise
-	devoid of correlations.
+def random_free_scale(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
+                      avg_deg=-1, reciprocity=0., directed=True,
+                      multigraph=False, name="ER", shape=None, positions=None,
+                      initial_graph=None):
+    """
+    @todo
+    Generate a free-scale graph of given reciprocity and otherwise
+    devoid of correlations.
+
+    Parameters 
+    ----------
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    density: double, optional (default: 0.1)
+        Structural density given by `edges` / (`nodes`*`nodes`).
+    edges : int (optional)
+        The number of edges between the nodes
+    avg_deg : double, optional
+        Average degree of the neurons given by `edges` / `nodes`.
+    directed : bool, optional (default: True)
+        Whether the graph is directed or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+
+    Returns
+    -------
+    graph_fs : :class:`~nngt.GraphClass`
+    
+    Notes
+    -----
+    `nodes` is required unless `initial_graph` is provided.
+    """
+    np.random.seed()
+    nodes = nodes if initial_graph is None else initial_graph.node_nb() 
+    edges = _compute_connections(nodes, density, edges, avg_deg)
+    frac_recip = 0.
+    pre_recip_edges = edges
+    if not directed:
+        edges = int(edges/2)
+    elif reciprocity > 0.:
+        frac_recip = reciprocity/(2.0-reciprocity)
+        pre_recip_edges = edges / (1+frac_recip)
+
+    # define necessary constants
+
+    # for probability functions F(x) = c * x^{-tau} (for in- and out-degrees)
+    c_in = edges*(in_exp-1)/(nodes)
+    c_out = edges*(out_exp-1)/(nNodes)
+    # for the average of the pareto 2 = lomax distribution
+    avg_in = 1/(in_exp-2.)
+    avg_out = 1/(out_exp-2.)
+    # lists containing the in/out-degrees for nodes i
+    lst_in_deg = np.random.pareto(in_exp,nodes)+1
+    lst_out_deg = np.random.pareto(out_exp,nodes)+1
+    lst_in_deg = np.floor(np.multiply(c_in/np.mean(lst_in_deg),
+                                      lst_in_deg)).astype(int)
+    lst_out_deg = np.floor(np.multiply(c_out/np.mean(lst_out_deg),
+                                       lst_out_deg)).astype(int)
+
+    # count and generate the stubs (half edges)
+    num_in_stubs = int(np.sum(lst_in_deg))
+    num_out_stubs = int(np.sum(lst_out_deg))
+    lstInStubs = np.zeros(num_in_stubs)
+    lstOutStubs = np.zeros(num_out_stubs)
+    nStartIn = 0
+    nStartOut = 0
+    for node in range(nNodes):
+        nInDegVert = lstInDeg[node]
+        nOutDegVert = lstOutDeg[node]
+        for j in range(np.max([nInDegVert,nOutDegVert])):
+            if j < nInDegVert:
+                lstInStubs[nStartIn+j] += node
+            if j < nOutDegVert:
+                lstOutStubs[nStartOut+j] += node
+        nStartOut+=nOutDegVert
+        nStartIn+=nInDegVert
+    # on vérifie qu'on a à peu près le nombre voulu d'edges
+    while nInStubs*(1+rFracRecip)/float(nArcs) < 0.95 :
+        node = np.random.randint(0,nNodes)
+        nAddInStubs = int(np.floor(Ai/rMi*(np.random.pareto(rInDeg)+1)))
+        lstInStubs = np.append(lstInStubs,np.repeat(node,nAddInStubs)).astype(int)
+        nInStubs+=nAddInStubs
+    while nOutStubs*(1+rFracRecip)/float(nArcs) < 0.95 :
+        nAddOutStubs = int(np.floor(Ao/rMo*(np.random.pareto(rOutDeg)+1)))
+        lstOutStubs = np.append(lstOutStubs,np.repeat(node,nAddOutStubs)).astype(int)
+        nOutStubs+=nAddOutStubs
+    # on s'assure d'avoir le même nombre de in et out stubs (1.13 is an experimental correction)
+    nMaxStubs = int(1.13*(2.0*nArcs)/(2*(1+rFracRecip)))
+    if nInStubs > nMaxStubs and nOutStubs > nMaxStubs:
+        np.random.shuffle(lstInStubs)
+        np.random.shuffle(lstOutStubs)
+        lstOutStubs.resize(nMaxStubs)
+        lstInStubs.resize(nMaxStubs)
+        nOutStubs = nInStubs = nMaxStubs
+    elif nInStubs < nOutStubs:
+        np.random.shuffle(lstOutStubs)
+        lstOutStubs.resize(nInStubs)
+        nOutStubs = nInStubs
+    else:
+        np.random.shuffle(lstInStubs)
+        lstInStubs.resize(nOutStubs)
+        nInStubs = nOutStubs
+    # on crée le graphe, les noeuds et les stubs
+    nRecip = int(np.floor(nInStubs*rFracRecip))
+    nEdges = nInStubs + nRecip +1
+    # les stubs réciproques
+    np.random.shuffle(lstInStubs)
+    np.random.shuffle(lstOutStubs)
+    lstInRecip = lstInStubs[0:nRecip]
+    lstOutRecip = lstOutStubs[0:nRecip]
+    lstEdges = np.array([np.concatenate((lstOutStubs,lstInRecip)),np.concatenate((lstInStubs,lstOutRecip))]).astype(int)
+    # add edges
+    graphFS.add_edge_list(np.transpose(lstEdges))
+    delete_self_loops(graphFS)
+    delete_parallel_edges(graphFS)
+    graphFS.reindex_edges()
+    nNodes = graphFS.node_nb()
+    nEdges = graphFS.edge_nb()
+    rDens = nEdges / float(nNodes**2)
+    # generate types
+    rInhibFrac = dicProperties["InhibFrac"]
+    lstTypesGen = np.random.uniform(0,1,nEdges)
+    lstTypeLimit = np.full(nEdges,rInhibFrac)
+    lstIsExcitatory = np.greater(lstTypesGen,lstTypeLimit)
+    nExc = np.count_nonzero(lstIsExcitatory)
+    epropType = graphFS.new_edge_property("int",np.multiply(2,lstIsExcitatory)-np.repeat(1,nEdges)) # excitatory (True) or inhibitory (False)
+    graphFS.edge_properties["type"] = epropType
+    # and weights
+    if dicProperties["Weighted"]:
+        lstWeights = dicGenWeights[dicProperties["Distribution"]](graphFS,dicProperties,nEdges,nExc) # generate the weights
+        epropW = graphFS.new_edge_property("double",lstWeights) # crée la propriété pour stocker les poids
+        graphFS.edge_properties["weight"] = epropW
+    return graphFS
+
+def price_free_scale(m, c=None, gamma=1, nodes=None, directed=True,
+                     seed_graph=None, multigraph=False, name="ER", shape=None,
+                     positions=None, initial_graph=None):
+    """
+    Generate a Price graph model (Barabasi-Albert if undirected).
+    @todo: make the algorithm.
 	
 	Parameters 
 	----------
-	
-	nodes : int
+	nodes : int, optional (default: None)
 		The number of nodes in the graph.
+    m : int
+        The number of edges each new node will make.
+    c : double
+        Constant added to the probability of a vertex receiving an edge.
+    gamma : double
+        Preferential attachment power.
+	directed : bool, optional (default: True)
+		Whether the graph is directed or not.
+	multigraph : bool, optional (default: False)
+		Whether the graph can contain multiple edges between two
+		nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.core.Shape`, optional (default: None)
+        Shape of the neurons' environment
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space
+    initial_graph : :class:`GraphClass` or :class:`NeuralNetwork`, optional (default: None)
+        Initial graph whose nodes are to be connected.
+	
+	Returns
+	-------
+	graph_price : :class:`~nngt.GraphClass` or subclass.
+    
+    Notes
+    -----
+    `nodes` is required unless `initial_graph` is provided.
+	"""
+    np.random.seed()
+    nodes = nodes if initial_graph is None else initial_graph.node_nb()
+    #~ c = c if c is not None else 0 if directed else 1
+    
+    graph_obj_price = GraphObject.to_graph_object(
+                        price_network(nodes,m,c,gamma,directed,seed_graph))
+    if initial_graph is not None:
+        initial_graph.graph = graph_obj_price
+    
+    graph_price = (GraphClass(name=name, graph=graph_obj_price) if
+                initial_graph == None else initial_graph)
+    if shape is not None:
+        make_spatial(graph_price, shape, positions)
+    return graph_price
+
+#
+#---
+# Small-world models
+#------------------------
+
+def newman_watts(coord_nb, proba_shortcut, nodes=None, density=0.1, edges=-1,
+                  avg_deg=-1., directed=True, multigraph=False, name="ER",
+                  shape=None, positions=None, initial_graph=None):
+    """
+    Generate a small-world graph using the Newman-Watts algorithm.
+    @todo: generate the edges of a circular graph to not replace the graph
+    of the `initial_graph` and implement chosen reciprocity.
+	
+	Parameters 
+	----------
+	nodes : int, optional (default: None)
+		The number of nodes in the graph.
+    coord_nb : int
+        The number of neighbours for each node on the initial topological 
+        lattice.
+    proba_shortcut : double
+        Probability of adding a new random (shortcut) edge for each existing 
+        edge on the initial lattice.
 	density: double, optional (default: 0.1)
 		Structural density given by `edges` / (`nodes`*`nodes`).
 	edges : int (optional)
-		The number of connections between the nodes
+		The number of edges between the nodes
 	avg_deg : double, optional
 		Average degree of the neurons given by `edges` / `nodes`.
 	directed : bool, optional (default: True)
 		Whether the graph is directed or not.
 	multigraph : bool, optional (default: False)
-		Whether the graph can contain multiple connections between two
+		Whether the graph can contain multiple edges between two
 		nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.core.Shape`, optional (default: None)
+        Shape of the neurons' environment
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space
+    initial_graph : :class:`GraphClass` or :class:`NeuralNetwork`, optional (default: None)
+        Initial graph whose nodes are to be connected.
 	
 	Returns
 	-------
-	
-	graph_fs : :class:`graph_tool.Graph`
+	graph_nw : :class:`~nngt.GraphClass` or subclass
+    
+    Notes
+    -----
+    `nodes` is required unless `initial_graph` is provided.
 	"""
-	np.random.seed()
-	edges = _compute_edges(nodes, density, edges, avg_deg)
-	if not directed:
-		edges = int(edges/2)
-		
-	graphFS = Graph()
-	# on définit la fraction des arcs à utiliser la réciprocité
-	f = dicProperties["Reciprocity"]
-	rFracRecip =  f/(2.0-f)
-	# on définit toutes les grandeurs de base
-	rInDeg = dicProperties["InDeg"]
-	rOutDeg = dicProperties["OutDeg"]
-	nNodes = 0
-	nEdges = 0
-	rDens = 0.0
-	# on définit le nombre d'arcs à créer
-	nArcs = int(np.floor(rDens*nNodes**2)/(1+rFracRecip))
-	# on définit les paramètres fonctions de probabilité associées F(x) = A x^{-tau}
-	Ai = nArcs*(rInDeg-1)/(nNodes)
-	Ao = nArcs*(rOutDeg-1)/(nNodes)
-	# on définit les moyennes des distributions de pareto 2 = lomax
-	rMi = 1/(rInDeg-2.)
-	rMo = 1/(rOutDeg-2.)
-	# on définit les trois listes contenant les degrés sortant/entrant/bidirectionnels associés aux noeuds i in range(nNodes)
-	lstInDeg = np.random.pareto(rInDeg,nNodes)+1
-	lstOutDeg = np.random.pareto(rOutDeg,nNodes)+1
-	lstInDeg = np.floor(np.multiply(Ai/np.mean(lstInDeg), lstInDeg)).astype(int)
-	lstOutDeg = np.floor(np.multiply(Ao/np.mean(lstOutDeg), lstOutDeg)).astype(int)
-	# on génère les stubs qui vont être nécessaires et on les compte
-	nInStubs = int(np.sum(lstInDeg))
-	nOutStubs = int(np.sum(lstOutDeg))
-	lstInStubs = np.zeros(np.sum(lstInDeg))
-	lstOutStubs = np.zeros(np.sum(lstOutDeg))
-	nStartIn = 0
-	nStartOut = 0
-	for vert in range(nNodes):
-		nInDegVert = lstInDeg[vert]
-		nOutDegVert = lstOutDeg[vert]
-		for j in range(np.max([nInDegVert,nOutDegVert])):
-			if j < nInDegVert:
-				lstInStubs[nStartIn+j] += vert
-			if j < nOutDegVert:
-				lstOutStubs[nStartOut+j] += vert
-		nStartOut+=nOutDegVert
-		nStartIn+=nInDegVert
-	# on vérifie qu'on a à peu près le nombre voulu d'edges
-	while nInStubs*(1+rFracRecip)/float(nArcs) < 0.95 :
-		vert = np.random.randint(0,nNodes)
-		nAddInStubs = int(np.floor(Ai/rMi*(np.random.pareto(rInDeg)+1)))
-		lstInStubs = np.append(lstInStubs,np.repeat(vert,nAddInStubs)).astype(int)
-		nInStubs+=nAddInStubs
-	while nOutStubs*(1+rFracRecip)/float(nArcs) < 0.95 :
-		nAddOutStubs = int(np.floor(Ao/rMo*(np.random.pareto(rOutDeg)+1)))
-		lstOutStubs = np.append(lstOutStubs,np.repeat(vert,nAddOutStubs)).astype(int)
-		nOutStubs+=nAddOutStubs
-	# on s'assure d'avoir le même nombre de in et out stubs (1.13 is an experimental correction)
-	nMaxStubs = int(1.13*(2.0*nArcs)/(2*(1+rFracRecip)))
-	if nInStubs > nMaxStubs and nOutStubs > nMaxStubs:
-		np.random.shuffle(lstInStubs)
-		np.random.shuffle(lstOutStubs)
-		lstOutStubs.resize(nMaxStubs)
-		lstInStubs.resize(nMaxStubs)
-		nOutStubs = nInStubs = nMaxStubs
-	elif nInStubs < nOutStubs:
-		np.random.shuffle(lstOutStubs)
-		lstOutStubs.resize(nInStubs)
-		nOutStubs = nInStubs
-	else:
-		np.random.shuffle(lstInStubs)
-		lstInStubs.resize(nOutStubs)
-		nInStubs = nOutStubs
-	# on crée le graphe, les noeuds et les stubs
-	nRecip = int(np.floor(nInStubs*rFracRecip))
-	nEdges = nInStubs + nRecip +1
-	# les stubs réciproques
-	np.random.shuffle(lstInStubs)
-	np.random.shuffle(lstOutStubs)
-	lstInRecip = lstInStubs[0:nRecip]
-	lstOutRecip = lstOutStubs[0:nRecip]
-	lstEdges = np.array([np.concatenate((lstOutStubs,lstInRecip)),np.concatenate((lstInStubs,lstOutRecip))]).astype(int)
-	# add edges
-	graphFS.add_edge_list(np.transpose(lstEdges))
-	remove_self_loops(graphFS)
-	remove_parallel_edges(graphFS)
-	lstIsolatedVert = find_vertex(graphFS, graphFS.degree_property_map("total"), 0)
-	graphFS.remove_vertex(lstIsolatedVert)
-	graphFS.reindex_edges()
-	nNodes = graphFS.num_vertices()
-	nEdges = graphFS.num_edges()
-	rDens = nEdges / float(nNodes**2)
-	# generate types
-	rInhibFrac = dicProperties["InhibFrac"]
-	lstTypesGen = np.random.uniform(0,1,nEdges)
-	lstTypeLimit = np.full(nEdges,rInhibFrac)
-	lstIsExcitatory = np.greater(lstTypesGen,lstTypeLimit)
-	nExc = np.count_nonzero(lstIsExcitatory)
-	epropType = graphFS.new_edge_property("int",np.multiply(2,lstIsExcitatory)-np.repeat(1,nEdges)) # excitatory (True) or inhibitory (False)
-	graphFS.edge_properties["type"] = epropType
-	# and weights
-	if dicProperties["Weighted"]:
-		lstWeights = dicGenWeights[dicProperties["Distribution"]](graphFS,dicProperties,nEdges,nExc) # generate the weights
-		epropW = graphFS.new_edge_property("double",lstWeights) # crée la propriété pour stocker les poids
-		graphFS.edge_properties["weight"] = epropW
-	return graphFS
+    np.random.seed()
+    nodes = nodes if initial_graph is None else initial_graph.node_nb() 
+    edges = _compute_connections(nodes, density, edges, avg_deg,
+                           (coord_nb,proba_shortcut))
+    #~ frac_recip = 0.
+    #~ pre_recip_edges = edges
+    #~ if not directed:
+        #~ edges = int(edges/2)
+    #~ elif reciprocity > 0.:
+        #~ frac_recip = reciprocity/(2.0-reciprocity)
+        #~ pre_recip_edges = edges / (1+frac_recip)
+    
+    graph_obj_nw = GraphObject.to_graph_object(circular_graph(
+                        nodes,k=coord_nb/2,directed=directed))
+    if initial_graph is not None:
+        initial_graph.graph = graph_obj_nw
+    
+    num_test,num_current_edges = 0,graph_obj_nw.edge_nb()
+    while num_current_edges != edges and num_test < n_MAXTESTS:
+        ia_edges = np.random.randint(0,nodes, (edges-num_current_edges,2))
+        graph_obj_nw.add_edge_list(ia_edges)
+        if not multigraph:
+            delete_parallel_edges(graph_obj_nw)
+        delete_self_loops(graph_obj_nw)
+        num_current_edges = graph_obj_nw.edge_nb()
+        num_test += 1
+        
+    graph_nw = (GraphClass(name=name, graph=graph_obj_nw) if
+                initial_graph == None else initial_graph)
+    if shape is not None:
+        make_spatial(graph_nw, shape, positions)
+    return graph_nw
 
 #---------------------------#
 # Exponential Distance Rule #
@@ -295,7 +430,7 @@ def gen_edr(dicProperties):
 	graphEDR.set_directed(True)
 	graphEDR.vertex_properties["pos"] = pos
 	# test edges building on random neurons
-	nEdgesTot = graphEDR.num_edges()
+	nEdgesTot = graphEDR.edge_nb()
 	numTest = 0
 	while nEdgesTot < numDesiredEdges and numTest < n_MAXTESTS:
 		nTests = int(np.minimum(1.1*np.ceil(numDesiredEdges-nEdgesTot)*np.exp(np.divide(rAverageDistance,rLambda)),1e7))
@@ -315,15 +450,13 @@ def gen_edr(dicProperties):
 			lstEdges = np.array([lstVertSrc[lstCreateEdge],lstVertDest[lstCreateEdge]]).astype(int)
 		graphEDR.add_edge_list(np.transpose(lstEdges))
 		# make graph simple and connected
-		remove_self_loops(graphEDR)
-		remove_parallel_edges(graphEDR)
-		nEdgesTot = graphEDR.num_edges()
+		delete_self_loops(graphEDR)
+		delete_parallel_edges(graphEDR)
+		nEdgesTot = graphEDR.edge_nb()
 		numTest += 1
-	lstIsolatedVert = find_vertex(graphEDR, graphEDR.degree_property_map("total"), 0)
-	graphEDR.remove_vertex(lstIsolatedVert)
 	graphEDR.reindex_edges()
-	nNodes = graphEDR.num_vertices()
-	nEdges = graphEDR.num_edges()
+	nNodes = graphEDR.node_nb()
+	nEdges = graphEDR.edge_nb()
 	rDens = nEdges / float(nNodes**2)
 	# generate types
 	rInhibFrac = dicProperties["InhibFrac"]
