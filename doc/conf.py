@@ -31,6 +31,7 @@ if on_rtd:
 	sys.modules["graph_tool.utils"] = mock_object
 	sys.modules["graph_tool.stats"] = mock_object
 	sys.modules["graph_tool.centrality"] = mock_object
+	sys.modules["graph_tool.correlations"] = mock_object
 
 from nngt.constants import version as nngt_version
 
