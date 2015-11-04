@@ -30,6 +30,7 @@ if on_rtd:
 	sys.modules["graph_tool.generation"] = mock_object
 	sys.modules["graph_tool.utils"] = mock_object
 	sys.modules["graph_tool.stats"] = mock_object
+	sys.modules["graph_tool.centrality"] = mock_object
 
 from nngt.constants import version as nngt_version
 
@@ -322,7 +323,7 @@ napoleon_use_param = False
 napoleon_use_rtype = False
 imported_members = True
 
-intersphinx_mapping = {'python': ('http://docs.python.org/3', None),
+intersphinx_mapping = {'python': ('http://docs.python.org/2.7/', None),
                        'numpy': ('http://docs.scipy.org/doc/numpy', None),
                        'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
                        'matplotlib': ('http://matplotlib.sourceforge.net', None),

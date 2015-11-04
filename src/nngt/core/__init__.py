@@ -6,8 +6,10 @@ Core module
 Classes
 ========================================================================
 GraphClass			Main object
+SpatialGraph        Spatially-embedded graph
+Network		        More detailed network that inherits from GraphClass
+SpatialNetwork      Spatially-embedded network
 InputConnect		Connectivity to input analogic signals on a graph
-NeuralNetwork		More detailed network that inherits from GraphClass
 ================== =====================================================
 
 
@@ -16,19 +18,18 @@ Contents
 
 """
 
-from .GraphClass import GraphClass
-from .SpatialGraph import SpatialGraph
-from .NeuralNetwork import NeuralNetwork
-from .SpatialNetwork import SpatialNetwork
-from .InputConnect import InputConnect
-from ..lib import errors
+from .graph_measures import *
 
-depends = ['graph_tool']
 
-__all__ = [
-	'GraphClass',
-    'SpatialGraph',
-	'NeuralNetwork',
-    'SpatialNetwork',
-	'InputConnect'
+__all__ = [ 
+	"degree_list",
+	"betweenness_list",
+	"assortativity",
+	"reciprocity",
+	"clustering",
+	"num_iedges",
+	"num_scc",
+	"num_wcc",
+	"diameter",
+	"spectral_radius"
 ]
