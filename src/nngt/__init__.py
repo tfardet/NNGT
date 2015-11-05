@@ -86,9 +86,8 @@ except:
             "This module needs either `graph_tool` or `SNAP` to work")
 
 from .core import *
-from .core.graph_classes import (GraphClass, SpatialGraph, Network,
+from .core.graph_classes import (Graph, SpatialGraph, Network,
                                  SpatialNetwork)
-from .core.graph_objects import GraphObject
 from .core.Shape import Shape
 from .core.InputConnect import InputConnect
 from . import core

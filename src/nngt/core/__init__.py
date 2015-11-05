@@ -18,6 +18,7 @@ Contents
 
 """
 
+from .graph_objects import GraphObject
 from .graph_measures import *
 
 

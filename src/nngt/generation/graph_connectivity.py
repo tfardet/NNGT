@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-""" Connectivity generators for GraphClass """
+""" Connectivity generators for Graph """
 
 import numpy as np
 
-from .. import GraphClass, SpatialGraph, GraphObject
+from .. import Graph, SpatialGraph
+from ..core import GraphObject
 from ..lib.utils import (delete_self_loops, delete_parallel_edges,
                          adjacency_matrix, make_spatial)
 from ..lib.connect_tools import *
@@ -52,12 +53,12 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
         Shape of the neurons' environment
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space
-    initial_graph : :class:`GraphClass` or :class:`NeuralNetwork`, optional (default: None)
+    initial_graph : :class:`Graph` or :class:`NeuralNetwork`, optional (default: None)
         Initial graph whose nodes are to be connected.
 
     Returns
     -------
-    graph_er : :class:`~nngt.GraphClass`, or subclass
+    graph_er : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `initial_graph`.
 
     Notes
@@ -108,7 +109,7 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
             num_current_edges = graph_er.edge_nb()
             num_test += 1
     
-    graph_er = (GraphClass(name=name, graph=graph_obj_er) if
+    graph_er = (Graph(name=name, graph=graph_obj_er) if
                 initial_graph is None else initial_graph)
     if shape is not None:
         make_spatial(graph_er, shape, positions)
@@ -147,7 +148,7 @@ def random_free_scale(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
 
     Returns
     -------
-    graph_fs : :class:`~nngt.GraphClass`
+    graph_fs : :class:`~nngt.Graph`
     
     Notes
     -----
@@ -283,12 +284,12 @@ def price_free_scale(m, c=None, gamma=1, nodes=None, directed=True,
         Shape of the neurons' environment
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space
-    initial_graph : :class:`GraphClass` or :class:`NeuralNetwork`, optional (default: None)
+    initial_graph : :class:`Graph` or :class:`NeuralNetwork`, optional (default: None)
         Initial graph whose nodes are to be connected.
 	
 	Returns
 	-------
-	graph_price : :class:`~nngt.GraphClass` or subclass.
+	graph_price : :class:`~nngt.Graph` or subclass.
     
     Notes
     -----
@@ -303,7 +304,7 @@ def price_free_scale(m, c=None, gamma=1, nodes=None, directed=True,
     if initial_graph is not None:
         initial_graph.graph = graph_obj_price
     
-    graph_price = (GraphClass(name=name, graph=graph_obj_price) if
+    graph_price = (Graph(name=name, graph=graph_obj_price) if
                 initial_graph == None else initial_graph)
     if shape is not None:
         make_spatial(graph_price, shape, positions)
@@ -349,12 +350,12 @@ def newman_watts(coord_nb, proba_shortcut, nodes=None, density=0.1, edges=-1,
         Shape of the neurons' environment
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space
-    initial_graph : :class:`GraphClass` or :class:`NeuralNetwork`, optional (default: None)
+    initial_graph : :class:`Graph` or :class:`NeuralNetwork`, optional (default: None)
         Initial graph whose nodes are to be connected.
 	
 	Returns
 	-------
-	graph_nw : :class:`~nngt.GraphClass` or subclass
+	graph_nw : :class:`~nngt.Graph` or subclass
     
     Notes
     -----
@@ -387,7 +388,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=None, density=0.1, edges=-1,
         num_current_edges = graph_obj_nw.edge_nb()
         num_test += 1
         
-    graph_nw = (GraphClass(name=name, graph=graph_obj_nw) if
+    graph_nw = (Graph(name=name, graph=graph_obj_nw) if
                 initial_graph == None else initial_graph)
     if shape is not None:
         make_spatial(graph_nw, shape, positions)

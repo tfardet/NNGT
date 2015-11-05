@@ -18,10 +18,10 @@ from .Shape import Shape
 
 #
 #---
-# GraphClass
+# Graph
 #------------------------
 
-class GraphClass(object):
+class Graph(object):
     
     """
     .. py:currentmodule:: nggt.core
@@ -53,14 +53,14 @@ class GraphClass(object):
     def __init__(self, nodes=0, name="Graph",
                   weighted=True, directed=True, graph=None):
         '''
-        Initialize GraphClass instance
+        Initialize Graph instance
 
         Parameters
         ----------
         nodes : int, optional (default: 0)
             Number of nodes in the graph.
         name : string, optional (default: "Graph")
-            The name of this :class:`GraphClass` instance.
+            The name of this :class:`Graph` instance.
         weighted : bool, optional (default: True)
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
@@ -70,7 +70,7 @@ class GraphClass(object):
         
         Returns
         -------
-        self : :class:`~nggt.core.GraphClass`
+        self : :class:`~nggt.core.Graph`
         '''
         self.__id = self.__class__.__max_id
         self.__di_prop = {
@@ -108,10 +108,10 @@ class GraphClass(object):
 
     def copy(self):
         '''
-        Returns a deepcopy of the current :class:`~nngt.core.GraphClass`
+        Returns a deepcopy of the current :class:`~nngt.core.Graph`
         instance
         '''
-        gc_instance = GraphClass(
+        gc_instance = Graph(
                             name=self.__di_prop["name"]+'_copy',
                             weighted=self.__di_prop["weighted"],
                             graph=self._graph.copy())
@@ -119,13 +119,13 @@ class GraphClass(object):
 
 
     def inhibitory_subgraph(self):
-        ''' Create a :class:`~nngt.core.GraphClass` instance which graph
+        ''' Create a :class:`~nngt.core.Graph` instance which graph
         contains only the inhibitory edges of the current instance's
         :class:`graph_tool.Graph` '''
         eprop_b_type = self._graph.new_edge_property(
                        "bool",-self._graph.edge_properties["type"].a+1)
         self._graph.set_edge_filter(eprop_b_type)
-        inhib_graph = GraphClass(
+        inhib_graph = Graph(
                             name=self.__di_prop["name"]+'_inhib',
                             weighted=self.__di_prop["weighted"],
                             graph=GraphObject(self._graph,prune=True))
@@ -133,13 +133,13 @@ class GraphClass(object):
         return inhib_graph
 
     def excitatory_subgraph(self):
-        ''' create a :class:`~nngt.core.GraphClass` instance which graph
+        ''' create a :class:`~nngt.core.Graph` instance which graph
         contains only the excitatory edges of the current instance's
         :class:`GraphObject` '''
         eprop_b_type = self._graph.new_edge_property(
                        "bool",self._graph.edge_properties["type"].a+1)
         self._graph.set_edge_filter(eprop_b_type)
-        exc_graph = GraphClass(
+        exc_graph = Graph(
                             name=self.__di_prop["name"]+'_exc',
                             weighted=self.__di_prop["weighted"],
                             graph=GraphObject(self._graph,prune=True))
@@ -181,8 +181,8 @@ class GraphClass(object):
     
     def get_property(self, s_property):
         ''' Return the desired property or None for an incorrect one. '''
-        if s_property in GraphClass.__properties:
-            return GraphClass.__di_property_func[s_property](self._graph)
+        if s_property in Graph.__properties:
+            return Graph.__di_property_func[s_property](self._graph)
         else:
             warnings.warn("Ignoring request for unknown property \
                           '{}'".format(s_property))
@@ -250,12 +250,12 @@ class GraphClass(object):
 # SpatialGraph
 #------------------------
 
-class SpatialGraph(GraphClass):
+class SpatialGraph(Graph):
     
     """
     .. py:currentmodule:: nngt.core
     
-    The detailed class that inherits from :class:`GraphClass` and implements
+    The detailed class that inherits from :class:`Graph` and implements
     additional properties to describe various biological functions
     and interact with the NEST simulator.
 
@@ -283,7 +283,7 @@ class SpatialGraph(GraphClass):
         nodes : int, optional (default: 0)
             Number of nodes in the graph.
         name : string, optional (default: "Graph")
-            The name of this :class:`GraphClass` instance.
+            The name of this :class:`Graph` instance.
         weighted : bool, optional (default: True)
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
@@ -297,7 +297,7 @@ class SpatialGraph(GraphClass):
         
         Returns
         -------
-        self : :class:`~nggt.GraphClass`
+        self : :class:`~nggt.Graph`
         '''
         super(SpatialGraph, self).__init__(nodes, name,
                                          weighted, directed, graph)
@@ -319,13 +319,13 @@ class SpatialGraph(GraphClass):
     def shape(self):
         return self._shape
     
-    @GraphClass.graph.getter
+    @Graph.graph.getter
     def graph(self):
         self.__b_valid_properties = False
         warnings.warn("The 'graph' attribute should not be modified!")
         return self._graph
 
-    @GraphClass.graph.setter
+    @Graph.graph.setter
     def graph(self, val):
         raise RuntimeError("The 'graph' attribute cannot be substituted after \
                             creation.")
@@ -342,12 +342,12 @@ class SpatialGraph(GraphClass):
 # Network
 #------------------------
 
-class Network(GraphClass):
+class Network(Graph):
     
     """
     .. py:currentmodule:: nngt.core
     
-    The detailed class that inherits from :class:`GraphClass` and implements
+    The detailed class that inherits from :class:`Graph` and implements
     additional properties to describe various biological functions
     and interact with the NEST simulator.
     
@@ -379,7 +379,7 @@ class Network(GraphClass):
         nodes : int, optional (default: 0)
             Number of nodes in the graph.
         name : string, optional (default: "Graph")
-            The name of this :class:`GraphClass` instance.
+            The name of this :class:`Graph` instance.
         weighted : bool, optional (default: True)
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
@@ -397,7 +397,7 @@ class Network(GraphClass):
         
         Returns
         -------
-        self : :class:`~nggt.core.GraphClass`
+        self : :class:`~nggt.core.Graph`
         '''
         super(Network, self).__init__(nodes, name, weighted, directed, graph)
         self.__id = self.__class__.__max_id
@@ -414,13 +414,13 @@ class Network(GraphClass):
         self._neural_model = neural_model
         self._syn_model = syn_model
 
-    @GraphClass.graph.getter
+    @Graph.graph.getter
     def graph(self):
         self.__b_valid_properties = False
         warnings.warn("The 'graph' attribute should not be modified!")
         return self._graph
 
-    @GraphClass.graph.setter
+    @Graph.graph.setter
     def graph(self, val):
         raise RuntimeError("The 'graph' attribute cannot be substituted after \
                             creation.")
@@ -442,7 +442,7 @@ class SpatialNetwork(Network,SpatialGraph):
     """
     .. py:currentmodule:: nngt.core
     
-    The detailed class that inherits from :class:`GraphClass` and implements
+    The detailed class that inherits from :class:`Graph` and implements
     additional properties to describe spatially embedded networks with various
     biological functions and interact with the NEST simulator.
 
@@ -471,14 +471,14 @@ class SpatialNetwork(Network,SpatialGraph):
                  shape=None, graph=None, positions=None,
                  neuron_type=1, neural_model=default_neuron):
         '''
-        Initialize GraphClass instance
+        Initialize Graph instance
 
         Parameters
         ----------
         nodes : int, optional (default: 0)
             Number of nodes in the graph.
         name : string, optional (default: "Graph")
-            The name of this :class:`GraphClass` instance.
+            The name of this :class:`Graph` instance.
         weighted : bool, optional (default: True)
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
@@ -500,7 +500,7 @@ class SpatialNetwork(Network,SpatialGraph):
         
         Returns
         -------
-        self : :class:`~nggt.core.GraphClass`
+        self : :class:`~nggt.core.Graph`
         '''
         super(SpatialNetwork, self).__init__(
             nodes=nodes, name=name, weighted=weighted, directed=directed,

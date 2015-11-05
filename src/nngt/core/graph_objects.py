@@ -101,10 +101,17 @@ class GtGraph(GraphLib):
     
     def remove_edge(self, edge):
         raise NotImplementedError("This function has been removed because it \
-            makes using nodes and edges properties too complicated")
+            makes using edge properties too complicated")
+    
+    def remove_vertex(self, node, fast=False):
+        raise NotImplementedError("This function has been removed because it \
+            makes using node properties too complicated")
     
     def rm_all_edges(self):
-        ''' Remove all connections in the graph '''
+        '''
+        Remove all connections in the graph
+        @todo: this should be implemented in GraphClass, 
+        '''
         self.clear_edges()
 
     def node_nb(self):
