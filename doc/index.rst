@@ -20,6 +20,25 @@ Welcome to NNGT's documentation!
    user/intro
    user/install
    user/graph-generation
+   user/component_properties
+
+.. developer:
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Developer space
+
+   developer/detailed-implementation
+
+.. modules
+
+.. toctree::
+   :glob:
+   :caption: Modules
+
+   modules/nngt
+   
 
 
 Overview
@@ -34,7 +53,7 @@ Main classes
 NNGT uses four main classes:
 
 :class:`~nngt.Graph`
-	provides a very simple implementation over `graph_tool.Graph` (namely the addition of a name, management of excitatory and inhibitory connections, and simple access to basic graph properties
+	provides a simple implementation over graphs objects from graph libraries (namely the addition of a name, management of detailed nodes and connection properties, and simple access to basic graph measurements).
 :class:`~nngt.SpatialGraph`
     a Graph embedded in space (neurons have positions and connections are associated to a distance)
 :class:`~nngt.Network`

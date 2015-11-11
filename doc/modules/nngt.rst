@@ -1,26 +1,35 @@
-.. automodule:: nngt
-	:no-members:
-	:no-undoc-members:
+Main module
+===========
 
-	.. currentmodule:: nngt
-	.. autoclass:: GraphClass
-		:no-members:
-	.. currentmodule:: nngt
-	.. autoclass:: SpatialGraph
-		:no-members:
-	.. currentmodule:: nngt
-	.. autoclass:: NeuralNetwork
-		:no-members:
-	.. currentmodule:: nngt
-	.. autoclass:: SpatialNetwork
-		:no-members:
-	.. currentmodule:: nngt
-	.. autoattribute:: default_neuron
-
+For more details regarding the main classes, see:
 
 .. toctree::
-	:hidden:
+   nngt/graph-classes
+   nngt/side-classes
 
-	/modules/core
-	/modules/generation
-	/modules/lib
+.. automodule:: nngt
+   :no-members:
+   :no-undoc-members:
+
+   .. currentmodule:: nngt
+   .. autoclass:: Graph
+      :no-members:
+   .. currentmodule:: nngt
+   .. autoclass:: SpatialGraph
+      :no-members:
+   .. currentmodule:: nngt
+   .. autoclass:: Network
+      :no-members:
+   .. currentmodule:: nngt
+   .. autoclass:: SpatialNetwork
+      :no-members:
+   .. currentmodule:: nngt
+   .. autoattribute:: default_neuron
+
+.. toctree::
+   :hidden:
+
+   core
+   generation
+   lib
+   properties

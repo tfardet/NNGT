@@ -20,6 +20,7 @@ Contents
 
 from .graph_objects import GraphObject
 from .graph_measures import *
+#~ from .InputConnect import InputConnect # there is some problem in this file
 
 
 __all__ = [ 

@@ -4,9 +4,10 @@
 """ Graph measurements on graph_tool.Graph objects """
 
 
-import numpy as np
+import scipy as sp
 import scipy.sparse.linalg as spl
 
+from graph_tool.spectral import adjacency
 from graph_tool.centrality import betweenness
 from graph_tool.correlations import assortativity
 from graph_tool.stats import *
@@ -22,20 +23,20 @@ from graph_tool.spectral import *
 # Distributions
 #------------------------
 
-def degree_list(gtGraph, strType, bWeights=True):
-	degPropMap = gtGraph.degree_property_map(strType)
-	if "weight" in gtGraph.edge_properties.keys() and bWeights:
-		degPropMap = gtGraph.degree_property_map(strType, gtGraph.edge_properties["weight"])
+def degree_list(lib_graph, strType, bWeights=True):
+	degPropMap = lib_graph.degree_property_map(strType)
+	if "weight" in lib_graph.edge_properties.keys() and bWeights:
+		degPropMap = lib_graph.degree_property_map(strType, lib_graph.edge_properties["weight"])
 	return degPropMap.a
 
-def betweenness_list(gtGraph, bWeights=True):
-	if "weight" in gtGraph.edge_properties.keys() and bWeights:
-		weightPropMap = gtGraph.copy_property(gtGraph.edge_properties["weight"])
+def betweenness_list(lib_graph, bWeights=True):
+	if "weight" in lib_graph.edge_properties.keys() and bWeights:
+		weightPropMap = lib_graph.copy_property(lib_graph.edge_properties["weight"])
 		#~ weightPropMap.a = np.divide(np.repeat(1,len(weightPropMap.a)),weightPropMap.a) # this drastically changes the distribution
 		weightPropMap.a = weightPropMap.a.max() - weightPropMap.a
-		return betweenness(gtGraph, weight=weightPropMap)
+		return betweenness(lib_graph, weight=weightPropMap)
 	else:
-		return betweenness(gtGraph)
+		return betweenness(lib_graph)
 
 
 #
@@ -43,38 +44,48 @@ def betweenness_list(gtGraph, bWeights=True):
 # Scalar pproperties
 #------------------------
 
-def assortativity(gtGraph):
-	return assortativity(gtGraph,"total")[0]
+def assortativity(lib_graph):
+	return assortativity(lib_graph,"total")[0]
 
-def reciprocity(gtGraph):
-	return edge_reciprocity(gtGraph)
+def reciprocity(lib_graph):
+	return edge_reciprocity(lib_graph)
 
-def clustering(gtGraph):
-	return global_clustering(gtGraph)[0]
+def clustering(lib_graph):
+	return global_clustering(lib_graph)[0]
 
-def num_iedges(gtGraph):
-	numInhib = len(gtGraph.edge_properties["type"].a < 0)
-	return float(numInhib)/gtGraph.num_edges()
+def num_iedges(lib_graph):
+	numInhib = len(lib_graph.edge_properties["type"].a < 0)
+	return float(numInhib)/lib_graph.num_edges()
 
-def num_scc(gtGraph):
-	vpropComp,lstHisto = label_components(gtGraph,directed=True)
+def num_scc(lib_graph):
+	vpropComp,lstHisto = label_components(lib_graph,directed=True)
 	return len(lstHisto)
 
-def num_wcc(gtGraph):
-	vpropComp,lstHisto = label_components(gtGraph,directed=False)
+def num_wcc(lib_graph):
+	vpropComp,lstHisto = label_components(lib_graph,directed=False)
 	return len(lstHisto)
 
-def diameter(gtGraph):
-	return pseudo_diameter(gtGraph)[0]
+def diameter(lib_graph):
+	return pseudo_diameter(lib_graph)[0]
 
-def spectral_radius(gtGraph):
-	weights = gtGraph.edge_properties["type"].copy()
-	if "weight" in gtGraph.edge_properties.keys():
-		weights.a = np.multiply(weights.a,gtGraph.edge_properties["weight"].a)
-	matAdj = adjacency(gtGraph,weights)
+
+#
+#---
+# Spectral pproperties
+#------------------------
+
+def spectral_radius(lib_graph):
+	weights = lib_graph.edge_properties["type"].copy()
+	if "weight" in lib_graph.edge_properties.keys():
+		weights.a = sp.multiply(weights.a,
+                                lib_graph.edge_properties["weight"].a)
+	matAdj = adjacency(lib_graph,weights)
 	eigVal = [0]
 	try:
 		eigVal = spl.eigs(matAdj,return_eigenvectors=False)
 	except spl.eigen.arpack.ArpackNoConvergence,err:
 		eigVal = err.eigenvalues
-	return np.max(np.absolute(eigVal))
+	return sp.max(sp.absolute(eigVal))
+
+def adjacency_matrix(lib_graph):
+    return adjacency(lib_graph)

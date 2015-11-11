@@ -19,9 +19,10 @@ The purpose of :class:`GraphObject` is simple: implementing a library independan
 Frontend
 ^^^^^^^^
 
-Detailed neural networks contain properties that the :class:`nngt.core.GraphObject` does not know about; because of this, direct modification of the structure can lead to nodes or edges missing properties or to properties assigned to nonexistent nodes or edges.
+Detailed neural networks contain properties that the :class:`~nngt.core.GraphObject` does not know about; because of this, direct modification of the structure can lead to nodes or edges missing properties or to properties assigned to nonexistent nodes or edges.
 
 The user can safely interact with the graph using one of the following classes:
+
 - :class:`~nngt.Graph`: container for simple topological graphs with no spatial embedding, nor biological properties
 - :class:`~nngt.SpatialGraph`: container for spatial graphs without biological properties
 - :class:`~nngt.Network`: container for topological graphs with biological properties (to interact with NEST)
@@ -29,6 +30,7 @@ The user can safely interact with the graph using one of the following classes:
 
 The reason behind those four objects is to ensure coherence in the properties: either nodes/edges all have a given property or they all don't.
 Namely:
+
 - adding a node will always require a position parameter when working with a spatial graph,
 - adding a node or a connection will always require biological parameters when working with a network.
 

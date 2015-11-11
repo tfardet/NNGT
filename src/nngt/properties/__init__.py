@@ -14,4 +14,3 @@ PopIntructions          Instructions to build a population of neurons
 """
 
 from .populations import *
-from .connections import *
