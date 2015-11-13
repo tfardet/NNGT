@@ -57,7 +57,7 @@ class GtGraph(GraphLib):
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
-
+    
     def new_node_attribute(self, name, value_type, values=None, val=None):
          self._node_attributes._new_na(self, name, value_type, values, val)
 
@@ -130,10 +130,9 @@ class GtGraph(GraphLib):
     def set_node_property(self):
         #@todo: do it...
         pass
-
     #-------------------------------------------------------------------------#
     # Getters
-
+    
     def node_nb(self):
         return self.num_vertices()
 

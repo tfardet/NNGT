@@ -3,7 +3,7 @@
 
 """ Generation tools for NNGT """
 
-import warnings, time
+import warnings
 import numpy as np
 
 from ..core.graph_objects import graph_lib
@@ -70,6 +70,7 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
     '''
     Returns a numpy array of dimension (2,edges) that describes the edge list
     of an Erdos-Renyi graph.
+    @todo: perform all the calculations here
     '''
 
     np.random.seed()
