@@ -1,6 +1,6 @@
 import nngt
 
-from nngt.core.graph_objects import GraphObject
+from nngt.core import GraphObject
 from graph_tool.generation import random_rewire
 
 print(dir(nngt.lib))
@@ -12,5 +12,6 @@ graph = nngt.SpatialNetwork(100)
 
 graph2 = nngt.generation.newman_watts(20, 0.1, nodes=1000)
 
+print(hasattr(graph,"_init_spatial_properties"))
 print(graph.node_nb(),graph.edge_nb())
 print(graph2.node_nb(),graph2.edge_nb())

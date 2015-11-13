@@ -28,8 +28,13 @@ if on_rtd:
 	sys.modules["graph_tool"] = mock_object
 	sys.modules["graph_tool.spectral"] = mock_object
 	sys.modules["graph_tool.generation"] = mock_object
-	sys.modules["graph_tool.utils"] = mock_object
+	sys.modules["graph_tool.util"] = mock_object
 	sys.modules["graph_tool.stats"] = mock_object
+	sys.modules["graph_tool.centrality"] = mock_object
+	sys.modules["graph_tool.correlations"] = mock_object
+	sys.modules["graph_tool.topology"] = mock_object
+	sys.modules["graph_tool.draw"] = mock_object
+	sys.modules["graph_tool.clustering"] = mock_object
 
 from nngt.constants import version as nngt_version
 

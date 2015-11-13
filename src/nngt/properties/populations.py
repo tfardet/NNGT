@@ -3,54 +3,89 @@
 
 """ Populations of neurons in NNGT """
 
+import warnings
+
+
+__all__ = ["NeuralGroup", "_make_groups"]
+
+
 
 #
 #---
-# NeuralPop
+# NeuralGroup
 #------------------------
 
-class NeuralPop(dict):
+class NeuralGroup:
     
     """
-    .. py:currentmodule:: nggt.properties
+    Class defining groups of neurons.
     
-    The basic class that contains populations of neurons and their properties.
-
-    :ivar id: :class:`int`
-        unique id that identifies the instance.
-    :ivar graph: :class:`~nngt.core.GraphObject`
-        main attribute of the class instance.
+    :ivar id_list: :class:`list` of :class:`int`s
+        the ids of the neurons in this group.
+    :ivar neuron_type: :class:`int`
+        the default is ``1`` for excitatory neurons; ``-1`` is for interneurons 
+    :ivar model: :class:`string`, optional (default: None)
+        the name of the model to use when simulating the activity of this group
+    :ivar param: :class:`dict`, optional (default: {})
+        the parameters to use (if they differ from the model's defaults)
+        
+    .. warning::
+        Equality between :class:`~nngt.properties.NeuralGroup`s only compares 
+        the ``model`` and ``param`` attributes, i.e. groups differing only by 
+        their ``id_list``s will register as equal.
     """
-
-    __num_graphs = 0
-    __max_id = 0
-    __di_property_func = {
-            "reciprocity": reciprocity, "clustering": clustering,
-            "assortativity": assortativity, "diameter": diameter,
-            "scc": num_scc, "wcc": num_wcc, "radius": spectral_radius, 
-            "num_iedges": num_iedges }
-    __properties = __di_property_func.keys()
     
-    @classmethod
-    def graph_into_pop(cls, graph, *args):
-        '''
-        Divide a graph into populations of neurons using instruction from
-        an arbitrary number of :class:`PopIntructions`.
-        @todo
-        '''
-        return cls.__num_graphs
-
-
-    def __init__(self, *args, **kwargs):
-        '''
-        Initialize NeuralPop instance
-
-        Parameters
-        ----------
+    def __init__ (self, id_list=[], ntype=1, model=None, neuron_param={},
+                  syn_model=None, syn_param={}):
+        self._has_model = False if model is None else True
+        self._neuron_model = model
+        self._id_list = list(id_list)
+        if self._has_model:
+            self.neuron_param = neuron_param
+            self.neuron_type = ntype
+            self.syn_model = syn_model
+            self.syn_param = syn_param
+    
+    def __eq__ (self, other):
+        if isinstance(other, NeuralGroup):
+            return self.model == other.model * self.param == other.param
+        else:
+            return False
         
-        
-        Returns
-        -------
-        
-        '''
-        pass
+    @property
+    def neuron_model(self):
+        return self._neuron_model
+    
+    @neuron_model.setter
+    def neuron_model(self, value):
+        self._neuron_model = value
+        self._has_model = False if value is None else True
+    
+    @property
+    def id_list(self):
+        return self._id_list
+    
+    @property
+    def has_model(self):
+        return self._has_model
+
+    def properties(self):
+        dic = { "neuron_type": self.neuron_type,
+                "neuron_model": self._neuron_model,
+                "neuron_param": self.neuron_param,
+                "syn_model": self.syn_model,
+                "syn_param": self.syn_param }
+        return dic
+
+    
+#
+#---
+# Making groups
+#------------------------
+
+def _make_groups(graph, group_prop):
+    '''
+    Divide `graph` into groups using `group_prop`, a list of group properties
+    @todo
+    '''
+    pass

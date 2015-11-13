@@ -20,6 +20,25 @@ Welcome to NNGT's documentation!
    user/intro
    user/install
    user/graph-generation
+   user/component_properties
+
+.. developer:
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Developer space
+
+   developer/detailed-implementation
+
+.. modules
+
+.. toctree::
+   :glob:
+   :caption: Modules
+
+   modules/nngt
+   
 
 
 Overview
@@ -31,14 +50,16 @@ The Neural Network Growth and Topology (NNGT) module provides tools to grow and 
 Main classes
 ------------
 
-NNGT uses three main classes:
+NNGT uses four main classes:
 
-:class:`~nngt.core.GraphClass`
-	provides a very simple implementation over `graph_tool.Graph` (namely the addition of a name, management of excitatory and inhibitory connections, and simple access to basic graph properties
-:class:`~nngt.core.NeuralNetwork`
+:class:`~nngt.Graph`
+	provides a simple implementation over graphs objects from graph libraries (namely the addition of a name, management of detailed nodes and connection properties, and simple access to basic graph measurements).
+:class:`~nngt.SpatialGraph`
+    a Graph embedded in space (neurons have positions and connections are associated to a distance)
+:class:`~nngt.Network`
 	provides more detailed characteristics to emulate biological neural networks, such as classes of inhibitory and excitatory neurons, synaptic properties...
-:class:`~nngt.core.InputConnect`
-	is a basic connectivity to feed external signals to a network
+:class:`~nngt.SpatialNetwork`
+	combines spatial embedding and biological properties
 
 Generation of graphs
 --------------------

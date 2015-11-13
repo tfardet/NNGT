@@ -4,7 +4,7 @@
 """ Generation tools for NNGT """
 
 from ..core.graph_classes import SpatialGraph, Network, SpatialNetwork
-from ..core.Shape import Shape
+from ..core.graph_datastruct import Shape
 
 
 __all__ = [
@@ -28,14 +28,12 @@ def make_spatial(graph, shape=Shape(),positions=None):
         graph.__class__ = SpatialGraph
     graph._init_spatial_properties(shape, positions)
 
-def make_network(graph, neuron_type=None, neural_model=None,
-                 syn_model=None, syn_delay=None):
+def make_network(graph, neural_pop):
     if isinstance(graph, SpatialGraph):
         graph.__class__ = SpatialNetwork
     else:
         graph.__class__ = Network
-    graph._init_bioproperties(neuron_type=None, neural_model=None,
-                              syn_model=None, syn_delay=None)
+    graph.population = neural_pop
 
 
 

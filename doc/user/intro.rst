@@ -11,24 +11,26 @@ This library is based on existing graph libraries (such as `graph_tool <https://
 Moreover, it also acts as an interface between those graph libraries and the NEST simulator.
 
 
-Rationale for the structure
----------------------------
+Description
+-----------
 
-The main objects are :class:`GraphObject` that inherits from either :class:`graph_tool.Graph` or :class:`snap.TNEANet` and :class:`Shape` that encodes the spatial structure of the neurons' environment.
-The purpose of :class:`GraphObject` is simple: implementing a library independant object with a unique set of functions to interact with graphs.
-The user should (in general) not interact directly with this class, but rather with one of the four containing classes in the core module:
+Neural networks are described by four container classes:
+	- :class:`~nngt.Graph`: container for simple topological graphs with no spatial structure, nor biological properties
+	- :class:`~nngt.SpatialGraph`: container for spatial graphs without biological properties
+	- :class:`~nngt.Network`: container for topological graphs with biological properties (to interact with NEST)
+	- :class:`~nngt.SpatialNetwork`: container with spatial and biological properties (to interact with NEST)
 
-- :class:`~nngt.core.GraphClass`: container for simple topological graphs with no spatial structure, nor biological properties
-- :class:`~nngt.core.SpatialGraph`: container for spatial graphs without biological properties
-- :class:`~nngt.core.Network`: container for topological graphs with biological properties (to interact with NEST)
-- :class:`~nngt.core.SpatialNetwork`: container with spatial and biological properties (to interact with NEST)
+Using these objects, the user can access to a the ``graph`` attribute, which contains the topological structure of the network (including the connections' type -- inhibitory or excitatory -- and its weight which is always positive)
 
-The reason for those four classes is to ensure coherence in the properties: either nodes/edges all have a given property or they all don't.
-Namely:
-- adding a node will always require a position parameter when working with a spatial graph,
-- adding a node or a connection will always require biological parameters when working with a network.
+.. warning ::
+	This object should never be directly modified through its methods but rather using those of the four containing classes. The only reason to access this object should be to perform graph-theoretical measurements on it which do not modify its structure; any other action will lead to undescribed behaviour.
 
-Moreover, these classes contain the :class:`GraphObject` in their `graph` attribute and do not inherit from it. The reason for this is to make it easy to maintain different addition/deletion functions for the topological and spatial container by keeping independant of the graph library. (otherwise overwriting one of these function would require the use of library-dependant features).
+Nodes/neurons are defined by a unique index which can be used to access their properties and those of the connections between them.
+
+In addition to ``graph``, the containers can have other attributes, such as:
+	- ``shape`` for :class:`~nngt.SpatialGraph`: and :class:`~nngt.SpatialNetwork`:, which describes the spatial delimitations of the neurons' environment (e.g. many *in vitro* culture are contained in circular dishes).
+	- ``population`` which contains informations on the various groups of neurons that exist in the network (for instance inhibitory and excitatory neurons can be grouped together)
+	- ``connections`` which stores the informations about the synaptic connections between the neurons
 
 
 Graph-theoretical models
