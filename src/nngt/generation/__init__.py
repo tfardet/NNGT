@@ -48,6 +48,8 @@ __all__ = [
 	'random_free_scale',
 	'price_free_scale',
 	'newman_watts',
+    'connect_neural_types',
+    'connect_neural_groups',
 	#~ 'distance_rule',
 	'gaussian_eprop',
 	'lognormal_eprop',

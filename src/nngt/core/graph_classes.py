@@ -74,6 +74,7 @@ class Graph(object):
         self : :class:`~nggt.core.Graph`
         '''
         self.__id = self.__class__.__max_id
+        self._name = name
         self.__di_prop = {
             "id": self.__id,
             "name": name,
@@ -111,6 +112,10 @@ class Graph(object):
         else:
             raise TypeError("The object passed is not a \
                 GraphObject but a {}".format(new_graph.__class__.__name__))
+    
+    @property
+    def name(self):
+        return self._name
 
     #-------------------------------------------------------------------------#
     # Graph actions
@@ -124,7 +129,19 @@ class Graph(object):
                             weighted=self.__di_prop["weighted"],
                             graph=self._graph.copy())
         return gc_instance
-
+    
+    def add_edges(self, lst_edges):
+        '''
+        Add a list of edges to the graph.
+        
+        Parameters
+        ----------
+        lst_edges : list of 2-tuples or np.array of shape (edge_nb, 2)
+            List of the edges that should be added as tuples (source, target)
+            
+        @todo: add example, check the edges for self-loops and multiple edges
+        '''
+        self._graph.new_edges(lst_edges)
 
     def inhibitory_subgraph(self):
         ''' Create a :class:`~nngt.core.Graph` instance which graph
@@ -379,17 +396,19 @@ class Network(Graph):
     @classmethod
     def uniform_network(cls, size, neuron_model="iaf_neuron", neuron_param={},
                         syn_model="static_synapse", syn_param={}):
-        pop = NeuralPop.uniform_population(size, self, neuron_model,
+        pop = NeuralPop.uniform_population(size, None, neuron_model,
            neuron_param, syn_model, syn_param)
-        return cls(population=pop)
+        net = cls(population=pop)
+        pop.parent = net
+        return net
 
     @classmethod
     def ei_network(cls, size, ei_ratio=0.2, en_model="aeif_neuron",
             en_param={}, es_model="static_synapse", es_param={},
             in_model="aeif_neuron", in_param={}, is_model="static_synapse",
             is_param={}):
-        pop = NeuralPop.ei_population(size, ei_ratio, None, en_model,
-           en_param, es_model, es_param, in_model, in_param, is_model, is_param)
+        pop = NeuralPop.ei_population(size, ei_ratio, None, en_model, en_param,
+                    es_model, es_param, in_model, in_param, is_model, is_param)
         net = cls(population=pop)
         pop.parent = net
         return net

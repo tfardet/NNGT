@@ -26,11 +26,16 @@ class GtGraph(GraphLib):
     `graph_tool` or `SNAP`.
     '''
 
+    #-------------------------------------------------------------------------#
+    # Class properties
+
     @classmethod
     def to_graph_object(cls, obj):
         obj.__class__ = cls
         return obj
-        
+
+    #-------------------------------------------------------------------------#
+    # Constructor and instance properties        
 
     def __init__ (self, nodes=0, g=None, directed=True, prune=False,
                   vorder=None):
@@ -50,6 +55,9 @@ class GtGraph(GraphLib):
     def edge_attributes(self):
         return self._edge_attributes
 
+    #-------------------------------------------------------------------------#
+    # Graph manipulation
+    
     def new_node_attribute(self, name, value_type, values=None, val=None):
          self._node_attributes._new_na(self, name, value_type, values, val)
 
@@ -96,8 +104,8 @@ class GtGraph(GraphLib):
         connection = self.add_edge(source, target, add_missing)
         return connection
 
-    def new_edges(lst_connections, hashed=False,
-                            string_vals=False, eprops=None):
+    def new_edges(self, edge_list, hashed=False, string_vals=False,
+                  eprops=None):
         '''
         Adds a list of connections to the graph
         @todo: see how the eprops work
@@ -122,7 +130,9 @@ class GtGraph(GraphLib):
     def set_node_property(self):
         #@todo: do it...
         pass
-
+    #-------------------------------------------------------------------------#
+    # Getters
+    
     def node_nb(self):
         return self.num_vertices()
 

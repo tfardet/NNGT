@@ -10,6 +10,7 @@ from ..core import GraphObject
 from ..lib.utils import (delete_self_loops, delete_parallel_edges,
                          adjacency_matrix, make_spatial) # remove in the end
 from ..lib.connect_tools import *
+from ..lib.errors import InvalidArgument
 
 
 
@@ -74,7 +75,8 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
                     initial_graph == None else initial_graph.graph)
     graph_obj_er.clear_edges()
     # add edges
-    ia_edges = _erdos_renyi(nodes, density, edges, avg_deg, reciprocity,
+    ids = np.arange(nodes).astype(int)
+    ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                             directed, multigraph)
     graph_obj_er.add_edge_list(ia_edges)
     # generate container
@@ -90,9 +92,9 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
 # Scale-free models
 #------------------------
 
-def random_free_scale(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
+def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
                       avg_deg=-1, reciprocity=0., directed=True,
-                      multigraph=False, name="ER", shape=None, positions=None,
+                      multigraph=False, name="RandomSF", shape=None, positions=None,
                       initial_graph=None):
     """
     @todo
@@ -225,9 +227,9 @@ def random_free_scale(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
         graphFS.edge_properties["weight"] = epropW
     return graphFS
 
-def price_free_scale(m, c=None, gamma=1, nodes=None, directed=True,
-                     seed_graph=None, multigraph=False, name="ER", shape=None,
-                     positions=None, initial_graph=None):
+def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
+                     seed_graph=None, multigraph=False, name="PriceSF", shape=None,
+                     positions=None, initial_graph=None, **kwargs):
     """
     @todo: make the algorithm.
     Generate a Price graph model (Barabasi-Albert if undirected).
@@ -284,10 +286,9 @@ def price_free_scale(m, c=None, gamma=1, nodes=None, directed=True,
 # Small-world models
 #------------------------
 
-def newman_watts(coord_nb, proba_shortcut, nodes=None, density=0.1, edges=-1,
-                  avg_deg=-1., reciprocity=-1., directed=True,
+def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
                   multigraph=False, name="ER", shape=None, positions=None,
-                  initial_graph=None):
+                  initial_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
     @todo: generate the edges of a circular graph to not replace the graph
@@ -429,3 +430,110 @@ def gen_edr(dicProperties):
         epropW = graphEDR.new_edge_property("double",lstWeights) # crée la propriété pour stocker les poids
         graphEDR.edge_properties["weight"] = epropW
     return graphEDR
+
+
+#
+#---
+# Connecting groups
+#------------------------
+
+di_gen_func = { "erdos_renyi": _erdos_renyi, 
+    "random_scale_free": _random_scale_free,
+    "price_scale_free": _price_scale_free,
+    "newman_watts": _newman_watts }
+
+di_default = {  "density": -1.,
+                "edges": -1,
+                "avg_deg": -1,
+                "reciprocity": -1,
+                "directed": True,
+                "multigraph": False }
+
+one_pop_models = ("newman_watts",)
+
+def connect_neural_types(network, source_type, target_type, graph_model,
+                         model_param):
+    '''
+    Function to connect excitatory and inhibitory population with a given graph
+    model.
+    
+    Parameters
+    ----------
+    network : :class:`Network` or :class:`SpatialNetwork`
+        The network to connect.
+    source_type : int
+        The type of source neurons (``1`` for excitatory, ``-1 for 
+        inhibitory neurons).
+    source_type : int
+        The type of target neurons.
+    graph_model : string
+        The name of the connectivity model (among "erdos_renyi", 
+        "random_scale_free", "price_scale_free", and "newman_watts").
+    model_param : dict
+        Dictionary containing the model parameters (the keys are the keywords
+        of the associated generation function --- see above).
+    '''
+    source_ids, target_ids = [], []
+    di_param = di_default.copy()
+    di_param.update(model_param)
+    for group in network._population.itervalues():
+        if group.neuron_type == source_type:
+            source_ids.extend(group._id_list)
+        elif group.neuron_type == target_type:
+            target_ids.extend(group._id_list)
+    if source_type == target_type:
+        edges = None
+        if graph_model in one_pop_models:
+            edges = di_gen_func[graph_model](source_ids,**di_param)
+        else:
+            edges = di_gen_func[graph_model](source_ids,source_ids,**di_param)
+        network.add_edges(edges)
+    elif graph_model in one_pop_models:
+        raise InvalidArgument("This graph model can only be used if source \
+                              and target populations are the same")
+    else:
+        edges = di_gen_func[graph_model](source_ids,target_ids,**di_param)
+        network.add_edges(edges)
+
+def connect_neural_groups(network, source_groups, target_groups, graph_model,
+                         model_param):
+    '''
+    Function to connect excitatory and inhibitory population with a given graph
+    model.
+    
+    Parameters
+    ----------
+    network : :class:`Network` or :class:`SpatialNetwork`
+        The network to connect.
+    source_groups : tuple of strings
+        Names of the source groups (which contain the pre-synaptic neurons)
+    target_groups : tuple of strings
+        Names of the target groups (which contain the post-synaptic neurons)
+    graph_model : string
+        The name of the connectivity model (among "erdos_renyi", 
+        "random_scale_free", "price_scale_free", and "newman_watts").
+    model_param : dict
+        Dictionary containing the model parameters (the keys are the keywords
+        of the associated generation function --- see above).
+    '''
+    source_ids, target_ids = [], []
+    di_param = di_default.copy()
+    di_param.update(model_param)
+    for name, group in network._population.iteritems():
+        if name in source_groups:
+            source_ids.extend(group._id_list)
+        elif name in target_groups:
+            target_ids.extend(group._id_list)
+    if source_groups == target_groups:
+        edges = None
+        if graph_model in one_pop_models:
+            edges = di_gen_func[graph_model](source_ids,**di_param)
+        else:
+            edges = di_gen_func[graph_model](source_ids,source_ids,**di_param)
+        network.add_edges(edges)
+    elif graph_model in one_pop_models:
+        raise InvalidArgument("This graph model can only be used if source \
+                              and target populations are the same")
+    else:
+        edges = di_gen_func[graph_model](source_ids, target_ids, **di_param)
+        network.add_edges(edges)

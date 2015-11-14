@@ -3,6 +3,7 @@
 
 """ Generation tools for NNGT """
 
+import warnings
 import numpy as np
 
 from ..core.graph_objects import graph_lib
@@ -11,6 +12,8 @@ from ..core.graph_objects import graph_lib
 __all__ = [
     "_compute_connections",
     "_erdos_renyi",
+    "_random_scale_free",
+    "_price_scale_free",
     "_newman_watts",
     "price_network"
 ]
@@ -24,28 +27,34 @@ EPS = 0.00001
 # Simple tools
 #------------------------
 
-def _compute_connections(nodes, density, edges, avg_deg):
+def _compute_connections(num_source, num_target, density, edges, avg_deg,
+                         directed, reciprocity):
+    pre_recip_edges = 0
     if edges > 0:
-        return edges
+        pre_recip_edges = int(edges)
     elif density > 0.:
-        return int(density * nodes**2)
+        pre_recip_edges = int(density * num_source * num_target)
     else:
-        return int(avg_deg * nodes)
-
-def _directed_recip_edges(edges, directed, reciprocity):
-    frac_recip = 0.
-    pre_recip_edges = edges
+        pre_recip_edges = int(avg_deg * num_source)
+    dens = pre_recip_edges / float(num_source * num_target)
+    edges = pre_recip_edges
     if not directed:
-        edges = int(edges/2)
+        pre_recip_edges = edges = int(edges/2)
+    elif reciprocity > max(0,(2.-1./dens)):
+        frac_recip = ((reciprocity - 1. + np.sqrt(1.+dens*(reciprocity-2.))) /
+                      (2. - reciprocity))
+        if frac_recip < 1.:
+            pre_recip_edges = int(edges/(1+frac_recip))
+        else:
+            warnings.warn("Such reciprocity cannot attained, request ignored.")
     elif reciprocity > 0.:
-        frac_recip = reciprocity/(2.0-reciprocity)
-        pre_recip_edges = edges / (1+frac_recip)
+        warnings.warn("Reciprocity cannot be lower than 2-1/density.")
     return edges, pre_recip_edges
 
 def _unique_rows(array):
-    c = array
-    b = np.ascontiguousarray(c).view(np.dtype((np.void, c.dtype.itemsize * c.shape[1])))
-    return np.unique(b).view(c.dtype).reshape(-1, c.shape[1])
+    b = np.ascontiguousarray(array).view(np.dtype((np.void,
+        array.dtype.itemsize * array.shape[1])))
+    return np.unique(b).view(array.dtype).reshape(-1, array.shape[1])
 
 def _no_self_loops(array):
     return array[array[:,0] != array[:,1],:]
@@ -56,7 +65,7 @@ def _no_self_loops(array):
 # Graph model generation
 #------------------------
 
-def _erdos_renyi(nodes, density, edges, avg_deg, reciprocity,
+def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
                  directed, multigraph):
     '''
     Returns a numpy array of dimension (2,edges) that describes the edge list
@@ -65,72 +74,93 @@ def _erdos_renyi(nodes, density, edges, avg_deg, reciprocity,
     '''
 
     np.random.seed()
-    edges = _compute_connections(nodes, density, edges, avg_deg)
-    edges, pre_recip_edges = _directed_recip_edges(edges, directed,
-                                                   reciprocity)
+    source_ids, target_ids = np.array(source_ids), np.array(target_ids)
+    num_source, num_target = len(source_ids), len(target_ids)
+    edges, pre_recip_edges = _compute_connections(num_source, num_target,
+                                density, edges, avg_deg, directed, reciprocity)
+    b_one_pop = (False if num_source != num_target else
+                           not np.all(source_ids-target_ids))
     
     ia_edges = np.zeros((edges,2))
-    num_test,num_ecurrent = 0,0 # number of tests and current number of edges
+    num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
     
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
-        ia_edges_tmp = np.random.randint(0, nodes,
-                            (pre_recip_edges-num_ecurrent,2))
-        ia_edges_tmp = _no_self_loops(ia_edges_tmp)
+        ia_sources = source_ids[np.random.randint(0, num_source,
+                                                pre_recip_edges-num_ecurrent)]
+        ia_targets = target_ids[np.random.randint(0, num_target,
+                                                pre_recip_edges-num_ecurrent)]
+        ia_edges_tmp = np.array([ia_sources,ia_targets]).T
+        if b_one_pop:
+            ia_edges_tmp = _no_self_loops(ia_edges_tmp)
         num_added = ia_edges_tmp.shape[0]
         ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
+        num_ecurrent += num_added
         if not multigraph:
             ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent+num_added,:])
             num_ecurrent = ia_edges_tmp.shape[0]
             ia_edges[:num_ecurrent,:] = ia_edges_tmp
         num_test += 1
-        
+    
     if directed and reciprocity > 0:
         while num_ecurrent != edges and num_test < MAXTESTS:
-            ia_indices = np.random.randint(0, num_ecurrent, edges-num_ecurrent)
-            ia_edges[num_ecurrent:,:] = ia_edges[ia_indices,:]
+            ia_indices = np.random.randint(0, pre_recip_edges,
+                                           edges-num_ecurrent)
+            ia_edges[num_ecurrent:,:] = ia_edges[ia_indices,::-1]
+            num_ecurrent = edges
             if not multigraph:
                 ia_edges_tmp = _unique_rows(ia_edges)
                 num_ecurrent = ia_edges_tmp.shape[0]
-                ia_edges[num_ecurrent,:] = ia_edges_tmp
+                ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
     return ia_edges.astype(int)
 
-def _circular_graph(nodes, coord_nb):
+def _random_scale_free():
+    pass
+
+def _price_scale_free():
+    pass
+
+def _circular_graph(node_ids, coord_nb):
     '''
     Connect every node `i` to its `coord_nb` nearest neighbours on a circle
     '''
-    ia_edges = np.zeros((nodes*coord_nb,2))
-    ia_edges[:,0] = np.repeat(np.arange(0,nodes).astype(int),coord_nb)
+    nodes = len(node_ids)
+    ia_sources, ia_targets = np.zeros(nodes*coord_nb), np.zeros(nodes*coord_nb)
+    ia_sources = np.repeat(np.arange(0,nodes).astype(int),coord_nb)
     dist = coord_nb/2.
     neg_dist = -int(np.floor(dist))
     pos_dist = 1-neg_dist if dist-np.floor(dist) < EPS else 2-neg_dist
     ia_base = np.concatenate((np.arange(neg_dist,0),np.arange(1,pos_dist)))
-    ia_edges[:,1] = np.tile(ia_base, nodes)+ia_edges[:,0]
-    ia_edges[ia_edges[:,1]<-0.5,1] += nodes
-    ia_edges[ia_edges[:,1]>nodes-0.5,1] -= nodes
-    return ia_edges
+    ia_targets = np.tile(ia_base, nodes)+ia_sources
+    ia_targets[ia_targets<-0.5] += nodes
+    ia_targets[ia_targets>nodes-0.5] -= nodes
+    return np.array([node_ids[ia_sources], node_ids[ia_targets]]).T
 
-def _newman_watts(coord_nb, proba_shortcut, nodes, density, edges, avg_deg,
+def _newman_watts(node_ids, coord_nb, proba_shortcut, density, edges, avg_deg,
                   reciprocity, directed, multigraph):
     '''
     Returns a numpy array of dimension (2,edges) that describes the edge list
     of a Newmaan-Watts graph.
     '''
     np.random.seed()
+    node_ids = np.array(node_ids)
+    nodes = len(node_ids)
     circular_edges = nodes*coord_nb
     edges = int(circular_edges*(1+proba_shortcut))
     edges, circular_edges = (edges, circular_edges if directed
                              else (int(edges/2), int(circular_edges/2)))
     # generate the initial circular graph
     ia_edges = np.zeros((edges,2))
-    ia_edges[:circular_edges,:] = _circular_graph(nodes, coord_nb)
+    ia_edges[:circular_edges,:] = _circular_graph(node_ids, coord_nb)
     # add the random connections
     num_test, num_ecurrent = 0, circular_edges
     while num_ecurrent != edges and num_test < MAXTESTS:
-        ia_edges_tmp = np.random.randint(0,nodes, (edges-num_ecurrent,2))
-        ia_edges_tmp = _no_self_loops(ia_edges_tmp)
+        ia_sources = node_ids[np.random.randint(0, nodes, edges-num_ecurrent)]
+        ia_targets = node_ids[np.random.randint(0, nodes, edges-num_ecurrent)]
+        ia_edges_tmp = _no_self_loops(np.array([ia_sources,ia_targets]).T)
         num_added = ia_edges_tmp.shape[0]
         ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
+        num_ecurrent += num_added
         if not multigraph:
             ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent+num_added,:])
             num_ecurrent = ia_edges_tmp.shape[0]
@@ -140,7 +170,7 @@ def _newman_watts(coord_nb, proba_shortcut, nodes, density, edges, avg_deg,
 
 def price_network():
     #@todo: do it for other libraries
-    passt
+    pass
 
 if graph_lib == "graph_tool":
     from graph_tool.generation import price_network
