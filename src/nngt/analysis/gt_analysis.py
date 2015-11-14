@@ -4,7 +4,6 @@
 """ Tools for graph analysis using the graph_tool library """
 
 import numpy as np
-
 from graph_tool.centrality import betweenness
 
 

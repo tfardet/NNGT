@@ -9,6 +9,3 @@ Plotting module
 
 from .custom_plt import palette
 from .plt_properties import degree_distribution, betweenness_distribution
-
-
-
