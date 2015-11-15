@@ -36,24 +36,36 @@ def degree_distribution(network, deg_type="total", use_weights=True,
         use logscale for the degree count.
     '''
     fig, ax1 = plt.subplots(1,1)
+    ax1.axis('tight')
+    maxcounts,maxbins,minbins = 0,0,np.inf
     if isinstance(deg_type, str):
-        counts,bins = degree_distrib(network.graph, deg_type, use_weights, logx)
+        counts,bins = degree_distrib(network.graph,deg_type,use_weights,logx)
+        maxcounts,maxbins,minbins = counts.max(),bins.max(),bins.min()
         line = ax1.scatter(bins, counts)
         s_legend = deg_type[0].upper() + deg_type[1:] + " degree"
         ax1.legend((s_legend,))
     else:
         colors = palette(np.linspace(0.,0.5,len(deg_type)))
+        m = ["o","s","D"]
         lines, legends = [], []
         for i,s_type in enumerate(deg_type):
-            counts,bins = degree_distrib(network.graph, s_type, use_weights,
-                                        logx)
-            lines.append(ax1.scatter(bins, counts, c=colors[i]))
+            counts,bins = degree_distrib(network.graph,s_type,use_weights,logx)
+            maxcounts_tmp,mincounts_tmp = counts.max(),counts.min()
+            maxbins_tmp,minbins_tmp = bins.max(),bins.min()
+            maxcounts = max(maxcounts,maxcounts_tmp)
+            maxbins = max(maxbins,maxbins_tmp)
+            minbins = min(minbins,minbins_tmp)
+            lines.append(ax1.scatter(bins, counts, c=colors[i], marker=m[i]))
             legends.append(s_type[0].upper() + s_type[1:] + " degree")
         ax1.legend(lines, legends)
+    ax1.set_xlim([0.9*minbins, 1.1*maxbins])
+    ax1.set_ylim([0, 1.1*maxcounts])
     if logx:
         ax1.set_xscale("log")
+        ax1.set_xlim([max(0.8,0.8*minbins), 1.5*maxbins])
     if logy:
         ax1.set_yscale("log")
+        ax1.set_ylim([0.8, 1.5*maxcounts])
     ax1.set_title("Degree distribution for {}".format(network.name))
     plt.show()
             
@@ -77,7 +89,9 @@ def betweenness_distribution(network, btype="both", use_weights=True,
         use logscale for the degree count.
     '''
     fig, ax1 = plt.subplots(1,1)
+    ax1.axis('tight')
     ax2 = fig.add_subplot(111) if btype == "both" else ax1
+    ax2.axis('tight')
     ncounts,nbins,ecounts,ebins = betweenness_distrib(network.graph,
                                                       use_weights, logx)
     colors = palette(np.linspace(0.,0.5,2))

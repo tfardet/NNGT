@@ -53,7 +53,7 @@ def degree_distrib(graph, deg_type="total", use_weights=True, log=False):
     ra_bins = np.linspace(ia_node_deg.min(), ia_node_deg.max(), num_bins)
     if log:
         ra_bins = np.logspace(np.log10(np.maximum(ia_node_deg.min(),1)),
-                               np.log10(ia_node_deg.max()), num_bins)
+                               np.log10(ia_node_deg.max()), int(num_bins/10))
     counts,deg = np.histogram(ia_node_deg, ra_bins)
     ia_indices = np.argwhere(counts)
     return counts[ia_indices], deg[ia_indices]
