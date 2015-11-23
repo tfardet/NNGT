@@ -5,15 +5,12 @@
 
 import numpy as np # remove it in the end
 
-from .. import Graph, SpatialGraph
+from .. import Graph, SpatialGraph, Connections
 from ..core import GraphObject
 from ..lib.utils import (delete_self_loops, delete_parallel_edges,
                          adjacency_matrix, make_spatial) # remove in the end
 from ..lib.connect_tools import *
 
-
-
-n_MAXTESTS = 1000 # ensure that generation will finish # remove in the end
 
 
 #
@@ -67,7 +64,6 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
     If an `initial_graph` is provided, all preexistant edges in the
     object will be deleted before the new connectivity is implemented.
     """
-    np.random.seed()
     nodes = nodes if initial_graph is None else initial_graph.node_nb()
     # generate graph object
     graph_obj_er = (GraphObject(nodes, directed=directed) if
@@ -93,7 +89,7 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
 
 def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
                       avg_deg=-1, reciprocity=0., directed=True,
-                      multigraph=False, name="ER", shape=None, positions=None,
+                      multigraph=False, name="RandomSF", shape=None, positions=None,
                       initial_graph=None):
     """
     @todo
@@ -124,111 +120,26 @@ def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
     -----
     `nodes` is required unless `initial_graph` is provided.
     """
-    np.random.seed()
-    nodes = nodes if initial_graph is None else initial_graph.node_nb() 
-    edges = _compute_connections(nodes, density, edges, avg_deg)
-    frac_recip = 0.
-    pre_recip_edges = edges
-    if not directed:
-        edges = int(edges/2)
-    elif reciprocity > 0.:
-        frac_recip = reciprocity/(2.0-reciprocity)
-        pre_recip_edges = edges / (1+frac_recip)
-
-    # define necessary constants
-
-    # for probability functions F(x) = c * x^{-tau} (for in- and out-degrees)
-    c_in = edges*(in_exp-1)/(nodes)
-    c_out = edges*(out_exp-1)/(nNodes)
-    # for the average of the pareto 2 = lomax distribution
-    avg_in = 1/(in_exp-2.)
-    avg_out = 1/(out_exp-2.)
-    # lists containing the in/out-degrees for nodes i
-    lst_in_deg = np.random.pareto(in_exp,nodes)+1
-    lst_out_deg = np.random.pareto(out_exp,nodes)+1
-    lst_in_deg = np.floor(np.multiply(c_in/np.mean(lst_in_deg),
-                                      lst_in_deg)).astype(int)
-    lst_out_deg = np.floor(np.multiply(c_out/np.mean(lst_out_deg),
-                                       lst_out_deg)).astype(int)
-
-    # count and generate the stubs (half edges)
-    num_in_stubs = int(np.sum(lst_in_deg))
-    num_out_stubs = int(np.sum(lst_out_deg))
-    lstInStubs = np.zeros(num_in_stubs)
-    lstOutStubs = np.zeros(num_out_stubs)
-    nStartIn = 0
-    nStartOut = 0
-    for node in range(nNodes):
-        nInDegVert = lstInDeg[node]
-        nOutDegVert = lstOutDeg[node]
-        for j in range(np.max([nInDegVert,nOutDegVert])):
-            if j < nInDegVert:
-                lstInStubs[nStartIn+j] += node
-            if j < nOutDegVert:
-                lstOutStubs[nStartOut+j] += node
-        nStartOut+=nOutDegVert
-        nStartIn+=nInDegVert
-    # on vérifie qu'on a à peu près le nombre voulu d'edges
-    while nInStubs*(1+rFracRecip)/float(nArcs) < 0.95 :
-        node = np.random.randint(0,nNodes)
-        nAddInStubs = int(np.floor(Ai/rMi*(np.random.pareto(rInDeg)+1)))
-        lstInStubs = np.append(lstInStubs,np.repeat(node,nAddInStubs)).astype(int)
-        nInStubs+=nAddInStubs
-    while nOutStubs*(1+rFracRecip)/float(nArcs) < 0.95 :
-        nAddOutStubs = int(np.floor(Ao/rMo*(np.random.pareto(rOutDeg)+1)))
-        lstOutStubs = np.append(lstOutStubs,np.repeat(node,nAddOutStubs)).astype(int)
-        nOutStubs+=nAddOutStubs
-    # on s'assure d'avoir le même nombre de in et out stubs (1.13 is an experimental correction)
-    nMaxStubs = int(1.13*(2.0*nArcs)/(2*(1+rFracRecip)))
-    if nInStubs > nMaxStubs and nOutStubs > nMaxStubs:
-        np.random.shuffle(lstInStubs)
-        np.random.shuffle(lstOutStubs)
-        lstOutStubs.resize(nMaxStubs)
-        lstInStubs.resize(nMaxStubs)
-        nOutStubs = nInStubs = nMaxStubs
-    elif nInStubs < nOutStubs:
-        np.random.shuffle(lstOutStubs)
-        lstOutStubs.resize(nInStubs)
-        nOutStubs = nInStubs
-    else:
-        np.random.shuffle(lstInStubs)
-        lstInStubs.resize(nOutStubs)
-        nInStubs = nOutStubs
-    # on crée le graphe, les noeuds et les stubs
-    nRecip = int(np.floor(nInStubs*rFracRecip))
-    nEdges = nInStubs + nRecip +1
-    # les stubs réciproques
-    np.random.shuffle(lstInStubs)
-    np.random.shuffle(lstOutStubs)
-    lstInRecip = lstInStubs[0:nRecip]
-    lstOutRecip = lstOutStubs[0:nRecip]
-    lstEdges = np.array([np.concatenate((lstOutStubs,lstInRecip)),np.concatenate((lstInStubs,lstOutRecip))]).astype(int)
+    nodes = nodes if initial_graph is None else initial_graph.node_nb()
+    # generate graph object
+    graph_obj_rsf = (GraphObject(nodes, directed=directed) if
+                    initial_graph == None else initial_graph.graph)
+    graph_obj_rsf.clear_edges()
     # add edges
-    graphFS.add_edge_list(np.transpose(lstEdges))
-    delete_self_loops(graphFS)
-    delete_parallel_edges(graphFS)
-    graphFS.reindex_edges()
-    nNodes = graphFS.node_nb()
-    nEdges = graphFS.edge_nb()
-    rDens = nEdges / float(nNodes**2)
-    # generate types
-    rInhibFrac = dicProperties["InhibFrac"]
-    lstTypesGen = np.random.uniform(0,1,nEdges)
-    lstTypeLimit = np.full(nEdges,rInhibFrac)
-    lstIsExcitatory = np.greater(lstTypesGen,lstTypeLimit)
-    nExc = np.count_nonzero(lstIsExcitatory)
-    epropType = graphFS.new_edge_property("int",np.multiply(2,lstIsExcitatory)-np.repeat(1,nEdges)) # excitatory (True) or inhibitory (False)
-    graphFS.edge_properties["type"] = epropType
-    # and weights
-    if dicProperties["Weighted"]:
-        lstWeights = dicGenWeights[dicProperties["Distribution"]](graphFS,dicProperties,nEdges,nExc) # generate the weights
-        epropW = graphFS.new_edge_property("double",lstWeights) # crée la propriété pour stocker les poids
-        graphFS.edge_properties["weight"] = epropW
-    return graphFS
+    ids = np.arange(nodes).astype(int)
+    ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density, edges,
+                                  avg_deg, reciprocity, directed, multigraph)
+    graph_obj_rsf.add_edge_list(ia_edges)
+    # generate container
+    graph_rsf = (Graph(name=name, libgraph=graph_obj_rsf) if
+                initial_graph is None else initial_graph)
+    if shape is not None:
+        make_spatial(graph_rsf, shape, positions)
+    return graph_rsf
 
 def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
-                     seed_graph=None, multigraph=False, name="ER", shape=None,
-                     positions=None, initial_graph=None):
+                     seed_graph=None, multigraph=False, name="PriceSF", shape=None,
+                     positions=None, initial_graph=None, **kwargs):
     """
     @todo: make the algorithm.
     Generate a Price graph model (Barabasi-Albert if undirected).
@@ -285,10 +196,9 @@ def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
 # Small-world models
 #------------------------
 
-def newman_watts(coord_nb, proba_shortcut, nodes=None, density=0.1, edges=-1,
-                  avg_deg=-1., reciprocity=-1., directed=True,
-                  multigraph=False, name="ER", shape=None, positions=None,
-                  initial_graph=None):
+def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
+                 multigraph=False, name="ER", shape=None, positions=None,
+                 initial_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
     @todo: generate the edges of a circular graph to not replace the graph
@@ -339,8 +249,9 @@ def newman_watts(coord_nb, proba_shortcut, nodes=None, density=0.1, edges=-1,
                     initial_graph == None else initial_graph.graph)
     graph_obj_nw.clear_edges()
     # add edges
-    ia_edges = _newman_watts(coord_nb, proba_shortcut, nodes, density, edges,
-                             avg_deg, reciprocity, directed, multigraph)
+    nodes_ids = list(range(nodes))
+    ia_edges = _newman_watts(nodes_ids, nodes_ids, coord_nb, proba_shortcut,
+                             directed, multigraph)
     graph_obj_nw.add_edge_list(ia_edges)
     # generate container
     graph_nw = (Graph(name=name, libgraph=graph_obj_nw) if
@@ -449,6 +360,8 @@ di_default = {  "density": -1.,
                 "directed": True,
                 "multigraph": False }
 
+one_pop_models = ("newman_watts",)
+
 def connect_neural_types(network, source_type, target_type, graph_model,
                          model_param):
     '''
@@ -471,7 +384,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         Dictionary containing the model parameters (the keys are the keywords
         of the associated generation function --- see above).
     '''
-    source_ids, target_ids = [], []
+    edges, source_ids, target_ids = None, [], []
     di_param = di_default.copy()
     di_param.update(model_param)
     for group in network._population.itervalues():
@@ -480,14 +393,13 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         elif group.neuron_type == target_type:
             target_ids.extend(group._id_list)
     if source_type == target_type:
-        edges = di_gen_func[graph_model](source_ids, source_ids, **di_param)
+        edges = di_gen_func[graph_model](source_ids,source_ids,**di_param)
         network.add_edges(edges)
-    elif graph_model in ("newman_watts",):
-        raise ArgumentError("This graph model can only be used if source and \
-            target populations are the same")
     else:
-        edges = di_gen_func[graph_model](source_ids, target_ids, **di_param)
+        edges = di_gen_func[graph_model](source_ids,target_ids,**di_param)
         network.add_edges(edges)
+    if issubclass(network.__class__, SpatialGraph):
+        Connections.distances(network, edges)
 
 def connect_neural_groups(network, source_groups, target_groups, graph_model,
                          model_param):
@@ -510,18 +422,19 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         Dictionary containing the model parameters (the keys are the keywords
         of the associated generation function --- see above).
     '''
-    source_ids, target_ids = [], []
+    edges, source_ids, target_ids = None, [], []
+    di_param = di_default.copy()
+    di_param.update(model_param)
     for name, group in network._population.iteritems():
         if name in source_groups:
             source_ids.extend(group._id_list)
         elif name in target_groups:
             target_ids.extend(group._id_list)
     if source_groups == target_groups:
-        edges = di_gen_func[graph_model](source_ids, source_ids, **model_param)
+        edges = di_gen_func[graph_model](source_ids,source_ids,**di_param)
         network.add_edges(edges)
-    elif graph_model in ("newman_watts",):
-        raise ArgumentError("This graph model can only be used if source and \
-            target populations are the same")
     else:
-        edges = di_gen_func[graph_model](source_ids, target_ids, **model_param)
+        edges = di_gen_func[graph_model](source_ids, target_ids, **di_param)
         network.add_edges(edges)
+    if issubclass(network.__class__, SpatialGraph):
+       Connections.distances(network, edges)

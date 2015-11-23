@@ -6,6 +6,7 @@
 graph_lib,GraphLib,TNEANet = None,object,object
 try:
     from graph_tool import Graph as GraphLib
+    from graph_tool.spectral import adjacency
     graph_lib = "graph_tool"
 except:
     from snap import TNEANet as GraphLib
@@ -130,6 +131,7 @@ class GtGraph(GraphLib):
     def set_node_property(self):
         #@todo: do it...
         pass
+    
     #-------------------------------------------------------------------------#
     # Getters
     
@@ -138,6 +140,9 @@ class GtGraph(GraphLib):
 
     def edge_nb(self):
         return self.num_edges()
+    
+    def adjacency(self):
+        return adjacency(self)
 
 
 #
@@ -160,7 +165,7 @@ class SnapGraph(GraphLib):
         
 
     def __init__ (self, nodes=0, g=None, directed=True):
-        ''' see :class:`graph_tool.Graph` constructor '''
+        ''' @todo '''
         super(SnapGraph,self).__init__(g)
         for _ in range(nodes):
             self.AddNode()
@@ -191,7 +196,7 @@ class SnapGraph(GraphLib):
         pass
 
     def new_edge(source, target, add_missing=True,
-                       sweight=1., syn_model=None, syn_delay=None):
+                 weight=1., syn_model=None, syn_delay=None):
         '''
         Adding a connection to the graph, with optional properties.
         

@@ -21,7 +21,7 @@ __all__ = [
 # Conversion utils
 #------------------------
 
-def make_spatial(graph, shape=Shape(),positions=None):
+def make_spatial(graph, shape=Shape(), positions=None):
     if isinstance(graph, Network):
         graph.__class__ = SpatialNetwork
     else:

@@ -7,4 +7,5 @@ Plotting module
 ===============
 """
 
-from .distributions import degree_distribution, betweenness_distribution
+from .custom_plt import palette
+from .plt_properties import degree_distribution, betweenness_distribution

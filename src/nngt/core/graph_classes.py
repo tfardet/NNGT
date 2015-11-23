@@ -6,18 +6,19 @@
 import warnings
 from copy import deepcopy
 from numpy import multiply
+from ssp.sparse import lil_matrix
 
 from ..constants import *
 from .graph_measures import * #@todo: get only degrees betw and adjacency
 from .graph_objects import GraphLib, GraphObject
-from .graph_datastruct import NeuralPop, Connections, Shape
+from .graph_datastruct import NeuralPop, Shape, Connections
 
 
 
-#
-#---
+#-----------------------------------------------------------------------------#
 # Graph
 #------------------------
+#
 
 class Graph(object):
     
@@ -49,10 +50,10 @@ class Graph(object):
         return cls.__num_graphs
 
     #-------------------------------------------------------------------------#
-    # Constructor/destructor and attributes
+    # Constructor/destructor and properties
     
     def __init__(self, nodes=0, name="Graph",
-                  weighted=True, directed=True, libgraph=None):
+                  weighted=True, directed=True, libgraph=None, **kwargs):
         '''
         Initialize Graph instance
 
@@ -81,12 +82,22 @@ class Graph(object):
             "weighted": weighted,
             "directed": directed,
         }
-        
+        # dictionary containing the attributes
+        self._data = {}
+        if "data" in kwargs.keys():
+            di_data = kwargs["data"]
+            for key, value in di_data.iteritems():
+                self._data[key] = value
+        # create the graphlib graph
         if libgraph != None:
             self._graph = libgraph
         else:
             self._graph = GraphObject(nodes=nodes, directed=directed)
-            
+        # take care of the weights @todo: use those of the libgraph
+        if weighted:
+            self._data["weights"] = lil_matrix((nodes,nodes))
+            self._graph.new_edge_attribute("weights", float, val=0)
+        # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
 
@@ -172,12 +183,12 @@ class Graph(object):
         return exc_graph
 
     def adjacency_matrix(self):
-        return adjacency(self._graph)
+        return self._graph.adjacency()
 
     #-------------------------------------------------------------------------#
     # Setters
         
-    def set_name(self,name=""):
+    def set_name(self, name=""):
         ''' set graph name '''
         if name != "":
             self.__di_prop["name"] = name
@@ -188,16 +199,45 @@ class Graph(object):
                 if key not in tplIgnore and (value.__class__ != dict):
                     strName += '_' + key[0] + str(value)
             self.__di_prop["name"] = strName
+    
+    def set_weights(self, elist=None, wlist=None, distrib="gaussian",
+                    correl=None, noise_scale=0.):
+        '''
+        Set the synaptic weights.
+        
+        Parameters
+        ----------
+        elist : class:`numpy.array`, optional (default: None)
+            List of the edges (for user defined weights).
+        wlist : class:`numpy.array`, optional (default: None)
+            List of the weights (for user defined weights).
+        distrib : class:`string`, optional (default: None)
+            Type of distribution (choose among "uniform", "lognormal",
+            "gaussian", "user_def", "lin_corr", "log_corr", "user_correl").
+        correl : class:`string`, optional (default: None)
+            Property to which the weights should be correlated.
+        noise_scale : class:`int`, optional (default: 0.)
+            Scale of the multiplicative Gaussian noise that should be applied
+            on the weights.
+        '''
+        Connections.weights(self, elist, wlist, distrib, correl, noise_scale)
+        
 
     #-------------------------------------------------------------------------#
     # Getters
+    
+    def __getitem__(self, key):
+        return self._data[key]
+    
+    def attributes(self):
+        return self._data.keys()
     
     def get_name(self):
         return self.__di_prop["name"]
     
     def node_nb(self):
         return self._graph.node_nb()
-
+    
     def edge_nb(self):
         return self._graph.edge_nb()
 
@@ -271,10 +311,11 @@ class Graph(object):
             return self._graph.edge_properties["type"].copy()
 
 
-#
-#---
+
+#-----------------------------------------------------------------------------#
 # SpatialGraph
 #------------------------
+#
 
 class SpatialGraph(Graph):
     
@@ -330,10 +371,10 @@ class SpatialGraph(Graph):
         self : :class:`~nggt.Graph`
         '''
         super(SpatialGraph, self).__init__(nodes, name, weighted, directed,
-                                           libgraph)
+                                           libgraph, **kwargs)
         self.__id = self.__class__.__max_id
         
-        self._init_spatial_properties(shape, positions)
+        self._init_spatial_properties(shape, positions, **kwargs)
         
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -346,26 +387,27 @@ class SpatialGraph(Graph):
     @property
     def shape(self):
         return self._shape
-    
-    @property
-    def pos(self):
-        return self._pos
 
     #-------------------------------------------------------------------------#
     # Init tool
     
-    def _init_spatial_properties(self, shape, positions):
-        self._shape = shape if shape is not None else Shape()
+    def _init_spatial_properties(self, shape, positions, **kwargs):
+        self._shape = shape if shape is not None else Shape(self)
         b_rnd_pos = ( True if not self.node_nb() or positions is None
                       else len(positions) != self.node_nb() )
-        self._pos = self._shape.rnd_distrib() if b_rnd_pos else positions
-        self._connections = Connections(self)
-        
+        pos = self._shape.rnd_distrib() if b_rnd_pos else positions
+        self._data["positions"] = pos
+        if "data" in kwargs.keys():
+            if "distances" not in self._data.keys():
+                self._data["distances"] = Connections.distances(self, pos=pos)
+        else:
+            self._data["distances"] = Connections.distances(self, pos=pos)
 
-#
-#---
+
+#-----------------------------------------------------------------------------#
 # Network
 #------------------------
+#
 
 class Network(Graph):
     
@@ -396,9 +438,11 @@ class Network(Graph):
     @classmethod
     def uniform_network(cls, size, neuron_model="iaf_neuron", neuron_param={},
                         syn_model="static_synapse", syn_param={}):
-        pop = NeuralPop.uniform_population(size, self, neuron_model,
+        pop = NeuralPop.uniform_population(size, None, neuron_model,
            neuron_param, syn_model, syn_param)
-        return cls(population=pop)
+        net = cls(population=pop)
+        pop.parent = net
+        return net
 
     @classmethod
     def ei_network(cls, size, ei_ratio=0.2, en_model="aeif_neuron",
@@ -441,18 +485,20 @@ class Network(Graph):
         -------
         self : :class:`~nggt.core.Graph`
         '''
-        if population == None:
+        if population is None:
             raise ArgumentError("Network needs a NeuralPop to be created")
         nodes = population.size
-        super(Network, self).__init__(nodes=0, name=name,
+        if "nodes" in kwargs.keys():
+            del kwargs["nodes"]
+        super(Network, self).__init__(nodes=nodes, name=name,
                                       weighted=weighted, directed=directed,
-                                      libgraph=libgraph)
+                                      libgraph=libgraph, **kwargs)
         self.__id = self.__class__.__max_id
         self._init_bioproperties(population)
         
         self.__class__.__num_networks += 1
         self.__class__.__max_id += 1
-        self.__b_valid_properties = True  
+        self.__b_valid_properties = True
     
     def __del__(self):
         super(Network, self).__del__()
@@ -486,7 +532,6 @@ class Network(Graph):
         if issubclass(NeuralPop, population.__class__):
             if population.is_valid:
                 self._population = population
-                self._graph.new_node(population.size)
             else:
                 raise AttributeError("NeuralPop is not valid (not all \
                 neurons are associated to a group).")
@@ -502,10 +547,11 @@ class Network(Graph):
         return self._population[group_name].properties()
 
 
-#
-#---
+
+#-----------------------------------------------------------------------------#
 # SpatialNetwork
 #------------------------
+#
 
 class SpatialNetwork(Network,SpatialGraph):
     
@@ -531,17 +577,12 @@ class SpatialNetwork(Network,SpatialGraph):
 
     __num_networks = 0
     __max_id = 0
-    
-    @classmethod
-    def make_network(cls, graph):
-        graph.__class__ = cls
-        graph._init_bioproperties()
 
     #-------------------------------------------------------------------------#
     # Constructor, destructor, and attributes
     
-    def __init__(self, name="Graph", weighted=True, directed=True,
-                 shape=None, graph=None, positions=None, population=None):
+    def __init__(self, population, name="Graph", weighted=True, directed=True,
+                 shape=None, graph=None, positions=None, **kwargs):
         '''
         Initialize Graph instance
 
@@ -559,23 +600,18 @@ class SpatialNetwork(Network,SpatialGraph):
             Positions of the neurons; if not specified and `nodes` != 0, then
             neurons will be reparted at random inside the
             :class:`~nngt.core.Shape` object of the instance.
-        neuron_type : +/-1 or array (default: 1)
-            The type of the neurons, either 1 for "excitatory" or -1 
-            "inhibitory".
-        @todo:
-        neural_model : :class:`NeuralModel`, optional (default: `(default_neuron,default_dict)`)
-            A tuple containing the model(s) to use in NEST to simulate the 
-            neurons as well as a dictionary containing the parameters for the
-            neuron.
+        population : class:`~nngt.NeuralPop`, optional (default: None)
         
         Returns
         -------
         self : :class:`~nggt.core.Graph`
         '''
+        if population is None:
+            raise ArgumentError("Network needs a NeuralPop to be created")
         nodes = population.size
         super(SpatialNetwork, self).__init__(
             nodes=nodes, name=name, weighted=weighted, directed=directed,
-            shape=shape, positions=positions, population=population)
+            shape=shape, positions=positions, population=population, **kwargs)
         
         self.__id = self.__class__.__max_id
         

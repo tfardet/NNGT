@@ -3,6 +3,7 @@
 
 """ Tools for graph analysis using the graph_tool library """
 
+import numpy as np
 from graph_tool.centrality import betweenness
 
 
@@ -18,9 +19,11 @@ def betweenness_list(graph, use_weights=True):
     if "weight" in graph.edge_properties.keys() and use_weights:
         weight_propmap = graph.copy_property(graph.edge_properties["weight"])
         weight_propmap.a = weight_propmap.a.max() - weight_propmap.a
-        return betweenness(graph, weight=weight_propmap)
+        tpl = betweenness(graph, weight=weight_propmap)
+        return tpl[0].a, tpl[1].a
     else:
-        return betweenness(graph)
+        tpl = betweenness(graph)
+        return tpl[0].a, tpl[1].a
             
 def degree_distrib(graph, deg_type="total", use_weights=True, log=False):
     '''
@@ -46,13 +49,14 @@ def degree_distrib(graph, deg_type="total", use_weights=True, log=False):
         bins
     '''
     ia_node_deg = degree_list(graph, deg_type, use_weights)
-	num_bins = int(len(ia_node_deg) / 10)
-	ra_bins = np.linspace(ia_node_deg.min(), ia_node_deg.max(), num_bins)
+    num_bins = len(ia_node_deg)
+    ra_bins = np.linspace(ia_node_deg.min(), ia_node_deg.max(), num_bins)
     if log:
         ra_bins = np.logspace(np.log10(np.maximum(ia_node_deg.min(),1)),
-                               np.log10(ia_node_deg.max()), num_bins)
+                               np.log10(ia_node_deg.max()), int(num_bins/10))
     counts,deg = np.histogram(ia_node_deg, ra_bins)
-	return counts, deg[:-1]
+    ia_indices = np.argwhere(counts)
+    return counts[ia_indices], deg[ia_indices]
             
 def betweenness_distrib(graph, use_weights=True, log=False):
     '''
@@ -80,9 +84,9 @@ def betweenness_distrib(graph, use_weights=True, log=False):
         bins for edge betweenness
     '''
     ia_nbetw, ia_ebetw = betweenness_list(graph, use_weights)
-	num_nbins, num_ebins = int(len(ia_nbetw) / 10), int(len(ia_ebetw) / 10)
-	ra_nbins = np.linspace(ia_nbetw.min(), ia_nbetw.max(), num_nbins)
-	ra_ebins = np.linspace(ia_ebetw.min(), ia_ebetw.max(), num_ebins)
+    num_nbins, num_ebins = int(len(ia_nbetw) / 50), int(len(ia_ebetw) / 50)
+    ra_nbins = np.linspace(ia_nbetw.min(), ia_nbetw.max(), num_nbins)
+    ra_ebins = np.linspace(ia_ebetw.min(), ia_ebetw.max(), num_ebins)
     if log:
         ra_nbins = np.logspace(np.log10(np.maximum(ia_nbetw.min(),10**-8)),
                                np.log10(ia_nbetw.max()), num_nbins)
@@ -90,4 +94,4 @@ def betweenness_distrib(graph, use_weights=True, log=False):
                                np.log10(ia_ebetw.max()), num_ebins)
     ncounts,nbetw = np.histogram(ia_nbetw, ra_nbins)
     ecounts,ebetw = np.histogram(ia_ebetw, ra_ebins)
-	return ncounts, nbetw[:-1], ecounts, ebetw[:-1]
+    return ncounts, nbetw[:-1], ecounts, ebetw[:-1]
