@@ -341,7 +341,6 @@ class Connections:
         sources, targets = graph["edges"][:,1], graph["edges"][:,0]
         lst_w = graph._data["weight"][sources,targets].data[0]
         graph.graph.new_edge_attribute("weight", "double", values=lst_w)
-        
     
     @classmethod
     def types(cls, graph, elist=None):

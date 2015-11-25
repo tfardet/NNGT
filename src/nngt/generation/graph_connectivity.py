@@ -7,8 +7,6 @@ import numpy as np # remove it in the end
 
 from .. import Graph, SpatialGraph, Connections
 from ..core import GraphObject
-from ..lib.utils import (delete_self_loops, delete_parallel_edges,
-                         adjacency_matrix, make_spatial) # remove in the end
 from ..lib.connect_tools import *
 
 
