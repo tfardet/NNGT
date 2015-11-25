@@ -5,7 +5,7 @@
 
 import numpy as np # remove it in the end
 
-from .. import Graph, SpatialGraph
+from .. import Graph, SpatialGraph, Connections
 from ..core import GraphObject
 from ..lib.utils import (delete_self_loops, delete_parallel_edges,
                          adjacency_matrix, make_spatial) # remove in the end
@@ -77,6 +77,7 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
     # generate container
     graph_er = (Graph(name=name, libgraph=graph_obj_er) if
                 initial_graph is None else initial_graph)
+    graph_er._data["edges"] = ia_edges
     if shape is not None:
         make_spatial(graph_er, shape, positions)
     return graph_er
@@ -135,6 +136,7 @@ def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
                 initial_graph is None else initial_graph)
     if shape is not None:
         make_spatial(graph_rsf, shape, positions)
+    graph_rsf._data["edges"] = ia_edges
     return graph_rsf
 
 def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
@@ -197,8 +199,8 @@ def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
 #------------------------
 
 def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
-                  multigraph=False, name="ER", shape=None, positions=None,
-                  initial_graph=None, **kwargs):
+                 multigraph=False, name="ER", shape=None, positions=None,
+                 initial_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
     @todo: generate the edges of a circular graph to not replace the graph
@@ -251,12 +253,12 @@ def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
     # add edges
     nodes_ids = list(range(nodes))
     ia_edges = _newman_watts(nodes_ids, nodes_ids, coord_nb, proba_shortcut,
-                             density, edges, avg_deg, reciprocity, directed,
-                             multigraph)
+                             directed, multigraph)
     graph_obj_nw.add_edge_list(ia_edges)
     # generate container
     graph_nw = (Graph(name=name, libgraph=graph_obj_nw) if
                 initial_graph == None else initial_graph)
+    graph_nw._data["edges"] = ia_edges
     if shape is not None:
         make_spatial(graph_nw, shape, positions)
     return graph_nw
@@ -344,10 +346,10 @@ def gen_edr(dicProperties):
     return graphEDR
 
 
-#
-#---
+#-----------------------------------------------------------------------------#
 # Connecting groups
 #------------------------
+#
 
 di_gen_func = { "erdos_renyi": _erdos_renyi, 
     "random_scale_free": _random_scale_free,
@@ -385,7 +387,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         Dictionary containing the model parameters (the keys are the keywords
         of the associated generation function --- see above).
     '''
-    source_ids, target_ids = [], []
+    edges, source_ids, target_ids = None, [], []
     di_param = di_default.copy()
     di_param.update(model_param)
     for group in network._population.itervalues():
@@ -399,6 +401,12 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     else:
         edges = di_gen_func[graph_model](source_ids,target_ids,**di_param)
         network.add_edges(edges)
+    if "edges" in network.attributes():
+        network._data["edges"] = np.concatenate(network._data["edges"],edges)
+    else:
+        network._data["edges"] = edges
+    if issubclass(network.__class__, SpatialGraph):
+        Connections.distances(network, edges)
 
 def connect_neural_groups(network, source_groups, target_groups, graph_model,
                          model_param):
@@ -421,7 +429,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         Dictionary containing the model parameters (the keys are the keywords
         of the associated generation function --- see above).
     '''
-    source_ids, target_ids = [], []
+    edges, source_ids, target_ids = None, [], []
     di_param = di_default.copy()
     di_param.update(model_param)
     for name, group in network._population.iteritems():
@@ -435,3 +443,9 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     else:
         edges = di_gen_func[graph_model](source_ids, target_ids, **di_param)
         network.add_edges(edges)
+    if "edges" in network.attributes():
+        network._data["edges"] = np.concatenate(network._data["edges"],edges)
+    else:
+        network._data["edges"] = edges
+    if issubclass(network.__class__, SpatialGraph):
+       Connections.distances(network, edges)

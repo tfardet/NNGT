@@ -4,18 +4,19 @@
 """ Graph data strctures in NNGT """
 
 import numpy as np
+import scipy.sparse as ssp
 
 from ..properties.populations import NeuralGroup, _make_groups
+from ..lib.weights import *
 
 
 
-
-#
-#---
+#-----------------------------------------------------------------------------#
 # NeuralPop
 #------------------------
+#
 
-class NeuralPop(dict,object):
+class NeuralPop(dict):
     
     """    
     The basic class that contains groups of neurons and their properties.
@@ -46,15 +47,15 @@ class NeuralPop(dict,object):
         return pop
 
     @classmethod
-    def ei_population(cls, size, ei_ratio=0.2, parent=None,
+    def ei_population(cls, size, iratio=0.2, parent=None,
             en_model="aeif_neuron", en_param={}, es_model="static_synapse",
             es_param={}, in_model="aeif_neuron", in_param={},
             is_model="static_synapse", is_param={}):
         '''
         Make a NeuralPop with a given ratio of inhibitory and excitatory
-        neurons
+        neurons.
         '''
-        num_inhib_neuron = int(ei_ratio*size)
+        num_inhib_neuron = int(iratio*size)
         pop = cls(size, parent)
         pop.new_group("excitatory", range(num_inhib_neuron,size), 1, en_model,
            en_param, es_model, es_param)
@@ -67,7 +68,8 @@ class NeuralPop(dict,object):
         ''' Copy an existing NeuralPop '''
         new_pop = cls.__init__(pop.has_models)
         for name, group in pop.items():
-             new_pop.new_group(name, group.id_list, group.model, group.neuron_param)
+             new_pop.new_group(name, group.id_list, group.model,
+                               group.neuron_param)
         return new_pop
 
     #-------------------------------------------------------------------------#
@@ -126,7 +128,7 @@ class NeuralPop(dict,object):
                     raise
             except:
                 raise ArgumentError("set_models argument should be either a \
-                            string or a dict with the same keys as NeuralPop")
+string or a dict with the same keys as NeuralPop")
         b_has_models = True
         for group in self.itervalues():
             b_has_model *= group.has_model
@@ -138,13 +140,11 @@ class NeuralPop(dict,object):
         group = NeuralGroup(id_list, ntype, neuron_model, neuron_param, syn_model, syn_param)
         if self._has_models and not group.has_model:
             raise AttributeError("This NeuralPop requires group to have a \
-                                 model attribute that is not `None`; to \
-                                 disable this, use `set_models(None)` method \
-                                 on this NeuralPop instance.")
+model attribute that is not `None`; to disable this, use `set_models(None)` \
+method on this NeuralPop instance.")
         elif group.has_model and not self._has_models:
             warnings.warn("This NeuralPop is not set to take models into \
-                          account; use the `set_models` method to change its \
-                          behaviour.")
+account; use the `set_models` method to change its behaviour.")
         self[name] = group
         # update the group node property
         self._neuron_group[id_list] = name
@@ -162,10 +162,10 @@ class NeuralPop(dict,object):
             self._is_valid = True
 
 
-#
-#---
-# GroupProperties
+#-----------------------------------------------------------------------------#
+# GroupProperty
 #------------------------
+#
 
 class GroupProperty:
     
@@ -214,71 +214,156 @@ class GroupProperty:
         self.syn_param = syn_param
 
 
-#
-#---
+#-----------------------------------------------------------------------------#
 # Connections
 #------------------------
+#
 
 class Connections:
     
     """    
-    The basic class that contains the properties of the connections between
-    neurons for sparse graphs.
-
-    :ivar delays: :class:`~scipy.sparse.lil_matrix` of :class:`double`
-        a *lil* sparse matrix containing the delay of spike propagation between
-        pairs of neurons.
-    :ivar distances: :class:`~scipy.sparse.lil_matrix` of :class:`double`,
-        optional (default: None)
-        sparse matrix containing the distances between connected neurons
+    The basic class that computes the properties of the connections between
+    neurons for graphs.
     """
     
-    def __init__(self, parent, dense=False):
-        '''
-        Initialize SparseConnections instance.
+    di_wfunc = {
+        "uniform": uniform_weights,
+        "lognormal": lognormal_weights,
+        "gaussian": gaussian_weights,
+        "lin_corr": lin_correlated_weights,
+        "log_corr": log_correlated_weights
+    }
 
+    #-------------------------------------------------------------------------#
+    # Class methods
+    
+    @classmethod
+    def distances(cls, graph, elist=None, pos=None):
+        '''
+        Compute the distances between connected nodes in the graph. Try to add 
+        only the new distances to the graph. If they overlap with previously 
+        computed distances, recomputes everything.
+        
         Parameters
         ----------
-        @todo: init from existing graph (duplicate the adjacency matrix), set
+        graph : class:`~nngt.Graph` or subclass
+            Graph the nodes belong to.
+        elist : class:`numpy.array`, optional (default: None)
+            List of the edges
+        pos : class:`numpy.array`, optional (default: None)
+            Positions of the nodes; if None, the graph must have a "position" 
+            item.
         
-        init empty
-            
         Returns
         -------
-        pop : :class:`~nngt.properties.SparseConnections` instance
+        new_dist : class:`scipy.sparse.lil_matrix`
+            Sparse matrix containing *ONLY* the newly-computed distances.
         '''
-        self._parent = parent
-        n = parent.node_nb()
-        self._distance = None
-        self._delay = None
-        if hasattr(parent,"_init_spatial_properties"):
-            self._distance = (sp.zeros((n,n)) if dense
-                              else ssp.lil_matrix((n,n)))
-        if hasattr(parent,"_init_bioproperties"):
-            self._delay = sp.zeros((n,n)) if dense else ssp.lil_matrix((n,n))
+        n = graph.node_nb()
+        if elist is None:
+            mat_adj = graph.adjacency_matrix().tocoo()
+            elist = np.array( [mat_adj.row, mat_adj.col] ).T
+        if pos is None:
+            pos = graph["position"]
+        # compute the new distances
+        ra_x = pos[0,elist[:,0]] - pos[0,elist[:,1]]
+        ra_y = pos[1,elist[:,0]] - pos[1,elist[:,1]]
+        ra_dist = np.tile( np.sqrt( np.square(ra_x) + np.square(ra_y) ), 2)
+        ia_sources = np.concatenate((elist[:,0], elist[:,1]))
+        ia_targets = np.concatenate((elist[:,1], elist[:,0]))
+        new_dist = ssp.coo_matrix( (ra_dist, (ia_sources,ia_targets)), (n,n) )
+        # update graph distances
+        current_dist = ssp.csr_matrix((n,n))
+        if "distance" in graph.attributes():
+            current_dist = graph._data["distance"].tocsr()
+        total_dist = current_dist.nnz + new_dist.nnz
+        new_dist = current_dist + new_dist.tocsr()
+        if new_dist.nnz == total_dist:
+            new_dist = new_dist.tolil()
+            graph._data["distance"] = new_dist
+        else:
+            graph._data["distance"] = Connections.distances(network).tolil()
+        return new_dist
+    
+    @classmethod
+    def delays(cls, graph, elist=None, pos=None, distrib=None,
+                   correl=None):
+        pass
+    
+    @classmethod
+    def weights(cls, graph, elist=None, wlist=None, distrib=None,
+                distrib_prop={}, correl=None, noise_scale=None):
+        '''
+        Compute the weights of the graph's edges.
+        
+        Parameters
+        ----------
+        graph : class:`~nngt.Graph` or subclass
+            Graph the nodes belong to.
+        elist : class:`numpy.array`, optional (default: None)
+            List of the edges (for user defined weights).
+        wlist : class:`numpy.array`, optional (default: None)
+            List of the weights (for user defined weights).
+        distrib : class:`string`, optional (default: None)
+            Type of distribution (choose among "uniform", "lognormal",
+            "gaussian", "user_def", "lin_corr", "log_corr").
+        distrib_prop : class:`dict`, optional (default: {})
+            Dictionary containing the distribution parameters.
+        correl : class:`string`, optional (default: None)
+            Property to which the weights should be correlated.
+        noise_scale : class:`int`, optional (default: None)
+            Scale of the multiplicative Gaussian noise that should be applied
+            on the weights.
+        
+        Returns
+        -------
+        class:`scipy.sparse.coo_matrix`
+        '''
+        n = graph.node_nb()
+        corr = correl
+        if corr is not None:
+            corr = ( graph.get_betweenness(False)[1] if correl == "betweenness"
+                                                     else graph[correl] )
+        new_weights = None
+        if elist is None:
+            new_weights = cls.di_wfunc[distrib](graph=graph,
+                            correl_attribute=corr, **distrib_prop)
+        else:
+            new_weights = ssp.coo_matrix((wlist,(elist[:,0],elist[:,1])),(n,n))
+        new_weights = new_weights.tolil()
+        # add to the graph container
+        if graph.is_weighted():
+            mat_weights = graph._data["weight"]
+            graph._data["weight"] = (mat_weights+new_weights).tolil()
+        else:
+            graph._data["weight"] = new_weights
+        # add to the graph-object attribute
+        sources, targets = graph["edges"][:,1], graph["edges"][:,0]
+        lst_w = graph._data["weight"][sources,targets].data[0]
+        graph.graph.new_edge_attribute("weight", "double", values=lst_w)
         
     
-    @property
-    def parent(self):
-        return self._parent
+    @classmethod
+    def types(cls, graph, elist=None):
+        pass
 
 
+#-----------------------------------------------------------------------------#
+# Shape
+#------------------------
 #
-#---
-# Shape class
-#--------------------
 
 class Shape:
     """
-    Class containing the shape of the area where neurons will be
-    distributed to form a network.
+    Class containing the shape of the area where neurons will be distributed to
+    form a network.
 
     Attributes
     ----------
     area: double
         Area of the shape in mm^2.
-    gravity_center: tuple of doubles
-        Position of the center of gravity of the current shape.
+    com: tuple of doubles
+        Position of the center of mass of the current shape.
 
     Methods
     -------
@@ -286,9 +371,18 @@ class Shape:
         Add a AGNet.generation.Shape to a preexisting one.
     """
 
-    def __init__(self):
-        self.__area = 0.
-        self.__gravity_center = (0.,0.)
+    def __init__(self, parent=None):
+        self._parent = parent
+        self._area = 0.
+        self._com = (0.,0.)
+    
+    @property
+    def area(self):
+        return self._area
+    
+    @property
+    def com(self):
+        return self._com
 
     def add_subshape(self,subshape,position,unit='mm'):
         """
@@ -308,5 +402,11 @@ class Shape:
         None
         """
 
-    def rnd_distrib(self):
-        pass
+    def rnd_distrib(self, nodes=None):
+        #@todo: make it general
+        if self._parent is not None:
+            nodes = self._parent.node_nb()
+        ra_x = np.random.uniform(size=nodes)
+        ra_y = np.random.uniform(size=nodes)
+        return np.array([ra_x,ra_y])
+        

@@ -6,6 +6,8 @@
 graph_lib,GraphLib,TNEANet = None,object,object
 try:
     from graph_tool import Graph as GraphLib
+    from graph_tool.spectral import adjacency
+    from graph_tool.centrality import betweenness
     graph_lib = "graph_tool"
 except:
     from snap import TNEANet as GraphLib
@@ -59,10 +61,10 @@ class GtGraph(GraphLib):
     # Graph manipulation
     
     def new_node_attribute(self, name, value_type, values=None, val=None):
-         self._node_attributes._new_na(self, name, value_type, values, val)
+         self._node_attributes.new_na(name, value_type, values, val)
 
     def new_edge_attribute(self, name, value_type, values=None, val=None):
-         self._edge_attributes._new_ea(self, name, value_type, values, val)
+         self._edge_attributes.new_ea(name, value_type, values, val)
     
     def new_node(self, n=1, ntype=1):
         '''
@@ -130,6 +132,7 @@ class GtGraph(GraphLib):
     def set_node_property(self):
         #@todo: do it...
         pass
+    
     #-------------------------------------------------------------------------#
     # Getters
     
@@ -138,6 +141,26 @@ class GtGraph(GraphLib):
 
     def edge_nb(self):
         return self.num_edges()
+    
+    def adjacency(self):
+        return adjacency(self)
+    
+    def degree_list(self, deg_type="total", use_weights=True):
+        if "weight" in self.edge_properties.keys() and use_weights:
+            return self.degree_property_map(deg_type,
+                                            self.edge_properties["weight"]).a
+        else:
+            return self.degree_property_map(deg_type).a
+
+    def betweenness_list(self, use_weights=True):
+        if "weight" in self.edge_properties.keys() and use_weights:
+            w_propmap = self.copy_property(self.edge_properties["weight"])
+            w_propmap.a = w_propmap.a.max() - w_propmap.a
+            tpl = betweenness(graph, weight=w_propmap)
+            return tpl[0].a, tpl[1].a
+        else:
+            tpl = betweenness(self)
+            return tpl[0].a, tpl[1].a
 
 
 #
@@ -160,7 +183,7 @@ class SnapGraph(GraphLib):
         
 
     def __init__ (self, nodes=0, g=None, directed=True):
-        ''' see :class:`graph_tool.Graph` constructor '''
+        ''' @todo '''
         super(SnapGraph,self).__init__(g)
         for _ in range(nodes):
             self.AddNode()
@@ -191,7 +214,7 @@ class SnapGraph(GraphLib):
         pass
 
     def new_edge(source, target, add_missing=True,
-                       sweight=1., syn_model=None, syn_delay=None):
+                 weight=1., syn_model=None, syn_delay=None):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -254,9 +277,9 @@ class _GtNProperty:
             self.parent.vertex_properties[name].a = np.array(value)
         else:
             raise ValueError("A list or a np.array with one entry per node in \
-                             the graph is required")
+the graph is required")
 
-    def _new_na(self, name, value_type, values=None, val=None):
+    def new_na(self, name, value_type, values=None, val=None):
         vprop = self.parent.new_vertex_property(value_type, values, val)
         self.parent.vertex_properties[name] = vprop
 
@@ -276,11 +299,11 @@ class _GtEProperty:
             self.parent.edge_properties[name].a = np.array(value)
         else:
             raise ValueError("A list or a np.array with one entry per edge in \
-                             the graph is required")
+the graph is required")
 
-    def _new_ea(self, name, value_type, values=None, val=None):
-        vprop = self.parent.new_edge_property(value_type, values, val)
-        self.parent.edge_properties[name] = vprop
+    def new_ea(self, name, value_type, values=None, val=None):
+        eprop = self.parent.new_edge_property(value_type, values, val)
+        self.parent.edge_properties[name] = eprop
 
 
 #

@@ -93,10 +93,10 @@ from . import core
 
 from .constants import *
 
-from .lib import make_network, make_spatial
-from . import lib
 from . import generation
+from . import analysis
 from . import plot
+from . import lib
 #~ from . import io
 #~ from . import random
 

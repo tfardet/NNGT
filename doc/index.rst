@@ -20,7 +20,7 @@ Welcome to NNGT's documentation!
    user/intro
    user/install
    user/graph-generation
-   user/component_properties
+   user/component-properties
 
 .. developer:
 
@@ -29,7 +29,8 @@ Welcome to NNGT's documentation!
    :maxdepth: 2
    :caption: Developer space
 
-   developer/detailed-implementation
+   developer/detailed-structure
+   developer/graph-attributes
 
 .. modules
 

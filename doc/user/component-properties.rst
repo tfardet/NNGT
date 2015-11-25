@@ -1,3 +1,5 @@
+.. graph-prop:
+
 Properties of graph components
 ==============================
 

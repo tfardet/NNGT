@@ -20,28 +20,7 @@ from graph_tool.spectral import *
 
 #
 #---
-# Distributions
-#------------------------
-
-def degree_list(lib_graph, strType, bWeights=True):
-	degPropMap = lib_graph.degree_property_map(strType)
-	if "weight" in lib_graph.edge_properties.keys() and bWeights:
-		degPropMap = lib_graph.degree_property_map(strType, lib_graph.edge_properties["weight"])
-	return degPropMap.a
-
-def betweenness_list(lib_graph, bWeights=True):
-	if "weight" in lib_graph.edge_properties.keys() and bWeights:
-		weightPropMap = lib_graph.copy_property(lib_graph.edge_properties["weight"])
-		#~ weightPropMap.a = np.divide(np.repeat(1,len(weightPropMap.a)),weightPropMap.a) # this drastically changes the distribution
-		weightPropMap.a = weightPropMap.a.max() - weightPropMap.a
-		return betweenness(lib_graph, weight=weightPropMap)
-	else:
-		return betweenness(lib_graph)
-
-
-#
-#---
-# Scalar pproperties
+# Scalar properties
 #------------------------
 
 def assortativity(lib_graph):
@@ -71,7 +50,7 @@ def diameter(lib_graph):
 
 #
 #---
-# Spectral pproperties
+# Spectral properties
 #------------------------
 
 def spectral_radius(lib_graph):

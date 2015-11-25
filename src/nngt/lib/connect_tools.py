@@ -5,6 +5,7 @@
 
 import warnings
 import numpy as np
+import scipy.sparse as ssp
 from numpy.random import randint
 
 from ..core.graph_objects import graph_lib
@@ -17,17 +18,17 @@ __all__ = [
     "_random_scale_free",
     "_price_scale_free",
     "_newman_watts",
-    "price_network"
+    "price_network",
 ]
 
 MAXTESTS = 1000 # ensure that generation will finish
 EPS = 0.00001
 
 
-#
-#---
+#-----------------------------------------------------------------------------#
 # Simple tools
 #------------------------
+#
 
 def _compute_connections(num_source, num_target, density, edges, avg_deg,
                          directed, reciprocity):
@@ -74,10 +75,10 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph):
     return ia_edges, num_ecurrent
 
 
-#
-#---
+#-----------------------------------------------------------------------------#
 # Graph model generation
 #------------------------
+#
 
 def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
                  directed, multigraph):
@@ -202,8 +203,8 @@ def _circular_graph(node_ids, coord_nb):
     ia_targets[ia_targets>nodes-0.5] -= nodes
     return np.array([node_ids[ia_sources], node_ids[ia_targets]]).T
 
-def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut, density,
-                  edges, avg_deg, reciprocity, directed, multigraph):
+def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
+                  directed, multigraph):
     '''
     Returns a numpy array of dimension (2,edges) that describes the edge list
     of a Newmaan-Watts graph.
@@ -215,7 +216,7 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut, density,
     edges = int(circular_edges*(1+proba_shortcut))
     edges, circular_edges = (edges, circular_edges if directed
                              else (int(edges/2), int(circular_edges/2)))
-    b_one_pop = (False if node_ids != num_target else
+    b_one_pop = (False if len(target_ids) != nodes else
                            not np.all(node_ids-target_ids))
     if not b_one_pop:
         raise InvalidArgument("This graph model can only be used if source \
@@ -245,3 +246,4 @@ def price_network():
 
 if graph_lib == "graph_tool":
     from graph_tool.generation import price_network
+    

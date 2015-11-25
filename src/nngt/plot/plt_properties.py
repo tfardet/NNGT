@@ -11,13 +11,35 @@ from ..analysis import degree_distrib, betweenness_distrib
 
 
 
+#-----------------------------------------------------------------------------#
+# Figure management
+#------------------------
 #
-#---
+
+def set_new_plot(fignum, num_new_plots=1):
+    # get the figure and compute the new number of rows and cols
+    fig = plt.figure(num=fignum)
+    num_axes = len(fig.axes)+num_new_plots
+    num_rows = max(int(np.floor(np.sqrt(num_axes))),1)
+    ratio = num_axes/float(num_rows)
+    num_cols = int(ratio)+1 if int(ratio)!=int(np.ceil(ratio)) else int(ratio)
+    # change the geometry
+    for i in range(num_axes-num_new_plots):
+        fig.axes[i].change_geometry(num_rows, num_cols, i+1)
+    lst_new_axes = []
+    n_old = num_axes-num_new_plots+1
+    for i in range(num_new_plots):
+        lst_new_axes.append(fig.add_subplot(num_rows, num_cols, n_old+i))
+    return fig, lst_new_axes
+
+
+#-----------------------------------------------------------------------------#
 # Plotting distributions
 #------------------------
+#
 
 def degree_distribution(network, deg_type="total", use_weights=True,
-                        logx=False, logy=False):
+                        logx=False, logy=False, fignum=None, show=True):
     '''
     Plotting the degree distribution of a graph.
     
@@ -34,8 +56,11 @@ def degree_distribution(network, deg_type="total", use_weights=True,
         use log-spaced bins.
     logy : bool, optional (default: False)
         use logscale for the degree count.
+    show : bool, optional (default: True)
+        Show the Figure right away if True, else keep it warm for later use.
     '''
-    fig, ax1 = plt.subplots(1,1)
+    fig, lst_axes = set_new_plot(fignum)
+    ax1 = lst_axes[0]
     ax1.axis('tight')
     maxcounts,maxbins,minbins = 0,0,np.inf
     if isinstance(deg_type, str):
@@ -67,10 +92,11 @@ def degree_distribution(network, deg_type="total", use_weights=True,
         ax1.set_yscale("log")
         ax1.set_ylim([0.8, 1.5*maxcounts])
     ax1.set_title("Degree distribution for {}".format(network.name))
-    plt.show()
+    if show:
+        plt.show()
             
 def betweenness_distribution(network, btype="both", use_weights=True,
-                             logx=False, logy=False):
+                             logx=False, logy=False, fignum=None, show=True):
     '''
     Plotting the betweenness distribution of a graph.
     
@@ -87,10 +113,16 @@ def betweenness_distribution(network, btype="both", use_weights=True,
         use log-spaced bins.
     logy : bool, optional (default: False)
         use logscale for the degree count.
+    fignum : int, optional (default: None)
+        Number of the Figure on which the plot should appear
+    show : bool, optional (default: True)
+        Show the Figure right away if True, else keep it warm for later use.
     '''
-    fig, ax1 = plt.subplots(1,1)
+    num_axes = 2 if btype == "both" else 1
+    fig, lst_axes  = set_new_plot(fignum, num_axes)
+    ax1 = lst_axes[0]
     ax1.axis('tight')
-    ax2 = fig.add_subplot(111) if btype == "both" else ax1
+    ax2 = lst_axes[-1]
     ax2.axis('tight')
     ncounts,nbins,ecounts,ebins = betweenness_distrib(network.graph,
                                                       use_weights, logx)
@@ -134,4 +166,5 @@ def betweenness_distribution(network, btype="both", use_weights=True,
     if logy:
         ax1.set_yscale("log")
         ax2.set_yscale("log")
-    plt.show()
+    if show:
+        plt.show()

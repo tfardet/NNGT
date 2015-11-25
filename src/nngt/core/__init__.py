@@ -24,8 +24,6 @@ from .graph_measures import *
 
 
 __all__ = [ 
-	"degree_list",
-	"betweenness_list",
 	"assortativity",
 	"reciprocity",
 	"clustering",
