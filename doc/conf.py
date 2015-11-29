@@ -23,6 +23,9 @@ sys.path.insert(0, os.path.abspath('../src/'))
     the mock library '''
 
 if on_rtd:
+    import mock
+    mock_object = mock.Mock()
+    
     class Mock(object):
         def __init__(self, *args, **kwargs):
             pass
@@ -34,13 +37,11 @@ if on_rtd:
             return Mock()
 
         def __getitem__(self, name):
-            return Mock()
+            return mock_object
 
         def __setitem__(self, name, value):
             pass
     
-    import mock
-    mock_object = mock.Mock()
     sys.modules["graph_tool"] = mock_object
     sys.modules["graph_tool.spectral"] = mock_object
     sys.modules["graph_tool.generation"] = mock_object
@@ -51,7 +52,7 @@ if on_rtd:
     sys.modules["graph_tool.topology"] = mock_object
     sys.modules["graph_tool.draw"] = mock_object
     sys.modules["graph_tool.clustering"] = mock_object
-    sys.modules["matplotlib"] = Mock()
+    sys.modules["matplotlib"] = mock_object
     sys.modules["matplotlib.pyplot"] = Mock()
 
 from nngt.constants import version as nngt_version

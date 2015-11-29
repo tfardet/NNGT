@@ -29,29 +29,32 @@ try:
         return sns.color_palette("Set2", len(arr))
     palette = sns_palette
 except:
-    plt.rcParams['font.size'] = 12
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['mathtext.fontset'] = 'custom'
-    plt.rcParams['axes.labelsize'] = plt.rcParams['font.size']
-    plt.rcParams['axes.titlesize'] = 1.2*plt.rcParams['font.size']
-    plt.rcParams['legend.fontsize'] = plt.rcParams['font.size']
-    plt.rcParams['xtick.labelsize'] = plt.rcParams['font.size']
-    plt.rcParams['ytick.labelsize'] = plt.rcParams['font.size']
-    plt.rcParams['savefig.dpi'] = 300
-    plt.rcParams['savefig.format'] = 'pdf'
-    plt.rcParams['xtick.major.size'] = 3
-    plt.rcParams['xtick.minor.size'] = 3
-    plt.rcParams['xtick.major.width'] = 1
-    plt.rcParams['xtick.minor.width'] = 1
-    plt.rcParams['ytick.major.size'] = 3
-    plt.rcParams['ytick.minor.size'] = 3
-    plt.rcParams['ytick.major.width'] = 1
-    plt.rcParams['ytick.minor.width'] = 1
-    plt.rcParams['legend.frameon'] = False
-    plt.rcParams['legend.numpoints'] = 1
-    plt.rcParams['axes.linewidth'] = 1
-    plt.rcParams['axes.grid'] = True
-    plt.rcParams['path.simplify'] = True
+    try:
+        plt.rcParams['font.size'] = 12
+        plt.rcParams['font.family'] = 'serif'
+        plt.rcParams['mathtext.fontset'] = 'custom'
+        plt.rcParams['axes.labelsize'] = plt.rcParams['font.size']
+        plt.rcParams['axes.titlesize'] = 1.2*plt.rcParams['font.size']
+        plt.rcParams['legend.fontsize'] = plt.rcParams['font.size']
+        plt.rcParams['xtick.labelsize'] = plt.rcParams['font.size']
+        plt.rcParams['ytick.labelsize'] = plt.rcParams['font.size']
+        plt.rcParams['savefig.dpi'] = 300
+        plt.rcParams['savefig.format'] = 'pdf'
+        plt.rcParams['xtick.major.size'] = 3
+        plt.rcParams['xtick.minor.size'] = 3
+        plt.rcParams['xtick.major.width'] = 1
+        plt.rcParams['xtick.minor.width'] = 1
+        plt.rcParams['ytick.major.size'] = 3
+        plt.rcParams['ytick.minor.size'] = 3
+        plt.rcParams['ytick.major.width'] = 1
+        plt.rcParams['ytick.minor.width'] = 1
+        plt.rcParams['legend.frameon'] = False
+        plt.rcParams['legend.numpoints'] = 1
+        plt.rcParams['axes.linewidth'] = 1
+        plt.rcParams['axes.grid'] = True
+        plt.rcParams['path.simplify'] = True
+    except:
+        pass
 
 
 def format_exponent(ax, axis='y', pos=(1.,0.), valign="top", halign="right"):
