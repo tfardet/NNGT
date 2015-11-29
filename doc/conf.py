@@ -20,21 +20,21 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 sys.path.insert(0, os.path.abspath('../src/'))
 
 ''' if on rtd, graph_tool is not available so I need to mock it using
-	the mock library '''
+    the mock library '''
 
 if on_rtd:
-	import mock
-	mock_object = mock.Mock()
-	sys.modules["graph_tool"] = mock_object
-	sys.modules["graph_tool.spectral"] = mock_object
-	sys.modules["graph_tool.generation"] = mock_object
-	sys.modules["graph_tool.util"] = mock_object
-	sys.modules["graph_tool.stats"] = mock_object
-	sys.modules["graph_tool.centrality"] = mock_object
-	sys.modules["graph_tool.correlations"] = mock_object
-	sys.modules["graph_tool.topology"] = mock_object
-	sys.modules["graph_tool.draw"] = mock_object
-	sys.modules["graph_tool.clustering"] = mock_object
+    import mock
+    mock_object = mock.Mock()
+    sys.modules["graph_tool"] = mock_object
+    sys.modules["graph_tool.spectral"] = mock_object
+    sys.modules["graph_tool.generation"] = mock_object
+    sys.modules["graph_tool.util"] = mock_object
+    sys.modules["graph_tool.stats"] = mock_object
+    sys.modules["graph_tool.centrality"] = mock_object
+    sys.modules["graph_tool.correlations"] = mock_object
+    sys.modules["graph_tool.topology"] = mock_object
+    sys.modules["graph_tool.draw"] = mock_object
+    sys.modules["graph_tool.clustering"] = mock_object
     sys.modules["sip"] = mock_object
 
 from nngt.constants import version as nngt_version
