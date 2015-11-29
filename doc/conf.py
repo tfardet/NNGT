@@ -23,7 +23,16 @@ sys.path.insert(0, os.path.abspath('../src/'))
     the mock library '''
 
 if on_rtd:
-    #~ os.environ['ETS_TOOLKIT'] = 'null'
+    class Mock(object):
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __getattr__(self, name):
+            return Mock()
+
+        def __setitem__(self, name, value):
+            pass
+            
     import mock
     mock_object = mock.Mock()
     sys.modules["graph_tool"] = mock_object
@@ -37,7 +46,7 @@ if on_rtd:
     sys.modules["graph_tool.draw"] = mock_object
     sys.modules["graph_tool.clustering"] = mock_object
     sys.modules["matplotlib"] = mock_object
-    sys.modules["matplotlib.pyplot"] = mock_object
+    sys.modules["matplotlib.pyplot"] = Mock()
     #~ sys.modules["sip"] = mock_object
     #~ sys.modules["backend_gtk3"] = mock_object
 
