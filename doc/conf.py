@@ -23,9 +23,9 @@ sys.path.insert(0, os.path.abspath('../src/'))
     the mock library '''
 
 if on_rtd:
-    os.environ['ETS_TOOLKIT'] = 'null'
+    #~ os.environ['ETS_TOOLKIT'] = 'null'
     import mock
-    #~ mock_object = mock.Mock()
+    mock_object = mock.Mock()
     sys.modules["graph_tool"] = mock_object
     sys.modules["graph_tool.spectral"] = mock_object
     sys.modules["graph_tool.generation"] = mock_object
