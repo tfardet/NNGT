@@ -30,6 +30,9 @@ if on_rtd:
         def __getattr__(self, name):
             return Mock()
 
+        def __getitem__(self, name):
+            return Mock()
+
         def __setitem__(self, name, value):
             pass
     
