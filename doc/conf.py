@@ -32,7 +32,7 @@ if on_rtd:
 
         def __setitem__(self, name, value):
             pass
-            
+    
     import mock
     mock_object = mock.Mock()
     sys.modules["graph_tool"] = mock_object
