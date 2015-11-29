@@ -4,7 +4,6 @@
 """ Matplotlib customization """
 
 import itertools
-#~ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 
 
@@ -23,7 +22,6 @@ palette = plt.cm.Set1
 #------------------------
 
 try:
-    raise
     import seaborn as sns
     #~ sns.set(style='ticks', palette='Set2')
     sns.set_style("whitegrid")

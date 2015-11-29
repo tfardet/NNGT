@@ -52,8 +52,7 @@ if on_rtd:
     sys.modules["graph_tool.draw"] = mock_object
     sys.modules["graph_tool.clustering"] = mock_object
     sys.modules["matplotlib"] = Mock()
-    #~ sys.modules["sip"] = mock_object
-    #~ sys.modules["backend_gtk3"] = mock_object
+    sys.modules["matplotlib.pyplot"] = Mock()
 
 from nngt.constants import version as nngt_version
 
