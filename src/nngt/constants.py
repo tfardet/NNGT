@@ -1,16 +1,32 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-"""
-Constant values for NNGT
-"""
+""" Constant values for NNGT """
 
 cst__all__ = ["version",
                 "default_neuron",
                 "default_synapse"]
 
-version = '0.2a'
+version = '0.3'
 ''' :class:`string`, the current version '''
+
+
+#-----------------------------------------------------------------------------#
+# Names
+#------------------------
+#
+
+POS = "position"
+DIST = "distance"
+WEIGHT = "weight"
+DELAY = "delay"
+TYPE = "type"
+
+
+#-----------------------------------------------------------------------------#
+# Basic values
+#------------------------
+#
 
 default_neuron = "iaf_neuron"
 ''' :class:`string`, the default NEST neuron model '''

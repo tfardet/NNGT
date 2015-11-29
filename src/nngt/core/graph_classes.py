@@ -9,21 +9,10 @@ from numpy import multiply
 from scipy.sparse import lil_matrix
 
 from ..constants import *
-from .graph_measures import * #@todo: get only degrees betw and adjacency
+from .graph_measures import *
 from .graph_objects import GraphLib, GraphObject
 from .graph_datastruct import NeuralPop, Shape, Connections
 
-
-
-#-----------------------------------------------------------------------------#
-# Basic values
-#------------------------
-#
-
-POS = "position"
-DIST = "distance"
-WEIGHT = "weight"
-TYPE = "type"
 
 
 #-----------------------------------------------------------------------------#
@@ -107,8 +96,11 @@ class Graph(object):
             self._graph = GraphObject(nodes=nodes, directed=directed)
         # take care of the weights @todo: use those of the libgraph
         if weighted:
-            self._data[WEIGHT] = lil_matrix((nodes,nodes))
-            self._graph.new_edge_attribute(WEIGHT, "double", val=0)
+            if "weight_prop" in kwargs.keys():
+                self._w = kwargs["weight_prop"]
+            else:
+                self._w = {"distrib": "constant"}
+            self.set_weights()
         # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -194,8 +186,8 @@ class Graph(object):
         self._graph.clear_filters()
         return exc_graph
 
-    def adjacency_matrix(self):
-        return self._graph.adjacency()
+    def adjacency_matrix(self, weighted=True):
+        return self._graph.adjacency(weighted)
 
     #-------------------------------------------------------------------------#
     # Setters
@@ -212,8 +204,8 @@ class Graph(object):
                     strName += '_' + key[0] + str(value)
             self.__di_prop["name"] = strName
     
-    def set_weights(self, elist=None, wlist=None, distrib="gaussian",
-                    correl=None, noise_scale=None):
+    def set_weights(self, elist=None, wlist=None, distrib=None,
+                    distrib_prop=None, correl=None, noise_scale=None):
         '''
         Set the synaptic weights.
         
@@ -224,16 +216,25 @@ class Graph(object):
         wlist : class:`numpy.array`, optional (default: None)
             List of the weights (for user defined weights).
         distrib : class:`string`, optional (default: None)
-            Type of distribution (choose among "uniform", "lognormal",
-            "gaussian", "user_def", "lin_corr", "log_corr", "user_correl").
+            Type of distribution (choose among "constant", "uniform", 
+            "gaussian", "lognormal", "lin_corr", "log_corr").
+        distrib_prop : dict, optional (default: {})
+            Dictoinary containing the properties of the weight distribution.
         correl : class:`string`, optional (default: None)
             Property to which the weights should be correlated.
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
         '''
+        if distrib is None:
+            distrib = self._w["distrib"]
+        if distrib_prop is None:
+            distrib_prop = (self._w["distrib_prop"] if "distrib_prop" in 
+                            self._w.keys() else {})
+        if correl is None:
+            correl = self._w["correl"] if "correl" in self._w.keys() else None
         Connections.weights(self, elist=elist, wlist=wlist, distrib=distrib,
-            correl=correl, noise_scale=noise_scale)
+            correl=correl, distrib_prop=distrib_prop, noise_scale=noise_scale)
         
 
     #-------------------------------------------------------------------------#
@@ -289,10 +290,10 @@ class Graph(object):
         di_result = { prop: self.get_property(prop) for prop in a_properties }
         return di_result
 
-    def get_degrees(self, strType="total", bWeights=True):
+    def get_degrees(self, strType="total", use_weights=True):
         lstValidTypes = ["in", "out", "total"]
         if strType in lstValidTypes:
-            return degree_list(self._graph, strType, bWeights)
+            return self._graph.degree_list(strType, use_weights)
         else:
             warnings.warn("Ignoring invalid degree type '{}'".format(strType))
             return None
@@ -307,13 +308,17 @@ class Graph(object):
             return repeat(1, self._graph.edge_nb())
     
     def get_weights(self):
-        if self.is_weighted():
-            epropW = self._graph.edge_properties[WEIGHT].copy()
-            epropW.a = multiply(epropW.a,
-                                self._graph.edge_properties[TYPE].a)
-            return epropW
-        else:
-            return self._graph.edge_properties[TYPE].copy()
+        #~ if self.is_weighted():
+            #~ epropW = self._graph.edge_properties[WEIGHT].copy()
+            #~ epropW.a = multiply(epropW.a,
+                                #~ self._graph.edge_properties[TYPE].a)
+            #~ return epropW
+        #~ else:
+            #~ return self._graph.edge_properties[TYPE].copy()
+        return self._graph.edge_attributes["weight"]
+
+    def is_spatial(self):
+        return True if issubclass(SpatialGraph,self.__class__) else False
 
 
 
@@ -516,6 +521,8 @@ class Network(Graph):
                                       libgraph=libgraph, **kwargs)
         self.__id = self.__class__.__max_id
         self._init_bioproperties(population)
+        self.nest_id = None
+        self.id_from_nest_id = None
         
         self.__class__.__num_networks += 1
         self.__class__.__max_id += 1
@@ -553,6 +560,9 @@ class Network(Graph):
         if issubclass(NeuralPop, population.__class__):
             if population.is_valid:
                 self._population = population
+                nodes = population.size
+                # create the delay attribute
+                self._data[DELAY] = Connections.delays(self)
             else:
                 raise AttributeError("NeuralPop is not valid (not all \
                 neurons are associated to a group).")

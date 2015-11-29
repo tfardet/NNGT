@@ -7,7 +7,8 @@ import numpy as np
 
 
             
-def degree_distrib(graph, deg_type="total", use_weights=True, log=False):
+def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
+                   log=False, num_bins=30):
     '''
     Computing the degree distribution of a graph
     
@@ -16,7 +17,9 @@ def degree_distrib(graph, deg_type="total", use_weights=True, log=False):
     graph : :class:`GraphObject`
         the graph to analyze.
     deg_type : string, optional (default: "total")
-        type of degree to consider ("in", "out", or "total")
+        type of degree to consider ("in", "out", or "total").
+    node_list : list or numpy.array of ints, optional (default: None)
+        Restrict the distribution to a set of nodes (default: all nodes).
     use_weights : bool, optional (default: True)
         use weighted degrees (do not take the sign into account: all weights
         are positive).
@@ -30,8 +33,7 @@ def degree_distrib(graph, deg_type="total", use_weights=True, log=False):
     deg : :class:`numpy.array`
         bins
     '''
-    ia_node_deg = graph.degree_list(deg_type, use_weights)
-    num_bins = int(len(ia_node_deg)/20)
+    ia_node_deg = graph.degree_list(node_list, deg_type, use_weights)
     ra_bins = np.linspace(ia_node_deg.min(), ia_node_deg.max(), num_bins)
     if log:
         ra_bins = np.logspace(np.log10(np.maximum(ia_node_deg.min(),1)),

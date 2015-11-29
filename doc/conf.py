@@ -35,6 +35,7 @@ if on_rtd:
 	sys.modules["graph_tool.topology"] = mock_object
 	sys.modules["graph_tool.draw"] = mock_object
 	sys.modules["graph_tool.clustering"] = mock_object
+    sys.modules["sip"] = mock_object
 
 from nngt.constants import version as nngt_version
 

@@ -10,13 +10,16 @@ from .custom_plt import palette, format_exponent
 from ..analysis import degree_distrib, betweenness_distrib
 
 
+__all__ = [ 'degree_distribution', 'betweenness_distribution' ]
+
+
 
 #-----------------------------------------------------------------------------#
 # Figure management
 #------------------------
 #
 
-def set_new_plot(fignum, num_new_plots=1):
+def _set_new_plot(fignum, num_new_plots=1):
     # get the figure and compute the new number of rows and cols
     fig = plt.figure(num=fignum)
     num_axes = len(fig.axes)+num_new_plots
@@ -38,8 +41,9 @@ def set_new_plot(fignum, num_new_plots=1):
 #------------------------
 #
 
-def degree_distribution(network, deg_type="total", use_weights=True,
-                        logx=False, logy=False, fignum=None, show=True):
+def degree_distribution(network, deg_type="total", node_list=None, num_bins=50,
+                        use_weights=True, logx=False, logy=False, fignum=None,
+                        show=True):
     '''
     Plotting the degree distribution of a graph.
     
@@ -49,6 +53,8 @@ def degree_distribution(network, deg_type="total", use_weights=True,
         the graph to analyze.
     deg_type : string or tuple, optional (default: "total")
         type of degree to consider ("in", "out", or "total")
+    node_list : list or numpy.array of ints, optional (default: None)
+        Restrict the distribution to a set of nodes (default: all nodes).
     use_weights : bool, optional (default: True)
         use weighted degrees (do not take the sign into account : all weights
         are positive).
@@ -59,12 +65,13 @@ def degree_distribution(network, deg_type="total", use_weights=True,
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
     '''
-    fig, lst_axes = set_new_plot(fignum)
+    fig, lst_axes = _set_new_plot(fignum)
     ax1 = lst_axes[0]
     ax1.axis('tight')
     maxcounts,maxbins,minbins = 0,0,np.inf
     if isinstance(deg_type, str):
-        counts,bins = degree_distrib(network.graph,deg_type,use_weights,logx)
+        counts,bins = degree_distrib(network.graph, deg_type, node_list,
+                                     use_weights, logx, num_bins)
         maxcounts,maxbins,minbins = counts.max(),bins.max(),bins.min()
         line = ax1.scatter(bins, counts)
         s_legend = deg_type[0].upper() + deg_type[1:] + " degree"
@@ -74,7 +81,8 @@ def degree_distribution(network, deg_type="total", use_weights=True,
         m = ["o","s","D"]
         lines, legends = [], []
         for i,s_type in enumerate(deg_type):
-            counts,bins = degree_distrib(network.graph,s_type,use_weights,logx)
+            counts,bins = degree_distrib(network.graph, s_type, node_list,
+                                         use_weights, logx, num_bins)
             maxcounts_tmp,mincounts_tmp = counts.max(),counts.min()
             maxbins_tmp,minbins_tmp = bins.max(),bins.min()
             maxcounts = max(maxcounts,maxcounts_tmp)
@@ -119,7 +127,7 @@ def betweenness_distribution(network, btype="both", use_weights=True,
         Show the Figure right away if True, else keep it warm for later use.
     '''
     num_axes = 2 if btype == "both" else 1
-    fig, lst_axes  = set_new_plot(fignum, num_axes)
+    fig, lst_axes  = _set_new_plot(fignum, num_axes)
     ax1 = lst_axes[0]
     ax1.axis('tight')
     ax2 = lst_axes[-1]

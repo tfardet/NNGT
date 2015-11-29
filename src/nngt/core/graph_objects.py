@@ -3,15 +3,34 @@
 
 """ GraphObject for subclassing the libraries graphs """
 
-graph_lib,GraphLib,TNEANet = None,object,object
+import numpy as np
+import scipy.sparse as ssp
+
+s_glib, glib, GraphLib = "", None, object
 try:
+    import graph_tool as glib
     from graph_tool import Graph as GraphLib
     from graph_tool.spectral import adjacency
     from graph_tool.centrality import betweenness
-    graph_lib = "graph_tool"
+    s_glib = "graph_tool"
 except:
-    from snap import TNEANet as GraphLib
-    graph_lib = "snap"
+    try:
+        import igraph as glib
+        from igraph import Graph as GraphLib
+        s_glib = "igraph"
+    except:
+        try:
+            import networkx as glib
+            from networkx import DiGraph as GraphLib
+            from networkx import to_scipy_sparse_matrix as adjacency
+            s_glib = "networkx"
+        except:
+            try:
+                import snap as glib
+                from snap import TNEANet as GraphLib
+                s_glib = "snap"
+            except:
+                pass
 
 
 
@@ -45,7 +64,8 @@ class GtGraph(GraphLib):
         @todo: document that
         see :class:`graph_tool.Graph`'s constructor '''
         super(GtGraph,self).__init__(g,directed,prune,vorder)
-        self.add_vertex(nodes)
+        if g is None:
+            self.add_vertex(nodes)
         self._node_attributes = _GtNProperty(self)
         self._edge_attributes = _GtEProperty(self)
 
@@ -84,7 +104,338 @@ class GtGraph(GraphLib):
         node = self.add_vertex(n)
         return node
 
-    def new_edge(source, target, add_missing=True, weight=1.):
+    def new_edge(source, target, weight=1.):
+        '''
+        Adding a connection to the graph, with optional properties.
+        
+        Parameters
+        ----------
+        source : :class:`int/node`
+            Source node.
+        target : :class:`int/node`
+            Target node.
+        weight : :class:`double`, optional (default: 1.)
+            Weight of the connection (synaptic strength with NEST).
+            
+        Returns
+        -------
+        The new connection.
+        '''
+        connection = self.add_edge(source, target, add_missing=True)
+        if self.is_weighted():
+            self.edge_properties['weight'][connection] = weight
+        return connection
+
+    def new_edges(self, edge_list, eprops=None):
+        '''
+        Adds a list of connections to the graph
+        @todo: see how the eprops work
+        '''
+        self.add_edge_list(edge_list, eprops=eprops)
+        return edge_list
+
+    def remove_edge(self, edge):
+        raise NotImplementedError("This function has been removed because it \
+            makes using edge properties too complicated")
+
+    def remove_vertex(self, node, fast=False):
+        raise NotImplementedError("This function has been removed because it \
+            makes using node properties too complicated")
+
+    def rm_all_edges(self):
+        '''
+        @todo: this should be implemented in GraphClass
+        Remove all connections in the graph
+        '''
+        self.clear_edges()
+    
+    #-------------------------------------------------------------------------#
+    # Getters
+    
+    def node_nb(self):
+        return self.num_vertices()
+
+    def edge_nb(self):
+        return self.num_edges()
+    
+    def adjacency(self, weighted=True):
+        if weighted and 'weight' in self.edge_properties.keys():
+            return adjacency(self, self.edge_properties['weight']).transpose()
+        else:
+            return adjacency(self).transpose()
+    
+    def degree_list(self, node_list=None, deg_type="total", use_weights=True):
+        if node_list is None:
+            node_list = slice(0,-1)
+        if "weight" in self.edge_properties.keys() and use_weights:
+            return self.degree_property_map(deg_type,
+                            self.edge_properties["weight"]).a[node_list]
+        else:
+            return self.degree_property_map(deg_type).a[node_list]
+
+    def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
+        if self.edge_nb():
+            if "weight" in self.edge_properties.keys() and use_weights:
+                w_propmap = self.copy_property(self.edge_properties["weight"])
+                w_propmap.a = w_propmap.a.max() - w_propmap.a
+                tpl = betweenness(self, weight=w_propmap, norm=norm)
+                if as_prop:
+                    return tpl[0], tpl[1]
+                else:
+                    return tpl[0].a, tpl[1].a
+            else:
+                tpl = betweenness(self)
+                if as_prop:
+                    return tpl[0], tpl[1]
+                else:
+                    return tpl[0].a, tpl[1].a
+        else:
+            if as_prop:
+                return None, None
+            else:
+                return np.array([]), np.array([])
+
+
+#-----------------------------------------------------------------------------#
+# igraph
+#------------------------
+#
+
+class IGraph(GraphLib):
+
+    '''
+    Subclass of :class:`igraph.Graph`.
+    '''
+
+    #-------------------------------------------------------------------------#
+    # Class properties
+    
+    @classmethod
+    def to_graph_object(cls, obj):
+        obj.__class__ = cls
+
+    #-------------------------------------------------------------------------#
+    # Constructor and instance properties
+    
+    def __init__(self, nodes=0, g=None, directed=True):
+        if g is None:
+            super(IGraph,self).__init__(n=nodes, directed=directed)
+        else:
+            nodes = g.vcount()
+            edge_list = g.get_edge_list()
+            di_node_attr = {}
+            di_edge_attr = {}
+            nattr = g.vs[0].attributes().keys()
+            eattr = g.es[0].attributes().keys()
+            for attr in nattr:
+                di_node_attr[attr] = g.vs[:][attr]
+            for attr in eattr:
+                di_edge_attr[attr] = g.es[:][attr]
+            super(IGraph,self).__init__(n=nodes, vertex_attrs=di_node_attr,
+                                        edge_attrs=di_edge_attr)
+        self.directed = directed
+        self._node_attributes = _IgNProperty(self)
+        self._edge_attributes = _IgEProperty(self)
+
+    @property
+    def node_attributes(self):
+        return self._node_attribute
+
+    @property
+    def edge_attributes(self):
+        return self._edge_attributes
+
+    #-------------------------------------------------------------------------#
+    # Graph manipulation
+    
+    def new_node_attribute(self, name, value_type, values=None, val=None):
+        self._node_attributes.new_na(name, value_type, values, val)
+
+    def new_edge_attribute(self, name, value_type, values=None, val=None):
+         self._edge_attributes.new_ea(name, value_type, values, val)
+    
+    def new_node(self, n=1, ntype=1):
+        '''
+        Adding a node to the graph, with optional properties.
+        
+        Parameters
+        ----------
+        n : int, optional (default: 1)
+            Number of nodes to add.
+        ntype : int, optional (default: 1)
+            Type of neuron (1 for excitatory, -1 for inhibitory)
+            
+        Returns
+        -------
+        The node or an iterator over the nodes created.
+        '''
+        node_list = []
+        first_node_idx = self.vcount()
+        for v in range(n):
+            node = self.add_vertex(type=ntype)
+            node_list.append(first_node_idx+v)
+        return node_list
+
+    def new_edge(source, target, weight=1.):
+        '''
+        Adding a connection to the graph, with optional properties.
+        
+        Parameters
+        ----------
+        source : :class:`int/node`
+            Source node.
+        target : :class:`int/node`
+            Target node.
+        weight : :class:`double`, optional (default: 1.)
+            Weight of the connection (synaptic strength with NEST).
+            
+        Returns
+        -------
+        The new connection.
+        '''
+        self.add_edge(source,target,weight=weight)
+        return (source, target)
+
+    def new_edges(self, edge_list, eprops=None):
+        ''' Adds a list of connections to the graph '''
+        first_eid = self.ecount()
+        self.add_edges(edge_list)
+        last_eid = self.ecount()
+        if eprops is not None:
+            for attr,lst in eprops.iteritems():
+                self.es[first_eid:last_eid][attr] = lst
+        return edge_list
+
+    def remove_edge(self, edge):
+        raise NotImplementedError("This function has been removed because it \
+            makes using edge properties too complicated")
+
+    def remove_vertex(self, node, fast=False):
+        raise NotImplementedError("This function has been removed because it \
+            makes using node properties too complicated")
+
+    def rm_all_edges(self):
+        '''
+        @todo: this should be implemented in GraphClass
+        Remove all connections in the graph
+        '''
+        self.delete_edges()
+    
+    #-------------------------------------------------------------------------#
+    # Getters
+    
+    def node_nb(self):
+        return self.vcount()
+
+    def edge_nb(self):
+        return self.ecount()
+    
+    def adjacency(self, weighted=True):
+        xs, ys = map(array, zip(*graph.get_edgelist()))
+        if not self.is_directed():
+            xs, ys = hstack((xs, ys)).T, hstack((ys, xs)).T
+        else:
+            xs, ys = xs.T, ys.T
+        data = ones(xs.shape)
+        if weighted and 'weight' in graph.es.attributes():
+            data = graph.es['weight']
+            if not self.is_directed():
+                data.extend(data)
+        coo_adj = ssp.coo_matrix((data, (xs, ys)))
+        return coo_adj.tocsr()
+    
+    def degree_list(self, node_list=None, deg_type="total", use_weights=True):
+        deg_type = 'all' if deg_type == 'total' else deg_type
+        if use_weights:
+            return np.array(self.strength(node_list,mode=deg_type))
+        else:
+            return np.array(self.degree(node_list,mode=deg_type))
+
+    def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
+        w = None
+        if use_weights:
+            w = np.array(self.es['weight'])
+            max_weight = w.max()
+            w = max_weight - w
+        node_betweenness = np.array(self.betweenness(weights=w))
+        edge_betweenness = np.array(self.edge_betweenness(weights=w))
+        if norm:
+            n = self.vcount()
+            e = self.ecount()
+            ncoeff_norm = (n-1)*(n-2)
+            ecoeff_norm = (e-1)*(e-2)/2.
+            node_betweenness /= ncoeff_norm
+            edge_betweenness /= ecoeff_norm
+        return node_betweenness, edge_betweenness
+    
+
+#-----------------------------------------------------------------------------#
+# Networkx
+#------------------------
+#
+
+class NxGraph(GraphLib):
+
+    '''
+    Subclass of networkx Graph
+    '''
+
+    #-------------------------------------------------------------------------#
+    # Class properties
+    
+    @classmethod
+    def to_graph_object(cls, obj):
+        obj.__class__ = cls
+
+    #-------------------------------------------------------------------------#
+    # Constructor and instance properties
+    
+    def __init__(self, nodes=0, g=None, directed=True):
+        super(NxGraph,self).__init__(g)
+        if g is None and nodes:
+            self.add_nodes_from(range(nodes))
+        self.directed = directed
+        self._node_attributes = _NxNProperty(self)
+        self._edge_attributes = _NxEProperty(self)
+
+    @property
+    def node_attributes(self):
+        return self._node_attribute
+
+    @property
+    def edge_attributes(self):
+        return self._edge_attributes
+
+    #-------------------------------------------------------------------------#
+    # Graph manipulation
+    
+    def new_node_attribute(self, name, value_type, values=None, val=None):
+         pass
+
+    def new_edge_attribute(self, name, value_type, values=None, val=None):
+         pass
+    
+    def new_node(self, n=1, ntype=1):
+        '''
+        Adding a node to the graph, with optional properties.
+        
+        Parameters
+        ----------
+        n : int, optional (default: 1)
+            Number of nodes to add.
+        ntype : int, optional (default: 1)
+            Type of neuron (1 for excitatory, -1 for inhibitory)
+            
+        Returns
+        -------
+        The node or an iterator over the nodes created.
+        '''
+        tpl_new_nodes = tuple(range(len(self),len(self)+n))
+        for v in tpl_new_nodes:
+            self.add_node(v)
+        return node
+
+    def new_edge(source, target, weight=1.):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -103,16 +454,29 @@ class GtGraph(GraphLib):
         -------
         The new connection.
         '''
-        connection = self.add_edge(source, target, add_missing)
-        return connection
+        self.add_edge(source, target)
+        self[source][target]['weight'] = weight
+        if not self.directed:
+            self.add_edge(target,source)
+            self[target][source]['weight'] = weight
+        return (source, target)
 
-    def new_edges(self, edge_list, hashed=False, string_vals=False,
-                  eprops=None):
-        '''
-        Adds a list of connections to the graph
-        @todo: see how the eprops work
-        '''
-        self.add_edge_list(edge_list, hashed, string_vals, eprops)
+    def new_edges(self, edge_list, eprops=None):
+        ''' Adds a list of connections to the graph '''
+        if eprops is not None:
+            for attr in eprops.iterkeys():
+                arr = eprops[attr]
+                edges = ( (tpl[0],tpl[i][1], arr[i])
+                          for i, tpl in enumerate(edge_list) )
+                self.add_weighted_edges_from(edges, weight=attr)
+                if not self.directed:
+                    self.add_weighted_edges_from(
+                        np.array(edge_list)[:,[1,0,2]], weight=attr)
+        else:
+            self.add_edges_from(edge_list, eprops)
+            if not self.directed:
+                self.add_edges_from(np.array(edge_list)[:,::-1], eprops)
+        return edge_list
 
     def remove_edge(self, edge):
         raise NotImplementedError("This function has been removed because it \
@@ -127,7 +491,7 @@ class GtGraph(GraphLib):
         @todo: this should be implemented in GraphClass
         Remove all connections in the graph
         '''
-        self.clear_edges()
+        self.remove_edges_from(self.edges(self.nodes()))
 
     def set_node_property(self):
         #@todo: do it...
@@ -137,36 +501,48 @@ class GtGraph(GraphLib):
     # Getters
     
     def node_nb(self):
-        return self.num_vertices()
+        return self.number_of_nodes()
 
     def edge_nb(self):
-        return self.num_edges()
+        return self.size()
     
-    def adjacency(self):
-        return adjacency(self)
+    def adjacency(self, weighted=True):
+        if weighted:
+            return adjacency(self)
+        else:
+            return adjacency(self, weight=None)
     
     def degree_list(self, deg_type="total", use_weights=True):
-        if "weight" in self.edge_properties.keys() and use_weights:
-            return self.degree_property_map(deg_type,
-                                            self.edge_properties["weight"]).a
+        weight = 'weight' if use_weights else None
+        di_deg = None
+        if deg_type == 'total':
+            di_deg = self.degree(weight=weight)
+        elif deg_type == 'in':
+            di_deg = self.in_degree(weight=weight)
         else:
-            return self.degree_property_map(deg_type).a
+            di_deg = self.out_degree(weight=weight)
+        return np.array(di_deg.values())
 
-    def betweenness_list(self, use_weights=True):
-        if "weight" in self.edge_properties.keys() and use_weights:
-            w_propmap = self.copy_property(self.edge_properties["weight"])
-            w_propmap.a = w_propmap.a.max() - w_propmap.a
-            tpl = betweenness(graph, weight=w_propmap)
-            return tpl[0].a, tpl[1].a
+    def betweenness_list(self, use_weights=True, as_prop=False):
+        di_nbetw, di_ebetw = None, None
+        if use_weights:
+            max_weight = adjacency(self).max()
+            for tpl in self.edges(data=True):
+                self[tpl[0]][tpl[1]]['bweight'] = max_weight-tpl[2]['weight']
+            di_nbetw = glib.betweenness_centrality(self,weight='bweight')
+            di_ebetw = glib.edge_betweenness_centrality(self,weight='bweight')
         else:
-            tpl = betweenness(self)
-            return tpl[0].a, tpl[1].a
+            di_nbetw = glib.betweenness_centrality(self)
+            di_ebetw = glib.edge_betweenness_centrality(self)
+        node_betweenness = np.array(di_nbetw.values())
+        edge_betweenness = np.array(di_ebetw.values())
+        return node_betweenness, edge_betweenness    
 
 
-#
-#---
-# SnapGraph
+#-----------------------------------------------------------------------------#
+# Snap graph
 #------------------------
+#
 
 class SnapGraph(GraphLib):
     
@@ -269,7 +645,7 @@ class _GtNProperty:
         self.parent = parent
 
     def __getitem__(self, name):
-        return self.parent.vertex_properties[name]
+        return self.parent.vertex_properties[name].a
 
     def __setitem__(self, name, value):
         size = self.parent.node_nb()
@@ -278,6 +654,9 @@ class _GtNProperty:
         else:
             raise ValueError("A list or a np.array with one entry per node in \
 the graph is required")
+    
+    def keys(self):
+        return self.parent.vertex_properties.keys()
 
     def new_na(self, name, value_type, values=None, val=None):
         vprop = self.parent.new_vertex_property(value_type, values, val)
@@ -301,17 +680,99 @@ class _GtEProperty:
             raise ValueError("A list or a np.array with one entry per edge in \
 the graph is required")
 
+    def keys(self):
+        return self.parent.edge_properties.keys()
+
     def new_ea(self, name, value_type, values=None, val=None):
         eprop = self.parent.new_edge_property(value_type, values, val)
         self.parent.edge_properties[name] = eprop
 
+class _IgNProperty:
 
-#
-#---
+    '''
+    @todo
+    Class for generic interactions with nodes properties (igraph)
+    '''
+
+    def __init__ (self, parent):
+        self.parent = parent
+
+    def __getitem__(self, name):
+        return self.parent.vs[name]
+
+    def __setitem__(self, name, value):
+        if len(value) == size:
+            self.parent.vs[name] = value
+        else:
+            raise ValueError("A list or a np.array with one entry per node in \
+the graph is required")
+    
+    def keys(self):
+        return self.parent.vs.attributes()
+
+    def new_na(self, name, value_type, values=None, val=None):
+        if val is None:
+            if value_type == "int":
+                val = int(0)
+            elif value_type == "double":
+                val = 0.
+            elif value_type == "string":
+                val = ""
+            else:
+                val = None
+        if values is None:
+            values = np.repeat(val, self.parent.vcount())
+        self.parent.vs[name] = values
+
+class _IgEProperty:
+
+    ''' Class for generic interactions with nodes properties (networkx)  '''
+
+    def __init__ (self, parent):
+        self.parent = parent
+
+    def __getitem__(self, name):
+        return self.parent.es[name]
+
+    def __setitem__(self, name, value):
+        size = self.parent.edge_nb()
+        if len(value) == size:
+            self.parent.es[name] = value
+        else:
+            raise ValueError("A list or a np.array with one entry per edge in \
+the graph is required")
+
+    def keys(self):
+        return self.parent.es.attributes()
+
+    def new_ea(self, name, value_type, values=None, val=None):
+        if val is None:
+            if value_type == "int":
+                val = int(0)
+            elif value_type == "double":
+                val = 0.
+            elif value_type == "string":
+                val = ""
+            else:
+                val = None
+        if values is None:
+            values = np.repeat(val, self.parent.ecount())
+        elif len(values) == self.parent.ecount():
+            self.parent.es[name] = values
+        else:
+            raise ValueError("A list or a np.array with one entry per edge in \
+the graph is required")
+
+
+#-----------------------------------------------------------------------------#
 # GraphObject
-#------------------------
+#-------
+#
 
-GraphObject = SnapGraph if graph_lib == "snap" else GtGraph
+di_graphlib = { "graph_tool": GtGraph,
+                #~ "igraph": IGraph,
+                #~ "networkx": NxGraph,
+                #~ "snap": SnapGraph
+              }
 
-if __name__ == "__main__":
-    graph = GraphObject()
+GraphObject = di_graphlib[s_glib]

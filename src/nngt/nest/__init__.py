@@ -11,9 +11,7 @@ get_nest_network     Create a Graph object from a NEST network
 
 """
 
-from __future__ import absolute_import
 from sys import modules
-from .nest_graph import *
 
 
 
@@ -22,12 +20,9 @@ from .nest_graph import *
 # Dependencies
 #---------------------
 
-depends = ['nest', 'graph_tool', 'AGNet.core']
+depends = ['nest', 'graph_tool', 'nngt.core']
 
-try:
-	'nest' in modules.keys()
-except:
-	import nest
+from .nest_graph import *
 
 
 #

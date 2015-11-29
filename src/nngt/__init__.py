@@ -33,28 +33,28 @@ Use the built-in ``help`` function to view a function's docstring::
 Available subpackages
 ---------------------
 core
-	Contains the main network classes
+	Contains the main network classes.
 	These are loaded in nngt at import so specifying :class:`nngt.core` is not necessary
 generation
 	Functions to generate specific networks
 lib
 	Basic functions used by several sub-packages.
 io
-	Tools for input/output operations
+	@todo: Tools for input/output operations
 nest
 	NEST integration tools
 random
-	Random numbers generation tools
+	@todo? Random numbers generation tools
 growth
-	Growing networks tools
+	@todo: Growing networks tools
 
 Utilities
 ---------
 plot
-	@todo: plots graphs or data using matplotlib and graph_tool
+	plot data or graphs (@todo) using matplotlib and graph_tool
 show_config
 	@todo: Show build configuration
-__version__
+version
 	NNGT version string
 
 Units
@@ -73,9 +73,16 @@ provided:
 from __future__ import absolute_import
 import sys
 
-# Requires Python > 2.6
+
+#-----------------------------------------------------------------------------#
+# Requirements
+#------------------------
+#
+
+# Python > 2.6
 assert sys.hexversion > 0x02060000
 
+# graph library
 try:
     import graph_tool
 except:
@@ -83,7 +90,14 @@ except:
         import snap
     except:
         raise ImportError(
-            "This module needs either `graph_tool` or `SNAP` to work")
+            "This module needs one of the following graph libraries to work: \
+`graph_tool`, `apgl`, `igraph` or `SNAP`.")
+
+
+#-----------------------------------------------------------------------------#
+# Modules
+#------------------------
+#
 
 from .core import *
 from .core.graph_classes import (Graph, SpatialGraph, Network,
@@ -97,9 +111,23 @@ from . import generation
 from . import analysis
 from . import plot
 from . import lib
+
+try:
+    import nest
+    from . import nest
+except:
+    print("NEST not found; nest module will not be loaded")
+    pass
+
 #~ from . import io
 #~ from . import random
 
-__all__ = core.__all__ + cst__all__
 
-__all__.append("nest")
+#-----------------------------------------------------------------------------#
+# Dict
+#------------------------
+#
+
+# @todo: ensure classes cannot be instantiated from both nngt and nngt.core
+
+__all__ = core.__all__ + cst__all__

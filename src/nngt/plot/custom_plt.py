@@ -4,8 +4,6 @@
 """ Matplotlib customization """
 
 import itertools
-import matplotlib
-matplotlib.use('QT4Agg')
 #~ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 

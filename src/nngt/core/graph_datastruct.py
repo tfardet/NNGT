@@ -6,8 +6,9 @@
 import numpy as np
 import scipy.sparse as ssp
 
+from ..constants import *
 from ..properties.populations import NeuralGroup, _make_groups
-from ..lib.weights import *
+from ..lib.distributions import *
 
 
 
@@ -38,8 +39,8 @@ class NeuralPop(dict):
         return cls.__init__(parent=graph,graph=graph,group_prop=args)
 
     @classmethod
-    def uniform_population(cls, size, parent=None, neuron_model="aeif_neuron",
-            neuron_param={}, syn_model="static_synapse", syn_param={}):
+    def uniform_population(cls, size, parent=None, neuron_model=default_neuron,
+            neuron_param={}, syn_model=default_synapse, syn_param={}):
         ''' Make a NeuralPop of identical neurons '''
         pop = cls(size, parent)
         pop.new_group("default", range(size), 1, neuron_model, neuron_param,
@@ -48,9 +49,9 @@ class NeuralPop(dict):
 
     @classmethod
     def ei_population(cls, size, iratio=0.2, parent=None,
-            en_model="aeif_neuron", en_param={}, es_model="static_synapse",
-            es_param={}, in_model="aeif_neuron", in_param={},
-            is_model="static_synapse", is_param={}):
+            en_model=default_neuron, en_param={}, es_model=default_synapse,
+            es_param={}, in_model=default_neuron, in_param={},
+            is_model=default_synapse, is_param={}):
         '''
         Make a NeuralPop with a given ratio of inhibitory and excitatory
         neurons.
@@ -135,7 +136,7 @@ string or a dict with the same keys as NeuralPop")
         self._has_models = b_has_models
     
     def new_group(self, name, id_list, ntype=1, neuron_model=None, neuron_param={},
-                  syn_model="static_synapse", syn_param={}):
+                  syn_model=default_synapse, syn_param={}):
         # create a group
         group = NeuralGroup(id_list, ntype, neuron_model, neuron_param, syn_model, syn_param)
         if self._has_models and not group.has_model:
@@ -226,19 +227,20 @@ class Connections:
     neurons for graphs.
     """
     
-    di_wfunc = {
-        "uniform": uniform_weights,
-        "lognormal": lognormal_weights,
-        "gaussian": gaussian_weights,
-        "lin_corr": lin_correlated_weights,
-        "log_corr": log_correlated_weights
+    di_dfunc = {
+        "constant": delta_distrib,
+        "uniform": uniform_distrib,
+        "lognormal": lognormal_distrib,
+        "gaussian": gaussian_distrib,
+        "lin_corr": lin_correlated_distrib,
+        "log_corr": log_correlated_distrib
     }
 
     #-------------------------------------------------------------------------#
     # Class methods
     
     @classmethod
-    def distances(cls, graph, elist=None, pos=None):
+    def distances(cls, graph, elist=None, pos=None, overwrite=False):
         '''
         Compute the distances between connected nodes in the graph. Try to add 
         only the new distances to the graph. If they overlap with previously 
@@ -264,7 +266,7 @@ class Connections:
             mat_adj = graph.adjacency_matrix().tocoo()
             elist = np.array( [mat_adj.row, mat_adj.col] ).T
         if pos is None:
-            pos = graph["position"]
+            pos = graph[POS]
         # compute the new distances
         ra_x = pos[0,elist[:,0]] - pos[0,elist[:,1]]
         ra_y = pos[1,elist[:,0]] - pos[1,elist[:,1]]
@@ -274,24 +276,79 @@ class Connections:
         new_dist = ssp.coo_matrix( (ra_dist, (ia_sources,ia_targets)), (n,n) )
         # update graph distances
         current_dist = ssp.csr_matrix((n,n))
-        if "distance" in graph.attributes():
-            current_dist = graph._data["distance"].tocsr()
+        if DIST in graph.attributes() and not overwrite:
+            current_dist = graph._data[DIST].tocsr()
         total_dist = current_dist.nnz + new_dist.nnz
-        new_dist = current_dist + new_dist.tocsr()
-        if new_dist.nnz == total_dist:
-            new_dist = new_dist.tolil()
-            graph._data["distance"] = new_dist
+        new_dist = (current_dist + new_dist.tocsr()).tolil()
+        if current_dist.nnz:
+            graph._data[DIST] = new_dist
         else:
-            graph._data["distance"] = Connections.distances(network).tolil()
+            new_dist = ssp.coo_matrix((ra_dist,(ia_sources,ia_targets)),(n,n))
+            new_dist = new_dist.tolil()
+            graph._data[DIST] = new_dist
         return new_dist
     
     @classmethod
-    def delays(cls, graph, elist=None, pos=None, distrib=None,
-                   correl=None):
-        pass
+    def delays(cls, graph, elist=None, dlist=None, pos=None,
+               distrib="constant", distrib_prop={}, correl=None,
+               noise_scale=None):
+        '''
+        Compute the delays of the neuronal connections.
+        
+        Parameters
+        ----------
+        graph : class:`~nngt.Graph` or subclass
+            Graph the nodes belong to.
+        elist : class:`numpy.array`, optional (default: None)
+            List of the edges (for user defined weights).
+        dlist : class:`numpy.array`, optional (default: None)
+            List of the weights (for user defined weights).
+        distrib : class:`string`, optional (default: "constant")
+            Type of distribution (choose among "constant", "uniform", 
+            "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
+        distrib_prop : class:`dict`, optional (default: {})
+            Dictionary containing the distribution parameters.
+        correl : class:`string`, optional (default: None)
+            Property to which the weights should be correlated.
+        noise_scale : class:`int`, optional (default: None)
+            Scale of the multiplicative Gaussian noise that should be applied
+            on the weights.
+        
+        Returns
+        -------
+        new_delays : class:`scipy.sparse.lil_matrix`
+            A sparse matrix containing *ONLY* the newly-computed weights.
+        '''
+        n = graph.node_nb()
+        corr = correl
+        if corr is not None:
+            corr = ( graph.get_betweenness(False)[1] if correl == "betweenness"
+                                                     else graph[correl] )
+        new_delays = None
+        if elist is None:
+            new_delays = cls.di_dfunc[distrib](graph, correl_attribute=corr,
+                                               **distrib_prop)
+        elif dlist is not None:
+            new_delays = ssp.coo_matrix((dlist,(elist[:,0],elist[:,1])),(n,n))
+        else:
+            new_delays = cls.di_dfunc[distrib](graph, elist=elist,
+                            correl_attribute=corr, **distrib_prop)
+        new_delays = new_delays.tolil()
+        # add to the graph container
+        di_data = graph._data
+        mat_delays = di_data[DELAY] if DELAY in di_data.keys() else None
+        if mat_delays is not None:
+            if not mat_delays.nnz:
+                di_data[DELAY] = new_delays
+            elif elist is not None:
+                eslice = elist[:,0],elist[:,1]
+                di_data[DELAY][eslice] = new_delays[eslice]
+        else:
+            di_data[DELAY] = new_delays
+        return new_delays
     
     @classmethod
-    def weights(cls, graph, elist=None, wlist=None, distrib=None,
+    def weights(cls, graph, elist=None, wlist=None, distrib="constant",
                 distrib_prop={}, correl=None, noise_scale=None):
         '''
         Compute the weights of the graph's edges.
@@ -304,9 +361,9 @@ class Connections:
             List of the edges (for user defined weights).
         wlist : class:`numpy.array`, optional (default: None)
             List of the weights (for user defined weights).
-        distrib : class:`string`, optional (default: None)
-            Type of distribution (choose among "uniform", "lognormal",
-            "gaussian", "user_def", "lin_corr", "log_corr").
+        distrib : class:`string`, optional (default: "constant")
+            Type of distribution (choose among "constant", "uniform", 
+            "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
         distrib_prop : class:`dict`, optional (default: {})
             Dictionary containing the distribution parameters.
         correl : class:`string`, optional (default: None)
@@ -317,7 +374,8 @@ class Connections:
         
         Returns
         -------
-        class:`scipy.sparse.coo_matrix`
+        new_weights : class:`scipy.sparse.lil_matrix`
+            A sparse matrix containing *ONLY* the newly-computed weights.
         '''
         n = graph.node_nb()
         corr = correl
@@ -326,21 +384,36 @@ class Connections:
                                                      else graph[correl] )
         new_weights = None
         if elist is None:
-            new_weights = cls.di_wfunc[distrib](graph=graph,
-                            correl_attribute=corr, **distrib_prop)
+            new_weights = cls.di_dfunc[distrib](graph, correl_attribute=corr,
+                                                **distrib_prop)
+        elif wlist is not None:
+            new_weights = ssp.coo_matrix((dlist,(elist[:,0],elist[:,1])),(n,n))
         else:
-            new_weights = ssp.coo_matrix((wlist,(elist[:,0],elist[:,1])),(n,n))
+            new_weights = cls.di_dfunc[distrib](graph, elist=elist,
+                            correl_attribute=corr, **distrib_prop)
         new_weights = new_weights.tolil()
         # add to the graph container
-        if graph.is_weighted():
-            mat_weights = graph._data["weight"]
-            graph._data["weight"] = (mat_weights+new_weights).tolil()
+        mat_weights = (graph._data[WEIGHT] if WEIGHT in graph._data.keys() 
+                                           else None)
+        if mat_weights is not None:
+            if not mat_weights.nnz:
+                graph._data[WEIGHT] = new_weights
+            elif elist is not None:
+                eslice = elist[:,0],elist[:,1]
+                graph._data[WEIGHT][eslice] = new_weights[eslice]
         else:
-            graph._data["weight"] = new_weights
-        # add to the graph-object attribute
-        sources, targets = graph["edges"][:,1], graph["edges"][:,0]
-        lst_w = graph._data["weight"][sources,targets].data[0]
-        graph.graph.new_edge_attribute("weight", "double", values=lst_w)
+            graph._data[WEIGHT] = new_weights
+        # add to the graph object
+        if "edges" in graph.attributes():
+            sources, targets = graph["edges"][:,0], graph["edges"][:,1]
+            lst_w = graph._data[WEIGHT][sources,targets].data[0]
+            if "weight" in graph.graph.edge_attributes.keys():
+                graph.graph.edge_attributes["weight"] = lst_w
+            else:
+                graph.graph.new_edge_attribute(WEIGHT, "double", values=lst_w)
+        else:
+            graph.graph.new_edge_attribute(WEIGHT, "double")
+        return new_weights
     
     @classmethod
     def types(cls, graph, elist=None):
