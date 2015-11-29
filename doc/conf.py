@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.abspath('../src/'))
     the mock library '''
 
 if on_rtd:
+    os.environ['ETS_TOOLKIT'] = 'null'
     import mock
     mock_object = mock.Mock()
     sys.modules["graph_tool"] = mock_object
@@ -36,6 +37,7 @@ if on_rtd:
     sys.modules["graph_tool.draw"] = mock_object
     sys.modules["graph_tool.clustering"] = mock_object
     sys.modules["sip"] = mock_object
+    sys.modules["backend_gtk3"] = mock_object
 
 from nngt.constants import version as nngt_version
 
