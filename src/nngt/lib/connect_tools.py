@@ -37,13 +37,10 @@ def _compute_connections(num_source, num_target, density, edges, avg_deg,
                          directed, reciprocity):
     pre_recip_edges = 0
     if avg_deg > 0:
-        print("avg_deg")
         pre_recip_edges = int(avg_deg * num_source)
     elif edges > 0:
-        print("edges")
         pre_recip_edges = int(edges)
     else:
-        print("dens")
         pre_recip_edges = int(density * num_source * num_target)
     dens = pre_recip_edges / float(num_source * num_target)
     edges = pre_recip_edges
@@ -58,7 +55,6 @@ def _compute_connections(num_source, num_target, density, edges, avg_deg,
             warnings.warn("Such reciprocity cannot attained, request ignored.")
     elif reciprocity > 0.:
         warnings.warn("Reciprocity cannot be lower than 2-1/density.")
-    print("edges", edges)
     return edges, pre_recip_edges
 
 def _unique_rows(arr):
@@ -157,8 +153,8 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
     while sum_in != pre_recip_edges or sum_out != pre_recip_edges:
         diff_in = sum_in-pre_recip_edges
         diff_out = sum_out-pre_recip_edges
-        idx_correct_in = randint(0,num_source,np.abs(diff_in))
-        idx_correct_out = randint(0,num_target,np.abs(diff_out))
+        idx_correct_in = randint(0,num_target,np.abs(diff_in))
+        idx_correct_out = randint(0,num_source,np.abs(diff_out))
         ia_in_deg[idx_correct_in] -= 1*np.sign(diff_in)
         ia_out_deg[idx_correct_out] -= 1*np.sign(diff_out)
         sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)

@@ -28,7 +28,8 @@ TYPE = "type"
 #------------------------
 #
 
-default_neuron = "iaf_neuron"
+#~ default_neuron = "iaf_neuron"
+default_neuron = "aeif_cond_alpha"
 ''' :class:`string`, the default NEST neuron model '''
 default_synapse = "static_synapse"
 ''' :class:`string`, the default NEST synaptic model '''

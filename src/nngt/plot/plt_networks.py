@@ -125,7 +125,6 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             ax.scatter(pos[:,0], pos[:,1], s=nsize)
         ax.set_xlim([-0.51*size[0],0.51*size[0]])
         ax.set_ylim([-0.51*size[1],0.51*size[1]])
-        #~ plt.axis('off')
         plt.show()
     elif spatial and network.is_spatial():
         gplot.graph_draw(network.graph, pos=pos, vertex_color=nborder_color,

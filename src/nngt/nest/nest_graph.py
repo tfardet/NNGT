@@ -7,6 +7,8 @@ import scipy.sparse as ssp
 
 from ..constants import *
 
+__all__ = [ 'make_nest_network', 'get_nest_network' ]
+
 
 
 def make_nest_network(network, use_weights=True):

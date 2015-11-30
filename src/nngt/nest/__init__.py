@@ -23,6 +23,7 @@ from sys import modules
 depends = ['nest', 'graph_tool', 'nngt.core']
 
 from .nest_graph import *
+from .nest_utils import *
 
 
 #
