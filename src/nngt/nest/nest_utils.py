@@ -182,7 +182,7 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
     ylabel = "Neuron ID"
     if xlabel is None:
         xlabel = "Time (ms)"
-    
+        
     delta_t = 0.01*(ts[-1]-ts[0])
 
     if hist:
@@ -245,7 +245,8 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
         ax2.set_xlim(ax1.get_xlim())
     else:
         ax = fig.axes[0] if fig.axes else fig.subplots(111)
-        ax.scatter(ts, senders, c=color)
+        ax.plot(ts, senders, c=color, marker="o", linestyle='None',
+            mec="k", mew=0.5, ms=5)
         ax.set_ylabel(ylabel)
         ax.set_xlim([ts[0]-delta_t, ts[-1]+delta_t])
 
