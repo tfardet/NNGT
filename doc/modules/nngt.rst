@@ -28,8 +28,12 @@ For more details regarding the main classes, see:
 
 .. toctree::
    :hidden:
+   :glob:
 
    core
    generation
+   nest
+   plot
+   analysis
    lib
    properties

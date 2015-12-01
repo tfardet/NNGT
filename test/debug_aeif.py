@@ -22,16 +22,19 @@ nmodel = "aeif_cond_alpha"
 
 pop = nngt.NeuralPop.ei_population(1000, en_model=nmodel, in_model=nmodel)
 
-avg = 35.
+avg = 33.
 if nmodel == "aeif_cond_exp":
     avg = 120.
     
 graph = nngt.SpatialNetwork(pop, weight_prop={"distrib":"gaussian", "distrib_prop":{"avg_distrib":avg}})
 
 nngt.generation.connect_neural_types(graph, 1, -1, "erdos_renyi", {"density": 0.03})
+#~ nngt.generation.connect_neural_types(graph, 1, 1, "newman_watts", {"coord_nb":30, "proba_shortcut": 0.1})
+#~ nngt.generation.connect_neural_types(graph, 1, 1, "erdos_renyi", {"density": 0.09})
 nngt.generation.connect_neural_types(graph, 1, 1, "random_scale_free", {"in_exp":2.1, "out_exp":2.9, "density":0.08})
 nngt.generation.connect_neural_types(graph, -1, 1, "erdos_renyi", {"density": 0.2})
 nngt.generation.connect_neural_types(graph, -1, -1, "erdos_renyi", {"density": 0.01})
+#~ nngt.generation.erdos_renyi(density=0.09, from_graph=graph)
 
 
 #-----------------------------------------------------------------------------#
@@ -58,7 +61,7 @@ set_poisson_input(gids[670:870], rate)
 #------------------------
 #
 
-simtime = 2000
+simtime = 10000
 nest.Simulate(simtime)
 
 nngt.nest.plot_activity(graph, recorders, record)

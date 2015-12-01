@@ -58,8 +58,41 @@ At graph creation
 
 At any given time
 	You can use the :class:`~nngt.Connections` class to set the weights of a ``graph`` explicitely by using:
+
 	>>> nngt.Connections.weights(graph, elist=edges_to_weigh, distrib="distrib_of_choice", ...)
-	
+
+
+Examples
+--------
+
+.. code-block:: python
+
+	import nngt
+	import nngt.generation as ng
+
+Generating simple graphs:
+
+.. code-block:: python
+
+	# random graphs
+	g1 = ng.erdos_renyi(1000, avg_deg=25)
+	g2 = ng.erdos_renyi(1000, avg_deg=25, directed=False) # the same graph but undirected
+	# scale-free with Gaussian weight distribution
+	g3 = nngt.Graph(1000, weight_prop={"distrib":"gaussian", "distrib_prop":{"avg": 60., "std":5.}})
+	ng.random_scale_free(2.2, 2.9, from_graph=g3)
+
+Generating a network with excitatory and inhibitory neurons:
+
+.. code-block:: python
+
+	# 800 excitatory neurons, 200 inhibitory
+	net = nngt.Network.ei_network(1000, ei_ratio=0.2)
+	# connect the populations
+	ng.connect_neural_types(net, 1, -1, "erdos_renyi", {"density": 0.035}) # exc -> inhib
+	ng.connect_neural_types(net, 1, 1, "newman_watts", {"coord_nb":10, "proba_shortcut": 0.1}) # exc -> exc
+	ng.connect_neural_types(net, -1, 1, "random_scale_free", {"in_exp": 2.1, "out_exp": 2.6, "density": 0.2}) # inhib -> exc
+	ng.connect_neural_types(net, -1, -1, "erdos_renyi", {"density": 0.04}) # inhib -> inhib
+
 
 
 .. toctree::

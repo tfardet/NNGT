@@ -177,12 +177,14 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
     Generic plotting routine that constructs a raster plot along with
     an optional histogram (common part in all routines above)
     """
-    ev = nest.GetStatus(detec, "events")[0]
+    info = nest.GetStatus(detec)[0]
+    ev = info["events"]
     ts, senders = ev["times"], ev["senders"]
     num_neurons = len(np.unique(senders))
 
     fig = plt.figure(fignum)
 
+    legend = info["label"]
     ylabel = "Neuron ID"
     if xlabel is None:
         xlabel = "Time (ms)"
@@ -196,13 +198,15 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
             ax2 = fig.axes[1]
         else:
             ax1 = fig.add_axes([0.1, 0.3, 0.85, 0.6])
-            ax2 = fig.add_axes([0.1, 0.1, 0.85, 0.17])
+            ax2 = fig.add_axes([0.1, 0.08, 0.85, 0.17])
         ax1.plot(ts, senders, c=color, marker="o", linestyle='None',
-            mec="k", mew=0.5, ms=4)
+            mec="k", mew=0.5, ms=4, label=legend)
         ax1_lines = ax1.lines
         if len(ax1_lines) > 1:
             t_max = max(ax1_lines[0].get_xdata().max(),ts[-1])
             ax1.set_xlim([-delta_t, t_max+delta_t])
+        ax1.set_ylabel(ylabel)
+        ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
 
         t_bins = np.arange(np.amin(ts), np.amax(ts), float(hist_binwidth))
         n, bins = np.histogram(ts, bins=t_bins)
@@ -248,10 +252,11 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
     else:
         ax = fig.axes[0] if fig.axes else fig.subplots(111)
         ax.plot(ts, senders, c=color, marker="o", linestyle='None',
-            mec="k", mew=0.5, ms=4)
+            mec="k", mew=0.5, ms=4, label=legend)
         ax.set_ylabel(ylabel)
         ax.set_ylim([np.min(senders),np.max(senders)])
         ax.set_xlim([ts[0]-delta_t, ts[-1]+delta_t])
+        ax.legend(bbox_to_anchor=(1.1, 1.2))
 
     fig.suptitle(title)
     if show:

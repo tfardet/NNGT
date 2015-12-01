@@ -75,6 +75,9 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
     # generate container
     graph_er = (Graph(name=name, libgraph=graph_obj_er, data={
                 'edges': ia_edges}) if from_graph is None else from_graph)
+    graph_er.set_weights(ia_edges)
+    if issubclass(graph_er.__class__, Network):
+        Connections.delays(graph_er, ia_edges)
     if shape is not None:
         make_spatial(graph_er, shape, positions)
     return graph_er
@@ -131,6 +134,9 @@ def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
     # generate container
     graph_rsf = (Graph(name=name, libgraph=graph_obj_rsf, data={
                 'edges': ia_edges}) if from_graph is None else from_graph)
+    graph_rsf.set_weights(ia_edges)
+    if issubclass(graph_rsf.__class__, Network):
+        Connections.delays(graph_rsf, ia_edges)
     if shape is not None:
         make_spatial(graph_rsf, shape, positions)
     return graph_rsf
@@ -186,6 +192,8 @@ def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
     graph_price = (Graph(name=name, libgraph=graph_obj_price, data={
                 'edges': ia_edges}) if from_graph is None else from_graph)
     
+    if issubclass(graph_price.__class__, Network):
+        Connections.delays(graph_price, ia_edges)
     if shape is not None:
         make_spatial(graph_price, shape, positions)
     return graph_price
@@ -255,6 +263,9 @@ def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
     # generate container
     graph_nw = (Graph(name=name, libgraph=graph_obj_nw, data={
                 'edges': ia_edges}) if from_graph == None else from_graph)
+    graph_nw.set_weights(ia_edges)
+    if issubclass(graph_nw.__class__, Network):
+        Connections.delays(graph_nw, ia_edges)
     if shape is not None:
         make_spatial(graph_nw, shape, positions)
     return graph_nw
