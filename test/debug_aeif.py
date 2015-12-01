@@ -17,8 +17,8 @@ from graph_tool.generation import random_rewire
 #------------------------
 #
 
-nmodel = "aeif_cond_exp"
-#~ nmodel = "aeif_cond_alpha"
+#~ nmodel = "aeif_cond_exp"
+nmodel = "aeif_cond_alpha"
 
 pop = nngt.NeuralPop.ei_population(1000, en_model=nmodel, in_model=nmodel)
 
@@ -48,7 +48,7 @@ set_noise(gids, 0., 100.)
 
 rate = 20000.
 if nmodel == "aeif_cond_exp":
-    rate = 55000.
+    rate = 56000.
 
 set_poisson_input(gids[670:870], rate)
 
@@ -58,7 +58,7 @@ set_poisson_input(gids[670:870], rate)
 #------------------------
 #
 
-simtime = 100
+simtime = 2000
 nest.Simulate(simtime)
 
 nngt.nest.plot_activity(graph, recorders, record)

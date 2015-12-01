@@ -9,7 +9,6 @@
 """ Utility functions to monitor NEST simulated activity """
 
 import nest
-import nest.raster_plot
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -79,12 +78,14 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
         Tuple of the recorders' gids
     '''
     
+    new_record = []
     recorders = []
     for i,rec in enumerate(nest_recorder):
         # multi/volt/conductancemeter
         if "meter" in rec:
             device = nest.Create(rec)
             recorders.append(device)
+            new_record.append(record[i])
             nest.SetStatus(device, {"withtime": True, "record_from": record[i],
                         "to_accumulator": accumulator, "interval": interval})
             nest.Connect(device, gids)
@@ -94,6 +95,7 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
                 for name, group in network.population.iteritems():
                     device = nest.Create(rec)
                     recorders.append(device)
+                    new_record.append(record[i])
                     nest.SetStatus(device,{"label": record[i][0] + " " + name,
                                            "withtime": True, "withgid": True})
                     nest.Connect(tuple(network.nest_id[group.id_list]), device)
@@ -105,7 +107,7 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
                 nest.Connect(gids, device)
         else:
             raise InvalidArgument("Invalid recorder item in 'nest_recorder'.")
-    return tuple(recorders), record
+    return tuple(recorders), new_record
 
 
 #-----------------------------------------------------------------------------#
@@ -113,7 +115,7 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
 #------------------------
 #
 
-def plot_activity(network, gid_recorder, record, gids=None):
+def plot_activity(network, gid_recorder, record, gids=None, show=True):
     '''
     Plot the monitored activity.
     
@@ -165,17 +167,19 @@ def plot_activity(network, gid_recorder, record, gids=None):
                 ax.plot(da_time,da_var,'k')
                 ax.set_ylabel(var)
                 ax.set_xlabel("time")
-    plt.show()
+    if show:
+        plt.show()
 
 
 def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
-                hist_binwidth=5., color="b", fignum=None, show=True):
+                hist_binwidth=2., color="b", fignum=None, show=True):
     """
     Generic plotting routine that constructs a raster plot along with
     an optional histogram (common part in all routines above)
     """
     ev = nest.GetStatus(detec, "events")[0]
     ts, senders = ev["times"], ev["senders"]
+    num_neurons = len(np.unique(senders))
 
     fig = plt.figure(fignum)
 
@@ -194,8 +198,7 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
             ax1 = fig.add_axes([0.1, 0.3, 0.85, 0.6])
             ax2 = fig.add_axes([0.1, 0.1, 0.85, 0.17])
         ax1.plot(ts, senders, c=color, marker="o", linestyle='None',
-            mec="k", mew=0.5, ms=5)
-        ax1.set_ylabel(ylabel)
+            mec="k", mew=0.5, ms=4)
         ax1_lines = ax1.lines
         if len(ax1_lines) > 1:
             t_max = max(ax1_lines[0].get_xdata().max(),ts[-1])
@@ -204,7 +207,6 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
         t_bins = np.arange(np.amin(ts), np.amax(ts), float(hist_binwidth))
         n, bins = np.histogram(ts, bins=t_bins)
         t_bins = np.concatenate(([t_bins[0]], t_bins))
-        num_neurons = len(np.unique(senders))
         #~ heights = 1000 * n / (hist_binwidth * num_neurons)
         heights = 1000 * np.concatenate(([0], n, [0])) / (hist_binwidth * num_neurons)
         lines = ax2.patches
@@ -246,8 +248,9 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
     else:
         ax = fig.axes[0] if fig.axes else fig.subplots(111)
         ax.plot(ts, senders, c=color, marker="o", linestyle='None',
-            mec="k", mew=0.5, ms=5)
+            mec="k", mew=0.5, ms=4)
         ax.set_ylabel(ylabel)
+        ax.set_ylim([np.min(senders),np.max(senders)])
         ax.set_xlim([ts[0]-delta_t, ts[-1]+delta_t])
 
     fig.suptitle(title)
