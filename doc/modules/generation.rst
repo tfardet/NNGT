@@ -1,0 +1,1 @@
+.. automodule:: nngt.generation
