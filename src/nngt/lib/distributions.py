@@ -22,7 +22,7 @@ def _make_matrix(graph, ecount, values, elist=None):
         mat_distrib = graph.adjacency_matrix()
         mat_distrib.data = values
     mat_distrib = mat_distrib.tolil()
-    mat_distrib.setdiag(0)
+    mat_distrib.setdiag(np.zeros(n))
     return mat_distrib
 
 

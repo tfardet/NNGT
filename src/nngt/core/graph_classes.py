@@ -318,7 +318,7 @@ class Graph(object):
         return self._graph.edge_attributes["weight"]
 
     def is_spatial(self):
-        return True if issubclass(SpatialGraph,self.__class__) else False
+        return True if issubclass(self.__class__, SpatialGraph) else False
 
 
 

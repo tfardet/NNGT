@@ -116,7 +116,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         fig.facecolor = "white"
         fig.figsize=size
         ax.set_axis_off()
-        if network.population is not None:
+        if hasattr(network, "population"):
             for group in network.population.itervalues():
                 idx = group.id_list
                 ax.scatter(pos[idx,0], pos[idx,1], s=nsize,
@@ -173,7 +173,7 @@ def _node_color(network, ncolor):
         color = np.repeat(ncolor, n)
     elif ncolor == "group":
         color = np.zeros(network.node_nb())
-        if network.population is not None:
+        if hasattr(network, "population"):
             l = len(network.population)
             c = np.linspace(0,1,l)
             for i,group in enumerate(network.population.values()):
