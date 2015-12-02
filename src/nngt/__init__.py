@@ -103,10 +103,8 @@ from .core import *
 from .core.graph_classes import (Graph, SpatialGraph, Network,
                                  SpatialNetwork)
 from .core.graph_datastruct import Shape, NeuralPop, GroupProperty, Connections
+
 from . import core
-
-from .constants import *
-
 from . import generation
 from . import analysis
 from . import plot
@@ -117,7 +115,6 @@ try:
     from . import nest
 except:
     print("NEST not found; nest module will not be loaded")
-    pass
 
 #~ from . import io
 #~ from . import random
@@ -130,4 +127,18 @@ except:
 
 # @todo: ensure classes cannot be instantiated from both nngt and nngt.core
 
-__all__ = core.__all__ + cst__all__
+__all__ = [
+    "Graph",
+    "SpatialGraph",
+    "Network",
+    "SpatialNetwork",
+    "Shape",
+    "NeuralPop",
+    "GroupProperty",
+    "Connections",
+    "core",
+    "generation",
+    "analysis",
+    "plot",
+    "lib"
+]

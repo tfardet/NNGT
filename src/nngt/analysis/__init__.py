@@ -5,9 +5,20 @@
 =====================
 Graph analysis module
 =====================
-
-@todo: make selective import depending on the graph library
-
 """
 
 from .gt_analysis import *
+
+__all__ = [
+    "degree_distrib",
+    "betweenness_distrib",
+    "assortativity",
+	"reciprocity",
+	"clustering",
+	"num_iedges",
+	"num_scc",
+	"num_wcc",
+	"diameter",
+	"spectral_radius",
+    "adjacency_matrix"
+]

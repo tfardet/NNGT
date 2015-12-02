@@ -15,6 +15,7 @@
 import sys
 import os
 import shlex
+import re
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 sys.path.insert(0, os.path.abspath('../src/'))
@@ -56,7 +57,7 @@ if on_rtd:
     sys.modules["matplotlib.pyplot"] = Mock()
     sys.modules["nest"] = mock_object
 
-from nngt.constants import version as nngt_version
+from nngt.globals import version as nngt_version
 
 # -- General configuration ------------------------------------------------
 
@@ -105,7 +106,12 @@ author = u'Tanguy Fardet'
 # built documents.
 #
 # The short X.Y version.
-version = nngt_version[:-1]
+version = nngt_version
+while version[-1].isalpha():
+    version = version[:-1]
+while version.count('.') > 1:
+    idx_last_dot = version.rfind('.')
+    version = version[:idx_last_dot]
 # The full version, including alpha/beta/rc tags.
 release = nngt_version
 

@@ -31,3 +31,19 @@ Use of attributes in a graph object
 This allows for fast graph filtering: we can keep only the edges or nodes we are interested in.
 
 This property is invaluable if you want to study the graph properties of only the inhibitory network or look a the squeleton of the strongest synapses in the graph...
+
+.. note ::
+	
+	This mixed format is not too good... I should either store everything in the container or in the library graph.
+	
+	Library graph:
+		* difficult to manage
+		* but users can use the library on the graph
+		* if I cannot provide a fast conversion, it will be bad to interact with NEST
+
+	Container:
+		* easier to manage
+		* but need to convert for the analysis functions
+		* users cannot use the library as the graph misses its attributes
+		* optimized for NEST interactions
+	

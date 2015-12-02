@@ -6,31 +6,7 @@
 import numpy as np
 import scipy.sparse as ssp
 
-s_glib, glib, GraphLib = "", None, object
-try:
-    import graph_tool as glib
-    from graph_tool import Graph as GraphLib
-    from graph_tool.spectral import adjacency
-    from graph_tool.centrality import betweenness
-    s_glib = "graph_tool"
-except:
-    try:
-        import igraph as glib
-        from igraph import Graph as GraphLib
-        s_glib = "igraph"
-    except:
-        try:
-            import networkx as glib
-            from networkx import DiGraph as GraphLib
-            from networkx import to_scipy_sparse_matrix as adjacency
-            s_glib = "networkx"
-        except:
-            try:
-                import snap as glib
-                from snap import TNEANet as GraphLib
-                s_glib = "snap"
-            except:
-                pass
+from ..globals import s_glib, glib, GraphLib
 
 
 
@@ -157,12 +133,6 @@ class GtGraph(GraphLib):
 
     def edge_nb(self):
         return self.num_edges()
-    
-    def adjacency(self, weighted=True):
-        if weighted and 'weight' in self.edge_properties.keys():
-            return adjacency(self, self.edge_properties['weight']).transpose()
-        else:
-            return adjacency(self).transpose()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         if node_list is None:
@@ -329,20 +299,6 @@ class IGraph(GraphLib):
 
     def edge_nb(self):
         return self.ecount()
-    
-    def adjacency(self, weighted=True):
-        xs, ys = map(array, zip(*graph.get_edgelist()))
-        if not self.is_directed():
-            xs, ys = hstack((xs, ys)).T, hstack((ys, xs)).T
-        else:
-            xs, ys = xs.T, ys.T
-        data = ones(xs.shape)
-        if weighted and 'weight' in graph.es.attributes():
-            data = graph.es['weight']
-            if not self.is_directed():
-                data.extend(data)
-        coo_adj = ssp.coo_matrix((data, (xs, ys)))
-        return coo_adj.tocsr()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         deg_type = 'all' if deg_type == 'total' else deg_type

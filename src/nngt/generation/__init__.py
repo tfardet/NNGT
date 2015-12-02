@@ -34,12 +34,8 @@ Contents
 
 from __future__ import absolute_import
 
-from ..constants import default_neuron, default_synapse
-#~ from ..core import GraphClass,SpatialGraph,NeuralNetwork,SpatialNetwork,Shape
-
 from .graph_connectivity import *
-#~ from .synaptic_properties import *
-#~ from .utilities import *
+
 
 depends = ['graph_tool','NeuralNetwork']
 

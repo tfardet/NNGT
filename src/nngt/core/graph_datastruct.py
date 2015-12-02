@@ -6,7 +6,8 @@
 import numpy as np
 import scipy.sparse as ssp
 
-from ..constants import *
+from ..globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
+                       DIST, TYPE)
 from ..properties.populations import NeuralGroup, _make_groups
 from ..lib.distributions import *
 

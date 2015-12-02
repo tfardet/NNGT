@@ -19,17 +19,8 @@ Contents
 """
 
 from .graph_objects import GraphObject
-from .graph_measures import *
-#~ from .InputConnect import InputConnect # there is some problem in this file
 
 
 __all__ = [ 
-	"assortativity",
-	"reciprocity",
-	"clustering",
-	"num_iedges",
-	"num_scc",
-	"num_wcc",
-	"diameter",
-	"spectral_radius"
+	"GraphObject"
 ]
