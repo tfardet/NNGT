@@ -8,10 +8,11 @@ from copy import deepcopy
 from numpy import multiply
 from scipy.sparse import lil_matrix
 
-from ..constants import *
-from .graph_measures import *
+from ..globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
+                       DIST, TYPE)
 from .graph_objects import GraphLib, GraphObject
 from .graph_datastruct import NeuralPop, Shape, Connections
+from ..analysis import adjacency_matrix
 
 
 
@@ -37,12 +38,12 @@ class Graph(object):
 
     __num_graphs = 0
     __max_id = 0
-    __di_property_func = {
-            "reciprocity": reciprocity, "clustering": clustering,
-            "assortativity": assortativity, "diameter": diameter,
-            "scc": num_scc, "wcc": num_wcc, "radius": spectral_radius, 
-            "num_iedges": num_iedges }
-    __properties = __di_property_func.keys()
+    #~ __di_property_func = {
+            #~ "reciprocity": reciprocity, "clustering": clustering,
+            #~ "assortativity": assortativity, "diameter": diameter,
+            #~ "scc": num_scc, "wcc": num_wcc, "radius": spectral_radius, 
+            #~ "num_iedges": num_iedges }
+    #~ __properties = __di_property_func.keys()
     
     @classmethod
     def num_graphs(cls):
@@ -204,7 +205,7 @@ class Graph(object):
         adj : :class:`scipy.sparse.csr_matrix`
             The adjaccency matrix of the graph.
         '''
-        return self._graph.adjacency(weighted)
+        return adjacency_matrix(self, weighted)
 
     #-------------------------------------------------------------------------#
     # Setters
@@ -317,12 +318,14 @@ class Graph(object):
         di_result = { prop: self.get_property(prop) for prop in a_properties }
         return di_result
 
-    def get_degrees(self, deg_type="total", use_weights=True):
+    def get_degrees(self, node_list=None, deg_type="total", use_weights=True):
         '''
         Degree sequence of all the nodes.
         
         Parameters
         ----------
+        node_list : list, optional (default: None)
+            List of the nodes which degree should be returned
         deg_type : string, optional (default: "total")
             Degree type (among 'in', 'out' or 'total').
         use_weights : bool, optional (default: True)
@@ -334,7 +337,7 @@ class Graph(object):
         '''
         valid_types = ("in", "out", "total")
         if deg_type in valid_types:
-            return self._graph.degree_list(deg_type, use_weights)
+            return self._graph.degree_list(node_list, deg_type, use_weights)
         else:
             warnings.warn("Ignoring invalid degree type '{}'".format(strType))
             return None

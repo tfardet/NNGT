@@ -5,7 +5,7 @@ import nest
 import numpy as np
 import scipy.sparse as ssp
 
-from ..constants import *
+from ..globals import WEIGHT, DELAY
 
 __all__ = [ 'make_nest_network', 'get_nest_network' ]
 

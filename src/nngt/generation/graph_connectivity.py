@@ -3,7 +3,7 @@
 
 """ Connectivity generators for Graph """
 
-import numpy as np # remove it in the end
+import numpy as np
 
 from .. import Graph, SpatialGraph, Network, Connections
 from ..core import GraphObject
