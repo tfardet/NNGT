@@ -202,14 +202,14 @@ def spectral_radius(net, typed=True, weighted=True):
                                   net.graph.edge_attributes["weight"])
         else:
             weights = net.graph.edge_attributes["weight"].copy()
-    matAdj = adjacency(net.graph,weights)
-    eigVal = [0]
+    mat_adj = adjacency(net.graph,weights)
+    eigenval = [0]
     try:
-        eigVal = spl.eigs(matAdj,return_eigenvectors=False)
+        eigenval = spl.eigs(mat_adj,return_eigenvectors=False)
     except spl.eigen.arpack.ArpackNoConvergence,err:
-        eigVal = err.eigenvalues
-    if len(eigVal):
-        return sp.amax(sp.absolute(eigVal))
+        eigenval = err.eigenvalues
+    if len(eigenval):
+        return sp.amax(sp.absolute(eigenval))
     else:
         raise spl.eigen.arpack.ArpackNoConvergence()
 
