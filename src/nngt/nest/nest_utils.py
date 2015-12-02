@@ -33,11 +33,34 @@ __all__ = [
 #
 
 def set_noise(gids, mean, std):
+    '''
+    Submit neurons to a current white noise.
+    @todo: check how NEST handles the :math:`\\sqrt{t}` in the standard dev.
+    
+    Parameters
+    ----------
+    gids : tuple
+        NEST gids of the target neurons.
+    mean : float
+        Mean current value.
+    std : float
+        Standard deviation of the current
+    '''
     bg_noise = nest.Create("noise_generator")
     nest.SetStatus(bg_noise, {"mean": mean, "std": std })
     nest.Connect(bg_noise,gids)
     
 def set_poisson_input(gids, rate):
+    '''
+    Submit neurons to a Poissonian rate of spikes.
+    
+    Parameters
+    ----------
+    gids : tuple
+        NEST gids of the target neurons.
+    rate : float
+        Rate of the spike train.
+    '''
     poisson_input = nest.Create("poisson_generator")
     nest.SetStatus(poisson_input,{"rate": rate})
     nest.Connect(poisson_input, gids)
@@ -121,11 +144,16 @@ def plot_activity(network, gid_recorder, record, gids=None, show=True):
     
     Parameters
     ----------
-    
+    network : :class:`~nngt.Network` or subclass
+        Network which activity will be monitored.
     gid_recorder : tuple or list
         The gids of the recording devices.
     record : tuple or list
         List of the monitored variables for each device.
+    gids : tuple, optional (default: None)
+        NEST gids of the neurons which should be monitored.
+    show : bool, optional (default: True)
+        Whether to show the plot right away or to wait for the next plt.show().
     '''
     gids = network.nest_id if gids is None else gids
     lst_rec = []
@@ -171,11 +199,33 @@ def plot_activity(network, gid_recorder, record, gids=None, show=True):
         plt.show()
 
 
-def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
-                hist_binwidth=2., color="b", fignum=None, show=True):
+def raster_plot(detec, title="Spike raster", hist=True, num_bins=1000,
+                color="b", fignum=None, show=True):
     """
-    Generic plotting routine that constructs a raster plot along with
-    an optional histogram (common part in all routines above)
+    Plotting routine that constructs a raster plot along with
+    an optional histogram.
+    
+    Parameters
+    ----------
+    detec : tuple
+        Gid of the NEST detector from which the data should be recovered.
+    title : string, optional (default: 'Spike raster')
+        Title of the raster plot.
+    hist : bool, optional (default: True)
+        Whether to plot the raster's histogram.
+    num_bins : int, optional (default: 1000)
+        Number of bins for the histogram.
+    color : string or float, optional (default: 'b')
+        Color of the plot lines and markers.
+    fignum : int, optional (default: None)
+        Id of another raster plot to which the new data should be added.
+    show : bool, optional (default: True)
+        Whether to show the plot right away or to wait for the next plt.show().
+    
+    Returns
+    -------
+    fig.number : int
+        Id of the :class:`matplotlib.Figure` on which the raster is plotted.
     """
     info = nest.GetStatus(detec)[0]
     ev = info["events"]
@@ -186,8 +236,7 @@ def raster_plot(detec, xlabel=None, title="Spike raster", hist=True,
 
     legend = info["label"]
     ylabel = "Neuron ID"
-    if xlabel is None:
-        xlabel = "Time (ms)"
+    xlabel = "Time (ms)"
         
     delta_t = 0.01*(ts[-1]-ts[0])
 

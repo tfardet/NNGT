@@ -23,9 +23,9 @@ pop = nngt.NeuralPop.ei_population(1000, en_model=nmodel, in_model=nmodel, en_pa
 graph = nngt.SpatialNetwork(pop, weight_prop={"distrib":"gaussian", "distrib_prop":{"avg_distrib": 60.}})
 #~ graph = nngt.SpatialNetwork(pop, weight_prop={"distrib":"lognormal"})
 nngt.generation.connect_neural_types(graph, 1, -1, "erdos_renyi", {"density": 0.035})
-nngt.generation.connect_neural_types(graph, 1, 1, "newman_watts", {"coord_nb":10, "proba_shortcut": 0.1})
+#~ nngt.generation.connect_neural_types(graph, 1, 1, "newman_watts", {"coord_nb":10, "proba_shortcut": 0.1})
 #~ nngt.generation.connect_neural_types(graph, 1, 1, "random_scale_free", {"in_exp": 2.1, "out_exp": 2.9, "density": 0.065})
-#~ nngt.generation.connect_neural_types(graph, 1, 1, "erdos_renyi", {"density": 0.076})
+nngt.generation.connect_neural_types(graph, 1, 1, "erdos_renyi", {"density": 0.077})
 nngt.generation.connect_neural_types(graph, -1, 1, "erdos_renyi", {"density": 0.2})
 nngt.generation.connect_neural_types(graph, -1, -1, "erdos_renyi", {"density": 0.04})
 

@@ -33,5 +33,9 @@ from .nest_utils import *
 
 __all__ = [
 	'make_nest_network',
-	'get_nest_network'
+	'get_nest_network',
+    'set_noise',
+    'set_poisson_input',
+    'monitor_nodes',
+    'plot_activity'
 ]

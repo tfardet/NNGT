@@ -130,6 +130,7 @@ class Graph(object):
     
     @property
     def name(self):
+        ''' name of the graph '''
         return self._name
 
     #-------------------------------------------------------------------------#
@@ -187,6 +188,22 @@ class Graph(object):
         return exc_graph
 
     def adjacency_matrix(self, weighted=True):
+        '''
+        Returns the adjacency matrix of the graph as a
+        :class:`scipy.sparse.csr_matrix`.
+        
+        Parameters
+        ----------
+        weighted : bool, optional (default: True)
+            If True, each entry ``adj[i,j] = w_ij`` where ``w_ij`` is the
+            strength of the connection from `i` to `j`, otherwise ``adj[i,j] = 
+            0. or 1.``.
+            
+        Returns
+        -------
+        adj : :class:`scipy.sparse.csr_matrix`
+            The adjaccency matrix of the graph.
+        '''
         return self._graph.adjacency(weighted)
 
     #-------------------------------------------------------------------------#
@@ -244,24 +261,34 @@ class Graph(object):
         return self._data[key]
     
     def attributes(self):
+        ''' List of the graph's attributes (synaptic weights, delays...) '''
         return self._data.keys()
     
     def get_name(self):
+        ''' Get the name of the graph '''
         return self.__di_prop["name"]
     
     def node_nb(self):
+        ''' Number of nodes in the graph '''
         return self._graph.node_nb()
     
     def edge_nb(self):
+        ''' Number of edges in the graph '''
         return self._graph.edge_nb()
 
     def get_density(self):
+        '''
+        Density of the graph: :math:`\\frac{E}{N^2}`, where `E` is the number of
+        edges and `N` the number of nodes.
+        '''
         return self._graph.edge_nb()/float(self._graph.node_nb()**2)
 
     def is_weighted(self):
-        return self.__di_prop["weighted"]
+        ''' Whether the edges have weights '''
+        return "weight" in self.attributes()
 
     def is_directed(self):
+        ''' Whether the graph is directed or not '''
         return self.__di_prop["directed"]
 
     def get_property(self, s_property):
@@ -290,16 +317,45 @@ class Graph(object):
         di_result = { prop: self.get_property(prop) for prop in a_properties }
         return di_result
 
-    def get_degrees(self, strType="total", use_weights=True):
-        lstValidTypes = ["in", "out", "total"]
-        if strType in lstValidTypes:
-            return self._graph.degree_list(strType, use_weights)
+    def get_degrees(self, deg_type="total", use_weights=True):
+        '''
+        Degree sequence of all the nodes.
+        
+        Parameters
+        ----------
+        deg_type : string, optional (default: "total")
+            Degree type (among 'in', 'out' or 'total').
+        use_weights : bool, optional (default: True)
+            Whether to use weighted (True) or simple degrees (False).
+        
+        Returns
+        -------
+        :class:`numpy.array` or None (if an invalid type is asked).
+        '''
+        valid_types = ("in", "out", "total")
+        if deg_type in valid_types:
+            return self._graph.degree_list(deg_type, use_weights)
         else:
             warnings.warn("Ignoring invalid degree type '{}'".format(strType))
             return None
 
     def get_betweenness(self, use_weights=True):
-        self._graph.betweenness(use_weights)
+        '''
+        Betweenness centrality sequence of all nodes and edges.
+        
+        Parameters
+        ----------
+        use_weights : bool, optional (default: True)
+            Whether to use weighted (True) or simple degrees (False).
+        
+        Returns
+        -------
+        node_betweenness : :class:`numpy.array`
+            Betweenness of the nodes.
+        edge_betweenness : :class:`numpy.array`
+            Betweenness of the edges.
+        '''
+        return self._graph.betweenness(use_weights)
 
     def get_edge_types(self):
         if TYPE in self._graph.edge_properties.keys():
@@ -308,16 +364,16 @@ class Graph(object):
             return repeat(1, self._graph.edge_nb())
     
     def get_weights(self):
-        #~ if self.is_weighted():
-            #~ epropW = self._graph.edge_properties[WEIGHT].copy()
-            #~ epropW.a = multiply(epropW.a,
-                                #~ self._graph.edge_properties[TYPE].a)
-            #~ return epropW
-        #~ else:
-            #~ return self._graph.edge_properties[TYPE].copy()
+        ''' Returns the weighted adjacency matrix as a
+        :class:`scipy.sparse.lil_matrix`.
+        '''
         return self._graph.edge_attributes["weight"]
 
     def is_spatial(self):
+        '''
+        Whether the graph is embedded in space (has a :class:`~nngt.Shape`
+        attribute).
+        '''
         return True if issubclass(self.__class__, SpatialGraph) else False
 
 
@@ -409,7 +465,11 @@ class SpatialGraph(Graph):
     #-------------------------------------------------------------------------#
     # Init tool
     
-    def _init_spatial_properties(self, shape, positions, **kwargs):
+    def _init_spatial_properties(self, shape, positions=None, **kwargs):
+        '''
+        Create the positions of the neurons from the graph `shape` attribute
+        and computes the connections distances.
+        '''
         self._shape = shape if shape is not None else Shape(self)
         b_rnd_pos = ( True if not self.node_nb() or positions is None
                       else len(positions) != self.node_nb() )
@@ -434,12 +494,16 @@ class Network(Graph):
     additional properties to describe various biological functions
     and interact with the NEST simulator.
     
-    :ivar neural_model: :class:`list`
-        List of the NEST neural models for each neuron.
-    :ivar syn_model: :class:`list`
-        List of the NEST synaptic models for each edge.
+    :ivar population: :class:`~nngt.NeuralPop`
+        Object reparting the neurons into groups with specific properties.
     :ivar graph: :class:`~nngt.core.GraphObject`
         Main attribute of the class instance
+    :ivar nest_id: :class:`numpy.array`
+        Array containing the NEST gid associated to each neuron; it is ``None``
+        until a NEST network has been created.
+    :ivar id_from_nest_id: dict
+        Dictionary mapping each NEST gid to the corresponding neuron index in 
+        the :class:`nngt.~Network`
     """
 
     #-------------------------------------------------------------------------#
@@ -454,8 +518,32 @@ class Network(Graph):
         return cls.__num_networks
 
     @classmethod
-    def uniform_network(cls, size, neuron_model="iaf_neuron", neuron_param={},
-                        syn_model="static_synapse", syn_param={}):
+    def uniform_network(cls, size, neuron_model=default_neuron,
+                        neuron_param={}, syn_model=default_synapse,
+                        syn_param={}):
+        '''
+        Generate a network containing only one type of neurons.
+        
+        Parameters
+        ----------
+        size : int
+            Number of neurons in the network.
+        neuron_model : string, optional (default: 'aief_cond_alpha')
+            Name of the NEST neural model to use when simulating the activity.
+        neuron_param : dict, optional (default: {})
+            Dictionary containing the neural parameters; the default value will
+            make NEST use the default parameters of the model.
+        syn_model : string, optional (default: 'static_synapse')
+            NEST synaptic model to use when simulating the activity.
+        syn_param : dict, optional (default: {})
+            Dictionary containing the synaptic parameters; the default value
+            will make NEST use the default parameters of the model.
+        
+        Returns
+        -------
+        net : :class:`~nngt.Network` or subclass
+            Uniform network of disconnected neurons.
+        '''
         pop = NeuralPop.uniform_population(size, None, neuron_model,
            neuron_param, syn_model, syn_param)
         net = cls(population=pop)
@@ -463,10 +551,42 @@ class Network(Graph):
         return net
 
     @classmethod
-    def ei_network(cls, size, ei_ratio=0.2, en_model="aeif_neuron",
-            en_param={}, es_model="static_synapse", es_param={},
-            in_model="aeif_neuron", in_param={}, is_model="static_synapse",
+    def ei_network(cls, size, ei_ratio=0.2, en_model=default_neuron,
+            en_param={}, es_model=default_synapse, es_param={},
+            in_model=default_neuron, in_param={}, is_model=default_synapse,
             is_param={}):
+        '''
+        Generate a network containing a population of two neural groups:
+        inhibitory and excitatory neurons.
+        
+        Parameters
+        ----------
+        size : int
+            Number of neurons in the network.
+        ei_ratio : double, optional (default: 0.2)
+            Ratio of inhibitory neurons: :math:`\\frac{N_i}{N_e+N_i}`.
+        en_model : string, optional (default: 'aeif_cond_alpha')
+           Nest model for the excitatory neuron.
+        en_param : dict, optional (default: {})
+            Dictionary of parameters for the the excitatory neuron.
+        es_model : string, optional (default: 'static_synapse')
+            NEST model for the excitatory synapse.
+        es_param : dict, optional (default: {})
+            Dictionary containing the excitatory synaptic parameters.
+        in_model : string, optional (default: 'aeif_cond_alpha')
+           Nest model for the inhibitory neuron.
+        in_param : dict, optional (default: {})
+            Dictionary of parameters for the the inhibitory neuron.
+        is_model : string, optional (default: 'static_synapse')
+            NEST model for the inhibitory synapse.
+        is_param : dict, optional (default: {})
+            Dictionary containing the inhibitory synaptic parameters.
+        
+        Returns
+        -------
+        net : :class:`~nngt.Network` or subclass
+            Network of disconnected excitatory and inhibitory neurons.
+        '''
         pop = NeuralPop.ei_population(size, ei_ratio, None, en_model, en_param,
                     es_model, es_param, in_model, in_param, is_model, is_param)
         net = cls(population=pop)
@@ -475,6 +595,21 @@ class Network(Graph):
 
     @classmethod
     def make_network(graph, neural_pop):
+        '''
+        Turn a :class:`~nngt.Graph` object into a :class:`~nngt.Network`, or a
+        :class:`~nngt.SpatialGraph` into a :class:`~nngt.SpatialNetwork`.
+
+        Parameters
+        ----------
+        graph : :class:`~nngt.Graph` or :class:`~nngt.SpatialGraph`
+            Graph to convert
+        neural_pop : :class:`~nngt.NeuralPop`
+            Population to associate to the new :class:`~nngt.Network`
+
+        Notes
+        -----
+        In-place operation that directly converts the original graph.
+        '''
         if isinstance(graph, SpatialGraph):
             graph.__class__ = SpatialNetwork
         else:
@@ -534,6 +669,10 @@ class Network(Graph):
 
     @property
     def population(self):
+        '''
+        :class:`~nngt.NeuralPop` that divides the neurons into groups with
+        specific properties.
+        '''
         return self._population
 
     @population.setter
@@ -574,6 +713,18 @@ class Network(Graph):
     # Getter
 
     def neuron_properties(self, idx_neuron):
+        '''
+        Properties of a neuron in the graph.
+
+        Parameters
+        ----------
+        idx_neuron : int
+            Index of a neuron in the graph.
+
+        Returns
+        -------
+        dict of the neuron properties.
+        '''
         group_name = self._population._neuron_group[idx_neuron]
         return self._population[group_name].properties()
 
@@ -595,12 +746,16 @@ class SpatialNetwork(Network,SpatialGraph):
         Shape of the neurons environment.
     :ivar positions: :class:`numpy.array`
         Positions of the neurons.
-    :ivar neural_model: :class:`list`
-        List of the NEST neural models for each neuron.
-    :ivar syn_model: :class:`list`
-        List of the NEST synaptic models for each edge.
+    :ivar population: :class:`~nngt.NeuralPop`
+        Object reparting the neurons into groups with specific properties.
     :ivar graph: :class:`~nngt.core.GraphObject`
         Main attribute of the class instance.
+    :ivar nest_id: :class:`numpy.array`
+        Array containing the NEST gid associated to each neuron; it is ``None``
+        until a NEST network has been created.
+    :ivar id_from_nest_id: dict
+        Dictionary mapping each NEST gid to the corresponding neuron index in 
+        the :class:`nngt.~SpatialNetwork`
     """
 
     #-------------------------------------------------------------------------#

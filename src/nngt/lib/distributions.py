@@ -37,27 +37,24 @@ def delta_distrib(graph, elist=None, value=1., **kwargs):
     return _make_matrix(graph, ecount, ra_vals, elist)
 
 
-def uniform_distrib(graph, elist=None, min_distrib=0., max_distrib=1.5,
+def uniform_distrib(graph, elist=None, min=0., max=1.5,
                     **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    ra_vals = np.random.uniform(min_distrib, max_distrib, ecount)
+    ra_vals = np.random.uniform(min, max, ecount)
     return _make_matrix(graph, ecount, ra_vals, elist)
 
-def gaussian_distrib(graph, elist=None, avg_distrib=1., std_dev=0.2,
-                     **kwargs):
+def gaussian_distrib(graph, elist=None, avg=1., std=0.2, **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    ra_vals = np.random.normal(avg_distrib, std_dev, ecount)
+    ra_vals = np.random.normal(avg, std_dev, ecount)
     return _make_matrix(graph, ecount, ra_vals, elist)
 
-def lognormal_distrib(graph, elist=None, position=1., scale=0.2,
-                      **kwargs):
+def lognormal_distrib(graph, elist=None, position=1., scale=0.2, **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     ra_vals = np.random.lognormal(position, scale, ecount)
     return _make_matrix(graph, ecount, ra_vals, elist)
 
 def lin_correlated_distrib(correl_attribute, graph, elist=None,
-                           noise_scale=None, min_distrib=0., max_distrib=2.,
-                           **kwargs):
+                           noise_scale=None, min=0., max=2., **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     ra_noise = ( 1 if noise_scale is None else np.abs(np.random.normal(1,
                  noise_scale, ecount)) )
@@ -67,7 +64,7 @@ def lin_correlated_distrib(correl_attribute, graph, elist=None,
         pass
 
 def log_correlated_distrib(correl_attribute, graph, elist=None,
-                           noise_scale=None, min_distrib=0., max_distrib=2.,
+                           noise_scale=None, min=0., max=2.,
                            **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     pass
