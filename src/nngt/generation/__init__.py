@@ -1,6 +1,6 @@
 """
-Generation module
-=================
+Content
+=======
 
 Functions that generates the underlying connectivity of graphs, as well
 as the synaptic properties (weight/strength and delay).
@@ -25,11 +25,6 @@ custom_eprop			User defined distribution
 correlated_fixed_eprop	Computed from an edge property
 correlated_proba_eprop	Randomly drawn, correlated to an edge property
 ====================== =================================================
-
-
-Contents
---------
-
 """
 
 from __future__ import absolute_import

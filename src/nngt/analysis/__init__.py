@@ -2,9 +2,8 @@
 #-*- coding:utf-8 -*-
 
 """
-=====================
-Graph analysis module
-=====================
+Content
+=======
 """
 
 from .gt_analysis import *

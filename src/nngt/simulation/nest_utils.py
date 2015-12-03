@@ -138,24 +138,24 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
 #------------------------
 #
 
-def plot_activity(network, gid_recorder, record, gids=None, show=True):
+def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
     '''
     Plot the monitored activity.
     
     Parameters
     ----------
-    network : :class:`~nngt.Network` or subclass
-        Network which activity will be monitored.
     gid_recorder : tuple or list
         The gids of the recording devices.
     record : tuple or list
         List of the monitored variables for each device.
+    network : :class:`~nngt.Network` or subclass, optional (default: None)
+        Network which activity will be monitored.
     gids : tuple, optional (default: None)
         NEST gids of the neurons which should be monitored.
     show : bool, optional (default: True)
         Whether to show the plot right away or to wait for the next plt.show().
     '''
-    gids = network.nest_id if gids is None else gids
+    gids = network.nest_id if (gids is None and network is not None) else gids
     lst_rec = []
     for rec in gid_recorder:
         if isinstance(gid_recorder[0],tuple):
@@ -164,7 +164,7 @@ def plot_activity(network, gid_recorder, record, gids=None, show=True):
             lst_rec.append((rec,))
             
     # spikes plotting
-    num_group = len(network.population)
+    num_group = len(network.population) if network is not None else 1
     colors = palette(np.linspace(0, 1, num_group))
     num_spike, num_detec = 0, 0
     fig_spike, fig_detec = None, None

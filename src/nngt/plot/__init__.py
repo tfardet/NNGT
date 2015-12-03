@@ -2,9 +2,8 @@
 #-*- coding:utf-8 -*-
 
 """
-===============
-Plotting module
-===============
+Content
+=======
 """
 
 import matplotlib

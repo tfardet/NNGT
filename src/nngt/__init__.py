@@ -1,6 +1,6 @@
 """
 NNGT
-=====
+====
 
 Neural Networks Growth and Topology analyzing tool.
 
@@ -67,7 +67,9 @@ provided:
 	- `cm` centimeters
 	- `dm` for decimeters
 	- `m` for meters
-
+    
+Main graph classes
+==================
 """
 
 from __future__ import absolute_import
@@ -110,23 +112,6 @@ from . import analysis
 from . import plot
 from . import lib
 
-try:
-    import nest
-    from . import nest
-except:
-    print("NEST not found; nest module will not be loaded")
-
-#~ from . import io
-#~ from . import random
-
-
-#-----------------------------------------------------------------------------#
-# Dict
-#------------------------
-#
-
-# @todo: ensure classes cannot be instantiated from both nngt and nngt.core
-
 __all__ = [
     "Graph",
     "SpatialGraph",
@@ -142,3 +127,10 @@ __all__ = [
     "plot",
     "lib"
 ]
+
+try:
+    import nest
+    from . import simulation
+    __all__.append("simulation")
+except:
+    print("NEST not found; nest module will not be loaded")

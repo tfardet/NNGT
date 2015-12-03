@@ -236,6 +236,6 @@ def adjacency_matrix(net, typed=True, weighted=True, eprop=None):
         weights = net.edge_attributes["type"].copy()
     if weighted and "weight" in net.graph.edge_attributes.keys():
         weights = sp.multiply(weights,
-                                graph.edge_attributes["weight"])
+                              net.graph.edge_attributes["weight"])
     return adjacency(net.graph, weights)
         

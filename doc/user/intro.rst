@@ -1,8 +1,9 @@
+============
 Introduction
 ============
 
 Yet another graph library?
---------------------------
+==========================
 
 It is not ;)
 
@@ -12,7 +13,7 @@ Moreover, it also acts as an interface between those graph libraries and the NES
 
 
 Description
------------
+===========
 
 Neural networks are described by four container classes:
 	- :class:`~nngt.Graph`: container for simple topological graphs with no spatial structure, nor biological properties
@@ -34,7 +35,8 @@ In addition to ``graph``, the containers can have other attributes, such as:
 
 
 Graph-theoretical models
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
+
 Several classical graphs are efficiently implemented and the generation procedures are detailed in the documentation.
 
 .. toctree::

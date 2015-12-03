@@ -1,10 +1,11 @@
 .. graph-prop:
 
+==============================
 Properties of graph components
 ==============================
 
 Components
-----------
+==========
 
 In the graph libraries used by NNGT, the main components of a graph are *nodes* (also called *vertices* in graph theory), which correspond to *neurons* in neural networks, and *edges*, which link *nodes* and correspond to synaptic connections between neurons in biology.
 
@@ -12,21 +13,21 @@ The library supposes for now that nodes/neurons and edges/synapses are always ad
 
 
 Node properties
----------------
+===============
 
 If you are just working with basic graphs (for instance looking at the influence of topology with purely excitatory networks), then your nodes do not need to have properties. This is the same if you consider only the average effect of inhibitory neurons by including inhibitory connections between the neurons but not a clear distinction between populations of purely excitatory and purely inhibitory neurons.
 To model more realistic networks, however, you might want to define these two types of populations and connect them in specific ways.
 
 
 Two types of node properties
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------
 
 In the library, there is a difference between:
 	- spatial properties (the positions of the neurons), which are stored in a specific :class:`numpy.array`,
 	- biological/group properties, which define assemblies of nodes sharing common properties, and are stored inside a :class:`~nngt.properties.NeuralPop` object.
 
 Biological/group properties
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 .. note ::
 	All biological/group properties are stored in a :class:`~nngt.properties.NeuralPop` object inside a :class:`~nngt.Network` instance (let us call it ``graph`` in this example); this attribute can be accessed using ``graph.population``.
@@ -40,7 +41,7 @@ If the connectivity already exists, you can use the :class:`~nngt.properties.Gro
 
 
 Edge properties
----------------
+===============
 
 In the library, there is a difference between the (synaptic) weights and types (excitatory or inhibitory) and the other biological properties (delays, synaptic models and synaptic parameters).
 This is because the weights and types are directly involved in many measurements in graph theory and are therefore directly stored inside the :class:`~nngt.core.GraphObject`.

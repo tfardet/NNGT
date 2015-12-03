@@ -3,8 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+================================
 Welcome to NNGT's documentation!
-=================================
+================================
 
 .. toctree::
    :hidden:
@@ -43,7 +44,7 @@ Welcome to NNGT's documentation!
 
 
 Overview
----------
+========
 
 The Neural Network Growth and Topology (NNGT) module provides tools to grow and study detailed biological networks by interfacing efficient graph libraries with highly distributed activity simulators. 
 

@@ -1,3 +1,4 @@
+===========
 Main module
 ===========
 
@@ -32,7 +33,7 @@ For more details regarding the main classes, see:
 
    core
    generation
-   nest
+   simulation
    plot
    analysis
    lib
