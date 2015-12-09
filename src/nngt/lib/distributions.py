@@ -45,7 +45,7 @@ def uniform_distrib(graph, elist=None, min=0., max=1.5,
 
 def gaussian_distrib(graph, elist=None, avg=1., std=0.2, **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    ra_vals = np.random.normal(avg, std_dev, ecount)
+    ra_vals = np.random.normal(avg, std, ecount)
     return _make_matrix(graph, ecount, ra_vals, elist)
 
 def lognormal_distrib(graph, elist=None, position=1., scale=0.2, **kwargs):

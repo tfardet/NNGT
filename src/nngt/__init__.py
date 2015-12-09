@@ -1,4 +1,5 @@
 """
+====
 NNGT
 ====
 
@@ -10,7 +11,8 @@ Provides algorithms for
 	3. studying the graph theoretical properties of those networks
 
 How to use the documentation
-----------------------------
+============================
+
 Documentation is not yet really available. I will try to implement more
 extensive docstrings within the code.
 I recommend exploring the docstrings using
@@ -31,7 +33,8 @@ Use the built-in ``help`` function to view a function's docstring::
 	>>> help(nggt.GraphClass)
 
 Available subpackages
----------------------
+=====================
+
 core
 	Contains the main network classes.
 	These are loaded in nngt at import so specifying :class:`nngt.core` is not necessary
@@ -43,22 +46,21 @@ io
 	@todo: Tools for input/output operations
 nest
 	NEST integration tools
-random
-	@todo? Random numbers generation tools
 growth
 	@todo: Growing networks tools
+plot
+	plot data or graphs (@todo) using matplotlib and graph_tool
 
 Utilities
 ---------
-plot
-	plot data or graphs (@todo) using matplotlib and graph_tool
 show_config
 	@todo: Show build configuration
 version
 	NNGT version string
 
 Units
------
+=====
+
 Functions related to spatial embedding of networks are using milimeters
 (mm) as default unit; other units from the metric system can also be
 provided:
@@ -84,16 +86,8 @@ import sys
 # Python > 2.6
 assert sys.hexversion > 0x02060000
 
-# graph library
-try:
-    import graph_tool
-except:
-    try:
-        import snap
-    except:
-        raise ImportError(
-            "This module needs one of the following graph libraries to work: \
-`graph_tool`, `apgl`, `igraph` or `SNAP`.")
+# version and graph library test
+from .globals import version, use_library
 
 
 #-----------------------------------------------------------------------------#
@@ -102,8 +96,7 @@ except:
 #
 
 from .core import *
-from .core.graph_classes import (Graph, SpatialGraph, Network,
-                                 SpatialNetwork)
+from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .core.graph_datastruct import Shape, NeuralPop, GroupProperty, Connections
 
 from . import core
@@ -113,19 +106,21 @@ from . import plot
 from . import lib
 
 __all__ = [
-    "Graph",
-    "SpatialGraph",
-    "Network",
-    "SpatialNetwork",
-    "Shape",
-    "NeuralPop",
-    "GroupProperty",
+    "analysis",
     "Connections",
     "core",
     "generation",
-    "analysis",
+    "Graph",
+    "GroupProperty",
+    "lib",
+    "Network",
+    "NeuralPop",
     "plot",
-    "lib"
+    "Shape",
+    "SpatialNetwork",
+    "SpatialGraph",
+    "use_library",
+    "version"
 ]
 
 try:

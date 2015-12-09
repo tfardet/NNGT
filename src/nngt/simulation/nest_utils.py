@@ -257,11 +257,13 @@ def raster_plot(detec, title="Spike raster", hist=True, num_bins=1000,
         ax1.set_ylabel(ylabel)
         ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
 
-        t_bins = np.arange(np.amin(ts), np.amax(ts), float(hist_binwidth))
+        bin_width = ( np.amax(ts) - np.amin(ts) ) / float(num_bins)
+        t_bins = np.linspace(np.amin(ts), np.amax(ts), num_bins)
         n, bins = np.histogram(ts, bins=t_bins)
         t_bins = np.concatenate(([t_bins[0]], t_bins))
         #~ heights = 1000 * n / (hist_binwidth * num_neurons)
-        heights = 1000 * np.concatenate(([0], n, [0])) / (hist_binwidth * num_neurons)
+        # height = rate in Hz, knowing that t is in ms
+        heights = 1000*np.concatenate(([0],n,[0]))/(num_neurons * bin_width)
         lines = ax2.patches
         if lines:
             data = lines[-1].get_xy()

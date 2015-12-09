@@ -8,8 +8,8 @@ import numpy as np
 import scipy.sparse as ssp
 from numpy.random import randint
 
-from ..core.graph_objects import s_glib
-from ..lib.errors import InvalidArgument
+from nngt.globals import glib_data
+from nngt.lib.errors import InvalidArgument
 
 
 __all__ = [
@@ -23,6 +23,8 @@ __all__ = [
     "_newman_watts",
     "price_network",
 ]
+
+s_glib = glib_data["name"]
 
 MAXTESTS = 1000 # ensure that generation will finish
 EPS = 0.00001

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 nest.SetKernelStatus({"local_num_threads": 8})
 
 from nngt.core import GraphObject
-from nngt.nest import make_nest_network, get_nest_network
+from nngt.simulation import make_nest_network, get_nest_network
 from graph_tool.generation import random_rewire
 
 
@@ -15,6 +15,9 @@ from graph_tool.generation import random_rewire
 # Build networks
 #------------------------
 #
+
+#~ nngt.use_library("igraph")
+nngt.use_library("networkx")
 
 nmodel = "iaf_neuron"
 nparam = { "t_ref": 2. }
@@ -37,10 +40,10 @@ nngt.generation.connect_neural_types(graph, -1, -1, "erdos_renyi", {"density": 0
 
 subnet, gids = make_nest_network(graph)
 
-recorders, record = nngt.nest.monitor_nodes(gids, ["spike_detector", "multimeter"], [["spikes"], ["V_m"]], network=graph)
+recorders, record = nngt.simulation.monitor_nodes(gids, ["spike_detector", "multimeter"], [["spikes"], ["V_m"]], network=graph)
 
-nngt.nest.set_noise(gids, 70., 80.)
-nngt.nest.set_poisson_input(gids[570:870], 44000.)
+nngt.simulation.set_noise(gids, 70., 80.)
+nngt.simulation.set_poisson_input(gids[570:870], 44000.)
 
 
 #-----------------------------------------------------------------------------#
@@ -51,4 +54,4 @@ nngt.nest.set_poisson_input(gids[570:870], 44000.)
 simtime = 10000
 nest.Simulate(simtime)
 
-nngt.nest.plot_activity(graph, recorders, record)
+nngt.simulation.plot_activity(recorders, record, network=graph)

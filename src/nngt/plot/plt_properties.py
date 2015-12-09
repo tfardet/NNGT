@@ -74,7 +74,7 @@ def degree_distribution(network, deg_type="total", node_list=None, num_bins=50,
     ax1.axis('tight')
     maxcounts,maxbins,minbins = 0,0,np.inf
     if isinstance(deg_type, str):
-        counts,bins = degree_distrib(network.graph, deg_type, node_list,
+        counts,bins = degree_distrib(network, deg_type, node_list,
                                      use_weights, logx, num_bins)
         maxcounts,maxbins,minbins = counts.max(),bins.max(),bins.min()
         line = ax1.scatter(bins, counts)
@@ -85,7 +85,7 @@ def degree_distribution(network, deg_type="total", node_list=None, num_bins=50,
         m = ["o","s","D"]
         lines, legends = [], []
         for i,s_type in enumerate(deg_type):
-            counts,bins = degree_distrib(network.graph, s_type, node_list,
+            counts,bins = degree_distrib(network, s_type, node_list,
                                          use_weights, logx, num_bins)
             maxcounts_tmp,mincounts_tmp = counts.max(),counts.min()
             maxbins_tmp,minbins_tmp = bins.max(),bins.min()
@@ -136,7 +136,7 @@ def betweenness_distribution(network, btype="both", use_weights=True,
     ax1.axis('tight')
     ax2 = lst_axes[-1]
     ax2.axis('tight')
-    ncounts,nbins,ecounts,ebins = betweenness_distrib(network.graph,
+    ncounts,nbins,ecounts,ebins = betweenness_distrib(network,
                                                       use_weights, logx)
     colors = palette(np.linspace(0.,0.5,2))
     if btype in ("node","both"):

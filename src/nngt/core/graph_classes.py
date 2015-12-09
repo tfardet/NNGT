@@ -8,11 +8,11 @@ from copy import deepcopy
 from numpy import multiply
 from scipy.sparse import lil_matrix
 
-from ..globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
+from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                        DIST, TYPE)
-from .graph_objects import GraphLib, GraphObject
-from .graph_datastruct import NeuralPop, Shape, Connections
-from ..analysis import adjacency_matrix
+from nngt.core.graph_objects import GraphLib, GraphObject
+from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
+import nngt.analysis as na
 
 
 
@@ -90,7 +90,7 @@ class Graph(object):
             for key, value in di_data.iteritems():
                 self._data[key] = value
         # create the graphlib graph
-        if libgraph != None:
+        if libgraph is not None:
             self._graph = GraphObject.to_graph_object(libgraph)
             nodes = self._graph.node_nb()
         else:
@@ -203,9 +203,9 @@ class Graph(object):
         Returns
         -------
         adj : :class:`scipy.sparse.csr_matrix`
-            The adjaccency matrix of the graph.
+            The adjacency matrix of the graph.
         '''
-        return adjacency_matrix(self, weighted)
+        return na.adjacency_matrix(self, weighted)
 
     #-------------------------------------------------------------------------#
     # Setters
@@ -370,7 +370,7 @@ class Graph(object):
         ''' Returns the weighted adjacency matrix as a
         :class:`scipy.sparse.lil_matrix`.
         '''
-        return self._graph.edge_attributes["weight"]
+        return self._graph.eproperties["weight"]
 
     def is_spatial(self):
         '''
@@ -592,6 +592,7 @@ class Network(Graph):
         '''
         pop = NeuralPop.ei_population(size, ei_ratio, None, en_model, en_param,
                     es_model, es_param, in_model, in_param, is_model, is_param)
+        print(Network is cls)
         net = cls(population=pop)
         pop.parent = net
         return net

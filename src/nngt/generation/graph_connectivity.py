@@ -71,7 +71,7 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
     ids = np.arange(nodes).astype(int)
     ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                             directed, multigraph)
-    graph_obj_er.add_edge_list(ia_edges)
+    graph_obj_er.new_edges(ia_edges)
     # generate container
     graph_er = (Graph(name=name, libgraph=graph_obj_er, data={
                 'edges': ia_edges}) if from_graph is None else from_graph)
@@ -130,7 +130,7 @@ def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
     ids = np.arange(nodes).astype(int)
     ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density, edges,
                                   avg_deg, reciprocity, directed, multigraph)
-    graph_obj_rsf.add_edge_list(ia_edges)
+    graph_obj_rsf.new_edges(ia_edges)
     # generate container
     graph_rsf = (Graph(name=name, libgraph=graph_obj_rsf, data={
                 'edges': ia_edges}) if from_graph is None else from_graph)
@@ -259,7 +259,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
     nodes_ids = list(range(nodes))
     ia_edges = _newman_watts(nodes_ids, nodes_ids, coord_nb, proba_shortcut,
                              directed, multigraph)
-    graph_obj_nw.add_edge_list(ia_edges)
+    graph_obj_nw.new_edges(ia_edges)
     # generate container
     graph_nw = (Graph(name=name, libgraph=graph_obj_nw, data={
                 'edges': ia_edges}) if from_graph == None else from_graph)
@@ -327,7 +327,7 @@ def gen_edr(dicProperties):
             lstEdges = np.array([lstVertSrc,lstVertDest]).astype(int)
         else:
             lstEdges = np.array([lstVertSrc[lstCreateEdge],lstVertDest[lstCreateEdge]]).astype(int)
-        graphEDR.add_edge_list(np.transpose(lstEdges))
+        graphEDR.new_edges(np.transpose(lstEdges))
         # make graph simple and connected
         delete_self_loops(graphEDR)
         delete_parallel_edges(graphEDR)

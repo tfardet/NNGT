@@ -408,8 +408,8 @@ class Connections:
         if "edges" in graph.attributes():
             sources, targets = graph["edges"][:,0], graph["edges"][:,1]
             lst_w = graph._data[WEIGHT][sources,targets].data[0]
-            if "weight" in graph.graph.edge_attributes.keys():
-                graph.graph.edge_attributes["weight"] = lst_w
+            if "weight" in graph.graph.eproperties.keys():
+                graph.graph.eproperties["weight"] = lst_w
             else:
                 graph.graph.new_edge_attribute(WEIGHT, "double", values=lst_w)
         else:

@@ -6,8 +6,21 @@
 import scipy as sp
 import scipy.sparse.linalg as spl
 
-from ..globals import (adjacency, assort, edge_reciprocity, s_glib,
-                       global_clustering, label_components, pseudo_diameter)
+from nngt.globals import glib_data, glib_func
+
+
+
+#-----------------------------------------------------------------------------#
+# Set the functions
+#------------------------
+#
+
+adjacency = glib_func["adjacency"]
+assort = glib_func["assortativity"]
+edge_reciprocity = glib_func["reciprocity"]
+global_clustering = glib_func["clustering"]
+label_components = glib_func["components"]
+pseudo_diameter = glib_func["diameter"]
 
 
 #-----------------------------------------------------------------------------#
@@ -194,14 +207,14 @@ def spectral_radius(net, typed=True, weighted=True):
     the spectral radius as a float.
     '''
     weights = None
-    if typed and "type" in net.graph.edge_attributes.keys():
-        weights = net.edge_attributes["type"].copy()
-    if weighted and "weight" in net.graph.edge_attributes.keys():
+    if typed and "type" in net.graph.eproperties.keys():
+        weights = net.eproperties["type"].copy()
+    if weighted and "weight" in net.graph.eproperties.keys():
         if weights is not None:
             weights = sp.multiply(weights,
-                                  net.graph.edge_attributes["weight"])
+                                  net.graph.eproperties["weight"])
         else:
-            weights = net.graph.edge_attributes["weight"].copy()
+            weights = net.graph.eproperties["weight"].copy()
     mat_adj = adjacency(net.graph,weights)
     eigenval = [0]
     try:
@@ -231,11 +244,17 @@ def adjacency_matrix(net, typed=True, weighted=True, eprop=None):
     -------
     a :class:`~scipy.sparse.csr_matrix`.
     '''
-    weights = None
-    if typed and "type" in net.graph.edge_attributes.keys():
-        weights = net.edge_attributes["type"].copy()
-    if weighted and "weight" in net.graph.edge_attributes.keys():
-        weights = sp.multiply(weights,
-                              net.graph.edge_attributes["weight"])
-    return adjacency(net.graph, weights)
+    if glib_data["name"] == "networkx":
+        mat = ( adjacency(net.graph, weight="weight") if weighted
+                else adjacency(net.graph, weight=None) )
+        if typed and "type" in net.graph.eproperties.keys():
+            mat *= adjacency(net.graph, weight="type")
+        return mat
+    else:
+        weights = sp.repeat(1., net.edge_nb())
+        if typed and "type" in net.graph.eproperties.keys():
+            weights = sp.multiply(weights, net.eproperties["type"])
+        if weighted and "weight" in net.graph.eproperties.keys():
+            weights = sp.multiply(weights, net.graph.eproperties["weight"])
+        return adjacency(net.graph, weights)
         
