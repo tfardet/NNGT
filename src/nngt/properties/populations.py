@@ -31,8 +31,12 @@ class NeuralGroup:
         
     .. warning::
         Equality between :class:`~nngt.properties.NeuralGroup`s only compares 
-        the ``model`` and ``param`` attributes, i.e. groups differing only by 
-        their ``id_list``s will register as equal.
+        the neuronal and synaptic ``model`` and ``param`` attributes, i.e. 
+        groups differing only by their ``id_list``s will register as equal.
+    .. note::
+        By default, synapses are registered as "static_synapse"s in NEST; 
+        because of this, only the ``neuron_model`` attribute is checked by the
+        ``has_model`` function.
     """
     
     def __init__ (self, id_list=[], ntype=1, model=None, neuron_param={},
@@ -48,7 +52,11 @@ class NeuralGroup:
     
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
-            return self.model == other.model * self.param == other.param
+            same_nmodel = ( self.neuron_model == other.neuron_model *
+                            self.neuron_param == other.neuron_param )
+            same_smodel = ( self.syn_model == other.syn_model *
+                            self.syn_param == other.syn_param )
+            return same_nmodel * same_smodel
         else:
             return False
         

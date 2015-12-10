@@ -51,7 +51,7 @@ nngt.simulation.set_poisson_input(gids[570:870], 44000.)
 #------------------------
 #
 
-simtime = 10000
+simtime = 1000.
 nest.Simulate(simtime)
 
 nngt.simulation.plot_activity(recorders, record, network=graph)

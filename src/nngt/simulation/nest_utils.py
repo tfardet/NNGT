@@ -121,7 +121,7 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
                     new_record.append(record[i])
                     nest.SetStatus(device,{"label": record[i][0] + " " + name,
                                            "withtime": True, "withgid": True})
-                    nest.Connect(tuple(network.nest_id[group.id_list]), device)
+                    nest.Connect(tuple(network.nest_gid[group.id_list]), device)
             else:
                 device = nest.Create(rec)
                 recorders.append(device)
@@ -155,7 +155,7 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
     show : bool, optional (default: True)
         Whether to show the plot right away or to wait for the next plt.show().
     '''
-    gids = network.nest_id if (gids is None and network is not None) else gids
+    gids = network.nest_gid if (gids is None and network is not None) else gids
     lst_rec = []
     for rec in gid_recorder:
         if isinstance(gid_recorder[0],tuple):
@@ -232,87 +232,89 @@ def raster_plot(detec, title="Spike raster", hist=True, num_bins=1000,
     ts, senders = ev["times"], ev["senders"]
     num_neurons = len(np.unique(senders))
 
-    fig = plt.figure(fignum)
+    if len(ts):
+        fig = plt.figure(fignum)
 
-    legend = info["label"]
-    ylabel = "Neuron ID"
-    xlabel = "Time (ms)"
-        
-    delta_t = 0.01*(ts[-1]-ts[0])
+        legend = info["label"]
+        ylabel = "Neuron ID"
+        xlabel = "Time (ms)"
 
-    if hist:
-        ax1, ax2 = None, None
-        if len(fig.axes) == 2:
-            ax1 = fig.axes[0]
-            ax2 = fig.axes[1]
-        else:
-            ax1 = fig.add_axes([0.1, 0.3, 0.85, 0.6])
-            ax2 = fig.add_axes([0.1, 0.08, 0.85, 0.17])
-        ax1.plot(ts, senders, c=color, marker="o", linestyle='None',
-            mec="k", mew=0.5, ms=4, label=legend)
-        ax1_lines = ax1.lines
-        if len(ax1_lines) > 1:
-            t_max = max(ax1_lines[0].get_xdata().max(),ts[-1])
-            ax1.set_xlim([-delta_t, t_max+delta_t])
-        ax1.set_ylabel(ylabel)
-        ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
+        delta_t = 0.01*(ts[-1]-ts[0])
 
-        bin_width = ( np.amax(ts) - np.amin(ts) ) / float(num_bins)
-        t_bins = np.linspace(np.amin(ts), np.amax(ts), num_bins)
-        n, bins = np.histogram(ts, bins=t_bins)
-        t_bins = np.concatenate(([t_bins[0]], t_bins))
-        #~ heights = 1000 * n / (hist_binwidth * num_neurons)
-        # height = rate in Hz, knowing that t is in ms
-        heights = 1000*np.concatenate(([0],n,[0]))/(num_neurons * bin_width)
-        lines = ax2.patches
-        if lines:
-            data = lines[-1].get_xy()
-            bottom = data[:,1]
-            old_bins = data[:,0]
-            old_start = int(old_bins[0] / (old_bins[2]-old_bins[0]))
-            new_start = int(t_bins[0] / (t_bins[2]-t_bins[0]))
-            old_end = int(old_bins[-2] / (old_bins[-2]-old_bins[-3]))
-            new_end = int(t_bins[-1] / (t_bins[-1]-t_bins[-2]))
-            diff_start = new_start-old_start
-            diff_end = new_end-old_end
-            if diff_start > 0:
-                bottom = bottom[diff_start:]
+        if hist:
+            ax1, ax2 = None, None
+            if len(fig.axes) == 2:
+                ax1 = fig.axes[0]
+                ax2 = fig.axes[1]
             else:
-                bottom = np.concatenate((np.zeros(-diff_start),bottom))
-            if diff_end > 0:
-                bottom = np.concatenate((bottom,np.zeros(diff_end)))
-            else:
-                bottom = bottom[:diff_end-1]
-            b_len, h_len = len(bottom), len(heights)
-            if  b_len > h_len:
-                bottom = bottom[:h_len]
-            elif b_len < h_len:
-                bottom = np.concatenate((bottom,np.zeros(h_len-b_len)))
-            #~ x,y1,y2 = fill_between_steps(t_bins,heights,bottom[::2], h_align='left')
-            #~ x,y1,y2 = fill_between_steps(t_bins[:-1],heights+bottom[::2], bottom[::2], h_align='left')
-            ax2.fill_between(t_bins,heights+bottom, bottom, color=color)
-        else:
-            #~ x,y1,_ = fill_between_steps(t_bins,heights, h_align='left')
-            #~ x,y1,_ = fill_between_steps(t_bins[:-1],heights)
-            ax2.fill(t_bins,heights, color=color)
-        yticks = [int(x) for x in np.linspace(0., int(max(heights)*1.1)+5, 4)]
-        ax2.set_yticks(yticks)
-        ax2.set_ylabel("Rate (Hz)")
-        ax2.set_xlabel(xlabel)
-        ax2.set_xlim(ax1.get_xlim())
-    else:
-        ax = fig.axes[0] if fig.axes else fig.subplots(111)
-        ax.plot(ts, senders, c=color, marker="o", linestyle='None',
-            mec="k", mew=0.5, ms=4, label=legend)
-        ax.set_ylabel(ylabel)
-        ax.set_ylim([np.min(senders),np.max(senders)])
-        ax.set_xlim([ts[0]-delta_t, ts[-1]+delta_t])
-        ax.legend(bbox_to_anchor=(1.1, 1.2))
+                ax1 = fig.add_axes([0.1, 0.3, 0.85, 0.6])
+                ax2 = fig.add_axes([0.1, 0.08, 0.85, 0.17], sharex=ax1)
+            ax1.plot(ts, senders, c=color, marker="o", linestyle='None',
+                mec="k", mew=0.5, ms=4, label=legend)
+            ax1_lines = ax1.lines
+            if len(ax1_lines) > 1:
+                t_max = max(ax1_lines[0].get_xdata().max(),ts[-1])
+                ax1.set_xlim([-delta_t, t_max+delta_t])
+            ax1.set_ylabel(ylabel)
+            ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
 
-    fig.suptitle(title)
-    if show:
-        plt.show()
-    return fig.number
+            bin_width = ( np.amax(ts) - np.amin(ts) ) / float(num_bins)
+            t_bins = np.linspace(np.amin(ts), np.amax(ts), num_bins)
+            n, bins = np.histogram(ts, bins=t_bins)
+            t_bins = np.concatenate(([t_bins[0]], t_bins))
+            #~ heights = 1000 * n / (hist_binwidth * num_neurons)
+            # height = rate in Hz, knowing that t is in ms
+            heights = 1000*np.concatenate(([0],n,[0]))/(num_neurons*bin_width)
+            height = np.repeat(0, len(heights)) if bin_width == 0. else heights
+            lines = ax2.patches
+            if lines:
+                data = lines[-1].get_xy()
+                bottom = data[:,1]
+                old_bins = data[:,0]
+                old_start = int(old_bins[0] / (old_bins[2]-old_bins[0]))
+                new_start = int(t_bins[0] / (t_bins[2]-t_bins[0]))
+                old_end = int(old_bins[-2] / (old_bins[-2]-old_bins[-3]))
+                new_end = int(t_bins[-1] / (t_bins[-1]-t_bins[-2]))
+                diff_start = new_start-old_start
+                diff_end = new_end-old_end
+                if diff_start > 0:
+                    bottom = bottom[diff_start:]
+                else:
+                    bottom = np.concatenate((np.zeros(-diff_start),bottom))
+                if diff_end > 0:
+                    bottom = np.concatenate((bottom,np.zeros(diff_end)))
+                else:
+                    bottom = bottom[:diff_end-1]
+                b_len, h_len = len(bottom), len(heights)
+                if  b_len > h_len:
+                    bottom = bottom[:h_len]
+                elif b_len < h_len:
+                    bottom = np.concatenate((bottom,np.zeros(h_len-b_len)))
+                #~ x,y1,y2 = fill_between_steps(t_bins,heights,bottom[::2], h_align='left')
+                #~ x,y1,y2 = fill_between_steps(t_bins[:-1],heights+bottom[::2], bottom[::2], h_align='left')
+                ax2.fill_between(t_bins,heights+bottom, bottom, color=color)
+            else:
+                #~ x,y1,_ = fill_between_steps(t_bins,heights, h_align='left')
+                #~ x,y1,_ = fill_between_steps(t_bins[:-1],heights)
+                ax2.fill(t_bins,heights, color=color)
+            yticks = [int(x) for x in np.linspace(0,int(max(heights)*1.1)+5,4)]
+            ax2.set_yticks(yticks)
+            ax2.set_ylabel("Rate (Hz)")
+            ax2.set_xlabel(xlabel)
+            ax2.set_xlim(ax1.get_xlim())
+        else:
+            ax = fig.axes[0] if fig.axes else fig.subplots(111)
+            ax.plot(ts, senders, c=color, marker="o", linestyle='None',
+                mec="k", mew=0.5, ms=4, label=legend)
+            ax.set_ylabel(ylabel)
+            ax.set_ylim([np.min(senders),np.max(senders)])
+            ax.set_xlim([ts[0]-delta_t, ts[-1]+delta_t])
+            ax.legend(bbox_to_anchor=(1.1, 1.2))
+
+        fig.suptitle(title)
+        if show:
+            plt.show()
+        return fig.number
 
 def fill_between_steps(x, y1, y2=0, h_align='mid'):
     ''' Fills a hole in matplotlib: fill_between for step plots.

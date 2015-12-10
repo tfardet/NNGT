@@ -3,13 +3,17 @@
 
 """ Graph data strctures in NNGT """
 
+import weakref
+
 import numpy as np
 import scipy.sparse as ssp
 
-from ..globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
-                       DIST, TYPE)
-from ..properties.populations import NeuralGroup, _make_groups
-from ..lib.distributions import *
+from nngt.globals import ( default_neuron, default_synapse, POS, WEIGHT, DELAY,
+                       DIST, TYPE )
+from nngt.properties.populations import NeuralGroup, _make_groups
+from nngt.lib import ( InvalidArgument, delta_distrib, uniform_distrib,
+        lognormal_distrib, gaussian_distrib, lin_correlated_distrib,
+        log_correlated_distrib )
 
 
 
@@ -91,7 +95,6 @@ class NeuralPop(dict):
         -------
         pop : :class:`~nngt.properties.NeuralPop` instance
         '''
-        self.parent = parent
         self._is_valid = False
         self._size = size if parent is None else parent.node_nb()
         self._neuron_group = np.empty(self._size, dtype=object)
@@ -117,24 +120,84 @@ class NeuralPop(dict):
     #-------------------------------------------------------------------------#
     # Methods
     
-    def set_models(self, models=None):
-        if isinstance(models, str) or models is None:
-            for group in self.itervalues():
-                group.model = models
-        else:
-            try:
-                if list(model.keys()) == list(self.keys()):
-                    for name, model in models.items():
-                        self[name].model = model
-                else:
-                    raise
-            except:
-                raise ArgumentError("set_models argument should be either a \
-string or a dict with the same keys as NeuralPop")
+    def set_model(self, model, group=None):
+        '''
+        Set the groups' models.
+        
+        Parameters
+        ----------
+        model : dict
+            Dictionary containing the model type as key ("neuron" or "synapse")
+            and the model name as value (e.g. {"neuron": "iaf_neuron"}).
+        group : list of strings, optional (default: None)
+            List of strings containing the names of the groups which models
+            should be updated.
+            
+        .. warning::
+            No check is performed on the validity of the models, which means 
+            that errors will only be detected when building the graph in NEST.
+        
+        .. note::
+            By default, synapses are registered as "static_synapse"s in NEST; 
+            because of this, only the ``neuron_model`` attribute is checked by 
+            the ``has_models`` function: it will answer ``True`` if all groups
+            have a 'non-None' ``neuron_model`` attribute.
+        '''
+        if group is None:
+            group = self.keys()
+        try:
+            for key,val in model.iteritems():
+                for name in group:
+                    if key == "neuron":
+                        self[name].neuron_model = val
+                    elif key == "synapse":
+                        self[name].syn_model = val
+                    else:
+                        raise ValueError("Model type {} is not valid; choose \
+among 'neuron' or 'synapse'.".format(key))
+            else:
+                raise
+        except:
+            raise InvalidArgument("Invalid model dict or group; see docstring.")
         b_has_models = True
         for group in self.itervalues():
             b_has_model *= group.has_model
         self._has_models = b_has_models
+    
+    def set_param(self, param, group=None):
+        '''
+        Set the groups' parameters.
+        
+        Parameters
+        ----------
+        param : dict
+            Dictionary containing the model type as key ("neuron" or "synapse")
+            and the model parameter as value (e.g. {"neuron": {"C_m": 125.}}).
+        group : list of strings, optional (default: None)
+            List of strings containing the names of the groups which models
+            should be updated.
+            
+        .. warning::
+            No check is performed on the validity of the parameters, which 
+            means that errors will only be detected when building the graph in 
+            NEST.
+        '''
+        if group is None:
+            group = self.keys()
+        try:
+            for key,val in param.iteritems():
+                for name in group:
+                    if key == "neuron":
+                        self[name].neuron_param = val
+                    elif key == "synapse":
+                        self[name].syn_param = val
+                    else:
+                        raise ValueError("Model type {} is not valid; choose \
+among 'neuron' or 'synapse'.".format(key))
+            else:
+                raise
+        except:
+            raise InvalidArgument("Invalid param dict or group; see docstring.")
     
     def new_group(self, name, id_list, ntype=1, neuron_model=None, neuron_param={},
                   syn_model=default_synapse, syn_param={}):
@@ -396,12 +459,9 @@ class Connections:
         # add to the graph container
         mat_weights = (graph._data[WEIGHT] if WEIGHT in graph._data.keys() 
                                            else None)
-        if mat_weights is not None:
-            if not mat_weights.nnz:
-                graph._data[WEIGHT] = new_weights
-            elif elist is not None:
-                eslice = elist[:,0],elist[:,1]
-                graph._data[WEIGHT][eslice] = new_weights[eslice]
+        if mat_weights is not None and elist is not None:
+            eslice = elist[:,0],elist[:,1]
+            graph._data[WEIGHT][eslice] = new_weights[eslice]
         else:
             graph._data[WEIGHT] = new_weights
         # add to the graph object
@@ -445,7 +505,7 @@ class Shape:
     """
 
     def __init__(self, parent=None):
-        self._parent = parent
+        self.parent = weakref.proxy(parent) if parent is not None else None
         self._area = 0.
         self._com = (0.,0.)
     
@@ -477,8 +537,8 @@ class Shape:
 
     def rnd_distrib(self, nodes=None):
         #@todo: make it general
-        if self._parent is not None:
-            nodes = self._parent.node_nb()
+        if self.parent is not None:
+            nodes = self.parent.node_nb()
         ra_x = np.random.uniform(size=nodes)
         ra_y = np.random.uniform(size=nodes)
         return np.array([ra_x,ra_y])

@@ -13,6 +13,7 @@ from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
 from nngt.core.graph_objects import GraphLib, GraphObject
 from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
 import nngt.analysis as na
+from nngt.lib import InvalidArgument
 
 
 
@@ -77,12 +78,7 @@ class Graph(object):
         '''
         self.__id = self.__class__.__max_id
         self._name = name
-        self.__di_prop = {
-            "id": self.__id,
-            "name": name,
-            "weighted": weighted,
-            "directed": directed,
-        }
+        self._directed = directed
         # dictionary containing the attributes
         self._data = {}
         if "data" in kwargs.keys():
@@ -142,8 +138,8 @@ class Graph(object):
         Returns a deepcopy of the current :class:`~nngt.core.Graph`
         instance
         '''
-        gc_instance = Graph(name=self.__di_prop["name"]+'_copy',
-                            weighted=self.__di_prop["weighted"],
+        gc_instance = Graph(name=self._name+'_copy',
+                            weighted=self.is_weighted(),
                             graph=self._graph.copy())
         return gc_instance
     
@@ -167,10 +163,9 @@ class Graph(object):
         eprop_b_type = self._graph.new_edge_property(
                        "bool",-self._graph.edge_properties[TYPE].a+1)
         self._graph.set_edge_filter(eprop_b_type)
-        inhib_graph = Graph(
-                            name=self.__di_prop["name"]+'_inhib',
-                            weighted=self.__di_prop["weighted"],
-                            graph=GraphObject(self._graph,prune=True))
+        inhib_graph = Graph( name=self._name + '_inhib',
+                             weighted=self.is_weighted(),
+                             graph=GraphObject(self._graph,prune=True) )
         self._graph.clear_filters()
         return inhib_graph
 
@@ -181,10 +176,9 @@ class Graph(object):
         eprop_b_type = self._graph.new_edge_property(
                        "bool",self._graph.edge_properties[TYPE].a+1)
         self._graph.set_edge_filter(eprop_b_type)
-        exc_graph = Graph(
-                            name=self.__di_prop["name"]+'_exc',
-                            weighted=self.__di_prop["weighted"],
-                            graph=GraphObject(self._graph,prune=True))
+        exc_graph = Graph( name=self._name + '_exc',
+                             weighted=self.is_weighted(),
+                             graph=GraphObject(self._graph,prune=True) )
         self._graph.clear_filters()
         return exc_graph
 
@@ -213,14 +207,9 @@ class Graph(object):
     def set_name(self, name=""):
         ''' set graph name '''
         if name != "":
-            self.__di_prop["name"] = name
+            self._name = name
         else:
-            strName = self.__di_prop[TYPE]
-            tplIgnore = (TYPE, "name", "weighted")
-            for key,value in self.__di_prop.items():
-                if key not in tplIgnore and (value.__class__ != dict):
-                    strName += '_' + key[0] + str(value)
-            self.__di_prop["name"] = strName
+            self._name = "Graph_" + str(self.__id)
     
     def set_weights(self, elist=None, wlist=None, distrib=None,
                     distrib_prop=None, correl=None, noise_scale=None):
@@ -290,33 +279,33 @@ class Graph(object):
 
     def is_directed(self):
         ''' Whether the graph is directed or not '''
-        return self.__di_prop["directed"]
+        return self._directed
 
-    def get_property(self, s_property):
-        ''' Return the desired property or None for an incorrect one. '''
-        if s_property in Graph.__properties:
-            return Graph.__di_property_func[s_property](self._graph)
-        else:
-            warnings.warn("Ignoring request for unknown property \
-                          '{}'".format(s_property))
-            return None
+    #~ def get_property(self, s_property):
+        #~ ''' Return the desired property or None for an incorrect one. '''
+        #~ if s_property in Graph.__properties:
+            #~ return Graph.__di_property_func[s_property](self._graph)
+        #~ else:
+            #~ warnings.warn("Ignoring request for unknown property \
+                          #~ '{}'".format(s_property))
+            #~ return None
 
-    def get_properties(self, a_properties):
-        '''
-        Return a dictionary containing the desired properties
-
-        Parameters
-        ----------
-        a_properties : sequence
-            List or tuple of strings of the property names.
-
-        Returns
-        -------
-        di_result : dict
-            A dictionary of values with the property names as keys.
-        '''
-        di_result = { prop: self.get_property(prop) for prop in a_properties }
-        return di_result
+    #~ def get_properties(self, a_properties):
+        #~ '''
+        #~ Return a dictionary containing the desired properties
+#~ 
+        #~ Parameters
+        #~ ----------
+        #~ a_properties : sequence
+            #~ List or tuple of strings of the property names.
+#~ 
+        #~ Returns
+        #~ -------
+        #~ di_result : dict
+            #~ A dictionary of values with the property names as keys.
+        #~ '''
+        #~ di_result = { prop: self.get_property(prop) for prop in a_properties }
+        #~ return di_result
 
     def get_degrees(self, node_list=None, deg_type="total", use_weights=True):
         '''
@@ -406,8 +395,6 @@ class SpatialGraph(Graph):
 
     __num_graphs = 0
     __max_id = 0
-    __di_property_func = {}
-    __properties = __di_property_func.keys()
 
     @classmethod
     def make_spatial(graph, shape=Shape(), positions=None):
@@ -458,6 +445,8 @@ class SpatialGraph(Graph):
         self.__b_valid_properties = True
         
     def __del__(self):
+        self._shape._parent = None
+        self._shape = None
         super(SpatialGraph, self).__del__()
         self.__class__.__num_graphs -= 1
 
@@ -501,10 +490,10 @@ class Network(Graph):
         Object reparting the neurons into groups with specific properties.
     :ivar graph: :class:`~nngt.core.GraphObject`
         Main attribute of the class instance
-    :ivar nest_id: :class:`numpy.array`
+    :ivar nest_gid: :class:`numpy.array`
         Array containing the NEST gid associated to each neuron; it is ``None``
         until a NEST network has been created.
-    :ivar id_from_nest_id: dict
+    :ivar id_from_nest_gid: dict
         Dictionary mapping each NEST gid to the corresponding neuron index in 
         the :class:`nngt.~Network`
     """
@@ -550,7 +539,6 @@ class Network(Graph):
         pop = NeuralPop.uniform_population(size, None, neuron_model,
            neuron_param, syn_model, syn_param)
         net = cls(population=pop)
-        pop.parent = net
         return net
 
     @classmethod
@@ -594,10 +582,9 @@ class Network(Graph):
                     es_model, es_param, in_model, in_param, is_model, is_param)
         print(Network is cls)
         net = cls(population=pop)
-        pop.parent = net
         return net
 
-    @classmethod
+    @staticmethod
     def make_network(graph, neural_pop):
         '''
         Turn a :class:`~nngt.Graph` object into a :class:`~nngt.Network`, or a
@@ -619,6 +606,7 @@ class Network(Graph):
         else:
             graph.__class__ = Network
         graph.population = neural_pop
+        Connections.delays(graph)
 
     #-------------------------------------------------------------------------#
     # Constructor, destructor and attributes
@@ -651,7 +639,7 @@ class Network(Graph):
         self : :class:`~nggt.core.Graph`
         '''
         if population is None:
-            raise ArgumentError("Network needs a NeuralPop to be created")
+            raise InvalidArgument("Network needs a NeuralPop to be created")
         nodes = population.size
         if "nodes" in kwargs.keys():
             del kwargs["nodes"]
@@ -660,8 +648,8 @@ class Network(Graph):
                                       libgraph=libgraph, **kwargs)
         self.__id = self.__class__.__max_id
         self._init_bioproperties(population)
-        self.nest_id = None
-        self.id_from_nest_id = None
+        self.nest_gid = None
+        self.id_from_nest_gid = None
         
         self.__class__.__num_networks += 1
         self.__class__.__max_id += 1
@@ -754,10 +742,10 @@ class SpatialNetwork(Network,SpatialGraph):
         Object reparting the neurons into groups with specific properties.
     :ivar graph: :class:`~nngt.core.GraphObject`
         Main attribute of the class instance.
-    :ivar nest_id: :class:`numpy.array`
+    :ivar nest_gid: :class:`numpy.array`
         Array containing the NEST gid associated to each neuron; it is ``None``
         until a NEST network has been created.
-    :ivar id_from_nest_id: dict
+    :ivar id_from_nest_gid: dict
         Dictionary mapping each NEST gid to the corresponding neuron index in 
         the :class:`nngt.~SpatialNetwork`
     """
@@ -797,7 +785,7 @@ class SpatialNetwork(Network,SpatialGraph):
         self : :class:`~nggt.core.Graph`
         '''
         if population is None:
-            raise ArgumentError("Network needs a NeuralPop to be created")
+            raise InvalidArgument("Network needs a NeuralPop to be created")
         nodes = population.size
         super(SpatialNetwork, self).__init__(
             nodes=nodes, name=name, weighted=weighted, directed=directed,

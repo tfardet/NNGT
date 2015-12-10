@@ -75,8 +75,8 @@ def make_nest_network(network, use_weights=True):
         nest.DataConnect((ia_nngt_nest[ia_nngt_ids[i]],), (dic,), syn_model)
         
     # conversions ids/gids
-    network.nest_id = ia_nngt_nest
-    network.id_from_nest_id = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
+    network.nest_gid = ia_nngt_nest
+    network.id_from_nest_gid = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
                                                              ia_nest_gids) }
     return subnet, tuple(ia_nest_gids)
 
