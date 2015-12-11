@@ -472,7 +472,7 @@ edge in the graph.")
         raise NotImplementedError("This function has been removed because it \
             makes using node properties too complicated")
 
-    def rm_all_edges(self):
+    def clear_edges(self):
         '''
         @todo: this should be implemented in GraphClass
         Remove all connections in the graph

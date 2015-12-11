@@ -16,17 +16,17 @@ setup(
         # Requirements
         install_requires = [ 'numpy', 'scipy', 'matplotlib' ],
         extras_require = {
-            'pyside': ['PySide'],
+            'PySide': ['PySide'],
             'PDF':  ["ReportLab>=1.2", "RXP"],
             'reST': ["docutils>=0.3"],
         },
         entry_points = {
             #@todo
-            'console_scripts': [
-                'rst2pdf = nngt.tools.pdfgen [PDF]',
-                'rst2html = nngt.tools.htmlgen'
-            ],
-            'gui_scripts': [ 'netgen = nngt.gui.main.__main__:main [pyside]' ]
+            #~ 'console_scripts': [
+                #~ 'rst2pdf = nngt.tools.pdfgen [PDF]',
+                #~ 'rst2html = nngt.tools.htmlgen'
+            #~ ],
+            'gui_scripts': [ 'netgen = nngt.gui.main.__main__:main [PySide]' ]
         },
         
         # Metadata
