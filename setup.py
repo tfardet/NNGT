@@ -7,6 +7,7 @@ setup(
         name='nngt',
         version = '0.4a',
         description = 'Package to study growth and activity of neural networks',
+        package_dir={'': 'src'},
         packages = find_packages('src'),
         
         # Include the non python files:
