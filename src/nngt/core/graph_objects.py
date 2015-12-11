@@ -498,15 +498,15 @@ edge in the graph.")
         else:
             return adjacency(self, weight=None)
     
-    def degree_list(self, deg_type="total", use_weights=True):
+    def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         weight = 'weight' if use_weights else None
         di_deg = None
         if deg_type == 'total':
-            di_deg = self.degree(weight=weight)
+            di_deg = self.degree(node_list, weight=weight)
         elif deg_type == 'in':
-            di_deg = self.in_degree(weight=weight)
+            di_deg = self.in_degree(node_list, weight=weight)
         else:
-            di_deg = self.out_degree(weight=weight)
+            di_deg = self.out_degree(node_list, weight=weight)
         return np.array(di_deg.values())
 
     def betweenness_list(self, use_weights=True, as_prop=False):
