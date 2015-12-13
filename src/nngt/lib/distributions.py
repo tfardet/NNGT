@@ -16,7 +16,7 @@ import scipy.sparse as ssp
 def _make_matrix(graph, ecount, values, elist=None):
     mat_distrib = None
     n = graph.node_nb()
-    if elist is not None:
+    if elist is not None and graph.edge_nb():
         mat_distrib = ssp.coo_matrix((values,(elist[:,0],elist[:,1])),(n,n))
     else:
         mat_distrib = graph.adjacency_matrix()

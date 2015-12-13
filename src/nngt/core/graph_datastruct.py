@@ -455,25 +455,30 @@ class Connections:
         else:
             new_weights = cls.di_dfunc[distrib](graph, elist=elist,
                             correl_attribute=corr, **distrib_prop)
+        print("---------- Weights generated ----------")
         new_weights = new_weights.tolil()
+        print("---------- Converted to lil ----------")
         # add to the graph container
         mat_weights = (graph._data[WEIGHT] if WEIGHT in graph._data.keys() 
                                            else None)
-        if mat_weights is not None and elist is not None:
+        if mat_weights is not None and elist is not None and graph.edge_nb():
+            print("---------- Updating weights ----------")
             eslice = elist[:,0],elist[:,1]
             graph._data[WEIGHT][eslice] = new_weights[eslice]
         else:
+            print("---------- From scratch ----------")
             graph._data[WEIGHT] = new_weights
+        print("---------- Adding to the graph object ----------")
         # add to the graph object
-        if "edges" in graph.attributes():
-            sources, targets = graph["edges"][:,0], graph["edges"][:,1]
-            lst_w = graph._data[WEIGHT][sources,targets].data[0]
-            if "weight" in graph.graph.eproperties.keys():
-                graph.graph.eproperties["weight"] = lst_w
-            else:
-                graph.graph.new_edge_attribute(WEIGHT, "double", values=lst_w)
-        else:
-            graph.graph.new_edge_attribute(WEIGHT, "double")
+        #~ if "edges" in graph.attributes() and graph.edge_nb():
+            #~ sources, targets = graph["edges"][:,0], graph["edges"][:,1]
+            #~ lst_w = graph._data[WEIGHT][sources,targets].data[0]
+            #~ if "weight" in graph.graph.eproperties.keys():
+                #~ graph.graph.eproperties["weight"] = lst_w
+            #~ else:
+                #~ graph.graph.new_edge_attribute(WEIGHT, "double", values=lst_w)
+        #~ else:
+            #~ graph.graph.new_edge_attribute(WEIGHT, "double")
         return new_weights
     
     @classmethod

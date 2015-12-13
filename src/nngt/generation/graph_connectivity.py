@@ -3,6 +3,7 @@
 
 """ Connectivity generators for Graph """
 
+import time
 import numpy as np
 
 from .. import Graph, SpatialGraph, Network, Connections
@@ -16,9 +17,9 @@ from ..lib.connect_tools import *
 # Erdos-Renyi
 #------------------------
 
-def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
-                reciprocity=-1., directed=True, multigraph=False,
-                name="ER", shape=None, positions=None, from_graph=None):
+def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
+                weighted=True, directed=True, multigraph=False, name="ER",
+                shape=None, positions=None, population=None, from_graph=None):
     """
     Generate a random graph as defined by Erdos and Renyi but with a
     reciprocity that can be chosen.
@@ -37,6 +38,8 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
         Fraction of edges that are bidirectional (only for
         directed graphs -- undirected graphs have a reciprocity of 1 by
         definition)
+    weighted : bool, optional (default: True)
+        Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -58,29 +61,50 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
 
     Notes
     -----
-    `nodes` is required unless `from_graph` is provided.
+    `nodes` is required unless `from_graph` or `population` is provided.
     If an `from_graph` is provided, all preexistant edges in the
     object will be deleted before the new connectivity is implemented.
     """
-    nodes = nodes if from_graph is None else from_graph.node_nb()
-    # generate graph object
-    graph_obj_er = (GraphObject(nodes, directed=directed) if
-                    from_graph == None else from_graph.graph)
-    graph_obj_er.clear_edges()
+    # set node number and library graph
+    graph_obj_er, graph_er = None, from_graph
+    if graph_er is not None:
+        nodes = graph_er.node_nb()
+        graph_er.clear_edges()
+        graph_obj_er = graph_er.graph
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_obj_er = GraphObject(nodes, directed=directed)
+    start = time.time()
+    print(">> Graph init done", time.time()-start)
     # add edges
-    ids = np.arange(nodes).astype(int)
-    ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
-                            directed, multigraph)
-    graph_obj_er.new_edges(ia_edges)
+    start = time.time()
+    ia_edges = np.array([])
+    if nodes > 1:
+        ids = np.arange(nodes).astype(int)
+        ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
+                                directed, multigraph)
+        print("---------- Edges done ----------")
+        graph_obj_er.new_edges(ia_edges)
+        print("---------- Edges added ----------")
+    print(">> Edges generated and added", time.time()-start)
     # generate container
-    graph_er = (Graph(name=name, libgraph=graph_obj_er, data={
-                'edges': ia_edges}) if from_graph is None else from_graph)
-    graph_er.set_weights(ia_edges)
-    if issubclass(graph_er.__class__, Network):
-        Connections.delays(graph_er, ia_edges)
-    if shape is not None:
-        make_spatial(graph_er, shape, positions)
-    return graph_er
+    start = time.time()
+    if graph_er is None:
+        graph_er = Graph(name=name, libgraph=graph_obj_er, data={
+                'edges': ia_edges})
+    else:
+        graph_er.set_weights()
+    print(">> GraphClass created", time.time()-start)
+    #~ graph_er.set_weights(ia_edges)
+    #~ print("---------- Weights set ----------")
+    #~ if issubclass(graph_er.__class__, Network):
+        #~ Connections.delays(graph_er, ia_edges)
+    #~ if shape is not None:
+        #~ SpatialGraph.make_spatial(graph_er, shape, positions)
+    #~ if population is not None:
+        #~ Network.make_network(graph_er, population)
+    #~ return graph_er
+    return None
 
 
 #
@@ -88,10 +112,10 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
 # Scale-free models
 #------------------------
 
-def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
+def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
                       avg_deg=-1, reciprocity=0., directed=True,
-                      multigraph=False, name="RandomSF", shape=None, positions=None,
-                      from_graph=None):
+                      multigraph=False, name="RandomSF", shape=None, 
+                      positions=None, population=None, from_graph=None):
     """
     @todo
     Generate a free-scale graph of given reciprocity and otherwise
@@ -119,18 +143,21 @@ def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
     
     Notes
     -----
-    `nodes` is required unless `from_graph` is provided.
+    `nodes` is required unless `from_graph` or `population` is provided.
     """
-    nodes = nodes if from_graph is None else from_graph.node_nb()
+    nodes = ( ( population.size if population is not None else nodes )
+              if from_graph is None else from_graph.node_nb() )
     # generate graph object
     graph_obj_rsf = (GraphObject(nodes, directed=directed) if
                     from_graph == None else from_graph.graph)
     graph_obj_rsf.clear_edges()
     # add edges
-    ids = np.arange(nodes).astype(int)
-    ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density, edges,
-                                  avg_deg, reciprocity, directed, multigraph)
-    graph_obj_rsf.new_edges(ia_edges)
+    ia_edges = np.array([])
+    if nodes > 1:
+        ids = np.arange(nodes).astype(int)
+        ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
+                          edges, avg_deg, reciprocity, directed, multigraph)
+        graph_obj_rsf.new_edges(ia_edges)
     # generate container
     graph_rsf = (Graph(name=name, libgraph=graph_obj_rsf, data={
                 'edges': ia_edges}) if from_graph is None else from_graph)
@@ -138,12 +165,15 @@ def random_scale_free(in_exp, out_exp, nodes=None, density=0.1, edges=-1,
     if issubclass(graph_rsf.__class__, Network):
         Connections.delays(graph_rsf, ia_edges)
     if shape is not None:
-        make_spatial(graph_rsf, shape, positions)
+        SpatialGraph.make_spatial(graph_rsf, shape, positions)
+    if population is not None:
+        Network.make_network(graph_rsf, population)
     return graph_rsf
 
-def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
-                     seed_graph=None, multigraph=False, name="PriceSF", shape=None,
-                     positions=None, from_graph=None, **kwargs):
+def price_scale_free(m, c=None, gamma=1, nodes=0, directed=True,
+                     seed_graph=None, multigraph=False, name="PriceSF",
+                     shape=None, positions=None, population=None,
+                     from_graph=None, **kwargs):
     """
     @todo: make the algorithm.
     Generate a Price graph model (Barabasi-Albert if undirected).
@@ -178,10 +208,11 @@ def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
     
     Notes
     -----
-    `nodes` is required unless `from_graph` is provided.
+    `nodes` is required unless `from_graph` or `population` is provided.
     """
     np.random.seed()
-    nodes = nodes if from_graph is None else from_graph.node_nb()
+    nodes = ( ( population.size if population is not None else nodes )
+              if from_graph is None else from_graph.node_nb() )
     #~ c = c if c is not None else 0 if directed else 1
     
     graph_obj_price = GraphObject.to_graph_object(
@@ -196,6 +227,8 @@ def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
         Connections.delays(graph_price, ia_edges)
     if shape is not None:
         make_spatial(graph_price, shape, positions)
+    if population is not None:
+        Network.make_network(graph_price, population)
     return graph_price
 
 #
@@ -203,9 +236,9 @@ def price_scale_free(m, c=None, gamma=1, nodes=None, directed=True,
 # Small-world models
 #------------------------
 
-def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
+def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
                  multigraph=False, name="ER", shape=None, positions=None,
-                 from_graph=None, **kwargs):
+                 population=None, from_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
     @todo: generate the edges of a circular graph to not replace the graph
@@ -247,19 +280,22 @@ def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
     
     Notes
     -----
-    `nodes` is required unless `from_graph` is provided.
+    `nodes` is required unless `from_graph` or `population` is provided.
     """
     np.random.seed()
-    nodes = nodes if from_graph is None else from_graph.node_nb()
+    nodes = ( ( population.size if population is not None else nodes )
+              if from_graph is None else from_graph.node_nb() )
     # generate graph object
     graph_obj_nw = (GraphObject(nodes, directed=directed) if
                     from_graph == None else from_graph.graph)
     graph_obj_nw.clear_edges()
     # add edges
-    nodes_ids = list(range(nodes))
-    ia_edges = _newman_watts(nodes_ids, nodes_ids, coord_nb, proba_shortcut,
-                             directed, multigraph)
-    graph_obj_nw.new_edges(ia_edges)
+    ia_edges = np.array([])
+    if nodes > 1:
+        nodes_ids = list(range(nodes))
+        ia_edges = _newman_watts(nodes_ids, nodes_ids, coord_nb,
+                                 proba_shortcut, directed, multigraph)
+        graph_obj_nw.new_edges(ia_edges)
     # generate container
     graph_nw = (Graph(name=name, libgraph=graph_obj_nw, data={
                 'edges': ia_edges}) if from_graph == None else from_graph)
@@ -268,6 +304,8 @@ def newman_watts(coord_nb, proba_shortcut, nodes=None, directed=True,
         Connections.delays(graph_nw, ia_edges)
     if shape is not None:
         make_spatial(graph_nw, shape, positions)
+    if population is not None:
+        Network.make_network(graph_nw, population)
     return graph_nw
 
 

@@ -85,10 +85,11 @@ class Graph(object):
             di_data = kwargs["data"]
             for key, value in di_data.iteritems():
                 self._data[key] = value
+        print("---------- Data added ----------")
         # create the graphlib graph
         if libgraph is not None:
             self._graph = GraphObject.to_graph_object(libgraph)
-            nodes = self._graph.node_nb()
+            print("---------- To graph object done ----------")
         else:
             self._graph = GraphObject(nodes=nodes, directed=directed)
         # take care of the weights @todo: use those of the libgraph
@@ -98,6 +99,7 @@ class Graph(object):
             else:
                 self._w = {"distrib": "constant"}
             self.set_weights()
+            print("---------- Weights 1st round done ----------")
         # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -201,6 +203,16 @@ class Graph(object):
         '''
         return na.adjacency_matrix(self, weighted)
 
+    def clear_edges(self):
+        ''' Remove all the edges in the graph. '''
+        self._graph.clear_edges()
+        n = self.node_nb()
+        for key in self._data.iterkeys():
+            if key == 'edges':
+                del self._data[key]
+            else:
+                self._data[key] = lil_matrix(n,n)
+
     #-------------------------------------------------------------------------#
     # Setters
         
@@ -240,6 +252,7 @@ class Graph(object):
                             self._w.keys() else {})
         if correl is None:
             correl = self._w["correl"] if "correl" in self._w.keys() else None
+        print("---------- Starting weight gen ----------")
         Connections.weights(self, elist=elist, wlist=wlist, distrib=distrib,
             correl=correl, distrib_prop=distrib_prop, noise_scale=noise_scale)
         
