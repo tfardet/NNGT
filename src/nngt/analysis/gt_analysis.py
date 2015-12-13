@@ -226,7 +226,7 @@ def spectral_radius(net, typed=True, weighted=True):
     else:
         raise spl.eigen.arpack.ArpackNoConvergence()
 
-def adjacency_matrix(net, typed=True, weighted=True, eprop=None):
+def adjacency_matrix(net, typed=True, weighted=True):
     '''
     Adjacency matrix of the graph.
     
@@ -236,25 +236,32 @@ def adjacency_matrix(net, typed=True, weighted=True, eprop=None):
         Network to analyze.
     typed : bool, optional (default: True)
         Whether the excitatory/inhibitory type of the connnections should be
-        considered.
+        considered (only if the weighing factor is the synaptic strength).
     weighted : bool, optional (default: True)
-        Whether the weights should be taken into account.
+        Whether weights should be taken into account; if True, then connections
+        are weighed by their synaptic strength, if False, then a binary matrix
+        is returned, if `weighted` is a string, then the ponderation is the
+        correponding value of the edge attribute (e.g. "distance" will return 
+        an adjacency matrix where each connection is multiplied by its length).
     
     Returns
     -------
     a :class:`~scipy.sparse.csr_matrix`.
     '''
+    mat, mtype = None, None
     if glib_data["name"] == "networkx":
-        mat = ( adjacency(net.graph, weight="weight") if weighted
-                else adjacency(net.graph, weight=None) )
-        if typed and "type" in net.graph.eproperties.keys():
-            mat *= adjacency(net.graph, weight="type")
-        return mat
+        if isinstance(weighted, str):
+            mat = adjacency(net.graph, weight=weighted)
+        elif weighted:
+            mat = adjacency(net.graph, weight="weight")
+        else:
+            mat = adjacency(net.graph, weight=None)
     else:
-        weights = sp.repeat(1., net.edge_nb())
-        if typed and "type" in net.graph.eproperties.keys():
-            weights = sp.multiply(weights, net.eproperties["type"])
-        if weighted and "weight" in net.graph.eproperties.keys():
-            weights = sp.multiply(weights, net.graph.eproperties["weight"])
-        return adjacency(net.graph, weights)
+        weights = "weight" if weighted is True else weighted
+        mat = adjacency(net.graph, weights)
+    if typed and weighted is True and "type" in net.graph.eproperties.keys():
+        mtype = adjacency(net.graph, weight="type")
+        return mat*mtype
+    else:
+        return mat
         

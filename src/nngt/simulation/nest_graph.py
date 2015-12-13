@@ -52,19 +52,19 @@ def make_nest_network(network, use_weights=True):
         current_size += group_size
         
     # get all properties as scipy.sparse.lil matrices
-    lil_adjacency = network.adjacency_matrix().tolil()
-    lil_weights = network[WEIGHT]
-    lil_delays = network[DELAY]
+    lil_weights = network.adjacency_matrix(False, True).tolil()
+    lil_delays = network.adjacency_matrix(False, DELAY).tolil()
     
     # connect neurons
-    dic = { "target": None, WEIGHT: None, DELAY: None }
+    dic = { "target": None, "weight": None, "delay": None }
     for i in range(num_neurons):
+        pass
         dic_prop = network.neuron_properties(ia_nngt_ids[i])
         syn_model = dic_prop["syn_model"]
         for key, val in dic_prop["syn_param"].iteritems():
             dic[key] = np.repeat(val, num_connect)
         syn_sign = dic_prop["neuron_type"]
-        ia_targets = np.array(lil_adjacency.rows[ia_nngt_ids[i]], dtype=int)
+        ia_targets = np.array(lil_weights.rows[ia_nngt_ids[i]], dtype=int)
         dic["target"] = ia_nngt_nest[ia_targets]
         num_connect = len(ia_targets)
         if use_weights:

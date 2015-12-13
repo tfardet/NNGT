@@ -98,7 +98,7 @@ def use_library(library, reloading=True):
         # defining the adjacency function
         def adj_mat(graph, weights=None):
             if weights is not None:
-                weights = graph.new_edge_property("double", weights)
+                weights = graph.edge_properties[weights]
             return _adj(graph, weights).T
         glib_func["adjacency"] = adj_mat
     elif library == "igraph":

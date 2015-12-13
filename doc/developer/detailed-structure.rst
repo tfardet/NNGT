@@ -1,14 +1,18 @@
+==================
 Detailed structure
 ==================
+
+.. warning:
+    This section is not up to date anymore!
 
 Here is a small bottom-up approach of the library to justify its structure.
 
 
 Rationale for the structure
----------------------------
+===========================
 
 The basis: a graph
-^^^^^^^^^^^^^^^^^^
+------------------
 
 The core object is :class:`nngt.core.GraphObject` that inherits from either :class:`graph_tool.Graph` or :class:`snap.TNEANet` and :class:`Shape` that encodes the spatial structure of the neurons' environment.
 The purpose of :class:`GraphObject` is simple: implementing a library independant object with a unique set of functions to interact with graphs.
@@ -17,7 +21,7 @@ The purpose of :class:`GraphObject` is simple: implementing a library independan
 	This object should never be directly modified through its methods but rather using those of the four containing classes. The only reason to access this object should be to perform graph-theoretical measurements on it which do not modify its structure; any other action will lead to undescribed behaviour.
 
 Frontend
-^^^^^^^^
+--------
 
 Detailed neural networks contain properties that the :class:`~nngt.core.GraphObject` does not know about; because of this, direct modification of the structure can lead to nodes or edges missing properties or to properties assigned to nonexistent nodes or edges.
 

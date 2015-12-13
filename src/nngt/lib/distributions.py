@@ -9,6 +9,20 @@ import scipy.sparse as ssp
 
 
 #-----------------------------------------------------------------------------#
+# Return the right distribution
+#------------------------
+#
+
+def eprop_distribution(graph, distrib_type, matrix=False, elist=None, **kw):
+    ra_values = di_dfunc[distrib_type](graph, elist=elist, **kw)
+    num_edges = graph.edge_nb()
+    if matrix:
+        return _make_matrix(graph, num_edges, ra_values, elist)
+    else:
+        return ra_values
+
+
+#-----------------------------------------------------------------------------#
 # Generating the matrix
 #------------------------
 #
@@ -33,25 +47,20 @@ def _make_matrix(graph, ecount, values, elist=None):
 
 def delta_distrib(graph, elist=None, value=1., **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    ra_vals = np.repeat(value, ecount)
-    return _make_matrix(graph, ecount, ra_vals, elist)
-
+    return np.repeat(value, ecount)
 
 def uniform_distrib(graph, elist=None, min=0., max=1.5,
                     **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    ra_vals = np.random.uniform(min, max, ecount)
-    return _make_matrix(graph, ecount, ra_vals, elist)
+    return np.random.uniform(min, max, ecount)
 
 def gaussian_distrib(graph, elist=None, avg=1., std=0.2, **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    ra_vals = np.random.normal(avg, std, ecount)
-    return _make_matrix(graph, ecount, ra_vals, elist)
+    return np.random.normal(avg, std, ecount)
 
 def lognormal_distrib(graph, elist=None, position=1., scale=0.2, **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    ra_vals = np.random.lognormal(position, scale, ecount)
-    return _make_matrix(graph, ecount, ra_vals, elist)
+    return np.random.lognormal(position, scale, ecount)
 
 def lin_correlated_distrib(correl_attribute, graph, elist=None,
                            noise_scale=None, min=0., max=2., **kwargs):
@@ -68,3 +77,13 @@ def log_correlated_distrib(correl_attribute, graph, elist=None,
                            **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     pass
+
+
+di_dfunc = {
+    "constant": delta_distrib,
+    "uniform": uniform_distrib,
+    "lognormal": lognormal_distrib,
+    "gaussian": gaussian_distrib,
+    "lin_corr": lin_correlated_distrib,
+    "log_corr": log_correlated_distrib
+}

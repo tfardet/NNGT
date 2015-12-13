@@ -133,6 +133,9 @@ class GtGraph(glib_data["graph"]):
 
     def edge_nb(self):
         return self.num_edges()
+
+    def edges(self):
+        return np.array(super(GtGraph, self).edges())
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         if node_list is None:
@@ -300,6 +303,9 @@ class IGraph(glib_data["graph"]):
 
     def edge_nb(self):
         return self.ecount()
+
+    def edges(self):
+        return np.array(self.get_edgelist())
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         deg_type = 'all' if deg_type == 'total' else deg_type
@@ -491,6 +497,9 @@ edge in the graph.")
 
     def edge_nb(self):
         return self.size()
+
+    def edges(self):
+        return np.array(super(NxGraph, self).edges())
     
     def adjacency(self, weighted=True):
         if weighted:
