@@ -88,7 +88,6 @@ class Graph(object):
         # create the graphlib graph
         if libgraph is not None:
             self._graph = GraphObject.to_graph_object(libgraph)
-            nodes = self._graph.node_nb()
         else:
             self._graph = GraphObject(nodes=nodes, directed=directed)
         # take care of the weights @todo: use those of the libgraph
