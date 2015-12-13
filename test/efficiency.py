@@ -29,7 +29,7 @@ start = time.time()
 h = nngt.Graph(size)
 print("{} nodes without edges:".format(size), time.time() - start)
 
-go = GraphObject(1000)
+go = GraphObject(size)
 
 
 #-----------------------------------------------------------------------------#

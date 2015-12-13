@@ -1,11 +1,15 @@
+================
 Graph attributes
 ================
 
+.. warning:
+    This section is not up to date anymore!
+    
 The :class:`~nngt.Graph` class and its subclasses contain several attributes regarding the properties of the edges and nodes. Edges attributes are contained in the graph dictionary; more complex properties about the biological details of the nodes/neurons are contained in the NeuralPop member of the :class:`~nngt.Graph`. These are briefly described in :doc:`../user/component-properties`; a more detailed description is provided here.
 
 
 Attributes and graph libraries
-------------------------------
+==============================
 
 Usual graph libraries can store node and edge properties; as an example, many graphs are weighted and these weights can then be used to compute other properties such as weighted centralities, which is why it is interesting to have those properties stored in the basic graph library class.
 
@@ -26,7 +30,7 @@ The libraries indices the edges in the order they are created; because of this, 
 >>> network.graph.new_edge_attribute("weight", "double", values=list_ordered_weights)
 
 Use of attributes in a graph object
------------------------------------
+===================================
 
 This allows for fast graph filtering: we can keep only the edges or nodes we are interested in.
 

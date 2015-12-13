@@ -79,12 +79,7 @@ class Graph(object):
         self.__id = self.__class__.__max_id
         self._name = name
         self._directed = directed
-        # dictionary containing the attributes
-        self._data = {}
-        if "data" in kwargs.keys():
-            di_data = kwargs["data"]
-            for key, value in di_data.iteritems():
-                self._data[key] = value
+        self._edges = []
         # create the graphlib graph
         if libgraph is not None:
             self._graph = GraphObject.to_graph_object(libgraph)
@@ -129,6 +124,10 @@ class Graph(object):
         ''' name of the graph '''
         return self._name
 
+    @property
+    def edges(self):
+        return self._edges
+
     #-------------------------------------------------------------------------#
     # Graph actions
     
@@ -154,6 +153,7 @@ class Graph(object):
         @todo: add example, check the edges for self-loops and multiple edges
         '''
         self._graph.new_edges(lst_edges)
+        self._edges.extend(lst_edges)
 
     def inhibitory_subgraph(self):
         ''' Create a :class:`~nngt.core.Graph` instance which graph
@@ -181,34 +181,36 @@ class Graph(object):
         self._graph.clear_filters()
         return exc_graph
 
-    def adjacency_matrix(self, weighted=True):
+    def adjacency_matrix(self, typed=True, weighted=True):
         '''
         Returns the adjacency matrix of the graph as a
         :class:`scipy.sparse.csr_matrix`.
         
         Parameters
         ----------
-        weighted : bool, optional (default: True)
+        weighted : bool or string, optional (default: True)
             If True, each entry ``adj[i,j] = w_ij`` where ``w_ij`` is the
-            strength of the connection from `i` to `j`, otherwise ``adj[i,j] = 
-            0. or 1.``.
+            strength of the connection from `i` to `j`, if False, ``adj[i,j] = 
+            0. or 1.``. Weighted can also be a string describing an edge
+            attribute (e.g. if "distance" refers to an edge attribute ``dist``,
+            then ``ajacency_matrix("distance")`` will return
+            ``adj[i,i] = dist_ij``).
             
         Returns
         -------
         adj : :class:`scipy.sparse.csr_matrix`
             The adjacency matrix of the graph.
         '''
-        return na.adjacency_matrix(self, weighted)
+        return na.adjacency_matrix(self, typed=typed, weighted=weighted)
+
+    def clear_edges(self):
+        ''' Remove all the edges in the graph. '''
+        self._graph.clear_edges()
 
     def clear_edges(self):
         ''' Remove all the edges in the graph. '''
         self._graph.clear_edges()
         n = self.node_nb()
-        for key in self._data.iterkeys():
-            if key == 'edges':
-                del self._data[key]
-            else:
-                self._data[key] = lil_matrix(n,n)
 
     #-------------------------------------------------------------------------#
     # Setters
@@ -219,6 +221,20 @@ class Graph(object):
             self._name = name
         else:
             self._name = "Graph_" + str(self.__id)
+
+    def set_edge_attribute(self, attribute, values=None, val=None,
+                           value_type=None):
+        if attribute not in self.attributes():
+            self._graph.new_edge_attribute(attribute, value_type, values, val)
+        else:
+            num_edges = self.edge_nb()
+            if values is None:
+                if val is not None:
+                    values = np.repeat(val,num_edges)
+                else:
+                    raise InvalidArgument("At least one of the `values` and \
+`val` arguments should not be ``None``.")
+            self._graph._eattr[attribute] = values
     
     def set_weights(self, elist=None, wlist=None, distrib=None,
                     distrib_prop=None, correl=None, noise_scale=None):
@@ -256,12 +272,9 @@ class Graph(object):
     #-------------------------------------------------------------------------#
     # Getters
     
-    def __getitem__(self, key):
-        return self._data[key]
-    
     def attributes(self):
         ''' List of the graph's attributes (synaptic weights, delays...) '''
-        return self._data.keys()
+        return self._graph._eattr.keys()
     
     def get_name(self):
         ''' Get the name of the graph '''
@@ -274,7 +287,7 @@ class Graph(object):
     def edge_nb(self):
         ''' Number of edges in the graph '''
         return self._graph.edge_nb()
-
+    
     def get_density(self):
         '''
         Density of the graph: :math:`\\frac{E}{N^2}`, where `E` is the number of
@@ -463,6 +476,10 @@ class SpatialGraph(Graph):
     def shape(self):
         return self._shape
 
+    @property
+    def position(self):
+        return self._pos
+
     #-------------------------------------------------------------------------#
     # Init tool
     
@@ -475,12 +492,8 @@ class SpatialGraph(Graph):
         b_rnd_pos = ( True if not self.node_nb() or positions is None
                       else len(positions) != self.node_nb() )
         pos = self._shape.rnd_distrib() if b_rnd_pos else positions
-        self._data[POS] = pos
-        if "data" in kwargs.keys():
-            if DIST not in self._data.keys():
-                self._data[DIST] = Connections.distances(self, pos=pos)
-        else:
-            self._data[DIST] = Connections.distances(self, pos=pos)
+        self._pos = pos
+        Connections.distances(self)
 
 
 #-----------------------------------------------------------------------------#
@@ -702,7 +715,7 @@ class Network(Graph):
                 self._population = population
                 nodes = population.size
                 # create the delay attribute
-                self._data[DELAY] = Connections.delays(self)
+                Connections.delays(self)
             else:
                 raise AttributeError("NeuralPop is not valid (not all \
                 neurons are associated to a group).")

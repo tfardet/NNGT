@@ -11,9 +11,7 @@ import scipy.sparse as ssp
 from nngt.globals import ( default_neuron, default_synapse, POS, WEIGHT, DELAY,
                        DIST, TYPE )
 from nngt.properties.populations import NeuralGroup, _make_groups
-from nngt.lib import ( InvalidArgument, delta_distrib, uniform_distrib,
-        lognormal_distrib, gaussian_distrib, lin_correlated_distrib,
-        log_correlated_distrib )
+from nngt.lib import InvalidArgument, eprop_distribution
 
 
 
@@ -290,21 +288,12 @@ class Connections:
     The basic class that computes the properties of the connections between
     neurons for graphs.
     """
-    
-    di_dfunc = {
-        "constant": delta_distrib,
-        "uniform": uniform_distrib,
-        "lognormal": lognormal_distrib,
-        "gaussian": gaussian_distrib,
-        "lin_corr": lin_correlated_distrib,
-        "log_corr": log_correlated_distrib
-    }
 
     #-------------------------------------------------------------------------#
     # Class methods
     
-    @classmethod
-    def distances(cls, graph, elist=None, pos=None, overwrite=False):
+    @staticmethod
+    def distances(graph, pos=None, overwrite=False):
         '''
         Compute the distances between connected nodes in the graph. Try to add 
         only the new distances to the graph. If they overlap with previously 
@@ -317,45 +306,31 @@ class Connections:
         elist : class:`numpy.array`, optional (default: None)
             List of the edges
         pos : class:`numpy.array`, optional (default: None)
-            Positions of the nodes; if None, the graph must have a "position" 
-            item.
+            Positions of the nodes; note that if `graph` has a "position" 
+            attribute, `pos` will not be taken into account.
         
         Returns
         -------
-        new_dist : class:`scipy.sparse.lil_matrix`
-            Sparse matrix containing *ONLY* the newly-computed distances.
+        new_dist : class:`numpy.array`
+            Array containing *ONLY* the newly-computed distances.
         '''
         n = graph.node_nb()
-        if elist is None:
-            mat_adj = graph.adjacency_matrix().tocoo()
-            elist = np.array( [mat_adj.row, mat_adj.col] ).T
-        if pos is None:
-            pos = graph[POS]
+        elist = np.array(graph._edges)
+        pos = graph._pos if hasattr(graph, "_pos") else pos
         # compute the new distances
-        ra_x = pos[0,elist[:,0]] - pos[0,elist[:,1]]
-        ra_y = pos[1,elist[:,0]] - pos[1,elist[:,1]]
-        ra_dist = np.tile( np.sqrt( np.square(ra_x) + np.square(ra_y) ), 2)
-        ia_sources = np.concatenate((elist[:,0], elist[:,1]))
-        ia_targets = np.concatenate((elist[:,1], elist[:,0]))
-        new_dist = ssp.coo_matrix( (ra_dist, (ia_sources,ia_targets)), (n,n) )
-        # update graph distances
-        current_dist = ssp.csr_matrix((n,n))
-        if DIST in graph.attributes() and not overwrite:
-            current_dist = graph._data[DIST].tocsr()
-        total_dist = current_dist.nnz + new_dist.nnz
-        new_dist = (current_dist + new_dist.tocsr()).tolil()
-        if current_dist.nnz:
-            graph._data[DIST] = new_dist
+        if graph.edge_nb():
+            ra_x = pos[0,elist[:,0]] - pos[0,elist[:,1]]
+            ra_y = pos[1,elist[:,0]] - pos[1,elist[:,1]]
+            ra_dist = np.tile( np.sqrt( np.square(ra_x) + np.square(ra_y) ), 2)
+            # update graph distances
+            graph.set_edge_attribute(DIST, value_type="double", values=ra_dist)
+            return ra_dist
         else:
-            new_dist = ssp.coo_matrix((ra_dist,(ia_sources,ia_targets)),(n,n))
-            new_dist = new_dist.tolil()
-            graph._data[DIST] = new_dist
-        return new_dist
+            return []
     
-    @classmethod
-    def delays(cls, graph, elist=None, dlist=None, pos=None,
-               distrib="constant", distrib_prop={}, correl=None,
-               noise_scale=None):
+    @staticmethod
+    def delays(graph, dlist=None, elist=None, distrib="constant",
+               distrib_prop={}, correl=None, noise_scale=None):
         '''
         Compute the delays of the neuronal connections.
         
@@ -363,10 +338,10 @@ class Connections:
         ----------
         graph : class:`~nngt.Graph` or subclass
             Graph the nodes belong to.
-        elist : class:`numpy.array`, optional (default: None)
-            List of the edges (for user defined weights).
         dlist : class:`numpy.array`, optional (default: None)
-            List of the weights (for user defined weights).
+            List of user-defined delays).
+        elist : class:`numpy.array`, optional (default: None)
+            List of the edges which value should be updated.
         distrib : class:`string`, optional (default: "constant")
             Type of distribution (choose among "constant", "uniform", 
             "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
@@ -383,33 +358,22 @@ class Connections:
         new_delays : class:`scipy.sparse.lil_matrix`
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
-        n = graph.node_nb()
         corr = correl
-        if corr is not None:
-            corr = ( graph.get_betweenness(False)[1] if correl == "betweenness"
-                                                     else graph[correl] )
-        new_delays = None
-        if elist is None:
-            new_delays = cls.di_dfunc[distrib](graph, correl_attribute=corr,
-                                               **distrib_prop)
-        elif dlist is not None:
-            new_delays = ssp.coo_matrix((dlist,(elist[:,0],elist[:,1])),(n,n))
+        if issubclass(correl.__class__, str):
+            if correl == "betweenness":
+                corr = graph.get_betweenness(False)[1]
+            else:
+                corre = graph[correl]
+        if dlist is not None:
+            num_edges = graph.edge_nb() if elist is None else len(elist)
+            if len(dlist) != num_edges:
+                raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
-            new_delays = cls.di_dfunc[distrib](graph, elist=elist,
-                            correl_attribute=corr, **distrib_prop)
-        new_delays = new_delays.tolil()
+            dlist = eprop_distribution(graph, distrib, elist=elist,
+                        correl_attribute=corr, **distrib_prop)
         # add to the graph container
-        di_data = graph._data
-        mat_delays = di_data[DELAY] if DELAY in di_data.keys() else None
-        if mat_delays is not None:
-            if not mat_delays.nnz:
-                di_data[DELAY] = new_delays
-            elif elist is not None:
-                eslice = elist[:,0],elist[:,1]
-                di_data[DELAY][eslice] = new_delays[eslice]
-        else:
-            di_data[DELAY] = new_delays
-        return new_delays
+        graph.set_edge_attribute(DELAY, value_type="double", values=dlist)
+        return dlist
     
     @classmethod
     def weights(cls, graph, elist=None, wlist=None, distrib="constant",
@@ -441,40 +405,22 @@ class Connections:
         new_weights : class:`scipy.sparse.lil_matrix`
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
-        n = graph.node_nb()
         corr = correl
-        if corr is not None:
-            corr = ( graph.get_betweenness(False)[1] if correl == "betweenness"
-                                                     else graph[correl] )
-        new_weights = None
-        if elist is None:
-            new_weights = cls.di_dfunc[distrib](graph, correl_attribute=corr,
-                                                **distrib_prop)
-        elif wlist is not None:
-            new_weights = ssp.coo_matrix((dlist,(elist[:,0],elist[:,1])),(n,n))
-        else:
-            new_weights = cls.di_dfunc[distrib](graph, elist=elist,
-                            correl_attribute=corr, **distrib_prop)
-        new_weights = new_weights.tolil()
-        # add to the graph container
-        mat_weights = (graph._data[WEIGHT] if WEIGHT in graph._data.keys() 
-                                           else None)
-        if mat_weights is not None and elist is not None:
-            eslice = elist[:,0],elist[:,1]
-            graph._data[WEIGHT][eslice] = new_weights[eslice]
-        else:
-            graph._data[WEIGHT] = new_weights
-        # add to the graph object
-        if "edges" in graph.attributes():
-            sources, targets = graph["edges"][:,0], graph["edges"][:,1]
-            lst_w = graph._data[WEIGHT][sources,targets].data[0]
-            if "weight" in graph.graph.eproperties.keys():
-                graph.graph.eproperties["weight"] = lst_w
+        if issubclass(correl.__class__, str):
+            if correl == "betweenness":
+                corr = graph.get_betweenness(False)[1]
             else:
-                graph.graph.new_edge_attribute(WEIGHT, "double", values=lst_w)
+                corre = graph[correl]
+        if wlist is not None:
+            num_edges = graph.edge_nb() if elist is None else len(elist)
+            if len(wlist) != num_edges:
+                raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
-            graph.graph.new_edge_attribute(WEIGHT, "double")
-        return new_weights
+            wlist = eprop_distribution(graph, distrib, elist=elist,
+                        correl_attribute=corr, **distrib_prop)
+        # add to the graph container
+        graph.set_edge_attribute(WEIGHT, value_type="double", values=wlist)
+        return wlist
     
     @classmethod
     def types(cls, graph, elist=None):

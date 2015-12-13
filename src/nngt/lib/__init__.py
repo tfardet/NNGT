@@ -16,6 +16,6 @@ from .errors import *
 from .decorators import *
 from .connect_tools import *
 from .lil_object import ObjectLil
-from .distributions import *
+from .distributions import eprop_distribution
 
 #~ __all__ = ['InvalidArgument', 'valid_arguments']
