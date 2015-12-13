@@ -17,8 +17,8 @@ from ..lib.connect_tools import *
 #------------------------
 
 def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
-                reciprocity=-1., directed=True, multigraph=False,
-                name="ER", shape=None, positions=None, from_graph=None):
+                reciprocity=-1., directed=True, multigraph=False, name="ER",
+                shape=None, positions=None, population=None, from_graph=None):
     """
     Generate a random graph as defined by Erdos and Renyi but with a
     reciprocity that can be chosen.
@@ -45,9 +45,11 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
     name : string, optional (default: "ER")
         Name of the created graph.
     shape : :class:`~nngt.core.Shape`, optional (default: None)
-        Shape of the neurons' environment
+        Shape of the neurons' environment.
     positions : :class:`numpy.ndarray`, optional (default: None)
-        A 2D or 3D array containing the positions of the neurons in space
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons (to create a :class:`~nngt.Network`).
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
 
@@ -62,24 +64,34 @@ def erdos_renyi(nodes=None, density=0.1, edges=-1, avg_deg=-1.,
     If an `from_graph` is provided, all preexistant edges in the
     object will be deleted before the new connectivity is implemented.
     """
-    nodes = nodes if from_graph is None else from_graph.node_nb()
-    # generate graph object
-    graph_obj_er = (GraphObject(nodes, directed=directed) if
-                    from_graph == None else from_graph.graph)
-    graph_obj_er.clear_edges()
+    # set node number and library graph
+    graph_obj_er, graph_er = None, from_graph
+    if graph_er is not None:
+        nodes = graph_er.node_nb()
+        graph_er.clear_edges()
+        graph_obj_er = graph_er.graph
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_obj_er = GraphObject(nodes, directed=directed)
     # add edges
-    ids = np.arange(nodes).astype(int)
-    ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
-                            directed, multigraph)
-    graph_obj_er.new_edges(ia_edges)
+    ia_edges = np.array([])
+    if nodes > 1:
+        ids = np.arange(nodes).astype(int)
+        ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
+                                directed, multigraph)
+        graph_obj_er.new_edges(ia_edges)
     # generate container
-    graph_er = (Graph(name=name, libgraph=graph_obj_er, data={
-                'edges': ia_edges}) if from_graph is None else from_graph)
-    graph_er.set_weights(ia_edges)
+    if graph_er is None:
+        graph_er = Graph(name=name, libgraph=graph_obj_er, data={
+                'edges': ia_edges})
+    else:
+        graph_er.set_weights()
     if issubclass(graph_er.__class__, Network):
         Connections.delays(graph_er, ia_edges)
     if shape is not None:
-        make_spatial(graph_er, shape, positions)
+        SpatialGraph.make_spatial(graph_er, shape, positions)
+    if population is not None:
+        Network.make_network(graph_er, population)
     return graph_er
 
 
