@@ -200,6 +200,16 @@ class Graph(object):
         '''
         return na.adjacency_matrix(self, weighted)
 
+    def clear_edges(self):
+        ''' Remove all the edges in the graph. '''
+        self._graph.clear_edges()
+        n = self.node_nb()
+        for key in self._data.iterkeys():
+            if key == 'edges':
+                del self._data[key]
+            else:
+                self._data[key] = lil_matrix(n,n)
+
     #-------------------------------------------------------------------------#
     # Setters
         
