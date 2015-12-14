@@ -9,7 +9,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 from nngt.globals import ( default_neuron, default_synapse, POS, WEIGHT, DELAY,
-                       DIST, TYPE )
+                       DIST, TYPE, BWEIGHT )
 from nngt.properties.populations import NeuralGroup, _make_groups
 from nngt.lib import InvalidArgument, eprop_distribution
 
@@ -419,7 +419,9 @@ class Connections:
             wlist = eprop_distribution(graph, distrib, elist=elist,
                         correl_attribute=corr, **distrib_prop)
         # add to the graph container
+        bwlist = wlist.max() - wlist
         graph.set_edge_attribute(WEIGHT, value_type="double", values=wlist)
+        graph.set_edge_attribute(BWEIGHT, value_type="double", values=bwlist)
         return wlist
     
     @classmethod

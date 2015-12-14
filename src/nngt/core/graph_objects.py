@@ -6,7 +6,7 @@
 import numpy as np
 import scipy.sparse as ssp
 
-from nngt.globals import glib_data
+from nngt.globals import glib_data, glib_func, BWEIGHT
 
 
 
@@ -135,7 +135,7 @@ class GtGraph(glib_data["graph"]):
         return self.num_edges()
 
     def edges(self):
-        return np.array(super(GtGraph, self).edges())
+        return super(GtGraph, self).edges()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         if node_list is None:
@@ -149,9 +149,8 @@ class GtGraph(glib_data["graph"]):
     def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
         if self.edge_nb():
             if "weight" in self.edge_properties.keys() and use_weights:
-                w_propmap = self.copy_property(self.edge_properties["weight"])
-                w_propmap.a = w_propmap.a.max() - w_propmap.a
-                tpl = betweenness(self, weight=w_propmap, norm=norm)
+                w_pmap = self.edge_properties[BWEIGHT]
+                tpl = glib_func["betweenness"](self, weight=w_pmap, norm=norm)
                 if as_prop:
                     return tpl[0], tpl[1]
                 else:
@@ -305,7 +304,7 @@ class IGraph(glib_data["graph"]):
         return self.ecount()
 
     def edges(self):
-        return np.array(self.get_edgelist())
+        return self.get_edgelist()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         deg_type = 'all' if deg_type == 'total' else deg_type
@@ -317,9 +316,7 @@ class IGraph(glib_data["graph"]):
     def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
         w = None
         if use_weights:
-            w = np.array(self.es['weight'])
-            max_weight = w.max()
-            w = max_weight - w
+            w = self.es['bweight']
         node_betweenness = np.array(self.betweenness(weights=w))
         edge_betweenness = np.array(self.edge_betweenness(weights=w))
         if norm:
@@ -498,8 +495,8 @@ edge in the graph.")
     def edge_nb(self):
         return self.size()
 
-    def edges(self):
-        return np.array(super(NxGraph, self).edges())
+    def edges(self, **kwargs):
+        return super(NxGraph, self).edges(**kwargs)
     
     def adjacency(self, weighted=True):
         if weighted:
@@ -521,11 +518,8 @@ edge in the graph.")
     def betweenness_list(self, use_weights=True, as_prop=False):
         di_nbetw, di_ebetw = None, None
         if use_weights:
-            max_weight = adjacency(self).max()
-            for tpl in self.edges(data=True):
-                self[tpl[0]][tpl[1]]['bweight'] = max_weight-tpl[2]['weight']
-            di_nbetw = glib_data["library"].betweenness_centrality(self,weight='bweight')
-            di_ebetw = glib_data["library"].edge_betweenness_centrality(self,weight='bweight')
+            di_nbetw = glib_data["library"].betweenness_centrality(self,weight=BWEIGHT)
+            di_ebetw = glib_data["library"].edge_betweenness_centrality(self,weight=BWEIGHT)
         else:
             di_nbetw = glib_data["library"].betweenness_centrality(self)
             di_ebetw = glib_data["library"].edge_betweenness_centrality(self)

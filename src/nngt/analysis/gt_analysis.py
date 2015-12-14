@@ -19,8 +19,9 @@ adjacency = glib_func["adjacency"]
 assort = glib_func["assortativity"]
 edge_reciprocity = glib_func["reciprocity"]
 global_clustering = glib_func["clustering"]
-label_components = glib_func["components"]
-pseudo_diameter = glib_func["diameter"]
+scc = glib_func["scc"]
+wcc = glib_func["wcc"]
+diameter = glib_func["diameter"]
 
 
 #-----------------------------------------------------------------------------#
@@ -110,6 +111,7 @@ def betweenness_distrib(net, use_weights=True, log=False):
 def assortativity(net, deg_type="total"):
     '''
     Assortativity of the graph.
+    àtodo: check how the various libraries functions work.
     
     Parameters
     ----------
@@ -122,7 +124,12 @@ def assortativity(net, deg_type="total"):
     -------
     a float describing the network assortativity.
     '''
-    return assort(net.graph,"total")[0]
+    if glib_data["name"] == "igraph":
+        return net._graph.assortativity_degree(net.is_directed())
+    elif glib_data["name"] == "graph_tool":
+        return assort(net._graph,"total")[0]
+    else:
+        return assort(net._graph)
 
 def reciprocity(net):
     '''
@@ -130,7 +137,10 @@ def reciprocity(net):
     where :math:`E^\leftrightarrow` and :math:`E` are, respectively, the number
     of bidirectional edges and the total number of edges in the network.
     '''
-    return edge_reciprocity(net.graph)
+    if glib_data["name"] == "igraph":
+        return net._graph.reciprocity()
+    else:
+        return edge_reciprocity(net._graph)
 
 def clustering(net):
     '''
@@ -140,7 +150,10 @@ def clustering(net):
        c = 3 \times \frac{\text{number of triangles}}
                          {\text{number of connected triples}}
     '''
-    return global_clustering(net.graph)[0]
+    if glib_data["name"] == "igraph":
+        return net._graph.transitivity_undirected()
+    else:
+        return global_clustering(net.graph)[0]
 
 def num_iedges(net):
     ''' Returns the number of inhibitory connections. '''
@@ -157,11 +170,19 @@ def num_scc(net, listing=False):
     --------
     num_wcc
     '''
-    vprop_comp, lst_histo = label_components(net.graph,directed=True)
+    lst_histo = None
+    if glib_data["name"] == "graph_tool":
+        vprop_comp, lst_histo = scc(net._graph,directed=True)
+    elif glib_data["name"] == "igraph":
+        lst_histo = net._graph.clusters()
+        lst_histo = [ cluster for cluster in lst_histo ]
+    else:
+        lst_histo = [ comp for comp in scc(net._graph) ]
     if listing:
         return len(lst_histo), lst_histo
     else:
         return len(lst_histo)
+        
 
 def num_wcc(net, listing=False):
     '''
@@ -172,15 +193,27 @@ def num_wcc(net, listing=False):
     --------
     num_scc
     '''
-    vprop_comp, lst_histo = label_components(net.graph,directed=False)
+    lst_histo = None
+    if glib_data["name"] == "graph_tool":
+        vprop_comp, lst_histo = wcc(net._graph,directed=False)
+    elif glib_data["name"] == "igraph":
+        lst_histo = net._graphclusters("WEAK")
+        lst_histo = [ cluster for cluster in lst_histo ]
+    else:
+        lst_histo = [ comp for comp in wcc(net._graph) ]
     if listing:
         return len(lst_histo), lst_histo
     else:
         return len(lst_histo)
 
 def diameter(net):
-    ''' Pseudo-diameter of the graph '''
-    return pseudo_diameter(net.graph)[0]
+    ''' Pseudo-diameter of the graph @todo: weighted diameter'''
+    if glib_data["name"] == "igraph":
+        return net._graph.diameter()
+    elif glib_data["name"] == "networkx":
+        return diameter(net._graph)
+    else:
+        return diameter(net._graph)[0]
 
 
 #-----------------------------------------------------------------------------#

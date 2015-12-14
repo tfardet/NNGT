@@ -30,7 +30,7 @@ __all__ = [
     "use_library"
 ]
 
-version = '0.4a'
+version = '0.4'
 ''' :class:`string`, the current version '''
 
 
@@ -92,7 +92,8 @@ def use_library(library, reloading=True):
         glib_func["assortativity"] = assort
         glib_func["betweenness"] = betweenness
         glib_func["clustering"] = global_clustering
-        glib_func["components"] = label_components
+        glib_func["scc"] = label_components
+        glib_func["wcc"] = label_components
         glib_func["diameter"] = pseudo_diameter
         glib_func["reciprocity"] = edge_reciprocity
         # defining the adjacency function
@@ -100,7 +101,6 @@ def use_library(library, reloading=True):
             if weights is not None:
                 weights = graph.edge_properties[weights]
             return _adj(graph, weights).T
-        glib_func["adjacency"] = adj_mat
     elif library == "igraph":
         # library and graph object
         import igraph as glib
@@ -108,6 +108,15 @@ def use_library(library, reloading=True):
         glib_data["name"] = "igraph"
         glib_data["library"] = glib
         glib_data["graph"] = GraphLib
+        # functions
+        glib_func["assortativity"] = None
+        glib_func["nbetweenness"] = None
+        glib_func["ebetweenness"] = None
+        glib_func["clustering"] = None
+        glib_func["scc"] = None
+        glib_func["wcc"] = None
+        glib_func["diameter"] = None
+        glib_func["reciprocity"] = None
         # defining the adjacency function
         def adj_mat(graph, weights=None):
             n = graph.node_nb()
@@ -126,7 +135,6 @@ def use_library(library, reloading=True):
                 return coo_adj.tocsr()
             else:
                 return ssp.csr_matrix((n,n))
-        glib_func["adjacency"] = adj_mat
     elif library == "networkx":
         # library and graph object
         import networkx as glib
@@ -134,9 +142,29 @@ def use_library(library, reloading=True):
         glib_data["name"] = "networkx"
         glib_data["library"] = glib
         glib_data["graph"] = GraphLib
+        # functions
+        from networkx.algorithms import ( diameter, 
+            strongly_connected_components, weakly_connected_components,
+            degree_assortativity_coefficient )
+        def overall_reciprocity(g):
+            num_edges = g.number_of_edges()
+            num_recip = (num_edges - g.to_undirected().number_of_edges()) * 2
+            if n_all_edge == 0:
+                raise ArgumentError("Not defined for empty graphs")
+            else:
+                return num_recip/float(num_edges)
+        nx_version = glib.__version__
+        v_major, v_minor = nx_version.split('.')
+        if int(v_major) > 1 or int(v_minor) > 10:
+            from networkx.algorithms import overall_reciprocity
+        glib_func["assortativity"] = degree_assortativity_coefficient
+        glib_func["diameter"] = diameter
+        glib_func["reciprocity"] = overall_reciprocity
+        glib_func["scc"] = strongly_connected_components
+        glib_func["wcc"] = diameter
         # defining the adjacency function
         from networkx import to_scipy_sparse_matrix as adj_mat
-        glib_func["adjacency"] = adj_mat
+    glib_func["adjacency"] = adj_mat
     if reloading:
         reload(sys.modules["nngt"].core.graph_objects)
         reload(sys.modules["nngt"].core)
@@ -176,6 +204,7 @@ libraries to work:  `graph_tool`, `igraph`, or `networkx`.")
 POS = "position"
 DIST = "distance"
 WEIGHT = "weight"
+BWEIGHT = "bweight"
 DELAY = "delay"
 TYPE = "type"
 
