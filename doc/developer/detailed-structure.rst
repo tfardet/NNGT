@@ -2,7 +2,7 @@
 Detailed structure
 ==================
 
-.. warning:
+.. warning ::
     This section is not up to date anymore!
 
 Here is a small bottom-up approach of the library to justify its structure.

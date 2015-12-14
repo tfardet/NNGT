@@ -2,7 +2,7 @@
 Graph attributes
 ================
 
-.. warning:
+.. warning ::
     This section is not up to date anymore!
     
 The :class:`~nngt.Graph` class and its subclasses contain several attributes regarding the properties of the edges and nodes. Edges attributes are contained in the graph dictionary; more complex properties about the biological details of the nodes/neurons are contained in the NeuralPop member of the :class:`~nngt.Graph`. These are briefly described in :doc:`../user/component-properties`; a more detailed description is provided here.

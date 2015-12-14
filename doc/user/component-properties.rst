@@ -4,7 +4,7 @@
 Properties of graph components
 ==============================
 
-.. warning:
+.. warning ::
     This section is not up to date anymore!
 
 Components
