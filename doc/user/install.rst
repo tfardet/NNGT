@@ -32,7 +32,7 @@ Regardless of your needs, the following libraries are required:
     If they are not present on your computer, ``pip`` will directly try to install the three first libraries, however:
 
     * lapack is necessary for scipy and pip cannot install it on its own
-    * you will have to install the graph library yourself (only networkx can be installed directly using ``pip`` only)
+    * you will have to install the graph library yourself (only networkx can be installed directly using ``pip``)
 
 
 Using NEST
