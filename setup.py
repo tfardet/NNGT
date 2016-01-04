@@ -14,7 +14,7 @@ setup(
         package_data = { '': ['*.txt', '*.rst', '*.md', '*.plt'] },
         
         # Requirements
-        install_requires = [ 'numpy', 'scipy', 'matplotlib' ],
+        install_requires = [ 'numpy', 'scipy>=0.11', 'matplotlib' ],
         extras_require = {
             'PySide': ['PySide'],
             'PDF':  ["ReportLab>=1.2", "RXP"],
