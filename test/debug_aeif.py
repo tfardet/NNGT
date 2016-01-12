@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 nest.SetKernelStatus({"local_num_threads": 6})
 
 from nngt.simulation import (make_nest_network, get_nest_network,
-                             monitor_nodes, set_noise, set_poisson_input)
+                             monitor_nodes, set_noise, set_poisson_input,
+                             get_activity_types, plot_activity)
 
 
 
@@ -67,5 +68,8 @@ set_poisson_input(gids[670:870], rate)
 simtime = 1000.
 nest.Simulate(simtime)
 
-nngt.simulation.plot_activity(recorders, record, network=graph)
-nngt.simulation.plot_activity(recorders2, record2, network=graph)
+print(get_activity_types(graph, recorders, simtime))
+
+plot_activity(recorders, record, network=graph)
+plot_activity(recorders2, record2, network=graph)
+

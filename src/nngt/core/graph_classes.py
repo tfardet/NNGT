@@ -456,18 +456,17 @@ class SpatialGraph(Graph):
         -------
         self : :class:`~nggt.Graph`
         '''
-        super(SpatialGraph, self).__init__(nodes, name, weighted, directed,
-                                           libgraph, **kwargs)
         self.__id = self.__class__.__max_id
-        
-        self._init_spatial_properties(shape, positions, **kwargs)
-        
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
-        self.__b_valid_properties = True
+        self._shape = None
+        super(SpatialGraph, self).__init__(nodes, name, weighted, directed,
+                                           libgraph, **kwargs)
+        self._init_spatial_properties(shape, positions, **kwargs)
         
     def __del__(self):
-        self._shape._parent = None
+        if self._shape is not None:
+            self._shape._parent = None
         self._shape = None
         super(SpatialGraph, self).__del__()
         self.__class__.__num_graphs -= 1
@@ -660,6 +659,12 @@ class Network(Graph):
         -------
         self : :class:`~nggt.core.Graph`
         '''
+        self.__id = self.__class__.__max_id
+        self._population = None
+        self.nest_gid = None
+        self.id_from_nest_gid = None
+        self.__class__.__num_networks += 1
+        self.__class__.__max_id += 1
         if population is None:
             raise InvalidArgument("Network needs a NeuralPop to be created")
         nodes = population.size
@@ -668,14 +673,7 @@ class Network(Graph):
         super(Network, self).__init__(nodes=nodes, name=name,
                                       weighted=weighted, directed=directed,
                                       libgraph=libgraph, **kwargs)
-        self.__id = self.__class__.__max_id
         self._init_bioproperties(population)
-        self.nest_gid = None
-        self.id_from_nest_gid = None
-        
-        self.__class__.__num_networks += 1
-        self.__class__.__max_id += 1
-        self.__b_valid_properties = True
     
     def __del__(self):
         super(Network, self).__del__()
@@ -806,18 +804,15 @@ class SpatialNetwork(Network,SpatialGraph):
         -------
         self : :class:`~nggt.core.Graph`
         '''
+        self.__id = self.__class__.__max_id
+        self.__class__.__num_networks += 1
+        self.__class__.__max_id += 1
         if population is None:
             raise InvalidArgument("Network needs a NeuralPop to be created")
         nodes = population.size
         super(SpatialNetwork, self).__init__(
             nodes=nodes, name=name, weighted=weighted, directed=directed,
             shape=shape, positions=positions, population=population, **kwargs)
-        
-        self.__id = self.__class__.__max_id
-        
-        self.__class__.__num_networks += 1
-        self.__class__.__max_id += 1
-        self.__b_valid_properties = True
 
     def __del__ (self):
         super(SpatialNetwork, self).__del__()

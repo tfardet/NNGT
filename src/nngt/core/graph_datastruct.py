@@ -419,7 +419,7 @@ class Connections:
             wlist = eprop_distribution(graph, distrib, elist=elist,
                         correl_attribute=corr, **distrib_prop)
         # add to the graph container
-        bwlist = wlist.max() - wlist
+        bwlist = wlist.max() - wlist if wlist.any() else []
         graph.set_edge_attribute(WEIGHT, value_type="double", values=wlist)
         graph.set_edge_attribute(BWEIGHT, value_type="double", values=bwlist)
         return wlist

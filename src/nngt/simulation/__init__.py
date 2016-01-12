@@ -20,6 +20,7 @@ depends = ['nest', 'graph_tool', 'nngt.core']
 
 from .nest_graph import *
 from .nest_utils import *
+from .nest_activity import *
 
 
 #
@@ -33,5 +34,6 @@ __all__ = [
     'set_noise',
     'set_poisson_input',
     'monitor_nodes',
-    'plot_activity'
+    'plot_activity',
+    "get_activity_types"
 ]
