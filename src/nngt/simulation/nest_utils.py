@@ -154,6 +154,11 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
         NEST gids of the neurons which should be monitored.
     show : bool, optional (default: True)
         Whether to show the plot right away or to wait for the next plt.show().
+
+    Returns
+    -------
+    fignums : list
+        List of the figure numbers.
     '''
     gids = network.nest_gid if (gids is None and network is not None) else gids
     lst_rec = []
@@ -168,17 +173,20 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
     colors = palette(np.linspace(0, 1, num_group))
     num_spike, num_detec = 0, 0
     fig_spike, fig_detec = None, None
-    
+
+    fignums = []
     for rec, var in zip(lst_rec, record):
         info = nest.GetStatus(rec)[0]
         if str(info["model"]) == "spike_detector":
             c = colors[num_spike]
             fig_spike = raster_plot(rec, fignum=fig_spike, color=c, show=False)
             num_spike += 1
+            fignums.append(fig_spike)
         elif "detector" in str(info["model"]):
             c = colors[num_detec]
             fig_detec = raster_plot(rec, fignum=fig_detec, color=c, show=False)
             num_detec += 1
+            fignums.append(fig_detect)
         else:
             da_time = info["events"]["times"]
             fig = plt.figure()
@@ -195,12 +203,14 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
                 ax.plot(da_time,da_var,'k')
                 ax.set_ylabel(var)
                 ax.set_xlabel("time")
+            fignums.append(fig.number)
     if show:
         plt.show()
+    return fignums
 
 
-def raster_plot(detec, title="Spike raster", hist=True, num_bins=1000,
-                color="b", fignum=None, show=True):
+def raster_plot(detec, limits=None, title="Spike raster", hist=True,
+                num_bins=1000, color="b", fignum=None, show=True):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
@@ -209,6 +219,9 @@ def raster_plot(detec, title="Spike raster", hist=True, num_bins=1000,
     ----------
     detec : tuple
         Gid of the NEST detector from which the data should be recovered.
+    limits : tuple, optional (default: None)
+        Time limits of the plot (if not specified, times of first and last
+        spike).
     title : string, optional (default: 'Spike raster')
         Title of the raster plot.
     hist : bool, optional (default: True)
@@ -256,6 +269,8 @@ def raster_plot(detec, title="Spike raster", hist=True, num_bins=1000,
                 t_max = max(ax1_lines[0].get_xdata().max(),ts[-1])
                 ax1.set_xlim([-delta_t, t_max+delta_t])
             ax1.set_ylabel(ylabel)
+            if limits is not None:
+                ax1.set_xlim(*limits)
             ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
 
             bin_width = ( np.amax(ts) - np.amin(ts) ) / float(num_bins)
