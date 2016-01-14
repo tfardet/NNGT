@@ -22,20 +22,20 @@ nmodel = "aeif_cond_alpha"
 
 pop = nngt.NeuralPop.ei_population(1000, en_model=nmodel, in_model=nmodel)
 
-avg = 20.
+avg = 5.
 if "exp" in nmodel:
     avg = 33.
     
 graph = nngt.SpatialNetwork(pop, weight_prop={"distrib":"gaussian", "distrib_prop":{"avg":avg}})
 
 #~ nngt.generation.connect_neural_types(graph, 1, -1, "erdos_renyi", {"density": 0.03})
-#~ nngt.generation.connect_neural_types(graph, 1, 1, "newman_watts", {"coord_nb":30, "proba_shortcut": 0.1})
-#~ nngt.generation.connect_neural_types(graph, 1, 1, "erdos_renyi", {"density": 0.09})
-#~ nngt.generation.connect_neural_types(graph, 1, 1, "random_scale_free", {"in_exp":2.1, "out_exp":2.9, "density":0.08})
-#~ nngt.generation.connect_neural_types(graph, -1, 1, "erdos_renyi", {"density": 0.2})
-#~ nngt.generation.connect_neural_types(graph, -1, -1, "erdos_renyi", {"density": 0.01})
+nngt.generation.connect_neural_types(graph, 1, 1, "newman_watts", {"coord_nb":10, "proba_shortcut": 0.1})
+#~ nngt.generation.connect_neural_types(graph, 1, 1, "erdos_renyi", {"density": 0.05})
+#~ nngt.generation.connect_neural_types(graph, 1, 1, "random_scale_free", {"in_exp":2.1, "out_exp":2.9, "density":0.05})
+nngt.generation.connect_neural_types(graph, -1, 1, "erdos_renyi", {"density": 0.05})
+nngt.generation.connect_neural_types(graph, -1, -1, "erdos_renyi", {"density": 0.01})
 #~ nngt.generation.erdos_renyi(density=0.2, from_graph=graph)
-nngt.generation.random_scale_free(2.2, 2.9, density=0.15, from_graph=graph)
+#~ nngt.generation.random_scale_free(2.2, 2.9, density=0.15, from_graph=graph)
 #~ nngt.generation.newman_watts(10, 0.1, from_graph=graph)
 
 
@@ -51,13 +51,14 @@ print(nest.GetStatus((nest.GetConnections()[0],)))
 recorders, record = monitor_nodes(gids, ["spike_detector"], [["spikes"]], network=graph)
 recorders2, record2 = monitor_nodes((gids[0],), ["multimeter"], [["V_m","w"]])
 
-set_noise(gids, 20., 200.)
+set_noise(gids, 0., 200.)
 
 rate = 20000.
 if nmodel == "aeif_cond_exp":
     rate = 56000.
 
-set_poisson_input(gids[670:870], rate)
+#~ set_poisson_input(gids[670:870], rate)
+set_poisson_input(gids[:800], rate)
 
 
 #-----------------------------------------------------------------------------#
@@ -70,6 +71,6 @@ nest.Simulate(simtime)
 
 fignums = plot_activity(recorders, record, network=graph, show=False)
 #~ plot_activity(recorders2, record2, network=graph)
-#~ get_activity_types(graph, recorders, (0,simtime), raster=fignums[0], simplify=False)
-get_activity_types(graph, recorders, (0,simtime), raster=fignums[0], simplify=True)
+get_activity_types(graph, recorders, (0,simtime), raster=fignums[0], simplify=False)
+#~ get_activity_types(graph, recorders, (0,simtime), raster=fignums[0], simplify=True)
 

@@ -321,7 +321,8 @@ class Connections:
         if graph.edge_nb():
             ra_x = pos[0,elist[:,0]] - pos[0,elist[:,1]]
             ra_y = pos[1,elist[:,0]] - pos[1,elist[:,1]]
-            ra_dist = np.tile( np.sqrt( np.square(ra_x) + np.square(ra_y) ), 2)
+            ra_dist = np.sqrt( np.square(ra_x) + np.square(ra_y) )
+            #~ ra_dist = np.tile( , 2)
             # update graph distances
             graph.set_edge_attribute(DIST, value_type="double", values=ra_dist)
             return ra_dist

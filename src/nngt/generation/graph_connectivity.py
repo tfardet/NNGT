@@ -83,8 +83,7 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
         graph_obj_er.new_edges(ia_edges)
     # generate container
     if graph_er is None:
-        graph_er = Graph(name=name, libgraph=graph_obj_er, data={
-                'edges': ia_edges})
+        graph_er = Graph(name=name, libgraph=graph_obj_er)
     else:
         graph_er.set_weights()
     # set options
@@ -173,8 +172,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         graph_obj_rsf.new_edges(ia_edges)
     # generate container
     if graph_rsf is None:
-        graph_rsf = Graph(name=name, libgraph=graph_obj_rsf, data={
-                'edges': ia_edges})
+        graph_rsf = Graph(name=name, libgraph=graph_obj_rsf)
     else:
         graph_rsf.set_weights()
     # set options
@@ -235,8 +233,8 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, directed=True,
     if from_graph is not None:
         from_graph.graph = graph_obj_price
     
-    graph_price = (Graph(name=name, libgraph=graph_obj_price, data={
-                'edges': ia_edges}) if from_graph is None else from_graph)
+    graph_price = (Graph(name=name, libgraph=graph_obj_price) if from_graph is
+                   None else from_graph)
     
     if issubclass(graph_price.__class__, Network):
         Connections.delays(graph_price, ia_edges)
@@ -315,8 +313,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
         graph_obj_nw.new_edges(ia_edges)
     # generate container
     if graph_nw is None:
-        graph_nw = Graph(name=name, libgraph=graph_obj_nw, data={
-                'edges': ia_edges})
+        graph_nw = Graph(name=name, libgraph=graph_obj_nw)
     else:
         graph_nw.set_weights()
     # set options
@@ -436,6 +433,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
+    @todo: make the modifications for only a set of edges
     
     Parameters
     ----------
@@ -467,20 +465,19 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     else:
         edges = di_gen_func[graph_model](source_ids,target_ids,**di_param)
         network.add_edges(edges)
-    if "edges" in network.attributes():
-        network._data["edges"] = np.concatenate((network._data["edges"],edges))
-    else:
-        network._data["edges"] = edges
-    network.set_weights(edges)
-    Connections.delays(network, edges)
+    #~ network.set_weights(edges)
+    network.set_weights()
+    #~ Connections.delays(network, elist=edges)
+    Connections.delays(network)
     if issubclass(network.__class__, SpatialGraph):
-        Connections.distances(network, edges)
+        Connections.distances(network)
 
 def connect_neural_groups(network, source_groups, target_groups, graph_model,
                          model_param):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
+    @todo: make the modifications for only a set of edges
     
     Parameters
     ----------
@@ -511,11 +508,9 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     else:
         edges = di_gen_func[graph_model](source_ids, target_ids, **di_param)
         network.add_edges(edges)
-    if "edges" in network.attributes():
-        network._data["edges"] = np.concatenate((network._data["edges"],edges))
-    else:
-        network._data["edges"] = edges
-    network.set_weights(edges)
-    Connections.delays(network, edges)
+    #~ network.set_weights(edges)
+    network.set_weights()
+    #~ Connections.delays(network, elist=edges)
+    Connections.delays(network)
     if issubclass(network.__class__, SpatialGraph):
-       Connections.distances(network, edges)
+       Connections.distances(network)
