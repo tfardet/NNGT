@@ -35,5 +35,5 @@ __all__ = [
     'set_poisson_input',
     'monitor_nodes',
     'plot_activity',
-    "get_activity_types"
+    "activity_types"
 ]

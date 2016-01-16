@@ -41,7 +41,7 @@ __all__ = [
 	'newman_watts',
     'connect_neural_types',
     'connect_neural_groups',
-	#~ 'distance_rule',
+	'distance_rule',
 	'gaussian_eprop',
 	'lognormal_eprop',
 	'uniform_eprop',

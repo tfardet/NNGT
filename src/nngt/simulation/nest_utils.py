@@ -138,7 +138,8 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
 #------------------------
 #
 
-def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
+def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
+                  limits=None, hist=True):
     '''
     Plot the monitored activity.
     
@@ -154,6 +155,11 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
         NEST gids of the neurons which should be monitored.
     show : bool, optional (default: True)
         Whether to show the plot right away or to wait for the next plt.show().
+    hist : bool, optional (default: True)
+        Whether to display the histogram when plotting spikes rasters.
+    limits : tuple, optional (default: None)
+        Time limits of the plot (if not specified, times of first and last
+        spike for raster plots).
 
     Returns
     -------
@@ -179,12 +185,14 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
         info = nest.GetStatus(rec)[0]
         if str(info["model"]) == "spike_detector":
             c = colors[num_spike]
-            fig_spike = raster_plot(rec, fignum=fig_spike, color=c, show=False)
+            fig_spike = raster_plot(rec, fignum=fig_spike, color=c, show=False,
+                                    limits=limits)
             num_spike += 1
             fignums.append(fig_spike)
         elif "detector" in str(info["model"]):
             c = colors[num_detec]
-            fig_detec = raster_plot(rec, fignum=fig_detec, color=c, show=False)
+            fig_detec = raster_plot(rec, fignum=fig_detec, color=c, show=False,
+                                    hist=hist, limits=limits)
             num_detec += 1
             fignums.append(fig_detect)
         else:
@@ -208,6 +216,10 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True):
         plt.show()
     return fignums
 
+def _moving_average (values, window):
+    weights = np.repeat(1.0, window)/window
+    sma = np.convolve(values, weights, 'same')
+    return sma
 
 def raster_plot(detec, limits=None, title="Spike raster", hist=True,
                 num_bins=1000, color="b", fignum=None, show=True):
@@ -275,7 +287,10 @@ def raster_plot(detec, limits=None, title="Spike raster", hist=True,
 
             bin_width = ( np.amax(ts) - np.amin(ts) ) / float(num_bins)
             t_bins = np.linspace(np.amin(ts), np.amax(ts), num_bins)
+            if limits is not None:
+                t_bins = np.linspace(limits[0], limits[1], num_bins)
             n, bins = np.histogram(ts, bins=t_bins)
+            #~ n = _moving_average(n,5)
             t_bins = np.concatenate(([t_bins[0]], t_bins))
             #~ heights = 1000 * n / (hist_binwidth * num_neurons)
             # height = rate in Hz, knowing that t is in ms
@@ -285,26 +300,29 @@ def raster_plot(detec, limits=None, title="Spike raster", hist=True,
             if lines:
                 data = lines[-1].get_xy()
                 bottom = data[:,1]
-                old_bins = data[:,0]
-                old_start = int(old_bins[0] / (old_bins[2]-old_bins[0]))
-                new_start = int(t_bins[0] / (t_bins[2]-t_bins[0]))
-                old_end = int(old_bins[-2] / (old_bins[-2]-old_bins[-3]))
-                new_end = int(t_bins[-1] / (t_bins[-1]-t_bins[-2]))
-                diff_start = new_start-old_start
-                diff_end = new_end-old_end
-                if diff_start > 0:
-                    bottom = bottom[diff_start:]
+                if limits is None:
+                    old_bins = data[:,0]
+                    old_start = int(old_bins[0] / (old_bins[2]-old_bins[0]))
+                    new_start = int(t_bins[0] / (t_bins[2]-t_bins[0]))
+                    old_end = int(old_bins[-2] / (old_bins[-2]-old_bins[-3]))
+                    new_end = int(t_bins[-1] / (t_bins[-1]-t_bins[-2]))
+                    diff_start = new_start-old_start
+                    diff_end = new_end-old_end
+                    if diff_start > 0:
+                        bottom = bottom[diff_start:]
+                    else:
+                        bottom = np.concatenate((np.zeros(-diff_start),bottom))
+                    if diff_end > 0:
+                        bottom = np.concatenate((bottom,np.zeros(diff_end)))
+                    else:
+                        bottom = bottom[:diff_end-1]
+                    b_len, h_len = len(bottom), len(heights)
+                    if  b_len > h_len:
+                        bottom = bottom[:h_len]
+                    elif b_len < h_len:
+                        bottom = np.concatenate((bottom,np.zeros(h_len-b_len)))
                 else:
-                    bottom = np.concatenate((np.zeros(-diff_start),bottom))
-                if diff_end > 0:
-                    bottom = np.concatenate((bottom,np.zeros(diff_end)))
-                else:
-                    bottom = bottom[:diff_end-1]
-                b_len, h_len = len(bottom), len(heights)
-                if  b_len > h_len:
-                    bottom = bottom[:h_len]
-                elif b_len < h_len:
-                    bottom = np.concatenate((bottom,np.zeros(h_len-b_len)))
+                    bottom = bottom[:-1]
                 #~ x,y1,y2 = fill_between_steps(t_bins,heights,bottom[::2], h_align='left')
                 #~ x,y1,y2 = fill_between_steps(t_bins[:-1],heights+bottom[::2], bottom[::2], h_align='left')
                 ax2.fill_between(t_bins,heights+bottom, bottom, color=color)

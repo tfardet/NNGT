@@ -3,9 +3,11 @@
 
 """ Connectivity generators for Graph """
 
-from .. import Graph, SpatialGraph, Network, Connections
-from ..core import GraphObject
-from ..lib.connect_tools import *
+import numpy as np
+
+from nngt import Graph, SpatialGraph, Network, Connections, Shape
+from nngt.core import GraphObject
+from nngt.lib.connect_tools import *
 
 
 
@@ -16,7 +18,8 @@ from ..lib.connect_tools import *
 
 def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
                 weighted=True, directed=True, multigraph=False, name="ER",
-                shape=None, positions=None, population=None, from_graph=None):
+                shape=None, positions=None, population=None, from_graph=None,
+                **kwargs):
     """
     Generate a random graph as defined by Erdos and Renyi but with a
     reciprocity that can be chosen.
@@ -83,7 +86,7 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
         graph_obj_er.new_edges(ia_edges)
     # generate container
     if graph_er is None:
-        graph_er = Graph(name=name, libgraph=graph_obj_er)
+        graph_er = Graph(name=name, libgraph=graph_obj_er, **kwargs)
     else:
         graph_er.set_weights()
     # set options
@@ -102,9 +105,10 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
 #------------------------
 
 def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
-                      avg_deg=-1, reciprocity=0., directed=True,
+                      avg_deg=-1, reciprocity=0., weighted=True, directed=True,
                       multigraph=False, name="RandomSF", shape=None, 
-                      positions=None, population=None, from_graph=None):
+                      positions=None, population=None, from_graph=None,
+                      **kwargs):
     """
     Generate a free-scale graph of given reciprocity and otherwise
     devoid of correlations.
@@ -125,6 +129,9 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         The number of edges between the nodes
     avg_deg : double, optional
         Average degree of the neurons given by `edges` / `nodes`.
+    weighted : bool, optional (default: True)
+        @todo
+        Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -172,7 +179,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         graph_obj_rsf.new_edges(ia_edges)
     # generate container
     if graph_rsf is None:
-        graph_rsf = Graph(name=name, libgraph=graph_obj_rsf)
+        graph_rsf = Graph(name=name, libgraph=graph_obj_rsf, **kwargs)
     else:
         graph_rsf.set_weights()
     # set options
@@ -184,7 +191,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         SpatialGraph.make_spatial(graph_rsf, shape, positions)
     return graph_rsf
 
-def price_scale_free(m, c=None, gamma=1, nodes=0, directed=True,
+def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
                      seed_graph=None, multigraph=False, name="PriceSF",
                      shape=None, positions=None, population=None,
                      from_graph=None, **kwargs):
@@ -194,14 +201,17 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, directed=True,
 
     Parameters 
     ----------
-    nodes : int, optional (default: None)
-        The number of nodes in the graph.
     m : int
         The number of edges each new node will make.
     c : double
         Constant added to the probability of a vertex receiving an edge.
     gamma : double
         Preferential attachment power.
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    weighted : bool, optional (default: True)
+        @todo
+        Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -212,7 +222,10 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, directed=True,
     shape : :class:`~nngt.core.Shape`, optional (default: None)
         Shape of the neurons' environment
     positions : :class:`numpy.ndarray`, optional (default: None)
-        A 2D or 3D array containing the positions of the neurons in space
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
     from_graph : :class:`~nngt.Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
     
@@ -233,8 +246,8 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, directed=True,
     if from_graph is not None:
         from_graph.graph = graph_obj_price
     
-    graph_price = (Graph(name=name, libgraph=graph_obj_price) if from_graph is
-                   None else from_graph)
+    graph_price = (Graph(name=name, libgraph=graph_obj_price, **kwargs)
+                   if from_graph is None else from_graph)
     
     if issubclass(graph_price.__class__, Network):
         Connections.delays(graph_price, ia_edges)
@@ -273,6 +286,9 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
         The number of edges between the nodes
     avg_deg : double, optional
         Average degree of the neurons given by `edges` / `nodes`.
+    weighted : bool, optional (default: True)
+        @todo
+        Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -283,7 +299,10 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
     shape : :class:`~nngt.core.Shape`, optional (default: None)
         Shape of the neurons' environment
     positions : :class:`numpy.ndarray`, optional (default: None)
-        A 2D or 3D array containing the positions of the neurons in space
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
     
@@ -313,7 +332,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
         graph_obj_nw.new_edges(ia_edges)
     # generate container
     if graph_nw is None:
-        graph_nw = Graph(name=name, libgraph=graph_obj_nw)
+        graph_nw = Graph(name=name, libgraph=graph_obj_nw, **kwargs)
     else:
         graph_nw.set_weights()
     # set options
@@ -331,82 +350,91 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
 # Distance-based models
 #------------------------
 
-def gen_edr(dicProperties):
-    pass
-    #~ np.random.seed()
-    #~ # on définit toutes les grandeurs de base
-    #~ rRho2D = dicProperties["Rho"]
-    #~ rLambda = dicProperties["Lambda"]
-    #~ nNodes = 0
-    #~ nEdges = 0
-    #~ rDens = 0.0
-    #~ if "Nodes" in dicProperties.keys():
-        #~ nNodes = dicProperties["Nodes"]
-        #~ if "Edges" in dicProperties.keys():
-            #~ nEdges = dicProperties["Edges"]
-            #~ rDens = nEdges / float(nNodes**2)
-            #~ dicProperties["Density"] = rDens
-        #~ else:
-            #~ rDens = dicProperties["Density"]
-            #~ nEdges = int(np.floor(rDens*nNodes**2))
-            #~ dicProperties["Edges"] = nEdges
-    #~ else:
-        #~ nEdges = dicProperties["Edges"]
-        #~ rDens = dicProperties["Density"]
-        #~ nNodes = int(np.floor(np.sqrt(nEdges/rDens)))
-        #~ dicProperties["Nodes"] = nNodes
-    #~ rSideLength = np.sqrt(nNodes/rRho2D)
-    #~ rAverageDistance = np.sqrt(2)*rSideLength / 3
-    #~ # generate the positions of the neurons
-    #~ lstPos = np.array([np.random.uniform(0,rSideLength,nNodes),np.random.uniform(0,rSideLength,nNodes)])
-    #~ lstPos = np.transpose(lstPos)
-    #~ numDesiredEdges = int(float(rDens*nNodes**2))
-    #~ graphEDR,pos = geometric_graph(lstPos,0)
-    #~ graphEDR.set_directed(True)
-    #~ graphEDR.vertex_properties["pos"] = pos
-    #~ # test edges building on random neurons
-    #~ nEdgesTot = graphEDR.edge_nb()
-    #~ numTest = 0
-    #~ while nEdgesTot < numDesiredEdges and numTest < n_MAXTESTS:
-        #~ nTests = int(np.minimum(1.1*np.ceil(numDesiredEdges-nEdgesTot)*np.exp(np.divide(rAverageDistance,rLambda)),1e7))
-        #~ lstVertSrc = np.random.randint(0,nNodes,nTests)
-        #~ lstVertDest = np.random.randint(0,nNodes,nTests)
-        #~ lstDist = np.linalg.norm(lstPos[lstVertDest]-lstPos[lstVertSrc],axis=1)
-        #~ lstDist = np.exp(np.divide(lstDist,-rLambda))
-        #~ lstCreateEdge = np.random.uniform(size=nTests)
-        #~ lstCreateEdge = np.greater(lstDist,lstCreateEdge)
-        #~ nEdges = np.sum(lstCreateEdge)
-        #~ if nEdges+nEdgesTot > numDesiredEdges:
-            #~ nEdges = numDesiredEdges - nEdgesTot
-            #~ lstVertSrc = lstVertSrc[lstCreateEdge][:nEdges]
-            #~ lstVertDest = lstVertDest[lstCreateEdge][:nEdges]
-            #~ lstEdges = np.array([lstVertSrc,lstVertDest]).astype(int)
-        #~ else:
-            #~ lstEdges = np.array([lstVertSrc[lstCreateEdge],lstVertDest[lstCreateEdge]]).astype(int)
-        #~ graphEDR.new_edges(np.transpose(lstEdges))
-        #~ # make graph simple and connected
-        #~ delete_self_loops(graphEDR)
-        #~ delete_parallel_edges(graphEDR)
-        #~ nEdgesTot = graphEDR.edge_nb()
-        #~ numTest += 1
-    #~ graphEDR.reindex_edges()
-    #~ nNodes = graphEDR.node_nb()
-    #~ nEdges = graphEDR.edge_nb()
-    #~ rDens = nEdges / float(nNodes**2)
-    #~ # generate types
-    #~ rInhibFrac = dicProperties["InhibFrac"]
-    #~ lstTypesGen = np.random.uniform(0,1,nEdges)
-    #~ lstTypeLimit = np.full(nEdges,rInhibFrac)
-    #~ lstIsExcitatory = np.greater(lstTypesGen,lstTypeLimit)
-    #~ nExc = np.count_nonzero(lstIsExcitatory)
-    #~ epropType = graphEDR.new_edge_property("int",np.multiply(2,lstIsExcitatory)-np.repeat(1,nEdges)) # excitatory (True) or inhibitory (False)
-    #~ graphEDR.edge_properties["type"] = epropType
-    #~ # and weights
-    #~ if dicProperties["Weighted"]:
-        #~ lstWeights = dicGenWeights[dicProperties["Distribution"]](graphEDR,dicProperties,nEdges,nExc) # generate the weights
-        #~ epropW = graphEDR.new_edge_property("double",lstWeights) # crée la propriété pour stocker les poids
-        #~ graphEDR.edge_properties["weight"] = epropW
-    #~ return graphEDR
+def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
+                  density=0.1, edges=-1, avg_deg=-1., weighted=True,
+                  directed=True, multigraph=False, name="DR", positions=None,
+                  population=None, from_graph=None, **kwargs):
+    """
+    Create a graph using a 2D distance rule to create the connection between
+    neurons. Available rules are linear (@todo) and exponential.
+
+    Parameters
+    ----------
+    scale : float
+        Characteristic scale for the distance rule. E.g for linear distance-
+        rule, :math:`P(i,j) \propto (1-d_{ij}/scale))`, whereas for the
+        exponential distance-rule, :math:`P(i,j) \propto e^{-d_{ij}/scale}`.
+    rule : string, optional (default: 'exp')
+        Rule that will be apply to draw the connections between neurons.
+        Choose among "exp" (exponential), "lin" (linear, not implemented yet),
+        "power" (power-law, not implemented yet).
+    shape : :class:`~nngt.core.Shape`, optional (default: None)
+        Shape of the neurons' environment. If not specified, a square will be
+        created with the appropriate dimensions for the number of neurons and
+        the neuron spatial density.
+    neuron_density : float, optional (default: 1000.)
+        Density of neurons in space (:math:`neurons \cdot mm^{-2}).
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    density: double, optional (default: 0.1)
+        Structural density given by `edges` / (`nodes`*`nodes`).
+    edges : int (optional)
+        The number of edges between the nodes
+    avg_deg : double, optional
+        Average degree of the neurons given by `edges` / `nodes`.
+    weighted : bool, optional (default: True)
+        @todo
+        Whether the graph edges have weights.
+    directed : bool, optional (default: True)
+        Whether the graph is directed or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
+    from_graph : :class:`Graph` or subclass, optional (default: None)
+        Initial graph whose nodes are to be connected.
+    """
+    # set node number and library graph
+    graph_obj_dr, graph_dr = None, from_graph
+    if graph_dr is not None:
+        nodes = graph_dr.node_nb()
+        graph_dr.clear_edges()
+        graph_obj_dr = graph_dr.graph
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_obj_dr = GraphObject(nodes, directed=directed)
+    # generate container
+    h = w = np.sqrt(float(nodes)/neuron_density)
+    if graph_dr is None:
+        shape = shape if shape is not None else Shape.rectangle(None,h,w)
+        graph_dr = SpatialGraph(name=name, libgraph=graph_obj_dr, shape=shape,
+                                **kwargs)
+    else:
+        if not issubclass(graph_dr.__class__, SpatialGraph):
+            shape = shape if shape is not None else Shape.rectangle(self,h,w)
+            SpatialGraph.make_spatial(graph_dr, shape, positions)
+    # add edges
+    positions = graph_dr.position
+    ia_edges = None
+    if nodes > 1:
+        ids = range(nodes)
+        ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
+                                  rule, shape, positions, directed, multigraph)
+        graph_obj_dr.new_edges(ia_edges)
+    # set options
+    if weighted:
+        graph_dr.set_weights()
+    if issubclass(graph_dr.__class__, Network):
+        Connections.delays(graph_dr)
+    elif population is not None:
+        Network.make_network(graph_dr, population)
+    return graph_dr
 
 
 #-----------------------------------------------------------------------------#

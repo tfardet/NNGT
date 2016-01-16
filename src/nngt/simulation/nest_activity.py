@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from nngt.lib import InvalidArgument
 
-__all__ = [ 'get_activity_types' ]
+__all__ = [ 'activity_types' ]
 
 
 #-----------------------------------------------------------------------------#
@@ -18,7 +18,7 @@ __all__ = [ 'get_activity_types' ]
 #------------------------
 #
 
-def get_activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
+def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
                        simplify=False, min_fraction=0.1, raster=None):
     '''
     Analyze the spiking pattern of a neural network.

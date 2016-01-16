@@ -487,11 +487,15 @@ class SpatialGraph(Graph):
         Create the positions of the neurons from the graph `shape` attribute
         and computes the connections distances.
         '''
-        self._shape = shape if shape is not None else Shape(self)
-        b_rnd_pos = ( True if not self.node_nb() or positions is None
-                      else len(positions) != self.node_nb() )
-        pos = self._shape.rnd_distrib() if b_rnd_pos else positions
-        self._pos = pos
+        if positions is not None and len(positions) != self.node_nb():
+            raise InvalidArgument("Wrong number of neurons in `positions`.")
+        if shape is not None:
+            shape.set_parent(self)
+            self._shape = shape
+        else:
+            self._shape = Shape.rectangle(self,1,1)
+        b_rnd_pos = True if not self.node_nb() or positions is None else False
+        self._pos = self._shape.rnd_distrib() if b_rnd_pos else positions
         Connections.distances(self)
 
 

@@ -7,6 +7,7 @@ import weakref
 
 import numpy as np
 import scipy.sparse as ssp
+import scipy.spatial as sptl
 
 from nngt.globals import ( default_neuron, default_synapse, POS, WEIGHT, DELAY,
                        DIST, TYPE, BWEIGHT )
@@ -440,6 +441,9 @@ class Shape:
     Class containing the shape of the area where neurons will be distributed to
     form a network.
 
+    ..warning:
+        so far, only a rectangle can be created.
+
     Attributes
     ----------
     area: double
@@ -450,30 +454,73 @@ class Shape:
     Methods
     -------
     add_subshape: void
-        Add a AGNet.generation.Shape to a preexisting one.
+        @todo
+        Add a :class:`~nngt.Shape` to a preexisting one.
     """
 
-    def __init__(self, parent=None):
+    @classmethod
+    def rectangle(cls, parent, height, width, pos_com=(0.,0.)):
+        '''
+        Generate a rectangle of given height, width and center of mass.
+        
+        Parameters
+        ----------
+        parent : :class:`~nngt.SpatialGraph` or subclass
+            The parent container.
+        height : float
+            Height of the rectangle.
+        width : float
+            Width of the rectangle.
+        pos_com : tuple of floats, optional (default: (0., 0.))
+            Position of the rectangle's center of mass
+        
+        Returns
+        -------
+        shape : :class:`~nngt.Shape`
+            Rectangle shape.
+        '''
+        shape = cls(parent)
+        half_diag = np.sqrt(np.square(height/2.)+np.square(width/2.))/2.
+        pos_com = np.array(pos_com)
+        points = [  pos_com + [half_diag,half_diag],
+                    pos_com + [half_diag,-half_diag],
+                    pos_com - [half_diag,half_diag],
+                    pos_com - [half_diag,-half_diag] ]
+        shape._convex_hull = sptl.Delaunay(points)
+        shape._com = pos_com
+        return shape
+
+    def __init__(self, parent=None, ):
         self.parent = weakref.proxy(parent) if parent is not None else None
         self._area = 0.
         self._com = (0.,0.)
+        self._convex_hull = None
     
     @property
     def area(self):
+        ''' Area of the shape. '''
         return self._area
     
     @property
     def com(self):
+        ''' Center of mass of the shape. '''
         return self._com
 
-    def add_subshape(self,subshape,position,unit='mm'):
+    @property
+    def vertices(self):
+        return self._convex_hull.points
+
+    def set_parent(self, parent):
+        self.parent = weakref.proxy(parent) if parent is not None else None
+
+    def add_subshape(self, subshape, position, unit='mm'):
         """
-        Add a AGNet.generation.Shape to the current one.
+        Add a :class:`~nngt.core.Shape` to the current one.
         
         Parameters
         ----------
-        subshape: AGNet.generation.Shape
-            Length of the rectangle (by default in mm).
+        subshape: :class:`~nngt.Shape`
+            Subshape to add.
         position: tuple of doubles
             Position of the subshape's center of gravity in space.
         unit: string (default 'mm')
@@ -483,12 +530,16 @@ class Shape:
         -------
         None
         """
+        pass
 
     def rnd_distrib(self, nodes=None):
         #@todo: make it general
         if self.parent is not None:
             nodes = self.parent.node_nb()
-        ra_x = np.random.uniform(size=nodes)
-        ra_y = np.random.uniform(size=nodes)
-        return np.array([ra_x,ra_y])
+        points = self._convex_hull.points
+        min_x, max_x = points[:,0].min(), points[:,0].max()
+        min_y, max_y = points[:,1].min(), points[:,1].max()
+        ra_x = np.random.uniform(min_x, max_x, size=nodes)
+        ra_y = np.random.uniform(min_y, max_y, size=nodes)
+        return np.vstack((ra_x,ra_y))
         

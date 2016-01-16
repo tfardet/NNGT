@@ -21,6 +21,7 @@ __all__ = [
     "_random_scale_free",
     "_price_scale_free",
     "_newman_watts",
+    "_distance_rule",
     "price_network",
 ]
 
@@ -127,6 +128,7 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
             num_test += 1
     return ia_edges
 
+
 def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
                        edges, avg_deg, reciprocity, directed, multigraph,
                        **kwargs):
@@ -195,6 +197,7 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
 def _price_scale_free():
     pass
 
+
 def _circular_graph(node_ids, coord_nb):
     '''
     Connect every node `i` to its `coord_nb` nearest neighbours on a circle
@@ -243,6 +246,43 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
                                          b_one_pop, multigraph)
         num_test += 1
     ia_edges = _no_self_loops(ia_edges)
+    return ia_edges
+
+
+def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
+                   rule, shape, positions, directed, multigraph, **kwargs):
+    '''
+    Returns a distance-rule graph
+    '''
+    np.random.seed()
+    def exp_rule(pos_src, pos_target):
+        dist = np.linalg.norm(pos_src-pos_target)
+        return np.exp(np.divide(dist,-scale))
+    def lin_rule(pos_src, pos_target):
+        dist = np.linalg.norm(pos_src-pos_target)
+        return np.divide(scale-dist,scale).clip(min=0.)
+    dist_test = exp_rule if rule == "exp" else lin_rule
+    # compute the required values
+    source_ids = np.array(source_ids).astype(int)
+    target_ids = np.array(target_ids).astype(int)
+    num_source, num_target = len(source_ids), len(target_ids)
+    edges, _ = _compute_connections(num_source, num_target,
+                             density, edges, avg_deg, directed, reciprocity=-1)
+    b_one_pop = (False if num_source != num_target else
+                           not np.all(source_ids-target_ids))
+    # create the edges
+    ia_edges = np.zeros((edges,2), dtype=int)
+    num_test, num_ecurrent = 0, 0
+    while num_ecurrent != edges and num_test < MAXTESTS:
+        num_create = edges-num_ecurrent
+        ia_sources = source_ids[randint(0, num_source, num_create)]
+        ia_targets = target_ids[randint(0, num_target, num_create)]
+        test = dist_test(positions[:,ia_sources],positions[:,ia_targets])
+        ia_valid = np.greater(test,np.random.uniform(size=num_create))
+        ia_edges_tmp = np.array([ia_sources[ia_valid],ia_targets[ia_valid]]).T
+        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
+                                         b_one_pop, multigraph)
+        num_test += 1
     return ia_edges
 
 def price_network():
