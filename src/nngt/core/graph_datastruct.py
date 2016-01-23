@@ -441,7 +441,7 @@ class Shape:
     Class containing the shape of the area where neurons will be distributed to
     form a network.
 
-    ..warning:
+    ..warning :
         so far, only a rectangle can be created.
 
     Attributes

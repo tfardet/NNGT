@@ -76,6 +76,7 @@ Main graph classes
 
 from __future__ import absolute_import
 import sys
+import socket
 
 
 #-----------------------------------------------------------------------------#
@@ -102,7 +103,6 @@ from .core.graph_datastruct import Shape, NeuralPop, GroupProperty, Connections
 from . import core
 from . import generation
 from . import analysis
-from . import plot
 from . import lib
 
 __all__ = [
@@ -115,7 +115,6 @@ __all__ = [
     "lib",
     "Network",
     "NeuralPop",
-    "plot",
     "Shape",
     "SpatialNetwork",
     "SpatialGraph",
@@ -123,6 +122,17 @@ __all__ = [
     "version"
 ]
 
+# test for known clusters where plotting is not supported yet
+b_cluster = False
+host_name = socket.gethostname()
+for name in ['ada', 'bgq']:
+    if name == host_name[:3]:
+        b_cluster = True
+if not b_cluster:
+    from . import plot
+    __all__.append('plot')    
+
+# look for nest
 try:
     import nest
     from . import simulation
