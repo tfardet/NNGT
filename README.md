@@ -1,5 +1,8 @@
 # NNGT
 
-Basic functions implemented, working on the interaction with NEST.
+![NNGT logo](doc/images/nngt_logo.png)
 
-Doc coming soon...
+Works with NEST, graph-tool, igraph and networkx.
+Basic functions and graph generation algorithms implemented.
+
+See [doc on ReadTheDocs](http://nngt.readthedocs.org/en/latest/index.html).

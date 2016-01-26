@@ -44,6 +44,7 @@ class NeuralGroup:
         self._has_model = False if model is None else True
         self._neuron_model = model
         self._id_list = list(id_list)
+        self._nest_gids = None
         if self._has_model:
             self.neuron_param = neuron_param
             self.neuron_type = ntype
@@ -72,6 +73,10 @@ class NeuralGroup:
     @property
     def id_list(self):
         return self._id_list
+    
+    @property
+    def nest_gids(self):
+        return self._nest_gids
     
     @property
     def has_model(self):

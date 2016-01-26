@@ -50,6 +50,28 @@ class Graph(object):
     def num_graphs(cls):
         ''' Returns the number of alive instances. '''
         return cls.__num_graphs
+    
+    @classmethod
+    def from_matrix(cls, matrix, weighted=True, directed=True):
+        '''
+        Creates a :class:`~nngt.Graph` from a :class:`scipy.sparse` matrix or
+        a dense matrix.
+        @todo
+        
+        Parameters
+        ----------
+        matrix : :class:`scipy.sparse` matrix or :class:`numpy.array`
+            Adjacency matrix.
+        weighted : bool, optional (default: True)
+            Whether the graph edges have weight properties.
+        directed : bool, optional (default: True)
+            Whether the graph is directed or undirected.
+        
+        Returns
+        -------
+        :class:`~nngt.Graph`
+        '''
+        pass
 
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
@@ -665,7 +687,7 @@ class Network(Graph):
         '''
         self.__id = self.__class__.__max_id
         self._population = None
-        self.nest_gid = None
+        self._nest_gid = None
         self.id_from_nest_gid = None
         self.__class__.__num_networks += 1
         self.__class__.__max_id += 1
@@ -693,7 +715,7 @@ class Network(Graph):
 
     @population.setter
     def population(self, population):
-        if issubclass(NeuralPop, population.__class__):
+        if issubclass(population.__class__, NeuralPop):
             if self._graph.node_nb() == population.size:
                 if population.is_valid:
                     self._population = population
@@ -706,13 +728,23 @@ class Network(Graph):
         else:
             raise AttributeError("Expecting NeuralPop but received \
                     {}".format(pop.__class__.__name__))
+    
+    @property
+    def nest_gid(self):
+        return self._nest_gid
+    
+    @nest_gid.setter
+    def nest_gid(self, gids):
+        self._nest_gid = gids
+        for group in self.population.iterkeys():
+            group._nest_gids = gids[group.id_list]
 
     #-------------------------------------------------------------------------#
     # Init tool
     
     def _init_bioproperties(self, population):
         ''' Set the population attribute and link each neuron to its group. '''
-        if issubclass(NeuralPop, population.__class__):
+        if issubclass(population.__class__, NeuralPop):
             if population.is_valid:
                 self._population = population
                 nodes = population.size
