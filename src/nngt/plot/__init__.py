@@ -18,8 +18,9 @@ from nngt.globals import glib_data
 
 from .custom_plt import palette
 from .plt_properties import degree_distribution, betweenness_distribution
+from .plt_activity import spike_raster
 
-__all__ = [ "degree_distribution", "betweenness_distribution" ]
+__all__ = [ "degree_distribution", "betweenness_distribution", 'spike_raster' ]
 
 if glib_data["name"] == 'graph_tool':
     from .plt_networks import draw_network

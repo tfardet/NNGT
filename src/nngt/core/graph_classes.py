@@ -5,8 +5,8 @@
 
 import warnings
 from copy import deepcopy
-from numpy import multiply
-from scipy.sparse import lil_matrix
+import numpy as np
+import scipy.sparse as ssp
 
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                        DIST, TYPE)
@@ -15,6 +15,10 @@ from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
 import nngt.analysis as na
 from nngt.lib import InvalidArgument
 
+
+__all__ = [
+    'Graph', 'SpatialGraph', 'Network', 'SpatialNetwork'
+]
 
 
 #-----------------------------------------------------------------------------#
@@ -56,7 +60,6 @@ class Graph(object):
         '''
         Creates a :class:`~nngt.Graph` from a :class:`scipy.sparse` matrix or
         a dense matrix.
-        @todo
         
         Parameters
         ----------
@@ -71,7 +74,33 @@ class Graph(object):
         -------
         :class:`~nngt.Graph`
         '''
-        pass
+        shape = matrix.shape
+        if shape[0] != shape[1]:
+            raise InvalidArgument('A square matrix is required')
+        nodes = shape[0]
+        if not directed:
+            if issubclass(matrix.__class__, ssp.spmatrix):
+                if not (matrix.T != matrix).nnz == 0:
+                    raise InvalidArgument('Incompatible directed=False option \
+with non symmetric matrix provided.')
+            else:
+                if not (matrix.T == matrix).all():
+                    raise InvalidArgument('Incompatible directed=False option \
+with non symmetric matrix provided.')
+        edges = np.array(matrix.nonzero()).T
+        graph = cls(nodes,name='FromNpArray_{}'.format(cls.__num_graphs),
+                    weighted=weighted, directed=directed)
+        graph.add_edges(edges)
+        if weighted:
+            weights = None
+            if issubclass(matrix.__class__, ssp.spmatrix):
+                weights = np.array(matrix[edges[:,0],edges[:,1]])[0]
+            else:
+                weights = matrix[dges[:,0],dges[:,1]]
+                
+            graph.set_weights(elist=edges, wlist=weights)
+        return graph
+            
 
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
@@ -262,6 +291,7 @@ class Graph(object):
                     distrib_prop=None, correl=None, noise_scale=None):
         '''
         Set the synaptic weights.
+        @todo: take elist into account in Connections.weights
         
         Parameters
         ----------

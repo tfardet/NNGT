@@ -13,7 +13,6 @@ from ..analysis import degree_distrib, betweenness_distrib
 __all__ = [
             'degree_distribution',
             'betweenness_distribution',
-            '_set_new_plot'
           ]
 
 

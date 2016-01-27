@@ -368,6 +368,7 @@ class Connections:
                 distrib_prop={}, correl=None, noise_scale=None):
         '''
         Compute the weights of the graph's edges.
+        @todo: take elist into account
         
         Parameters
         ----------
@@ -400,7 +401,7 @@ class Connections:
             else:
                 corre = graph[correl]
         if wlist is not None:
-            num_edges = graph.edge_nb() if elist is None else len(elist)
+            num_edges = graph.edge_nb() if elist is None else max(elist.shape)
             if len(wlist) != num_edges:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
