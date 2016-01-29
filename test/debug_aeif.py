@@ -46,8 +46,13 @@ graph = nngt.generation.erdos_renyi(density=0.1, population=pop, weight_prop={"d
 
 subnet, gids = make_nest_network(graph)
 
-recorders, record = monitor_nodes(gids, ["spike_detector"], [["spikes"]], network=graph)
-recorders2, record2 = monitor_nodes((gids[0],), ["multimeter"], [["V_m","w"]])
+mm_param = { 'record_from': ["V_m","w"], 'to_accumulator': True }
+            
+recorders, record = monitor_nodes( gids,
+                                   ["spike_detector", "multimeter"],
+                                   [{}, mm_param],
+                                   network=graph,
+                                   avg=True )
 
 set_noise(gids, 0., 200.)
 
@@ -68,7 +73,7 @@ set_poisson_input(gids[800:], 0.75*rate)
 simtime = 1500.
 nest.Simulate(simtime)
 
-fignums = plot_activity(recorders, record, network=graph, show=False, hist=False, limits=(0,simtime))
+fignums = plot_activity(recorders[0], record, network=graph, show=False, hist=False, limits=(0,simtime))
 #~ activity_types(graph, recorders, (0,simtime), raster=fignums[0], simplify=False)
-activity_types(graph, recorders, (0,simtime), raster=fignums[0], simplify=True)
+activity_types(graph, recorders[0], (0,simtime), raster=fignums[0], simplify=True)
 

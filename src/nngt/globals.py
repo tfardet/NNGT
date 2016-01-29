@@ -127,11 +127,13 @@ def use_library(library, reloading=True):
                 else:
                     xs, ys = xs.T, ys.T
                 data = sp.ones(xs.shape)
-                if weights is not None:
-                    data = weights
+                if issubclass(weights.__class__, str):
+                    data *= sp.array(graph.es[weights])
                     if not graph.is_directed():
                         data.extend(data)
-                coo_adj = ssp.coo_matrix((data, (xs, ys)))
+                else:
+                    data *= sp.array(weights)
+                coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
                 return coo_adj.tocsr()
             else:
                 return ssp.csr_matrix((n,n))

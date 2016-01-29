@@ -79,6 +79,29 @@ class NeuralPop(dict):
 
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
+    
+    def __init__(self, size=None, parent=None, with_models=True, **kwargs):
+        '''
+        Initialize NeuralPop instance
+        Parameters
+        ----------
+        with_models : :class:`bool`
+            whether the population's groups contain models to use in NEST
+        **kwargs : :class:`dict`
+            
+        Returns
+        -------
+        pop : :class:`~nngt.properties.NeuralPop` instance
+        '''
+        self._is_valid = False
+        self._size = size if parent is None else parent.node_nb()
+        self._neuron_group = np.empty(self._size, dtype=object)
+        if "graph" in kwargs.keys():
+            dic = _make_groups(kwargs["graph"], kwargs["group_prop"])
+            self._is_valid = True
+        else:
+            super(NeuralPop, self).__init__()
+        self._has_models = with_models
         
     @property
     def size(self):
@@ -179,8 +202,6 @@ among 'neuron' or 'synapse'.".format(key))
                     else:
                         raise ValueError("Model type {} is not valid; choose \
 among 'neuron' or 'synapse'.".format(key))
-            else:
-                raise
         except:
             raise InvalidArgument("Invalid param dict or group; see docstring.")
     

@@ -45,10 +45,16 @@ def set_noise(gids, mean, std):
         Mean current value.
     std : float
         Standard deviation of the current
+    
+    Returns
+    -------
+    noise : tuple
+        The NEST gid of the noise_generator.
     '''
-    bg_noise = nest.Create("noise_generator")
-    nest.SetStatus(bg_noise, {"mean": mean, "std": std })
-    nest.Connect(bg_noise,gids)
+    noise = nest.Create("noise_generator")
+    nest.SetStatus(noise, {"mean": mean, "std": std })
+    nest.Connect(noise,gids)
+    return noise
     
 def set_poisson_input(gids, rate):
     '''
@@ -60,10 +66,44 @@ def set_poisson_input(gids, rate):
         NEST gids of the target neurons.
     rate : float
         Rate of the spike train.
+    
+    Returns
+    -------
+    poisson_input : tuple
+        The NEST gid of the poisson_generator.
     '''
     poisson_input = nest.Create("poisson_generator")
     nest.SetStatus(poisson_input,{"rate": rate})
     nest.Connect(poisson_input, gids)
+    return poisson_input
+
+def set_step_currents(gids, times, currents):
+    '''
+    Set step-current excitations
+    
+    Parameters
+    ----------
+    gids : tuple
+        NEST gids of the target neurons.
+    times : list or :class:`numpy.ndarray`
+        List of the times where the current will change (by default the current
+        generator is initiated at I=0. for t=0.)
+    currents : list or :class:`numpy.ndarray`
+        List of the new current value after the associated time value in 
+        `times`.
+    
+    Returns
+    -------
+    noise : tuple
+        The NEST gid of the noise_generator.
+    '''
+    if len(times) != len(currents):
+        raise InvalidArgument('Length of `times` and `currents` must be the \
+same')
+    params = { "amplitude_times": times, "amplitude_values":currents }
+    scg = nest.Create("step_current_generator", 1, params)
+    nest.Connect(scg, gids)
+    return scg
 
 
 #-----------------------------------------------------------------------------#
@@ -71,8 +111,8 @@ def set_poisson_input(gids, rate):
 #------------------------
 #
 
-def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
-                  accumulator=True, interval=1., to_file="", network=None):
+def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
+                  network=None, avg=False):
     '''
     Monitoring the activity of nodes in the network.
     
@@ -84,16 +124,13 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
         which will be monitored by all devices.
     nest_recorder : list of strings, optional (default: ["spike_detector"])
         List of devices to monitor the network.
-    record : list of lists of strings, optional (default: (["spikes"],))
-        List of the variables to record; one list per recording device.
-    accumulator : bool, optional (default: True)
-        Whether multi/volt/conductancemeters should sum the records of all the
-        nodes they are conencted to.
-    interval : float, optional (default: 1.)
-        Interval of time at which multimeter-like devices sample data.
-    to_file : string, optional (default: "")
-        File where the recorded data should be stored; if "", the data will not
-        be saved in a file.
+    params : list of dict, optional (default: [{}])
+        List of dictionaries containing the parameters for each recorder (see 
+        `NEST documentation <http://www.nest-simulator.org/quickref/#nodes>`_ 
+        for details).
+    network : :class:`~nngt.Network` or subclass, optional (default: "")
+        Network which population will be used to differentiate inhibitory and 
+        excitatory spikes.
     
     Returns
     -------
@@ -108,25 +145,27 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], record=[["spikes"]],
         if "meter" in rec:
             device = nest.Create(rec)
             recorders.append(device)
-            new_record.append(record[i])
-            nest.SetStatus(device, {"withtime": True, "record_from": record[i],
-                        "to_accumulator": accumulator, "interval": interval})
-            nest.Connect(device, gids)
+            new_record.append(params[i]["record_from"])
+            nest.SetStatus(device, params[i])
+            s_acc = "to_accumulator"
+            b_acc = False if s_acc not in params[i] else params[i][s_acc]
+            if avg and b_acc:
+                nest.Connect(device, gids, syn_spec={'weight':1./len(gids)})
+            else:
+                nest.Connect(device, gids)
         # event detectors
         elif "detector" in rec:
             if network is not None:
                 for name, group in network.population.iteritems():
                     device = nest.Create(rec)
                     recorders.append(device)
-                    new_record.append(record[i])
-                    nest.SetStatus(device,{"label": record[i][0] + " " + name,
-                                           "withtime": True, "withgid": True})
+                    new_record.append(["spikes"])
+                    nest.SetStatus(device,params[i])
                     nest.Connect(tuple(network.nest_gid[group.id_list]), device)
             else:
                 device = nest.Create(rec)
                 recorders.append(device)
-                nest.SetStatus(device,{"label": record[i][0], "withtime": True,
-                                    "withgid": True})
+                nest.SetStatus(device,params[i])
                 nest.Connect(gids, device)
         else:
             raise InvalidArgument("Invalid recorder item in 'nest_recorder'.")

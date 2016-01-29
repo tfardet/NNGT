@@ -292,7 +292,8 @@ def adjacency_matrix(net, typed=True, weighted=True):
     else:
         weights = "weight" if weighted is True else weighted
         mat = adjacency(net.graph, weights)
-    if typed and weighted is True and "type" in net.graph.eproperties.keys():
+    prop_keys = net.graph.eproperties.keys()
+    if typed and weighted in (True, "weight") and "type" in prop_keys:
         mtype = adjacency(net.graph, weight="type")
         return mat*mtype
     else:
