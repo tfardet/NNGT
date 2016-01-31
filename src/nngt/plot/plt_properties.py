@@ -26,16 +26,19 @@ def _set_new_plot(fignum, num_new_plots=1):
     # get the figure and compute the new number of rows and cols
     fig = plt.figure(num=fignum)
     num_axes = len(fig.axes)+num_new_plots
-    num_rows = max(int(np.floor(np.sqrt(num_axes))),1)
-    ratio = num_axes/float(num_rows)
-    num_cols = int(ratio)+1 if int(ratio)!=int(np.ceil(ratio)) else int(ratio)
+    num_cols = max(int(np.floor(np.sqrt(num_axes))),1)
+    ratio = num_axes/float(num_cols)
+    num_rows = int(ratio)+1 if int(ratio)!=int(np.ceil(ratio)) else int(ratio)
     # change the geometry
     for i in range(num_axes-num_new_plots):
         fig.axes[i].change_geometry(num_rows, num_cols, i+1)
     lst_new_axes = []
     n_old = num_axes-num_new_plots+1
     for i in range(num_new_plots):
-        lst_new_axes.append(fig.add_subplot(num_rows, num_cols, n_old+i))
+        if fig.axes:
+            lst_new_axes.append(fig.add_subplot(num_rows, num_cols, n_old+i, sharex=fig.axes[0]))
+        else:
+            lst_new_axes.append(fig.add_subplot(num_rows, num_cols, n_old+i))
     return fig, lst_new_axes
 
 

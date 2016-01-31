@@ -21,6 +21,7 @@ from ..plot.plt_properties import _set_new_plot
 __all__ = [
             'set_noise',
             'set_poisson_input',
+            'set_step_currents',
             'monitor_nodes',
             'plot_activity'
           ]
@@ -112,7 +113,7 @@ same')
 #
 
 def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
-                  network=None, avg=False):
+                  network=None):
     '''
     Monitoring the activity of nodes in the network.
     
@@ -147,12 +148,7 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
             recorders.append(device)
             new_record.append(params[i]["record_from"])
             nest.SetStatus(device, params[i])
-            s_acc = "to_accumulator"
-            b_acc = False if s_acc not in params[i] else params[i][s_acc]
-            if avg and b_acc:
-                nest.Connect(device, gids, syn_spec={'weight':1./len(gids)})
-            else:
-                nest.Connect(device, gids)
+            nest.Connect(device, gids)
         # event detectors
         elif "detector" in rec:
             if network is not None:

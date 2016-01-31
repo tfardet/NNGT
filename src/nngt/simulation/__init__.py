@@ -1,13 +1,6 @@
 """
 Content
 =======
-==================== =========================================================
-Functions
-==============================================================================
-make_nest_network    Create a network in NEST from a Graph object
-get_nest_network     Create a Graph object from a NEST network
-==================== =========================================================
-
 """
 
 
@@ -33,7 +26,9 @@ __all__ = [
 	'get_nest_network',
     'set_noise',
     'set_poisson_input',
+    'set_set_step_currents',
     'monitor_nodes',
     'plot_activity',
-    "activity_types"
+    'activity_types',
+    'raster_plot'
 ]
