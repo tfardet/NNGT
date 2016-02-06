@@ -190,6 +190,6 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
             for phase,color in zip(names,colors):
                 for span in phases[phase]:
                     ax.axvspan(span[0],span[1], facecolor=color, alpha=0.2)
-    if fignum:
+    if fignums:
         plt.show()
     return phases

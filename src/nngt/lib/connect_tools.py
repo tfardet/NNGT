@@ -17,6 +17,7 @@ __all__ = [
     "_unique_rows",
     "_no_self_loops",
     "_filter",
+    "_fixed_degree",
     "_erdos_renyi",
     "_random_scale_free",
     "_price_scale_free",
@@ -85,6 +86,56 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph):
 # Graph model generation
 #------------------------
 #
+
+def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
+                  directed, multigraph):
+    np.random.seed()
+    source_ids = np.array(source_ids).astype(int)
+    target_ids = np.array(target_ids).astype(int)
+    num_source, num_target = len(source_ids), len(target_ids)
+    # type of degree
+    b_out = (degree_type == "out")
+    b_total = (degree_type == "total")
+    # edges
+    edges = num_target*degree if degree_type == "out" else num_source*degree
+    b_one_pop = (False if num_source != num_target else
+                           not np.all(source_ids-target_ids))
+    if not b_one_pop and not multigraph:
+        b_d = (edges > num_source*num_target)
+        b_nd = (edges > int(0.5*num_source*num_target))
+        if (not directed and b_nd) or (directed and b_d):
+            raise InvalidArgument("Required degree is too high")
+    elif b_one_pop and not multigraph:
+        b_d = (edges > num_source*(num_target-1))
+        b_nd = (edges > int((0.5*num_source-1)*num_target))
+        if (not directed and b_nd) or (directed and b_d):
+            raise InvalidArgument("Required degree is too high")
+    
+    ia_edges = np.zeros((edges,2), dtype=int)
+    num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
+    
+    ia_sources, ia_targets = None, None
+    if b_out:
+        for i,v in enumerate(target_ids):
+            edges_i, ecurrent, sources_i = np.zeros((degree,2)), 0, []
+            ia_edges[i*degree:(i+1)*degree,0] = v
+            while len(sources_i) != degree:
+                sources = source_ids[randint(0,num_source,degree-ecurrent)]
+                sources_i.extend(sources)
+                sources_i = list(set(sources_i))
+                ecurrent = len(sources_i)
+            ia_edges[i*degree:(i+1)*degree,1] = sources_i
+    else:
+        for i,v in enumerate(source_ids):
+            edges_i, ecurrent, targets_i = np.zeros((degree,2)), 0, []
+            ia_edges[i*degree:(i+1)*degree,1] = v
+            while len(targets_i) != degree:
+                targets = target_ids[randint(0,num_target,degree-ecurrent)]
+                targets_i.extend(targets)
+                targets_i = list(set(targets_i))
+                ecurrent = len(targets_i)
+            ia_edges[i*degree:(i+1)*degree,0] = targets_i
+    return ia_edges
 
 def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
                  directed, multigraph, **kwargs):

@@ -11,10 +11,97 @@ from nngt.lib.connect_tools import *
 
 
 
+#-----------------------------------------------------------------------------#
+# Fixed degree
+#------------------------
 #
-#---
+
+def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
+                 weighted=True, directed=True, multigraph=False, name="ER",
+                 shape=None, positions=None, population=None, from_graph=None,
+                 **kwargs):
+    """
+    Generate a random graph with constant in- or out-degree.
+
+    Parameters
+    ----------
+    degree : int
+        The value of the constant degree.
+    degree_type : str, optional (default: 'in')
+        The type of the fixed degree, among 'in', 'out' or 'total' (@todo: not 
+        implemented yet).
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    reciprocity : double, optional (default: -1 to let it free)
+        @todo: not implemented yet. Fraction of edges that are bidirectional 
+        (only for directed graphs -- undirected graphs have a reciprocity of 
+        1 by definition)
+    weighted : bool, optional (default: True)
+        Whether the graph edges have weights.
+    directed : bool, optional (default: True)
+        @todo: only for directed graphs for now. Whether the graph is directed
+        or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.core.Shape`, optional (default: None)
+        Shape of the neurons' environment.
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
+    from_graph : :class:`Graph` or subclass, optional (default: None)
+        Initial graph whose nodes are to be connected.
+
+    Returns
+    -------
+    graph_er : :class:`~nngt.Graph`, or subclass
+        A new generated graph or the modified `from_graph`.
+
+    Notes
+    -----
+    `nodes` is required unless `from_graph` or `population` is provided.
+    If an `from_graph` is provided, all preexistant edges in the
+    object will be deleted before the new connectivity is implemented.
+    """
+    # set node number and library graph
+    graph_obj_fd, graph_fd = None, from_graph
+    if graph_fd is not None:
+        nodes = graph_fd.node_nb()
+        graph_fd.clear_edges()
+        graph_obj_fd = graph_fd.graph
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_obj_fd = GraphObject(nodes, directed=True)
+    # add edges
+    ia_edges = None
+    if nodes > 1:
+        ids = range(nodes)
+        ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
+                                 directed, multigraph)
+        graph_obj_fd.new_edges(ia_edges)
+    # generate container
+    if graph_fd is None:
+        graph_fd = Graph(name=name, libgraph=graph_obj_fd, **kwargs)
+    else:
+        graph_fd.set_weights()
+    # set options
+    if issubclass(graph_fd.__class__, Network):
+        Connections.delays(graph_fd)
+    elif population is not None:
+        Network.make_network(graph_fd, population)
+    if shape is not None:
+        SpatialGraph.make_spatial(graph_fd, shape, positions)
+    return graph_fd
+    
+
+#-----------------------------------------------------------------------------#
 # Erdos-Renyi
 #------------------------
+#
 
 def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
                 weighted=True, directed=True, multigraph=False, name="ER",
@@ -77,17 +164,15 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
     else:
         nodes = population.size if population is not None else nodes
         graph_obj_er = GraphObject(nodes, directed=directed)
+        graph_er = Graph(name=name, libgraph=graph_obj_er, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                                 directed, multigraph)
-        graph_obj_er.new_edges(ia_edges)
-    # generate container
-    if graph_er is None:
-        graph_er = Graph(name=name, libgraph=graph_obj_er, **kwargs)
-    else:
+        graph_er.add_edges(ia_edges)
+    if weighted:
         graph_er.set_weights()
     # set options
     if issubclass(graph_er.__class__, Network):
@@ -356,7 +441,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
                   population=None, from_graph=None, **kwargs):
     """
     Create a graph using a 2D distance rule to create the connection between
-    neurons. Available rules are linear (@todo) and exponential.
+    neurons. Available rules are linear and exponential.
 
     Parameters
     ----------
@@ -390,7 +475,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     multigraph : bool, optional (default: False)
         Whether the graph can contain multiple edges between two
         nodes.
-    name : string, optional (default: "ER")
+    name : string, optional (default: "DR")
         Name of the created graph.
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space.

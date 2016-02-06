@@ -287,7 +287,7 @@ with non symmetric matrix provided.')
 `val` arguments should not be ``None``.")
             self._graph._eattr[attribute] = values
     
-    def set_weights(self, elist=None, wlist=None, distrib=None,
+    def set_weights(self, elist=None, wlist=None, ifrac=None, distrib=None,
                     distrib_prop=None, correl=None, noise_scale=None):
         '''
         Set the synaptic weights.
@@ -319,6 +319,55 @@ with non symmetric matrix provided.')
             correl = self._w["correl"] if "correl" in self._w.keys() else None
         Connections.weights(self, elist=elist, wlist=wlist, distrib=distrib,
             correl=correl, distrib_prop=distrib_prop, noise_scale=noise_scale)
+
+    def set_types(self, graph,  syn_type, nodes=None, fraction=None):
+        '''
+        Set the synaptic/connection types.
+
+        .. warning :
+            This is only for use in graph theoretical measurements; when 
+            translating a :class:`~nngt.Network` to NEST, only the
+            :class:`~nngt.NeuralGroup`s are taken into account. This is
+            especially important if you set types that do not match those of
+            the population : be aware that the types will not be taken into 
+            account in the simulations.
+
+        Parameters
+        ----------
+        graph : :class:`~nngt.Graph` or subclass
+            Graph on which edge types will be created.
+        syn_type : int or string
+            Type of the connection among 'excitatory' (also `1`) or
+            'inhibitory' (also `-1`).
+        nodes : int, float or list, optional (default: `None`)
+            If `nodes` is an int, number of nodes of the required type that
+            will be created in the graph (all connections from inhibitory nodes
+            are inhibitory); if it is a float, ratio of `syn_type` nodes in the
+            graph; if it is a list, ids of the `syn_type` nodes.
+        fraction : float, optional (default: `None`)
+            Fraction of the selected edges that will be set as `syn_type` (if
+            `nodes` is not `None`, it is the fraction of the specified nodes'
+            edges, otherwise it is the fraction of all edges in the graph).
+
+        Returns
+        -------
+        t_list : :class:`numpy.ndarray`
+            List of the types in an order that matches the `edges` attribute of
+            the graph.
+        '''
+        inhib_nodes = nodes
+        if syn_type == 'excitatory' or syn_type == 1:
+            if issubclass(nodes.__class__, int):
+                inhib_nodes = graph.node_nb() - nodes
+            elif issubclass(nodes.__class__, float):
+                inhib_nodes = 1./nodes
+            elif hasattr(nodes, '__iter__'):
+                inhib_nodes = list(range(graph.node_nb()))
+                nodes.sort()
+                for node in nodes[::-1]:
+                    del inhib_nodes[node]
+        return Connections.types(graph, inhib_nodes, fraction)
+        
         
 
     #-------------------------------------------------------------------------#

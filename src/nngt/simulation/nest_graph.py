@@ -67,20 +67,20 @@ def make_nest_network(network, use_weights=True):
     # connect neurons
     dic = { "target": None, "weight": None, "delay": None }
     for i in range(num_neurons):
-        pass
+        ia_targets = np.array(lil_weights.rows[ia_nngt_ids[i]], dtype=int)
+        dic["target"] = ia_nngt_nest[ia_targets]
+        num_connect = len(ia_targets)
         dic_prop = network.neuron_properties(ia_nngt_ids[i])
         syn_model = dic_prop["syn_model"]
         for key, val in dic_prop["syn_param"].iteritems():
             dic[key] = np.repeat(val, num_connect)
         syn_sign = dic_prop["neuron_type"]
-        ia_targets = np.array(lil_weights.rows[ia_nngt_ids[i]], dtype=int)
-        dic["target"] = ia_nngt_nest[ia_targets]
-        num_connect = len(ia_targets)
         if use_weights:
             dic[WEIGHT] = syn_sign*np.array(lil_weights.data[ia_nngt_ids[i]])
         else:
             dic[WEIGHT] = syn_sign*np.repeat(10., num_connect)
-        dic[DELAY] = np.array(lil_delays.data[ia_nngt_ids[i]])
+        if dic["delay"] is None:
+            dic["delay"] = np.array(lil_delays.data[ia_nngt_ids[i]])
         nest.DataConnect((ia_nngt_nest[ia_nngt_ids[i]],), (dic,), syn_model)
         
     # conversions ids/gids

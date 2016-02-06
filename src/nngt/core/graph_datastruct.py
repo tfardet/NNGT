@@ -6,6 +6,7 @@
 import weakref
 
 import numpy as np
+from numpy.random import randint, uniform
 import scipy.sparse as ssp
 import scipy.spatial as sptl
 
@@ -384,8 +385,8 @@ class Connections:
         graph.set_edge_attribute(DELAY, value_type="double", values=dlist)
         return dlist
     
-    @classmethod
-    def weights(cls, graph, elist=None, wlist=None, distrib="constant",
+    @staticmethod
+    def weights(graph, elist=None, wlist=None, distrib="constant",
                 distrib_prop={}, correl=None, noise_scale=None):
         '''
         Compute the weights of the graph's edges.
@@ -434,9 +435,90 @@ class Connections:
         graph.set_edge_attribute(BWEIGHT, value_type="double", values=bwlist)
         return wlist
     
-    @classmethod
-    def types(cls, graph, elist=None):
-        pass
+    @staticmethod
+    def types(graph, inhib_nodes=None, inhib_frac=None):
+        '''
+        @todo
+        
+        Define the type of a set of neurons.
+        If no arguments are given, all edges will be set as excitatory.
+
+        Parameters
+        ----------
+        graph : :class:`~nngt.Graph` or subclass
+            Graph on which edge types will be created.
+        inhib_nodes : int, float or list, optional (default: `None`)
+            If `inhib_nodes` is an int, number of inhibitory nodes in the graph
+            (all connections from inhibitory nodes are inhibitory); if it is a
+            float, ratio of inhibitory nodes in the graph; if it is a list, ids
+            of the inhibitory nodes.
+        inhib_frac : float, optional (default: `None`)
+            Fraction of the selected edges that will be set as refractory (if
+            `inhib_nodes` is not `None`, it is the fraction of the nodes' edges
+            that will become inhibitory, otherwise it is the fraction of all
+            the edges in the graph).
+
+        Returns
+        -------
+        t_list : :class:`~numpy.ndarray`
+            List of the edges' types.
+        '''
+        t_list = np.repeat(1.,graph.edge_nb())
+        edges = np.array(graph.edges,copy=True)
+        num_inhib = 0
+        idx_inhib = []
+        if inhib_nodes is None and inhib_frac is None:
+            graph.new_edge_attribute("type", "double", val=1.)
+            return t_list
+        else:
+            n = graph.node_nb()
+            if inhib_nodes is None:
+                # set inhib_frac*num_edges random inhibitory connections
+                num_inhib = graph.edge_nb()*inhib_frac
+                while num_current < num_inhib:
+                    new = randint(0,n,num_inhib-num_current)
+                    idx_inhib = np.unique( np.concatenate( (arr, new) ) )
+                    num_current = len(idx_inhib)
+            else:
+                # get the dict of inhibitory nodes
+                num_inhib_nodes = 0
+                idx_nodes = {}
+                if hasattr(inhib_nodes, '__iter__'):
+                    idx_nodes = { i:-1 for i in inhib_nodes }
+                    num_inhib_nodes = len(idx_nodes)
+                if issubclass(inhib_nodes.__class__, float):
+                    if inhib_nodes > 1:
+                        raise InvalidArgument("Inhibitory ratio (float value \
+for `inhib_nodes`) must be smaller than 1")
+                        num_inhib_nodes = int(inhib_nodes*n)
+                if issubclass(inhib_nodes.__class__, int):
+                    num_inhib_nodes = int(inhib_nodes)
+                while len(idx_nodes) != num_inhib_nodes:
+                    indices = randint(0,n,num_inhib_nodes-len(idx_nodes))
+                    di_tmp = { i:-1 for i in indices }
+                    idx_nodes.update(di_tmp)
+                for v in edges[:,0]:
+                    if v in idx_nodes:
+                        idx_inhib.append(v)
+                # set the inhibitory edge indices
+                for v in idx_inhib.iterkeys():
+                    idx_edges = np.argwhere(edges[:,0])
+                    n = len(idx_edges)
+                    if inhib_frac is not None:
+                        idx_inh = []
+                        num_inh = n*inhib_frac
+                        i = 0
+                        while i != num_inh:
+                            ids = randint(0,n,num_inh-i)
+                            idx_inh = np.unique(np.concatenate((idx_inh,ids))
+                            i = len(idx_inh)
+                        t_list[idx_inh] *= -1.
+                    else:
+                        t_list[idx_edges] *= -1.
+            graph.new_edge_attribute("type", "double", values=t_list)
+            return t_list
+                
+            
 
 
 #-----------------------------------------------------------------------------#
@@ -547,7 +629,7 @@ class Shape:
         points = self._convex_hull.points
         min_x, max_x = points[:,0].min(), points[:,0].max()
         min_y, max_y = points[:,1].min(), points[:,1].max()
-        ra_x = np.random.uniform(min_x, max_x, size=nodes)
-        ra_y = np.random.uniform(min_y, max_y, size=nodes)
+        ra_x = uniform(min_x, max_x, size=nodes)
+        ra_y = uniform(min_y, max_y, size=nodes)
         return np.vstack((ra_x,ra_y))
         
