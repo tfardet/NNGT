@@ -131,6 +131,7 @@ with non symmetric matrix provided.')
         self._name = name
         self._directed = directed
         self._edges = []
+        self._graph_type = "custom"
         # create the graphlib graph
         if libgraph is not None:
             self._graph = GraphObject.to_graph_object(libgraph)
@@ -377,7 +378,11 @@ with non symmetric matrix provided.')
     
     def get_name(self):
         ''' Get the name of the graph '''
-        return self.__di_prop["name"]
+        return self._name
+
+    def get_graph_type(self):
+        ''' Return the type of the graph (see nngt.generation) '''
+        return self._graph_type
     
     def node_nb(self):
         ''' Number of nodes in the graph '''

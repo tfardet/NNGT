@@ -97,10 +97,10 @@ def use_library(library, reloading=True):
         glib_func["diameter"] = pseudo_diameter
         glib_func["reciprocity"] = edge_reciprocity
         # defining the adjacency function
-        def adj_mat(graph, weights=None):
-            if weights is not None:
-                weights = graph.edge_properties[weights]
-            return _adj(graph, weights).T
+        def adj_mat(graph, weight=None):
+            if weight is not None:
+                weight = graph.edge_properties[weight]
+            return _adj(graph, weight).T
     elif library == "igraph":
         # library and graph object
         import igraph as glib
@@ -118,7 +118,7 @@ def use_library(library, reloading=True):
         glib_func["diameter"] = None
         glib_func["reciprocity"] = None
         # defining the adjacency function
-        def adj_mat(graph, weights=None):
+        def adj_mat(graph, weight=None):
             n = graph.node_nb()
             if graph.edge_nb():
                 xs, ys = map(sp.array, zip(*graph.get_edgelist()))
@@ -127,12 +127,12 @@ def use_library(library, reloading=True):
                 else:
                     xs, ys = xs.T, ys.T
                 data = sp.ones(xs.shape)
-                if issubclass(weights.__class__, str):
-                    data *= sp.array(graph.es[weights])
+                if issubclass(weight.__class__, str):
+                    data *= sp.array(graph.es[weight])
                     if not graph.is_directed():
                         data.extend(data)
                 else:
-                    data *= sp.array(weights)
+                    data *= sp.array(weight)
                 coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
                 return coo_adj.tocsr()
             else:

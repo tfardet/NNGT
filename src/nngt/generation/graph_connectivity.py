@@ -5,10 +5,21 @@
 
 import numpy as np
 
-from nngt import Graph, SpatialGraph, Network, Connections, Shape
+import nngt
 from nngt.core import GraphObject
 from nngt.lib.connect_tools import *
 
+
+
+def _set_options(graph, weighted, population, shape, positions):
+    if weighted:
+        graph.set_weights()
+    if issubclass(graph.__class__, nngt.Network):
+        Connections.delays(graph)
+    elif population is not None:
+        nngt.Network.make_network(graph, population)
+    if shape is not None:
+        nngt.SpatialGraph.make_spatial(graph, shape, positions)
 
 
 #-----------------------------------------------------------------------------#
@@ -76,25 +87,16 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     else:
         nodes = population.size if population is not None else nodes
         graph_obj_fd = GraphObject(nodes, directed=True)
+        graph_fd = nngt.Graph(name=name, libgraph=graph_obj_fd, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
                                  directed, multigraph)
-        graph_obj_fd.new_edges(ia_edges)
-    # generate container
-    if graph_fd is None:
-        graph_fd = Graph(name=name, libgraph=graph_obj_fd, **kwargs)
-    else:
-        graph_fd.set_weights()
-    # set options
-    if issubclass(graph_fd.__class__, Network):
-        Connections.delays(graph_fd)
-    elif population is not None:
-        Network.make_network(graph_fd, population)
-    if shape is not None:
-        SpatialGraph.make_spatial(graph_fd, shape, positions)
+        graph_fd.add_edges(ia_edges)
+    _set_options(graph_fd, weighted, population, shape, positions)
+    graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
     return graph_fd
     
 
@@ -164,7 +166,7 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
     else:
         nodes = population.size if population is not None else nodes
         graph_obj_er = GraphObject(nodes, directed=directed)
-        graph_er = Graph(name=name, libgraph=graph_obj_er, **kwargs)
+        graph_er = nngt.Graph(name=name, libgraph=graph_obj_er, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -172,15 +174,8 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
         ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                                 directed, multigraph)
         graph_er.add_edges(ia_edges)
-    if weighted:
-        graph_er.set_weights()
-    # set options
-    if issubclass(graph_er.__class__, Network):
-        Connections.delays(graph_er)
-    elif population is not None:
-        Network.make_network(graph_er, population)
-    if shape is not None:
-        SpatialGraph.make_spatial(graph_er, shape, positions)
+    _set_options(graph_er, weighted, population, shape, positions)
+    graph_er._graph_type = "erdos_renyi"
     return graph_er
 
 
@@ -255,25 +250,16 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
     else:
         nodes = population.size if population is not None else nodes
         graph_obj_rsf = GraphObject(nodes, directed=directed)
+        graph_rsf = nngt.Graph(name=name, libgraph=graph_obj_rsf, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
                           edges, avg_deg, reciprocity, directed, multigraph)
-        graph_obj_rsf.new_edges(ia_edges)
-    # generate container
-    if graph_rsf is None:
-        graph_rsf = Graph(name=name, libgraph=graph_obj_rsf, **kwargs)
-    else:
-        graph_rsf.set_weights()
-    # set options
-    if issubclass(graph_rsf.__class__, Network):
-        Connections.delays(graph_rsf)
-    elif population is not None:
-        Network.make_network(graph_rsf, population)
-    if shape is not None:
-        SpatialGraph.make_spatial(graph_rsf, shape, positions)
+        graph_rsf.add_edges(ia_edges)
+    _set_options(graph_rsf, weighted, population, shape, positions)
+    graph_rsf._graph_type = "random_scale_free"
     return graph_rsf
 
 def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
@@ -331,15 +317,11 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     if from_graph is not None:
         from_graph.graph = graph_obj_price
     
-    graph_price = (Graph(name=name, libgraph=graph_obj_price, **kwargs)
+    graph_price = (nngt.Graph(name=name, libgraph=graph_obj_price, **kwargs)
                    if from_graph is None else from_graph)
     
-    if issubclass(graph_price.__class__, Network):
-        Connections.delays(graph_price, ia_edges)
-    elif population is not None:
-        Network.make_network(graph_price, population)
-    if shape is not None:
-        make_spatial(graph_price, shape, positions)
+    _set_options(graph_price, weighted, population, shape, positions)
+    graph_price._graph_type = "price_scale_free"
     return graph_price
 
 #
@@ -408,25 +390,16 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
     else:
         nodes = population.size if population is not None else nodes
         graph_obj_nw = GraphObject(nodes, directed=directed)
+        graph_nw = nngt.Graph(name=name, libgraph=graph_obj_nw, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _newman_watts(ids, ids, coord_nb, proba_shortcut, directed,
                                  multigraph)
-        graph_obj_nw.new_edges(ia_edges)
-    # generate container
-    if graph_nw is None:
-        graph_nw = Graph(name=name, libgraph=graph_obj_nw, **kwargs)
-    else:
-        graph_nw.set_weights()
-    # set options
-    if issubclass(graph_nw.__class__, Network):
-        Connections.delays(graph_nw)
-    elif population is not None:
-        Network.make_network(graph_nw, population)
-    if shape is not None:
-        SpatialGraph.make_spatial(graph_nw, shape, positions)
+        graph_nw.add_edges(ia_edges)
+    _set_options(graph_nw, weighted, population, shape, positions)
+    graph_nw._graph_type = "newman_watts"
     return graph_nw
 
 
@@ -497,13 +470,13 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     # generate container
     h = w = np.sqrt(float(nodes)/neuron_density)
     if graph_dr is None:
-        shape = shape if shape is not None else Shape.rectangle(None,h,w)
-        graph_dr = SpatialGraph(name=name, libgraph=graph_obj_dr, shape=shape,
+        shape = shape if shape is not None else nngt.Shape.rectangle(None,h,w)
+        graph_dr = nngt.SpatialGraph(name=name, libgraph=graph_obj_dr, shape=shape,
                                 **kwargs)
     else:
-        if not issubclass(graph_dr.__class__, SpatialGraph):
-            shape = shape if shape is not None else Shape.rectangle(self,h,w)
-            SpatialGraph.make_spatial(graph_dr, shape, positions)
+        if not issubclass(graph_dr.__class__, nngt.SpatialGraph):
+            shape = shape if shape is not None else nngt.Shape.rectangle(self,h,w)
+            nngt.SpatialGraph.make_spatial(graph_dr, shape, positions)
     # add edges
     positions = graph_dr.position
     ia_edges = None
@@ -511,14 +484,11 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         ids = range(nodes)
         ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
                                   rule, shape, positions, directed, multigraph)
-        graph_obj_dr.new_edges(ia_edges)
+        print(ia_edges)
+        graph_dr.add_edges(ia_edges)
     # set options
-    if weighted:
-        graph_dr.set_weights()
-    if issubclass(graph_dr.__class__, Network):
-        Connections.delays(graph_dr)
-    elif population is not None:
-        Network.make_network(graph_dr, population)
+    _set_options(graph_dr, weighted, population, shape=None, positions=None)
+    graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
 
 
@@ -542,7 +512,7 @@ di_default = {  "density": 0.1,
 one_pop_models = ("newman_watts",)
 
 def connect_neural_types(network, source_type, target_type, graph_model,
-                         model_param):
+                         model_param, weighted=True):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
@@ -563,6 +533,9 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     model_param : dict
         Dictionary containing the model parameters (the keys are the keywords
         of the associated generation function --- see above).
+    weighted : bool, optional (default: True)
+        @todo
+        Whether the graph edges have weights.
     '''
     edges, source_ids, target_ids = None, [], []
     di_param = di_default.copy()
@@ -579,11 +552,13 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         edges = di_gen_func[graph_model](source_ids,target_ids,**di_param)
         network.add_edges(edges)
     #~ network.set_weights(edges)
-    network.set_weights()
+    if weighted:
+        network.set_weights()
     #~ Connections.delays(network, elist=edges)
     Connections.delays(network)
-    if issubclass(network.__class__, SpatialGraph):
+    if issubclass(network.__class__, nngt.SpatialGraph):
         Connections.distances(network)
+    network._graph_type += "_neural_type_connect"
 
 def connect_neural_groups(network, source_groups, target_groups, graph_model,
                          model_param):
@@ -625,5 +600,6 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     network.set_weights()
     #~ Connections.delays(network, elist=edges)
     Connections.delays(network)
-    if issubclass(network.__class__, SpatialGraph):
+    if issubclass(network.__class__, nngt.SpatialGraph):
        Connections.distances(network)
+    network._graph_type += "_neural_group_connect"

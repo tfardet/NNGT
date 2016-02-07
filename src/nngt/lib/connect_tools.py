@@ -307,10 +307,10 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     '''
     np.random.seed()
     def exp_rule(pos_src, pos_target):
-        dist = np.linalg.norm(pos_src-pos_target)
+        dist = np.linalg.norm(pos_src-pos_target,axis=0)
         return np.exp(np.divide(dist,-scale))
     def lin_rule(pos_src, pos_target):
-        dist = np.linalg.norm(pos_src-pos_target)
+        dist = np.linalg.norm(pos_src-pos_target,axis=0)
         return np.divide(scale-dist,scale).clip(min=0.)
     dist_test = exp_rule if rule == "exp" else lin_rule
     # compute the required values
