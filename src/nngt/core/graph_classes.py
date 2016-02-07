@@ -320,7 +320,7 @@ with non symmetric matrix provided.')
         Connections.weights(self, elist=elist, wlist=wlist, distrib=distrib,
             correl=correl, distrib_prop=distrib_prop, noise_scale=noise_scale)
 
-    def set_types(self, graph,  syn_type, nodes=None, fraction=None):
+    def set_types(self, syn_type, nodes=None, fraction=None):
         '''
         Set the synaptic/connection types.
 
@@ -334,8 +334,6 @@ with non symmetric matrix provided.')
 
         Parameters
         ----------
-        graph : :class:`~nngt.Graph` or subclass
-            Graph on which edge types will be created.
         syn_type : int or string
             Type of the connection among 'excitatory' (also `1`) or
             'inhibitory' (also `-1`).
@@ -366,7 +364,7 @@ with non symmetric matrix provided.')
                 nodes.sort()
                 for node in nodes[::-1]:
                     del inhib_nodes[node]
-        return Connections.types(graph, inhib_nodes, fraction)
+        return Connections.types(self, inhib_nodes, fraction)
         
         
 

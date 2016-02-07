@@ -474,11 +474,15 @@ class Connections:
             n = graph.node_nb()
             if inhib_nodes is None:
                 # set inhib_frac*num_edges random inhibitory connections
-                num_inhib = graph.edge_nb()*inhib_frac
+                num_edges = graph.edge_nb()
+                num_inhib = int(num_edges*inhib_frac)
+                num_current = 0
+                print(num_edges,num_inhib)
                 while num_current < num_inhib:
-                    new = randint(0,n,num_inhib-num_current)
-                    idx_inhib = np.unique( np.concatenate( (arr, new) ) )
+                    new = randint(0,num_edges,num_inhib-num_current)
+                    idx_inhib = np.unique( np.concatenate( (idx_inhib, new) ) )
                     num_current = len(idx_inhib)
+                t_list[idx_inhib.astype(int)] *= -1.
             else:
                 # get the dict of inhibitory nodes
                 num_inhib_nodes = 0
@@ -500,9 +504,10 @@ for `inhib_nodes`) must be smaller than 1")
                 for v in edges[:,0]:
                     if v in idx_nodes:
                         idx_inhib.append(v)
+                idx_inhib = np.unique(idx_inhib)
                 # set the inhibitory edge indices
-                for v in idx_inhib.iterkeys():
-                    idx_edges = np.argwhere(edges[:,0])
+                for v in idx_inhib:
+                    idx_edges = np.argwhere(edges[:,0]==v)
                     n = len(idx_edges)
                     if inhib_frac is not None:
                         idx_inh = []
@@ -510,12 +515,12 @@ for `inhib_nodes`) must be smaller than 1")
                         i = 0
                         while i != num_inh:
                             ids = randint(0,n,num_inh-i)
-                            idx_inh = np.unique(np.concatenate((idx_inh,ids))
+                            idx_inh = np.unique(np.concatenate((idx_inh,ids)))
                             i = len(idx_inh)
                         t_list[idx_inh] *= -1.
                     else:
                         t_list[idx_edges] *= -1.
-            graph.new_edge_attribute("type", "double", values=t_list)
+            graph.set_edge_attribute("type", value_type="double", values=t_list)
             return t_list
                 
             
