@@ -259,11 +259,6 @@ with non symmetric matrix provided.')
         ''' Remove all the edges in the graph. '''
         self._graph.clear_edges()
 
-    def clear_edges(self):
-        ''' Remove all the edges in the graph. '''
-        self._graph.clear_edges()
-        n = self.node_nb()
-
     #-------------------------------------------------------------------------#
     # Setters
         

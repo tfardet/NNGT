@@ -19,7 +19,8 @@ __all__ = [ 'activity_types' ]
 #
 
 def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
-                   mbis=0.5, mfb=0.2, mflb=0.05, simplify=False, fignums=[]):
+                   mbis=0.5, mfb=0.2, mflb=0.05, simplify=False, fignums=[],
+                   show=False):
     '''
     Analyze the spiking pattern of a neural network.
     @todo: think about inserting t= and t=simtime at the beginning and at the end of ``times''.
@@ -58,6 +59,8 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
         @todo: not implemented yet
     fignums : list, optional (default: [])
         Indices of figures on which the periods can be drawn.
+    show : bool, optional (default: False)
+        Whether the figures should be displayed.
     
     Returns
     -------
@@ -190,6 +193,6 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
             for phase,color in zip(names,colors):
                 for span in phases[phase]:
                     ax.axvspan(span[0],span[1], facecolor=color, alpha=0.2)
-    if fignums:
+    if fignums and show:
         plt.show()
     return phases

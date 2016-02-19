@@ -65,8 +65,8 @@ def make_nest_network(network, use_weights=True):
     lil_delays = network.adjacency_matrix(False, DELAY).tolil()
     
     # connect neurons
-    dic = { "target": None, "weight": None, "delay": None }
     for i in range(num_neurons):
+        dic = { "target": None, "weight": None, "delay": None }
         ia_targets = np.array(lil_weights.rows[ia_nngt_ids[i]], dtype=int)
         dic["target"] = ia_nngt_nest[ia_targets]
         num_connect = len(ia_targets)
@@ -78,7 +78,7 @@ def make_nest_network(network, use_weights=True):
         if use_weights:
             dic[WEIGHT] = syn_sign*np.array(lil_weights.data[ia_nngt_ids[i]])
         else:
-            dic[WEIGHT] = syn_sign*np.repeat(10., num_connect)
+            dic[WEIGHT] = syn_sign*np.repeat(1., num_connect)
         if dic["delay"] is None:
             dic["delay"] = np.array(lil_delays.data[ia_nngt_ids[i]])
         nest.DataConnect((ia_nngt_nest[ia_nngt_ids[i]],), (dic,), syn_model)
