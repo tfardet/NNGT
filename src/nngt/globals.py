@@ -56,7 +56,6 @@ glib_func = {
     "diameter": None,
     "reciprocity": None
 }
-
 # switch libraries
 def use_library(library, reloading=True):
     '''

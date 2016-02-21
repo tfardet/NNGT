@@ -3,17 +3,19 @@
 
 """ Graph classes for graph generation and management """
 
-import warnings
+from collections import OrderedDict
 from copy import deepcopy
+import warnings
+
 import numpy as np
 import scipy.sparse as ssp
 
-from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
-                       DIST, TYPE)
+import nngt.analysis as na
 from nngt.core.graph_objects import GraphLib, GraphObject
 from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
-import nngt.analysis as na
 from nngt.lib import InvalidArgument
+from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
+                          DIST, TYPE)
 
 
 __all__ = [
@@ -130,7 +132,7 @@ with non symmetric matrix provided.')
         self.__id = self.__class__.__max_id
         self._name = name
         self._directed = directed
-        self._edges = []
+        self._edges = OrderedDict()
         self._graph_type = "custom"
         # create the graphlib graph
         if libgraph is not None:
@@ -153,12 +155,12 @@ with non symmetric matrix provided.')
 
     @property
     def id(self):
-        ''' unique :class:`int` identifying the instance '''
+        ''' Unique :class:`int` identifying the instance. '''
         return self.__id
     
     @property
     def graph(self):
-        ''' :class:`graph_tool.Graph` attribute of the instance '''
+        ''' :class:`graph_tool.Graph` attribute of the instance. '''
         return self._graph
 
     @graph.setter
@@ -173,12 +175,20 @@ with non symmetric matrix provided.')
     
     @property
     def name(self):
-        ''' name of the graph '''
+        ''' Name of the graph. '''
         return self._name
 
     @property
     def edges(self):
+        ''' :class:`OrderedDict` containing the edges as keys (2-tuple) and
+        their index at the time of their creation as value '''
         return self._edges
+
+    @property
+    def edges_array(self):
+        ''' Edges of the graph, sorted by order of creation, as an array of
+        2-tuple. '''
+        return np.array(self._edges.keys(), copy=True)
 
     #-------------------------------------------------------------------------#
     # Graph actions
@@ -205,7 +215,9 @@ with non symmetric matrix provided.')
         @todo: add example, check the edges for self-loops and multiple edges
         '''
         self._graph.new_edges(lst_edges)
-        self._edges.extend(lst_edges)
+        n = self.edge_nb()
+        for i, edge in enumerate(lst_edges):
+            self._edges[tuple(edge)] = n + i
 
     def inhibitory_subgraph(self):
         ''' Create a :class:`~nngt.core.Graph` instance which graph
@@ -366,10 +378,33 @@ with non symmetric matrix provided.')
 
     #-------------------------------------------------------------------------#
     # Getters
-    
-    def attributes(self):
-        ''' List of the graph's attributes (synaptic weights, delays...) '''
-        return self._graph._eattr.keys()
+
+    def attributes(self, edge=None, name=None):
+        '''
+        Attributes of the graph's edges.
+
+        Parameters
+        ----------
+        edge : tuple, optional (default: ``None``)
+            Edge whose attribute should be displayed.
+        name : str, optional (default: ``None``)
+            Name of the desired attribute.
+
+        Returns
+        -------
+        List containing the names of the graph's attributes (synaptic weights,
+        delays...) if `edge` is ``None``, else a ``dict`` containing the
+        attributes of the edge (or the value of attribute `name` if it is not
+        ``None``).
+        '''
+        if name is None and edge is None:
+            return self._graph._eattr.keys()
+        elif name is None:
+            return self._graph._eattr[edge]
+        elif edge is None:
+            return self._graph._eattr[name]
+        else:
+            return self._graph._eattr[edge][name]
     
     def get_name(self):
         ''' Get the name of the graph '''
@@ -449,8 +484,7 @@ with non symmetric matrix provided.')
         if deg_type in valid_types:
             return self._graph.degree_list(node_list, deg_type, use_weights)
         else:
-            warnings.warn("Ignoring invalid degree type '{}'".format(strType))
-            return None
+            raise InvalidArgument("Invalid degree type '{}'".format(strType))
 
     def get_betweenness(self, use_weights=True):
         '''
@@ -484,10 +518,19 @@ with non symmetric matrix provided.')
 
     def is_spatial(self):
         '''
-        Whether the graph is embedded in space (has a :class:`~nngt.Shape`
-        attribute).
+        Whether the graph is embedded in space (i.e. if it has a
+        :class:`~nngt.Shape` attribute).
+        Returns ``True`` is the graph is a subclass of
+        :class:`~nngt.SpatialGraph`.
         '''
         return True if issubclass(self.__class__, SpatialGraph) else False
+
+    def is_network(self):
+        '''
+        Whether the graph is a subclass of :class:`~nngt.Network` (i.e. if it
+        has a :class:`~nngt.Shape` attribute).
+        '''
+        return True if issubclass(self.__class__, Network) else False
 
 
 

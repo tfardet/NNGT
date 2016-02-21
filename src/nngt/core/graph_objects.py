@@ -659,7 +659,22 @@ class _GtEProperty:
         self.parent = parent
 
     def __getitem__(self, name):
-        return self.parent.edge_properties[name].a
+        '''
+        Return the attributes of an edge or a list of edges.
+        '''
+        if isinstance(name, str):
+            return self.parent.edge_properties[name].a
+        elif hasattr(name[0], '__iter__'):
+            di_eattr = {}
+            for key in self.keys():
+                di_eattr[key] = np.array( [ self.parent.edge_properties[key][e]
+                                            for e in name ] )
+            return di_eattr
+        else:
+            di_eattr = {}
+            for key in self.keys():
+                di_eattr[key] = self.parent.edge_properties[key][name]
+            return di_eattr
 
     def __setitem__(self, name, value):
         size = self.parent.edge_nb()

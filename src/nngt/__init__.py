@@ -138,5 +138,4 @@ try:
     from . import simulation
     __all__.append("simulation")
 except:
-    raise
     print("NEST not found; nest module will not be loaded")

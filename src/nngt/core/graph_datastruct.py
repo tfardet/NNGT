@@ -324,7 +324,7 @@ class Connections:
             Array containing *ONLY* the newly-computed distances.
         '''
         n = graph.node_nb()
-        elist = np.array(graph._edges)
+        elist = graph.edges_array
         pos = graph._pos if hasattr(graph, "_pos") else pos
         # compute the new distances
         if graph.edge_nb():
@@ -464,7 +464,7 @@ class Connections:
             List of the edges' types.
         '''
         t_list = np.repeat(1.,graph.edge_nb())
-        edges = np.array(graph.edges,copy=True)
+        edges = graph.edges_array
         num_inhib = 0
         idx_inhib = []
         if inhib_nodes is None and inhib_frac is None:
