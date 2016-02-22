@@ -12,8 +12,8 @@ import unittest
 import numpy as np
 
 import nngt
-
-from ..base_test import TestBasis, foreach_graph
+from ..base_test import TestBasis, directory
+from test_tools import foreach_graph, set_path
 
 
 
@@ -22,7 +22,7 @@ from ..base_test import TestBasis, foreach_graph
 #------------------------
 #
 
-class TestAnalysis(TestBasis):
+class TestIO_Analysis(TestBasis):
     
     '''
     Class testing the functions of the :mod:`~nngt.analysis` module using a set
@@ -31,12 +31,26 @@ class TestAnalysis(TestBasis):
 
     def __init__(self):
         super(TestBasis, self).init()
+        self._name = "test_analysis"
     
-    def get_expected_result(self, graph_instruction):
-        pass
-    
-    def make_graph(self, graph_instruction):
-        pass
+    @property
+    def test_name(self):
+        return self._name
+
+    @set_path(directory)
+    def gen_graph(self, graph_name):
+        di_instructions = self.parser.get_graph_options(graph_name)
+        graph = nngt.Graph.from_file(graph_name, **di_instructions)
+        graph.set_name(graph_name)
+        return graph
+
+    @foreach_graph(TestIO_Analysis.graphs)
+    def test_node_nb(self, graph, **kwargs):
+        assert( self.get_expected_result(graph, "nodes") == graph.node_nb() )
+
+    @foreach_graph(TestIO_Analysis.graphs)
+    def test_edge_nb(self, graph, **kwargs):
+        assert( self.get_expected_result(graph, "edges") == graph.edge_nb() )
 
 
 #-----------------------------------------------------------------------------#

@@ -15,10 +15,19 @@
             <int name="edges_largest_scc">18742</int>
             <float name="clustering">0.0062</float>
         </graph>
+
+        <graph name="fixed_indegree">
+            <generate_options>
+                <int name="nodes">1000</int>
+                <string name="degree">in</string>
+            </generate_options>
+        </graph>
     </graphs>
     
 	<test name="analysis">
-		<instruction></instruction>
+		<graph_list>
+            <name>p2p-Gnutella04.txt</name>
+        </graph_list>
 	</test>
     
 </input>

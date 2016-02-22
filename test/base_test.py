@@ -11,66 +11,35 @@ import sys
 from os import listdir
 from os.path import isfile, join
 import unittest
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
 import xml.etree.ElementTree as xmlet
 
 import nngt
+from test_tools import ( _bool_from_string, _make_graph_list, _xml_to_dict,
+                         with_metaclass )
 
 
 
-# xml file containing the graphs, their properties, and the instructions
+#-----------------------------------------------------------------------------#
+# Path to input files
+#------------------------
+#
+
+# folder containing all networks
+directory = "Networks/"
+
+# file containing networks' properties and instructions
 xml_file = "graph_tests.xml"
+
 if xml_file not in listdir("."):
     xml_file = "test/graph_tests.xml"
+    directory = "test/Networks/"
     if xml_file not in listdir("."):
         raise RuntimeError("File `graph_tests.xml` not found! Tests must be \
 run from the same folder as `setup.py` or from the `test` folder.")
 
-
-#-----------------------------------------------------------------------------#
-# Tools
-#------------------------
-#
-
-def _bool_from_string(string):
-	return True if (string.lower() == "true") else False
-
-def _make_instructions(string):
-    pass
-
-#-----------------------------------------------------------------------------#
-# Decorators
-#------------------------
-#
-
-def with_metaclass(mcls):
-    ''' Python 2/3 compatible metaclass declaration. '''
-    def decorator(cls):
-        body = vars(cls).copy()
-        # clean out class body
-        body.pop('__dict__', None)
-        body.pop('__weakref__', None)
-        return mcls(cls.__name__, cls.__bases__, body)
-    return decorator
-
-def foreach_graph(graphs):
-    '''
-    Decorator that automatically does the test for all graph instructions
-    provided in the argument.
-    '''
-    def decorator(func):          
-        def wrapper(*args, **kwargs):
-            self = args[0]
-            for graph_instruction in graphs:
-                graph = self.make_graph(graph_instruction)
-                reference = self.get_expected_result(graph_instruction)
-                computed = func(self, graph, **kwargs)
-                assert( (reference-computed)/reference < self.tolerance )
-        return wrapper
-    return decorator
-        
 
 #-----------------------------------------------------------------------------#
 # XmlResultParser
@@ -98,9 +67,17 @@ class XmlHandler:
     def result(self, elt):
         return di_type[elt.tag](elt.text)
     
-    def get_instructions(self, test):
+    def get_graph_list(self, test):
         elt_test = self.root.find('./test[@name="{}"]'.format(test))
-        return _make_instructions(elt_test.attrib["instructions"])
+        return _make_graph_list(elt_test.attrib["graph_list"])
+
+    def get_graph_options(self, graph):
+        graph_elt = self.graphs.find('./graph[@name="{}"]'.format(graph))
+        elt_options = None
+        for child in graph_elt:
+            if child.tag in ("load_options", "generate_options"):
+                elt_options = child
+        return _xml_to_dict(elt_options, di_type)
     
     def get_reference_result(self, graph, result_name):
         elt_test = self.root.find('./graph[@name="{}"]'.format(graph))
@@ -121,34 +98,35 @@ class TestBasis(unittest.TestCase):
     
     warning ::
         All test methods should be of the form:
-        ``def method(self, graph, **kwargs)``
+        ``def test_method(self, graph, **kwargs)``
     '''
     
     #-------------------------------------------------------------------------#
     # Class properties
     
     tolerance = 1e-5
-    dir_graph = "test/Networks"
-    lst_gfiles = [f for f in listdir(dir_graph) if isfile(join(dir_graph, f))]
-    
-    load_options = {
-        "p2p-Gnutella04.txt": { format:"edge_list", delimiter:"\t" }
-    }
-    
-    @staticmethod
-    def 
+    parser = XmlHandler()
+    graphs = []
     
     #-------------------------------------------------------------------------#
     # Instance
     
     def __init__(self):
         super(unittest.TestCase, self).__init__()
-    
-    @abstractmethod
-    def get_expected_result(self, graph_instruction):
+        self.make_graphs()
+
+    @abstractproperty
+    def test_name(self):
         pass
     
+    def get_expected_result(self, graph, res_name):
+        return self.parser.get_result(graph.get_name(), res_name)
+
+    def make_graphs(self):
+        for graph_name in parser.get_graph_list(self.test_name):
+            self.__class__.graphs.append(self.gen_graph(graph_name))
+
     @abstractmethod
-    def make_graph(self, graph_instruction):
+    def gen_graph(self, graph_name):
         pass
     
