@@ -19,6 +19,8 @@ setup(
             'PySide': ['PySide'],
             'PDF':  ["ReportLab>=1.2", "RXP"],
             'reST': ["docutils>=0.3"],
+            'nx': ['networkx'],
+            'ig': ['python-igraph']
         },
         entry_points = {
             #@todo

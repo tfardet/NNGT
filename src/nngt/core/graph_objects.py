@@ -657,6 +657,7 @@ class _GtEProperty:
 
     def __init__ (self, parent):
         self.parent = parent
+        self.stored = {}
 
     def __getitem__(self, name):
         '''
@@ -690,6 +691,7 @@ the graph is required")
     def new_ea(self, name, value_type, values=None, val=None):
         eprop = self.parent.new_edge_property(value_type, values, val)
         self.parent.edge_properties[name] = eprop
+        self.stored[name] = value_type
 
 class _IgNProperty:
 

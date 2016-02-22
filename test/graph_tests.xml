@@ -1,0 +1,24 @@
+<input>
+    
+    <graphs>
+        <graph name="p2p-Gnutella04.txt">
+            <load_options>
+                <string name="format">edge_list</string>
+                <string name="delimiter">\t</string>
+            </load_options>
+            <int name="nodes">10876</int>
+            <int name="edges">39994</int>
+            <int name="diameter">5.4</int> <!-- must be greater than that -->
+            <int name="nodes_largest_wcc">10876</int>
+            <int name="edges_largest_wcc">39994</int>
+            <int name="nodes_largest_scc">4317</int>
+            <int name="edges_largest_scc">18742</int>
+            <float name="clustering">0.0062</float>
+        </graph>
+    </graphs>
+    
+	<test name="analysis">
+		<instruction></instruction>
+	</test>
+    
+</input>

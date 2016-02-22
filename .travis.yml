@@ -1,0 +1,71 @@
+language: generic
+
+#For Ubuntu Trusty (14.04 LTS)
+sudo: required
+dist: trusty
+
+python:
+  # python versions that will be tested
+  - "2.7"
+  - "3.3"
+
+env:
+  # declare the graph library that will be used
+  - GL="GT"
+  - GL="IG"
+  - GL="NX"
+
+matrix:
+  # do notify immediately about it when a job of a build fails.
+  fast_finish: true
+
+cache:
+  apt: true 
+  ccache: true
+  pip: true
+
+before_install:
+  - echo $PATH
+
+  # get repository for clang-3.6 stuff (including clang-format-3.6)
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+  - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main" >> /etc/apt/sources.list'
+  # add key from ^ repository
+  - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+
+  # update package repository status (-qq is more quiet)
+  - sudo rm -rf /var/lib/apt/lists/*
+  - ls /etc/apt/sources.list.d/
+  - sudo apt-get update -qq
+
+  # remove any obsolete libraries
+  - sudo apt-get autoremove
+
+  # from installation webpage http://www.nest-simulator.org/installation-2/#Standard_configuration
+  - sudo apt-get install -y build-essential autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev
+
+  # Install pip and cython
+  - wget https://bootstrap.pypa.io/get-pip.py
+  - sudo python get-pip.py
+  - sudo pip install -U setuptools
+  - sudo pip install -U nose2
+  - sudo pip install -U numpy
+  - sudo pip install -U scipy
+  - sudo pip install -U matplotlib
+  - pip install --user cython==0.23.4
+
+  # MPI
+  - sudo apt-get install -y openmpi-bin libopenmpi-dev
+  
+  # install graph-tool and igraph
+  - sudo apt-get install -qq python-graph-tool
+  - sudo apt-get install -qq python3-graph-tool
+  - sudo apt-get install -qq libigraph0 libigraph0-dev
+
+  # static code analysis
+  - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
+
+install: sudo pip install -e ".[nx,ig]"
+
+script: test/test.py $GL
+

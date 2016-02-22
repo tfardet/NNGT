@@ -2,6 +2,7 @@
 #-*- coding:utf-8 -*-
 
 # nest_utils.py
+
 # This file is part of the NNGT module
 # Distributed as a free software, in the hope that it will be useful, under the
 # terms of the GNU General Public License.

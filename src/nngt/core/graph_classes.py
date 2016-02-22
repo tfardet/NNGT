@@ -13,7 +13,7 @@ import scipy.sparse as ssp
 import nngt.analysis as na
 from nngt.core.graph_objects import GraphLib, GraphObject
 from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, save_to_file, load_from_file
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE)
 
@@ -101,6 +101,70 @@ with non symmetric matrix provided.')
                 weights = matrix[dges[:,0],dges[:,1]]
                 
             graph.set_weights(elist=edges, wlist=weights)
+        return graph
+    
+    @staticmethod
+    def from_file(filename, format="auto", delimiter=" ", secondary=";",
+                  attributes=[], notifier="@", ignore="#"):
+        '''
+        Import a saved graph from a file.
+        @todo: implement population and shape loading, implement gml, dot, xml, gt
+
+        Parameters
+        ----------
+        filename: str
+            The path to the file.
+        format : str, optional (default: "neighbour")
+            The format used to save the graph. Supported formats are:
+            "neighbour" (neighbour list, default if format cannot be deduced
+            automatically), "ssp" (scipy.sparse), "edge_list" (list of all the
+            edges in the graph, one edge per line, represented by a ``source
+            target``-pair), "gml" (gml format, default if `filename` ends with
+            '.gml'), "graphml" (graphml format, default if `filename` ends
+            with '.graphml' or '.xml'), "dot" (dot format, default if
+            `filename` ends with '.dot'), "gt" (only when using
+            `graph_tool`<http://graph-tool.skewed.de/>_ as library, detected
+            if `filename` ends with '.gt').
+        delimiter : str, optional (default " ")
+            Delimiter used to separate inputs in the case of custom formats 
+            (namely "neighbour" and "edge_list")
+        secondary : str, optional (default: ";")
+            Secondary delimiter used to separate attributes in the case of
+            custom formats.
+        attributes : list, optional (default: [])
+            List of names for the attributes present in the file. If a
+            `notifier` is present in the file, names will be deduced from it;
+            otherwise the attributes will be numbered.
+        notifier : str, optional (default: "@")
+            Symbol specifying the following as meaningfull information.
+            Relevant information is formatted ``@info_name=info_value``, where
+            ``info_name`` is in ("attributes", "directed", "name", "size") and
+            associated ``info_value``s are of type (``list``, ``bool``,
+            ``str``, ``int``).
+            Additional notifiers are ``@type=SpatialGraph/Network/
+            SpatialNetwork``, which must be followed by the relevant notifiers
+            among ``@shape``, ``@population``, and ``@graph``.
+
+        Returns
+        -------
+        graph : :class:`~nngt.Graph` or subclass
+            Loaded graph.
+        '''
+        info, edges, attr, pop, shape = load_from_file(filename=filename,
+                    format=format, delimiter=delimiter, secondary=secondary,
+                    attributes=attributes, notifier=notifier)
+        graph = Graph(nodes=info["size"], name=info["name"],
+                      directed=info["directed"])
+        di_attr = {
+            "names": info["attributes"],
+            "types": info["attr_types"],
+            "values": [ attr[name] for name in info["attributes"] ]
+        }
+        graph.add_edges(edges, di_attr)
+        if pop is not None:
+            Network.make_network(graph, pop)
+        if shape is not None:
+            SpatialGraph.make_spatial(graph, shape)
         return graph
             
 
@@ -203,7 +267,7 @@ with non symmetric matrix provided.')
                             graph=self._graph.copy())
         return gc_instance
     
-    def add_edges(self, lst_edges):
+    def add_edges(self, lst_edges, attributes=None):
         '''
         Add a list of edges to the graph.
         
@@ -211,13 +275,25 @@ with non symmetric matrix provided.')
         ----------
         lst_edges : list of 2-tuples or np.array of shape (edge_nb, 2)
             List of the edges that should be added as tuples (source, target)
+        attributes : dict, optional (default: ``None``)
+            Dictionary of the form ``{ "name": [], "values": [],
+            "types": [] }``, containing the attributes of the new edges.
+        
+        warning ::
+            For now attributes works only when adding edges for the first time
+            (i.e. adding edges to an empty graph).
             
         @todo: add example, check the edges for self-loops and multiple edges
         '''
+        empty = False if self.edge_nb() else True
         self._graph.new_edges(lst_edges)
         n = self.edge_nb()
         for i, edge in enumerate(lst_edges):
             self._edges[tuple(edge)] = n + i
+        if empty and attributes is not None:
+            for name, value_type, values in zip(attributes["names"],
+                                    attributes["types"], attributes["values"]):
+                self._graph._eattr.new_ea(name, value_type, values=values)
 
     def inhibitory_subgraph(self):
         ''' Create a :class:`~nngt.core.Graph` instance which graph
@@ -405,6 +481,10 @@ with non symmetric matrix provided.')
             return self._graph._eattr[name]
         else:
             return self._graph._eattr[edge][name]
+    
+    def get_attribute_type(self, attribute_name):
+        ''' Return the type of an attribute '''
+        return self._graph._eattr.stored[attribute_name]
     
     def get_name(self):
         ''' Get the name of the graph '''

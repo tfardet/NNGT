@@ -21,6 +21,20 @@ __all__ = [
 #------------------------
 #
 
+def _get_format(format, filename):
+    if format == "auto":
+        if filename.endswith('.gml'):
+            format = 'gml'
+        if filename.endswith('.graphml') or filename.endswith('.xml'):
+            format = 'graphml'
+        elif filename.endswith('.dot'):
+            format = 'dot'
+        elif filename.endswith('gt') and glib_data["library"] == "graph_tool":
+            format = 'gt'
+        else:
+            format = 'neighbour'
+    return format
+
 def _neighbour_list(graph, delimiter, secondary, attributes):
     '''
     Generate a string containing the neighbour list of the graph as well as a
@@ -72,8 +86,9 @@ def _gt(graph, attributes, **kwargs):
 #
 
 def _format_notif(notif_name, notif_val):
-    if notif_name == "attributes":
-        return notif_val[1:-1].split(", ")
+    if notif_name in ("attributes", "attr_types"):
+        lst = notif_val[1:-1].split(", ")
+        return [ val.strip("'\"") for val in lst ]
     elif notif_name == "size":
         return int(notif_val)
     elif notif_name == "directed":
@@ -81,51 +96,87 @@ def _format_notif(notif_name, notif_val):
     else:
         return notif_val    
 
-def _get_notif(filegraph, notifier):
-    di_notif = {}
-    b_readnotif = True
-    while b_readnotif:
-        notif = filegraph.readline()
-        b_readnotif = True if notif.startswith(notifier) else False
-        if b_readnotif:
-            idx_eq = notif.find("=")
-            notif_name = notif[:idx_eq]
-            notif_val = notif[idx_eq+1:]
+def _get_notif(lines, notifier):
+    di_notif = { "attributes": [], "attr_types": [], "name": "LoadedGraph"}
+    for line in lines:
+        if line.startswith(notifier):
+            idx_eq = line.find("=")
+            notif_name = line[len(notifier):idx_eq]
+            notif_val = line[idx_eq+1:]
             di_notif[notif_name] = _format_notif(notif_name, notif_val)
+        else:
+            break
     return di_notif
 
-def _gen_convert(atributes, attr_type):
+def _to_list(string):
+    delimiters = (';', ',', ' ', '\t')
+    count = -np.Inf
+    chosen = -1
+    for i, delim in enumerate(delimiters):
+        current = string.count(delim)
+        if count < current:
+            count = current
+            chosen = delimiters[i]
+    return string.split(chosen)
+
+def _gen_convert(attributes, attr_types):
     '''
     Generate a conversion dictionary that associates the right type to each
     attribute
     '''
-    
-    
+    di_convert = {}
+    for attr,attr_type in zip(attributes, attr_types):
+        if attr_type in ("double", "float", "real"):
+            di_convert[attr] = float
+        elif attr_type in ("str", "string"):
+            di_convert[attr] = str
+        elif attr_type in ("int", "integer"):
+            di_convert[attr] = int
+        elif attr_type in ("lst", "list", "tuple", "array"):
+            di_convert[attr] = _to_list
+        else:
+            raise TypeError("Invalid attribute type.")
+    return di_convert
 
-def _get_edge_neighbour(line, attributes, delimiter, secondary, edges,
-                        di_attributes, di_convert):
+def _get_edges_neighbour(line, attributes, delimiter, secondary, edges,
+                         di_attributes, di_convert):
+    '''
+    Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
+    format.
+    '''
     source = int(line[0])
-    neighbours = line[2:].split(delimiter)
-    for stub in neighbours:
-        target = int(stub[0])
-        edges.append((source, target)
-        attr_val = stub.split(secondary)[1:]
-        for name,val in zip(attributes, attr_val):
-            if val[0].isdigit() and '.' in val:
+    len_first_delim = line.find(delimiter)+1
+    if len_first_delim:
+        neighbours = line[len_first_delim:].split(delimiter)
+        for stub in neighbours:
+            target = int(stub[0])
+            edges.append((source, target))
+            attr_val = stub.split(secondary)[1:]
+            for name,val in zip(attributes, attr_val):
                 di_attributes[name].append(di_convert[name](val))
-            elif
-            
+                
+def _get_edges_elist(line, attributes, delimiter, secondary, edges,
+                     di_attributes, di_convert):
+    '''
+    Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
+    format.
+    '''
+    data = line.split(delimiter)
+    source, target = int(data[0]), int(data[1])
+    edges.append((source, target))
+    if len(data) > 2:
+        for name,val in zip(attributes, data[2:]):
+            di_attributes[name].append(di_convert[name](val))
     
-    
-
 
 #-----------------------------------------------------------------------------#
 # Formatting
 #------------------------
 #
 
-di_get_edge = {
-    "neighbour": _get_edge_neighbour
+di_get_edges = {
+    "neighbour": _get_edges_neighbour,
+    "edge_list": _get_edges_elist
 }
 
 di_format = {
@@ -140,7 +191,7 @@ di_format = {
 #
 
 def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
-                   attributes=[], notifier="@"):
+                   attributes=[], notifier="@", ignore="#"):
     '''
     Import a saved graph as a (set of) :class:`~scipy.sparse.csr_matrix` from
     a file.
@@ -179,6 +230,8 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
         Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
         which must be followed by the relevant notifiers among ``@shape``,
         ``@population``, and ``@graph``.
+    ignore : str, optional (default: "#")
+        Ignore lines starting with the `ignore` string.
 
     Returns
     -------
@@ -187,28 +240,34 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
     di_attributes : dict
         Dictionary containing the attribute name as key and its value as a
         list sorted in the same order as `edges`.
+    pop : :class:`~nngt.NeuralPop`
+        Population (``None`` if not present in the file).
+    shape : :class:`~nngt.Shape`
+        Shape of the graph (``None`` if not present in the file).
     '''
-    lst_lines, di_notif = None, None
+    lst_lines, di_notif, pop, shape = None, None, None, None
+    format = _get_format(format, filename)
     with open(filename, "r") as filegraph:
-        lst_lines = [ line for line in filegraph.readlines() ]
-        # notifier lines
-        di_notif = _get_notif(lst_lines, notifier)
-        # data
-        lst_lines = lst_lines[len(di_notif)::-1]
+        lst_lines = [ line.strip() for line in filegraph.readlines() ]
+    # notifier lines
+    di_notif = _get_notif(lst_lines, notifier)
+    # data
+    lst_lines = lst_lines[::-1][:-len(di_notif)]
+    while not lst_lines[-1] or lst_lines[-1].startswith(ignore):
+        lst_lines.pop()
     # make edges and attributes
     edges = []
     di_attributes = { name: [] for name in di_notif["attributes"] }
-    di_convert = _gen_convert(lst_lines, di_notif["attributes"])
+    di_convert = _gen_convert(di_notif["attributes"], di_notif["attr_types"])
     line = None
     while lst_lines:
         line = lst_lines.pop()
         if line and not line.startswith(notifier):
-            di_get_edge[format]( line, di_notif["attributes"], delimiter,
-                                 secondary, edges, di_attributes, di_convert )
+            di_get_edges[format]( line, di_notif["attributes"], delimiter,
+                                  secondary, edges, di_attributes, di_convert )
         else:
             break
-    return edges, di_attributes
-        
+    return di_notif, edges, di_attributes, pop, shape
 
 
 #-----------------------------------------------------------------------------#
@@ -219,8 +278,7 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
 def save_to_file(graph, filename, format="auto", delimiter=" ",
                  secondary=";", attributes=None, notifier="@"):
     '''
-    Import a saved graph as a (set of) :class:`~scipy.sparse.csr_matrix` from
-    a file.
+    Save a graph to file.
     @todo: implement population and shape saving, implement gml, dot, xml, gt
 
     Parameters
@@ -258,8 +316,8 @@ def save_to_file(graph, filename, format="auto", delimiter=" ",
         ``@population``, and ``@graph`` to separate the sections.
 
     warning ::
-        All formats except 'neighbour', 'edge_list' and 'ssp' lead to dataloss
-        if your graph is a subclass of :class:`~nngt.SpatialGraph` or
+        For now, all formats lead to
+        dataloss if your graph is a subclass of :class:`~nngt.SpatialGraph` or
         :class:`~nngt.Network` (the :class:`~nngt.Shape` and
         :class:`~nngt.NeuralPop` attributes will not be saved).
     '''
@@ -276,21 +334,11 @@ different.")
     di_notifiers = {
         "directed": graph.is_directed(),
         "attributes": attributes,
-        "attr_types": raise Error,
+        "attr_types": [graph.get_attribute_type(attr) for attr in attributes],
         "name": graph.get_name(),
         "size": graph.node_nb()
     }
-    if format == "auto":
-        if filename.endswith('.gml'):
-            format = 'gml'
-        if filename.endswith('.graphml') or filename.endswith('.xml'):
-            format = 'graphml'
-        elif filename.endswith('.dot'):
-            format = 'dot'
-        elif filename.endswith('gt') and glib_data["library"] == "graph_tool":
-            format = 'gt'
-        else:
-            format = 'neighbour'
+    format = _get_format(format, filename)
     # generate string and write to file
     str_graph = di_format[format](graph, delimiter=delimiter,
                                   secondary=secondary, attributes=attributes)
