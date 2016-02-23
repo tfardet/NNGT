@@ -4,17 +4,15 @@ language: generic
 sudo: required
 dist: trusty
 
-
+python:
+  # test for python 2 and python 3
+  - "2.7"
+  - "3.3"
 env:
   # declare the graph library that will be used
-  matrix:
-    - GL="GT"
-    - GL="IG"
-    - GL="NX"
-matrix:
-    # test for python 2 and python 3
-    - python: "2.7"
-    - python: "3.3"
+  - GL="GT"
+  - GL="IG"
+  - GL="NX"
 
 matrix:
   # do notify immediately about it when a job of a build fails.

@@ -1,21 +1,17 @@
 """
+Core classes and functions. Most of them are not visible in the module as they
+are directly loaded at :mod:`nngt` level.
+
 Content
 =======
-
-================== =====================================================
-Classes
-========================================================================
-GraphClass			Main object
-SpatialGraph        Spatially-embedded graph
-Network		        More detailed network that inherits from GraphClass
-SpatialNetwork      Spatially-embedded network
-InputConnect		Connectivity to input analogic signals on a graph
-================== =====================================================
 """
 
-from .graph_objects import GraphObject
+from .graph_objects import GraphObject, IGraph, GtGraph, NxGraph
 
 
 __all__ = [ 
-	"GraphObject"
+	"GraphObject",
+    "IGraph",
+    "GtGraph",
+    "NxGraph"
 ]

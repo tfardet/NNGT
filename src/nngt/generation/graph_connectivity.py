@@ -434,11 +434,11 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         created with the appropriate dimensions for the number of neurons and
         the neuron spatial density.
     neuron_density : float, optional (default: 1000.)
-        Density of neurons in space (:math:`neurons \cdot mm^{-2}).
+        Density of neurons in space (:math:`neurons \cdot mm^{-2}`).
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     density: double, optional (default: 0.1)
-        Structural density given by `edges` / (`nodes`*`nodes`).
+        Structural density given by `edges` / (`nodes` * `nodes`).
     edges : int (optional)
         The number of edges between the nodes
     avg_deg : double, optional

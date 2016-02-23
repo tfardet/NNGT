@@ -874,4 +874,7 @@ di_graphlib = {
 }
 
 GraphLib = glib_data["graph"]
+
+#: Graph object (reference to one of the main libraries' wrapper
 GraphObject = di_graphlib[glib_data["name"]]
+
