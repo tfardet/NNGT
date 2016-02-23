@@ -4,12 +4,10 @@ language: generic
 sudo: required
 dist: trusty
 
-python:
-  # python versions that will be tested
-  - "2.7"
-  - "3.3"
-
 env:
+  # test for python 2 and python 3
+  - python: "2.7"
+  - python: "3.3"
   # declare the graph library that will be used
   - GL="GT"
   - GL="IG"
@@ -28,7 +26,7 @@ before_install:
   - echo $PATH
 
   # get repository for clang-3.6 stuff (including clang-format-3.6)
-  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main" >> /etc/apt/sources.list'
   # add key from ^ repository
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
@@ -58,9 +56,9 @@ before_install:
   - sudo apt-get install -y openmpi-bin libopenmpi-dev
   
   # install graph-tool and igraph
-  - sudo apt-get install -qq python-graph-tool
-  - sudo apt-get install -qq python3-graph-tool
-  - sudo apt-get install -qq libigraph0 libigraph0-dev
+  - sudo apt-get install -y python-graph-tool
+  - sudo apt-get install -y python3-graph-tool
+  - sudo apt-get install -y libigraph0 libigraph0-dev
 
   # static code analysis
   - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++

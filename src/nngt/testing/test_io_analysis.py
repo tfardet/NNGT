@@ -12,8 +12,8 @@ import unittest
 import numpy as np
 
 import nngt
-from ..base_test import TestBasis, directory
-from test_tools import foreach_graph, set_path
+from base_test import TestBasis, XmlHandler, network_dir
+from tools_testing import foreach_graph
 
 
 
@@ -25,32 +25,32 @@ from test_tools import foreach_graph, set_path
 class TestIO_Analysis(TestBasis):
     
     '''
-    Class testing the functions of the :mod:`~nngt.analysis` module using a set
-    of known graphs.
+    Class testing the functions of the :mod:`~nngt.analysis` and
+    :mod:`~nngt.io` modules using a set of known graphs.
     '''
-
-    def __init__(self):
-        super(TestBasis, self).init()
-        self._name = "test_analysis"
     
     @property
     def test_name(self):
-        return self._name
+        return "test_analysis"
 
-    @set_path(directory)
     def gen_graph(self, graph_name):
+        abspath = network_dir + graph_name
         di_instructions = self.parser.get_graph_options(graph_name)
-        graph = nngt.Graph.from_file(graph_name, **di_instructions)
+        graph = nngt.Graph.from_file(abspath, **di_instructions)
         graph.set_name(graph_name)
         return graph
 
-    @foreach_graph(TestIO_Analysis.graphs)
+    @foreach_graph
     def test_node_nb(self, graph, **kwargs):
-        assert( self.get_expected_result(graph, "nodes") == graph.node_nb() )
+        ref_result = self.get_expected_result(graph, "nodes")
+        computed_result = graph.node_nb()
+        self.assertEqual( ref_result, computed_result )
 
-    @foreach_graph(TestIO_Analysis.graphs)
+    @foreach_graph
     def test_edge_nb(self, graph, **kwargs):
-        assert( self.get_expected_result(graph, "edges") == graph.edge_nb() )
+        ref_result = self.get_expected_result(graph, "edges")
+        computed_result = graph.edge_nb()
+        self.assertEqual( ref_result, computed_result )
 
 
 #-----------------------------------------------------------------------------#
@@ -58,13 +58,8 @@ class TestIO_Analysis(TestBasis):
 #------------------------
 #
 
-def suite():
-    suite = unittest.makeSuite(TestAnalysis, 'test_analysis')
-    return suite
-
-def run():
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite())
+suite = unittest.TestLoader().loadTestsFromTestCase(TestIO_Analysis)
 
 if __name__ == "__main__":
-    run()
+    unittest.main()
+    #~ test = TestIO_Analysis()

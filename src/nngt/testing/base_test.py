@@ -7,18 +7,23 @@
 # Distributed as a free software, in the hope that it will be useful, under the
 # terms of the GNU General Public License.
 
+"""
+Define the XmlHandler and the TestBasis class for NNGT testing module
+"""
+
+# std imports
 import sys
 from os import listdir
-from os.path import isfile, join
+from os.path import abspath, dirname, isfile, join 
 import unittest
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+# third-party library
 import numpy as np
 import xml.etree.ElementTree as xmlet
 
 import nngt
-from test_tools import ( _bool_from_string, _make_graph_list, _xml_to_dict,
-                         with_metaclass )
+from tools_testing import _bool_from_string, _xml_to_dict, with_metaclass
 
 
 
@@ -28,17 +33,11 @@ from test_tools import ( _bool_from_string, _make_graph_list, _xml_to_dict,
 #
 
 # folder containing all networks
-directory = "Networks/"
+test_dir = dirname(abspath(__file__)) + "/"
+network_dir = test_dir + "Networks/"
 
 # file containing networks' properties and instructions
-xml_file = "graph_tests.xml"
-
-if xml_file not in listdir("."):
-    xml_file = "test/graph_tests.xml"
-    directory = "test/Networks/"
-    if xml_file not in listdir("."):
-        raise RuntimeError("File `graph_tests.xml` not found! Tests must be \
-run from the same folder as `setup.py` or from the `test` folder.")
+xml_file = test_dir + "graph_tests.xml"
 
 
 #-----------------------------------------------------------------------------#
@@ -65,11 +64,11 @@ class XmlHandler:
         self.graphs = self.root.find("graphs")
     
     def result(self, elt):
-        return di_type[elt.tag](elt.text)
+        return self.di_type[elt.tag](elt.text)
     
     def get_graph_list(self, test):
         elt_test = self.root.find('./test[@name="{}"]'.format(test))
-        return _make_graph_list(elt_test.attrib["graph_list"])
+        return [ child.text for child in elt_test.find("graph_list") ]
 
     def get_graph_options(self, graph):
         graph_elt = self.graphs.find('./graph[@name="{}"]'.format(graph))
@@ -77,11 +76,11 @@ class XmlHandler:
         for child in graph_elt:
             if child.tag in ("load_options", "generate_options"):
                 elt_options = child
-        return _xml_to_dict(elt_options, di_type)
+        return _xml_to_dict(elt_options, self.di_type)
     
-    def get_reference_result(self, graph, result_name):
-        elt_test = self.root.find('./graph[@name="{}"]'.format(graph))
-        elt_result = elt_test.find('./[@name="{}"]'.format(result_name))
+    def get_result(self, graph, result_name):
+        elt_test = self.graphs.find('./graph[@name="{}"]'.format(graph))
+        elt_result = elt_test.find('./*[@name="{}"]'.format(result_name))
         return self.result(elt_result)
 
 
@@ -111,9 +110,9 @@ class TestBasis(unittest.TestCase):
     #-------------------------------------------------------------------------#
     # Instance
     
-    def __init__(self):
-        super(unittest.TestCase, self).__init__()
-        self.make_graphs()
+    def setUp(self):
+        if not self.__class__.graphs:
+            self.make_graphs()
 
     @abstractproperty
     def test_name(self):
@@ -123,7 +122,7 @@ class TestBasis(unittest.TestCase):
         return self.parser.get_result(graph.get_name(), res_name)
 
     def make_graphs(self):
-        for graph_name in parser.get_graph_list(self.test_name):
+        for graph_name in self.parser.get_graph_list(self.test_name):
             self.__class__.graphs.append(self.gen_graph(graph_name))
 
     @abstractmethod

@@ -6,7 +6,7 @@
                 <string name="format">edge_list</string>
                 <string name="delimiter">\t</string>
             </load_options>
-            <int name="nodes">10876</int>
+            <int name="nodes">10879</int>
             <int name="edges">39994</int>
             <int name="diameter">5.4</int> <!-- must be greater than that -->
             <int name="nodes_largest_wcc">10876</int>
@@ -24,7 +24,7 @@
         </graph>
     </graphs>
     
-	<test name="analysis">
+	<test name="test_analysis">
 		<graph_list>
             <name>p2p-Gnutella04.txt</name>
         </graph_list>

@@ -153,8 +153,8 @@ with non symmetric matrix provided.')
         info, edges, attr, pop, shape = load_from_file(filename=filename,
                     format=format, delimiter=delimiter, secondary=secondary,
                     attributes=attributes, notifier=notifier)
-        graph = Graph(nodes=info["size"], name=info["name"],
-                      directed=info["directed"])
+        graph = Graph( nodes=info["size"], name=info["name"],
+                       directed=info["directed"] )
         di_attr = {
             "names": info["attributes"],
             "types": info["attr_types"],

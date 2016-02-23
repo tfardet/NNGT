@@ -17,8 +17,6 @@ dir_tests = [ d for d in listdir(".") if not isfile(d) ]
 for dir_test in dir_tests:
     sys.path.insert(0, dir_test)
 
-from test_analysis import TestAnalysis
-
 
 
 #-----------------------------------------------------------------------------#

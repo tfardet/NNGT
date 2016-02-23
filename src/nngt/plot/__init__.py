@@ -2,6 +2,12 @@
 #-*- coding:utf-8 -*-
 
 """
+Functions for plotting graphs and graph properties.
+
+note ::
+    For now, graph plotting is only supported when using the
+    `graph_tool <https://graph-tool.skewed.de>`_ library.
+
 Content
 =======
 """

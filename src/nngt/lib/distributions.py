@@ -46,15 +46,61 @@ def _make_matrix(graph, ecount, values, elist=None):
 #
 
 def delta_distrib(graph, elist=None, value=1., **kwargs):
+    '''
+    Delta distribution for edge attributes.
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Graph for which an edge attribute will be generated.
+    elist : @todo
+    value : float, optional (default: 1.)
+        Value of the delta distribution.
+    
+    Returns : :class:`numpy.ndarray`
+        Attribute value for each edge in `graph`.
+    '''
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     return np.repeat(value, ecount)
 
 def uniform_distrib(graph, elist=None, min=0., max=1.5,
                     **kwargs):
+    '''
+    Uniform distribution for edge attributes.
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Graph for which an edge attribute will be generated.
+    elist : @todo
+    min : float, optional (default: 0.)
+        Min value of the uniform distribution.
+    min : float, optional (default: 1.5)
+        Max value of the uniform distribution.
+    
+    Returns : :class:`numpy.ndarray`
+        Attribute value for each edge in `graph`.
+    '''
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     return np.random.uniform(min, max, ecount)
 
 def gaussian_distrib(graph, elist=None, avg=1., std=0.2, **kwargs):
+    '''
+    Gaussian distribution for edge attributes.
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Graph for which an edge attribute will be generated.
+    elist : @todo
+    avg : float, optional (default: 0.)
+        Average of the Gaussian distribution.
+    std : float, optional (default: 1.5)
+        Standard deviation of the Gaussian distribution.
+    
+    Returns : :class:`numpy.ndarray`
+        Attribute value for each edge in `graph`.
+    '''
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     return np.random.normal(avg, std, ecount)
 
