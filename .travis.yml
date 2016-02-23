@@ -6,8 +6,9 @@ dist: trusty
 
 python:
   # test for python 2 and python 3
-  - "2.7"
-  - "3.3"
+  matrix:
+    - "2.7"
+    - "3.3"
 env:
   # declare the graph library that will be used
   - GL="GT"
@@ -37,8 +38,8 @@ before_install:
   - gpg -a --export 98507F25 | sudo apt-key add -
 
   # update package repository status (-qq is more quiet)
-  - sudo rm -rf /var/lib/apt/lists/*
-  - ls /etc/apt/sources.list.d/
+  #~ - sudo rm -rf /var/lib/apt/lists/*
+  #~ - ls /etc/apt/sources.list.d/
   - sudo apt-get update -qq
 
   # remove any obsolete libraries
