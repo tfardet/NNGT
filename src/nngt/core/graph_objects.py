@@ -29,6 +29,8 @@ class GtGraph(glib_data["graph"]):
     @classmethod
     def to_graph_object(cls, obj):
         obj.__class__ = cls
+        obj._nattr = _GtNProperty(obj)
+        obj._eattr = _GtEProperty(obj)
         return obj
 
     #-------------------------------------------------------------------------#

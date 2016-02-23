@@ -11,15 +11,16 @@ from nngt.lib.connect_tools import *
 
 
 
-def _set_options(graph, weighted, population, shape, positions):
-    if weighted:
-        graph.set_weights()
-    if issubclass(graph.__class__, nngt.Network):
-        Connections.delays(graph)
-    elif population is not None:
-        nngt.Network.make_network(graph, population)
-    if shape is not None:
-        nngt.SpatialGraph.make_spatial(graph, shape, positions)
+__all__ = [
+    'connect_neural_groups',
+    'connect_neural_types',
+	'distance_rule',
+	'erdos_renyi',
+    'fixed_degree',
+	'random_scale_free',
+	'price_scale_free',
+	'newman_watts'
+]
 
 
 #-----------------------------------------------------------------------------#
@@ -267,7 +268,8 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
                      shape=None, positions=None, population=None,
                      from_graph=None, **kwargs):
     """
-    @todo: make the algorithm.
+    .. todo ::
+        make the algorithm.
     Generate a Price graph model (Barabasi-Albert if undirected).
 
     Parameters 
@@ -330,12 +332,13 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
 #------------------------
 
 def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
-                 multigraph=False, name="ER", shape=None, positions=None,
+                 multigraph=False, name="NW", shape=None, positions=None,
                  population=None, from_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
-    @todo: generate the edges of a circular graph to not replace the graph
-    of the `from_graph` and implement chosen reciprocity.
+    .. todo ::
+        generate the edges of a circular graph to not replace the graph of the
+        `from_graph` and implement chosen reciprocity.
     
     Parameters
     ----------
@@ -493,14 +496,54 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
 
 
 #-----------------------------------------------------------------------------#
+# Polyvalent generator
+#------------------------
+#
+
+di_generator = {
+    "distance_rule": distance_rule,
+    "erdos_renyi": erdos_renyi,
+    "fixed_degree": fixed_degree,
+    "newman_watts": newman_watts,
+    "price_scale_free": price_scale_free,
+    "random_scale_free": random_scale_free
+}
+
+def generate(di_instructions):
+    '''
+    Generate a :class:`~nngt.Graph` or one of its subclasses from a ``dict``
+    containing all the relevant informations.
+    
+    Parameters
+    ----------
+    di_instructions : ``dict``
+        Dictionary containing the instructions to generate the graph. It must
+        have at least ``"graph_type"`` in its keys, with a value among
+        ``"distance_rule", "erdos_renyi", "fixed_degree", "newman_watts",
+        "price_scale_free", "random_scale_free"``. Depending on the type,
+        `di_instructions` should also contain at least all non-optional
+        arguments of the generator function.
+    
+    .. seealso:
+        Generator functions are detailed in :mod:`~nngt.generation`.
+    '''
+    graph_type = di_instructions["graph_type"]
+    return di_generator[graph_type](**di_instructions)
+
+
+#-----------------------------------------------------------------------------#
 # Connecting groups
 #------------------------
 #
 
-di_gen_func = { "erdos_renyi": _erdos_renyi, 
-    "random_scale_free": _random_scale_free,
+di_gen_edges = {
+    "distance_rule": _distance_rule,
+    "erdos_renyi": _erdos_renyi,
+    "fixed_degree": _fixed_degree,
+    "newman_watts": _newman_watts,
     "price_scale_free": _price_scale_free,
-    "newman_watts": _newman_watts }
+    "random_scale_free": _random_scale_free
+}
 
 di_default = {  "density": 0.1,
                 "edges": -1,
@@ -516,7 +559,8 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
-    @todo: make the modifications for only a set of edges
+    .. todo ::
+        make the modifications for only a set of edges
     
     Parameters
     ----------
@@ -546,10 +590,10 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         elif group.neuron_type == target_type:
             target_ids.extend(group._id_list)
     if source_type == target_type:
-        edges = di_gen_func[graph_model](source_ids,source_ids,**di_param)
+        edges = di_gen_edges[graph_model](source_ids,source_ids,**di_param)
         network.add_edges(edges)
     else:
-        edges = di_gen_func[graph_model](source_ids,target_ids,**di_param)
+        edges = di_gen_edges[graph_model](source_ids,target_ids,**di_param)
         network.add_edges(edges)
     #~ network.set_weights(edges)
     if weighted:
@@ -565,7 +609,8 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
-    @todo: make the modifications for only a set of edges
+    .. todo ::
+        make the modifications for only a set of edges
     
     Parameters
     ----------
@@ -591,10 +636,10 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         elif name in target_groups:
             target_ids.extend(group._id_list)
     if source_groups == target_groups:
-        edges = di_gen_func[graph_model](source_ids,source_ids,**di_param)
+        edges = di_gen_edges[graph_model](source_ids,source_ids,**di_param)
         network.add_edges(edges)
     else:
-        edges = di_gen_func[graph_model](source_ids, target_ids, **di_param)
+        edges = di_gen_edges[graph_model](source_ids, target_ids, **di_param)
         network.add_edges(edges)
     #~ network.set_weights(edges)
     network.set_weights()

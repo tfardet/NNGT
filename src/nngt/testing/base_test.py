@@ -23,7 +23,8 @@ import numpy as np
 import xml.etree.ElementTree as xmlet
 
 import nngt
-from tools_testing import _bool_from_string, _xml_to_dict, with_metaclass
+from tools_testing import ( _bool_from_string, _xml_to_dict, with_metaclass,
+                            _list_from_string )
 
 
 
@@ -110,8 +111,12 @@ class TestBasis(unittest.TestCase):
     #-------------------------------------------------------------------------#
     # Instance
     
+    @classmethod
+    def setUpClass(cls):
+        cls.graphs = []
+    
     def setUp(self):
-        if not self.__class__.graphs:
+        if not self.graphs:
             self.make_graphs()
 
     @abstractproperty
@@ -123,7 +128,7 @@ class TestBasis(unittest.TestCase):
 
     def make_graphs(self):
         for graph_name in self.parser.get_graph_list(self.test_name):
-            self.__class__.graphs.append(self.gen_graph(graph_name))
+            self.graphs.append(self.gen_graph(graph_name))
 
     @abstractmethod
     def gen_graph(self, graph_name):

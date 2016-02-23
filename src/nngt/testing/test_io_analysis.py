@@ -7,9 +7,12 @@
 # Distributed as a free software, in the hope that it will be useful, under the
 # terms of the GNU General Public License.
 
-import unittest
+"""
+Test the IO functions as well as the :mod:`~nngt.analysis` module on
+reference graphs.
+"""
 
-import numpy as np
+import unittest
 
 import nngt
 from base_test import TestBasis, XmlHandler, network_dir
@@ -62,4 +65,3 @@ suite = unittest.TestLoader().loadTestsFromTestCase(TestIO_Analysis)
 
 if __name__ == "__main__":
     unittest.main()
-    #~ test = TestIO_Analysis()

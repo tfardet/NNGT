@@ -14,15 +14,16 @@ from nngt.lib.errors import InvalidArgument
 
 __all__ = [
     "_compute_connections",
-    "_unique_rows",
-    "_no_self_loops",
+    "_distance_rule",
+    "_erdos_renyi",
     "_filter",
     "_fixed_degree",
-    "_erdos_renyi",
-    "_random_scale_free",
-    "_price_scale_free",
     "_newman_watts",
-    "_distance_rule",
+    "_no_self_loops",
+    "_price_scale_free",
+    "_random_scale_free",
+    "_set_options",
+    "_unique_rows",
     "price_network",
 ]
 
@@ -36,6 +37,16 @@ EPS = 0.00001
 # Simple tools
 #------------------------
 #
+
+def _set_options(graph, weighted, population, shape, positions):
+    if weighted:
+        graph.set_weights()
+    if issubclass(graph.__class__, nngt.Network):
+        Connections.delays(graph)
+    elif population is not None:
+        nngt.Network.make_network(graph, population)
+    if shape is not None:
+        nngt.SpatialGraph.make_spatial(graph, shape, positions)
 
 def _compute_connections(num_source, num_target, density, edges, avg_deg,
                          directed, reciprocity):

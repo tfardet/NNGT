@@ -19,6 +19,10 @@ import xml.etree.ElementTree as xmlet
 def _bool_from_string(string):
     return True if (string.lower() == "true") else False
 
+def _list_from_string(string, elt_type, di_convert):
+    lst = string[1:-1].split(", ")
+    return [ di_convert[elt_type](elt) for elt in lst ]
+
 def _xml_to_dict(xml_elt, di_types):
     di_result = {}
     for child in xml_elt:
@@ -37,6 +41,10 @@ def _xml_to_dict(xml_elt, di_types):
             if child.tag in ("string", "str"):
                 text = child.text.replace("\\t","\t")
                 di_result[name] = di_types[str_type](text)
+            elif child.tag == "list":
+                elt_type = child.attrib["type"]
+                di_result[name] = _list_from_string( child.text,
+                                                     elt_type, di_types )
             else:
                 di_result[name] = di_types[str_type](child.text)
     return di_result

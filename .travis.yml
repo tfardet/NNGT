@@ -4,14 +4,17 @@ language: generic
 sudo: required
 dist: trusty
 
-env:
+
+matrix:
   # test for python 2 and python 3
-  - python: "2.7"
-  - python: "3.3"
+  include:
+    - python: "2.7"
+    - python: "3.3"
   # declare the graph library that will be used
-  - GL="GT"
-  - GL="IG"
-  - GL="NX"
+  env:
+    - GL="GT"
+    - GL="IG"
+    - GL="NX"
 
 matrix:
   # do notify immediately about it when a job of a build fails.
@@ -39,8 +42,8 @@ before_install:
   # remove any obsolete libraries
   - sudo apt-get autoremove
 
-  # from installation webpage http://www.nest-simulator.org/installation-2/#Standard_configuration
-  - sudo apt-get install -y build-essential autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev
+  # requirements for building + installing scipy
+  - sudo apt-get install -y build-essential autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran
 
   # Install pip and cython
   - wget https://bootstrap.pypa.io/get-pip.py

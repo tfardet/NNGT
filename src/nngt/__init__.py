@@ -85,7 +85,7 @@ import socket
 #
 
 # Python > 2.6
-assert sys.hexversion > 0x02060000
+assert(sys.hexversion > 0x02060000)
 
 # version and graph library test
 from .globals import version, use_library
@@ -99,6 +99,7 @@ from .globals import version, use_library
 from .core import *
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .core.graph_datastruct import Shape, NeuralPop, GroupProperty, Connections
+from .generation.graph_connectivity import generate
 
 from . import core
 from . import generation
@@ -109,6 +110,7 @@ __all__ = [
     "analysis",
     "Connections",
     "core",
+    "generate",
     "generation",
     "Graph",
     "GroupProperty",
@@ -116,21 +118,18 @@ __all__ = [
     "Network",
     "NeuralPop",
     "Shape",
-    "SpatialNetwork",
     "SpatialGraph",
+    "SpatialNetwork",
     "use_library",
     "version"
 ]
 
-# test for known clusters where plotting is not supported yet
-b_cluster = False
-host_name = socket.gethostname()
-for name in ['ada', 'bgq']:
-    if name == host_name[:3]:
-        b_cluster = True
-if not b_cluster:
+# test if plot module is supported
+try:
     from . import plot
-    __all__.append('plot')    
+    __all__.append('plot')
+except:
+    print("Uncompatibility, plot module will not be loaded...")
 
 # look for nest
 try:
@@ -138,4 +137,4 @@ try:
     from . import simulation
     __all__.append("simulation")
 except:
-    print("NEST not found; nest module will not be loaded")
+    print("NEST not found; nest module will not be loaded...")

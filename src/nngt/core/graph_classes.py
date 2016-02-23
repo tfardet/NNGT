@@ -98,7 +98,7 @@ with non symmetric matrix provided.')
             if issubclass(matrix.__class__, ssp.spmatrix):
                 weights = np.array(matrix[edges[:,0],edges[:,1]])[0]
             else:
-                weights = matrix[dges[:,0],dges[:,1]]
+                weights = matrix[edges[:,0],edges[:,1]]
                 
             graph.set_weights(elist=edges, wlist=weights)
         return graph
@@ -262,9 +262,14 @@ with non symmetric matrix provided.')
         Returns a deepcopy of the current :class:`~nngt.core.Graph`
         instance
         '''
+        go_new = GraphObject.to_graph_object(self._graph.copy())
         gc_instance = Graph(name=self._name+'_copy',
                             weighted=self.is_weighted(),
-                            graph=self._graph.copy())
+                            libgraph=self._graph.copy())
+        if self.is_spatial():
+            SpatialGraph.make_spatial(gc_instance)
+        if self.is_network():
+            Network.make_network(gc_instance)
         return gc_instance
     
     def add_edges(self, lst_edges, attributes=None):
@@ -309,9 +314,14 @@ with non symmetric matrix provided.')
         return inhib_graph
 
     def excitatory_subgraph(self):
-        ''' create a :class:`~nngt.core.Graph` instance which graph
-        contains only the excitatory edges of the current instance's
-        :class:`GraphObject` '''
+        '''
+        Create a :class:`~nngt.Graph` instance which graph contains only the
+        excitatory edges of the current instance's :class:`GraphObject`.
+        .. warning ::
+            Only works for graph_tool
+        .. todo ::
+            Make this method library independant!
+        '''
         eprop_b_type = self._graph.new_edge_property(
                        "bool",self._graph.edge_properties[TYPE].a+1)
         self._graph.set_edge_filter(eprop_b_type)
@@ -344,7 +354,11 @@ with non symmetric matrix provided.')
         return na.adjacency_matrix(self, typed=typed, weighted=weighted)
 
     def clear_edges(self):
-        ''' Remove all the edges in the graph. '''
+        '''
+        Remove all the edges in the graph.
+        .. todo ::
+            Remove all edge attributes.
+        '''
         self._graph.clear_edges()
 
     #-------------------------------------------------------------------------#

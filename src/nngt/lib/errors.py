@@ -5,4 +5,4 @@
 
 class InvalidArgument(ValueError):
     ''' Error raise when an argument is invalid. '''
-	pass
+    pass

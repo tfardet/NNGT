@@ -1,6 +1,43 @@
 <input>
     
+    <!-- Test suites -->
+    
+	<test name="test_analysis">
+		<graph_list>
+            <name>p2p-Gnutella04.txt</name>
+        </graph_list>
+	</test>
+    
+    <test name="test_graphclasses">
+		<graph_list>
+            <name>from_scipy_sparse_rand</name>
+            <name>from_numpy_randint</name>
+        </graph_list>
+	</test>
+    
+    <test name="test_generation">
+		<graph_list>
+            <name>fixed_indegree</name>
+            <name>fixed_outdegree</name>
+            <name>erdos_sparse</name>
+            <name>erdos_dense</name>
+            <name>erdos_recip</name>
+            <name>rsf_2.2_2.2</name>
+            <name>rsf_2.1_2.9</name>
+            <name>rsf_2.9_2.1</name>
+            <name>rsf_2.2_recip</name>
+            <name>newman_watts</name>
+            <name>linear_distance_rule</name>
+            <name>exponential_distance_rule</name>
+        </graph_list>
+	</test>
+    
+    <!-- Graphs -->
+    
     <graphs>
+        
+        <!-- Reference graphs -->
+        
         <graph name="p2p-Gnutella04.txt">
             <load_options>
                 <string name="format">edge_list</string>
@@ -15,19 +52,132 @@
             <int name="edges_largest_scc">18742</int>
             <float name="clustering">0.0062</float>
         </graph>
+        
+        <!-- Generated graphs -->
 
         <graph name="fixed_indegree">
             <generate_options>
+                <string name="graph_type">fixed_degree</string>
                 <int name="nodes">1000</int>
-                <string name="degree">in</string>
+                <int name="degree">100</int>
+                <string name="degree_type">in</string>
+            </generate_options>
+        </graph>
+        
+        <graph name="fixed_outdegree">
+            <generate_options>
+                <string name="graph_type">fixed_degree</string>
+                <int name="nodes">1000</int>
+                <int name="degree">100</int>
+                <string name="degree_type">out</string>
+            </generate_options>
+        </graph>
+        
+        <graph name="erdos_sparse">
+            <generate_options>
+                <string name="graph_type">erdos_renyi</string>
+                <int name="nodes">1000</int>
+                <float name="density">0.04</float>
+            </generate_options>
+        </graph>
+        
+        <graph name="erdos_dense">
+            <generate_options>
+                <string name="graph_type">erdos_renyi</string>
+                <int name="nodes">1000</int>
+                <float name="density">0.2</float>
+            </generate_options>
+        </graph>
+        
+        <graph name="erdos_recip">
+            <generate_options>
+                <string name="graph_type">erdos_renyi</string>
+                <int name="nodes">1000</int>
+                <float name="density">0.06</float>
+                <float name="reciprocity">0.2</float>
+            </generate_options>
+        </graph>
+        
+        <graph name="rsf_2.2_2.2">
+            <generate_options>
+                <string name="graph_type">random_scale_free</string>
+                <int name="nodes">1000</int>
+                <float name="in_exp">2.2</float>
+                <float name="out_exp">2.2</float>
+            </generate_options>
+        </graph>
+        
+        <graph name="rsf_2.1_2.9">
+            <generate_options>
+                <string name="graph_type">random_scale_free</string>
+                <int name="nodes">1000</int>
+                <float name="in_exp">2.1</float>
+                <float name="out_exp">2.9</float>
+            </generate_options>
+        </graph>
+        
+        <graph name="rsf_2.9_2.1">
+            <generate_options>
+                <string name="graph_type">random_scale_free</string>
+                <int name="nodes">1000</int>
+                <float name="in_exp">2.9</float>
+                <float name="out_exp">2.1</float>
+            </generate_options>
+        </graph>
+        
+        <graph name="rsf_2.2_recip">
+            <generate_options>
+                <string name="graph_type">random_scale_free</string>
+                <int name="nodes">1000</int>
+                <float name="in_exp">2.2</float>
+                <float name="out_exp">2.2</float>
+                <float name="reciprocity">0.3</float>
+            </generate_options>
+        </graph>
+        
+        <graph name="newman_watts">
+            <generate_options>
+                <string name="graph_type">newman_watts</string>
+                <int name="nodes">1000</int>
+                <int name="coord_nb">20</int>
+                <float name="proba_shortcut">0.1</float>
+            </generate_options>
+        </graph>
+        
+        <graph name="linear_distance_rule">
+            <generate_options>
+                <string name="graph_type">distance_rule</string>
+                <int name="nodes">1000</int>
+                <float name="scale">0.2</float>
+                <string name="rule">lin</string>
+            </generate_options>
+        </graph>
+        
+        <graph name="exponential_distance_rule">
+            <generate_options>
+                <string name="graph_type">distance_rule</string>
+                <int name="nodes">1000</int>
+                <float name="scale">0.04</float>
+                <string name="rule">exp</string>
+            </generate_options>
+        </graph>
+        
+        <graph name="from_scipy_sparse_rand">
+            <generate_options>
+                <int name="m">1000</int>
+                <int name="n">1000</int>
+                <float name="density">0.05</float>
+                <string name="format">csr</string>
+            </generate_options>
+        </graph>
+        
+        <graph name="from_numpy_randint">
+            <generate_options>
+                <int name="low">0</int>
+                <int name="high">3</int>
+                <list name="size" type="int">(1000, 1000)</list>
             </generate_options>
         </graph>
     </graphs>
-    
-	<test name="test_analysis">
-		<graph_list>
-            <name>p2p-Gnutella04.txt</name>
-        </graph_list>
-	</test>
     
 </input>
