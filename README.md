@@ -1,4 +1,4 @@
-# NNGT
+# NNGT [![Build Status](https://travis-ci.org/Silmathoron/NNGT.svg?branch=master)](https://travis-ci.org/Silmathoron/NNGT)
 
 ![NNGT logo](doc/images/nngt_logo.png)
 

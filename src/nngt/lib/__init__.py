@@ -11,3 +11,15 @@ from .connect_tools import *
 from .distributions import eprop_distribution
 from .io_tools import *
 #~ from .lil_object import ObjectLil
+
+__all__ = [
+    "delta_distrib",
+    "gaussian_distrib",
+    "InvalidArgument",
+    "lin_correlated_distrib",
+    "load_from_file",
+    "log_correlated_distrib",
+    "lognormal_distrib",
+    "save_to_file",
+    "uniform_distrib"
+]

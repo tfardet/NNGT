@@ -5,16 +5,16 @@ sudo: required
 dist: trusty
 
 
-matrix:
-  # test for python 2 and python 3
-  include:
-    - python: "2.7"
-    - python: "3.3"
+env:
   # declare the graph library that will be used
-  env:
+  matrix:
     - GL="GT"
     - GL="IG"
     - GL="NX"
+matrix:
+    # test for python 2 and python 3
+    - python: "2.7"
+    - python: "3.3"
 
 matrix:
   # do notify immediately about it when a job of a build fails.
@@ -33,6 +33,10 @@ before_install:
   - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main" >> /etc/apt/sources.list'
   # add key from ^ repository
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+  - sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe" >> /etc/apt/sources.list'
+  - sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/trusty trusty universe" >> /etc/apt/sources.list'
+  - gpg --keyserver 'http://pgp.skewed.de:11371/pks/lookup?op=get&search=0x612DEFB798507F25' --recv-key 98507f25
+  - gpg -a --export 98507F25 | sudo apt-key add -
 
   # update package repository status (-qq is more quiet)
   - sudo rm -rf /var/lib/apt/lists/*
