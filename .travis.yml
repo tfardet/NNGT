@@ -50,19 +50,19 @@ before_install:
   - sudo python get-pip.py
   - sudo pip install -U setuptools
   - sudo pip install -U nose2
-  - sudo pip install -U numpy
-  - sudo pip install -U scipy
   - sudo pip install -U matplotlib
   - pip install --user cython==0.23.4
+  - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then sudo apt-get install -y python-scipy; fi
+  - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then sudo apt-get install -y python3-scipy; fi
   # MPI
   - sudo apt-get install -y openmpi-bin libopenmpi-dev
   # install graph-tool and igraph
-  - sudo apt-get install -y python-graph-tool
-  - sudo apt-get install -y python3-graph-tool
+  - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then sudo apt-get install -y python-graph-tool; fi
+  - if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then sudo apt-get install -y python3-graph-tool; fi
   - wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz
   - tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1
   - ./configure && make && sudo make install
-  - cd && rm -R igraph-0.7.1
+  - cd .. && rm -R igraph-0.7.1
   # static code analysis
   - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
