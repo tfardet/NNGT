@@ -37,29 +37,28 @@ import nngt
 
 
 #-----------------------------------------------------------------------------#
-# Get graph library
+# Run the tests
 #------------------------
 #
 
-if __name__ == "__main__":
-    # get the arguments
-    args = sys.argv
-    num_args = len(args)
-    if num_args > 1:
-        graph_library = args[1]
-        if graph_library == "GT":
-            nngt.use_library("graph_tool")
-        elif graph_library == "IG":
-            nngt.use_library("igraph")
-        else:
-            nngt.use_library("networkx")
+# get the arguments
+args = sys.argv
+num_args = len(args)
+if num_args > 1:
+    graph_library = args[1]
+    if graph_library == "GT":
+        nngt.use_library("graph_tool")
+    elif graph_library == "IG":
+        nngt.use_library("igraph")
+    else:
+        nngt.use_library("networkx")
 
-    # get the tests
-    dir_files = listdir(dirname(abspath(__file__)))
-    testfiles = [ fname[:-3] for fname in dir_files if ( isfile(fname) and
-                  fname.startswith("test_") and fname.endswith(".py") ) ]
-    tests = [ importlib.import_module(name) for name in testfiles ]
-    
-    # run test suites
-    for test in tests:
-        unittest.TextTestRunner(verbosity=2).run(test.suite)
+# get the tests
+dir_files = listdir(dirname(abspath(__file__)))
+testfiles = [ fname[:-3] for fname in dir_files if ( fname.startswith("test_") 
+              and fname.endswith(".py") ) ]
+tests = [ importlib.import_module(name) for name in testfiles ]
+
+# run test suites
+for test in tests:
+    unittest.TextTestRunner(verbosity=2).run(test.suite)

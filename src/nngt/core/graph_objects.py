@@ -187,6 +187,8 @@ class IGraph(glib_data["graph"]):
     @classmethod
     def to_graph_object(cls, obj):
         obj.__class__ = cls
+        obj._nattr = _IgNProperty(obj)
+        obj._eattr = _IgEProperty(obj)
         return obj
 
     #-------------------------------------------------------------------------#
@@ -348,6 +350,8 @@ class NxGraph(glib_data["graph"]):
     @classmethod
     def to_graph_object(cls, obj):
         obj.__class__ = cls
+        obj._nattr = _NxNProperty(obj)
+        obj._eattr = _NxEProperty(obj)
         return obj
 
     di_value = { "string": "", "double": 0., "int": int(0) }
@@ -482,7 +486,7 @@ edge in the graph.")
         @todo: this should be implemented in GraphClass
         Remove all connections in the graph
         '''
-        self.remove_edges_from(self.edges(self.nodes()))
+        self.remove_edges_from(self.edges())
 
     def set_node_property(self):
         #@todo: do it...

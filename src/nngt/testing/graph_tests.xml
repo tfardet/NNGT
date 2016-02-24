@@ -164,9 +164,9 @@
         
         <graph name="from_scipy_sparse_rand">
             <generate_options>
-                <int name="m">1000</int>
-                <int name="n">1000</int>
-                <float name="density">0.05</float>
+                <int name="m">10</int>
+                <int name="n">10</int>
+                <float name="density">0.1</float>
                 <string name="format">csr</string>
             </generate_options>
         </graph>
@@ -175,7 +175,7 @@
             <generate_options>
                 <int name="low">0</int>
                 <int name="high">3</int>
-                <list name="size" type="int">(1000, 1000)</list>
+                <list name="size" type="int">(10, 10)</list>
             </generate_options>
         </graph>
     </graphs>

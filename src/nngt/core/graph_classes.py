@@ -265,7 +265,7 @@ with non symmetric matrix provided.')
         go_new = GraphObject.to_graph_object(self._graph.copy())
         gc_instance = Graph(name=self._name+'_copy',
                             weighted=self.is_weighted(),
-                            libgraph=self._graph.copy())
+                            libgraph=go_new)
         if self.is_spatial():
             SpatialGraph.make_spatial(gc_instance)
         if self.is_network():
