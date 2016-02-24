@@ -4,18 +4,16 @@ language: generic
 sudo: required
 dist: trusty
 
-python:
+matrix:
+  python:
   # test for python 2 and python 3
-  matrix:
     - "2.7"
     - "3.3"
-env:
-  # declare the graph library that will be used
-  - GL="GT"
-  - GL="IG"
-  - GL="NX"
-
-matrix:
+  env:
+    # declare the graph library that will be used
+    - GL="GT"
+    - GL="IG"
+    - GL="NX"
   # do notify immediately about it when a job of a build fails.
   fast_finish: true
 
@@ -28,25 +26,27 @@ before_install:
   - echo $PATH
 
   # get repository for clang-3.6 stuff (including clang-format-3.6)
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main" >> /etc/apt/sources.list'
   # add key from ^ repository
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+  
+  - sudo rm -rf /var/lib/apt/lists/*
+  
+  # add ppa for gcc>4.9
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe" >> /etc/apt/sources.list'
   - sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/trusty trusty universe" >> /etc/apt/sources.list'
   - gpg --keyserver 'http://pgp.skewed.de:11371/pks/lookup?op=get&search=0x612DEFB798507F25' --recv-key 98507f25
   - gpg -a --export 98507F25 | sudo apt-key add -
 
   # update package repository status (-qq is more quiet)
-  #~ - sudo rm -rf /var/lib/apt/lists/*
-  #~ - ls /etc/apt/sources.list.d/
   - sudo apt-get update -qq
 
   # remove any obsolete libraries
   - sudo apt-get autoremove
 
   # requirements for building + installing scipy
-  - sudo apt-get install -y build-essential autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran
+  - sudo apt-get install -y build-essential gcc-4.9 autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran
 
   # Install pip and cython
   - wget https://bootstrap.pypa.io/get-pip.py
