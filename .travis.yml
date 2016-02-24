@@ -44,7 +44,7 @@ before_install:
   - sudo apt-get autoremove
 
   # requirements for building + installing scipy
-  - sudo apt-get install -y build-essential gcc-4.9 autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran
+  - sudo apt-get install -y build-essential gcc-4.9 autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev
   # Install pip and cython
   - wget https://bootstrap.pypa.io/get-pip.py
   - sudo python get-pip.py
@@ -59,7 +59,10 @@ before_install:
   # install graph-tool and igraph
   - sudo apt-get install -y python-graph-tool
   - sudo apt-get install -y python3-graph-tool
-  - sudo apt-get install -y libigraph0 libigraph0-dev
+  - wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz
+  - tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1
+  - ./configure && make && sudo make install
+  - cd && rm -R igraph-0.7.1
   # static code analysis
   - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
