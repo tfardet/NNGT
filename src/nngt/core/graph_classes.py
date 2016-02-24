@@ -99,7 +99,6 @@ with non symmetric matrix provided.')
                 weights = np.array(matrix[edges[:,0],edges[:,1]])[0]
             else:
                 weights = matrix[edges[:,0],edges[:,1]]
-                
             graph.set_weights(elist=edges, wlist=weights)
         return graph
     
@@ -202,7 +201,7 @@ with non symmetric matrix provided.')
         if libgraph is not None:
             self._graph = GraphObject.to_graph_object(libgraph)
         else:
-            self._graph = GraphObject(nodes=nodes, directed=directed)
+            self._graph = GraphObject(nodes=nodes, directed=directed, parent=self)
         # take care of the weights @todo: use those of the libgraph
         if weighted:
             if "weight_prop" in kwargs.keys():
@@ -374,7 +373,8 @@ with non symmetric matrix provided.')
     def set_edge_attribute(self, attribute, values=None, val=None,
                            value_type=None):
         if attribute not in self.attributes():
-            self._graph.new_edge_attribute(attribute, value_type, values, val)
+            self._graph.new_edge_attribute(name=attribute,
+                                value_type=value_type, values=values, val=val)
         else:
             num_edges = self.edge_nb()
             if values is None:
@@ -389,7 +389,8 @@ with non symmetric matrix provided.')
                     distrib_prop=None, correl=None, noise_scale=None):
         '''
         Set the synaptic weights.
-        @todo: take elist into account in Connections.weights
+        ..todo ::
+            take elist into account in Connections.weights
         
         Parameters
         ----------

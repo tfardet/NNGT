@@ -3,6 +3,8 @@
 
 """ GraphObject for subclassing the libraries graphs """
 
+import weakref
+
 import numpy as np
 import scipy.sparse as ssp
 
@@ -27,8 +29,9 @@ class GtGraph(glib_data["graph"]):
     # Class properties
 
     @classmethod
-    def to_graph_object(cls, obj):
+    def to_graph_object(cls, obj, parent=None):
         obj.__class__ = cls
+        obj._parent = weakref.proxy(parent) if parent is not None else None
         obj._nattr = _GtNProperty(obj)
         obj._eattr = _GtEProperty(obj)
         return obj
@@ -37,13 +40,14 @@ class GtGraph(glib_data["graph"]):
     # Constructor and instance properties        
 
     def __init__ (self, nodes=0, g=None, directed=True, prune=False,
-                  vorder=None):
+                  vorder=None, parent=None):
         '''
         @todo: document that
         see :class:`graph_tool.Graph`'s constructor '''
         super(GtGraph,self).__init__(g,directed,prune,vorder)
         if g is None:
             self.add_vertex(nodes)
+        self._parent = weakref.proxy(parent) if parent is not None else None
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
 
@@ -185,8 +189,9 @@ class IGraph(glib_data["graph"]):
     # Class properties
     
     @classmethod
-    def to_graph_object(cls, obj):
+    def to_graph_object(cls, obj, parent=None):
         obj.__class__ = cls
+        obj._parent = weakref.proxy(parent) if parent is not None else None
         obj._nattr = _IgNProperty(obj)
         obj._eattr = _IgEProperty(obj)
         return obj
@@ -194,7 +199,7 @@ class IGraph(glib_data["graph"]):
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
     
-    def __init__(self, nodes=0, g=None, directed=True):
+    def __init__(self, nodes=0, g=None, directed=True, parent=None):
         if g is None:
             super(IGraph,self).__init__(n=nodes, directed=directed)
         else:
@@ -210,6 +215,7 @@ class IGraph(glib_data["graph"]):
                 di_edge_attr[attr] = g.es[:][attr]
             super(IGraph,self).__init__(n=nodes, vertex_attrs=di_node_attr,
                                         edge_attrs=di_edge_attr)
+        self._parent = weakref.proxy(parent) if parent is not None else None
         self.directed = directed
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
@@ -359,10 +365,11 @@ class NxGraph(glib_data["graph"]):
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
     
-    def __init__(self, nodes=0, g=None, directed=True):
+    def __init__(self, nodes=0, g=None, directed=True, parent=None):
         super(NxGraph,self).__init__(g)
         if g is None and nodes:
             self.add_nodes_from(range(nodes))
+        self._parent = weakref.proxy(parent) if parent is not None else None
         self.directed = directed
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
@@ -400,14 +407,14 @@ node in the graph.")
             if val is not None:
                 values = np.repeat(val,num_edges)
             else:
-                if "vector" in value_type:
+                if "vec" in value_type:
                     values = [ [] for _ in range(num_edges) ]
                 else:
                     values = np.repeat(self.di_value[value_type], num_edges)
         elif len(values) != num_edges:
             raise InvalidArgument("'values' list must contain one element per \
 edge in the graph.")
-        for e, val in zip(self.edges(),values):
+        for e, val in zip(self._parent.edges_array,values):
             self.edge[e[0]][e[1]][name] = val
     
     def new_node(self, n=1, ntype=1):

@@ -60,11 +60,6 @@ class TestGraphClasses(TestBasis):
         '''
         ref_result = ssp.csr_matrix(self.matrices[graph.get_name()])
         computed_result = graph.adjacency_matrix()
-        print("\n")
-        print(ref_result)
-        print("---")
-        print(computed_result)
-        print("--- #### ---")
         self.assertTrue( (ref_result != computed_result).nnz == 0 )
 
     @foreach_graph

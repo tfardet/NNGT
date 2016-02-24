@@ -4,28 +4,32 @@ language: generic
 sudo: required
 dist: trusty
 
-python:
-  - "2.7"
-  - "3.5"
-env:
-  # declare the graph library that will be used
-  - GL="GT"
-  - GL="IG"
-  - GL="NX"
 matrix:
-  # do notify immediately about it when a job of a build fails.
+  include:
+    - python: "2.7"
+      env: GL="GT"
+    - python: "2.7"
+      env: GL="IG"
+    - python: "2.7"
+      env: GL="NX"
+    - python: "3.5"
+      env: GL="GT"
+    - python: "3.5"
+      env: GL="IG"
+    - python: "3.5"
+      env: GL="NX"
   fast_finish: true
 
 cache:
-  apt: true 
-  ccache: true
-  pip: true
+  - apt
+  - pip
 
 before_install:
   - echo $PATH
   
   # get repository for clang-3.6 stuff (including clang-format-3.6)
   - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main\n" >> /etc/apt/sources.list'
+  - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
   # add ppa for gcc>4.9
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'
