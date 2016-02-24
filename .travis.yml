@@ -30,8 +30,6 @@ before_install:
   # add key from ^ repository
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
   
-  - sudo rm -rf /var/lib/apt/lists/*
-  
   # add ppa for gcc>4.9
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe" >> /etc/apt/sources.list'
@@ -40,6 +38,8 @@ before_install:
   - gpg -a --export 98507F25 | sudo apt-key add -
 
   # update package repository status (-qq is more quiet)
+  - sudo rm -rf /var/lib/apt/lists/*
+  - ls /etc/apt/sources.list.d/
   - sudo apt-get update -qq
 
   # remove any obsolete libraries
