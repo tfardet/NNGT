@@ -3,7 +3,6 @@
 
 """ Graph classes for graph generation and management """
 
-from collections import OrderedDict
 from copy import deepcopy
 import warnings
 
@@ -195,13 +194,12 @@ with non symmetric matrix provided.')
         self.__id = self.__class__.__max_id
         self._name = name
         self._directed = directed
-        self._edges = OrderedDict()
         self._graph_type = "custom"
         # create the graphlib graph
         if libgraph is not None:
             self._graph = GraphObject.to_graph_object(libgraph)
         else:
-            self._graph = GraphObject(nodes=nodes, directed=directed, parent=self)
+            self._graph = GraphObject(nodes=nodes, directed=directed)
         # take care of the weights @todo: use those of the libgraph
         if weighted:
             if "weight_prop" in kwargs.keys():
@@ -245,13 +243,13 @@ with non symmetric matrix provided.')
     def edges(self):
         ''' :class:`OrderedDict` containing the edges as keys (2-tuple) and
         their index at the time of their creation as value '''
-        return self._edges
+        return self.graph._edges
 
     @property
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
-        return np.array(self._edges.keys(), copy=True)
+        return np.array(self.graph._edges.keys(), copy=True)
 
     #-------------------------------------------------------------------------#
     # Graph actions
@@ -292,8 +290,6 @@ with non symmetric matrix provided.')
         empty = False if self.edge_nb() else True
         self._graph.new_edges(lst_edges)
         n = self.edge_nb()
-        for i, edge in enumerate(lst_edges):
-            self._edges[tuple(edge)] = n + i
         if empty and attributes is not None:
             for name, value_type, values in zip(attributes["names"],
                                     attributes["types"], attributes["values"]):

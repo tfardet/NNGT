@@ -3,7 +3,7 @@
 
 """ GraphObject for subclassing the libraries graphs """
 
-import weakref
+from collections import OrderedDict
 
 import numpy as np
 import scipy.sparse as ssp
@@ -11,6 +11,11 @@ import scipy.sparse as ssp
 from nngt.globals import glib_data, glib_func, BWEIGHT
 
 
+
+#-----------------------------------------------------------------------------#
+# BaseGraph
+#------------------------
+#
 
 #-----------------------------------------------------------------------------#
 # GtGraph
@@ -29,9 +34,8 @@ class GtGraph(glib_data["graph"]):
     # Class properties
 
     @classmethod
-    def to_graph_object(cls, obj, parent=None):
+    def to_graph_object(cls, obj):
         obj.__class__ = cls
-        obj._parent = weakref.proxy(parent) if parent is not None else None
         obj._nattr = _GtNProperty(obj)
         obj._eattr = _GtEProperty(obj)
         return obj
@@ -40,14 +44,14 @@ class GtGraph(glib_data["graph"]):
     # Constructor and instance properties        
 
     def __init__ (self, nodes=0, g=None, directed=True, prune=False,
-                  vorder=None, parent=None):
+                  vorder=None):
         '''
         @todo: document that
         see :class:`graph_tool.Graph`'s constructor '''
         super(GtGraph,self).__init__(g,directed,prune,vorder)
         if g is None:
             self.add_vertex(nodes)
-        self._parent = weakref.proxy(parent) if parent is not None else None
+        self._edges = OrderedDict()
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
 
@@ -58,6 +62,12 @@ class GtGraph(glib_data["graph"]):
     @property
     def eproperties(self):
         return self._eattr
+        
+    @property
+    def edges_array(self):
+        ''' Edges of the graph, sorted by order of creation, as an array of
+        2-tuple. '''
+        return np.array(self.graph._edges.keys(), copy=True)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -103,6 +113,7 @@ class GtGraph(glib_data["graph"]):
         -------
         The new connection.
         '''
+        self._edges[(source, target)] = self.node_nb()
         connection = self.add_edge(source, target, add_missing=True)
         if self.is_weighted():
             self.edge_properties['weight'][connection] = weight
@@ -113,6 +124,9 @@ class GtGraph(glib_data["graph"]):
         Adds a list of connections to the graph
         @todo: see how the eprops work
         '''
+        n = self.node_nb()
+        for i, edge in enumerate(edge_list):
+            self._edges[tuple(edge)] = n + i
         self.add_edge_list(edge_list, eprops=eprops)
         return edge_list
 
@@ -189,9 +203,8 @@ class IGraph(glib_data["graph"]):
     # Class properties
     
     @classmethod
-    def to_graph_object(cls, obj, parent=None):
+    def to_graph_object(cls, obj):
         obj.__class__ = cls
-        obj._parent = weakref.proxy(parent) if parent is not None else None
         obj._nattr = _IgNProperty(obj)
         obj._eattr = _IgEProperty(obj)
         return obj
@@ -215,7 +228,7 @@ class IGraph(glib_data["graph"]):
                 di_edge_attr[attr] = g.es[:][attr]
             super(IGraph,self).__init__(n=nodes, vertex_attrs=di_node_attr,
                                         edge_attrs=di_edge_attr)
-        self._parent = weakref.proxy(parent) if parent is not None else None
+        self._edges = OrderedDict()
         self.directed = directed
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
@@ -227,6 +240,12 @@ class IGraph(glib_data["graph"]):
     @property
     def eproperties(self):
         return self._eattr
+    
+    @property
+    def edges_array(self):
+        ''' Edges of the graph, sorted by order of creation, as an array of
+        2-tuple. '''
+        return np.array(self._edges.keys(), copy=True)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -276,11 +295,15 @@ class IGraph(glib_data["graph"]):
         -------
         The new connection.
         '''
+        self._edges[(source, target)] = self.node_nb()
         self.add_edge(source,target,weight=weight)
         return (source, target)
 
     def new_edges(self, edge_list, eprops=None):
         ''' Adds a list of connections to the graph '''
+        n = self.node_nb()
+        for i, edge in enumerate(edge_list):
+            self._edges[tuple(edge)] = n + i
         first_eid = self.ecount()
         self.add_edges(edge_list)
         last_eid = self.ecount()
@@ -365,11 +388,11 @@ class NxGraph(glib_data["graph"]):
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
     
-    def __init__(self, nodes=0, g=None, directed=True, parent=None):
+    def __init__(self, nodes=0, g=None, directed=True):
         super(NxGraph,self).__init__(g)
         if g is None and nodes:
             self.add_nodes_from(range(nodes))
-        self._parent = weakref.proxy(parent) if parent is not None else None
+        self._edges = OrderedDict()
         self.directed = directed
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
@@ -381,6 +404,12 @@ class NxGraph(glib_data["graph"]):
     @property
     def eproperties(self):
         return self._eattr
+        
+    @property
+    def edges_array(self):
+        ''' Edges of the graph, sorted by order of creation, as an array of
+        2-tuple. '''
+        return np.array(self._edges.keys(), copy=True)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -414,7 +443,7 @@ node in the graph.")
         elif len(values) != num_edges:
             raise InvalidArgument("'values' list must contain one element per \
 edge in the graph.")
-        for e, val in zip(self._parent.edges_array,values):
+        for e, val in zip(self.edges_array,values):
             self.edge[e[0]][e[1]][name] = val
     
     def new_node(self, n=1, ntype=1):
@@ -457,6 +486,7 @@ edge in the graph.")
         The new connection.
         '''
         self.add_edge(source, target)
+        self._edges[(source, target)] = self.node_nb()
         self[source][target]['weight'] = weight
         if not self.directed:
             self.add_edge(target,source)
@@ -465,6 +495,9 @@ edge in the graph.")
 
     def new_edges(self, edge_list, eprops=None):
         ''' Adds a list of connections to the graph '''
+        n = self.node_nb()
+        for i, edge in enumerate(edge_list):
+            self._edges[tuple(edge)] = n + i
         if eprops is not None:
             for attr in eprops.iterkeys():
                 arr = eprops[attr]

@@ -37,7 +37,7 @@ import nngt
 
 
 #-----------------------------------------------------------------------------#
-# Run the tests
+# Get the tests
 #------------------------
 #
 
@@ -54,11 +54,19 @@ if num_args > 1:
         nngt.use_library("networkx")
 
 # get the tests
-dir_files = listdir(dirname(abspath(__file__)))
+current_dir = dirname(abspath(__file__))
+dir_files = listdir(current_dir)
+sys.path.insert(0, current_dir)
 testfiles = [ fname[:-3] for fname in dir_files if ( fname.startswith("test_") 
               and fname.endswith(".py") ) ]
 tests = [ importlib.import_module(name) for name in testfiles ]
 
-# run test suites
-for test in tests:
-    unittest.TextTestRunner(verbosity=2).run(test.suite)
+
+#-----------------------------------------------------------------------------#
+# Run if main
+#------------------------
+#
+
+if __name__ == "__main__":
+    for test in tests:
+        unittest.TextTestRunner(verbosity=2).run(test.suite)
