@@ -125,16 +125,20 @@ __all__ = [
 ]
 
 # test if plot module is supported
+_with_plot = False
 try:
     from . import plot
+    _with_plot = True
     __all__.append('plot')
 except:
     print("Uncompatibility, plot module will not be loaded...")
 
 # look for nest
+_with_nest = False
 try:
     import nest
     from . import simulation
+    _with_nest = True
     __all__.append("simulation")
 except:
     print("NEST not found; nest module will not be loaded...")

@@ -196,7 +196,10 @@ def use_library(library, reloading=True):
         reload(sys.modules["nngt"].analysis.gt_analysis)
         reload(sys.modules["nngt"].generation)
         reload(sys.modules["nngt"].generation.graph_connectivity)
-        reload(sys.modules["nngt"].plot)
+        if nngt._with_plot:
+            reload(sys.modules["nngt"].plot)
+        if nngt._with_nest:
+            reload(sys.modules["nngt"].simulation)
         reload(sys.modules["nngt"].lib) #@todo: make price algo and remove this
         reload(sys.modules["nngt"].core.graph_classes)
         from nngt.core.graph_classes import (Graph, SpatialGraph, Network,

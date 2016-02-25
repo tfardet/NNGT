@@ -13,7 +13,8 @@ Content
 """
 
 import matplotlib
-matplotlib.use('GTK3Agg')
+try:
+    matplotlib.use('GTK3Agg')
 import warnings
 warnings.filterwarnings("ignore", module="matplotlib")
 
