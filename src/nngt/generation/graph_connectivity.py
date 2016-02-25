@@ -582,10 +582,10 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     #~ network.set_weights(edges)
     if weighted:
         network.set_weights()
-    #~ Connections.delays(network, elist=edges)
-    Connections.delays(network)
+    #~ nngt.Connections.delays(network, elist=edges)
+    nngt.Connections.delays(network)
     if issubclass(network.__class__, nngt.SpatialGraph):
-        Connections.distances(network)
+        nngt.Connections.distances(network)
     network._graph_type += "_neural_type_connect"
 
 def connect_neural_groups(network, source_groups, target_groups, graph_model,
@@ -627,8 +627,8 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         network.add_edges(edges)
     #~ network.set_weights(edges)
     network.set_weights()
-    #~ Connections.delays(network, elist=edges)
-    Connections.delays(network)
+    #~ nngt.Connections.delays(network, elist=edges)
+    nngt.Connections.delays(network)
     if issubclass(network.__class__, nngt.SpatialGraph):
-       Connections.distances(network)
+       nngt.Connections.distances(network)
     network._graph_type += "_neural_group_connect"

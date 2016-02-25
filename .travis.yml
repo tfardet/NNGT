@@ -7,17 +7,17 @@ dist: trusty
 matrix:
   include:
     - python: "2.7"
-      env: GL="GT"
+      env: GL="GT" PYVERSION="2.7"
     - python: "2.7"
-      env: GL="IG"
+      env: GL="IG" PYVERSION="2.7"
     - python: "2.7"
-      env: GL="NX"
+      env: GL="NX" PYVERSION="2.7"
     - python: "3.5"
-      env: GL="GT"
+      env: GL="GT" PYVERSION="3.5"
     - python: "3.5"
-      env: GL="IG"
+      env: GL="IG" PYVERSION="3.5"
     - python: "3.5"
-      env: GL="NX"
+      env: GL="NX" PYVERSION="3.5"
   fast_finish: true
 
 cache:
@@ -53,13 +53,13 @@ before_install:
   - sudo pip install -U matplotlib
   - pip install --user cython==0.23.4
   - echo $TRAVIS_PYTHON_VERSION
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install -y python-scipy; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.5" ]]; then sudo apt-get install -y python3-scipy; fi
+  - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy; fi
+  - if [[ "$PYVERSION" == "3.5" ]]; then sudo apt-get install -y python3-scipy; fi
   # MPI
   - sudo apt-get install -y openmpi-bin libopenmpi-dev
   # install graph-tool and igraph
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install -y python-graph-tool; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.5" ]]; then sudo apt-get install -y python3-graph-tool; fi
+  - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-graph-tool; fi
+  - if [[ "$PYVERSION" == "3.5" ]]; then sudo apt-get install -y python3-graph-tool; fi
   - wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz
   - tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1
   - ./configure && make && sudo make install

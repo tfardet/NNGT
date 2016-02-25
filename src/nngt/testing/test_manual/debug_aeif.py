@@ -74,5 +74,5 @@ nest.Simulate(simtime)
 
 fignums = plot_activity(recorders[0], record, network=graph, show=False, hist=False, limits=(0,simtime))
 #~ activity_types(graph, recorders, (0,simtime), fignums=fignums, simplify=False)
-activity_types(graph, recorders[0], (0,simtime), fignums=fignums, simplify=True)
+activity_types(graph, recorders[0], (0,simtime), fignums=fignums, simplify=True, show=True)
 
