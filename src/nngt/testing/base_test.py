@@ -21,7 +21,7 @@ from os.path import abspath, dirname, isfile, join
 # third-party library
 import numpy as np
 import xml.etree.ElementTree as xmlet
-from six import with_metaclass
+from six import add_metaclass
 
 import nngt
 from tools_testing import _bool_from_string, _xml_to_dict, _list_from_string
@@ -90,7 +90,11 @@ class XmlHandler:
 #------------------------
 #
 
-class TestBasis(with_metaclass(ABCMeta)):
+class MetaAbcCompat(ABCMeta, type):
+    pass
+
+@add_metaclass(MetaAbcCompat)
+class TestBasis(unittest.TestCase):
 
     '''
     Class defining the graphs and the conditions in which they will be tested.

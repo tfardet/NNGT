@@ -25,7 +25,7 @@ from tools_testing import foreach_graph
 #------------------------
 #
 
-class TestIO_Analysis(TestBasis, unittest.TestCase):
+class TestIO_Analysis(TestBasis):
     
     '''
     Class testing the functions of the :mod:`~nngt.analysis` and

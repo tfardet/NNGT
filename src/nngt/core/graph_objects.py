@@ -9,7 +9,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import numpy as np
 import scipy.sparse as ssp
 
-from six import with_metaclass
+from six import add_metaclass
 from nngt.globals import glib_data, glib_func, BWEIGHT
 
 
@@ -21,11 +21,13 @@ adjacency = glib_func["adjacency"]
 #------------------------
 #
 
+class MetaAbcCompat(ABCMeta, type):
+    pass
 
-class BaseProperty(with_metaclass(ABCMeta)):
+@add_metaclass(MetaAbcCompat)
+class BaseProperty(dict):
     
     def __init__ (self, parent):
-        #~ super(BaseProperty, self).__init__(self)
         self.parent = parent
         self.stored = {}
     
@@ -37,7 +39,7 @@ class BaseProperty(with_metaclass(ABCMeta)):
     def __setitem__(self, name, value):
         pass
 
-class _GtNProperty(BaseProperty, dict):
+class _GtNProperty(BaseProperty):
 
     ''' Class for generic interactions with nodes properties (graph_tool)  '''
 
@@ -60,7 +62,7 @@ the graph is required")
         self.parent.vertex_properties[name] = vprop
         self.stored[name] = value_type
 
-class _GtEProperty(BaseProperty, dict):
+class _GtEProperty(BaseProperty):
 
     ''' Class for generic interactions with nodes properties (graph_tool)  '''
 
@@ -95,7 +97,7 @@ the graph is required")
         self.parent.edge_properties[name] = eprop
         self.stored[name] = value_type
 
-class _IgNProperty(BaseProperty, dict):
+class _IgNProperty(BaseProperty):
 
     '''
     @todo
@@ -127,7 +129,7 @@ the graph is required")
         self.parent.vs[name] = values
         self.stored[name] = value_type
 
-class _IgEProperty(BaseProperty, dict):
+class _IgEProperty(BaseProperty):
 
     ''' Class for generic interactions with nodes properties (networkx)  '''
 
@@ -161,7 +163,7 @@ the graph is required")
 the graph is required")
         self.stored[name] = value_type
 
-class _NxNProperty(BaseProperty, dict):
+class _NxNProperty(BaseProperty):
 
     '''
     Class for generic interactions with nodes properties (networkx)
@@ -194,7 +196,7 @@ the graph is required")
         self[name] = values
         self.stored[name] = value_type
 
-class _NxEProperty(BaseProperty, dict):
+class _NxEProperty(BaseProperty):
 
     ''' Class for generic interactions with edge properties (networkx)  '''
 
@@ -246,7 +248,8 @@ di_graphprop = {
 #------------------------
 #
 
-class BaseGraph(object, with_metaclass(ABCMeta)):
+@add_metaclass(MetaAbcCompat)
+class BaseGraph(object):
     
     #-------------------------------------------------------------------------#
     # Classmethod
@@ -261,12 +264,6 @@ class BaseGraph(object, with_metaclass(ABCMeta)):
         for i, edge in edges:
             obj._edges[tuple(edge)] = i
         return obj
-#~ 
-    #~ #-------------------------------------------------------------------------#
-    #~ # Initialize
-#~ 
-    #~ def __init__(self, **kwargs):
-        #~ pass
     
     #-------------------------------------------------------------------------#
     # Shared properties methods
