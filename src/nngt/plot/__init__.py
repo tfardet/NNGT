@@ -15,6 +15,8 @@ Content
 import matplotlib
 try:
     matplotlib.use('GTK3Agg')
+except:
+    pass
 import warnings
 warnings.filterwarnings("ignore", module="matplotlib")
 

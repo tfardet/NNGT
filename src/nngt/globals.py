@@ -9,6 +9,8 @@ from types import ModuleType
 import scipy as sp
 import scipy.sparse as ssp
 
+import nngt
+
 
 
 #-----------------------------------------------------------------------------#
