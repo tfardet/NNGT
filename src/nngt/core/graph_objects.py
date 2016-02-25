@@ -9,7 +9,8 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import numpy as np
 import scipy.sparse as ssp
 
-from nngt.globals import glib_data, glib_func, BWEIGHT, with_metaclass
+from six import with_metaclass
+from nngt.globals import glib_data, glib_func, BWEIGHT
 
 
 
@@ -21,10 +22,10 @@ adjacency = glib_func["adjacency"]
 #
 
 
-@with_metaclass(ABCMeta)
-class BaseProperty(dict):
+class BaseProperty(with_metaclass(ABCMeta)):
     
     def __init__ (self, parent):
+        #~ super(BaseProperty, self).__init__(self)
         self.parent = parent
         self.stored = {}
     
@@ -36,7 +37,7 @@ class BaseProperty(dict):
     def __setitem__(self, name, value):
         pass
 
-class _GtNProperty(BaseProperty):
+class _GtNProperty(BaseProperty, dict):
 
     ''' Class for generic interactions with nodes properties (graph_tool)  '''
 
@@ -59,7 +60,7 @@ the graph is required")
         self.parent.vertex_properties[name] = vprop
         self.stored[name] = value_type
 
-class _GtEProperty(BaseProperty):
+class _GtEProperty(BaseProperty, dict):
 
     ''' Class for generic interactions with nodes properties (graph_tool)  '''
 
@@ -94,7 +95,7 @@ the graph is required")
         self.parent.edge_properties[name] = eprop
         self.stored[name] = value_type
 
-class _IgNProperty(BaseProperty):
+class _IgNProperty(BaseProperty, dict):
 
     '''
     @todo
@@ -126,7 +127,7 @@ the graph is required")
         self.parent.vs[name] = values
         self.stored[name] = value_type
 
-class _IgEProperty(BaseProperty):
+class _IgEProperty(BaseProperty, dict):
 
     ''' Class for generic interactions with nodes properties (networkx)  '''
 
@@ -160,7 +161,7 @@ the graph is required")
 the graph is required")
         self.stored[name] = value_type
 
-class _NxNProperty(BaseProperty):
+class _NxNProperty(BaseProperty, dict):
 
     '''
     Class for generic interactions with nodes properties (networkx)
@@ -193,7 +194,7 @@ the graph is required")
         self[name] = values
         self.stored[name] = value_type
 
-class _NxEProperty(BaseProperty):
+class _NxEProperty(BaseProperty, dict):
 
     ''' Class for generic interactions with edge properties (networkx)  '''
 
@@ -245,8 +246,7 @@ di_graphprop = {
 #------------------------
 #
 
-@with_metaclass(ABCMeta)
-class BaseGraph(object):
+class BaseGraph(object, with_metaclass(ABCMeta)):
     
     #-------------------------------------------------------------------------#
     # Classmethod
@@ -261,7 +261,13 @@ class BaseGraph(object):
         for i, edge in edges:
             obj._edges[tuple(edge)] = i
         return obj
-        
+#~ 
+    #~ #-------------------------------------------------------------------------#
+    #~ # Initialize
+#~ 
+    #~ def __init__(self, **kwargs):
+        #~ pass
+    
     #-------------------------------------------------------------------------#
     # Shared properties methods
     

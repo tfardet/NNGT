@@ -34,21 +34,6 @@ version = '0.5'
 
 
 #-----------------------------------------------------------------------------#
-# Metaclass decorator
-#------------------------
-#
-
-def with_metaclass(mcls):
-    ''' Python 2/3 compatible metaclass declaration. '''
-    def decorator(cls):
-        body = vars(cls).copy()
-        # clean out class body
-        body.pop('__dict__', None)
-        body.pop('__weakref__', None)
-        return mcls(cls.__name__, cls.__bases__, body)
-    return decorator
-
-#-----------------------------------------------------------------------------#
 # Graph libraries and python 2/3 compatibility
 #------------------------
 #

@@ -27,7 +27,7 @@ from tools_testing import foreach_graph
 #------------------------
 #
 
-class TestGraphClasses(TestBasis):
+class TestGraphClasses(TestBasis, unittest.TestCase):
     
     '''
     Class testing the main methods of :class:`~nngt.Graph` and its subclasses.

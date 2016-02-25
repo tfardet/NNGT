@@ -42,6 +42,8 @@ Welcome to NNGT's documentation!
    modules/nngt
    
 
+.. warning:
+    As of version 0.5, :class:`~nngt.Graph` directly inherits from :class:`~nngt.core.GraphObject`; documentation has not been updated yet.
 
 Overview
 ========

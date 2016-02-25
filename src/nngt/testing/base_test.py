@@ -13,17 +13,17 @@ Define the XmlHandler and the TestBasis class for NNGT testing module
 
 # std imports
 import sys
-from os import listdir
-from os.path import abspath, dirname, isfile, join 
 import unittest
 from abc import ABCMeta, abstractmethod, abstractproperty
+from os import listdir
+from os.path import abspath, dirname, isfile, join
 
 # third-party library
 import numpy as np
 import xml.etree.ElementTree as xmlet
+from six import with_metaclass
 
 import nngt
-from nngt.globals import with_metaclass
 from tools_testing import _bool_from_string, _xml_to_dict, _list_from_string
 
 
@@ -90,8 +90,7 @@ class XmlHandler:
 #------------------------
 #
 
-@with_metaclass(ABCMeta)
-class TestBasis(unittest.TestCase):
+class TestBasis(with_metaclass(ABCMeta)):
 
     '''
     Class defining the graphs and the conditions in which they will be tested.
@@ -104,16 +103,16 @@ class TestBasis(unittest.TestCase):
     #-------------------------------------------------------------------------#
     # Class properties
     
+    @classmethod
+    def setUpClass(cls):
+        cls.graphs = []
+    
     tolerance = 1e-5
     parser = XmlHandler()
     graphs = []
     
     #-------------------------------------------------------------------------#
     # Instance
-    
-    @classmethod
-    def setUpClass(cls):
-        cls.graphs = []
     
     def setUp(self):
         if not self.graphs:
