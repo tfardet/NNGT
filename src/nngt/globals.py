@@ -4,7 +4,6 @@
 """ Constant values for NNGT """
 
 import sys
-from types import ModuleType
 
 import scipy as sp
 import scipy.sparse as ssp
@@ -50,9 +49,21 @@ def with_metaclass(mcls):
     return decorator
 
 #-----------------------------------------------------------------------------#
-# Graph libraries
+# Graph libraries and python 2/3 compatibility
 #------------------------
 #
+
+# compatible reload
+
+reload_module = None
+if sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
+    import imp
+    reload_module = imp.reload
+elif sys.hexversion >= 0x03040000:
+    import importlib
+    reload_module = importlib.reload
+else:
+    reload_module = reload
 
 # name, lib and Graph object
 glib_data = {
@@ -85,8 +96,8 @@ def use_library(library, reloading=True):
     ----------
     library : string
         Name of a graph library among 'graph_tool', 'igraph', 'networkx'.
-    reloading : bool, optional (default: True)
-        Whether the graph objects should be reloaded (this should always be set
+    reload_moduleing : bool, optional (default: True)
+        Whether the graph objects should be reload_moduleed (this should always be set
         to True except when NNGT is first initiated!)
     '''
         
@@ -196,18 +207,18 @@ try to install latest version.".format(nx_version))
     glib_func["adjacency"] = adj_mat
     glib_func["get_edges"] = get_edges
     if reloading:
-        reload(sys.modules["nngt"].core.graph_objects)
-        reload(sys.modules["nngt"].core)
-        reload(sys.modules["nngt"].analysis)
-        reload(sys.modules["nngt"].analysis.gt_analysis)
-        reload(sys.modules["nngt"].generation)
-        reload(sys.modules["nngt"].generation.graph_connectivity)
+        reload_module(sys.modules["nngt"].core.graph_objects)
+        reload_module(sys.modules["nngt"].core)
+        reload_module(sys.modules["nngt"].analysis)
+        reload_module(sys.modules["nngt"].analysis.gt_analysis)
+        reload_module(sys.modules["nngt"].generation)
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
         if nngt._with_plot:
-            reload(sys.modules["nngt"].plot)
+            reload_module(sys.modules["nngt"].plot)
         if nngt._with_nest:
-            reload(sys.modules["nngt"].simulation)
-        reload(sys.modules["nngt"].lib) #@todo: make price algo and remove this
-        reload(sys.modules["nngt"].core.graph_classes)
+            reload_module(sys.modules["nngt"].simulation)
+        reload_module(sys.modules["nngt"].lib) #@todo: make price algo and remove this
+        reload_module(sys.modules["nngt"].core.graph_classes)
         from nngt.core.graph_classes import (Graph, SpatialGraph, Network,
                                              SpatialNetwork)
         sys.modules["nngt"].Graph = Graph

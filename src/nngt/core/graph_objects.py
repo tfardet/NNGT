@@ -275,7 +275,7 @@ class BaseGraph(object):
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
-        return np.array(self._edges.keys(), copy=True)
+        return np.array(tuple(self._edges.keys()), copy=True)
 
     @property
     def nproperties(self):
