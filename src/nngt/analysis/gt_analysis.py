@@ -252,7 +252,7 @@ def spectral_radius(graph, typed=True, weighted=True):
     eigenval = [0]
     try:
         eigenval = spl.eigs(mat_adj,return_eigenvectors=False)
-    except spl.eigen.arpack.ArpackNoConvergence,err:
+    except spl.eigen.arpack.ArpackNoConvergence as err:
         eigenval = err.eigenvalues
     if len(eigenval):
         return sp.amax(sp.absolute(eigenval))

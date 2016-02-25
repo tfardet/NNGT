@@ -48,23 +48,19 @@ before_install:
   - wget https://bootstrap.pypa.io/get-pip.py
   - sudo python get-pip.py
   - sudo pip install -U setuptools
-  - pip install --user cython==0.23.4
   # test scipy from apt (much faster) and install matplotlib
-  - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy; fi
-  - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib; else sudo pip install -U matplotlib; fi
+  - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy && pip install --user cython==0.23.4; fi
+  - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo pip install -U matplotlib && pip install --user cython==0.23.4; fi
   # MPI
   - sudo apt-get install -y openmpi-bin libopenmpi-dev
   # install graph-tool and igraph
   - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-graph-tool; fi
   - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-graph-tool; fi
-  - wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz
-  - tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1
-  - ./configure && make -s && sudo make -s install
-  - cd .. && rm -R igraph-0.7.1
+  - if [[ "$GL" == "IG" ]]; then wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1; fi
   # static code analysis
   - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
-install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e ".[nx,ig]"; else sudo pip install -e ".[nx,ig]"; fi
+install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pip install -e ".[nx,ig]"; fi
 
 script: if [[ "$PYVERSION" == "3.x" ]]; then python3 src/nngt/testing/__init__.py $GL; else python src/nngt/testing/__init__.py $GL; fi 
 
