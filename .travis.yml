@@ -13,7 +13,7 @@ matrix:
     - python: "2.7"
       env: GL="NX" PYVERSION="2.7"
     - python: "3.5"
-      env: GL="GT" PYVERSION="3.5"
+      env: GL="GT" PYVERSION="3.x"
     - python: "3.5"
       env: GL="IG" PYVERSION="3.5"
     - python: "3.5"
@@ -52,13 +52,13 @@ before_install:
   - pip install --user cython==0.23.4
   # test scipy from apt (much faster)
   - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy; fi
-  - if [[ "$PYVERSION" == "3.5" ]]; then sudo apt-get install -y python3-scipy; fi
+  - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy; fi
   - sudo pip install -U matplotlib
   # MPI
   - sudo apt-get install -y openmpi-bin libopenmpi-dev
   # install graph-tool and igraph
   - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-graph-tool; fi
-  - if [[ "$PYVERSION" == "3.5" ]]; then sudo apt-get install -y python3-graph-tool; fi
+  - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-graph-tool; fi
   - wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz
   - tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1
   - ./configure && make -s && sudo make -s install
@@ -68,5 +68,5 @@ before_install:
 
 install: sudo pip install -e ".[nx,ig]"
 
-script: python src/nngt/testing/__init__.py $GL
+script: if [[ "$PYVERSION" == "3.x" ]]; then python3 src/nngt/testing/__init__.py $GL; else python src/nngt/testing/__init__.py $GL; fi 
 

@@ -175,12 +175,16 @@ def use_library(library, reloading=True):
             else:
                 return num_recip/float(num_edges)
         nx_version = glib.__version__
-        v_major, v_minor = nx_version.split('.')
-        if int(v_major) > 1 or int(v_minor) > 10:
+        try:
             from networkx.algorithms import overall_reciprocity
+            glib_func["reciprocity"] = overall_reciprocity
+        except:
+            def mock_recip(*args, **kwargs):
+                return NotImplementedError("Not implemented for networkx {}; \
+try to install latest version.".format(nx_version))
+            glib_func["reciprocity"] = mock_recip
         glib_func["assortativity"] = degree_assortativity_coefficient
         glib_func["diameter"] = diameter
-        glib_func["reciprocity"] = overall_reciprocity
         glib_func["scc"] = strongly_connected_components
         glib_func["wcc"] = diameter
         # defining the adjacency function
