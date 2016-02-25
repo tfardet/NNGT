@@ -18,8 +18,6 @@ import scipy.sparse as ssp
 
 __all__ = [
     "version",
-    "glib_data",
-    "glib_func",
     "default_neuron",
     "default_synapse",
     "POS",
@@ -30,9 +28,24 @@ __all__ = [
     "use_library"
 ]
 
-version = '0.4'
+version = '0.5'
 ''' :class:`string`, the current version '''
 
+
+#-----------------------------------------------------------------------------#
+# Metaclass decorator
+#------------------------
+#
+
+def with_metaclass(mcls):
+    ''' Python 2/3 compatible metaclass declaration. '''
+    def decorator(cls):
+        body = vars(cls).copy()
+        # clean out class body
+        body.pop('__dict__', None)
+        body.pop('__weakref__', None)
+        return mcls(cls.__name__, cls.__bases__, body)
+    return decorator
 
 #-----------------------------------------------------------------------------#
 # Graph libraries
@@ -54,7 +67,8 @@ glib_func = {
     "clustering": None,
     "components": None,
     "diameter": None,
-    "reciprocity": None
+    "reciprocity": None,
+    "get_edges": None
 }
 # switch libraries
 def use_library(library, reloading=True):
@@ -100,6 +114,8 @@ def use_library(library, reloading=True):
             if weight is not None:
                 weight = graph.edge_properties[weight]
             return _adj(graph, weight).T
+        def get_edges(graph):
+            return graph.edges()
     elif library == "igraph":
         # library and graph object
         import igraph as glib
@@ -136,6 +152,8 @@ def use_library(library, reloading=True):
                 return coo_adj.tocsr()
             else:
                 return ssp.csr_matrix((n,n))
+        def get_edges(graph):
+            return graph.get_edgelist()
     elif library == "networkx":
         # library and graph object
         import networkx as glib
@@ -164,8 +182,13 @@ def use_library(library, reloading=True):
         glib_func["scc"] = strongly_connected_components
         glib_func["wcc"] = diameter
         # defining the adjacency function
-        from networkx import to_scipy_sparse_matrix as adj_mat
+        from networkx import to_scipy_sparse_matrix
+        def adj_mat(graph, weight=None):
+            return to_scipy_sparse_matrix(graph, weight=weight)
+        def get_edges(graph):
+            return graph.edges_iter(data=False)
     glib_func["adjacency"] = adj_mat
+    glib_func["get_edges"] = get_edges
     if reloading:
         reload(sys.modules["nngt"].core.graph_objects)
         reload(sys.modules["nngt"].core)

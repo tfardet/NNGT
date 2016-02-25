@@ -23,8 +23,8 @@ import numpy as np
 import xml.etree.ElementTree as xmlet
 
 import nngt
-from tools_testing import ( _bool_from_string, _xml_to_dict, with_metaclass,
-                            _list_from_string )
+from nngt.globals import with_metaclass
+from tools_testing import _bool_from_string, _xml_to_dict, _list_from_string
 
 
 

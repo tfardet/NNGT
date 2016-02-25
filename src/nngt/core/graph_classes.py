@@ -27,7 +27,7 @@ __all__ = [
 #------------------------
 #
 
-class Graph(object):
+class Graph(GraphObject):
     
     """
     The basic class that contains a :class:`graph_tool.Graph` and some
@@ -170,7 +170,7 @@ with non symmetric matrix provided.')
     # Constructor/destructor and properties
     
     def __init__(self, nodes=0, name="Graph",
-                  weighted=True, directed=True, libgraph=None, **kwargs):
+                  weighted=True, directed=True, from_graph=None, **kwargs):
         '''
         Initialize Graph instance
 
@@ -184,7 +184,7 @@ with non symmetric matrix provided.')
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        libgraph : :class:`~nngt.core.GraphObject`, optional
+        from_graph : :class:`~nngt.core.GraphObject`, optional
             An optional :class:`~nngt.core.GraphObject` to serve as base.
         
         Returns
@@ -194,15 +194,12 @@ with non symmetric matrix provided.')
         self.__id = self.__class__.__max_id
         self._name = name
         self._directed = directed
-        self._graph_type = "custom"
-        # create the graphlib graph
-        if libgraph is not None:
-            self._graph = GraphObject.to_graph_object(libgraph)
-        else:
-            self._graph = GraphObject(nodes=nodes, directed=directed)
-        # take care of the weights @todo: use those of the libgraph
+        self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
+        # Init the GraphObject
+        super(Graph, self).__init__(nodes=nodes, g=from_graph)
+        # take care of the weights @todo: use those of the from_graph
         if weighted:
-            if "weight_prop" in kwargs.keys():
+            if "weight_prop" in kwargs:
                 self._w = kwargs["weight_prop"]
             else:
                 self._w = {"distrib": "constant"}
@@ -220,36 +217,9 @@ with non symmetric matrix provided.')
         return self.__id
     
     @property
-    def graph(self):
-        ''' :class:`graph_tool.Graph` attribute of the instance. '''
-        return self._graph
-
-    @graph.setter
-    def graph(self, new_graph):
-        if isinstance(new_graph, GraphLib):
-            self._graph = GraphObject.to_graph_object(new_graph)
-        elif isinstance(new_graph, GraphObject):
-            self._graph = new_graph
-        else:
-            raise TypeError("The object passed is not a \
-                GraphObject but a {}".format(new_graph.__class__.__name__))
-    
-    @property
     def name(self):
         ''' Name of the graph. '''
         return self._name
-
-    @property
-    def edges(self):
-        ''' :class:`OrderedDict` containing the edges as keys (2-tuple) and
-        their index at the time of their creation as value '''
-        return self.graph._edges
-
-    @property
-    def edges_array(self):
-        ''' Edges of the graph, sorted by order of creation, as an array of
-        2-tuple. '''
-        return np.array(self.graph._edges.keys(), copy=True)
 
     #-------------------------------------------------------------------------#
     # Graph actions
@@ -259,10 +229,9 @@ with non symmetric matrix provided.')
         Returns a deepcopy of the current :class:`~nngt.core.Graph`
         instance
         '''
-        go_new = GraphObject.to_graph_object(self._graph.copy())
         gc_instance = Graph(name=self._name+'_copy',
                             weighted=self.is_weighted(),
-                            libgraph=go_new)
+                            from_graph=self)
         if self.is_spatial():
             SpatialGraph.make_spatial(gc_instance)
         if self.is_network():
@@ -288,73 +257,43 @@ with non symmetric matrix provided.')
         @todo: add example, check the edges for self-loops and multiple edges
         '''
         empty = False if self.edge_nb() else True
-        self._graph.new_edges(lst_edges)
+        self.new_edges(lst_edges)
         n = self.edge_nb()
         if empty and attributes is not None:
             for name, value_type, values in zip(attributes["names"],
                                     attributes["types"], attributes["values"]):
-                self._graph._eattr.new_ea(name, value_type, values=values)
+                self._eattr.new_ea(name, value_type, values=values)
 
-    def inhibitory_subgraph(self):
-        ''' Create a :class:`~nngt.core.Graph` instance which graph
-        contains only the inhibitory edges of the current instance's
-        :class:`graph_tool.Graph` '''
-        eprop_b_type = self._graph.new_edge_property(
-                       "bool",-self._graph.edge_properties[TYPE].a+1)
-        self._graph.set_edge_filter(eprop_b_type)
-        inhib_graph = Graph( name=self._name + '_inhib',
-                             weighted=self.is_weighted(),
-                             graph=GraphObject(self._graph,prune=True) )
-        self._graph.clear_filters()
-        return inhib_graph
-
-    def excitatory_subgraph(self):
-        '''
-        Create a :class:`~nngt.Graph` instance which graph contains only the
-        excitatory edges of the current instance's :class:`GraphObject`.
-        .. warning ::
-            Only works for graph_tool
-        .. todo ::
-            Make this method library independant!
-        '''
-        eprop_b_type = self._graph.new_edge_property(
-                       "bool",self._graph.edge_properties[TYPE].a+1)
-        self._graph.set_edge_filter(eprop_b_type)
-        exc_graph = Graph( name=self._name + '_exc',
-                             weighted=self.is_weighted(),
-                             graph=GraphObject(self._graph,prune=True) )
-        self._graph.clear_filters()
-        return exc_graph
-
-    def adjacency_matrix(self, typed=True, weighted=True):
-        '''
-        Returns the adjacency matrix of the graph as a
-        :class:`scipy.sparse.csr_matrix`.
-        
-        Parameters
-        ----------
-        weighted : bool or string, optional (default: True)
-            If True, each entry ``adj[i,j] = w_ij`` where ``w_ij`` is the
-            strength of the connection from `i` to `j`, if False, ``adj[i,j] = 
-            0. or 1.``. Weighted can also be a string describing an edge
-            attribute (e.g. if "distance" refers to an edge attribute ``dist``,
-            then ``ajacency_matrix("distance")`` will return
-            ``adj[i,i] = dist_ij``).
-            
-        Returns
-        -------
-        adj : :class:`scipy.sparse.csr_matrix`
-            The adjacency matrix of the graph.
-        '''
-        return na.adjacency_matrix(self, typed=typed, weighted=weighted)
-
-    def clear_edges(self):
-        '''
-        Remove all the edges in the graph.
-        .. todo ::
-            Remove all edge attributes.
-        '''
-        self._graph.clear_edges()
+    #~ def inhibitory_subgraph(self):
+        #~ ''' Create a :class:`~nngt.core.Graph` instance which graph
+        #~ contains only the inhibitory edges of the current instance's
+        #~ :class:`graph_tool.Graph` '''
+        #~ eprop_b_type = self._graph.new_edge_property(
+                       #~ "bool",-self._graph.edge_properties[TYPE].a+1)
+        #~ self._graph.set_edge_filter(eprop_b_type)
+        #~ inhib_graph = Graph( name=self._name + '_inhib',
+                             #~ weighted=self.is_weighted(),
+                             #~ from_graph=GraphObject(self._graph,prune=True) )
+        #~ self.clear_filters()
+        #~ return inhib_graph
+#~ 
+    #~ def excitatory_subgraph(self):
+        #~ '''
+        #~ Create a :class:`~nngt.Graph` instance which graph contains only the
+        #~ excitatory edges of the current instance's :class:`GraphObject`.
+        #~ .. warning ::
+            #~ Only works for graph_tool
+        #~ .. todo ::
+            #~ Make this method library independant!
+        #~ '''
+        #~ eprop_b_type = self._graph.new_edge_property(
+                       #~ "bool",self._graph.edge_properties[TYPE].a+1)
+        #~ self._graph.set_edge_filter(eprop_b_type)
+        #~ exc_graph = Graph( name=self._name + '_exc',
+                             #~ weighted=self.is_weighted(),
+                             #~ graph=GraphObject(self._graph,prune=True) )
+        #~ self._graph.clear_filters()
+        #~ return exc_graph
 
     #-------------------------------------------------------------------------#
     # Setters
@@ -369,7 +308,7 @@ with non symmetric matrix provided.')
     def set_edge_attribute(self, attribute, values=None, val=None,
                            value_type=None):
         if attribute not in self.attributes():
-            self._graph.new_edge_attribute(name=attribute,
+            self.new_edge_attribute(name=attribute,
                                 value_type=value_type, values=values, val=val)
         else:
             num_edges = self.edge_nb()
@@ -379,7 +318,7 @@ with non symmetric matrix provided.')
                 else:
                     raise InvalidArgument("At least one of the `values` and \
 `val` arguments should not be ``None``.")
-            self._graph._eattr[attribute] = values
+            self._eattr[attribute] = values
     
     def set_weights(self, elist=None, wlist=None, ifrac=None, distrib=None,
                     distrib_prop=None, correl=None, noise_scale=None):
@@ -485,17 +424,17 @@ with non symmetric matrix provided.')
         ``None``).
         '''
         if name is None and edge is None:
-            return self._graph._eattr.keys()
+            return self._eattr.keys()
         elif name is None:
-            return self._graph._eattr[edge]
+            return self._eattr[edge]
         elif edge is None:
-            return self._graph._eattr[name]
+            return self._eattr[name]
         else:
-            return self._graph._eattr[edge][name]
+            return self._eattr[edge][name]
     
     def get_attribute_type(self, attribute_name):
         ''' Return the type of an attribute '''
-        return self._graph._eattr.stored[attribute_name]
+        return self._eattr.stored[attribute_name]
     
     def get_name(self):
         ''' Get the name of the graph '''
@@ -505,20 +444,12 @@ with non symmetric matrix provided.')
         ''' Return the type of the graph (see nngt.generation) '''
         return self._graph_type
     
-    def node_nb(self):
-        ''' Number of nodes in the graph '''
-        return self._graph.node_nb()
-    
-    def edge_nb(self):
-        ''' Number of edges in the graph '''
-        return self._graph.edge_nb()
-    
     def get_density(self):
         '''
         Density of the graph: :math:`\\frac{E}{N^2}`, where `E` is the number of
         edges and `N` the number of nodes.
         '''
-        return self._graph.edge_nb()/float(self._graph.node_nb()**2)
+        return self.edge_nb()/float(self.node_nb()**2)
 
     def is_weighted(self):
         ''' Whether the edges have weights '''
@@ -573,7 +504,7 @@ with non symmetric matrix provided.')
         '''
         valid_types = ("in", "out", "total")
         if deg_type in valid_types:
-            return self._graph.degree_list(node_list, deg_type, use_weights)
+            return self.degree_list(node_list, deg_type, use_weights)
         else:
             raise InvalidArgument("Invalid degree type '{}'".format(strType))
 
@@ -593,19 +524,19 @@ with non symmetric matrix provided.')
         edge_betweenness : :class:`numpy.array`
             Betweenness of the edges.
         '''
-        return self._graph.betweenness(use_weights)
+        return self.betweenness(use_weights)
 
     def get_edge_types(self):
-        if TYPE in self._graph.edge_properties.keys():
-            return self._graph.edge_properties[TYPE].a
+        if TYPE in self.edge_properties.keys():
+            return self.edge_properties[TYPE].a
         else:
-            return repeat(1, self._graph.edge_nb())
+            return repeat(1, self.edge_nb())
     
     def get_weights(self):
         ''' Returns the weighted adjacency matrix as a
         :class:`scipy.sparse.lil_matrix`.
         '''
-        return self._graph.eproperties["weight"]
+        return self.eproperties["weight"]
 
     def is_spatial(self):
         '''
@@ -663,10 +594,10 @@ class SpatialGraph(Graph):
     # Constructor, destructor, attributes    
     
     def __init__(self, nodes=0, name="Graph", weighted=True, directed=True,
-                  libgraph=None, shape=None, positions=None, **kwargs):
+                  from_graph=None, shape=None, positions=None, **kwargs):
         '''
         Initialize SpatialClass instance.
-        @todo: see what we do with the libgraph argument
+        @todo: see what we do with the from_graph argument
 
         Parameters
         ----------
@@ -694,7 +625,7 @@ class SpatialGraph(Graph):
         self.__class__.__max_id += 1
         self._shape = None
         super(SpatialGraph, self).__init__(nodes, name, weighted, directed,
-                                           libgraph, **kwargs)
+                                           from_graph, **kwargs)
         self._init_spatial_properties(shape, positions, **kwargs)
         
     def __del__(self):
@@ -870,7 +801,7 @@ class Network(Graph):
     # Constructor, destructor and attributes
     
     def __init__(self, name="Graph", weighted=True, directed=True,
-                 libgraph=None, population=None, **kwargs):
+                 from_graph=None, population=None, **kwargs):
         '''
         Initializes :class:`~nngt.Network` instance.
 
@@ -884,7 +815,7 @@ class Network(Graph):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        libgraph : :class:`~nngt.core.GraphObject`, optional (default: None)
+        from_graph : :class:`~nngt.core.GraphObject`, optional (default: None)
             An optional :class:`~nngt.core.GraphObject` to serve as base.
         @todo:
         population : :class:`NeuralPop`, (default: None)
@@ -909,7 +840,7 @@ class Network(Graph):
             del kwargs["nodes"]
         super(Network, self).__init__(nodes=nodes, name=name,
                                       weighted=weighted, directed=directed,
-                                      libgraph=libgraph, **kwargs)
+                                      from_graph=from_graph, **kwargs)
         self._init_bioproperties(population)
     
     def __del__(self):
@@ -927,7 +858,7 @@ class Network(Graph):
     @population.setter
     def population(self, population):
         if issubclass(population.__class__, NeuralPop):
-            if self._graph.node_nb() == population.size:
+            if self.node_nb() == population.size:
                 if population.is_valid:
                     self._population = population
                 else:
@@ -1027,7 +958,7 @@ class SpatialNetwork(Network,SpatialGraph):
     # Constructor, destructor, and attributes
     
     def __init__(self, population, name="Graph", weighted=True, directed=True,
-                 shape=None, graph=None, positions=None, **kwargs):
+                 shape=None, from_graph=None, positions=None, **kwargs):
         '''
         Initialize Graph instance
 
@@ -1059,7 +990,8 @@ class SpatialNetwork(Network,SpatialGraph):
         nodes = population.size
         super(SpatialNetwork, self).__init__(
             nodes=nodes, name=name, weighted=weighted, directed=directed,
-            shape=shape, positions=positions, population=population, **kwargs)
+            shape=shape, positions=positions, population=population,
+            from_graph=from_graph, **kwargs)
 
     def __del__ (self):
         super(SpatialNetwork, self).__del__()

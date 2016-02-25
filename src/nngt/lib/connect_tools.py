@@ -8,6 +8,7 @@ import numpy as np
 import scipy.sparse as ssp
 from numpy.random import randint
 
+import nngt
 from nngt.globals import glib_data
 from nngt.lib.errors import InvalidArgument
 

@@ -4,12 +4,240 @@
 """ GraphObject for subclassing the libraries graphs """
 
 from collections import OrderedDict
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
 import scipy.sparse as ssp
 
-from nngt.globals import glib_data, glib_func, BWEIGHT
+from nngt.globals import glib_data, glib_func, BWEIGHT, with_metaclass
 
+
+
+adjacency = glib_func["adjacency"]
+
+#-----------------------------------------------------------------------------#
+# Library-dependent graph properties
+#------------------------
+#
+
+
+@with_metaclass(ABCMeta)
+class BaseProperty(dict):
+    
+    def __init__ (self, parent):
+        self.parent = parent
+        self.stored = {}
+    
+    @abstractmethod
+    def __getitem__(self, name):
+        pass
+    
+    @abstractmethod
+    def __setitem__(self, name, value):
+        pass
+
+class _GtNProperty(BaseProperty):
+
+    ''' Class for generic interactions with nodes properties (graph_tool)  '''
+
+    def __getitem__(self, name):
+        return self.parent.vertex_properties[name].a
+
+    def __setitem__(self, name, value):
+        size = self.parent.node_nb()
+        if len(value) == size:
+            self.parent.vertex_properties[name].a = np.array(value)
+        else:
+            raise ValueError("A list or a np.array with one entry per node in \
+the graph is required")
+    
+    def keys(self):
+        return self.stored.keys()
+
+    def new_na(self, name, value_type, values=None, val=None):
+        vprop = self.parent.new_vertex_property(value_type, values, val)
+        self.parent.vertex_properties[name] = vprop
+        self.stored[name] = value_type
+
+class _GtEProperty(BaseProperty):
+
+    ''' Class for generic interactions with nodes properties (graph_tool)  '''
+
+    def __getitem__(self, name):
+        '''
+        Return the attributes of an edge or a list of edges.
+        '''
+        if isinstance(name, str):
+            return self.parent.edge_properties[name].a
+        elif hasattr(name[0], '__iter__'):
+            di_eattr = {}
+            for key in self.keys():
+                di_eattr[key] = np.array( [ self.parent.edge_properties[key][e]
+                                            for e in name ] )
+            return di_eattr
+        else:
+            di_eattr = {}
+            for key in self.keys():
+                di_eattr[key] = self.parent.edge_properties[key][name]
+            return di_eattr
+
+    def __setitem__(self, name, value):
+        size = self.parent.edge_nb()
+        if len(value) == size:
+            self.parent.edge_properties[name].a = np.array(value)
+        else:
+            raise ValueError("A list or a np.array with one entry per edge in \
+the graph is required")
+
+    def new_ea(self, name, value_type, values=None, val=None):
+        eprop = self.parent.new_edge_property(value_type, values, val)
+        self.parent.edge_properties[name] = eprop
+        self.stored[name] = value_type
+
+class _IgNProperty(BaseProperty):
+
+    '''
+    @todo
+    Class for generic interactions with nodes properties (igraph)
+    '''
+
+    def __getitem__(self, name):
+        return self.parent.vs[name]
+
+    def __setitem__(self, name, value):
+        if len(value) == size:
+            self.parent.vs[name] = value
+        else:
+            raise ValueError("A list or a np.array with one entry per node in \
+the graph is required")
+
+    def new_na(self, name, value_type, values=None, val=None):
+        if val is None:
+            if value_type == "int":
+                val = int(0)
+            elif value_type == "double":
+                val = 0.
+            elif value_type == "string":
+                val = ""
+            else:
+                val = None
+        if values is None:
+            values = np.repeat(val, self.parent.vcount())
+        self.parent.vs[name] = values
+        self.stored[name] = value_type
+
+class _IgEProperty(BaseProperty):
+
+    ''' Class for generic interactions with nodes properties (networkx)  '''
+
+    def __getitem__(self, name):
+        return self.parent.es[name]
+
+    def __setitem__(self, name, value):
+        size = self.parent.edge_nb()
+        if len(value) == size:
+            self.parent.es[name] = value
+        else:
+            raise ValueError("A list or a np.array with one entry per edge in \
+the graph is required")
+
+    def new_ea(self, name, value_type, values=None, val=None):
+        if val is None:
+            if value_type == "int":
+                val = int(0)
+            elif value_type == "double":
+                val = 0.
+            elif value_type == "string":
+                val = ""
+            else:
+                val = None
+        if values is None:
+            values = np.repeat(val, self.parent.ecount())
+        elif len(values) == self.parent.ecount():
+            self.parent.es[name] = values
+        else:
+            raise ValueError("A list or a np.array with one entry per edge in \
+the graph is required")
+        self.stored[name] = value_type
+
+class _NxNProperty(BaseProperty):
+
+    '''
+    Class for generic interactions with nodes properties (networkx)
+    '''
+
+    def __getitem__(self, name):
+        lst = [self.parent.node[i][name] for i in range(self.parent.node_nb())]
+        return np.array(lst)
+
+    def __setitem__(self, name, value):
+        if len(value) == size:
+            for i in range(self.parent.node_nb()):
+                self.parent.node[i][name] = value[i]
+        else:
+            raise ValueError("A list or a np.array with one entry per node in \
+the graph is required")
+
+    def new_na(self, name, value_type, values=None, val=None):
+        if val is None:
+            if value_type == "int":
+                val = int(0)
+            elif value_type == "double":
+                val = 0.
+            elif value_type == "string":
+                val = ""
+            else:
+                val = None
+        if values is None:
+            values = np.repeat(val, self.parent.node_nb())
+        self[name] = values
+        self.stored[name] = value_type
+
+class _NxEProperty(BaseProperty):
+
+    ''' Class for generic interactions with edge properties (networkx)  '''
+
+    def __getitem__(self, name):
+        lst = []
+        for e in self.parent.edges:
+            lst.append(self.parent.edge[e[0],e[1]][name])
+        return np.array(lst)
+
+    def __setitem__(self, name, value):
+        size = self.parent.edge_nb()
+        if len(value) == size:
+            for i,e in enumerate(self.parent.edges):
+                self.parent.edge[e[0]][e[1]][name] = value[i]
+        else:
+            raise ValueError("A list or a np.array with one entry per edge in \
+the graph is required")
+
+    def new_ea(self, name, value_type, values=None, val=None):
+        if val is None:
+            if value_type == "int":
+                val = int(0)
+            elif value_type == "double":
+                val = 0.
+            elif value_type == "string":
+                val = ""
+            else:
+                val = None
+        if values is None:
+            values = np.repeat(val, self.parent.ecount())
+        elif len(values) == self.parent.ecount():
+            self[name] = values
+        else:
+            raise ValueError("A list or a np.array with one entry per edge in \
+the graph is required")
+        self.stored[name] = value_type
+
+# dictionary to chose
+
+di_graphprop = {
+    "graph_tool": { "node":_GtNProperty, "edge":_GtEProperty },
+    "igraph": { "node":_IgNProperty, "edge":_IgEProperty },
+    "networkx": { "node":_NxNProperty, "edge":_NxEProperty }
+}
 
 
 #-----------------------------------------------------------------------------#
@@ -17,43 +245,37 @@ from nngt.globals import glib_data, glib_func, BWEIGHT
 #------------------------
 #
 
-#-----------------------------------------------------------------------------#
-# GtGraph
-#------------------------
-#
-
-class GtGraph(glib_data["graph"]):
+@with_metaclass(ABCMeta)
+class BaseGraph(object):
     
-    '''
-    Subclass of :class:`graph_tool.Graph` that (with 
-    :class:`~nngt.core.SnapGraph`) unifies the methods to work with either
-    `graph_tool` or `SNAP`.
-    '''
-
     #-------------------------------------------------------------------------#
-    # Class properties
-
+    # Classmethod
+    
     @classmethod
     def to_graph_object(cls, obj):
         obj.__class__ = cls
-        obj._nattr = _GtNProperty(obj)
-        obj._eattr = _GtEProperty(obj)
+        edges = glib_func["get_edges"](obj)
+        obj._nattr = di_graphprop[glib_data["name"]]["node"](obj)
+        obj._eattr = di_graphprop[glib_data["name"]]["edge"](obj)
+        obj._edges = OrderedDict()
+        for i, edge in edges:
+            obj._edges[tuple(edge)] = i
         return obj
-
+        
     #-------------------------------------------------------------------------#
-    # Constructor and instance properties        
-
-    def __init__ (self, nodes=0, g=None, directed=True, prune=False,
-                  vorder=None):
-        '''
-        @todo: document that
-        see :class:`graph_tool.Graph`'s constructor '''
-        super(GtGraph,self).__init__(g,directed,prune,vorder)
-        if g is None:
-            self.add_vertex(nodes)
-        self._edges = OrderedDict()
-        self._nattr = _GtNProperty(self)
-        self._eattr = _GtEProperty(self)
+    # Shared properties methods
+    
+    @property
+    def edges(self):
+        ''' :class:`OrderedDict` containing the edges as keys (2-tuple) and
+        their index at the time of their creation as value '''
+        return self._edges
+        
+    @property
+    def edges_array(self):
+        ''' Edges of the graph, sorted by order of creation, as an array of
+        2-tuple. '''
+        return np.array(self._edges.keys(), copy=True)
 
     @property
     def nproperties(self):
@@ -62,21 +284,104 @@ class GtGraph(glib_data["graph"]):
     @property
     def eproperties(self):
         return self._eattr
-        
-    @property
-    def edges_array(self):
-        ''' Edges of the graph, sorted by order of creation, as an array of
-        2-tuple. '''
-        return np.array(self.graph._edges.keys(), copy=True)
-
-    #-------------------------------------------------------------------------#
-    # Graph manipulation
     
     def new_node_attribute(self, name, value_type, values=None, val=None):
          self._nattr.new_na(name, value_type, values, val)
 
     def new_edge_attribute(self, name, value_type, values=None, val=None):
          self._eattr.new_ea(name, value_type, values, val)
+
+    def remove_edge(self, edge):
+        raise NotImplementedError("This function has been removed because it \
+            makes using edge properties too complicated")
+
+    def remove_vertex(self, node, fast=False):
+        raise NotImplementedError("This function has been removed because it \
+            makes using node properties too complicated")
+        
+    def adjacency_matrix(self, types=True, weights=True):
+        weights = "weight" if weights is True else weights
+        types = "type" if types is True else False
+        mat = adjacency(self, weights)
+        if types in self.attributes() and weights in (True, "weight"):
+            mtype = adjacency(self, weight="type")
+            return mat*mtype
+        else:
+            return mat
+    
+    #-------------------------------------------------------------------------#
+    # Properties and methods to implement
+    
+    @abstractmethod
+    def new_node(self, n=1, ntype=1):
+        pass
+    
+    @abstractmethod
+    def new_edge(source, target, weight=1.):
+        pass
+        
+    @abstractmethod
+    def new_edges(self, edge_list, eprops=None):
+        pass
+        
+    @abstractmethod
+    def node_nb(self):
+        pass
+
+    @abstractmethod
+    def edge_nb(self):
+        pass
+    
+    @abstractmethod
+    def degree_list(self, node_list=None, deg_type="total", use_weights=True):
+        pass
+
+    @abstractmethod
+    def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
+        pass
+
+    @abstractmethod
+    def clear_all_edges(self):
+        pass
+
+
+#-----------------------------------------------------------------------------#
+# GtGraph
+#------------------------
+#
+
+class GtGraph(BaseGraph, glib_data["graph"]):
+    
+    '''
+    Subclass of :class:`graph_tool.Graph` that (with 
+    :class:`~nngt.core.SnapGraph`) unifies the methods to work with either
+    `graph_tool` or `SNAP`.
+    '''
+    
+    #-------------------------------------------------------------------------#
+    # Constructor and instance properties        
+
+    def __init__ (self, nodes=0, g=None, directed=True, prune=False,
+                  vorder=None):
+        '''
+        @todo: document that
+        see :class:`graph_tool.Graph`'s constructor '''
+        self._edges = OrderedDict()
+        self._nattr = _GtNProperty(self)
+        self._eattr = _GtEProperty(self)
+        super(GtGraph,self).__init__(g,directed,prune,vorder)
+        if g is None:
+            self.add_vertex(nodes)
+        else:
+            if g.__class__ is glib_data["graph"]:
+                edges = glib_func["get_edges"](g)
+                for i, edge in enumerate(edges):
+                    self._edges[tuple(e)] = i
+            else:
+                self._edges = g._edges.copy()
+
+    #-------------------------------------------------------------------------#
+    # Graph manipulation
     
     def new_node(self, n=1, ntype=1):
         '''
@@ -98,7 +403,7 @@ class GtGraph(glib_data["graph"]):
 
     def new_edge(source, target, weight=1.):
         '''
-        Adding a connection to the graph, with optional properties.
+        Adding an edge to the graph, with optional properties.
         
         Parameters
         ----------
@@ -111,7 +416,7 @@ class GtGraph(glib_data["graph"]):
             
         Returns
         -------
-        The new connection.
+        The new edge.
         '''
         self._edges[(source, target)] = self.node_nb()
         connection = self.add_edge(source, target, add_missing=True)
@@ -121,7 +426,7 @@ class GtGraph(glib_data["graph"]):
 
     def new_edges(self, edge_list, eprops=None):
         '''
-        Adds a list of connections to the graph
+        Adds a list of edges to the graph
         @todo: see how the eprops work
         '''
         n = self.node_nb()
@@ -129,21 +434,11 @@ class GtGraph(glib_data["graph"]):
             self._edges[tuple(edge)] = n + i
         self.add_edge_list(edge_list, eprops=eprops)
         return edge_list
-
-    def remove_edge(self, edge):
-        raise NotImplementedError("This function has been removed because it \
-            makes using edge properties too complicated")
-
-    def remove_vertex(self, node, fast=False):
-        raise NotImplementedError("This function has been removed because it \
-            makes using node properties too complicated")
-
-    def rm_all_edges(self):
-        '''
-        @todo: this should be implemented in GraphClass
-        Remove all connections in the graph
-        '''
+    
+    def clear_all_edges(self):
         self.clear_edges()
+        self._edges = OrderedDict()
+        self._eattr.clear()
     
     #-------------------------------------------------------------------------#
     # Getters
@@ -153,9 +448,6 @@ class GtGraph(glib_data["graph"]):
 
     def edge_nb(self):
         return self.num_edges()
-
-    def edges(self):
-        return super(GtGraph, self).edges()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         if node_list is None:
@@ -193,68 +485,41 @@ class GtGraph(glib_data["graph"]):
 #------------------------
 #
 
-class IGraph(glib_data["graph"]):
+class IGraph(BaseGraph, glib_data["graph"]):
 
     '''
     Subclass of :class:`igraph.Graph`.
     '''
 
     #-------------------------------------------------------------------------#
-    # Class properties
-    
-    @classmethod
-    def to_graph_object(cls, obj):
-        obj.__class__ = cls
-        obj._nattr = _IgNProperty(obj)
-        obj._eattr = _IgEProperty(obj)
-        return obj
-
-    #-------------------------------------------------------------------------#
     # Constructor and instance properties
     
     def __init__(self, nodes=0, g=None, directed=True, parent=None):
-        if g is None:
-            super(IGraph,self).__init__(n=nodes, directed=directed)
-        else:
-            nodes = g.vcount()
-            edge_list = g.get_edge_list()
-            di_node_attr = {}
-            di_edge_attr = {}
-            nattr = g.vs[0].attributes().keys()
-            eattr = g.es[0].attributes().keys()
-            for attr in nattr:
-                di_node_attr[attr] = g.vs[:][attr]
-            for attr in eattr:
-                di_edge_attr[attr] = g.es[:][attr]
-            super(IGraph,self).__init__(n=nodes, vertex_attrs=di_node_attr,
-                                        edge_attrs=di_edge_attr)
         self._edges = OrderedDict()
         self.directed = directed
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
-
-    @property
-    def nproperties(self):
-        return self._node_attribute
-
-    @property
-    def eproperties(self):
-        return self._eattr
-    
-    @property
-    def edges_array(self):
-        ''' Edges of the graph, sorted by order of creation, as an array of
-        2-tuple. '''
-        return np.array(self._edges.keys(), copy=True)
+        if g is None:
+            super(IGraph,self).__init__(n=nodes, directed=directed)
+        else:
+            nodes = g.vcount()
+            edges = g.ecount()
+            di_node_attr = {}
+            di_edge_attr = {}
+            if nodes:
+                nattr = g.vs[0].attributes().keys()
+            if edges:
+                eattr = g.es[0].attributes().keys()
+            for attr in nattr:
+                di_node_attr[attr] = g.vs[:][attr]
+            for attr in eattr:
+                di_edge_attr[attr] = g.es[:][attr]
+            super(IGraph,self).__init__(n=nodes, vertex_attrs=di_node_attr)
+            lst_edges = glib_func["get_edges"](g)
+            self.new_edges(lst_edges, eprops=di_edge_attr)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
-    
-    def new_node_attribute(self, name, value_type, values=None, val=None):
-        self._nattr.new_na(name, value_type, values, val)
-
-    def new_edge_attribute(self, name, value_type, values=None, val=None):
-         self._eattr.new_ea(name, value_type, values, val)
     
     def new_node(self, n=1, ntype=1):
         '''
@@ -305,7 +570,7 @@ class IGraph(glib_data["graph"]):
         for i, edge in enumerate(edge_list):
             self._edges[tuple(edge)] = n + i
         first_eid = self.ecount()
-        self.add_edges(edge_list)
+        super(IGraph, self).add_edges(edge_list)
         last_eid = self.ecount()
         if eprops is not None:
             for attr,lst in eprops.iteritems():
@@ -320,12 +585,11 @@ class IGraph(glib_data["graph"]):
         raise NotImplementedError("This function has been removed because it \
             makes using node properties too complicated")
 
-    def clear_edges(self):
-        '''
-        @todo: this should be implemented in GraphClass
-        Remove all connections in the graph
-        '''
+    def clear_all_edges(self):
+        ''' Remove all connections in the graph. '''
         self.delete_edges(None)
+        self._edges = OrderedDict()
+        self._eattr.clear()
     
     #-------------------------------------------------------------------------#
     # Getters
@@ -335,9 +599,6 @@ class IGraph(glib_data["graph"]):
 
     def edge_nb(self):
         return self.ecount()
-
-    def edges(self):
-        return self.get_edgelist()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         deg_type = 'all' if deg_type == 'total' else deg_type
@@ -367,7 +628,7 @@ class IGraph(glib_data["graph"]):
 #------------------------
 #
 
-class NxGraph(glib_data["graph"]):
+class NxGraph(BaseGraph, glib_data["graph"]):
 
     '''
     Subclass of networkx Graph
@@ -376,40 +637,23 @@ class NxGraph(glib_data["graph"]):
     #-------------------------------------------------------------------------#
     # Class properties
     
-    @classmethod
-    def to_graph_object(cls, obj):
-        obj.__class__ = cls
-        obj._nattr = _NxNProperty(obj)
-        obj._eattr = _NxEProperty(obj)
-        return obj
-
     di_value = { "string": "", "double": 0., "int": int(0) }
 
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
     
     def __init__(self, nodes=0, g=None, directed=True):
-        super(NxGraph,self).__init__(g)
-        if g is None and nodes:
-            self.add_nodes_from(range(nodes))
         self._edges = OrderedDict()
         self.directed = directed
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
-
-    @property
-    def nproperties(self):
-        return self._node_attribute
-
-    @property
-    def eproperties(self):
-        return self._eattr
-        
-    @property
-    def edges_array(self):
-        ''' Edges of the graph, sorted by order of creation, as an array of
-        2-tuple. '''
-        return np.array(self._edges.keys(), copy=True)
+        super(NxGraph,self).__init__(g)
+        if g is not None:
+            edges = glib_func["get_edges"](g)
+            for i, edge in enumerate(edges):
+                self._edges[tuple(edge)] = i
+        elif nodes:
+            self.add_nodes_from(range(nodes))
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -513,20 +757,11 @@ edge in the graph.")
                 self.add_edges_from(np.array(edge_list)[:,::-1], eprops)
         return edge_list
 
-    def remove_edge(self, edge):
-        raise NotImplementedError("This function has been removed because it \
-            makes using edge properties too complicated")
-
-    def remove_vertex(self, node, fast=False):
-        raise NotImplementedError("This function has been removed because it \
-            makes using node properties too complicated")
-
-    def clear_edges(self):
-        '''
-        @todo: this should be implemented in GraphClass
-        Remove all connections in the graph
-        '''
-        self.remove_edges_from(self.edges())
+    def clear_all_edges(self):
+        ''' Remove all connections in the graph '''
+        self.remove_edges_from(self.edges_array)
+        self._edges = OrderedDict()
+        self._eattr.clear()
 
     def set_node_property(self):
         #@todo: do it...
@@ -540,15 +775,6 @@ edge in the graph.")
 
     def edge_nb(self):
         return self.size()
-
-    def edges(self, **kwargs):
-        return super(NxGraph, self).edges(**kwargs)
-    
-    def adjacency(self, weighted=True):
-        if weighted:
-            return adjacency(self)
-        else:
-            return adjacency(self, weight=None)
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         weight = 'weight' if use_weights else None
@@ -665,244 +891,6 @@ class SnapGraph(glib_data["graph"]):
         else:
             # check how SNAP deals with multiple edges
             pass
-
-
-#
-#---
-# Graph properties
-#------------------------
-
-class _GtNProperty:
-
-    ''' Class for generic interactions with nodes properties (graph_tool)  '''
-
-    def __init__ (self, parent):
-        self.parent = parent
-
-    def __getitem__(self, name):
-        return self.parent.vertex_properties[name].a
-
-    def __setitem__(self, name, value):
-        size = self.parent.node_nb()
-        if len(value) == size:
-            self.parent.vertex_properties[name].a = np.array(value)
-        else:
-            raise ValueError("A list or a np.array with one entry per node in \
-the graph is required")
-    
-    def keys(self):
-        return self.parent.vertex_properties.keys()
-
-    def new_na(self, name, value_type, values=None, val=None):
-        vprop = self.parent.new_vertex_property(value_type, values, val)
-        self.parent.vertex_properties[name] = vprop
-
-class _GtEProperty:
-
-    ''' Class for generic interactions with nodes properties (graph_tool)  '''
-
-    def __init__ (self, parent):
-        self.parent = parent
-        self.stored = {}
-
-    def __getitem__(self, name):
-        '''
-        Return the attributes of an edge or a list of edges.
-        '''
-        if isinstance(name, str):
-            return self.parent.edge_properties[name].a
-        elif hasattr(name[0], '__iter__'):
-            di_eattr = {}
-            for key in self.keys():
-                di_eattr[key] = np.array( [ self.parent.edge_properties[key][e]
-                                            for e in name ] )
-            return di_eattr
-        else:
-            di_eattr = {}
-            for key in self.keys():
-                di_eattr[key] = self.parent.edge_properties[key][name]
-            return di_eattr
-
-    def __setitem__(self, name, value):
-        size = self.parent.edge_nb()
-        if len(value) == size:
-            self.parent.edge_properties[name].a = np.array(value)
-        else:
-            raise ValueError("A list or a np.array with one entry per edge in \
-the graph is required")
-
-    def keys(self):
-        return self.parent.edge_properties.keys()
-
-    def new_ea(self, name, value_type, values=None, val=None):
-        eprop = self.parent.new_edge_property(value_type, values, val)
-        self.parent.edge_properties[name] = eprop
-        self.stored[name] = value_type
-
-class _IgNProperty:
-
-    '''
-    @todo
-    Class for generic interactions with nodes properties (igraph)
-    '''
-
-    def __init__ (self, parent):
-        self.parent = parent
-
-    def __getitem__(self, name):
-        return self.parent.vs[name]
-
-    def __setitem__(self, name, value):
-        if len(value) == size:
-            self.parent.vs[name] = value
-        else:
-            raise ValueError("A list or a np.array with one entry per node in \
-the graph is required")
-    
-    def keys(self):
-        return self.parent.vs.attributes()
-
-    def new_na(self, name, value_type, values=None, val=None):
-        if val is None:
-            if value_type == "int":
-                val = int(0)
-            elif value_type == "double":
-                val = 0.
-            elif value_type == "string":
-                val = ""
-            else:
-                val = None
-        if values is None:
-            values = np.repeat(val, self.parent.vcount())
-        self.parent.vs[name] = values
-
-class _IgEProperty:
-
-    ''' Class for generic interactions with nodes properties (networkx)  '''
-
-    def __init__ (self, parent):
-        self.parent = parent
-
-    def __getitem__(self, name):
-        return self.parent.es[name]
-
-    def __setitem__(self, name, value):
-        size = self.parent.edge_nb()
-        if len(value) == size:
-            self.parent.es[name] = value
-        else:
-            raise ValueError("A list or a np.array with one entry per edge in \
-the graph is required")
-
-    def keys(self):
-        edge_seq = self.parent.es
-        return edge_seq.attributes()
-
-    def new_ea(self, name, value_type, values=None, val=None):
-        if val is None:
-            if value_type == "int":
-                val = int(0)
-            elif value_type == "double":
-                val = 0.
-            elif value_type == "string":
-                val = ""
-            else:
-                val = None
-        if values is None:
-            values = np.repeat(val, self.parent.ecount())
-        elif len(values) == self.parent.ecount():
-            self.parent.es[name] = values
-        else:
-            raise ValueError("A list or a np.array with one entry per edge in \
-the graph is required")
-
-class _NxNProperty:
-
-    '''
-    Class for generic interactions with nodes properties (networkx)
-    '''
-
-    def __init__ (self, parent):
-        self.parent = parent
-
-    def __getitem__(self, name):
-        lst = [self.parent.node[i][name] for i in range(self.parent.node_nb())]
-        return np.array(lst)
-
-    def __setitem__(self, name, value):
-        if len(value) == size:
-            for i in range(self.parent.node_nb()):
-                self.parent.node[i][name] = value[i]
-        else:
-            raise ValueError("A list or a np.array with one entry per node in \
-the graph is required")
-    
-    def keys(self):
-        if self.parent.node_nb():
-            return self.parent.node[-1].keys()
-        else:
-            return []
-
-    def new_na(self, name, value_type, values=None, val=None):
-        if val is None:
-            if value_type == "int":
-                val = int(0)
-            elif value_type == "double":
-                val = 0.
-            elif value_type == "string":
-                val = ""
-            else:
-                val = None
-        if values is None:
-            values = np.repeat(val, self.parent.node_nb())
-        self[name] = values
-
-class _NxEProperty:
-
-    ''' Class for generic interactions with edge properties (networkx)  '''
-
-    def __init__ (self, parent):
-        self.parent = parent
-
-    def __getitem__(self, name):
-        lst = []
-        for e in self.parent.edges():
-            lst.append(self.parent.edge[e[0],e[1]][name])
-        return np.array(lst)
-
-    def __setitem__(self, name, value):
-        size = self.parent.edge_nb()
-        if len(value) == size:
-            for i,e in enumerate(self.parent.edges()):
-                self.parent.edge[e[0]][e[1]][name] = value[i]
-        else:
-            raise ValueError("A list or a np.array with one entry per edge in \
-the graph is required")
-
-    def keys(self):
-        if self.parent.edge_nb():
-            e = self.parent.edges()[-1]
-            return self.parent.edge[e[0]][e[1]].keys()
-        else:
-            return []
-
-    def new_ea(self, name, value_type, values=None, val=None):
-        if val is None:
-            if value_type == "int":
-                val = int(0)
-            elif value_type == "double":
-                val = 0.
-            elif value_type == "string":
-                val = ""
-            else:
-                val = None
-        if values is None:
-            values = np.repeat(val, self.parent.ecount())
-        elif len(values) == self.parent.ecount():
-            self[name] = values
-        else:
-            raise ValueError("A list or a np.array with one entry per edge in \
-the graph is required")
 
 
 #-----------------------------------------------------------------------------#

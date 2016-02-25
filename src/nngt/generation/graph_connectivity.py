@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-""" Connectivity generators for Graph """
+""" Connectivity generators for nngt.Graph """
 
 import numpy as np
 
 import nngt
-from nngt.core import GraphObject
 from nngt.lib.connect_tools import *
 
 
@@ -80,15 +79,13 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     object will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
-    graph_obj_fd, graph_fd = None, from_graph
+    graph_fd = from_graph
     if graph_fd is not None:
         nodes = graph_fd.node_nb()
         graph_fd.clear_edges()
-        graph_obj_fd = graph_fd.graph
     else:
         nodes = population.size if population is not None else nodes
-        graph_obj_fd = GraphObject(nodes, directed=True)
-        graph_fd = nngt.Graph(name=name, libgraph=graph_obj_fd, **kwargs)
+        graph_fd = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -159,15 +156,13 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
     object will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
-    graph_obj_er, graph_er = None, from_graph
+    graph_er = from_graph
     if graph_er is not None:
         nodes = graph_er.node_nb()
         graph_er.clear_edges()
-        graph_obj_er = graph_er.graph
     else:
         nodes = population.size if population is not None else nodes
-        graph_obj_er = GraphObject(nodes, directed=directed)
-        graph_er = nngt.Graph(name=name, libgraph=graph_obj_er, **kwargs)
+        graph_er = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -243,15 +238,13 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
     provided.
     """
     # set node number and library graph
-    graph_obj_rsf, graph_rsf = None, from_graph
+    graph_rsf = from_graph
     if graph_rsf is not None:
         nodes = graph_rsf.node_nb()
         graph_rsf.clear_edges()
-        graph_obj_rsf = graph_rsf.graph
     else:
         nodes = population.size if population is not None else nodes
-        graph_obj_rsf = GraphObject(nodes, directed=directed)
-        graph_rsf = nngt.Graph(name=name, libgraph=graph_obj_rsf, **kwargs)
+        graph_rsf = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -314,7 +307,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
               if from_graph is None else from_graph.node_nb() )
     #~ c = c if c is not None else 0 if directed else 1
     
-    graph_obj_price = GraphObject.to_graph_object(
+    graph_obj_price = nngt.GraphObject.to_graph_object(
                         price_network(nodes,m,c,gamma,directed,seed_graph))
     if from_graph is not None:
         from_graph.graph = graph_obj_price
@@ -385,15 +378,13 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
     `nodes` is required unless `from_graph` or `population` is provided.
     """
     # set node number and library graph
-    graph_obj_nw, graph_nw = None, from_graph
+    graph_nw = from_graph
     if graph_nw is not None:
         nodes = graph_nw.node_nb()
         graph_nw.clear_edges()
-        graph_obj_nw = graph_nw.graph
     else:
         nodes = population.size if population is not None else nodes
-        graph_obj_nw = GraphObject(nodes, directed=directed)
-        graph_nw = nngt.Graph(name=name, libgraph=graph_obj_nw, **kwargs)
+        graph_nw = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -462,24 +453,17 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         Initial graph whose nodes are to be connected.
     """
     # set node number and library graph
-    graph_obj_dr, graph_dr = None, from_graph
+    graph_dr = from_graph
     if graph_dr is not None:
         nodes = graph_dr.node_nb()
         graph_dr.clear_edges()
-        graph_obj_dr = graph_dr.graph
     else:
         nodes = population.size if population is not None else nodes
-        graph_obj_dr = GraphObject(nodes, directed=directed)
+        graph_dr = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
     # generate container
     h = w = np.sqrt(float(nodes)/neuron_density)
-    if graph_dr is None:
-        shape = shape if shape is not None else nngt.Shape.rectangle(None,h,w)
-        graph_dr = nngt.SpatialGraph(name=name, libgraph=graph_obj_dr, shape=shape,
-                                **kwargs)
-    else:
-        if not issubclass(graph_dr.__class__, nngt.SpatialGraph):
-            shape = shape if shape is not None else nngt.Shape.rectangle(self,h,w)
-            nngt.SpatialGraph.make_spatial(graph_dr, shape, positions)
+    shape = shape if shape is not None else nngt.Shape.rectangle(graph_dr,h,w)
+    graph_dr = nngt.SpatialGraph.make_spatial(graph_dr, shape, positions)
     # add edges
     positions = graph_dr.position
     ia_edges = None

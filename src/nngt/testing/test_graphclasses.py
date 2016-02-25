@@ -71,9 +71,9 @@ class TestGraphClasses(TestBasis):
         '''
         ref_result = (graph.node_nb(), graph.edge_nb(), graph.node_nb(), 0)
         copied = graph.copy()
-        self.assertIsNot( copied.graph, graph.graph )
+        self.assertIsNot( copied, graph )
         computed_result = [ copied.node_nb(), copied.edge_nb() ]
-        copied.clear_edges()
+        copied.clear_all_edges()
         computed_result.extend( (copied.node_nb(), copied.edge_nb()) ) 
         self.assertEqual( ref_result, tuple(computed_result) )
 

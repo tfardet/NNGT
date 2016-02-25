@@ -4,6 +4,7 @@ Graph container classes
 .. currentmodule:: nngt
 .. autoclass:: Graph
 	:noindex:
+    :inherited-members:
 .. currentmodule:: nngt
 .. autoclass:: SpatialGraph
 	:noindex:

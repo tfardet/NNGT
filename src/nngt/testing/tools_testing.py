@@ -51,19 +51,9 @@ def _xml_to_dict(xml_elt, di_types):
 
 
 #-----------------------------------------------------------------------------#
-# Decorators
+# Decorator: repeat test for each graph
 #------------------------
 #
-
-def with_metaclass(mcls):
-    ''' Python 2/3 compatible metaclass declaration. '''
-    def decorator(cls):
-        body = vars(cls).copy()
-        # clean out class body
-        body.pop('__dict__', None)
-        body.pop('__weakref__', None)
-        return mcls(cls.__name__, cls.__bases__, body)
-    return decorator
 
 def foreach_graph(func):
     '''
