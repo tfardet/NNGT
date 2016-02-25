@@ -246,7 +246,7 @@ di_graphprop = {
 #------------------------
 #
 
-class BaseGraph(object, with_metaclass(ABCMeta)):
+class BaseGraph(with_metaclass(ABCMeta)):
     
     #-------------------------------------------------------------------------#
     # Classmethod
@@ -261,12 +261,6 @@ class BaseGraph(object, with_metaclass(ABCMeta)):
         for i, edge in edges:
             obj._edges[tuple(edge)] = i
         return obj
-#~ 
-    #~ #-------------------------------------------------------------------------#
-    #~ # Initialize
-#~ 
-    #~ def __init__(self, **kwargs):
-        #~ pass
     
     #-------------------------------------------------------------------------#
     # Shared properties methods
