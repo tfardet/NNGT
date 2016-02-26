@@ -252,7 +252,7 @@ class MetaAbcGraph(ABCMeta, type):
     pass
 
 @add_metaclass(ABCMeta)
-class BaseGraph:
+class BaseGraph(glib_data["graph"]):
     
     #-------------------------------------------------------------------------#
     # Classmethod
@@ -356,8 +356,7 @@ class BaseGraph:
 #------------------------
 #
 
-@add_metaclass(MetaAbcGraph)
-class GtGraph(BaseGraph, glib_data["graph"]):
+class GtGraph(BaseGraph):
     
     '''
     Subclass of :class:`graph_tool.Graph` that (with 
@@ -492,8 +491,7 @@ class GtGraph(BaseGraph, glib_data["graph"]):
 #------------------------
 #
 
-@add_metaclass(MetaAbcGraph)
-class IGraph(BaseGraph, glib_data["graph"]):
+class IGraph(BaseGraph):
 
     '''
     Subclass of :class:`igraph.Graph`.
@@ -636,8 +634,7 @@ class IGraph(BaseGraph, glib_data["graph"]):
 #------------------------
 #
 
-@add_metaclass(MetaAbcGraph)
-class NxGraph(BaseGraph, glib_data["graph"]):
+class NxGraph(BaseGraph):
 
     '''
     Subclass of networkx Graph
