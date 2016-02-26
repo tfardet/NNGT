@@ -21,11 +21,11 @@ adjacency = glib_func["adjacency"]
 #------------------------
 #
 
-class MetaAbcCompat(ABCMeta, type):
+class MetaAbcProp(ABCMeta, type):
     pass
 
-@add_metaclass(ABCMeta)
-class BaseProperty:
+@add_metaclass(MetaAbcProp)
+class BaseProperty(dict):
     
     def __init__(self, parent):
         self.parent = parent
@@ -39,8 +39,7 @@ class BaseProperty:
     def __setitem__(self, name, value):
         pass
 
-@add_metaclass(MetaAbcCompat)
-class _GtNProperty(BaseProperty, dict):
+class _GtNProperty(BaseProperty):
 
     ''' Class for generic interactions with nodes properties (graph_tool)  '''
 
@@ -63,8 +62,7 @@ the graph is required")
         self.parent.vertex_properties[name] = vprop
         self.stored[name] = value_type
 
-@add_metaclass(MetaAbcCompat)
-class _GtEProperty(BaseProperty, dict):
+class _GtEProperty(BaseProperty):
 
     ''' Class for generic interactions with nodes properties (graph_tool)  '''
 
@@ -99,8 +97,7 @@ the graph is required")
         self.parent.edge_properties[name] = eprop
         self.stored[name] = value_type
 
-@add_metaclass(MetaAbcCompat)
-class _IgNProperty(BaseProperty, dict):
+class _IgNProperty(BaseProperty):
 
     '''
     @todo
@@ -132,8 +129,7 @@ the graph is required")
         self.parent.vs[name] = values
         self.stored[name] = value_type
 
-@add_metaclass(MetaAbcCompat)
-class _IgEProperty(BaseProperty, dict):
+class _IgEProperty(BaseProperty):
 
     ''' Class for generic interactions with nodes properties (networkx)  '''
 
@@ -167,8 +163,7 @@ the graph is required")
 the graph is required")
         self.stored[name] = value_type
 
-@add_metaclass(MetaAbcCompat)
-class _NxNProperty(BaseProperty, dict):
+class _NxNProperty(BaseProperty):
 
     '''
     Class for generic interactions with nodes properties (networkx)
@@ -201,8 +196,7 @@ the graph is required")
         self[name] = values
         self.stored[name] = value_type
 
-@add_metaclass(MetaAbcCompat)
-class _NxEProperty(BaseProperty, dict):
+class _NxEProperty(BaseProperty):
 
     ''' Class for generic interactions with edge properties (networkx)  '''
 
@@ -253,6 +247,9 @@ di_graphprop = {
 # BaseGraph
 #------------------------
 #
+
+class MetaAbcGraph(ABCMeta, glib_data["graph"]):
+    pass
 
 @add_metaclass(ABCMeta)
 class BaseGraph:
@@ -359,7 +356,7 @@ class BaseGraph:
 #------------------------
 #
 
-@add_metaclass(MetaAbcCompat)
+@add_metaclass(MetaAbcGraph)
 class GtGraph(BaseGraph, glib_data["graph"]):
     
     '''
@@ -495,7 +492,7 @@ class GtGraph(BaseGraph, glib_data["graph"]):
 #------------------------
 #
 
-@add_metaclass(MetaAbcCompat)
+@add_metaclass(MetaAbcGraph)
 class IGraph(BaseGraph, glib_data["graph"]):
 
     '''
@@ -639,7 +636,7 @@ class IGraph(BaseGraph, glib_data["graph"]):
 #------------------------
 #
 
-@add_metaclass(MetaAbcCompat)
+@add_metaclass(MetaAbcGraph)
 class NxGraph(BaseGraph, glib_data["graph"]):
 
     '''
