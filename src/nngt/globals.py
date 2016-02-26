@@ -212,6 +212,7 @@ try to install latest version.".format(nx_version))
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
 
 # import the graph libraries the first time
+use_library("graph_tool", False)
 try:
     use_library("graph_tool", False)
 except:

@@ -22,11 +22,11 @@ sys.path.insert(0, os.path.abspath('../src/'))
 
 ''' if on rtd, graph_tool is not available so I need to mock it using
     the mock library '''
-
+        
 if on_rtd:
     import mock
     mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
-    
+
     class Mock(object):
         def __init__(self, *args, **kwargs):
             pass
@@ -35,23 +35,25 @@ if on_rtd:
             pass
         
         def __getattr__(self, name):
-            return Mock()
+            return self
 
         def __getitem__(self, name):
-            return mock_object
+            return self
 
         def __setitem__(self, name, value):
             pass
-        
+
+        @property
         def __name__(self):
             return "Mock"
-    
-    sys.modules["graph_tool"] = mock_object
-    sys.modules["graph_tool.Graph"] = mock_object
-    sys.modules["igraph"] = mock_object
-    sys.modules["igraph.Graph"] = mock_object
-    sys.modules["networkx"] = mock_object
-    sys.modules["networkx.DiGraph"] = mock_object
+
+        @property
+        def __bases__(self):
+            return (object,)
+
+    sys.modules["graph_tool"] = Mock()
+    sys.modules["igraph"] = Mock()
+    sys.modules["networkx"] = Mock()
     sys.modules["graph_tool.spectral"] = mock_object
     sys.modules["graph_tool.generation"] = mock_object
     sys.modules["graph_tool.util"] = mock_object
