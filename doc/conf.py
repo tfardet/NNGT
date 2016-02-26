@@ -25,8 +25,7 @@ sys.path.insert(0, os.path.abspath('../src/'))
 
 if on_rtd:
     import mock
-    mock_object = mock.Mock()
-    mock_object.__name__ = "Mock"
+    mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
     
     class Mock(object):
         def __init__(self, *args, **kwargs):
@@ -48,6 +47,8 @@ if on_rtd:
             return "Mock"
     
     sys.modules["graph_tool"] = mock_object
+    sys.modules["igraph"] = mock_object
+    sys.modules["networkx"] = mock_object
     sys.modules["graph_tool.spectral"] = mock_object
     sys.modules["graph_tool.generation"] = mock_object
     sys.modules["graph_tool.util"] = mock_object
