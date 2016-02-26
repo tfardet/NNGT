@@ -47,8 +47,11 @@ if on_rtd:
             return "Mock"
     
     sys.modules["graph_tool"] = mock_object
+    sys.modules["graph_tool.Graph"] = mock_object
     sys.modules["igraph"] = mock_object
+    sys.modules["igraph.Graph"] = mock_object
     sys.modules["networkx"] = mock_object
+    sys.modules["networkx.DiGraph"] = mock_object
     sys.modules["graph_tool.spectral"] = mock_object
     sys.modules["graph_tool.generation"] = mock_object
     sys.modules["graph_tool.util"] = mock_object
