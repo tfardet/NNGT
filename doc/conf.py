@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.abspath('../src/'))
 if on_rtd:
     import mock
     mock_object = mock.Mock()
+    mock_object.__name__ = "Mock"
     
     class Mock(object):
         def __init__(self, *args, **kwargs):
