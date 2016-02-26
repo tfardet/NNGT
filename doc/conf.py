@@ -42,6 +42,9 @@ if on_rtd:
 
         def __setitem__(self, name, value):
             pass
+        
+        def __name__(self):
+            return "Mock"
     
     sys.modules["graph_tool"] = mock_object
     sys.modules["graph_tool.spectral"] = mock_object
