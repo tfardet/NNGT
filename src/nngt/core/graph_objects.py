@@ -248,7 +248,7 @@ di_graphprop = {
 #------------------------
 #
 
-class MetaAbcGraph(ABCMeta, glib_data["graph"]):
+class MetaAbcGraph(ABCMeta, type):
     pass
 
 @add_metaclass(ABCMeta)
