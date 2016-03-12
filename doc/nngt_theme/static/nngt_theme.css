@@ -1,0 +1,92 @@
+@import url("bootstrap-sphinx.css");
+
+
+a.headerlink {
+    visibility: hidden;
+}
+
+code.descclassname, code.descname {
+    font-size: 110%;
+}
+
+/*
+Left navbar
+*/
+
+#sidebar {
+    border: solid 1px #cccccc;
+/*
+    background-color: #eeeeee;
+*/
+}
+
+div.col-md-3 {
+    text-align: center;
+}
+
+div.col-md-3 p.caption {
+    padding: 0;
+    margin: 1ex 0 0.5ex 0;
+}
+
+p.toctitle {
+    padding-left: 0;
+    font-weight: bold;
+    font-size: 150%;
+    font-variant: small-caps;
+}
+
+p.caption {
+    padding: 0 0 0 1em;
+    margin: 1ex 0 0.5ex 0;
+}
+
+ul.globaltoc {
+    font-size: 120%;
+    padding: 0;
+    margin: 0;
+}
+
+img.logo {
+    margin: 1ex 0 1em 0;
+}
+
+/*
+Documentation functions
+*/
+
+dl {
+    margin: 0;
+    padding: 0;
+}
+
+dl dd {
+    margin-left: 30px;
+}
+
+dl.function, dl.class, dl.exception {
+    padding-top: 0; 
+    clear: both;
+    margin: 1em 0 1ex 0;
+}
+
+dl.function, dl.exception {
+    border-top: 3px solid #cccccc;
+}
+
+dl.class {
+    border-top: 3px solid #729fcf;
+}
+
+dl.function dt, dl.class dt, dl.exception dt {
+    margin-bottom: 1ex;
+    padding: 0.5ex 1ex 0.5ex 1ex;
+}
+
+dl.function dt, dl.exception dt {
+    background-color: #f7f5fa;
+}
+
+dl.class dt {
+    background-color: #eeeeff;
+}

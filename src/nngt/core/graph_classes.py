@@ -32,11 +32,6 @@ class Graph(GraphObject):
     """
     The basic class that contains a :class:`graph_tool.Graph` and some
     of is properties or methods to easily access them.
-
-    :ivar id: :class:`int`
-        unique id that identifies the instance.
-    :ivar graph: :class:`~nngt.core.GraphObject`
-        main attribute of the class instance.
     """
 
     #-------------------------------------------------------------------------#
@@ -565,15 +560,8 @@ class SpatialGraph(Graph):
     
     """
     The detailed class that inherits from :class:`Graph` and implements
-    additional properties to describe various biological functions
-    and interact with the NEST simulator.
-
-    :ivar shape: :class:`~nngt.Shape`
-        Shape of the neurons environment.
-    :ivar positions: :class:`numpy.array`
-        Positions of the neurons.
-    :ivar graph: :class:`~nngt.GraphObject`
-        Main attribute of the class instance.
+    additional properties to describe spatial graphs (i.e. graph where the
+    structure is embedded in space.
     """
 
     #-------------------------------------------------------------------------#
@@ -597,7 +585,8 @@ class SpatialGraph(Graph):
                   from_graph=None, shape=None, positions=None, **kwargs):
         '''
         Initialize SpatialClass instance.
-        @todo: see what we do with the from_graph argument
+        .. todo::
+            see what we do with the from_graph argument
 
         Parameters
         ----------
@@ -618,7 +607,7 @@ class SpatialGraph(Graph):
         
         Returns
         -------
-        self : :class:`~nggt.Graph`
+        self : :class:`~nggt.SpatialGraph`
         '''
         self.__id = self.__class__.__max_id
         self.__class__.__num_graphs += 1
@@ -674,17 +663,6 @@ class Network(Graph):
     The detailed class that inherits from :class:`Graph` and implements
     additional properties to describe various biological functions
     and interact with the NEST simulator.
-    
-    :ivar population: :class:`~nngt.NeuralPop`
-        Object reparting the neurons into groups with specific properties.
-    :ivar graph: :class:`~nngt.core.GraphObject`
-        Main attribute of the class instance
-    :ivar nest_gid: :class:`numpy.array`
-        Array containing the NEST gid associated to each neuron; it is ``None``
-        until a NEST network has been created.
-    :ivar id_from_nest_gid: dict
-        Dictionary mapping each NEST gid to the corresponding neuron index in 
-        the :class:`nngt.~Network`
     """
 
     #-------------------------------------------------------------------------#
@@ -817,15 +795,14 @@ class Network(Graph):
             Whether the graph is directed or undirected.
         from_graph : :class:`~nngt.core.GraphObject`, optional (default: None)
             An optional :class:`~nngt.core.GraphObject` to serve as base.
-        @todo:
         population : :class:`NeuralPop`, (default: None)
-            A tuple containing the model(s) to use in NEST to simulate the 
-            neurons as well as a dictionary containing the parameters for the
-            neuron.
+            An object containing the neural groups and their properties:
+            model(s) to use in NEST to simulate the neurons as well as their
+            parameters.
         
         Returns
         -------
-        self : :class:`~nggt.core.Graph`
+        self : :class:`~nggt.Network`
         '''
         self.__id = self.__class__.__max_id
         self._population = None
@@ -931,21 +908,6 @@ class SpatialNetwork(Network,SpatialGraph):
     Class that inherits from :class:`~nngt.Network` and :class:`SpatialGraph`
     to provide a detailed description of a real neural network in space, i.e.
     with positions and biological properties to interact with NEST.
-
-    :ivar shape: :class:`nngt.core.Shape`
-        Shape of the neurons environment.
-    :ivar positions: :class:`numpy.array`
-        Positions of the neurons.
-    :ivar population: :class:`~nngt.NeuralPop`
-        Object reparting the neurons into groups with specific properties.
-    :ivar graph: :class:`~nngt.core.GraphObject`
-        Main attribute of the class instance.
-    :ivar nest_gid: :class:`numpy.array`
-        Array containing the NEST gid associated to each neuron; it is ``None``
-        until a NEST network has been created.
-    :ivar id_from_nest_gid: dict
-        Dictionary mapping each NEST gid to the corresponding neuron index in 
-        the :class:`nngt.~SpatialNetwork`
     """
 
     #-------------------------------------------------------------------------#
@@ -980,7 +942,7 @@ class SpatialNetwork(Network,SpatialGraph):
         
         Returns
         -------
-        self : :class:`~nggt.core.Graph`
+        self : :class:`~nggt.SpatialNetwork`
         '''
         self.__id = self.__class__.__max_id
         self.__class__.__num_networks += 1

@@ -1,10 +1,9 @@
-Graph container classes
-=======================
+Graph classes
+=============
 
 .. currentmodule:: nngt
 .. autoclass:: Graph
 	:noindex:
-    :inherited-members:
 .. currentmodule:: nngt
 .. autoclass:: SpatialGraph
 	:noindex:

@@ -16,9 +16,9 @@ __all__ = [
 	'distance_rule',
 	'erdos_renyi',
     'fixed_degree',
+	'newman_watts',
 	'random_scale_free',
 	'price_scale_free',
-	'newman_watts'
 ]
 
 
@@ -72,11 +72,10 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     graph_er : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
 
-    Notes
-    -----
-    `nodes` is required unless `from_graph` or `population` is provided.
-    If an `from_graph` is provided, all preexistant edges in the
-    object will be deleted before the new connectivity is implemented.
+    .. note::
+        `nodes` is required unless `from_graph` or `population` is provided.
+        If an `from_graph` is provided, all preexistant edges in the
+        object will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
     graph_fd = from_graph
@@ -149,11 +148,10 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
     graph_er : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
 
-    Notes
-    -----
-    `nodes` is required unless `from_graph` or `population` is provided.
-    If an `from_graph` is provided, all preexistant edges in the
-    object will be deleted before the new connectivity is implemented.
+    .. note::
+        `nodes` is required unless `from_graph` or `population` is provided.
+        If an `from_graph` is provided, all preexistant edges in the
+        object will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
     graph_er = from_graph
@@ -229,13 +227,12 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
     -------
     graph_fs : :class:`~nngt.Graph`
     
-    Notes
-    -----
-    As reciprocity increases, requested values of `in_exp` and `out_exp` will
-    be less and less respected as the distribution will converge to a common
-    exponent :math:`\gamma = \frac{\gamma_i + \gamma_o}{2}`.
-    Parameter `nodes` is required unless `from_graph` or `population` is
-    provided.
+    ..note::
+        As reciprocity increases, requested values of `in_exp` and `out_exp`
+        will be less and less respected as the distribution will converge to a
+        common exponent :math:`\gamma = \frac{\gamma_i + \gamma_o}{2}`.
+        Parameter `nodes` is required unless `from_graph` or `population` is
+        provided.
     """
     # set node number and library graph
     graph_rsf = from_graph
@@ -299,9 +296,8 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     -------
     graph_price : :class:`~nngt.Graph` or subclass.
     
-    Notes
-    -----
-    `nodes` is required unless `from_graph` or `population` is provided.
+    ..note::
+        `nodes` is required unless `from_graph` or `population` is provided.
     """
     nodes = ( ( population.size if population is not None else nodes )
               if from_graph is None else from_graph.node_nb() )
@@ -373,9 +369,8 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
     -------
     graph_nw : :class:`~nngt.Graph` or subclass
     
-    Notes
-    -----
-    `nodes` is required unless `from_graph` or `population` is provided.
+    .. note::
+        `nodes` is required unless `from_graph` or `population` is provided.
     """
     # set node number and library graph
     graph_nw = from_graph

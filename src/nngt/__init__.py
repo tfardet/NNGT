@@ -10,28 +10,6 @@ Provides algorithms for
 	2. analyzing their activity
 	3. studying the graph theoretical properties of those networks
 
-How to use the documentation
-============================
-
-Documentation is not yet really available. I will try to implement more
-extensive docstrings within the code.
-I recommend exploring the docstrings using
-`IPython <http://ipython.scipy.org>`_, an advanced Python shell with
-TAB-completion and introspection capabilities.  See below for further
-instructions.
-The docstring examples assume that `numpy` has been imported as `np`::
-
-	>>> import numpy as np
-
-Code snippets are indicated by three greater-than signs::
-
-	>>> x = 42
-	>>> x = x + 1
-
-Use the built-in ``help`` function to view a function's docstring::
-
-	>>> help(nggt.GraphClass)
-
 Available subpackages
 =====================
 
@@ -65,13 +43,13 @@ Functions related to spatial embedding of networks are using milimeters
 (mm) as default unit; other units from the metric system can also be
 provided:
 
-	- `um` for micrometers
-	- `cm` centimeters
-	- `dm` for decimeters
-	- `m` for meters
+- `um` for micrometers
+- `cm` centimeters
+- `dm` for decimeters
+- `m` for meters
     
-Main graph classes
-==================
+Main classes and functions
+==========================
 """
 
 from __future__ import absolute_import
@@ -136,6 +114,7 @@ except:
 # look for nest
 _with_nest = False
 try:
+    sys.argv.append('--quiet')
     import nest
     from . import simulation
     _with_nest = True

@@ -1,55 +1,21 @@
-.. NNGT documentation master file, created by
-   sphinx-quickstart on Fri Oct 30 15:32:21 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. NNGT documentation master file
 
 ================================
 Welcome to NNGT's documentation!
 ================================
 
-.. toctree::
-   :hidden:
+.. image:: https://travis-ci.org/Silmathoron/NNGT.svg?branch=master :target: https://travis-ci.org/Silmathoron/NNGT
+.. image:: https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master :target: https://coveralls.io/github/Silmathoron/NNGT?branch=master
 
-   self
-
-.. user:
-
-.. toctree::
-   :maxdepth: 2
-   :caption: User Documentation
-
-   user/intro
-   user/install
-   user/graph-generation
-   user/component-properties
-
-.. developer:
-
-.. toctree::
-   :glob:
-   :maxdepth: 2
-   :caption: Developer space
-
-   developer/detailed-structure
-   developer/graph-attributes
-
-.. modules
-
-.. toctree::
-   :glob:
-   :caption: Modules
-
-   modules/nngt
-   
-
-.. warning:
-    As of version 0.5, :class:`~nngt.Graph` directly inherits from :class:`~nngt.core.GraphObject`; documentation has not been updated yet.
 
 Overview
 ========
 
-The Neural Network Growth and Topology (NNGT) module provides tools to grow and study detailed biological networks by interfacing efficient graph libraries with highly distributed activity simulators. 
+.. warning::
+    As of version 0.5, :class:`~nngt.Graph` directly inherits from :class:`~nngt.core.GraphObject`; documentation has not been updated yet.
 
+
+The Neural Network Growth and Topology (NNGT) module provides tools to grow and study detailed biological networks by interfacing efficient graph libraries with highly distributed activity simulators.
 
 Main classes
 ------------
@@ -79,6 +45,45 @@ Interacting with NEST
 ---------------------
 
 The generated graphs can be used to easily create complex networks using the NEST simulator, on which you can then simulate their activity.
+
+
+The docs
+========
+
+.. toctree::
+   :hidden:
+   
+   self
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Documentation
+
+   user/intro
+   user/install
+   user/graph-generation
+   user/component-properties
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Developer space
+
+   developer/detailed-structure
+   developer/graph-attributes
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Modules
+
+   modules/nngt
+   modules/analysis
+   modules/core
+   modules/generation
+   modules/lib
+   modules/plot
+   modules/simulation
 
 
 Indices and tables

@@ -17,11 +17,15 @@ import os
 import shlex
 import re
 
+import sphinx_bootstrap_theme
+
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 sys.path.insert(0, os.path.abspath('../src/'))
+sys.path.append(os.path.abspath('.'))
 
-''' if on rtd, graph_tool is not available so I need to mock it using
-    the mock library '''
+'''
+if on rtd, the graph libraries are not available so they need to be mocked
+'''
         
 if on_rtd:
     import mock
@@ -77,11 +81,6 @@ from nngt.globals import version as nngt_version
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-#~ extensions = [
-    #~ 'sphinx.ext.mathjax',
-    #~ 'sphinx.ext.viewcode',
-    #~ 'sphinx.ext.intersphinx'
-#~ ]
 extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
@@ -89,11 +88,11 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['.templates']
+templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -157,9 +156,6 @@ exclude_patterns = ['.build']
 # output. They are ignored by default.
 #show_authors = False
 
-# The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
-
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
@@ -174,15 +170,64 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+#~ html_theme = 'sphinx_rtd_theme'
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#html_theme_options = {}
+html_theme = 'nngt_theme'
+html_theme_path = ["."] + sphinx_bootstrap_theme.get_html_theme_path()
 
-# Add any paths that contain custom themes here, relative to this directory.
-#html_theme_path = []
+html_theme_options = {
+    # A list of tuples containing pages or urls to link to.
+    # Valid tuples should be in the following forms:
+    #    (name, page)                 # a link to a page
+    #    (name, "/aa/bb", 1)          # a link to an arbitrary relative url
+    #    (name, "http://example.com", True) # arbitrary absolute url
+    # Note the "1" or "True" value above as the third argument to indicate
+    # an arbitrary url.
+    'navbar_links': [
+        ("Modules", "py-modindex"),
+        ("Index", "genindex"),
+        ("GitHub", "https://github.com/Silmathoron/NNGT", True),
+    ],
+
+    # Render the next and previous page links in navbar. (Default: true)
+    'navbar_sidebarrel': False,
+
+    # Render the current pages TOC in the navbar. (Default: true)
+    'navbar_pagenav': True,
+
+    # Tab name for the current pages TOC. (Default: "Page")
+    'navbar_pagenav_name': "Current",
+
+    # Global TOC depth for "site" navbar tab. (Default: 1)
+    # Switching to -1 shows all levels.
+    'globaltoc_depth': 2,
+
+    # Include hidden TOCs in Site navbar?
+    #
+    # Note: If this is "false", you cannot have mixed ``:hidden:`` and
+    # non-hidden ``toctree`` directives in the same page, or else the build
+    # will break.
+    #
+    # Values: "true" (default) or "false"
+    'globaltoc_includehidden': "true",
+
+    # Fix navigation bar to top of page?
+    # Values: "true" (default) or "false"
+    'navbar_fixed_top': "true",
+
+    # Location of link to source.
+    # Options are "nav" (default), "footer" or anything else to exclude.
+    'source_link_position': "nav",
+
+    # Bootswatch (http://bootswatch.com/) theme.
+    #
+    # Options are nothing (default) or the name of a valid theme
+    # such as "amelia" or "cosmo".
+    'bootswatch_theme': "cosmo"
+}
+
+html_sidebars = {'**': ['customtoc.html', 'searchbox.html']}
+
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -193,7 +238,8 @@ html_theme = 'sphinx_rtd_theme'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'images/nngt_logo.png'
+#~ html_logo = 'images/nngt_logo.png'
+#~ html_logo = 'images/nngt_ico.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -205,7 +251,7 @@ html_favicon = 'images/nngt_ico.png'
 # so a file named "default.css" will overwrite the builtin "default.css".
 # Set differently depending on the location?
 
-html_static_path = ['.static']
+html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -221,9 +267,9 @@ html_static_path = ['.static']
 html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {
-   '**': ['globaltoc.html', 'sourcelink.html', 'searchbox.html'],
-}
+#~ html_sidebars = {
+   #~ '**': ['globaltoc.html', 'sourcelink.html', 'searchbox.html'],
+#~ }
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -357,7 +403,7 @@ autodoc_default_flags = ['members', 'undoc-members']
 autodoc_docstring_signature = True
 autosummary_generate = True
 autodoc_order = 'bysource'
-autoclass_content = 'class'
+autoclass_content = 'both'
 napoleon_include_special_with_doc = False
 napoleon_use_param = False
 napoleon_use_rtype = False

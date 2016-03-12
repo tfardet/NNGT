@@ -15,16 +15,16 @@ Moreover, it also acts as an interface between those graph libraries and the NES
 Description
 ===========
 
-Neural networks are described by four container classes:
-	- :class:`~nngt.Graph`: container for simple topological graphs with no spatial structure, nor biological properties
-	- :class:`~nngt.SpatialGraph`: container for spatial graphs without biological properties
-	- :class:`~nngt.Network`: container for topological graphs with biological properties (to interact with NEST)
-	- :class:`~nngt.SpatialNetwork`: container with spatial and biological properties (to interact with NEST)
+Neural networks are described by four graph classes which inherit from the main class of the chosen graph library (:class:`graph_tool.Graph`, :class:`igraph.Graph` or :class:`networkx.DiGraph`):
+	- :class:`~nngt.Graph`: base for simple topological graphs with no spatial structure, nor biological properties
+	- :class:`~nngt.SpatialGraph`: subclass for spatial graphs without biological properties
+	- :class:`~nngt.Network`: subclass for topological graphs with biological properties (to interact with NEST)
+	- :class:`~nngt.SpatialNetwork`: subclass with spatial and biological properties (to interact with NEST)
 
-Using these objects, the user can access to a the ``graph`` attribute, which contains the topological structure of the network (including the connections' type -- inhibitory or excitatory -- and its weight which is always positive)
+Using these objects, the user can access to the topological structure of the network (including the connections' type -- inhibitory or excitatory -- and its weight which is always positive)
 
 .. warning ::
-	This object should never be directly modified through its methods but rather using those of the four containing classes. The only reason to access this object should be to perform graph-theoretical measurements on it which do not modify its structure; any other action will lead to undescribed behaviour.
+	This object should never be directly modified through its methods but rather using those of the previously listed classes. If for some reason you should directly use the methods from the graph library on the graph, make sure they do not modify its structure; any modification performed from a method other than those of the :class:`~nngt.Graph` subclasses will lead to undescribed behaviour.
 
 Nodes/neurons are defined by a unique index which can be used to access their properties and those of the connections between them.
 
