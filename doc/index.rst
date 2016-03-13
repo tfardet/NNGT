@@ -4,16 +4,14 @@
 Welcome to NNGT's documentation!
 ================================
 
-.. image:: https://travis-ci.org/Silmathoron/NNGT.svg?branch=master :target: https://travis-ci.org/Silmathoron/NNGT
-.. image:: https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master :target: https://coveralls.io/github/Silmathoron/NNGT?branch=master
+.. image:: https://travis-ci.org/Silmathoron/NNGT.svg?branch=master
+    :target: https://travis-ci.org/Silmathoron/NNGT
+.. image:: https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master
+    :target: https://coveralls.io/github/Silmathoron/NNGT?branch=master
 
 
 Overview
 ========
-
-.. warning::
-    As of version 0.5, :class:`~nngt.Graph` directly inherits from :class:`~nngt.core.GraphObject`; documentation has not been updated yet.
-
 
 The Neural Network Growth and Topology (NNGT) module provides tools to grow and study detailed biological networks by interfacing efficient graph libraries with highly distributed activity simulators.
 

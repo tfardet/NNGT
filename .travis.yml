@@ -60,7 +60,11 @@ before_install:
   # static code analysis
   - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
+  # coverage analysis
+  - sudo pip install coveralls
+
 install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pip install -e ".[nx,ig]"; fi
 
-script: if [[ "$PYVERSION" == "3.x" ]]; then python3 src/nngt/testing/__init__.py $GL; else python src/nngt/testing/__init__.py $GL; fi 
+script: if [[ "$PYVERSION" == "3.x" ]]; then coverage run --source=nngt src/nngt/testing/__init__.py $GL; else coverage run --source=nngt src/nngt/testing/__init__.py $GL; fi 
 
+after_success: coveralls

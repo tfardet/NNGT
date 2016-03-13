@@ -10,4 +10,4 @@ It currently supports NEST, graph-tool, igraph and networkx.
 **Status**
 Basic functions and graph generation algorithms implemented.
 
-See [doc on ReadTheDocs](http://nngt.readthedocs.org/en/latest/index.html).
+See doc on ReadTheDocs: [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest)

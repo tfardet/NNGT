@@ -15,9 +15,7 @@ Left navbar
 
 #sidebar {
     border: solid 1px #cccccc;
-/*
-    background-color: #eeeeee;
-*/
+    background-color: #f7f5fa;
 }
 
 div.col-md-3 {
@@ -39,6 +37,7 @@ p.toctitle {
 p.caption {
     padding: 0 0 0 1em;
     margin: 1ex 0 0.5ex 0;
+    font-weight: bold;
 }
 
 ul.globaltoc {
