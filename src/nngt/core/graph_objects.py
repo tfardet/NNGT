@@ -579,7 +579,7 @@ class IGraph(BaseGraph):
         super(IGraph, self).add_edges(edge_list)
         last_eid = self.ecount()
         if eprops is not None:
-            for attr,lst in eprops.iteritems():
+            for attr,lst in iter(eprops.items()):
                 self.es[first_eid:last_eid][attr] = lst
         return edge_list
 
@@ -749,7 +749,7 @@ edge in the graph.")
         for i, edge in enumerate(edge_list):
             self._edges[tuple(edge)] = n + i
         if eprops is not None:
-            for attr in eprops.iterkeys():
+            for attr in iter(eprops.keys()):
                 arr = eprops[attr]
                 edges = ( (tpl[0],tpl[i][1], arr[i])
                           for i, tpl in enumerate(edge_list) )

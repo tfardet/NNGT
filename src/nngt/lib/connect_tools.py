@@ -164,7 +164,6 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
     num_node = num_source if degree_type == "in" else num_target
     lst_deg = np.around(np.maximum(np.random.normal(avg, std, num_node),0.)).astype(int)
     edges = np.sum(lst_deg)
-    print(lst_deg[:10],edges)
     b_one_pop = (False if num_source != num_target else
                            not np.all(source_ids-target_ids))
     if not b_one_pop and not multigraph:
