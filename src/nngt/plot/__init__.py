@@ -16,11 +16,9 @@ import sys
 import matplotlib
 try:
     matplotlib.use('Qt5Agg')
-    raise
 except:
     try:
         matplotlib.use('Qt4Agg')
-        raise
     except:
         try:
             matplotlib.use('GTK3Agg')
