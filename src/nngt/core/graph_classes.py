@@ -855,7 +855,7 @@ class Network(Graph):
     @nest_gid.setter
     def nest_gid(self, gids):
         self._nest_gid = gids
-        for group in self.population.itervalues():
+        for group in iter(self.population.values()):
             group._nest_gids = gids[group.id_list]
 
     #-------------------------------------------------------------------------#

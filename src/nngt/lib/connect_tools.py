@@ -19,6 +19,7 @@ __all__ = [
     "_erdos_renyi",
     "_filter",
     "_fixed_degree",
+    "_gaussian_degree",
     "_newman_watts",
     "_no_self_loops",
     "_price_scale_free",
@@ -122,11 +123,10 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
         b_nd = (edges > int((0.5*num_source-1)*num_target))
         if (not directed and b_nd) or (directed and b_d):
             raise InvalidArgument("Required degree is too high")
-    
+            
     ia_edges = np.zeros((edges,2), dtype=int)
-    num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
-    
     ia_sources, ia_targets = None, None
+    
     if b_out:
         for i,v in enumerate(target_ids):
             edges_i, ecurrent, sources_i = np.zeros((degree,2)), 0, []
@@ -149,48 +149,65 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
             ia_edges[i*degree:(i+1)*degree,0] = targets_i
     return ia_edges
 
-def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
-                 directed, multigraph, **kwargs):
-    '''
-    Returns a numpy array of dimension (2,edges) that describes the edge list
-    of an Erdos-Renyi graph.
-    @todo: perform all the calculations here
-    '''
+
+def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
+                     reciprocity, directed, multigraph):
+    ''' Connect nodes with a Gaussian distribution '''
     np.random.seed()
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
-    edges, pre_recip_edges = _compute_connections(num_source, num_target,
-                                density, edges, avg_deg, directed, reciprocity)
+    # type of degree
+    b_out = (degree_type == "out")
+    b_total = (degree_type == "total")
+    # edges
+    num_node = num_source if degree_type == "in" else num_target
+    lst_deg = np.around(np.maximum(np.random.normal(avg, std, num_node),0.)).astype(int)
+    edges = np.sum(lst_deg)
+    print(lst_deg[:10],edges)
     b_one_pop = (False if num_source != num_target else
                            not np.all(source_ids-target_ids))
+    if not b_one_pop and not multigraph:
+        b_d = (edges > num_source*num_target)
+        b_nd = (edges > int(0.5*num_source*num_target))
+        if (not directed and b_nd) or (directed and b_d):
+            raise InvalidArgument("Required degree is too high")
+    elif b_one_pop and not multigraph:
+        b_d = (edges > num_source*(num_target-1))
+        b_nd = (edges > int((0.5*num_source-1)*num_target))
+        if (not directed and b_nd) or (directed and b_d):
+            raise InvalidArgument("Required degree is too high")
     
     ia_edges = np.zeros((edges,2), dtype=int)
-    num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
+    num_etotal = 0 # current number of edges
     
-    while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
-        ia_sources = source_ids[randint(0, num_source,
-                                        pre_recip_edges-num_ecurrent)]
-        ia_targets = target_ids[randint(0, num_target,
-                                        pre_recip_edges-num_ecurrent)]
-        ia_edges_tmp = np.array([ia_sources,ia_targets]).T
-        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         b_one_pop, multigraph)
-        num_test += 1
-    
-    if directed and reciprocity > 0:
-        while num_ecurrent != edges and num_test < MAXTESTS:
-            ia_indices = randint(0, pre_recip_edges,
-                                           edges-num_ecurrent)
-            ia_edges[num_ecurrent:,:] = ia_edges[ia_indices,::-1]
-            num_ecurrent = edges
-            if not multigraph:
-                ia_edges_tmp = _unique_rows(ia_edges)
-                num_ecurrent = ia_edges_tmp.shape[0]
-                ia_edges[:num_ecurrent,:] = ia_edges_tmp
-            num_test += 1
+    ia_sources, ia_targets = None, None
+    if b_out:
+        for i,v in enumerate(target_ids):
+            degree_i = lst_deg[i]
+            edges_i, ecurrent, sources_i = np.zeros((degree,2)), 0, []
+            ia_edges[num_etotal:num_etotal+degree_i,0] = v
+            while len(sources_i) != degree_i:
+                sources = source_ids[randint(0,num_source,degree_i-ecurrent)]
+                sources_i.extend(sources)
+                sources_i = list(set(sources_i))
+                ecurrent = len(sources_i)
+            ia_edges[num_etotal:num_etotal+ecurrent,1] = sources_i
+            num_etotal += ecurrent
+    else:
+        for i,v in enumerate(source_ids):
+            degree_i = lst_deg[i]
+            edges_i, ecurrent, targets_i = np.zeros((degree_i,2)), 0, []
+            ia_edges[num_etotal:num_etotal+degree_i,1] = v
+            while len(targets_i) != degree_i:
+                targets = target_ids[randint(0,num_target,degree_i-ecurrent)]
+                targets_i.extend(targets)
+                targets_i = list(set(targets_i))
+                ecurrent = len(targets_i)
+            ia_edges[num_etotal:num_etotal+ecurrent,0] = targets_i
+            num_etotal += ecurrent
     return ia_edges
-
+    
 
 def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
                        edges, avg_deg, reciprocity, directed, multigraph,
@@ -256,6 +273,50 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
     return ia_edges
+    
+
+def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
+                 directed, multigraph, **kwargs):
+    '''
+    Returns a numpy array of dimension (2,edges) that describes the edge list
+    of an Erdos-Renyi graph.
+    @todo: perform all the calculations here
+    '''
+    np.random.seed()
+    source_ids = np.array(source_ids).astype(int)
+    target_ids = np.array(target_ids).astype(int)
+    num_source, num_target = len(source_ids), len(target_ids)
+    edges, pre_recip_edges = _compute_connections(num_source, num_target,
+                                density, edges, avg_deg, directed, reciprocity)
+    b_one_pop = (False if num_source != num_target else
+                           not np.all(source_ids-target_ids))
+    
+    ia_edges = np.zeros((edges,2), dtype=int)
+    num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
+    
+    while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
+        ia_sources = source_ids[randint(0, num_source,
+                                        pre_recip_edges-num_ecurrent)]
+        ia_targets = target_ids[randint(0, num_target,
+                                        pre_recip_edges-num_ecurrent)]
+        ia_edges_tmp = np.array([ia_sources,ia_targets]).T
+        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
+                                         b_one_pop, multigraph)
+        num_test += 1
+    
+    if directed and reciprocity > 0:
+        while num_ecurrent != edges and num_test < MAXTESTS:
+            ia_indices = randint(0, pre_recip_edges,
+                                           edges-num_ecurrent)
+            ia_edges[num_ecurrent:,:] = ia_edges[ia_indices,::-1]
+            num_ecurrent = edges
+            if not multigraph:
+                ia_edges_tmp = _unique_rows(ia_edges)
+                num_ecurrent = ia_edges_tmp.shape[0]
+                ia_edges[:num_ecurrent,:] = ia_edges_tmp
+            num_test += 1
+    return ia_edges
+
 
 def _price_scale_free():
     pass

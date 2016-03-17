@@ -153,7 +153,7 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
         # event detectors
         elif "detector" in rec:
             if network is not None:
-                for name, group in network.population.iteritems():
+                for name, group in iter(network.population.items()):
                     device = nest.Create(rec)
                     recorders.append(device)
                     new_record.append(["spikes"])

@@ -16,6 +16,7 @@ __all__ = [
 	'distance_rule',
 	'erdos_renyi',
     'fixed_degree',
+    'gaussian_degree',
 	'newman_watts',
 	'random_scale_free',
 	'price_scale_free',
@@ -23,7 +24,7 @@ __all__ = [
 
 
 #-----------------------------------------------------------------------------#
-# Fixed degree
+# Specific degree distributions
 #------------------------
 #
 
@@ -69,7 +70,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
 
     Returns
     -------
-    graph_er : :class:`~nngt.Graph`, or subclass
+    graph_fd : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
 
     .. note::
@@ -95,7 +96,80 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     _set_options(graph_fd, weighted, population, shape, positions)
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
     return graph_fd
-    
+
+
+def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
+                 weighted=True, directed=True, multigraph=False, name="ER",
+                 shape=None, positions=None, population=None, from_graph=None,
+                 **kwargs):
+    """
+    Generate a random graph with constant in- or out-degree.
+
+    Parameters
+    ----------
+    avg : float
+        The value of the average degree.
+    std : float
+		The standard deviation of the Gaussian distribution.
+    degree_type : str, optional (default: 'in')
+        The type of the fixed degree, among 'in', 'out' or 'total'
+        .. todo ::
+			Implement 'total' degree
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    reciprocity : double, optional (default: -1 to let it free)
+        @todo: not implemented yet. Fraction of edges that are bidirectional 
+        (only for directed graphs -- undirected graphs have a reciprocity of 
+        1 by definition)
+    weighted : bool, optional (default: True)
+        Whether the graph edges have weights.
+    directed : bool, optional (default: True)
+        @todo: only for directed graphs for now. Whether the graph is directed
+        or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.core.Shape`, optional (default: None)
+        Shape of the neurons' environment.
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
+    from_graph : :class:`Graph` or subclass, optional (default: None)
+        Initial graph whose nodes are to be connected.
+
+    Returns
+    -------
+    graph_gd : :class:`~nngt.Graph`, or subclass
+        A new generated graph or the modified `from_graph`.
+
+    .. note::
+        `nodes` is required unless `from_graph` or `population` is provided.
+        If an `from_graph` is provided, all preexistant edges in the object
+        will be deleted before the new connectivity is implemented.
+    """
+    # set node number and library graph
+    graph_gd = from_graph
+    if graph_gd is not None:
+        nodes = graph_gd.node_nb()
+        graph_gd.clear_edges()
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_gd = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
+    # add edges
+    ia_edges = None
+    if nodes > 1:
+        ids = range(nodes)
+        ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
+                                    reciprocity, directed, multigraph)
+        graph_gd.add_edges(ia_edges)
+    _set_options(graph_gd, weighted, population, shape, positions)
+    graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
+    return graph_gd
+
 
 #-----------------------------------------------------------------------------#
 # Erdos-Renyi
@@ -252,6 +326,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
     _set_options(graph_rsf, weighted, population, shape, positions)
     graph_rsf._graph_type = "random_scale_free"
     return graph_rsf
+
 
 def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
                      seed_graph=None, multigraph=False, name="PriceSF",
@@ -479,10 +554,11 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
 #------------------------
 #
 
-di_generator = {
+_di_generator = {
     "distance_rule": distance_rule,
     "erdos_renyi": erdos_renyi,
     "fixed_degree": fixed_degree,
+    "gaussian_degree": gaussian_degree,
     "newman_watts": newman_watts,
     "price_scale_free": price_scale_free,
     "random_scale_free": random_scale_free
@@ -507,7 +583,7 @@ def generate(di_instructions):
         Generator functions are detailed in :mod:`~nngt.generation`.
     '''
     graph_type = di_instructions["graph_type"]
-    return di_generator[graph_type](**di_instructions)
+    return _di_generator[graph_type](**di_instructions)
 
 
 #-----------------------------------------------------------------------------#
@@ -515,23 +591,25 @@ def generate(di_instructions):
 #------------------------
 #
 
-di_gen_edges = {
+_di_gen_edges = {
     "distance_rule": _distance_rule,
     "erdos_renyi": _erdos_renyi,
     "fixed_degree": _fixed_degree,
+    "gaussian_degree": _gaussian_degree,
     "newman_watts": _newman_watts,
     "price_scale_free": _price_scale_free,
     "random_scale_free": _random_scale_free
 }
 
-di_default = {  "density": 0.1,
+_di_default = {  "density": 0.1,
                 "edges": -1,
                 "avg_deg": -1,
                 "reciprocity": -1,
                 "directed": True,
                 "multigraph": False }
 
-one_pop_models = ("newman_watts",)
+_one_pop_models = ("newman_watts",)
+
 
 def connect_neural_types(network, source_type, target_type, graph_model,
                          model_param, weighted=True):
@@ -561,7 +639,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         Whether the graph edges have weights.
     '''
     edges, source_ids, target_ids = None, [], []
-    di_param = di_default.copy()
+    di_param = _di_default.copy()
     di_param.update(model_param)
     for group in network._population.itervalues():
         if group.neuron_type == source_type:
@@ -569,10 +647,10 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         elif group.neuron_type == target_type:
             target_ids.extend(group._id_list)
     if source_type == target_type:
-        edges = di_gen_edges[graph_model](source_ids,source_ids,**di_param)
+        edges = _di_gen_edges[graph_model](source_ids,source_ids,**di_param)
         network.add_edges(edges)
     else:
-        edges = di_gen_edges[graph_model](source_ids,target_ids,**di_param)
+        edges = _di_gen_edges[graph_model](source_ids,target_ids,**di_param)
         network.add_edges(edges)
     #~ network.set_weights(edges)
     if weighted:
@@ -583,8 +661,9 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         nngt.Connections.distances(network)
     network._graph_type += "_neural_type_connect"
 
+
 def connect_neural_groups(network, source_groups, target_groups, graph_model,
-                         model_param):
+                          model_param):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
@@ -607,7 +686,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         of the associated generation function --- see above).
     '''
     edges, source_ids, target_ids = None, [], []
-    di_param = di_default.copy()
+    di_param = _di_default.copy()
     di_param.update(model_param)
     for name, group in network._population.iteritems():
         if name in source_groups:
@@ -615,10 +694,10 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         elif name in target_groups:
             target_ids.extend(group._id_list)
     if source_groups == target_groups:
-        edges = di_gen_edges[graph_model](source_ids,source_ids,**di_param)
+        edges = _di_gen_edges[graph_model](source_ids,source_ids,**di_param)
         network.add_edges(edges)
     else:
-        edges = di_gen_edges[graph_model](source_ids, target_ids, **di_param)
+        edges = _di_gen_edges[graph_model](source_ids, target_ids, **di_param)
         network.add_edges(edges)
     #~ network.set_weights(edges)
     network.set_weights()

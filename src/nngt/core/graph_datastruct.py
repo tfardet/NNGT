@@ -155,7 +155,7 @@ class NeuralPop(dict):
         if group is None:
             group = self.keys()
         try:
-            for key,val in model.iteritems():
+            for key,val in iter(model.items()):
                 for name in group:
                     if key == "neuron":
                         self[name].neuron_model = val
@@ -169,7 +169,7 @@ among 'neuron' or 'synapse'.".format(key))
         except:
             raise InvalidArgument("Invalid model dict or group; see docstring.")
         b_has_models = True
-        for group in self.itervalues():
+        for group in iter(self.values()):
             b_has_model *= group.has_model
         self._has_models = b_has_models
     
@@ -194,7 +194,7 @@ among 'neuron' or 'synapse'.".format(key))
         if group is None:
             group = self.keys()
         try:
-            for key,val in param.iteritems():
+            for key,val in iter(param.items()):
                 for name in group:
                     if key == "neuron":
                         self[name].neuron_param = val

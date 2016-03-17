@@ -61,6 +61,8 @@ def degree_distribution(network, deg_type="total", node_list=None, num_bins=50,
         type of degree to consider ("in", "out", or "total")
     node_list : list or numpy.array of ints, optional (default: None)
         Restrict the distribution to a set of nodes (default: all nodes).
+    num_bins : int, optional (default: 50):
+        Number of bins used to sample the distribution.
     use_weights : bool, optional (default: True)
         use weighted degrees (do not take the sign into account : all weights
         are positive).
@@ -68,6 +70,9 @@ def degree_distribution(network, deg_type="total", node_list=None, num_bins=50,
         use log-spaced bins.
     logy : bool, optional (default: False)
         use logscale for the degree count.
+    fignum : int, optional (default: ``None``)
+        Index of the figure on which the plot should be drawn (default creates
+        a new figure).
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
     '''

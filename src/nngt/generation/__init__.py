@@ -18,6 +18,7 @@ __all__ = [
 	'distance_rule',
 	'erdos_renyi',
     'fixed_degree',
+    'gaussian_degree',
 	'random_scale_free',
 	'price_scale_free',
 	'newman_watts'

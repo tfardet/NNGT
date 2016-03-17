@@ -51,7 +51,7 @@ def make_nest_network(network, use_weights=True):
     ia_nngt_nest = np.zeros(num_neurons, dtype=int)
     current_size = 0
 
-    for group in network.population.itervalues():
+    for group in iter(network.population.values()):
         group_size = len(group.id_list)
         ia_nngt_ids[current_size:current_size+group_size] = group.id_list
         gids = nest.Create(group.neuron_model, group_size, group.neuron_param)
@@ -72,7 +72,7 @@ def make_nest_network(network, use_weights=True):
         num_connect = len(ia_targets)
         dic_prop = network.neuron_properties(ia_nngt_ids[i])
         syn_model = dic_prop["syn_model"]
-        for key, val in dic_prop["syn_param"].iteritems():
+        for key, val in iter(dic_prop["syn_param"].items()):
             dic[key] = np.repeat(val, num_connect)
         syn_sign = dic_prop["neuron_type"]
         if use_weights:
