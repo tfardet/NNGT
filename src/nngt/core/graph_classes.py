@@ -12,7 +12,7 @@ import scipy.sparse as ssp
 import nngt.analysis as na
 from nngt.core.graph_objects import GraphLib, GraphObject
 from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
-from nngt.lib import InvalidArgument, save_to_file, load_from_file
+from nngt.lib import InvalidArgument, as_string, save_to_file, load_from_file
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE)
 
@@ -98,7 +98,7 @@ with non symmetric matrix provided.')
     
     @staticmethod
     def from_file(filename, format="auto", delimiter=" ", secondary=";",
-                  attributes=[], notifier="@", ignore="#"):
+                  attributes=[], notifier="@", ignore="#", from_string=False):
         '''
         Import a saved graph from a file.
         @todo: implement population and shape loading, implement gml, dot, xml, gt
@@ -137,6 +137,8 @@ with non symmetric matrix provided.')
             Additional notifiers are ``@type=SpatialGraph/Network/
             SpatialNetwork``, which must be followed by the relevant notifiers
             among ``@shape``, ``@population``, and ``@graph``.
+        from_string : bool, optional (default: False)
+            Load from a string instead of a file.
 
         Returns
         -------
@@ -206,6 +208,25 @@ with non symmetric matrix provided.')
     def __del__(self):
         self.__class__.__num_graphs -= 1
 
+    def __repr__(self):
+        ''' Provide unambiguous informations regarding the object. '''
+        d = "directed" if self.is_directed() else "undirected"
+        w = "weighted" if self.is_weighted() else "binary"
+        t = self.type
+        n = self.node_nb()
+        e = self.edge_nb()
+        return "<{directed}/{weighted} {obj} object of type '{net_type}' \
+with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
+            directed=d, weighted=w, obj=type(self).__name__, net_type=t,
+            nodes=n, edges=e, obj_id = id(self))
+
+    def __str__(self):
+        '''
+        Return the full string description of the object as would be stored
+        inside a file when saving the graph.
+        '''
+        
+
     @property
     def id(self):
         ''' Unique :class:`int` identifying the instance. '''
@@ -215,6 +236,11 @@ with non symmetric matrix provided.')
     def name(self):
         ''' Name of the graph. '''
         return self._name
+
+    @property
+    def type(self):
+        ''' Type of the graph. '''
+        return self._graph_type
 
     #-------------------------------------------------------------------------#
     # Graph actions
@@ -232,6 +258,18 @@ with non symmetric matrix provided.')
         if self.is_network():
             Network.make_network(gc_instance)
         return gc_instance
+
+    def to_file(self, filename, format="auto", delimiter=" ", secondary=";",
+                attributes=None, notifier="@"):
+        '''
+        Save graph to file; options detailed below.
+
+        .. seealso::
+            :py:func:`nngt.lib.save_to_file` function for options.
+        '''
+        save_to_file(self, filename, format=format, delimiter=delimiter,
+                     secondary=secondary, attributes=attributes,
+                     notifier=notifier)
     
     def add_edges(self, lst_edges, attributes=None):
         '''

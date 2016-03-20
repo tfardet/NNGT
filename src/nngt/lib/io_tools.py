@@ -11,6 +11,7 @@ from nngt.lib.errors import InvalidArgument
 
 
 __all__ = [
+    "as_string",
     "load_from_file",
     "save_to_file"
 ]
@@ -275,6 +276,72 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
 #------------------------
 #
 
+def as_string(graph, format="neighbour", delimiter=" ", secondary=";",
+              attributes=None, notifier="@", return_info=False):
+    '''
+    Full string representation of the graph.
+
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Graph to save.
+    format : str, optional (default: "auto")
+        The format used to save the graph. Supported formats are: "neighbour"
+        (neighbour list, default if format cannot be deduced automatically),
+        "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
+        one edge per line, represented by a ``source target``-pair), "gml"
+        (gml format, default if `filename` ends with '.gml'), "graphml"
+        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
+        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
+        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
+        detected if `filename` ends with '.gt').
+    delimiter : str, optional (default " ")
+        Delimiter used to separate inputs in the case of custom formats (namely
+        "neighbour" and "edge_list")
+    secondary : str, optional (default: ";")
+        Secondary delimiter used to separate attributes in the case of custom
+        formats.
+    attributes : list, optional (default: ``None``)
+        List of names for the edge attributes present in the graph that will be
+        saved to disk; by default (``None``), all attributes will be saved.
+    notifier : str, optional (default: "@")
+        Symbol specifying the following as meaningfull information. Relevant
+        information are formatted ``@info_name=info_value``, with
+        ``info_name`` in ("attributes", "attr_types", "directed", "name",
+        "size").
+        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
+        which are followed by the relevant notifiers among ``@shape``,
+        ``@population``, and ``@graph`` to separate the sections.
+
+    Returns
+    -------
+        str_graph : string
+            The full graph representation as a string.
+    '''
+    # checks
+    if delimiter == secondary:
+        raise InvalidArgument("`delimiter` and `secondary` strings must be \
+different.")
+    if notifier == delimiter or notifier == secondary:
+        raise InvalidArgument("`notifier` string should differ from \
+`delimiter` and `secondary`.")
+    # data
+    if attributes is None:
+        attributes = [ a for a in graph.attributes() if a != "bweight" ]
+    di_notifiers = {
+        "directed": graph.is_directed(),
+        "attributes": attributes,
+        "attr_types": [graph.get_attribute_type(attr) for attr in attributes],
+        "name": graph.get_name(),
+        "size": graph.node_nb()
+    }
+    str_graph = di_format[format](graph, delimiter=delimiter,
+                                  secondary=secondary, attributes=attributes)
+    if return_info:
+        return str_graph, di_notifiers
+    else:
+        return str_graph
+
 def save_to_file(graph, filename, format="auto", delimiter=" ",
                  secondary=";", attributes=None, notifier="@"):
     '''
@@ -321,29 +388,12 @@ def save_to_file(graph, filename, format="auto", delimiter=" ",
         :class:`~nngt.Network` (the :class:`~nngt.Shape` and
         :class:`~nngt.NeuralPop` attributes will not be saved).
     '''
-    # checks
-    if delimiter == secondary:
-        raise InvalidArgument("`delimiter` and `secondary` strings must be \
-different.")
-    if notifier == delimiter or notifier == secondary:
-        raise InvalidArgument("`notifier` string should differ from \
-`delimiter` and `secondary`.")
-    # data
-    if attributes is None:
-        attributes = [ a for a in graph.attributes() if a != "bweight" ]
-    di_notifiers = {
-        "directed": graph.is_directed(),
-        "attributes": attributes,
-        "attr_types": [graph.get_attribute_type(attr) for attr in attributes],
-        "name": graph.get_name(),
-        "size": graph.node_nb()
-    }
     format = _get_format(format, filename)
-    # generate string and write to file
-    str_graph = di_format[format](graph, delimiter=delimiter,
-                                  secondary=secondary, attributes=attributes)
+    str_graph, di_notif = as_string(graph, delimiter=delimiter, format=format,
+                          secondary=secondary, attributes=attributes,
+                          notifier=notifier,  return_info=True)
     with open(filename, "w") as f_graph:
-        for key,val in di_notifiers.iteritems():
+        for key,val in iter(di_notif.items()):
             f_graph.write("{}{}={}\n".format(notifier, key,val))
         f_graph.write("\n")
         f_graph.write(str_graph)

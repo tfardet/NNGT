@@ -108,7 +108,7 @@ try:
     from . import plot
     _with_plot = True
     __all__.append('plot')
-except:
+except ImportError:
     print("Uncompatibility, plot module will not be loaded...")
 
 # look for nest
@@ -119,5 +119,5 @@ try:
     from . import simulation
     _with_nest = True
     __all__.append("simulation")
-except:
+except ImportError:
     print("NEST not found; nest module will not be loaded...")

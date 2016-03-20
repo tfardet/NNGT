@@ -13,6 +13,7 @@ from .io_tools import *
 #~ from .lil_object import ObjectLil
 
 __all__ = [
+    "as_string",
     "delta_distrib",
     "gaussian_distrib",
     "InvalidArgument",

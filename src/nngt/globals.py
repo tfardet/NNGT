@@ -174,7 +174,7 @@ def use_library(library, reloading=True):
         try:
             from networkx.algorithms import overall_reciprocity
             glib_func["reciprocity"] = overall_reciprocity
-        except:
+        except ImportError:
             def mock_recip(*args, **kwargs):
                 return NotImplementedError("Not implemented for networkx {}; \
 try to install latest version.".format(nx_version))
@@ -214,13 +214,13 @@ try to install latest version.".format(nx_version))
 # import the graph libraries the first time
 try:
     use_library("graph_tool", False)
-except:
+except ImportError:
     try:
         use_library("igraph", False)
-    except:
+    except ImportError:
         try:
             use_library("networkx", False)
-        except:
+        except ImportError:
             raise ImportError( "This module needs one of the following graph \
 libraries to work:  `graph_tool`, `igraph`, or `networkx`.")
 
