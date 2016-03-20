@@ -7,11 +7,14 @@ Content
 """
 
 from .graph_objects import GraphObject, IGraph, GtGraph, NxGraph
+from .graph_datastruct import Connections, NeuralGroup
 
 
-__all__ = [ 
+__all__ = [
+    "Connections",
 	"GraphObject",
-    "IGraph",
     "GtGraph",
+    "IGraph",
+    "NeuralGroup",
     "NxGraph"
 ]

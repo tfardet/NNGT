@@ -1,3 +1,4 @@
 *.pyc
 doc/.build/
 src/nngt/testing/Ref/*
+src/nngt/__pycache__

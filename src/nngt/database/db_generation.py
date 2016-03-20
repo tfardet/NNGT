@@ -138,3 +138,38 @@ class Simulation(BaseModel):
     ''' Pickled list containing the neural group names. '''
     pop_sizes = PickledField()
     ''' Pickled list containing the group sizes. '''
+
+
+#-----------------------------------------------------------------------------#
+# Generate the custom Neuron and Synapse classes
+#------------------------
+#
+
+ignore = {
+    'global_id': True,
+    'gsl_error_tol': True,
+    'local_id': True,
+    'recordables': True,
+    'thread': True,
+    'thread_local_id': True,
+    'vp': True
+}
+
+val_to_field = {
+    'int': IntegerField,
+    'long': BlobField,
+    'str': TextField,
+    'SLILiteral': TextField,
+    'float': FloatField,
+    'bool': BooleanField,
+}
+    
+
+def update_node_class(node_type, **kwargs):
+    ''' Add a field for each property of the considered node. '''
+    node_class = Synapse if node_class == "synapse" else Neuron
+    for attr, value in iter(kwargs.keys()):
+        if attr not in ignore:
+            val_field = val_to_field[value]() # generate field instance
+            setattr(node_class, attr, val_field)
+    return node_class
