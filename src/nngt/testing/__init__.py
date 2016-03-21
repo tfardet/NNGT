@@ -47,7 +47,7 @@ num_args = len(args)
 if num_args > 1:
     graph_library = args[1]
     if graph_library == "GT":
-        nngt.use_library("graph_tool")
+        nngt.use_library("graph-tool")
     elif graph_library == "IG":
         nngt.use_library("igraph")
     else:
