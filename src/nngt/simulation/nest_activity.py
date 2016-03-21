@@ -3,6 +3,9 @@
 
 """ Analyze the activity of a network """
 
+import weakref
+from copy import deepcopy
+
 import nest
 import numpy as np
 
@@ -10,7 +13,56 @@ import matplotlib.pyplot as plt
 
 from nngt.lib import InvalidArgument
 
+
 __all__ = [ 'activity_types' ]
+
+
+
+#-----------------------------------------------------------------------------#
+# Finding the various activities
+#------------------------
+#
+
+class ActivityRecord:
+    '''
+    Class to record the properties of the simulated activity.
+    '''
+    
+    def __init__(self, network, limits=None, spike_detector=None, phases=None,
+                 multimeter=None, **kwargs):
+        '''
+        Initialize the instance (store proxy to the `network` and optional
+        `spike_detector`) and compute the properties if data was provided.
+        '''
+        self.network = weakref.proxy(network)
+        self._avg_rate = 0.
+        self.limits = deepcopy(limits)
+        self.phases = {
+            "bursting":[],
+            "mixed":[],
+            "quiescent":[],
+            "localized": []
+        }
+        self.data = {}
+        if spike_dector is not None:
+            self.sd = weakref.proxy(sd)
+            sd_data = nest.GetStatus(self.sd, "events")[0]
+            self.data["spike_time"] = sd_data["times"]
+            self.data["spike_sender"] = sd_data["senders"]
+            self.phases = self.get_phases()
+            self.get_avg_rate()
+        elif phases is not None:
+            self.phases = phases
+    
+    @property
+    def avg_rate(self):
+        return self._avg_rate
+    
+    def get_phases(self):
+        self.phases = activity_types(self.network, self.sd, self.limits)
+    
+    def get_avg_rate(self):
+        self._avg_rate = len(self.data["spike_time"])/np.diff(self.limits)
 
 
 #-----------------------------------------------------------------------------#
@@ -23,7 +75,9 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
                    show=False):
     '''
     Analyze the spiking pattern of a neural network.
-    @todo: think about inserting t= and t=simtime at the beginning and at the end of ``times''.
+    .. todo ::
+        think about inserting t=0. and t=simtime at the beginning and at the 
+        end of ``times''.
 
     Parameters
     ----------
@@ -75,11 +129,11 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
     times,senders = [], []
     if len(spike_detector) > 1:
         for sd in spike_detector:
-            data = nest.GetStatus(sd)[0]["events"]
+            data = nest.GetStatus(sd, "events")[0]
             times.extend(data["times"])
             senders.extend(data["senders"])
     else:
-        data = nest.GetStatus(spike_detector)[0]["events"]
+        data = nest.GetStatus(spike_detector, "events")[0]
         times = data["times"]
         senders = data["senders"]
     idx_sorted = np.argsort(times)

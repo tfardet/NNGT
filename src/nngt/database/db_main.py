@@ -229,7 +229,7 @@ previous one.")
             self.entries["conn_{}->{}".format(name_pre, name_post)]
         
 
-    def log_simulation_end(self):
+    def log_simulation_end(self, activity=None):
         '''
         Record the simulation completion and simulated times, save the data,
         then reset.

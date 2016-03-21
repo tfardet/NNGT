@@ -112,7 +112,7 @@ def _set_graph_tool():
     '''
     import graph_tool as glib
     from graph_tool import Graph as GraphLib
-    config["graph_library"] = "graph_tool"
+    config["graph_library"] = "graph-tool"
     config["library"] = glib
     config["graph"] = GraphLib
     # analysis functions

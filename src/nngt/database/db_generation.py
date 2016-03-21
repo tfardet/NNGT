@@ -172,7 +172,7 @@ val_to_field = {
     'lst': PickledField,
     'numpy.ndarray': PickledField,
 }
-    
+
 
 def update_node_class(node_type, **kwargs):
     ''' Add a field for each property of the considered node. '''
