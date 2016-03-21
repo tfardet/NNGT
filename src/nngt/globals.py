@@ -3,6 +3,7 @@
 
 """ Constant values for NNGT """
 
+from os.path import expanduser
 import sys
 
 import scipy as sp
@@ -34,7 +35,7 @@ version = '0.5'
 
 
 #-----------------------------------------------------------------------------#
-# Graph libraries and python 2/3 compatibility
+# Python 2/3 compatibility
 #------------------------
 #
 
@@ -50,25 +51,182 @@ elif sys.hexversion >= 0x03040000:
 else:
     reload_module = reload
 
-# name, lib and Graph object
-glib_data = {
-    "name": "",
-    "library": None,
-    "graph": object
+
+#-----------------------------------------------------------------------------#
+# Config
+#------------------------
+#
+
+def _load_config(path_config):
+    ''' Load `~/.nngt.conf` and parse it, return the settings '''
+    config = {
+        'graph_library': "",
+        'library': None,
+        'graph': object,
+        'set_logging': False,
+        'with_nest': False,
+        'with_plot': False,
+        'to_file': False,
+        'log_folder': "~/.nngt/database",
+        'db_url': "mysql:///nngt_db"
+    }
+    with open(path_config, 'r') as fconfig:
+        options = [ l.strip() for l in fconfig if l.strip() and l[0] != "#" ]
+        for opt in options:
+            sep = opt.find("=")
+            opt_name, opt_value = opt[:sep].strip(), opt[sep+1:].strip()
+            config[opt_name] = opt_value if opt_value != "False" else False
+    return config
+
+config = _load_config(nngt.path_config)
+
+
+def not_implemented(*args, **kwargs):
+    return NotImplementedError("Not implemented yet.")
+
+analyze_graph = {
+    'nbetweenness': not_implemented,
+    'ebetweenness': not_implemented,
+    'assortativity': not_implemented,
+    'nbetweenness': not_implemented,
+    'ebetweenness': not_implemented,
+    'clustering': not_implemented,
+    'scc': not_implemented,
+    'wcc': not_implemented,
+    'diameter': not_implemented,
+    'reciprocity': not_implemented,
+    'adjacency': not_implemented,
+    'get_edges': not_implemented
 }
 
-# store the main functions
-glib_func = {
-    "adjacency": None,
-    "assortativity": None,
-    "betweenness": None,
-    "clustering": None,
-    "components": None,
-    "diameter": None,
-    "reciprocity": None,
-    "get_edges": None
-}
-# switch libraries
+
+#-----------------------------------------------------------------------------#
+# Graph libraries
+#------------------------
+#
+
+def _set_graph_tool():
+    '''
+    Set graph-tool as graph library, store relevant items in config and 
+    analyze graph dictionaries.
+    '''
+    import graph_tool as glib
+    from graph_tool import Graph as GraphLib
+    config["graph_library"] = "graph_tool"
+    config["library"] = glib
+    config["graph"] = GraphLib
+    # analysis functions
+    from graph_tool.spectral import adjacency as _adj
+    from graph_tool.centrality import betweenness
+    from graph_tool.correlations import assortativity as assort
+    from graph_tool.topology import (edge_reciprocity,
+                                    label_components, pseudo_diameter)
+    from graph_tool.clustering import global_clustering
+    # defining the adjacency function
+    def adj_mat(graph, weight=None):
+        if weight is not None:
+            weight = graph.edge_properties[weight]
+        return _adj(graph, weight).T
+    def get_edges(graph):
+        return graph.edges()
+    # store the functions
+    analyze_graph["assortativity"] = assort
+    analyze_graph["betweenness"] = betweenness
+    analyze_graph["clustering"] = global_clustering
+    analyze_graph["scc"] = label_components
+    analyze_graph["wcc"] = label_components
+    analyze_graph["diameter"] = pseudo_diameter
+    analyze_graph["reciprocity"] = edge_reciprocity
+    analyze_graph["adjacency"] = adj_mat
+    analyze_graph["get_edges"] = get_edges
+
+
+def _set_igraph():
+    '''
+    Set igraph as graph library, store relevant items in config and 
+    analyze graph dictionaries.
+    '''
+    import igraph as glib
+    from igraph import Graph as GraphLib
+    config["graph_library"] = "igraph"
+    config["library"] = glib
+    config["graph"] = GraphLib
+    # defining the adjacency function
+    def adj_mat(graph, weight=None):
+        n = graph.node_nb()
+        if graph.edge_nb():
+            xs, ys = map(sp.array, zip(*graph.get_edgelist()))
+            if not graph.is_directed():
+                xs, ys = sp.hstack((xs, ys)).T, sp.hstack((ys, xs)).T
+            else:
+                xs, ys = xs.T, ys.T
+            data = sp.ones(xs.shape)
+            if issubclass(weight.__class__, str):
+                data *= sp.array(graph.es[weight])
+                if not graph.is_directed():
+                    data.extend(data)
+            else:
+                data *= sp.array(weight)
+            coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
+            return coo_adj.tocsr()
+        else:
+            return ssp.csr_matrix((n,n))
+    def get_edges(graph):
+        return graph.get_edgelist()
+    # store functions
+    analyze_graph["assortativity"] = not_implemented
+    analyze_graph["nbetweenness"] = not_implemented
+    analyze_graph["ebetweenness"] = not_implemented
+    analyze_graph["clustering"] = not_implemented
+    analyze_graph["scc"] = not_implemented
+    analyze_graph["wcc"] = not_implemented
+    analyze_graph["diameter"] = not_implemented
+    analyze_graph["reciprocity"] = not_implemented
+    analyze_graph["adjacency"] = adj_mat
+    analyze_graph["get_edges"] = get_edges
+
+
+def _set_networkx():
+    import networkx as glib
+    from networkx import DiGraph as GraphLib
+    config["graph_library"] = "networkx"
+    config["library"] = glib
+    config["graph"] = GraphLib
+    # analysis functions
+    from networkx.algorithms import ( diameter, 
+        strongly_connected_components, weakly_connected_components,
+        degree_assortativity_coefficient )
+    def overall_reciprocity(g):
+        num_edges = g.number_of_edges()
+        num_recip = (num_edges - g.to_undirected().number_of_edges()) * 2
+        if n_all_edge == 0:
+            raise ArgumentError("Not defined for empty graphs")
+        else:
+            return num_recip/float(num_edges)
+    nx_version = glib.__version__
+    try:
+        from networkx.algorithms import overall_reciprocity
+    except ImportError:
+        def overall_reciprocity(*args, **kwargs):
+            return NotImplementedError("Not implemented for networkx {}; \
+try to install latest version.".format(nx_version))
+    # defining the adjacency function
+    from networkx import to_scipy_sparse_matrix
+    def adj_mat(graph, weight=None):
+        return to_scipy_sparse_matrix(graph, weight=weight)
+    def get_edges(graph):
+        return graph.edges_iter(data=False)
+    # store functions
+    analyze_graph["assortativity"] = degree_assortativity_coefficient
+    analyze_graph["diameter"] = diameter
+    analyze_graph["reciprocity"] = overall_reciprocity
+    analyze_graph["scc"] = strongly_connected_components
+    analyze_graph["wcc"] = diameter
+    analyze_graph["adjacency"] = adj_mat
+    analyze_graph["get_edges"] = get_edges
+
+
+
 def use_library(library, reloading=True):
     '''
     Allows the user to switch to a specific graph library.
@@ -85,124 +243,27 @@ def use_library(library, reloading=True):
         Whether the graph objects should be reload_moduleed (this should always be set
         to True except when NNGT is first initiated!)
     '''
-        
-    if library == "graph_tool":
-        # library and graph object
-        import graph_tool as glib
-        from graph_tool import Graph as GraphLib
-        glib_data["name"] = "graph_tool"
-        glib_data["library"] = glib
-        glib_data["graph"] = GraphLib
-        # analysis functions
-        from graph_tool.spectral import adjacency as _adj
-        from graph_tool.centrality import betweenness
-        from graph_tool.correlations import assortativity as assort
-        from graph_tool.topology import (edge_reciprocity,
-                                        label_components, pseudo_diameter)
-        from graph_tool.clustering import global_clustering
-        glib_func["assortativity"] = assort
-        glib_func["betweenness"] = betweenness
-        glib_func["clustering"] = global_clustering
-        glib_func["scc"] = label_components
-        glib_func["wcc"] = label_components
-        glib_func["diameter"] = pseudo_diameter
-        glib_func["reciprocity"] = edge_reciprocity
-        # defining the adjacency function
-        def adj_mat(graph, weight=None):
-            if weight is not None:
-                weight = graph.edge_properties[weight]
-            return _adj(graph, weight).T
-        def get_edges(graph):
-            return graph.edges()
+    if library == "graph-tool":
+        _set_graph_tool()
     elif library == "igraph":
-        # library and graph object
-        import igraph as glib
-        from igraph import Graph as GraphLib
-        glib_data["name"] = "igraph"
-        glib_data["library"] = glib
-        glib_data["graph"] = GraphLib
-        # functions
-        glib_func["assortativity"] = None
-        glib_func["nbetweenness"] = None
-        glib_func["ebetweenness"] = None
-        glib_func["clustering"] = None
-        glib_func["scc"] = None
-        glib_func["wcc"] = None
-        glib_func["diameter"] = None
-        glib_func["reciprocity"] = None
-        # defining the adjacency function
-        def adj_mat(graph, weight=None):
-            n = graph.node_nb()
-            if graph.edge_nb():
-                xs, ys = map(sp.array, zip(*graph.get_edgelist()))
-                if not graph.is_directed():
-                    xs, ys = sp.hstack((xs, ys)).T, sp.hstack((ys, xs)).T
-                else:
-                    xs, ys = xs.T, ys.T
-                data = sp.ones(xs.shape)
-                if issubclass(weight.__class__, str):
-                    data *= sp.array(graph.es[weight])
-                    if not graph.is_directed():
-                        data.extend(data)
-                else:
-                    data *= sp.array(weight)
-                coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
-                return coo_adj.tocsr()
-            else:
-                return ssp.csr_matrix((n,n))
-        def get_edges(graph):
-            return graph.get_edgelist()
+        _set_igraph()
     elif library == "networkx":
-        # library and graph object
-        import networkx as glib
-        from networkx import DiGraph as GraphLib
-        glib_data["name"] = "networkx"
-        glib_data["library"] = glib
-        glib_data["graph"] = GraphLib
-        # functions
-        from networkx.algorithms import ( diameter, 
-            strongly_connected_components, weakly_connected_components,
-            degree_assortativity_coefficient )
-        def overall_reciprocity(g):
-            num_edges = g.number_of_edges()
-            num_recip = (num_edges - g.to_undirected().number_of_edges()) * 2
-            if n_all_edge == 0:
-                raise ArgumentError("Not defined for empty graphs")
-            else:
-                return num_recip/float(num_edges)
-        nx_version = glib.__version__
-        try:
-            from networkx.algorithms import overall_reciprocity
-            glib_func["reciprocity"] = overall_reciprocity
-        except ImportError:
-            def mock_recip(*args, **kwargs):
-                return NotImplementedError("Not implemented for networkx {}; \
-try to install latest version.".format(nx_version))
-            glib_func["reciprocity"] = mock_recip
-        glib_func["assortativity"] = degree_assortativity_coefficient
-        glib_func["diameter"] = diameter
-        glib_func["scc"] = strongly_connected_components
-        glib_func["wcc"] = diameter
-        # defining the adjacency function
-        from networkx import to_scipy_sparse_matrix
-        def adj_mat(graph, weight=None):
-            return to_scipy_sparse_matrix(graph, weight=weight)
-        def get_edges(graph):
-            return graph.edges_iter(data=False)
-    glib_func["adjacency"] = adj_mat
-    glib_func["get_edges"] = get_edges
+        _set_networkx()
+    else:
+        raise ValueError("Invalid graph library requested.")
     if reloading:
+        sys.modules["nngt"].config = config
         reload_module(sys.modules["nngt"].core.graph_objects)
         reload_module(sys.modules["nngt"].core)
         reload_module(sys.modules["nngt"].analysis)
         reload_module(sys.modules["nngt"].analysis.gt_analysis)
         reload_module(sys.modules["nngt"].generation)
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
-        if nngt._with_plot:
+        if config['with_plot']:
             reload_module(sys.modules["nngt"].plot)
-        if nngt._with_nest:
+        if config['with_nest']:
             reload_module(sys.modules["nngt"].simulation)
-        reload_module(sys.modules["nngt"].lib) #@todo: make price algo and remove this
+        reload_module(sys.modules["nngt"].lib)
         reload_module(sys.modules["nngt"].core.graph_classes)
         from nngt.core.graph_classes import (Graph, SpatialGraph, Network,
                                              SpatialNetwork)
@@ -211,18 +272,30 @@ try to install latest version.".format(nx_version))
         sys.modules["nngt"].Network = Network
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
 
-# import the graph libraries the first time
+
+#-----------------------------------------------------------------------------#
+# Loading graph library
+#------------------------
+#
+
+_libs = [ 'graph-tool', 'igraph', 'networkx' ]
+
 try:
-    use_library("graph_tool", False)
+    use_library(config['graph_library'], False)
 except ImportError:
-    try:
-        use_library("igraph", False)
-    except ImportError:
+    idx = _libs.index(config['graph_library'])
+    del _libs[idx]
+    keep_trying = True
+    while _libs and keep_trying:
         try:
-            use_library("networkx", False)
+            use_library(_libs[-1], False)
+            keep_trying = False
         except ImportError:
-            raise ImportError( "This module needs one of the following graph \
-libraries to work:  `graph_tool`, `igraph`, or `networkx`.")
+            _libs.pop()
+
+if not _libs:
+    raise ImportError("This module needs one of the following graph libraries \
+to work:  `graph_tool`, `igraph`, or `networkx`.")
 
 
 #-----------------------------------------------------------------------------#
@@ -243,7 +316,6 @@ TYPE = "type"
 #------------------------
 #
 
-#~ default_neuron = "iaf_neuron"
 default_neuron = "aeif_cond_alpha"
 ''' :class:`string`, the default NEST neuron model '''
 default_synapse = "static_synapse"

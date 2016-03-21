@@ -10,15 +10,14 @@ from playhouse.csv_loader import load_csv, dump_csv
 from playhouse.fields import PickledField, CompressedField
 from playhouse.db_url import connect
 
-from nngt.lib.db_tools import _load_config, _generate_db
+from nngt import config
 
 
 __all__ = [
     'Computer',
-    'config',
     'Connection',
     'db',
-    'Network',
+    'NeuralNetwork',
     'Neuron',
     'Simulation',
     'Synapse',
@@ -31,8 +30,7 @@ __all__ = [
 #------------------------
 #
 
-config = _load_config()
-db = _generate_db(config) #: Object refering to the database
+db = connect(config['db_url']) #: Object refering to the database
 
 
 #-----------------------------------------------------------------------------#
@@ -108,9 +106,16 @@ class Connection(BaseModel):
     and post-synaptic neurons and a synapse.
     '''
 
-    pre = ForeignKeyField(Neuron, related_name='connections')
-    post = ForeignKeyField(Neuron, related_name='connections')
+    pre = ForeignKeyField(Neuron, related_name='out_connections')
+    post = ForeignKeyField(Neuron, related_name='int_connections')
     synapse = ForeignKeyField(Synapse, related_name='connections')
+
+
+class Activity(BaseModel):
+    '''
+    Class detailing the network's simulated activity.
+    '''
+    pass
 
 
 class Simulation(BaseModel):
@@ -130,6 +135,8 @@ class Simulation(BaseModel):
     ''' Name of the neural simulator used (NEST, Brian...) '''
     grnd_seed = IntegerField()
     ''' Master seed of the simulation. '''
+    local_seeds = PickledField()
+    ''' List of the local threads seeds. '''
     computer = ForeignKeyField(Computer, related_name='simulations')
     ''' Computer table entry where the computer used is defined. '''
     network = ForeignKeyField(NeuralNetwork, related_name='simulations')
@@ -162,6 +169,8 @@ val_to_field = {
     'SLILiteral': TextField,
     'float': FloatField,
     'bool': BooleanField,
+    'lst': PickledField,
+    'numpy.ndarray': PickledField,
 }
     
 
@@ -173,3 +182,12 @@ def update_node_class(node_type, **kwargs):
             val_field = val_to_field[value]() # generate field instance
             setattr(node_class, attr, val_field)
     return node_class
+
+def update_activity_class(**kwargs):
+    ''' Add a field for each property of the considered activity. '''
+    klass = Activity
+    for attr, value in iter(kwargs.keys()):
+        if attr not in ignore:
+            val_field = val_to_field[value]()
+            setattr(klass, attr, val_field)
+    return klass

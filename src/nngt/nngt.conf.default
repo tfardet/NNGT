@@ -1,0 +1,19 @@
+###########################
+# NNGT configuration file #
+###########################
+
+## default graph library
+# (choose among "graph-tool", "igraph", "networkx")
+graph_library = graph-tool
+
+## settings for data logging
+set_logging = False
+
+# use a database (if False, results will be stored in CSV files)
+to_file = False
+#log_folder = ~/.nngt/database
+
+# database url or temporary database used if use_database = False
+# example of real database url:
+#db_url = mysql://user:password@host:port/my_db
+db_url = mysql:///nngt_db

@@ -10,7 +10,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt.analysis as na
-from nngt.core.graph_objects import GraphLib, GraphObject
+from nngt.core.graph_objects import GraphObject
 from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
 from nngt.lib import InvalidArgument, as_string, save_to_file, load_from_file
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,

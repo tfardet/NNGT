@@ -6,7 +6,7 @@
 import numpy as np
 import scipy.sparse as ssp
 
-from nngt.globals import glib_data, glib_func
+from nngt import config
 from nngt.lib.errors import InvalidArgument
 
 
@@ -30,7 +30,8 @@ def _get_format(format, filename):
             format = 'graphml'
         elif filename.endswith('.dot'):
             format = 'dot'
-        elif filename.endswith('gt') and glib_data["library"] == "graph_tool":
+        elif ( filename.endswith('gt') and
+               config["graph_library"] == "graph_tool" ):
             format = 'gt'
         else:
             format = 'neighbour'
@@ -288,9 +289,9 @@ def as_string(graph, format="neighbour", delimiter=" ", secondary=";",
     format : str, optional (default: "auto")
         The format used to save the graph. Supported formats are: "neighbour"
         (neighbour list, default if format cannot be deduced automatically),
-        "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
-        one edge per line, represented by a ``source target``-pair), "gml"
-        (gml format, default if `filename` ends with '.gml'), "graphml"
+        "ssp" (:mod:`scipy.sparse`), "edge_list" (list of all the edges in the 
+        graph, one edge per line, represented by a ``source target``-pair), 
+        "gml" (gml format, default if `filename` ends with '.gml'), "graphml"
         (graphml format, default if `filename` ends with '.graphml' or '.xml'),
         "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
         when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,

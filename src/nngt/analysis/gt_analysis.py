@@ -6,7 +6,7 @@
 import scipy as sp
 import scipy.sparse.linalg as spl
 
-from nngt.globals import glib_data, glib_func
+from nngt.globals import config, analyze_graph
 
 
 
@@ -15,13 +15,13 @@ from nngt.globals import glib_data, glib_func
 #------------------------
 #
 
-adjacency = glib_func["adjacency"]
-assort = glib_func["assortativity"]
-edge_reciprocity = glib_func["reciprocity"]
-global_clustering = glib_func["clustering"]
-scc = glib_func["scc"]
-wcc = glib_func["wcc"]
-diameter = glib_func["diameter"]
+adjacency = analyze_graph["adjacency"]
+assort = analyze_graph["assortativity"]
+edge_reciprocity = analyze_graph["reciprocity"]
+global_clustering = analyze_graph["clustering"]
+scc = analyze_graph["scc"]
+wcc = analyze_graph["wcc"]
+diameter = analyze_graph["diameter"]
 
 
 #-----------------------------------------------------------------------------#
@@ -124,9 +124,9 @@ def assortativity(graph, deg_type="total"):
     -------
     a float describing the graphwork assortativity.
     '''
-    if glib_data["name"] == "igraph":
+    if config["graph_library"] == "igraph":
         return graph._graph.assortativity_degree(graph.is_directed())
-    elif glib_data["name"] == "graph_tool":
+    elif config["graph_library"] == "graph_tool":
         return assort(graph._graph,"total")[0]
     else:
         return assort(graph._graph)
@@ -137,7 +137,7 @@ def reciprocity(graph):
     where :math:`E^\leftrightarrow` and :math:`E` are, respectively, the number
     of bidirectional edges and the total number of edges in the graphwork.
     '''
-    if glib_data["name"] == "igraph":
+    if config["graph_library"] == "igraph":
         return graph._graph.reciprocity()
     else:
         return edge_reciprocity(graph._graph)
@@ -150,7 +150,7 @@ def clustering(graph):
        c = 3 \times \frac{\text{number of triangles}}
                          {\text{number of connected triples}}
     '''
-    if glib_data["name"] == "igraph":
+    if config["graph_library"] == "igraph":
         return graph._graph.transitivity_undirected()
     else:
         return global_clustering(graph)[0]
@@ -171,9 +171,9 @@ def num_scc(graph, listing=False):
     num_wcc
     '''
     lst_histo = None
-    if glib_data["name"] == "graph_tool":
+    if config["graph_library"] == "graph_tool":
         vprop_comp, lst_histo = scc(graph._graph,directed=True)
-    elif glib_data["name"] == "igraph":
+    elif config["graph_library"] == "igraph":
         lst_histo = graph._graph.clusters()
         lst_histo = [ cluster for cluster in lst_histo ]
     else:
@@ -194,9 +194,9 @@ def num_wcc(graph, listing=False):
     num_scc
     '''
     lst_histo = None
-    if glib_data["name"] == "graph_tool":
+    if config["graph_library"] == "graph_tool":
         vprop_comp, lst_histo = wcc(graph._graph,directed=False)
-    elif glib_data["name"] == "igraph":
+    elif config["graph_library"] == "igraph":
         lst_histo = graph._graphclusters("WEAK")
         lst_histo = [ cluster for cluster in lst_histo ]
     else:
@@ -208,9 +208,9 @@ def num_wcc(graph, listing=False):
 
 def diameter(graph):
     ''' Pseudo-diameter of the graph @todo: weighted diameter'''
-    if glib_data["name"] == "igraph":
+    if config["graph_library"] == "igraph":
         return graph._graph.diameter()
-    elif glib_data["name"] == "networkx":
+    elif config["graph_library"] == "networkx":
         return diameter(graph._graph)
     else:
         return diameter(graph._graph)[0]

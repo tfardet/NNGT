@@ -71,7 +71,7 @@ if on_rtd:
     sys.modules["matplotlib.pyplot"] = Mock()
     sys.modules["nest"] = mock_object
 
-from nngt.globals import version as nngt_version
+from nngt import version as nngt_version
 
 # -- General configuration ------------------------------------------------
 
@@ -264,7 +264,7 @@ html_static_path = ['_static']
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
-html_use_smartypants = True
+#html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
 #~ html_sidebars = {

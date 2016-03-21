@@ -53,20 +53,30 @@ Main classes and functions
 """
 
 from __future__ import absolute_import
+import os
+import shutil
 import sys
-import socket
+
 
 
 #-----------------------------------------------------------------------------#
-# Requirements
+# Requirements and config
 #------------------------
 #
 
 # Python > 2.6
 assert(sys.hexversion > 0x02060000)
 
-# version and graph library test
-from .globals import version, use_library
+# configuration
+lib_folder = os.path.expanduser('~') + '/.nngt'
+path_config = os.path.expanduser('~') + '/.nngt/nngt.conf'
+nngt_root = os.path.dirname(os.path.realpath(__file__))
+if not os.path.isdir(lib_folder):
+    os.mkdir(lib_folder)
+if not os.path.isfile(path_config):
+    shutil.copy(nngt_root + '/nngt.conf.default', path_config)
+
+from .globals import analyze_graph, config, use_library, version
 
 
 #-----------------------------------------------------------------------------#
@@ -84,8 +94,11 @@ from . import generation
 from . import analysis
 from . import lib
 
+
 __all__ = [
     "analysis",
+    "analyze_graph",
+    "config",
     "Connections",
     "core",
     "generate",
@@ -103,21 +116,30 @@ __all__ = [
 ]
 
 # test if plot module is supported
-_with_plot = False
 try:
     from . import plot
-    _with_plot = True
+    config['with_plot'] = True
     __all__.append('plot')
-except ImportError:
-    print("Uncompatibility, plot module will not be loaded...")
+except ImportError as e:
+    print("Uncompatibility, plot module will not be loaded...", e)
 
 # look for nest
-_with_nest = False
 try:
     sys.argv.append('--quiet')
     import nest
     from . import simulation
-    _with_nest = True
+    config['with_nest'] = True
     __all__.append("simulation")
-except ImportError:
-    print("NEST not found; nest module will not be loaded...")
+except ImportError as e:
+    print("NEST not found; nest module will not be loaded...", e)
+    
+# load database module if required
+if config["set_logging"]:
+    if config["to_file"]:
+        if not os.path.isdir(config["log_folder"]):
+            os.mkdir(config["log_folder"])
+    try:
+        from .database import nngt_db
+        __all__.append('nngt_db')
+    except ImportError as e:
+        print("Could not load database module", e)

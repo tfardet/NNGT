@@ -6,7 +6,7 @@
 import numpy as np
 
 import nngt
-from nngt.lib.connect_tools import *
+from .connect_tools import *
 
 
 

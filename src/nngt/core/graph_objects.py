@@ -10,11 +10,11 @@ import numpy as np
 import scipy.sparse as ssp
 
 from six import add_metaclass
-from nngt.globals import glib_data, glib_func, BWEIGHT
+from nngt.globals import config, analyze_graph, BWEIGHT
 
 
 
-adjacency = glib_func["adjacency"]
+adjacency = analyze_graph["adjacency"]
 
 #-----------------------------------------------------------------------------#
 # Library-dependent graph properties
@@ -41,7 +41,7 @@ class BaseProperty(dict):
 
 class _GtNProperty(BaseProperty):
 
-    ''' Class for generic interactions with nodes properties (graph_tool)  '''
+    ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __getitem__(self, name):
         return self.parent.vertex_properties[name].a
@@ -64,7 +64,7 @@ the graph is required")
 
 class _GtEProperty(BaseProperty):
 
-    ''' Class for generic interactions with nodes properties (graph_tool)  '''
+    ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __getitem__(self, name):
         '''
@@ -237,7 +237,7 @@ the graph is required")
 # dictionary to chose
 
 di_graphprop = {
-    "graph_tool": { "node":_GtNProperty, "edge":_GtEProperty },
+    "graph-tool": { "node":_GtNProperty, "edge":_GtEProperty },
     "igraph": { "node":_IgNProperty, "edge":_IgEProperty },
     "networkx": { "node":_NxNProperty, "edge":_NxEProperty }
 }
@@ -252,7 +252,7 @@ class MetaAbcGraph(ABCMeta, type):
     pass
 
 @add_metaclass(ABCMeta)
-class BaseGraph(glib_data["graph"]):
+class BaseGraph(config["graph"]):
     
     #-------------------------------------------------------------------------#
     # Classmethod
@@ -260,9 +260,9 @@ class BaseGraph(glib_data["graph"]):
     @classmethod
     def to_graph_object(cls, obj):
         obj.__class__ = cls
-        edges = glib_func["get_edges"](obj)
-        obj._nattr = di_graphprop[glib_data["name"]]["node"](obj)
-        obj._eattr = di_graphprop[glib_data["name"]]["edge"](obj)
+        edges = analyze_graph["get_edges"](obj)
+        obj._nattr = di_graphprop[config["graph_library"]]["node"](obj)
+        obj._eattr = di_graphprop[config["graph_library"]]["edge"](obj)
         obj._edges = OrderedDict()
         for i, edge in edges:
             obj._edges[tuple(edge)] = i
@@ -361,7 +361,7 @@ class GtGraph(BaseGraph):
     '''
     Subclass of :class:`graph_tool.Graph` that (with 
     :class:`~nngt.core.SnapGraph`) unifies the methods to work with either
-    `graph_tool` or `SNAP`.
+    `graph-tool` or `SNAP`.
     '''
     
     #-------------------------------------------------------------------------#
@@ -379,8 +379,8 @@ class GtGraph(BaseGraph):
         if g is None:
             self.add_vertex(nodes)
         else:
-            if g.__class__ is glib_data["graph"]:
-                edges = glib_func["get_edges"](g)
+            if g.__class__ is config["graph"]:
+                edges = analyze_graph["get_edges"](g)
                 for i, edge in enumerate(edges):
                     self._edges[tuple(e)] = i
             else:
@@ -468,7 +468,7 @@ class GtGraph(BaseGraph):
         if self.edge_nb():
             if "weight" in self.edge_properties.keys() and use_weights:
                 w_pmap = self.edge_properties[BWEIGHT]
-                tpl = glib_func["betweenness"](self, weight=w_pmap, norm=norm)
+                tpl = analyze_graph["betweenness"](self, weight=w_pmap, norm=norm)
                 if as_prop:
                     return tpl[0], tpl[1]
                 else:
@@ -521,7 +521,7 @@ class IGraph(BaseGraph):
             for attr in eattr:
                 di_edge_attr[attr] = g.es[:][attr]
             super(IGraph,self).__init__(n=nodes, vertex_attrs=di_node_attr)
-            lst_edges = glib_func["get_edges"](g)
+            lst_edges = analyze_graph["get_edges"](g)
             self.new_edges(lst_edges, eprops=di_edge_attr)
 
     #-------------------------------------------------------------------------#
@@ -655,7 +655,7 @@ class NxGraph(BaseGraph):
         self._eattr = _NxEProperty(self)
         super(NxGraph,self).__init__(g)
         if g is not None:
-            edges = glib_func["get_edges"](g)
+            edges = analyze_graph["get_edges"](g)
             for i, edge in enumerate(edges):
                 self._edges[tuple(edge)] = i
         elif nodes:
@@ -796,11 +796,11 @@ edge in the graph.")
     def betweenness_list(self, use_weights=True, as_prop=False):
         di_nbetw, di_ebetw = None, None
         if use_weights:
-            di_nbetw = glib_data["library"].betweenness_centrality(self,weight=BWEIGHT)
-            di_ebetw = glib_data["library"].edge_betweenness_centrality(self,weight=BWEIGHT)
+            di_nbetw = config["library"].betweenness_centrality(self,weight=BWEIGHT)
+            di_ebetw = config["library"].edge_betweenness_centrality(self,weight=BWEIGHT)
         else:
-            di_nbetw = glib_data["library"].betweenness_centrality(self)
-            di_ebetw = glib_data["library"].edge_betweenness_centrality(self)
+            di_nbetw = config["library"].betweenness_centrality(self)
+            di_ebetw = config["library"].edge_betweenness_centrality(self)
         node_betweenness = np.array(di_nbetw.values())
         edge_betweenness = np.array(di_ebetw.values())
         return node_betweenness, edge_betweenness    
@@ -811,13 +811,13 @@ edge in the graph.")
 #------------------------
 #
 
-class SnapGraph(glib_data["graph"]):
+class SnapGraph(config["graph"]):
     
     '''
     Subclass of :class:`SNAP.TNEANet` that (with :class:`~nngt.core.GtGraph`)
-     unifies the methods to work with either `graph_tool` or `SNAP`.
+    unifies the methods to work with either `graph-tool` or `SNAP`.
      
-     @todo: do it!
+    .. todo :: do it!
     '''
 
     @classmethod
@@ -905,14 +905,12 @@ class SnapGraph(glib_data["graph"]):
 #
 
 di_graphlib = {
-    "graph_tool": GtGraph,
+    "graph-tool": GtGraph,
     "igraph": IGraph,
     "networkx": NxGraph,
     #~ "snap": SnapGraph
 }
 
-GraphLib = glib_data["graph"]
-
 #: Graph object (reference to one of the main libraries' wrapper
-GraphObject = di_graphlib[glib_data["name"]]
+GraphObject = di_graphlib[config["graph_library"]]
 

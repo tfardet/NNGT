@@ -9,7 +9,7 @@ import scipy.sparse as ssp
 from numpy.random import randint
 
 import nngt
-from nngt.globals import glib_data
+from nngt.globals import config
 from nngt.lib.errors import InvalidArgument
 
 
@@ -28,8 +28,6 @@ __all__ = [
     "_unique_rows",
     "price_network",
 ]
-
-s_glib = glib_data["name"]
 
 MAXTESTS = 1000 # ensure that generation will finish
 EPS = 0.00001
@@ -412,6 +410,6 @@ def price_network():
     #@todo: do it for other libraries
     pass
 
-if s_glib == "graph_tool":
+if config["graph_library"] == "graph-tool":
     from graph_tool.generation import price_network
     
