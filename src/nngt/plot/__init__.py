@@ -14,16 +14,16 @@ Content
 
 import sys
 import matplotlib
-try:
-    matplotlib.use('Qt5Agg')
-except:
+
+sav_backend = matplotlib.get_backend()
+backends = [ 'GTK3Agg', 'Qt4Agg', 'Qt5Agg' ]
+
+for backend in backends:
     try:
-        matplotlib.use('Qt4Agg')
+        matplotlib.use(backend)
     except:
-        try:
-            matplotlib.use('GTK3Agg')
-        except:
-            pass
+        matplotlib.use(sav_backend)
+        
 import warnings
 warnings.filterwarnings("ignore", module="matplotlib")
 

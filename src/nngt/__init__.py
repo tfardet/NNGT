@@ -139,7 +139,7 @@ if config["set_logging"]:
         if not os.path.isdir(config["log_folder"]):
             os.mkdir(config["log_folder"])
     try:
-        from .database import nngt_db
-        __all__.append('nngt_db')
+        from .database import db
+        __all__.append('db')
     except ImportError as e:
         print("Could not load database module", e)

@@ -8,19 +8,25 @@ from collections import namedtuple
 from peewee import *
 from playhouse.csv_loader import load_csv, dump_csv
 from playhouse.fields import PickledField, CompressedField
+from playhouse.migrate import *
 from playhouse.db_url import connect
 
 from nngt import config
 
 
 __all__ = [
+    'Activity',
     'Computer',
     'Connection',
-    'db',
+    'db_migrator',
+    'ignore',
+    'main_db',
+    'migrate',
     'NeuralNetwork',
     'Neuron',
     'Simulation',
     'Synapse',
+    'val_to_field',
 ]
 
 
@@ -30,7 +36,7 @@ __all__ = [
 #------------------------
 #
 
-db = connect(config['db_url']) #: Object refering to the database
+main_db = connect(config['db_url'], max_allowed_packet= 1073741824) #: Object refering to the database
 
 
 #-----------------------------------------------------------------------------#
@@ -40,7 +46,7 @@ db = connect(config['db_url']) #: Object refering to the database
 
 class BaseModel(Model):
     class Meta:
-        database = db
+        database = main_db
 
 
 class Computer(BaseModel):
@@ -76,9 +82,9 @@ class NeuralNetwork(BaseModel):
     ''' Number of edges. '''
     weighted = BooleanField()
     ''' Whether the graph is weighted or not. '''
-    weight_distribution = TextField()
+    weight_distribution = TextField(null=True)
     ''' Name of the weight_distribution used. '''
-    compressed_file = CompressedField()
+    compressed_file = CompressedField(null=True)
     ''' Compressed (bz2) string of the graph from ``str(graph)``; once
         uncompressed, can be loaded using ``Graph.from_file(name,
         from_string=True)``. '''
@@ -106,9 +112,9 @@ class Connection(BaseModel):
     and post-synaptic neurons and a synapse.
     '''
 
-    pre = ForeignKeyField(Neuron, related_name='out_connections')
-    post = ForeignKeyField(Neuron, related_name='int_connections')
-    synapse = ForeignKeyField(Synapse, related_name='connections')
+    pre = ForeignKeyField(Neuron, null=True, related_name='out_connections')
+    post = ForeignKeyField(Neuron, null=True, related_name='int_connections')
+    synapse = ForeignKeyField(Synapse, null=True, related_name='connections')
 
 
 class Activity(BaseModel):
@@ -133,14 +139,16 @@ class Simulation(BaseModel):
     ''' Timestep used to simulate the components of the neural network '''
     simulator = TextField()
     ''' Name of the neural simulator used (NEST, Brian...) '''
-    grnd_seed = IntegerField()
+    grnd_seed = IntegerField(null=True)
     ''' Master seed of the simulation. '''
-    local_seeds = PickledField()
+    local_seeds = PickledField(null=True)
     ''' List of the local threads seeds. '''
     computer = ForeignKeyField(Computer, related_name='simulations')
     ''' Computer table entry where the computer used is defined. '''
     network = ForeignKeyField(NeuralNetwork, related_name='simulations')
     ''' Network table entry where the simulated network is described. '''
+    activity = ForeignKeyField(Activity, related_name='simulations')
+    ''' Activity table entry where the simulated activity is described. '''
     population = PickledField()
     ''' Pickled list containing the neural group names. '''
     pop_sizes = PickledField()
@@ -159,35 +167,35 @@ ignore = {
     'recordables': True,
     'thread': True,
     'thread_local_id': True,
-    'vp': True
+    'vp': True,
+    'synaptic_elements': True,
+    'sizeof': True,
+    'source': True,
+    'target': True,
 }
 
 val_to_field = {
     'int': IntegerField,
-    'long': BlobField,
+    'bigint': IntegerField,
+    'tinyint': IntegerField,
+    'long': PickledField,
+    'blob': PickledField,
+    'datetime': DateTimeField,
     'str': TextField,
+    'longtext': TextField,
     'SLILiteral': TextField,
     'float': FloatField,
+    'float64': FloatField,
+    'float32': FloatField,
     'bool': BooleanField,
     'lst': PickledField,
-    'numpy.ndarray': PickledField,
+    'dict': PickledField,
+    'ndarray': PickledField,
+    'compressed': CompressedField
 }
 
-
-def update_node_class(node_type, **kwargs):
-    ''' Add a field for each property of the considered node. '''
-    node_class = Synapse if node_class == "synapse" else Neuron
-    for attr, value in iter(kwargs.keys()):
-        if attr not in ignore:
-            val_field = val_to_field[value]() # generate field instance
-            setattr(node_class, attr, val_field)
-    return node_class
-
-def update_activity_class(**kwargs):
-    ''' Add a field for each property of the considered activity. '''
-    klass = Activity
-    for attr, value in iter(kwargs.keys()):
-        if attr not in ignore:
-            val_field = val_to_field[value]()
-            setattr(klass, attr, val_field)
-    return klass
+db_migrator = {
+    'SqliteDatabase': SqliteMigrator,
+    'PostgresqlDatabase': PostgresqlMigrator,
+    'MySQLDatabase': MySQLMigrator,
+}

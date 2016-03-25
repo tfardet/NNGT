@@ -4,6 +4,7 @@
 """ Analyze the activity of a network """
 
 import weakref
+from collections import namedtuple
 from copy import deepcopy
 
 import nest
@@ -35,34 +36,80 @@ class ActivityRecord:
         `spike_detector`) and compute the properties if data was provided.
         '''
         self.network = weakref.proxy(network)
-        self._avg_rate = 0.
         self.limits = deepcopy(limits)
+        self.data_in_files = False
         self.phases = {
             "bursting":[],
             "mixed":[],
             "quiescent":[],
-            "localized": []
+            "localized": [],
         }
-        self.data = {}
-        if spike_dector is not None:
-            self.sd = weakref.proxy(sd)
-            sd_data = nest.GetStatus(self.sd, "events")[0]
-            self.data["spike_time"] = sd_data["times"]
-            self.data["spike_sender"] = sd_data["senders"]
-            self.phases = self.get_phases()
-            self.get_avg_rate()
-        elif phases is not None:
-            self.phases = phases
+        self.data = {
+            "spike_files": [],
+            "spike_times": [],
+            "spike_senders": [],
+        }
+        self._prop = None
+        if spike_detector is not None:
+            self.sd = spike_detector
+            if True in nest.GetStatus(self.sd, "to_file"):
+                self.data_in_files = True
+                for fpath in nest.GetStatus(self.sd, "record_to"):
+                    self.data["spike_files"].extend(fpath)
+            else:
+                for events in nest.GetStatus(self.sd, "events"):
+                    self.data["spike_times"].extend(events["times"])
+                    self.data["spike_senders"].extend(events["senders"])
+                self.data["spike_times"] = np.array(self.data["spike_times"])
+                self.data["spike_senders"] = np.array(self.data["spike_senders"])
+            if phases is None:
+                self.phases = self.get_phases(**kwargs)
+        if phases is not None:
+            self.phases = phases.copy()
+        self.compute_properties()
     
     @property
-    def avg_rate(self):
-        return self._avg_rate
+    def properties(self):
+        return self._prop
     
-    def get_phases(self):
-        self.phases = activity_types(self.network, self.sd, self.limits)
+    def get_phases(self, **kwargs):
+        self.phases = activity_types(self.network, self.sd, self.limits,
+                                     **kwargs)
     
-    def get_avg_rate(self):
-        self._avg_rate = len(self.data["spike_time"])/np.diff(self.limits)
+    def compute_properties(self):
+        if self.data_in_files:
+            raise NotImplementedError()
+        else:
+            prop = { "phases": self.phases }
+            times = self.data["spike_times"]
+            prop["rate"] = len(self.data["spike_times"])/np.diff(self.limits)
+            num_bursts = len(self.phases["bursting"])
+            if num_bursts:
+                prop["bursting"] = True
+                prop.update({"T_burst": 0., "IBI": 0. })
+            else:
+                prop["bursting"] = False
+            if times.any():
+                prop["avg_spb"] = 0.
+            for i, burst in enumerate(self.phases["bursting"]):
+                # T_burst
+                prop["T_burst"] += burst[1]-burst[0]
+                # IBI
+                if i > 0:
+                    end_older_burst = self.phases["bursting"][i-1][1]
+                    prop["IBI"] += burst[0]-end_older_burst
+                # get num_spikes inside the burst, divide by num_neurons
+                if times.any():
+                    idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
+                    spikes = set(times[idxs])
+                    neurons = set(self.data["spike_senders"][idxs])
+                    prop["avg_spb"] += len(spikes)/float(len(neurons))
+            for key in iter(prop.keys()):
+                if key != "phases":
+                    prop[key] /= float(num_bursts)
+            # generate properties as a namedtuple
+            Properties = namedtuple('Properties', prop.keys())
+            self._prop = Properties(**prop)
 
 
 #-----------------------------------------------------------------------------#
@@ -126,16 +173,15 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
         Dictionary containing the timesteps in NEST.
     '''
     # check if there are several recorders
-    times,senders = [], []
-    if len(spike_detector) > 1:
-        for sd in spike_detector:
-            data = nest.GetStatus(sd, "events")[0]
-            times.extend(data["times"])
-            senders.extend(data["senders"])
+    data, senders, times = [], [], []
+    
+    if True in nest.GetStatus(spike_detector, "to_file"):
+        for fpath in nest.GetStatus(spike_detector, "record_to"):
+            data.extend(fpath)
     else:
-        data = nest.GetStatus(spike_detector, "events")[0]
-        times = data["times"]
-        senders = data["senders"]
+        for events in nest.GetStatus(spike_detector, "events"):
+            times.extend(events["times"])
+            senders.extend(events["senders"])
     idx_sorted = np.argsort(times)
     times = np.array(times)[idx_sorted]
     senders = np.array(senders)[idx_sorted]
@@ -249,4 +295,4 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
                     ax.axvspan(span[0],span[1], facecolor=color, alpha=0.2)
     if fignums and show:
         plt.show()
-    return phases
+    return ActivityRecord(network, limits, spike_detector, phases)

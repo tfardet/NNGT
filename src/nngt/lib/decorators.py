@@ -5,6 +5,6 @@
 
 
 def valid_gen_arguments(func):
-        def wrapper(*args, **kwargs):
-            return func(*args,**kwargs)
-        return wrapper
+    def wrapper(*args, **kwargs):
+        return func(*args,**kwargs)
+    return wrapper

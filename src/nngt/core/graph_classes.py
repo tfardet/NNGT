@@ -225,7 +225,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         Return the full string description of the object as would be stored
         inside a file when saving the graph.
         '''
-        
+        return as_string(self)
 
     @property
     def id(self):

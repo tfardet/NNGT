@@ -9,7 +9,7 @@ Content
 =======
 """
 
-from .db_main import nngt_db
+from .db_main import db
 
 
 #-----------------------------------------------------------------------------#
@@ -18,5 +18,5 @@ from .db_main import nngt_db
 #
 
 __all__ = [
-	'nngt_db',
+	'db',
 ]

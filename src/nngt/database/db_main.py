@@ -13,7 +13,7 @@ from nngt.lib.db_tools import psutil
 from .db_generation import *
 
 
-__all__ = [ 'nngt_db' ]
+__all__ = [ 'db' ]
 
 
 
@@ -22,19 +22,69 @@ class NNGTdb:
     Class containing the database object and methods to store the simulation
     properties.
     '''
+    
+    tables = {
+        'activity': Activity,
+        'computer': Computer,
+        'connection': Connection,
+        'neuralnetwork': NeuralNetwork,
+        'neuron': Neuron,
+        'simulation': Simulation,
+        'synapse': Synapse
+    }
 
     def __init__(self):
-        self.db = db
+        self.db = main_db
         self.db.connect()
+        self.db.create_tables(self.tables.values(), safe=True)
+        self._update_models()
+        print(NeuralNetwork.compressed_file)
         self.current_simulation = None
         self.simulator_lib = None
         self.computer = None
         self.neuralnet = None
-        self.entries = {}
+        self.connections = {}
+        self.nodes = {}
+    
+    def _update_class(self, table, **kwargs):
+        ''' Add a field for each property of the considered node. '''
+        klass = self.tables[table]
+        columns = [ x.name for x in self.db.get_columns(table) ]
+        migrator = db_migrator[self.db.__class__.__name__](self.db)
+        type_names = False
+        if "dtype" in kwargs:
+            type_names = kwargs["dtype"]
+            del kwargs["dtype"]
+        for attr, value in iter(kwargs.items()):
+            if attr not in ignore:
+                # generate field instance
+                dtype = value if type_names else value.__class__.__name__
+                val_field = val_to_field[dtype](null=True)
+                val_field.add_to_class(klass, attr)
+                # check whether the column exists on the table, if not create
+                if not attr in columns:
+                    migrate(migrator.add_column(table, attr, val_field))
+        return klass
+    
+    def _update_models(self):
+        ''' Update the models so that we can query the database with them '''
+        tables = self.db.get_tables()
+        for table in tables:
+            delete = []
+            col_names = self.db.get_columns(table)
+            col_dict = { x.name: x.data_type for x in col_names}
+            for attr in iter(col_dict.keys()):
+                if attr == "compressed_file":
+                    col_dict["compressed_file"] = "compressed"
+                elif "_id" in attr:
+                    delete.append(attr)
+            col_dict["dtype"] = True
+            for key in delete:
+                del col_dict[key]
+            self.tables[table] = self._update_class(table, **col_dict)
 
-    def make_computer_entry(self):
-        '''
-        Get the computer properties.
+    def _make_computer_entry(self):
+        ''' Get the computer properties.
 
         Returns
         -------
@@ -52,7 +102,7 @@ class NNGTdb:
         computer = Computer(**comp_prop)
         return computer
 
-    def make_network_entry(self, network):
+    def _make_network_entry(self, network):
         '''
         Get the network properties.
 
@@ -73,14 +123,14 @@ class NNGTdb:
             'nodes': network.node_nb(),
             'edges': network.edge_nb(),
             'weighted': weighted,
-            'compressed_file': network.to_string()
+            'compressed_file': str(network)
         }
         if weighted:
             net_prop['weight_distribution'] = network._w['distrib']
         neuralnet = NeuralNetwork(**net_prop)
         return neuralnet
 
-    def make_neuron_entry(self, network, group):
+    def _make_neuron_entry(self, network, group):
         '''
         Get the neuronal properties.
 
@@ -101,11 +151,11 @@ class NNGTdb:
         # get the dictionary
         neuron_prop = nest.GetStatus((gid,))[0]
         # update Neuron class accordingly
-        update_node_class("neuron", **neuron_prop)
+        Neuron = self._update_class("neuron", **neuron_prop)
         neuron = Neuron(**neuron_prop)
         return neuron
 
-    def make_synapse_entry(self, network, group_pre, group_post):
+    def _make_synapse_entry(self, network, group_pre, group_post):
         '''
         Get the synaptic properties.
 
@@ -124,8 +174,8 @@ class NNGTdb:
             New synapse entry.
         '''
         syn_model = group_pre.syn_model
-        source_gids = network.nest_gid[group_pre.id_list]
-        target_gids = network.nest_gid[group_post.id_list]
+        source_gids = tuple(network.nest_gid[group_pre.id_list])
+        target_gids = tuple(network.nest_gid[group_post.id_list])
         connections = nest.GetConnections(synapse_model=syn_model,
                                         source=source_gids, target=target_gids)
         # get the dictionary
@@ -133,11 +183,11 @@ class NNGTdb:
         if connections:
             syn_prop = nest.GetStatus((connections[0],))[0]
             # update Synapse class accordingly
-            update_node_class("synapse", **syn_prop)
+            Synapse = self._update_class("synapse", **syn_prop)
         synapse = Synapse(**syn_prop)
         return synapse
 
-    def make_connection_entry(self, neuron_pre, neuron_post, synapse):
+    def _make_connection_entry(self, neuron_pre, neuron_post, synapse):
         '''
         Create the entries for the Connections table from a list of
         (pre, post, syn) triples.
@@ -155,22 +205,18 @@ class NNGTdb:
         -------
         :class:`~nngt.database.Connection`
         '''
-        return Connection(pre=triple.pre, post=triple.post, synapse=triple.syn)
+        return Connection(pre=neuron_pre, post=neuron_post, synapse=synapse)
 
-    def get_simulation_prop(self, simulator, c_entry, net_entry, network):
+    def _get_simulation_prop(self, network, simulator):
         '''
         Get the simulation properties.
         
         Parameters
         ----------
-        simulator : str
-            Name of the simulator use (NEST, BRIAN...).
-        c_entry : :class:`~nngt.database.Computer`
-            Current Computer entry in the database.
-        net_entry : :class:`~nngt.database.NeuralNetwork`
-            Current NeuralNetwork entry in the database.
         network : :class:`~nngt.Network`
             Network used for the simulation.
+        simulator : str
+            Name of the simulator use (NEST, BRIAN...).
 
         Returns
         -------
@@ -183,14 +229,12 @@ class NNGTdb:
             pop.append(name)
             size.append(len(group.id_list))
         self.current_simulation = {
-            'start_time': datetime(),
+            'start_time': datetime.now(),
             'simulated_time': nest.GetKernelStatus('time'),
             'resolution': nest.GetKernelStatus('resolution'),
             'simulator': simulator.lower(),
             'grnd_seed': nest.GetKernelStatus('grng_seed'),
             'local_seeds': nest.GetKernelStatus('rng_seeds'),
-            'computer': c_entry,
-            'network': net_entry,
             'population': pop,
             'pop_sizes': size
         }
@@ -210,23 +254,31 @@ class NNGTdb:
         if not self.is_clear():
             raise RuntimeError("Database log started without clearing the \
 previous one.")
+        self._get_simulation_prop(network, simulator)
         # computer and network data
-        self.computer = self.make_computer_entry()
-        self.neuralnet = self.make_network_entry(network)
+        self.computer = self._make_computer_entry()
+        self.neuralnet = self._make_network_entry(network)
+        self.current_simulation['computer'] = self.computer
+        self.current_simulation['network'] = self.neuralnet
         # neurons, synapses and connections
         perm_names = tuple(permutations(network.population.keys(), 2))
         perm_groups = tuple(permutations(network.population.values(), 2))
-        self.entries = {}
+        if not perm_names:
+            group_name = list(network.population.keys())[0]
+            group = network.population[group_name]
+            perm_names = ((group_name, group_name),)
+            perm_groups = ((group, group),)
+        self.nodes = {}
         for (name_pre, name_post), (pre, post) in zip(perm_names, perm_groups):
-            if name_pre not in entries:
-                self.entries[name_pre] = self.make_neuron_entry(network, pre)
-            if name_post not in entries:
-                self.entries[name_post] = self.make_neuron_entry(network, post)
-            synapse = self.make_synapse_entry(network, entries[name_pre],
-                                              entries[name_post])
-            self.entries["syn_{}->{}".format(name_pre, name_post)] = synapse
-            conn = self.make_connection_entry(neuron_pre, neuron_post, synapse)
-            self.entries["conn_{}->{}".format(name_pre, name_post)]
+            if name_pre not in self.nodes:
+                self.nodes[name_pre] = self._make_neuron_entry(network, pre)
+            if name_post not in self.nodes:
+                self.nodes[name_post] = self._make_neuron_entry(network, post)
+            synapse = self._make_synapse_entry(network, pre, post)
+            self.nodes["syn_{}->{}".format(name_pre, name_post)] = synapse
+            conn = self._make_connection_entry(self.nodes[name_pre],
+                                               self.nodes[name_post], synapse)
+            self.connections["{}->{}".format(name_pre, name_post)] = conn
         
 
     def log_simulation_end(self, activity=None):
@@ -237,18 +289,50 @@ previous one.")
         if self.is_clear():
             raise RuntimeError("Database log ended with empy log.")
         # get completion time and simulated time
-        self.current_simulation['completion_time'] = datetime()
+        self.current_simulation['completion_time'] = datetime.now()
         start_time = self.current_simulation['simulated_time']
         new_time = nest.GetKernelStatus('time')
         self.current_simulation['simulated_time'] = new_time - start_time
+        # save activity if provided
+        if activity is not None:
+            Activity = self._update_class("activity",
+                                         **activity.properties._asdict())
+            activity_entry = Activity(**activity.properties._asdict())
+            self.nodes['activity_prop'] = activity_entry
+            self.current_simulation['activity'] = activity_entry
         # save data and reset
         self.computer.save()
         self.neuralnet.save()
-        for entry in iter(self.entries.values()):
+        for entry in iter(self.nodes.values()):
+            entry.save()
+        for entry in iter(self.connections.values()):
             entry.save()
         simul_data = Simulation(**self.current_simulation)
         simul_data.save()
         self.reset()
+    
+    def get_results(self, table, column, value):
+        '''
+        Return the entries where the attribute `column` satisfies the required
+        equality.
+        
+        Parameters
+        ----------
+        table : str
+            Name of the table where the search should be performed (among
+            ``'simulation'``, ``'computer'``, ``'neuralnetwork'``,
+            ``'activity'``, ``'synapse'``, ``'neuron'``, or ``'connection'``).
+        column : str
+            Name of the variable of interest (a column on the table).
+        value : `column` corresponding type
+            Specific value for the variable of interest.
+        
+        Returns
+        -------
+        :class:`peewee.SelectQuery` with entries matching the request.
+        '''
+        TableModel = self.tables[table]
+        return TableModel.select().where(getattr(TableModel, column) == value)
 
     def is_clear(self):
         ''' Check that the logs are clear. '''
@@ -257,7 +341,8 @@ previous one.")
         clear *= self.simulator_lib is None
         clear *= self.computer is None
         clear *= self.neuralnet is None
-        clear *= not self.entries
+        clear *= not self.nodes
+        clear *= not self.connections
         return clear
 
     def reset(self):
@@ -266,7 +351,8 @@ previous one.")
         self.simulator_lib = None
         self.computer = None
         self.neuralnet = None
-        self.entries = {}
+        self.connections = {}
+        self.nodes = {}
 
 
 #-----------------------------------------------------------------------------#
@@ -274,5 +360,5 @@ previous one.")
 #------------------------
 #
         
-nngt_db = NNGTdb() #: main database object
+db = NNGTdb() #: main database object
 
