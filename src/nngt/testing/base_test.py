@@ -110,10 +110,12 @@ class TestBasis(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.graphs = []
+        cls.instructions = []
     
     tolerance = 1e-5
     parser = XmlHandler()
     graphs = []
+    instructions = []
     
     #-------------------------------------------------------------------------#
     # Instance
@@ -131,9 +133,15 @@ class TestBasis(unittest.TestCase):
 
     def make_graphs(self):
         for graph_name in self.parser.get_graph_list(self.test_name):
-            self.graphs.append(self.gen_graph(graph_name))
+            g, di = self.gen_graph(graph_name)
+            self.graphs.append(g)
+            self.instructions.append(di)
 
     @abstractmethod
     def gen_graph(self, graph_name):
+        '''
+        Must return a ``(g, di)`` tuple with `g` the graph instance and `di`
+        the generation instructions (as a ``dict``) or ``None``.
+        '''
         pass
     

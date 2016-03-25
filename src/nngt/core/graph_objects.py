@@ -318,6 +318,14 @@ class BaseGraph(config["graph"]):
     #-------------------------------------------------------------------------#
     # Properties and methods to implement
     
+    #~ @abstractmethod
+    #~ def inhibitory_subgraph(self):
+        #~ pass
+    #~ 
+    #~ @abstractmethod
+    #~ def excitatory_subgraph(self, n=1, ntype=1):
+        #~ pass
+    
     @abstractmethod
     def new_node(self, n=1, ntype=1):
         pass
@@ -457,7 +465,7 @@ class GtGraph(BaseGraph):
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         if node_list is None:
-            node_list = slice(0,-1)
+            node_list = slice(0,self.num_vertices()+1)
         if "weight" in self.edge_properties.keys() and use_weights:
             return self.degree_property_map(deg_type,
                             self.edge_properties["weight"]).a[node_list]

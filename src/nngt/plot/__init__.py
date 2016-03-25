@@ -34,7 +34,7 @@ from .plt_activity import spike_raster
 
 __all__ = [ "degree_distribution", "betweenness_distribution", 'spike_raster' ]
 
-if config["graph_library"] == 'graph_tool':
+if config["graph_library"] == 'graph-tool':
     from .plt_networks import draw_network
     __all__.append("draw_network")
 else:

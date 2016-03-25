@@ -533,7 +533,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     # generate container
     h = w = np.sqrt(float(nodes)/neuron_density)
     shape = shape if shape is not None else nngt.Shape.rectangle(graph_dr,h,w)
-    graph_dr = nngt.SpatialGraph.make_spatial(graph_dr, shape, positions)
+    nngt.SpatialGraph.make_spatial(graph_dr, shape, positions)
     # add edges
     positions = graph_dr.position
     ia_edges = None

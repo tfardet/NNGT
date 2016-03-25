@@ -41,7 +41,7 @@ class TestIO_Analysis(TestBasis):
         di_instructions = self.parser.get_graph_options(graph_name)
         graph = nngt.Graph.from_file(abspath, **di_instructions)
         graph.set_name(graph_name)
-        return graph
+        return graph, None
 
     @foreach_graph
     def test_node_nb(self, graph, **kwargs):

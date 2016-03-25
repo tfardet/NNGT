@@ -55,7 +55,7 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
     deg : :class:`numpy.array`
         bins
     '''
-    ia_node_deg = graph.get_degrees(node_list, deg_type, use_weights)
+    ia_node_deg = graph.get_degrees(deg_type, node_list, use_weights)
     ra_bins = sp.linspace(ia_node_deg.min(), ia_node_deg.max(), num_bins)
     if log:
         ra_bins = sp.logspace(sp.log10(sp.maximum(ia_node_deg.min(),1)),

@@ -237,6 +237,22 @@ class NNGTdb:
             'population': pop,
             'pop_sizes': size
         }
+
+    def _make_activity_entry(self, activity):
+        '''
+        Create an activity entry from an
+        :class:`~nngt.simulation.ActivityRecord` object.
+        '''
+        di_activity = activity.properties._asdict()
+        act_attr = { k: v.__class__.__name__ for k, v in  di_activity.items() }
+        act_attr["spike_files"] = "compressed" if "spike_files" in act_attr
+        act_attr["dtypes"] = True
+        ''' ..todo ::
+            compress the spike files '''
+        Activity = self._update_class("activity", **act_attr)
+        activity_entry = Activity(di_activity)
+        self.nodes['activity_prop'] = activity_entry
+        self.current_simulation['activity'] = activity_entry
         
     def log_simulation_start(self, network, simulator):
         '''
@@ -294,11 +310,7 @@ previous one.")
         self.current_simulation['simulated_time'] = new_time - start_time
         # save activity if provided
         if activity is not None:
-            Activity = self._update_class("activity",
-                                         **activity.properties._asdict())
-            activity_entry = Activity(**activity.properties._asdict())
-            self.nodes['activity_prop'] = activity_entry
-            self.current_simulation['activity'] = activity_entry
+            self._make_activity_entry(activity)
         # save data and reset
         self.computer.save()
         self.neuralnet.save()
@@ -308,6 +320,12 @@ previous one.")
             entry.save()
         simul_data = Simulation(**self.current_simulation)
         simul_data.save()
+        if config["to_file"]:
+            db_cls = list(self.tables.values())
+            q = ( Simulation.select(*db_cls).join(Computer).join(NeuralNetwork)
+                  .join(Activity).join(Neuron).join(Synapse).join(Connection) )
+            dump_csv(q, "{}_{}.csv".format(self.computer.name,
+                                           simul_data.completion_time))
         self.reset()
     
     def get_results(self, table, column, value):

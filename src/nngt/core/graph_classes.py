@@ -161,6 +161,55 @@ with non symmetric matrix provided.')
         if shape is not None:
             SpatialGraph.make_spatial(graph, shape)
         return graph
+
+    @staticmethod
+    def make_spatial(graph, shape=Shape(), positions=None):
+        '''
+        Turn a :class:`~nngt.Graph` object into a :class:`~nngt.SpatialGraph`,
+        or a :class:`~nngt.Network` into a :class:`~nngt.SpatialNetwork`.
+
+        Parameters
+        ----------
+        graph : :class:`~nngt.Graph` or :class:`~nngt.SpatialGraph`
+            Graph to convert.
+        shape : :class:`~nngt.Shape`
+            Shape to associate to the new :class:`~nngt.SpatialGraph`.
+        positions : (2,N) array
+            Positions, in a 2D space, of the N neurons.
+
+        Notes
+        -----
+        In-place operation that directly converts the original graph.
+        '''
+        if isinstance(graph, Network):
+            graph.__class__ = SpatialNetwork
+        else:
+            graph.__class__ = SpatialGraph
+        graph._init_spatial_properties(shape, positions)
+
+    @staticmethod
+    def make_network(graph, neural_pop):
+        '''
+        Turn a :class:`~nngt.Graph` object into a :class:`~nngt.Network`, or a
+        :class:`~nngt.SpatialGraph` into a :class:`~nngt.SpatialNetwork`.
+
+        Parameters
+        ----------
+        graph : :class:`~nngt.Graph` or :class:`~nngt.SpatialGraph`
+            Graph to convert
+        neural_pop : :class:`~nngt.NeuralPop`
+            Population to associate to the new :class:`~nngt.Network`
+
+        Notes
+        -----
+        In-place operation that directly converts the original graph.
+        '''
+        if isinstance(graph, SpatialGraph):
+            graph.__class__ = SpatialNetwork
+        else:
+            graph.__class__ = Network
+        graph.population = neural_pop
+        Connections.delays(graph)
             
 
     #-------------------------------------------------------------------------#
@@ -340,6 +389,16 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
 
     def set_edge_attribute(self, attribute, values=None, val=None,
                            value_type=None):
+        '''
+        Set attributes to the connections between neurons.
+
+        .. warning ::
+            The special "type" attribute cannot be modified when using graphs
+            that inherit from the :class:`~nngt.Network` class. This is because
+            for biological networks, neurons make only one kind of synapse,
+            which is determined by the :class:`nngt.core.NeuralGroup` they
+            belong to.
+        '''
         if attribute not in self.attributes():
             self.new_edge_attribute(name=attribute,
                                 value_type=value_type, values=values, val=val)
@@ -391,13 +450,12 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         '''
         Set the synaptic/connection types.
 
-        .. warning :
-            This is only for use in graph theoretical measurements; when 
-            translating a :class:`~nngt.Network` to NEST, only the
-            :class:`~nngt.NeuralGroup`s are taken into account. This is
-            especially important if you set types that do not match those of
-            the population : be aware that the types will not be taken into 
-            account in the simulations.
+        .. warning ::
+            The special "type" attribute cannot be modified when using graphs
+            that inherit from the :class:`~nngt.Network` class. This is because
+            for biological networks, neurons make only one kind of synapse,
+            which is determined by the :class:`nngt.core.NeuralGroup` they
+            belong to.
 
         Parameters
         ----------
@@ -518,16 +576,16 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         #~ di_result = { prop: self.get_property(prop) for prop in a_properties }
         #~ return di_result
 
-    def get_degrees(self, node_list=None, deg_type="total", use_weights=True):
+    def get_degrees(self, deg_type="total", node_list=None, use_weights=True):
         '''
         Degree sequence of all the nodes.
         
         Parameters
         ----------
-        node_list : list, optional (default: None)
-            List of the nodes which degree should be returned
         deg_type : string, optional (default: "total")
             Degree type (among 'in', 'out' or 'total').
+        node_list : list, optional (default: None)
+            List of the nodes which degree should be returned
         use_weights : bool, optional (default: True)
             Whether to use weighted (True) or simple degrees (False).
         
@@ -607,14 +665,6 @@ class SpatialGraph(Graph):
 
     __num_graphs = 0
     __max_id = 0
-
-    @classmethod
-    def make_spatial(graph, shape=Shape(), positions=None):
-        if isinstance(graph, Network):
-            graph.__class__ = SpatialNetwork
-        else:
-            graph.__class__ = SpatialGraph
-        graph._init_spatial_properties(shape, positions)
 
     #-------------------------------------------------------------------------#
     # Constructor, destructor, attributes    
@@ -789,30 +839,6 @@ class Network(Graph):
         net = cls(population=pop)
         return net
 
-    @staticmethod
-    def make_network(graph, neural_pop):
-        '''
-        Turn a :class:`~nngt.Graph` object into a :class:`~nngt.Network`, or a
-        :class:`~nngt.SpatialGraph` into a :class:`~nngt.SpatialNetwork`.
-
-        Parameters
-        ----------
-        graph : :class:`~nngt.Graph` or :class:`~nngt.SpatialGraph`
-            Graph to convert
-        neural_pop : :class:`~nngt.NeuralPop`
-            Population to associate to the new :class:`~nngt.Network`
-
-        Notes
-        -----
-        In-place operation that directly converts the original graph.
-        '''
-        if isinstance(graph, SpatialGraph):
-            graph.__class__ = SpatialNetwork
-        else:
-            graph.__class__ = Network
-        graph.population = neural_pop
-        Connections.delays(graph)
-
     #-------------------------------------------------------------------------#
     # Constructor, destructor and attributes
     
@@ -915,6 +941,12 @@ class Network(Graph):
                     {}".format(pop.__class__.__name__))
 
     #-------------------------------------------------------------------------#
+    # Setter
+
+    def set_types(self, syn_type, nodes=None, fraction=None):
+        raise NotImplementedError("Cannot be used on :class:`~nngt.Network`.")
+
+    #-------------------------------------------------------------------------#
     # Getter
 
     def neuron_properties(self, idx_neuron):
@@ -996,3 +1028,10 @@ class SpatialNetwork(Network,SpatialGraph):
     def __del__ (self):
         super(SpatialNetwork, self).__del__()
         self.__class__.__num_networks -= 1
+
+    #-------------------------------------------------------------------------#
+    # Setter
+
+    def set_types(self, syn_type, nodes=None, fraction=None):
+        raise NotImplementedError("Cannot be used on \
+:class:`~nngt.SpatialNetwork`.")

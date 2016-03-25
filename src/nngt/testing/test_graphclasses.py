@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-# test_analysis.py
+# test_graphclasses.py
 
 # This file is part of the NNGT module
 # Distributed as a free software, in the hope that it will be useful, under the
@@ -49,7 +49,7 @@ class TestGraphClasses(TestBasis):
         self.matrices[graph_name] = mat
         graph = nngt.Graph.from_matrix(mat)
         graph.set_name(graph_name)
-        return graph
+        return graph, di_instructions
 
     @foreach_graph
     def test_adj_mat(self, graph, **kwargs):

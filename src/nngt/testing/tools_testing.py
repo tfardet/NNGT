@@ -62,6 +62,6 @@ def foreach_graph(func):
     '''       
     def wrapper(*args, **kwargs):
         self = args[0]
-        for graph in self.__class__.graphs:
-            func(self, graph, **kwargs)
+        for graph, instruct in zip(self.graphs, self.instructions):
+            func(self, graph, instructions=instruct, **kwargs)
     return wrapper
