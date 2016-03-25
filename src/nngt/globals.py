@@ -68,7 +68,8 @@ def _load_config(path_config):
         'with_plot': False,
         'to_file': False,
         'log_folder': "~/.nngt/database",
-        'db_url': "mysql:///nngt_db"
+        'db_url': "mysql:///nngt_db",
+        'backend': None,
     }
     with open(path_config, 'r') as fconfig:
         options = [ l.strip() for l in fconfig if l.strip() and l[0] != "#" ]

@@ -15,14 +15,10 @@ Content
 import sys
 import matplotlib
 
-sav_backend = matplotlib.get_backend()
-backends = [ 'GTK3Agg', 'Qt4Agg', 'Qt5Agg' ]
+from nngt import config
 
-for backend in backends:
-    try:
-        matplotlib.use(backend)
-    except:
-        matplotlib.use(sav_backend)
+if config["backend"]:
+    matplotlib.use(config["backend"])
         
 import warnings
 warnings.filterwarnings("ignore", module="matplotlib")

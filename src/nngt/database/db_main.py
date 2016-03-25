@@ -38,7 +38,6 @@ class NNGTdb:
         self.db.connect()
         self.db.create_tables(self.tables.values(), safe=True)
         self._update_models()
-        print(NeuralNetwork.compressed_file)
         self.current_simulation = None
         self.simulator_lib = None
         self.computer = None
