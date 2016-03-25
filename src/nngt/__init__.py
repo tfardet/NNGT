@@ -116,12 +116,12 @@ __all__ = [
 ]
 
 # test if plot module is supported
-try:
-    from . import plot
-    config['with_plot'] = True
-    __all__.append('plot')
-except ImportError as e:
-    print("Uncompatibility, plot module will not be loaded...", e)
+#~ try:
+    #~ from . import plot
+    #~ config['with_plot'] = True
+    #~ __all__.append('plot')
+#~ except ImportError as e:
+    #~ print("Uncompatibility, plot module will not be loaded...", e)
 
 # look for nest
 try:
