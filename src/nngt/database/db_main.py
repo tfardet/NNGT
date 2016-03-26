@@ -245,7 +245,8 @@ class NNGTdb:
         '''
         di_activity = activity.properties._asdict()
         act_attr = { k: v.__class__.__name__ for k, v in  di_activity.items() }
-        act_attr["spike_files"] = "compressed" if "spike_files" in act_attr
+        if "spike_files" in act_attr:
+            act_attr["spike_files"] = "compressed" 
         act_attr["dtypes"] = True
         ''' ..todo ::
             compress the spike files '''

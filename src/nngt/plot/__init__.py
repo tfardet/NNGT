@@ -20,6 +20,18 @@ from nngt import config
 if config["backend"] is not None:
     print("Changing matplotlib backend to {}".format(config["backend"]))
     matplotlib.use(config["backend"])
+else:
+    sav_backend = matplotlib.get_backend()
+    backends = [ 'GTK3Agg', 'Qt4Agg', 'Qt5Agg' ]
+    keep_trying = True
+    while backends and keep_trying:
+        try:
+            backend = backends.pop()
+            matplotlib.use(backend)
+            keep_trying = False
+        except:
+            matplotlib.use(sav_backend)
+    
         
 import warnings
 warnings.filterwarnings("ignore", module="matplotlib")
