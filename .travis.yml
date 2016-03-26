@@ -25,7 +25,9 @@ cache:
   - pip
 
 before_install:
-  
+
+  # install the gnu debugger for later use in reading core files
+  - sudo apt-get -y install gdb
   # get repository for clang-3.6 stuff (including clang-format-3.6)
   - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main\n" >> /etc/apt/sources.list'
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
@@ -63,8 +65,18 @@ before_install:
   # coverage analysis
   - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-coverage; else sudo pip install coveralls; fi
 
-install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pip install -e ".[nx,ig]"; fi
+install:
+  # activate core files
+  - ulimit -c
+  - if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pip install -e ".[nx,ig]"; fi
 
-script: if [[ "$PYVERSION" == "3.x" ]]; then python3-coverage run --source=nngt src/nngt/testing/__init__.py $GL; else coverage run --source=nngt src/nngt/testing/__init__.py $GL; fi 
+before_script:
+  # Set the core file limit to unlimited so a core file is generated upon crash
+  - ulimit -c unlimited -S
+
+script:
+  - if [[ "$PYVERSION" == "3.x" ]]; then python3-coverage run --source=nngt src/nngt/testing/__init__.py $GL; else coverage run --source=nngt src/nngt/testing/__init__.py $GL; fi
+  - cat /home/travis/build.sh
+  - for i in $(find ./ -maxdepth 1 -name 'core*' -print); do gdb python src/nngt/testing/__init__.py core* -ex "thread apply all bt" -ex "set pagination 0" -batch; done;
 
 after_success: coveralls
