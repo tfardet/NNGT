@@ -17,7 +17,7 @@ import matplotlib
 
 from nngt import config
 
-if config["backend"]:
+if config["backend"] is not None:
     matplotlib.use(config["backend"])
         
 import warnings
