@@ -121,7 +121,7 @@ try:
     config['with_plot'] = True
     __all__.append('plot')
 except:
-    print("Error in import, plot module not loaded...", sys.exc_info()[0])
+    print("Error in import, plot module not loaded...")
 
 # look for nest
 try:

@@ -76,6 +76,6 @@ before_script:
 
 script:
   - if [[ "$PYVERSION" == "3.x" ]]; then python3-coverage run --source=nngt src/nngt/testing/__init__.py $GL; else coverage run --source=nngt src/nngt/testing/__init__.py $GL; fi
-  - for i in $(find ./ -maxdepth 1 -name 'core*' -print); do gdb -ex r --args python src/nngt/testing/__init__.py --core=core* -ex "thread apply all bt" -ex "set pagination 0" -batch; done;
+  - for i in $(find ./ -maxdepth 1 -name 'core*' -print); do cat $i; done;
 
 after_success: coveralls
