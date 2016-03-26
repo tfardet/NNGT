@@ -30,8 +30,8 @@ from nngt.globals import config
 # module import
 
 from .custom_plt import palette
-#~ from .plt_properties import degree_distribution, betweenness_distribution
-#~ from .plt_activity import spike_raster
+from .plt_properties import degree_distribution, betweenness_distribution
+from .plt_activity import spike_raster
 
 __all__ = [ "degree_distribution", "betweenness_distribution", 'spike_raster' ]
 
