@@ -17,8 +17,6 @@ import matplotlib
 
 from nngt import config
 
-print(config["backend"])
-
 if config["backend"] is not None:
     print("Changing matplotlib backend to {}".format(config["backend"]))
     matplotlib.use(config["backend"])
@@ -32,8 +30,8 @@ from nngt.globals import config
 # module import
 
 from .custom_plt import palette
-from .plt_properties import degree_distribution, betweenness_distribution
-from .plt_activity import spike_raster
+#~ from .plt_properties import degree_distribution, betweenness_distribution
+#~ from .plt_activity import spike_raster
 
 __all__ = [ "degree_distribution", "betweenness_distribution", 'spike_raster' ]
 
