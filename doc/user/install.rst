@@ -6,10 +6,11 @@ Installation
 Simple install
 ==============
 
-Under most linux distributions, the simplest way is to install `pip <https://pip.pypa.io/en/stable/installing/>` and `git <https://git-scm.com/>`_, then simply type into a terminal:
->>> sudo pip install git+https://github.com/Silmathoron/NNGT.git
+Under most linux distributions, the simplest way is to install `pip <https://pip.pypa.io/en/stable/installing/>`_ and `git <https://git-scm.com/>`_, then simply type into a terminal:
 
-There are ways for windows users, but NEST won't work anyway...
+    >>> sudo pip install git+https://github.com/Silmathoron/NNGT.git
+
+It's the same for windows users once you've installed `Python` and `pip`, but `NEST <http://www.nest-simulator.org/>`_ won't work anyway...
 
 
 Dependencies
@@ -39,10 +40,12 @@ Regardless of your needs, the following libraries are required:
 Using NEST
 ----------
 
-If you want to simulate activities on your complex networks, NNGT can directly interact with the NEST simulator to implement the network inside PyNEST. For this, you will need to install NEST with Python bindings, which requires:
+If you want to simulate activities on your complex networks, NNGT can directly interact with the `NEST simulator`_ to implement the network inside PyNEST. For this, you will need to install NEST with Python bindings, which requires:
 
 * Python headers (`python-dev` package on many linux distributions)
 * autoconf
 * automake
 * libtool
 * libltdl
+
+.. _NEST simulator: http://www.nest-simulator.org/
