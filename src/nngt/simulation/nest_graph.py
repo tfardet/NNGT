@@ -191,7 +191,6 @@ def _find_extremal_weights(min_weight, max_weight, neuron_model, di_param={},
     # get root
     min_w = root(_func_min, min_weight, tol=0.1*min_weight/100.).x[0]
     max_w = root(_func_max, max_weight, tol=0.1*max_weight/100.).x[0]
-    print(min_w, max_w)
     return min_w, max_w
 
 def _get_psp_list(bins, neuron_model, di_param, timestep, simtime):

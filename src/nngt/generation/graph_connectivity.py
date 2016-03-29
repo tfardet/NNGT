@@ -40,8 +40,11 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     degree : int
         The value of the constant degree.
     degree_type : str, optional (default: 'in')
-        The type of the fixed degree, among 'in', 'out' or 'total' (@todo: not 
-        implemented yet).
+        The type of the fixed degree, among ``'in'``, ``'out'`` or ``'total'``.
+        
+        @todo
+			`'total'` not implemented yet.
+			
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     reciprocity : double, optional (default: -1 to let it free)
@@ -68,15 +71,16 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
 
+    Note
+    ----
+	`nodes` is required unless `from_graph` or `population` is provided.
+	If an `from_graph` is provided, all preexistant edges in the
+	object will be deleted before the new connectivity is implemented.
+
     Returns
     -------
     graph_fd : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
-
-    .. note::
-        `nodes` is required unless `from_graph` or `population` is provided.
-        If an `from_graph` is provided, all preexistant edges in the
-        object will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
     graph_fd = from_graph
@@ -113,7 +117,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 		The standard deviation of the Gaussian distribution.
     degree_type : str, optional (default: 'in')
         The type of the fixed degree, among 'in', 'out' or 'total'
-        .. todo ::
+        @todo
 			Implement 'total' degree
     nodes : int, optional (default: None)
         The number of nodes in the graph.
@@ -146,10 +150,11 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     graph_gd : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
 
-    .. note::
-        `nodes` is required unless `from_graph` or `population` is provided.
-        If an `from_graph` is provided, all preexistant edges in the object
-        will be deleted before the new connectivity is implemented.
+    Note
+    ----
+	`nodes` is required unless `from_graph` or `population` is provided.
+	If an `from_graph` is provided, all preexistant edges in the object
+	will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
     graph_gd = from_graph
@@ -189,11 +194,11 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     density : double, optional (default: 0.1)
-        Structural density given by `edges` / `nodes`:math:`^2`.
+        Structural density given by `edges / nodes`:math:`^2`.
     edges : int (optional)
         The number of edges between the nodes
     avg_deg : double, optional
-        Average degree of the neurons given by `edges` / `nodes`.
+        Average degree of the neurons given by `edges / nodes`.
     reciprocity : double, optional (default: -1 to let it free)
         Fraction of edges that are bidirectional (only for
         directed graphs -- undirected graphs have a reciprocity of 1 by
@@ -222,10 +227,11 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
     graph_er : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
 
-    .. note::
-        `nodes` is required unless `from_graph` or `population` is provided.
-        If an `from_graph` is provided, all preexistant edges in the
-        object will be deleted before the new connectivity is implemented.
+    Note
+    ----
+	`nodes` is required unless `from_graph` or `population` is provided.
+	If an `from_graph` is provided, all preexistant edges in the
+	object will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
     graph_er = from_graph
@@ -260,23 +266,23 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
     """
     Generate a free-scale graph of given reciprocity and otherwise
     devoid of correlations.
-
-    Parameters 
+	
+    Parameters
     ----------
     in_exp : float
         Absolute value of the in-degree exponent :math:`\gamma_i`, such that
-        :math:`p(k_i) \propto k_i^{-\gamma_i}
+        :math:`p(k_i) \propto k_i^{-\gamma_i}`
     out_exp : float
         Absolute value of the out-degree exponent :math:`\gamma_o`, such that
-        :math:`p(k_o) \propto k_o^{-\gamma_o}
+        :math:`p(k_o) \propto k_o^{-\gamma_o}`
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     density: double, optional (default: 0.1)
-        Structural density given by `edges` / (`nodes`*`nodes`).
+        Structural density given by `edges / (nodes*nodes)`.
     edges : int (optional)
         The number of edges between the nodes
     avg_deg : double, optional
-        Average degree of the neurons given by `edges` / `nodes`.
+        Average degree of the neurons given by `edges / nodes`.
     weighted : bool, optional (default: True)
         @todo
         Whether the graph edges have weights.
@@ -301,12 +307,13 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
     -------
     graph_fs : :class:`~nngt.Graph`
     
-    ..note::
-        As reciprocity increases, requested values of `in_exp` and `out_exp`
-        will be less and less respected as the distribution will converge to a
-        common exponent :math:`\gamma = \frac{\gamma_i + \gamma_o}{2}`.
-        Parameter `nodes` is required unless `from_graph` or `population` is
-        provided.
+    Note
+    ----
+	As reciprocity increases, requested values of `in_exp` and `out_exp`
+	will be less and less respected as the distribution will converge to a
+	common exponent :math:`\gamma = (\gamma_i + \gamma_o) / 2`.
+	Parameter `nodes` is required unless `from_graph` or `population` is
+	provided.
     """
     # set node number and library graph
     graph_rsf = from_graph
@@ -333,8 +340,9 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
                      shape=None, positions=None, population=None,
                      from_graph=None, **kwargs):
     """
-    .. todo ::
+    @todo
         make the algorithm.
+        
     Generate a Price graph model (Barabasi-Albert if undirected).
 
     Parameters 
@@ -349,7 +357,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
         The number of nodes in the graph.
     weighted : bool, optional (default: True)
         @todo
-        Whether the graph edges have weights.
+			Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -371,8 +379,9 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     -------
     graph_price : :class:`~nngt.Graph` or subclass.
     
-    ..note::
-        `nodes` is required unless `from_graph` or `population` is provided.
+    Note
+    ----
+	`nodes` is required unless `from_graph` or `population` is provided.
     """
     nodes = ( ( population.size if population is not None else nodes )
               if from_graph is None else from_graph.node_nb() )
@@ -400,7 +409,8 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
                  population=None, from_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
-    .. todo ::
+    
+    @todo
         generate the edges of a circular graph to not replace the graph of the
         `from_graph` and implement chosen reciprocity.
     
@@ -444,8 +454,9 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
     -------
     graph_nw : :class:`~nngt.Graph` or subclass
     
-    .. note::
-        `nodes` is required unless `from_graph` or `population` is provided.
+    Note
+    ----
+	`nodes` is required unless `from_graph` or `population` is provided.
     """
     # set node number and library graph
     graph_nw = from_graph
@@ -506,7 +517,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         Average degree of the neurons given by `edges` / `nodes`.
     weighted : bool, optional (default: True)
         @todo
-        Whether the graph edges have weights.
+			Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -615,7 +626,8 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
-    .. todo ::
+    
+    @todo
         make the modifications for only a set of edges
     
     Parameters
@@ -666,7 +678,8 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
-    .. todo ::
+    
+    @todo
         make the modifications for only a set of edges
     
     Parameters
