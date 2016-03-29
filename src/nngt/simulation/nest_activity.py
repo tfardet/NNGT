@@ -10,13 +10,11 @@ from copy import deepcopy
 import nest
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 from nngt.lib import InvalidArgument
 
 
-__all__ = [ 'activity_types' ]
 
+__all__ = [ "ActivityRecord", 'activity_types' ]
 
 
 #-----------------------------------------------------------------------------#
@@ -287,12 +285,14 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
         del phases["mixed"][i]
     colors = ('r', 'orange', 'g', 'b')
     names = ('bursting', 'mixed', 'localized', 'quiescent')
-    for fignum in fignums:
-        fig = plt.figure(fignum)
-        for ax in fig.axes:
-            for phase,color in zip(names,colors):
-                for span in phases[phase]:
-                    ax.axvspan(span[0],span[1], facecolor=color, alpha=0.2)
-    if fignums and show:
-        plt.show()
+    if nngt.config['with_plot']:
+        import matplotlib.pyplot as plt
+        for fignum in fignums:
+            fig = plt.figure(fignum)
+            for ax in fig.axes:
+                for phase,color in zip(names,colors):
+                    for span in phases[phase]:
+                        ax.axvspan(span[0],span[1], facecolor=color, alpha=0.2)
+        if fignums and show:
+            plt.show()
     return ActivityRecord(network, limits, spike_detector, phases)

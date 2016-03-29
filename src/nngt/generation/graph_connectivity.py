@@ -541,7 +541,6 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         ids = range(nodes)
         ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
                                   rule, shape, positions, directed, multigraph)
-        print(ia_edges)
         graph_dr.add_edges(ia_edges)
     # set options
     _set_options(graph_dr, weighted, population, shape=None, positions=None)
@@ -641,7 +640,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     edges, source_ids, target_ids = None, [], []
     di_param = _di_default.copy()
     di_param.update(model_param)
-    for group in network._population.itervalues():
+    for group in iter(network._population.values()):
         if group.neuron_type == source_type:
             source_ids.extend(group._id_list)
         elif group.neuron_type == target_type:
@@ -688,7 +687,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     edges, source_ids, target_ids = None, [], []
     di_param = _di_default.copy()
     di_param.update(model_param)
-    for name, group in network._population.iteritems():
+    for name, group in iter(network._population.items()):
         if name in source_groups:
             source_ids.extend(group._id_list)
         elif name in target_groups:

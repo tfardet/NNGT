@@ -14,6 +14,7 @@ depends = ['nest', 'graph_tool', 'nngt.core']
 from .nest_graph import *
 from .nest_utils import *
 from .nest_activity import *
+from nngt import config
 
 
 #
@@ -32,3 +33,9 @@ __all__ = [
     'activity_types',
     'raster_plot'
 ]
+
+# test import of simulation plotting tools
+
+if config['with_plot']:
+    from .nest_plot import plot_activity
+    __all__.append("plot_activity")

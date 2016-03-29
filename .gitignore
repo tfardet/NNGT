@@ -2,3 +2,4 @@
 doc/.build/
 src/nngt/testing/Ref/*
 src/nngt/__pycache__
+.coverage
