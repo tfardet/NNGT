@@ -208,9 +208,7 @@ with non symmetric matrix provided.')
             graph.__class__ = SpatialNetwork
         else:
             graph.__class__ = Network
-        graph.population = neural_pop
-        Connections.delays(graph)
-            
+        graph._init_bioproperties(self, neural_pop)
 
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
@@ -869,9 +867,6 @@ class Network(Graph):
         self : :class:`~nggt.Network`
         '''
         self.__id = self.__class__.__max_id
-        self._population = None
-        self._nest_gid = None
-        self.id_from_nest_gid = None
         self.__class__.__num_networks += 1
         self.__class__.__max_id += 1
         if population is None:
@@ -927,6 +922,9 @@ class Network(Graph):
     
     def _init_bioproperties(self, population):
         ''' Set the population attribute and link each neuron to its group. '''
+        self._population = None
+        self._nest_gid = None
+        self.id_from_nest_gid = None
         if issubclass(population.__class__, NeuralPop):
             if population.is_valid:
                 self._population = population

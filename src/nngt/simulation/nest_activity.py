@@ -10,6 +10,7 @@ from copy import deepcopy
 import nest
 import numpy as np
 
+from nngt import config
 from nngt.lib import InvalidArgument
 
 
@@ -285,7 +286,7 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
         del phases["mixed"][i]
     colors = ('r', 'orange', 'g', 'b')
     names = ('bursting', 'mixed', 'localized', 'quiescent')
-    if nngt.config['with_plot']:
+    if config['with_plot']:
         import matplotlib.pyplot as plt
         for fignum in fignums:
             fig = plt.figure(fignum)
