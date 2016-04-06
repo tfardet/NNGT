@@ -208,7 +208,7 @@ with non symmetric matrix provided.')
             graph.__class__ = SpatialNetwork
         else:
             graph.__class__ = Network
-        graph._init_bioproperties(self, neural_pop)
+        graph._init_bioproperties(neural_pop)
 
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
