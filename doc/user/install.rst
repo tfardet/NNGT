@@ -15,10 +15,14 @@ Regardless of your needs, the following libraries are required:
 
 * `numpy <http://www.numpy.org/>`_ 
 * `scipy <http://www.scipy.org/scipylib/index.html>`_
-* `matplotlib <http://matplotlib.org/>`_ (optional but will limit the functionalities if not present)
 * `graph_tool <http://graph-tool.skewed.de>`_ (recommended)
 * or `igraph <http://igraph.org/>`_
 * or `networkx <https://networkx.github.io/>`_
+
+Additionnal dependencies
+-----------------------
+
+* `matplotlib <http://matplotlib.org/>`_ (optional but will limit the functionalities if not present)
 * `peewee` for database features
 
 .. note::
@@ -34,18 +38,18 @@ Simple install
 Linux
 -----
 
-Install the requirements (through ``aptitude`` or ``apt-get`` on debian/ubuntu/mint, ``pacman`` and ``yaourt`` on arch-based distributions, or your `.rpm` manager on fedora. Otherwise you can also install the latest versions via `pip`:
+Install the requirements (through ``aptitude`` or ``apt-get`` on debian/ubuntu/mint, ``pacman`` and ``yaourt`` on arch-based distributions, or your `.rpm` manager on fedora. Otherwise you can also install the latest versions via `pip`: ::
 
     sudo pip install numpy scipy matplotlib networkx
 
-Under most linux distributions, the simplest way is to install `pip <https://pip.pypa.io/en/stable/installing/>`_ and `git <https://git-scm.com/>`_, then simply type into a terminal:
+Under most linux distributions, the simplest way is to install `pip <https://pip.pypa.io/en/stable/installing/>`_ and `git <https://git-scm.com/>`_, then simply type into a terminal: ::
 
     sudo pip install git+https://github.com/Silmathoron/NNGT.git
 
 Mac
 ---
 
-I recommend using `Macports`<https://guide.macports.org/#installing>_ with which you can install all required features to use `NEST` and `NNGT` with `graph-tool`. The following command lines are used with `python 2.7` since it is what people are used to but I recommend using version `3.5` or higher (replace all 27/2.7 by 35/3.5).
+I recommend using `Macports`<https://guide.macports.org/#installing>_ with which you can install all required features to use `NEST` and `NNGT` with `graph-tool`. The following command lines are used with `python 2.7` since it is what people are used to but I recommend using version `3.5` or higher (replace all 27/2.7 by 35/3.5). ::
 
     sudo port select gcc mp-gcc5 && sudo port install gsl +gcc5 && sudo port install autoconf automake libtool && sudo port install python27 pip && sudo port select python python27 && sudo port install py27-cython && sudo port select cython cython27 && sudo port install py27-numpy py27-scipy py27-matplotlib py27-ipython && sudo port select ipython ipython-2.7 && sudo port install py-graph-tool gtk3
 
@@ -61,14 +65,14 @@ It's the same as linux for windows users once you've installed `Python`<http://d
 Local install
 =============
 
-If you want to modify the library more easily, you can also install it locally, then simply add it to your ``PYTHONPATH`` environment variable:
+If you want to modify the library more easily, you can also install it locally, then simply add it to your ``PYTHONPATH`` environment variable: ::
 
     cd && mkdir .nngt-install
     cd .nngt-install
     git clone https://github.com/Silmathoron/NNGT.git .
     nano .bash_profile
 
-Then add:
+Then add: ::
 
     export PYTHONPATH="/path/to/your/home/.nngt-install/src/:PYTHONPATH"
 
@@ -76,7 +80,7 @@ Then add:
 Configuration
 =============
 
-The configuration file is created in ``~/.nngt/nngt.conf`` after you first run ``import nngt`` in `python`. Here is the default file:
+The configuration file is created in ``~/.nngt/nngt.conf`` after you first run ``import nngt`` in `python`. Here is the default file: ::
 
     ###########################
     # NNGT configuration file #
