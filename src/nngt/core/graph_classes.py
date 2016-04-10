@@ -574,7 +574,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         #~ di_result = { prop: self.get_property(prop) for prop in a_properties }
         #~ return di_result
 
-    def get_degrees(self, deg_type="total", node_list=None, use_weights=True):
+    def get_degrees(self, deg_type="total", node_list=None, use_weights=False):
         '''
         Degree sequence of all the nodes.
         
@@ -584,7 +584,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             Degree type (among 'in', 'out' or 'total').
         node_list : list, optional (default: None)
             List of the nodes which degree should be returned
-        use_weights : bool, optional (default: True)
+        use_weights : bool, optional (default: False)
             Whether to use weighted (True) or simple degrees (False).
         
         Returns

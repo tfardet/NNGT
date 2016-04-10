@@ -499,7 +499,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         exponential distance-rule, :math:`P(i,j) \propto e^{-d_{ij}/scale}`.
     rule : string, optional (default: 'exp')
         Rule that will be apply to draw the connections between neurons.
-        Choose among "exp" (exponential), "lin" (linear, not implemented yet),
+        Choose among "exp" (exponential), "lin" (linear),
         "power" (power-law, not implemented yet).
     shape : :class:`~nngt.core.Shape`, optional (default: None)
         Shape of the neurons' environment. If not specified, a square will be

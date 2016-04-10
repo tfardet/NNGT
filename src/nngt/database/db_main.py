@@ -9,6 +9,7 @@ from itertools import permutations
 
 import nest
 
+from nngt import config
 from nngt.lib.db_tools import psutil
 from .db_generation import *
 

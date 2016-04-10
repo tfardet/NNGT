@@ -8,7 +8,7 @@ graph_library = graph-tool
 
 ## Matplotlib backend
 # Uncomment and choose among your available backends (http://matplotlib.org/faq/usage_faq.html#what-is-a-backend)
-# backend = Qt5Agg
+#backend = Qt5Agg
 
 ## settings for data logging
 set_logging = False
@@ -18,6 +18,5 @@ to_file = False
 #log_folder = ~/.nngt/database
 
 # database url or temporary database used if use_database = False
-# example of real database url:
-#db_url = mysql://user:password@host:port/my_db
+# example of real database url: db_url = mysql://user:password@host:port/my_db
 db_url = mysql:///nngt_db

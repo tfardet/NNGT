@@ -463,7 +463,7 @@ class GtGraph(BaseGraph):
     def edge_nb(self):
         return self.num_edges()
     
-    def degree_list(self, node_list=None, deg_type="total", use_weights=True):
+    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         if node_list is None:
             node_list = slice(0,self.num_vertices()+1)
         if "weight" in self.edge_properties.keys() and use_weights:
@@ -472,7 +472,7 @@ class GtGraph(BaseGraph):
         else:
             return self.degree_property_map(deg_type).a[node_list]
 
-    def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
+    def betweenness_list(self, use_weights=False, as_prop=False, norm=True):
         if self.edge_nb():
             if "weight" in self.edge_properties.keys() and use_weights:
                 w_pmap = self.edge_properties[BWEIGHT]
@@ -614,14 +614,14 @@ class IGraph(BaseGraph):
     def edge_nb(self):
         return self.ecount()
     
-    def degree_list(self, node_list=None, deg_type="total", use_weights=True):
+    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         deg_type = 'all' if deg_type == 'total' else deg_type
         if use_weights:
             return np.array(self.strength(node_list,mode=deg_type))
         else:
             return np.array(self.degree(node_list,mode=deg_type))
 
-    def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
+    def betweenness_list(self, use_weights=False, as_prop=False, norm=True):
         w = None
         if use_weights:
             w = self.es['bweight']
@@ -790,7 +790,7 @@ edge in the graph.")
     def edge_nb(self):
         return self.size()
     
-    def degree_list(self, node_list=None, deg_type="total", use_weights=True):
+    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         weight = 'weight' if use_weights else None
         di_deg = None
         if deg_type == 'total':
@@ -801,7 +801,7 @@ edge in the graph.")
             di_deg = self.out_degree(node_list, weight=weight)
         return np.array(di_deg.values())
 
-    def betweenness_list(self, use_weights=True, as_prop=False):
+    def betweenness_list(self, use_weights=False, as_prop=False):
         di_nbetw, di_ebetw = None, None
         if use_weights:
             di_nbetw = config["library"].betweenness_centrality(self,weight=BWEIGHT)
