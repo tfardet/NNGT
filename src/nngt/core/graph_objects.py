@@ -799,7 +799,7 @@ edge in the graph.")
             di_deg = self.in_degree(node_list, weight=weight)
         else:
             di_deg = self.out_degree(node_list, weight=weight)
-        return np.array(di_deg.values())
+        return np.array(tuple(di_deg.values()))
 
     def betweenness_list(self, use_weights=False, as_prop=False):
         di_nbetw, di_ebetw = None, None
@@ -809,8 +809,8 @@ edge in the graph.")
         else:
             di_nbetw = config["library"].betweenness_centrality(self)
             di_ebetw = config["library"].edge_betweenness_centrality(self)
-        node_betweenness = np.array(di_nbetw.values())
-        edge_betweenness = np.array(di_ebetw.values())
+        node_betweenness = np.array(tuple(di_nbetw.values()))
+        edge_betweenness = np.array(tuple(di_ebetw.values()))
         return node_betweenness, edge_betweenness    
 
 
