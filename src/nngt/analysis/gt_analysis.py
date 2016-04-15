@@ -32,12 +32,12 @@ diameter = analyze_graph["diameter"]
 def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
                    log=False, num_bins=30):
     '''
-    Computing the degree distribution of a graphwork.
+    Degree distribution of a graph.
     
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
-        the graphwork to analyze.
+        the graph to analyze.
     deg_type : string, optional (default: "total")
         type of degree to consider ("in", "out", or "total").
     node_list : list or numpy.array of ints, optional (default: None)
@@ -66,12 +66,12 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
             
 def betweenness_distrib(graph, use_weights=True, log=False):
     '''
-    Computing the betweenness distribution of a graphwork
+    Betweenness distribution of a graph.
     
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
-        the graphwork to analyze.
+        the graph to analyze.
     use_weights : bool, optional (default: True)
         use weighted degrees (do not take the sign into account : all weights
         are positive).
@@ -111,7 +111,8 @@ def betweenness_distrib(graph, use_weights=True, log=False):
 def assortativity(graph, deg_type="total"):
     '''
     Assortativity of the graph.
-    àtodo: check how the various libraries functions work.
+    .. todo ::
+        check how the various libraries functions work.
     
     Parameters
     ----------
@@ -122,7 +123,7 @@ def assortativity(graph, deg_type="total"):
     
     Returns
     -------
-    a float describing the graphwork assortativity.
+    a float quantifying the graph assortativity.
     '''
     if config["graph_library"] == "igraph":
         return graph._graph.assortativity_degree(graph.is_directed())
@@ -133,9 +134,13 @@ def assortativity(graph, deg_type="total"):
 
 def reciprocity(graph):
     '''
-    Returns the graphwork reciprocity, defined as :math:`E^\leftrightarrow/E`,
+    Graph reciprocity, defined as :math:`E^\leftrightarrow/E`,
     where :math:`E^\leftrightarrow` and :math:`E` are, respectively, the number
-    of bidirectional edges and the total number of edges in the graphwork.
+    of bidirectional edges and the total number of edges in the graph.
+    
+    Returns
+    -------
+    a float quantifying the reciprocity.
     '''
     if config["graph_library"] == "igraph":
         return graph._graph.reciprocity()
@@ -144,11 +149,10 @@ def reciprocity(graph):
 
 def clustering(graph):
     '''
-    Returns the global clustering coefficient of the graph, defined as
+    Global clustering coefficient of the graph, defined as
     
     .. math::
-       c = 3 \times \frac{\text{number of triangles}}
-                         {\text{number of connected triples}}
+        c = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
     '''
     if config["graph_library"] == "igraph":
         return graph._graph.transitivity_undirected()

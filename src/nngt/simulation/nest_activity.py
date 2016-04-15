@@ -104,7 +104,7 @@ class ActivityRecord:
                     neurons = set(self.data["spike_senders"][idxs])
                     prop["avg_spb"] += len(spikes)/float(len(neurons))
             for key in iter(prop.keys()):
-                if key != "phases":
+                if key != "phases" and num_bursts:
                     prop[key] /= float(num_bursts)
             # generate properties as a namedtuple
             Properties = namedtuple('Properties', prop.keys())
@@ -204,8 +204,12 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
     # get the average firing rate to differenciate the phases
     simtime = limits[1]-limits[0]
     avg_rate = num_spikes/float(simtime)
-    lim_burst = max(phase_coeff[0]/avg_rate,mbis)
-    lim_quiet = min(phase_coeff[1]/avg_rate,10.)
+    if avg_rate:
+        lim_burst = max(phase_coeff[0]/avg_rate,mbis)
+        lim_quiet = min(phase_coeff[1]/avg_rate,10.)
+    else:
+        lim_burst = mbis
+        lim_quiet = 10.
     # find the phases
     phases = { "bursting":[], "mixed":[], "quiescent":[], "localized": [] }
     diff = np.diff(times).tolist()[::-1]

@@ -36,7 +36,7 @@ __all__ = [
 #------------------------
 #
 
-main_db = connect(config['db_url'], max_allowed_packet= 1073741824) #: Object refering to the database
+main_db = connect(config['db_url'], fields={'longblob': 'longblob'}) #: Object refering to the database
 
 
 #-----------------------------------------------------------------------------#
@@ -44,6 +44,10 @@ main_db = connect(config['db_url'], max_allowed_packet= 1073741824) #: Object re
 #------------------------
 #
 
+class LongCompressedField(CompressedField):
+    db_field = 'longblob'
+
+    
 class BaseModel(Model):
     class Meta:
         database = main_db
@@ -84,7 +88,7 @@ class NeuralNetwork(BaseModel):
     ''' Whether the graph is weighted or not. '''
     weight_distribution = TextField(null=True)
     ''' Name of the weight_distribution used. '''
-    compressed_file = CompressedField(null=True)
+    compressed_file = LongCompressedField(null=True)
     ''' Compressed (bz2) string of the graph from ``str(graph)``; once
         uncompressed, can be loaded using ``Graph.from_file(name,
         from_string=True)``. '''
@@ -191,7 +195,7 @@ val_to_field = {
     'lst': PickledField,
     'dict': PickledField,
     'ndarray': PickledField,
-    'compressed': CompressedField
+    'compressed': LongCompressedField
 }
 
 db_migrator = {

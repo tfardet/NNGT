@@ -90,6 +90,7 @@ class NeuralPop(dict):
     def __init__(self, size=None, parent=None, with_models=True, **kwargs):
         '''
         Initialize NeuralPop instance
+        
         Parameters
         ----------
         with_models : :class:`bool`
@@ -108,6 +109,7 @@ class NeuralPop(dict):
             self._is_valid = True
         else:
             super(NeuralPop, self).__init__()
+        self._iter = iter(self.values())
         self._has_models = with_models
         
     @property
@@ -125,15 +127,19 @@ class NeuralPop(dict):
     #-------------------------------------------------------------------------#
     # Methods
     
-    def __iter__(self):
-        return self
+    def __setitem__(self, key, value):
+        super(NeuralPop, self).__setitem__(key, value)
+        self._iter = iter(self.values())
+    
+    def __delitem__(self, key):
+        super(NeuralPop, self).__delitem__(key)
+        self._iter = iter(self.values())
+    
+    def __next__(self):
+        return next(self._iter)
 
-    def next(self): # Python 3: def __next__(self)
-        if self.current > self.high:
-            raise StopIteration
-        else:
-            self.current += 1
-            return self.current - 1
+    def next(self):
+        return self.__next__()
     
     def set_model(self, model, group=None):
         '''
@@ -230,6 +236,32 @@ account; use the `set_models` method to change its behaviour.")
             self._is_valid = False
         else:
             self._is_valid = True
+    
+    def get_param(self, groups=None, element="neuron"):
+        '''
+        Return the parameters of the element (neuron or synapse) of a specific,
+        several or all groups in the NeuralPop.
+        
+        Parameters
+        ----------
+        group : ``str``, optional (default: ``None``)
+            Name of the group for which the neural properties should be
+            returned.
+        element : ``list`` of ``str``, optional (default: ``"neuron"``)
+            Element for which the parameters should be returned (either
+            ``"neuron"`` or ``"synapse"``).
+        
+        Returns
+        -------
+        param : ``list``
+            List of all dictionaries with the elements' parameters.
+        '''
+        param = []
+        groups = self.keys() if groups is None else groups
+        key = "neuron_param" if element == "neuron" else "syn_param"
+        for group in groups:
+            param.append(self[group].properties[key])
+        return param
 
     def add_to_group(self, group_name, id_list):
         self[group_name].id_list.extend(id_list)
@@ -257,15 +289,15 @@ class NeuralGroup:
         the default is ``1`` for excitatory neurons; ``-1`` is for interneurons 
     :ivar model: :class:`string`, optional (default: None)
         the name of the model to use when simulating the activity of this group
-    :ivar param: :class:`dict`, optional (default: {})
+    :ivar neuron_param: :class:`dict`, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
         
     .. warning::
         Equality between :class:`~nngt.properties.NeuralGroup`s only compares 
         the neuronal and synaptic ``model`` and ``param`` attributes, i.e. 
-        groups differing only by their ``id_list``s will register as equal.
+        groups differing only by their ``id_list`` will register as equal.
     .. note::
-        By default, synapses are registered as "static_synapse"s in NEST; 
+        By default, synapses are registered as ``"static_synapse"`` in NEST; 
         because of this, only the ``neuron_model`` attribute is checked by the
         ``has_model`` function.
     """

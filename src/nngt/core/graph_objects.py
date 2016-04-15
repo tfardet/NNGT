@@ -202,8 +202,8 @@ class _NxEProperty(BaseProperty):
 
     def __getitem__(self, name):
         lst = []
-        for e in self.parent.edges:
-            lst.append(self.parent.edge[e[0],e[1]][name])
+        for e in iter(self.parent.edges.keys()):
+            lst.append(self.parent.edge[e[0]][e[1]][name])
         return np.array(lst)
 
     def __setitem__(self, name, value):
@@ -264,7 +264,7 @@ class BaseGraph(config["graph"]):
         obj._nattr = di_graphprop[config["graph_library"]]["node"](obj)
         obj._eattr = di_graphprop[config["graph_library"]]["edge"](obj)
         obj._edges = OrderedDict()
-        for i, edge in edges:
+        for i, edge in enumerate(edges):
             obj._edges[tuple(edge)] = i
         return obj
     
@@ -753,7 +753,7 @@ edge in the graph.")
 
     def new_edges(self, edge_list, eprops=None):
         ''' Adds a list of connections to the graph '''
-        n = self.node_nb()
+        n = self.edge_nb()
         for i, edge in enumerate(edge_list):
             self._edges[tuple(edge)] = n + i
         if eprops is not None:
