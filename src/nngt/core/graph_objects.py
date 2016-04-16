@@ -472,21 +472,20 @@ class GtGraph(BaseGraph):
         else:
             return self.degree_property_map(deg_type).a[node_list]
 
-    def betweenness_list(self, use_weights=False, as_prop=False, norm=True):
+    def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
+                         norm=True):
         if self.edge_nb():
+            w_p = None
             if "weight" in self.edge_properties.keys() and use_weights:
-                w_pmap = self.edge_properties[BWEIGHT]
-                tpl = analyze_graph["betweenness"](self, weight=w_pmap, norm=norm)
-                if as_prop:
-                    return tpl[0], tpl[1]
-                else:
-                    return tpl[0].a, tpl[1].a
+                w_p = self.edge_properties[BWEIGHT]
+            tpl = analyze_graph["betweenness"](self, weight=w_p, norm=norm)
+            lst_return = []
+            if btype == "node":
+                return tpl[0] if as_prop else tpl[0].a
+            elif btype == "edge":
+                return tpl[1] if as_prop else tpl[1].a
             else:
-                tpl = betweenness(self)
-                if as_prop:
-                    return tpl[0], tpl[1]
-                else:
-                    return tpl[0].a, tpl[1].a
+                return tpl[0], tpl[1] if as_prop else tpl[0].a, tpl[1].a
         else:
             if as_prop:
                 return None, None

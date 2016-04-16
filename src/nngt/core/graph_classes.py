@@ -243,11 +243,10 @@ with non symmetric matrix provided.')
         super(Graph, self).__init__(nodes=nodes, g=from_graph)
         # take care of the weights @todo: use those of the from_graph
         if weighted:
-            if "weight_prop" in kwargs:
-                self._w = kwargs["weight_prop"]
+            if "weights" in kwargs:
+                self._w = kwargs["weights"]
             else:
-                self._w = {"distrib": "constant"}
-            self.set_weights()
+                self._w = {"distribution": "constant"}
         # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -410,8 +409,8 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
 `val` arguments should not be ``None``.")
             self._eattr[attribute] = values
     
-    def set_weights(self, elist=None, wlist=None, ifrac=None, distrib=None,
-                    distrib_prop=None, correl=None, noise_scale=None):
+    def set_weights(self, elist=None, wlist=None, distribution=None,
+                    parameters=None, noise_scale=None):
         '''
         Set the synaptic weights.
         ..todo ::
@@ -423,26 +422,22 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             List of the edges (for user defined weights).
         wlist : class:`numpy.array`, optional (default: None)
             List of the weights (for user defined weights).
-        distrib : class:`string`, optional (default: None)
+        distribution : class:`string`, optional (default: None)
             Type of distribution (choose among "constant", "uniform", 
             "gaussian", "lognormal", "lin_corr", "log_corr").
-        distrib_prop : dict, optional (default: {})
-            Dictoinary containing the properties of the weight distribution.
-        correl : class:`string`, optional (default: None)
-            Property to which the weights should be correlated.
+        parameters : dict, optional (default: {})
+            Dictionary containing the properties of the weight distribution.
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
         '''
-        if distrib is None:
-            distrib = self._w["distrib"]
-        if distrib_prop is None:
-            distrib_prop = (self._w["distrib_prop"] if "distrib_prop" in 
-                            self._w.keys() else {})
-        if correl is None:
-            correl = self._w["correl"] if "correl" in self._w.keys() else None
-        Connections.weights(self, elist=elist, wlist=wlist, distrib=distrib,
-            correl=correl, distrib_prop=distrib_prop, noise_scale=noise_scale)
+        if distribution is None:
+            distribution = self._w.pop("distribution")
+        if parameters is None:
+            parameters = self._w
+        Connections.weights(self, elist=elist, wlist=wlist,
+                            distribution=distribution, parameters=parameters,
+                            noise_scale=noise_scale)
 
     def set_types(self, syn_type, nodes=None, fraction=None):
         '''
@@ -597,23 +592,26 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         else:
             raise InvalidArgument("Invalid degree type '{}'".format(strType))
 
-    def get_betweenness(self, use_weights=True):
+    def get_betweenness(self, btype="both", use_weights=True):
         '''
         Betweenness centrality sequence of all nodes and edges.
         
         Parameters
         ----------
+        btype : str, optional (default: ``"both"``)
+            Type of betweenness to return (``"edge"``, ``"node"``-betweenness,
+            or ``"both"``).
         use_weights : bool, optional (default: True)
             Whether to use weighted (True) or simple degrees (False).
         
         Returns
         -------
         node_betweenness : :class:`numpy.array`
-            Betweenness of the nodes.
+            Betweenness of the nodes (if `btype` is ``"node"`` or ``"both"``).
         edge_betweenness : :class:`numpy.array`
-            Betweenness of the edges.
+            Betweenness of the edges (if `btype` is ``"edge"`` or ``"both"``).
         '''
-        return self.betweenness(use_weights)
+        return self.betweenness_list(btype, use_weights)
 
     def get_edge_types(self):
         if TYPE in self.edge_properties.keys():
@@ -833,7 +831,6 @@ class Network(Graph):
         '''
         pop = NeuralPop.ei_population(size, ei_ratio, None, en_model, en_param,
                     es_model, es_param, in_model, in_param, is_model, is_param)
-        print(Network is cls)
         net = cls(population=pop)
         return net
 

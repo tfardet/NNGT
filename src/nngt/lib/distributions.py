@@ -63,8 +63,7 @@ def delta_distrib(graph, elist=None, value=1., **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     return np.repeat(value, ecount)
 
-def uniform_distrib(graph, elist=None, min=0., max=1.5,
-                    **kwargs):
+def uniform_distrib(graph, elist=None, lower=0., upper=1.5, **kwargs):
     '''
     Uniform distribution for edge attributes.
     
@@ -73,16 +72,16 @@ def uniform_distrib(graph, elist=None, min=0., max=1.5,
     graph : :class:`~nngt.Graph` or subclass
         Graph for which an edge attribute will be generated.
     elist : @todo
-    min : float, optional (default: 0.)
+    lower : float, optional (default: 0.)
         Min value of the uniform distribution.
-    min : float, optional (default: 1.5)
+    upper : float, optional (default: 1.5)
         Max value of the uniform distribution.
     
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    return np.random.uniform(min, max, ecount)
+    return np.random.uniform(lower, upper, ecount)
 
 def gaussian_distrib(graph, elist=None, avg=1., std=0.2, **kwargs):
     '''
@@ -108,21 +107,25 @@ def lognormal_distrib(graph, elist=None, position=1., scale=0.2, **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
     return np.random.lognormal(position, scale, ecount)
 
-def lin_correlated_distrib(correl_attribute, graph, elist=None,
-                           noise_scale=None, min=0., max=2., **kwargs):
+def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
+                           noise_scale=None, lower=0., upper=2., **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    ra_noise = ( 1 if noise_scale is None else np.abs(np.random.normal(1,
-                 noise_scale, ecount)) )
+    noise = ( 1. if noise_scale is None
+                 else np.abs(np.random.normal(1, noise_scale, ecount)) )
     if correl_attribute == "betweenness":
-        pass
+        betw = graph.get_betweenness(kwargs["btype"], kwargs["use_weights"])
+        betw *= noise
+        bmax = betw.max()
+        bmin = betw.min()
+        return lower + (upper-lower)*(betw-bmin)/(bmax-bmin)
     else:
-        pass
+        raise NotImplementedError()
 
-def log_correlated_distrib(correl_attribute, graph, elist=None,
-                           noise_scale=None, min=0., max=2.,
+def log_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
+                           noise_scale=None, lower=0., upper=2.,
                            **kwargs):
     ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    pass
+    raise NotImplementedError()
 
 
 di_dfunc = {

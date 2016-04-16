@@ -460,8 +460,8 @@ class Connections:
             return []
     
     @staticmethod
-    def delays(graph, dlist=None, elist=None, distrib="constant",
-               distrib_prop={}, correl=None, noise_scale=None):
+    def delays(graph, dlist=None, elist=None, distribution="constant",
+               parameters={}, correl=None, noise_scale=None):
         '''
         Compute the delays of the neuronal connections.
         
@@ -473,10 +473,10 @@ class Connections:
             List of user-defined delays).
         elist : class:`numpy.array`, optional (default: None)
             List of the edges which value should be updated.
-        distrib : class:`string`, optional (default: "constant")
+        distribution : class:`string`, optional (default: "constant")
             Type of distribution (choose among "constant", "uniform", 
             "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
-        distrib_prop : class:`dict`, optional (default: {})
+        parameters : class:`dict`, optional (default: {})
             Dictionary containing the distribution parameters.
         correl : class:`string`, optional (default: None)
             Property to which the weights should be correlated.
@@ -500,15 +500,15 @@ class Connections:
             if len(dlist) != num_edges:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
-            dlist = eprop_distribution(graph, distrib, elist=elist,
-                        correl_attribute=corr, **distrib_prop)
+            dlist = eprop_distribution(graph, distribution, elist=elist,
+                        correl_attribute=corr, **parameters)
         # add to the graph container
         graph.set_edge_attribute(DELAY, value_type="double", values=dlist)
         return dlist
     
     @staticmethod
-    def weights(graph, elist=None, wlist=None, distrib="constant",
-                distrib_prop={}, correl=None, noise_scale=None):
+    def weights(graph, elist=None, wlist=None, distribution="constant",
+                parameters={}, noise_scale=None):
         '''
         Compute the weights of the graph's edges.
         @todo: take elist into account
@@ -521,13 +521,11 @@ class Connections:
             List of the edges (for user defined weights).
         wlist : class:`numpy.array`, optional (default: None)
             List of the weights (for user defined weights).
-        distrib : class:`string`, optional (default: "constant")
+        distribution : class:`string`, optional (default: "constant")
             Type of distribution (choose among "constant", "uniform", 
             "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
-        distrib_prop : class:`dict`, optional (default: {})
+        parameters : class:`dict`, optional (default: {})
             Dictionary containing the distribution parameters.
-        correl : class:`string`, optional (default: None)
-            Property to which the weights should be correlated.
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
@@ -537,19 +535,15 @@ class Connections:
         new_weights : class:`scipy.sparse.lil_matrix`
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
-        corr = correl
-        if issubclass(correl.__class__, str):
-            if correl == "betweenness":
-                corr = graph.get_betweenness(False)[1]
-            else:
-                corre = graph[correl]
+        if "btype" not in parameters:
+            parameters["btype"] = "edge"
         if wlist is not None:
             num_edges = graph.edge_nb() if elist is None else max(elist.shape)
             if len(wlist) != num_edges:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
-            wlist = eprop_distribution(graph, distrib, elist=elist,
-                        correl_attribute=corr, **distrib_prop)
+            wlist = eprop_distribution(graph, distribution, elist=elist,
+                                       **parameters)
         # add to the graph container
         bwlist = wlist.max() - wlist if wlist.any() else []
         graph.set_edge_attribute(WEIGHT, value_type="double", values=wlist)
@@ -598,7 +592,6 @@ class Connections:
                 num_edges = graph.edge_nb()
                 num_inhib = int(num_edges*inhib_frac)
                 num_current = 0
-                print(num_edges,num_inhib)
                 while num_current < num_inhib:
                     new = randint(0,num_edges,num_inhib-num_current)
                     idx_inhib = np.unique( np.concatenate( (idx_inhib, new) ) )

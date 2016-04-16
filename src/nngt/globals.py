@@ -86,18 +86,17 @@ def not_implemented(*args, **kwargs):
     return NotImplementedError("Not implemented yet.")
 
 analyze_graph = {
-    'nbetweenness': not_implemented,
-    'ebetweenness': not_implemented,
+    'adjacency': not_implemented,
     'assortativity': not_implemented,
-    'nbetweenness': not_implemented,
-    'ebetweenness': not_implemented,
+    'betweenness': not_implemented,
     'clustering': not_implemented,
+    'diameter': not_implemented,
+    'ebetweenness': not_implemented,
+    'get_edges': not_implemented,
+    'nbetweenness': not_implemented,
+    'reciprocity': not_implemented,
     'scc': not_implemented,
     'wcc': not_implemented,
-    'diameter': not_implemented,
-    'reciprocity': not_implemented,
-    'adjacency': not_implemented,
-    'get_edges': not_implemented
 }
 
 
