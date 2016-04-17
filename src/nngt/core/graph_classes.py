@@ -592,7 +592,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         else:
             raise InvalidArgument("Invalid degree type '{}'".format(strType))
 
-    def get_betweenness(self, btype="both", use_weights=True):
+    def get_betweenness(self, btype="both", use_weights=False):
         '''
         Betweenness centrality sequence of all nodes and edges.
         
@@ -601,7 +601,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         btype : str, optional (default: ``"both"``)
             Type of betweenness to return (``"edge"``, ``"node"``-betweenness,
             or ``"both"``).
-        use_weights : bool, optional (default: True)
+        use_weights : bool, optional (default: False)
             Whether to use weighted (True) or simple degrees (False).
         
         Returns
@@ -611,7 +611,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         edge_betweenness : :class:`numpy.array`
             Betweenness of the edges (if `btype` is ``"edge"`` or ``"both"``).
         '''
-        return self.betweenness_list(btype, use_weights)
+        return self.betweenness_list(btype=btype, use_weights=use_weights)
 
     def get_edge_types(self):
         if TYPE in self.edge_properties.keys():

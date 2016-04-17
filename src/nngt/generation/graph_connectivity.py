@@ -3,6 +3,7 @@
 
 """ Connectivity generators for nngt.Graph """
 
+from copy import deepcopy
 import numpy as np
 
 import nngt
@@ -593,7 +594,8 @@ def generate(di_instructions):
         Generator functions are detailed in :mod:`~nngt.generation`.
     '''
     graph_type = di_instructions["graph_type"]
-    return _di_generator[graph_type](**di_instructions)
+    instructions = deepcopy(di_instructions)
+    return _di_generator[graph_type](**instructions)
 
 
 #-----------------------------------------------------------------------------#

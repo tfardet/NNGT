@@ -535,10 +535,11 @@ class Connections:
         new_weights : class:`scipy.sparse.lil_matrix`
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
-        if "btype" not in parameters:
-            parameters["btype"] = "edge"
+        parameters["btype"] = parameters.get("btype", "edge")
+        parameters["use_weights"] = parameters.get("use_weights", False)
+        elist = np.array(elist) if elist is not None else elist
         if wlist is not None:
-            num_edges = graph.edge_nb() if elist is None else max(elist.shape)
+            num_edges = graph.edge_nb() if elist is None else elist.shape[0]
             if len(wlist) != num_edges:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:

@@ -34,6 +34,15 @@
         </graph_list>
 	</test>
     
+    <test name="test_attributes">
+		<graph_list>
+            <name>erdos_uniform_weights</name>
+            <name>erdos_gaussian_weights</name>
+            <name>erdos_lognormal_weights</name>
+            <name>erdos_lincorrbetw_weights</name>
+        </graph_list>
+	</test>
+    
     <!-- Graphs -->
     
     <graphs>
@@ -55,7 +64,7 @@
             <float name="clustering">0.0062</float>
         </graph>
         
-        <!-- Generated graphs -->
+        <!-- testing graph generation -->
 
         <graph name="fixed_indegree">
             <generate_options>
@@ -178,6 +187,63 @@
                 <int name="low">0</int>
                 <int name="high">3</int>
                 <list name="size" type="int">(10, 10)</list>
+            </generate_options>
+        </graph>
+
+        <!-- testing attributes and distributions -->
+        
+        <graph name="erdos_uniform_weights">
+            <generate_options>
+                <string name="graph_type">erdos_renyi</string>
+                <int name="nodes">1000</int>
+                <float name="density">0.04</float>
+                <weights>
+                    <string name="distribution">uniform</string>
+                    <float name="lower">0.02</float>
+                    <float name="upper">3.</float>
+                </weights>
+            </generate_options>
+        </graph>
+        
+        <graph name="erdos_gaussian_weights">
+            <generate_options>
+                <string name="graph_type">erdos_renyi</string>
+                <int name="nodes">1000</int>
+                <float name="density">0.04</float>
+                <weights>
+                    <string name="distribution">gaussian</string>
+                    <float name="avg">2.</float>
+                    <float name="std">0.3</float>
+                </weights>
+            </generate_options>
+        </graph>
+        
+        <graph name="erdos_lognormal_weights">
+            <generate_options>
+                <string name="graph_type">erdos_renyi</string>
+                <int name="nodes">1000</int>
+                <float name="density">0.04</float>
+                <weights>
+                    <string name="distribution">lognormal</string>
+                    <float name="position">2.</float>
+                    <float name="scale">0.3</float>
+                </weights>
+            </generate_options>
+        </graph>
+        
+        <graph name="erdos_lincorrbetw_weights">
+            <generate_options>
+                <string name="graph_type">erdos_renyi</string>
+                <int name="nodes">1000</int>
+                <float name="density">0.04</float>
+                <weights>
+                    <string name="distribution">lin_corr</string>
+                    <string name="correl_attribute">betweenness</string>
+                    <string name="btype">edge</string>
+                    <bool name="use_weights">False</bool>
+                    <float name="lower">0.001</float>
+                    <float name="upper">5.0</float>
+                </weights>
             </generate_options>
         </graph>
     </graphs>

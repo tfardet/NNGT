@@ -44,7 +44,7 @@ class _GtNProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __getitem__(self, name):
-        return self.parent.vertex_properties[name].a
+        return np.array(self.parent.vertex_properties[name].a)
 
     def __setitem__(self, name, value):
         size = self.parent.node_nb()
@@ -71,7 +71,7 @@ class _GtEProperty(BaseProperty):
         Return the attributes of an edge or a list of edges.
         '''
         if isinstance(name, str):
-            return self.parent.edge_properties[name].a
+            return np.array(self.parent.edge_properties[name].a)
         elif hasattr(name[0], '__iter__'):
             di_eattr = {}
             for key in self.keys():
@@ -105,7 +105,7 @@ class _IgNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
-        return self.parent.vs[name]
+        return np.array(self.parent.vs[name])
 
     def __setitem__(self, name, value):
         if len(value) == size:
@@ -134,7 +134,7 @@ class _IgEProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (networkx)  '''
 
     def __getitem__(self, name):
-        return self.parent.es[name]
+        return np.array(self.parent.es[name])
 
     def __setitem__(self, name, value):
         size = self.parent.edge_nb()
@@ -202,14 +202,14 @@ class _NxEProperty(BaseProperty):
 
     def __getitem__(self, name):
         lst = []
-        for e in iter(self.parent.edges.keys()):
+        for e in iter(self.parent._edges.keys()):
             lst.append(self.parent.edge[e[0]][e[1]][name])
         return np.array(lst)
 
     def __setitem__(self, name, value):
         size = self.parent.edge_nb()
         if len(value) == size:
-            for i,e in enumerate(self.parent.edges):
+            for i,e in enumerate(self.parent._edges.keys()):
                 self.parent.edge[e[0]][e[1]][name] = value[i]
         else:
             raise ValueError("A list or a np.array with one entry per edge in \
@@ -272,7 +272,7 @@ class BaseGraph(config["graph"]):
     # Shared properties methods
     
     @property
-    def edges(self):
+    def edge_index(self):
         ''' :class:`OrderedDict` containing the edges as keys (2-tuple) and
         their index at the time of their creation as value '''
         return self._edges
@@ -281,7 +281,7 @@ class BaseGraph(config["graph"]):
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
-        return np.array(tuple(self._edges.keys()), copy=True)
+        return np.array(tuple(self._edges.keys()))
 
     @property
     def nproperties(self):
@@ -470,7 +470,7 @@ class GtGraph(BaseGraph):
             return self.degree_property_map(deg_type,
                             self.edge_properties["weight"]).a[node_list]
         else:
-            return self.degree_property_map(deg_type).a[node_list]
+            return np.array(self.degree_property_map(deg_type).a[node_list])
 
     def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
                          norm=True):
@@ -481,11 +481,12 @@ class GtGraph(BaseGraph):
             tpl = analyze_graph["betweenness"](self, weight=w_p, norm=norm)
             lst_return = []
             if btype == "node":
-                return tpl[0] if as_prop else tpl[0].a
+                return tpl[0] if as_prop else np.array(tpl[0].a)
             elif btype == "edge":
-                return tpl[1] if as_prop else tpl[1].a
+                return tpl[1] if as_prop else np.array(tpl[1].a)
             else:
-                return tpl[0], tpl[1] if as_prop else tpl[0].a, tpl[1].a
+                return ( tpl[0], tpl[1] if as_prop
+                         else np.array(tpl[0].a), np.array(tpl[1].a) )
         else:
             if as_prop:
                 return None, None
@@ -590,6 +591,36 @@ class IGraph(BaseGraph):
                 self.es[first_eid:last_eid][attr] = lst
         return edge_list
 
+    def new_edge_attribute(self, name, value_type, values=None, val=None):
+        num_edges = self.ecount()
+        if values is None:
+            if val is not None:
+                values = np.repeat(val,num_edges)
+            else:
+                if "vec" in value_type:
+                    values = [ [] for _ in range(num_edges) ]
+                else:
+                    values = np.repeat(self.di_value[value_type], num_edges)
+        elif len(values) != num_edges:
+            raise InvalidArgument("'values' list must contain one element per \
+edge in the graph.")
+        self.es[name] = values
+    
+    def new_node_attribute(self, name, value_type, values=None, val=None):
+        num_nodes = self.vcount()
+        if values is None:
+            if val is not None:
+                values = np.repeat(val,num_nodes)
+            else:
+                if vector in value_type:
+                    values = [ [] for _ in range(num_nodes) ]
+                else:
+                    values = np.repeat(self.di_value[value_type], num_nodes)
+        elif len(values) != num_nodes:
+            raise InvalidArgument("'values' list must contain one element per \
+node in the graph.")
+        self.vs[name] = values
+
     def remove_edge(self, edge):
         raise NotImplementedError("This function has been removed because it \
             makes using edge properties too complicated")
@@ -620,21 +651,26 @@ class IGraph(BaseGraph):
         else:
             return np.array(self.degree(node_list,mode=deg_type))
 
-    def betweenness_list(self, use_weights=False, as_prop=False, norm=True):
-        w = None
+    def betweenness_list(self, btype="both", use_weights=False, norm=True,
+                         **kwargs):
+        n = self.vcount()
+        e = self.ecount()
+        ncoeff_norm = (n-1)*(n-2)
+        ecoeff_norm = (e-1)*(e-2)/2.
+        w, nbetw, ebetw = None, None, None
         if use_weights:
             w = self.es['bweight']
-        node_betweenness = np.array(self.betweenness(weights=w))
-        edge_betweenness = np.array(self.edge_betweenness(weights=w))
-        if norm:
-            n = self.vcount()
-            e = self.ecount()
-            ncoeff_norm = (n-1)*(n-2)
-            ecoeff_norm = (e-1)*(e-2)/2.
-            node_betweenness /= ncoeff_norm
-            edge_betweenness /= ecoeff_norm
-        return node_betweenness, edge_betweenness
-    
+        if btype in ("both", "node"):
+            nbetw = np.array(self.betweenness(weights=w))
+        if btype in ("both", "edge"):
+            ebetw = np.array(self.edge_betweenness(weights=w))
+        if btype == "node":
+            return nbetw/ncoeff_norm if norm else nbetw
+        elif btype == "edge":
+            return ebetw/ecoeff_norm if norm else ebetw
+        else:
+            return ( nbetw/ncoeff_norm, ebetw/ecoeff_norm if norm
+                     else nbetw, ebetw )
 
 #-----------------------------------------------------------------------------#
 # Networkx
@@ -688,7 +724,7 @@ node in the graph.")
             self.node[n][name] = val
 
     def new_edge_attribute(self, name, value_type, values=None, val=None):
-        num_edges = self.edge_nb()
+        num_edges = self.number_of_edges()
         if values is None:
             if val is not None:
                 values = np.repeat(val,num_edges)
@@ -800,17 +836,25 @@ edge in the graph.")
             di_deg = self.out_degree(node_list, weight=weight)
         return np.array(tuple(di_deg.values()))
 
-    def betweenness_list(self, use_weights=False, as_prop=False):
+    def betweenness_list(self, btype="both", use_weights=False, **kwargs):
         di_nbetw, di_ebetw = None, None
-        if use_weights:
-            di_nbetw = config["library"].betweenness_centrality(self,weight=BWEIGHT)
-            di_ebetw = config["library"].edge_betweenness_centrality(self,weight=BWEIGHT)
+        w = BWEIGHT if use_weights else None
+        if btype in ("both", "node"):
+            di_nbetw = config["library"].betweenness_centrality(self,
+                                                                weight=BWEIGHT)
+        if btype in ("both", "edge"):
+            di_ebetw = config["library"].edge_betweenness_centrality(self,
+                                                                weight=BWEIGHT)
         else:
             di_nbetw = config["library"].betweenness_centrality(self)
             di_ebetw = config["library"].edge_betweenness_centrality(self)
-        node_betweenness = np.array(tuple(di_nbetw.values()))
-        edge_betweenness = np.array(tuple(di_ebetw.values()))
-        return node_betweenness, edge_betweenness    
+        if btype == "node":
+            return np.array(tuple(di_nbetw.values()))
+        elif btype == "edge":
+            return np.array(tuple(di_ebetw.values()))
+        else:
+            return ( np.array(tuple(di_nbetw.values())),
+                     np.array(tuple(di_ebetw.values())) )
 
 
 #-----------------------------------------------------------------------------#

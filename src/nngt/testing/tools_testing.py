@@ -27,8 +27,8 @@ def _xml_to_dict(xml_elt, di_types):
     di_result = {}
     for child in xml_elt:
         str_type = child.tag
-        name = child.attrib["name"]
         if len(child):
+            name = str_type
             elt = child.find("start")
             if elt is not None:
                 start = di_types[str_type](child.find("start").text)
@@ -38,6 +38,7 @@ def _xml_to_dict(xml_elt, di_types):
             else:
                 di_result[child.tag] = _xml_to_dict(child, di_types)
         else:
+            name = child.attrib["name"]
             if child.tag in ("string", "str"):
                 text = child.text.replace("\\t","\t")
                 di_result[name] = di_types[str_type](text)

@@ -30,7 +30,7 @@ __all__ = [
     "use_library"
 ]
 
-version = '0.5'
+version = '0.6'
 ''' :class:`string`, the current version '''
 
 
