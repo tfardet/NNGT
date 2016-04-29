@@ -22,10 +22,13 @@ __all__ = [
 #------------------------
 #
 
-def _set_new_plot(fignum, num_new_plots=1):
+def _set_new_plot(fignum, num_new_plots=1, names=None):
     # get the figure and compute the new number of rows and cols
     fig = plt.figure(num=fignum)
     num_axes = len(fig.axes)+num_new_plots
+    if names is not None:
+        num_axes = len(fig.axes)+len(names)
+        num_new_plots = len(names)
     num_cols = max(int(np.floor(np.sqrt(num_axes))),1)
     ratio = num_axes/float(num_cols)
     num_rows = int(ratio)+1 if int(ratio)!=int(np.ceil(ratio)) else int(ratio)
@@ -36,9 +39,12 @@ def _set_new_plot(fignum, num_new_plots=1):
     n_old = num_axes-num_new_plots+1
     for i in range(num_new_plots):
         if fig.axes:
-            lst_new_axes.append(fig.add_subplot(num_rows, num_cols, n_old+i, sharex=fig.axes[0]))
+            lst_new_axes.append( fig.add_subplot(num_rows, num_cols, n_old+i,
+                                                 sharex=fig.axes[0]) )
         else:
             lst_new_axes.append(fig.add_subplot(num_rows, num_cols, n_old+i))
+        if names is not None:
+            lst_new_axes[-1].name = names[i]
     return fig, lst_new_axes
 
 

@@ -14,7 +14,8 @@ import numpy as np
 import nest
 
 from nngt.plot import palette
-from ..plot.plt_properties import _set_new_plot
+from nngt.plot.plt_properties import _set_new_plot
+from nngt.lib import InvalidArgument
 
 
 
@@ -27,7 +28,8 @@ __all__ = [ "plot_activity" ]
 #
 
 def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
-                  limits=None, hist=True):
+                  limits=None, hist=True, title=None, fignum=None, label=None,
+                  sort=None, normalize=1.):
     '''
     Plot the monitored activity.
     
@@ -48,6 +50,19 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     limits : tuple, optional (default: None)
         Time limits of the plot (if not specified, times of first and last
         spike for raster plots).
+    title : str, optional (default: None)
+        Title of the plot.
+    fignum : int, optional (default: None)
+        Plot the activity on an existing figure (from ``figure.number``).
+    label : str, optional (default: None)
+        Add a label to the plot.
+    sort : str or list, optional (default: None)
+        Node property among ("in_degree", "out_degree", "total_degree" or
+        "betweenness") or list of sorted neuron ids. Neurons are sorted
+        by increasing value of the `sort` property from bottom to top inside
+        each group.
+    normalize : float, optional (default: None)
+        Normalize the recorded results by a given float.
 
     Returns
     -------
@@ -61,64 +76,112 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
             lst_rec.append(rec)
         else:
             lst_rec.append((rec,))
-            
-    # spikes plotting
     num_group = len(network.population) if network is not None else 1
+    # sorting
+    sorted_neurons = np.arange(len(gids)).astype(int) + 1
+    if sort and network is not None:
+        sorted_neurons = _sort_neurons(sort, gids, network)
+        print("sorted", sorted_neurons[:10])
+    # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_spike, num_detec = 0, 0
     fig_spike, fig_detec = None, None
-
     fignums = []
     for rec, var in zip(lst_rec, record):
         info = nest.GetStatus(rec)[0]
         if str(info["model"]) == "spike_detector":
             c = colors[num_spike]
-            fig_spike = raster_plot(rec, fignum=fig_spike, color=c, show=False,
+            times, senders = info["events"]["times"], info["events"]["senders"]
+            print(senders.min(), senders.max())
+            sorted_ids = sorted_neurons[senders]
+            fig_spike = raster_plot(times, sorted_ids, fignum=fig_spike,
+                                    color=c, show=False, label=info["label"],
                                     limits=limits)
             num_spike += 1
             fignums.append(fig_spike)
         elif "detector" in str(info["model"]):
             c = colors[num_detec]
-            fig_detec = raster_plot(rec, fignum=fig_detec, color=c, show=False,
-                                    hist=hist, limits=limits)
+            times, senders = info["events"]["times"], info["events"]["senders"]
+            sorted_ids = sorted_neurons[senders]
+            fig_detec = raster_plot(times, sorted_ids, fignum=fig_detec,
+                                    color=c, show=False, hist=hist,
+                                    label=info["label"], limits=limits)
             num_detec += 1
             fignums.append(fig_detect)
         else:
             da_time = info["events"]["times"]
-            fig = plt.figure()
+            fig = plt.figure(fignum)
             if isinstance(var,list) or isinstance(var,tuple):
-                axes = _set_new_plot(fig.number, len(var))[1]
-                for subvar, ax in zip(var, axes):
-                    da_subvar = info["events"][subvar]
-                    ax.plot(da_time,da_subvar,'k')
-                    ax.set_ylabel(subvar)
-                    ax.set_xlabel("time")
+                axes = fig.axes
+                if not axes:
+                    axes = _set_new_plot(fig.number, names=var)[1]
+                for subvar in var:
+                    for ax in axes:
+                        if ax.name == subvar:
+                            da_subvar = info["events"][subvar]
+                            ax.plot(da_time, da_subvar/normalize, label=label)
+                            ax.set_ylabel(subvar)
+                            ax.set_xlabel("time")
+                            if label is not None:
+                                ax.legend()
             else:
                 ax = fig.add_subplot(111)
                 da_var = info["events"][var]
-                ax.plot(da_time,da_var,'k')
+                ax.plot(da_time, da_var/normalize, label=label)
                 ax.set_ylabel(var)
                 ax.set_xlabel("time")
+                if label is not None:
+                    ax.legend()
             fignums.append(fig.number)
+    if title is not None:
+        for n in fignums:
+            fig = plt.figure(n)
+            fig.suptitle(title)
     if show:
         plt.show()
-    return fignums
+    return list(set(fignums))
+
+def _sort_neurons(sort, gids, network):
+    max_nest_gid = network.nest_gid.max() + 1
+    sorting = np.zeros(max_nest_gid)
+    if isinstance(sort, str):
+        sorted_ids = None
+        if "degree" in sort:
+            deg_type = sort[:sort.find("_")]
+            degrees = network.get_degrees(deg_type)
+            sorted_ids = np.argsort(degrees)
+        elif sort == "betweenness":
+            betw = network.get_betweenness(btype="node")
+            sorted_ids = np.argsort(betw)
+        else:
+            raise InvalidArgument("Unknown sorting parameter {}".format(sort))
+        num_sorted = 1
+        for group in network.population.values():
+            gids = network.nest_gid[group.id_list]
+            order = np.argsort(sorted_ids[group.id_list])
+            sorting[gids] = num_sorted + order
+            num_sorted += len(group.id_list)
+    else:
+        sorting[network.nest_gid[sort]] = sort
+    return sorting
 
 def _moving_average (values, window):
     weights = np.repeat(1.0, window)/window
     sma = np.convolve(values, weights, 'same')
     return sma
 
-def raster_plot(detec, limits=None, title="Spike raster", hist=True,
-                num_bins=1000, color="b", fignum=None, show=True):
+def raster_plot(times, senders, limits=None, title="Spike raster", hist=True,
+                num_bins=1000, color="b", fignum=None, label=None, show=True):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
     
     Parameters
     ----------
-    detec : tuple
-        Gid of the NEST detector from which the data should be recovered.
+    times : list or :class:`numpy.ndarray`
+        Spike times.
+    senders : list or :class:`numpy.ndarray`
+        Index for the spiking neuron for each time in `times`.
     limits : tuple, optional (default: None)
         Time limits of the plot (if not specified, times of first and last
         spike).
@@ -140,19 +203,14 @@ def raster_plot(detec, limits=None, title="Spike raster", hist=True,
     fig.number : int
         Id of the :class:`matplotlib.Figure` on which the raster is plotted.
     """
-    info = nest.GetStatus(detec)[0]
-    ev = info["events"]
-    ts, senders = ev["times"], ev["senders"]
     num_neurons = len(np.unique(senders))
 
-    if len(ts):
+    if len(times):
         fig = plt.figure(fignum)
-
-        legend = info["label"]
         ylabel = "Neuron ID"
         xlabel = "Time (ms)"
 
-        delta_t = 0.01*(ts[-1]-ts[0])
+        delta_t = 0.01*(times[-1]-times[0])
 
         if hist:
             ax1, ax2 = None, None
@@ -162,22 +220,22 @@ def raster_plot(detec, limits=None, title="Spike raster", hist=True,
             else:
                 ax1 = fig.add_axes([0.1, 0.3, 0.85, 0.6])
                 ax2 = fig.add_axes([0.1, 0.08, 0.85, 0.17], sharex=ax1)
-            ax1.plot(ts, senders, c=color, marker="o", linestyle='None',
-                mec="k", mew=0.5, ms=4, label=legend)
+            ax1.plot(times, senders, c=color, marker="o", linestyle='None',
+                mec="k", mew=0.5, ms=4, label=label)
             ax1_lines = ax1.lines
             if len(ax1_lines) > 1:
-                t_max = max(ax1_lines[0].get_xdata().max(),ts[-1])
+                t_max = max(ax1_lines[0].get_xdata().max(),times[-1])
                 ax1.set_xlim([-delta_t, t_max+delta_t])
             ax1.set_ylabel(ylabel)
             if limits is not None:
                 ax1.set_xlim(*limits)
             ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
 
-            bin_width = ( np.amax(ts) - np.amin(ts) ) / float(num_bins)
-            t_bins = np.linspace(np.amin(ts), np.amax(ts), num_bins)
+            bin_width = ( np.amax(times) - np.amin(times) ) / float(num_bins)
+            t_bins = np.linspace(np.amin(times), np.amax(times), num_bins)
             if limits is not None:
                 t_bins = np.linspace(limits[0], limits[1], num_bins)
-            n, bins = np.histogram(ts, bins=t_bins)
+            n, bins = np.histogram(times, bins=t_bins)
             #~ n = _moving_average(n,5)
             t_bins = np.concatenate(([t_bins[0]], t_bins))
             #~ heights = 1000 * n / (hist_binwidth * num_neurons)
@@ -225,11 +283,11 @@ def raster_plot(detec, limits=None, title="Spike raster", hist=True,
             ax2.set_xlim(ax1.get_xlim())
         else:
             ax = fig.axes[0] if fig.axes else fig.subplots(111)
-            ax.plot(ts, senders, c=color, marker="o", linestyle='None',
-                mec="k", mew=0.5, ms=4, label=legend)
+            ax.plot(times, senders, c=color, marker="o", linestyle='None',
+                mec="k", mew=0.5, ms=4, label=label)
             ax.set_ylabel(ylabel)
             ax.set_ylim([np.min(senders),np.max(senders)])
-            ax.set_xlim([ts[0]-delta_t, ts[-1]+delta_t])
+            ax.set_xlim([times[0]-delta_t, times[-1]+delta_t])
             ax.legend(bbox_to_anchor=(1.1, 1.2))
 
         fig.suptitle(title)

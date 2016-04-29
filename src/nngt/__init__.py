@@ -121,7 +121,8 @@ try:
     config['with_plot'] = True
     __all__.append('plot')
 except ImportError as e:
-    print("Error, plot module will not be loaded...", e)
+    ImportWarning("Error, plot module will not be loaded...", e)
+    config['with_plot'] = False
 
 # look for nest
 try:
@@ -131,7 +132,8 @@ try:
     config['with_nest'] = True
     __all__.append("simulation")
 except ImportError as e:
-    print("NEST not found; nest module will not be loaded...", e)
+    ImportWarning("NEST not found; nngt.simulation not loaded...", e)
+    config["with_nest"] = False
     
 # load database module if required
 if config["set_logging"]:
@@ -142,4 +144,4 @@ if config["set_logging"]:
         from .database import db
         __all__.append('db')
     except ImportError as e:
-        print("Could not load database module", e)
+        ImportWarning("Could not load database module", e)

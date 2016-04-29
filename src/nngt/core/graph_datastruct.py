@@ -41,7 +41,7 @@ class NeuralPop(dict):
     # Class attributes and methods
     
     @classmethod
-    def pop_from_network(cls, graph, *args):
+    def from_network(cls, graph, *args):
         '''
         Make a NeuralPop object from a network. The groups of neurons are 
         determined using instructions from an arbitrary number of
@@ -50,8 +50,8 @@ class NeuralPop(dict):
         return cls.__init__(parent=graph,graph=graph,group_prop=args)
 
     @classmethod
-    def uniform_population(cls, size, parent=None, neuron_model=default_neuron,
-            neuron_param={}, syn_model=default_synapse, syn_param={}):
+    def uniform(cls, size, parent=None, neuron_model=default_neuron,
+                neuron_param={}, syn_model=default_synapse, syn_param={}):
         ''' Make a NeuralPop of identical neurons '''
         pop = cls(size, parent)
         pop.new_group("default", range(size), 1, neuron_model, neuron_param,
@@ -59,7 +59,7 @@ class NeuralPop(dict):
         return pop
 
     @classmethod
-    def ei_population(cls, size, iratio=0.2, parent=None,
+    def exc_and_inhib(cls, size, iratio=0.2, parent=None,
             en_model=default_neuron, en_param={}, es_model=default_synapse,
             es_param={}, in_model=default_neuron, in_param={},
             is_model=default_synapse, is_param={}):
@@ -461,7 +461,7 @@ class Connections:
     
     @staticmethod
     def delays(graph, dlist=None, elist=None, distribution="constant",
-               parameters={}, correl=None, noise_scale=None):
+               parameters={}, noise_scale=None):
         '''
         Compute the delays of the neuronal connections.
         
@@ -478,8 +478,6 @@ class Connections:
             "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
         parameters : class:`dict`, optional (default: {})
             Dictionary containing the distribution parameters.
-        correl : class:`string`, optional (default: None)
-            Property to which the weights should be correlated.
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
@@ -489,19 +487,16 @@ class Connections:
         new_delays : class:`scipy.sparse.lil_matrix`
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
-        corr = correl
-        if issubclass(correl.__class__, str):
-            if correl == "betweenness":
-                corr = graph.get_betweenness(False)[1]
-            else:
-                corre = graph[correl]
+        parameters["btype"] = parameters.get("btype", "edge")
+        parameters["use_weights"] = parameters.get("use_weights", False)
+        elist = np.array(elist) if elist is not None else elist
         if dlist is not None:
-            num_edges = graph.edge_nb() if elist is None else len(elist)
+            num_edges = graph.edge_nb() if elist is None else elist.shape[0]
             if len(dlist) != num_edges:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
             dlist = eprop_distribution(graph, distribution, elist=elist,
-                        correl_attribute=corr, **parameters)
+                                       **parameters)
         # add to the graph container
         graph.set_edge_attribute(DELAY, value_type="double", values=dlist)
         return dlist

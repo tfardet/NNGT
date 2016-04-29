@@ -167,13 +167,13 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
     phases : dict
         Dictionary containing the time intervals (in ms) for all four phases
         (`bursting', `quiescent', `mixed', and `localized`) as lists.
-        E.g: ``phases["bursting"]`` could give ``[[123.5,334.2],[857.1,1000.6]]``.
+        E.g: ``phases["bursting"]`` could give ``[[123.5,334.2],
+        [857.1,1000.6]]``.
     phases_steps : dict, optional (not implemented yet)
         Dictionary containing the timesteps in NEST.
     '''
     # check if there are several recorders
     data, senders, times = [], [], []
-    
     if True in nest.GetStatus(spike_detector, "to_file"):
         for fpath in nest.GetStatus(spike_detector, "record_to"):
             data.extend(fpath)
@@ -184,120 +184,123 @@ def activity_types(network, spike_detector, limits, phase_coeff=(0.5,10.),
     idx_sorted = np.argsort(times)
     times = np.array(times)[idx_sorted]
     senders = np.array(senders)[idx_sorted]
-    # set the studied region
-    num_spikes = len(times)
-    if limits[0] >= times[0]:
-        idx_start = np.where(times>=limits[0])[0][0]
-        times = times[idx_start:]
-        senders = senders[idx_start:]
-        num_spikes = len(times)
-    else:
-        times = np.concatenate(([limits[0]],times))
-        senders = np.concatenate(([-1],senders))
-    if limits[1] <= times[-1]:
-        idx_end = np.where(times<=limits[0])[0][-1]
-        times = times[:idx_end]
-        senders = senders[:idx_end]
-        num_spikes = len(times)
-    else:
-        times = np.concatenate((times,[limits[1]]))
-    # get the average firing rate to differenciate the phases
-    simtime = limits[1]-limits[0]
-    avg_rate = num_spikes/float(simtime)
-    if avg_rate:
-        lim_burst = max(phase_coeff[0]/avg_rate,mbis)
-        lim_quiet = min(phase_coeff[1]/avg_rate,10.)
-    else:
-        lim_burst = mbis
-        lim_quiet = 10.
-    # find the phases
+    # prepare the phases and check the validity of the data
     phases = { "bursting":[], "mixed":[], "quiescent":[], "localized": [] }
-    diff = np.diff(times).tolist()[::-1]
-    i = 0
-    previous = { "bursting": -2, "mixed": -2, "quiescent": -2 }
-    while diff:
-        tau = diff.pop()
-        while True:
-            if tau < lim_burst: # bursting phase
-                if previous["bursting"] == i-1:
-                    phases["bursting"][-1][1] = times[i+1]
-                else:
-                    if simplify and previous["mixed"] == i-1:
-                        start_mixed = phases["mixed"][-1][0]
-                        phases["bursting"].append([start_mixed,times[i+1]])
-                        del phases["mixed"][-1]
-                    else:
-                        phases["bursting"].append([times[i],times[i+1]])
-                previous["bursting"] = i
-                i+=1
-                break
-            elif tau > lim_quiet:
-                if previous["quiescent"] == i-1:
-                    phases["quiescent"][-1][1] = times[i+1]
-                else:
-                    phases["quiescent"].append([times[i],times[i+1]])
-                previous["quiescent"] = i
-                i+=1
-                break
-            else:
-                if previous["mixed"] == i-1:
-                    phases["mixed"][-1][1] = times[i+1]
-                    previous["mixed"] = i
-                else:
-                    if simplify and previous["bursting"] == i-1:
+    num_spikes = len(times)
+    if num_spikes:
+        # set the studied region
+        if limits[0] >= times[0]:
+            idx_start = np.where(times>=limits[0])[0][0]
+            times = times[idx_start:]
+            senders = senders[idx_start:]
+            num_spikes = len(times)
+        else:
+            times = np.concatenate(([limits[0]],times))
+            senders = np.concatenate(([-1],senders))
+        if limits[1] <= times[-1]:
+            idx_end = np.where(times<=limits[0])[0][-1]
+            times = times[:idx_end]
+            senders = senders[:idx_end]
+            num_spikes = len(times)
+        else:
+            times = np.concatenate((times,[limits[1]]))
+        # get the average firing rate to differenciate the phases
+        simtime = limits[1]-limits[0]
+        avg_rate = num_spikes/float(simtime)
+        if avg_rate:
+            lim_burst = max(phase_coeff[0]/avg_rate,mbis)
+            lim_quiet = min(phase_coeff[1]/avg_rate,10.)
+        else:
+            lim_burst = mbis
+            lim_quiet = 10.
+        # find the phases
+        diff = np.diff(times).tolist()[::-1]
+        i = 0
+        previous = { "bursting": -2, "mixed": -2, "quiescent": -2 }
+        while diff:
+            tau = diff.pop()
+            while True:
+                if tau < lim_burst: # bursting phase
+                    if previous["bursting"] == i-1:
                         phases["bursting"][-1][1] = times[i+1]
-                        previous["bursting"] = i
                     else:
-                        phases["mixed"].append([times[i],times[i+1]])
+                        if simplify and previous["mixed"] == i-1:
+                            start_mixed = phases["mixed"][-1][0]
+                            phases["bursting"].append([start_mixed,times[i+1]])
+                            del phases["mixed"][-1]
+                        else:
+                            phases["bursting"].append([times[i],times[i+1]])
+                    previous["bursting"] = i
+                    i+=1
+                    break
+                elif tau > lim_quiet:
+                    if previous["quiescent"] == i-1:
+                        phases["quiescent"][-1][1] = times[i+1]
+                    else:
+                        phases["quiescent"].append([times[i],times[i+1]])
+                    previous["quiescent"] = i
+                    i+=1
+                    break
+                else:
+                    if previous["mixed"] == i-1:
+                        phases["mixed"][-1][1] = times[i+1]
                         previous["mixed"] = i
-                i+=1
-                break
-    # check that bursting periods involve at least mfb of the neurons
-    transfer, destination = [], {}
-    n = network.node_nb()
-    for i,burst in enumerate(phases["bursting"]):
-        idx_start = np.where(times==burst[0])[0][0]
-        idx_end = np.where(times==burst[1])[0][0]
-        participating_frac = len(set(senders[idx_start:idx_end]))/float(n)
-        if participating_frac < mflb:
-            transfer.append(i)
-            destination[i] = "mixed"
-        elif participating_frac < mfb:
-            transfer.append(i)
-            destination[i] = "localized"
-    for i in transfer[::-1]:
-        phase = phases["bursting"].pop(i)
-        phases[destination[i]].insert(0,phase)
-    remove = []
-    i = 0
-    while i < len(phases['mixed']):
-        mixed = phases['mixed'][i]
-        j=i+1
-        for span in phases['mixed'][i+1:]:
-            if span[0] == mixed[1]:
-                mixed[1] = span[1]
-                remove.append(j)
-                i=-1
-            elif span[1] == mixed[0]:
-                mixed[0] = span[0]
-                remove.append(j)
-                i=-1
-            j+=1
-        i+=1
-    remove = list(set(remove))
-    remove.sort()
-    for i in remove[::-1]:
-        del phases["mixed"][i]
-    colors = ('r', 'orange', 'g', 'b')
-    names = ('bursting', 'mixed', 'localized', 'quiescent')
-    if config['with_plot']:
-        import matplotlib.pyplot as plt
-        for fignum in fignums:
-            fig = plt.figure(fignum)
-            for ax in fig.axes:
-                for phase,color in zip(names,colors):
-                    for span in phases[phase]:
-                        ax.axvspan(span[0],span[1], facecolor=color, alpha=0.2)
-        if fignums and show:
-            plt.show()
+                    else:
+                        if simplify and previous["bursting"] == i-1:
+                            phases["bursting"][-1][1] = times[i+1]
+                            previous["bursting"] = i
+                        else:
+                            phases["mixed"].append([times[i],times[i+1]])
+                            previous["mixed"] = i
+                    i+=1
+                    break
+        # check that bursting periods involve at least mfb of the neurons
+        transfer, destination = [], {}
+        n = network.node_nb()
+        for i,burst in enumerate(phases["bursting"]):
+            idx_start = np.where(times==burst[0])[0][0]
+            idx_end = np.where(times==burst[1])[0][0]
+            participating_frac = len(set(senders[idx_start:idx_end]))/float(n)
+            if participating_frac < mflb:
+                transfer.append(i)
+                destination[i] = "mixed"
+            elif participating_frac < mfb:
+                transfer.append(i)
+                destination[i] = "localized"
+        for i in transfer[::-1]:
+            phase = phases["bursting"].pop(i)
+            phases[destination[i]].insert(0,phase)
+        remove = []
+        i = 0
+        while i < len(phases['mixed']):
+            mixed = phases['mixed'][i]
+            j=i+1
+            for span in phases['mixed'][i+1:]:
+                if span[0] == mixed[1]:
+                    mixed[1] = span[1]
+                    remove.append(j)
+                    i=-1
+                elif span[1] == mixed[0]:
+                    mixed[0] = span[0]
+                    remove.append(j)
+                    i=-1
+                j+=1
+            i+=1
+        remove = list(set(remove))
+        remove.sort()
+        for i in remove[::-1]:
+            del phases["mixed"][i]
+        colors = ('r', 'orange', 'g', 'b')
+        names = ('bursting', 'mixed', 'localized', 'quiescent')
+        if config['with_plot']:
+            import matplotlib.pyplot as plt
+            for fignum in fignums:
+                fig = plt.figure(fignum)
+                for ax in fig.axes:
+                    for phase,color in zip(names,colors):
+                        for span in phases[phase]:
+                            ax.axvspan(span[0], span[1], facecolor=color,
+                                       alpha=0.2)
+            if fignums and show:
+                plt.show()
     return ActivityRecord(network, limits, spike_detector, phases)

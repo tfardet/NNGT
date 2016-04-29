@@ -163,7 +163,7 @@ with non symmetric matrix provided.')
         return graph
 
     @staticmethod
-    def make_spatial(graph, shape=Shape(), positions=None):
+    def make_spatial(graph, shape=Shape(), positions=None, copy=False):
         '''
         Turn a :class:`~nngt.Graph` object into a :class:`~nngt.SpatialGraph`,
         or a :class:`~nngt.Network` into a :class:`~nngt.SpatialNetwork`.
@@ -176,19 +176,28 @@ with non symmetric matrix provided.')
             Shape to associate to the new :class:`~nngt.SpatialGraph`.
         positions : (2,N) array
             Positions, in a 2D space, of the N neurons.
+        copy : bool, optional (default: ``False``)
+            Whether the operation should be made in-place on the object or if a
+            new object should be returned.
 
         Notes
         -----
-        In-place operation that directly converts the original graph.
+        In-place operation that directly converts the original graph if `copy`
+        is ``False``, else returns the copied :class:`~nngt.Graph` turned into
+        a :class:`~nngt.SpatialGraph`.
         '''
+        if copy:
+            graph = graph.copy()
         if isinstance(graph, Network):
             graph.__class__ = SpatialNetwork
         else:
             graph.__class__ = SpatialGraph
         graph._init_spatial_properties(shape, positions)
+        if copy:
+            return graph
 
     @staticmethod
-    def make_network(graph, neural_pop):
+    def make_network(graph, neural_pop, copy=False):
         '''
         Turn a :class:`~nngt.Graph` object into a :class:`~nngt.Network`, or a
         :class:`~nngt.SpatialGraph` into a :class:`~nngt.SpatialNetwork`.
@@ -199,16 +208,25 @@ with non symmetric matrix provided.')
             Graph to convert
         neural_pop : :class:`~nngt.NeuralPop`
             Population to associate to the new :class:`~nngt.Network`
+        copy : bool, optional (default: ``False``)
+            Whether the operation should be made in-place on the object or if a
+            new object should be returned.
 
         Notes
         -----
-        In-place operation that directly converts the original graph.
+        In-place operation that directly converts the original graph if `copy`
+        is ``False``, else returns the copied :class:`~nngt.Graph` turned into
+        a :class:`~nngt.Network`.
         '''
+        if copy:
+            graph = graph.copy()
         if isinstance(graph, SpatialGraph):
             graph.__class__ = SpatialNetwork
         else:
             graph.__class__ = Network
         graph._init_bioproperties(neural_pop)
+        if copy:
+            return graph
 
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
@@ -432,7 +450,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             on the weights.
         '''
         if distribution is None:
-            distribution = self._w.pop("distribution")
+            distribution = self._w["distribution"]
         if parameters is None:
             parameters = self._w
         Connections.weights(self, elist=elist, wlist=wlist,

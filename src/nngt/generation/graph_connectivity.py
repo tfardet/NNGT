@@ -575,7 +575,7 @@ _di_generator = {
     "random_scale_free": random_scale_free
 }
 
-def generate(di_instructions):
+def generate(di_instructions, **kwargs):
     '''
     Generate a :class:`~nngt.Graph` or one of its subclasses from a ``dict``
     containing all the relevant informations.
@@ -595,7 +595,7 @@ def generate(di_instructions):
     '''
     graph_type = di_instructions["graph_type"]
     instructions = deepcopy(di_instructions)
-    return _di_generator[graph_type](**instructions)
+    return _di_generator[graph_type](**instructions, **kwargs)
 
 
 #-----------------------------------------------------------------------------#
