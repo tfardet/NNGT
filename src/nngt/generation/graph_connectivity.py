@@ -595,7 +595,8 @@ def generate(di_instructions, **kwargs):
     '''
     graph_type = di_instructions["graph_type"]
     instructions = deepcopy(di_instructions)
-    return _di_generator[graph_type](**instructions, **kwargs)
+    instructions.update(kwargs)
+    return _di_generator[graph_type](**instructions)
 
 
 #-----------------------------------------------------------------------------#
@@ -660,10 +661,10 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         elif group.neuron_type == target_type:
             target_ids.extend(group._id_list)
     if source_type == target_type:
-        edges = _di_gen_edges[graph_model](source_ids,source_ids,**di_param)
+        edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
         network.add_edges(edges)
     else:
-        edges = _di_gen_edges[graph_model](source_ids,target_ids,**di_param)
+        edges = _di_gen_edges[graph_model](source_ids, target_ids, **di_param)
         network.add_edges(edges)
     #~ network.set_weights(edges)
     if weighted:

@@ -122,6 +122,8 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
                             ax.plot(da_time, da_subvar/normalize, label=label)
                             ax.set_ylabel(subvar)
                             ax.set_xlabel("time")
+                            if limits is not None:
+                                ax.set_xlim(limits[0], limits[1])
                             if label is not None:
                                 ax.legend()
             else:

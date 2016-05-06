@@ -11,6 +11,7 @@ import scipy.sparse as ssp
 
 from six import add_metaclass
 from nngt.globals import config, analyze_graph, BWEIGHT
+from nngt.lib import InvalidArgument
 
 
 
@@ -595,7 +596,7 @@ class IGraph(BaseGraph):
         num_edges = self.ecount()
         if values is None:
             if val is not None:
-                values = np.repeat(val,num_edges)
+                values = np.repeat(val, num_edges)
             else:
                 if "vec" in value_type:
                     values = [ [] for _ in range(num_edges) ]
