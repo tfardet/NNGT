@@ -81,6 +81,10 @@ def _no_self_loops(array):
     return array[array[:,0] != array[:,1],:].astype(int)
 
 def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph):
+    '''
+    Filter the edges: remove self loops and multiple connections if the graph
+    is not a multigraph.
+    '''
     if b_one_pop:
         ia_edges_tmp = _no_self_loops(ia_edges_tmp)
     num_added = ia_edges_tmp.shape[0]
@@ -99,7 +103,7 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph):
 #
 
 def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
-                  directed, multigraph):
+                  directed, multigraph, existing_edges=None):
     np.random.seed()
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
@@ -121,35 +125,38 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
         b_nd = (edges > int((0.5*num_source-1)*num_target))
         if (not directed and b_nd) or (directed and b_d):
             raise InvalidArgument("Required degree is too high")
-            
-    ia_edges = np.zeros((edges,2), dtype=int)
-    ia_sources, ia_targets = None, None
     
-    if b_out:
-        for i,v in enumerate(target_ids):
-            edges_i, ecurrent, sources_i = np.zeros((degree,2)), 0, []
-            ia_edges[i*degree:(i+1)*degree,0] = v
-            while len(sources_i) != degree:
-                sources = source_ids[randint(0,num_source,degree-ecurrent)]
-                sources_i.extend(sources)
-                sources_i = list(set(sources_i))
-                ecurrent = len(sources_i)
-            ia_edges[i*degree:(i+1)*degree,1] = sources_i
-    else:
-        for i,v in enumerate(source_ids):
-            edges_i, ecurrent, targets_i = np.zeros((degree,2)), 0, []
-            ia_edges[i*degree:(i+1)*degree,1] = v
-            while len(targets_i) != degree:
-                targets = target_ids[randint(0,num_target,degree-ecurrent)]
-                targets_i.extend(targets)
-                targets_i = list(set(targets_i))
-                ecurrent = len(targets_i)
-            ia_edges[i*degree:(i+1)*degree,0] = targets_i
+    existing = 0 if existing_edges is None else existing_edges.shape[0]
+    ia_edges = np.zeros((existing+edges, 2), dtype=int)
+    if existing:
+        ia_edges[:existing,:] = existing_edges
+    idx = 0 if b_out else 1 # differenciate source / target
+    variables = source_idx if b_out else target_ids # nodes picked randomly
+    
+    for i,v in enumerate(target_ids):
+        edges_i, ecurrent, variables_i = np.zeros((degree,2)), 0, []
+        if existing_edges is not None:
+            with_v = np.where(ia_edge[:,idx] == v)
+            variables_i.extend(ia_edge[with_v:int(not idx)])
+            ecurrent = len(variables_i)
+        ia_edges[i*degree:(i+1)*degree, idx] = v
+        rm = np.argwhere(variables == v)[0]
+        rm = rm[0] if len(rm) else -1
+        var_tmp = ( np.array(variables, copy=True) if rm == -1 else
+                    np.concatenate((variables[:rm], variables[rm+1:])) )
+        num_var_i = len(var_tmp)
+        while ecurrent != degree:
+            var = var_tmp[randint(0,num_var_i,degree-ecurrent)]
+            variables_i.extend(var)
+            if not multigraph:
+                variables_i = list(set(variables_i))
+            ecurrent = len(variables_i)
+        ia_edges[i*degree:(i+1)*degree, int(not idx)] = variables_i
     return ia_edges
 
 
 def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
-                     reciprocity, directed, multigraph):
+                     reciprocity, directed, multigraph, existing_edges=None):
     ''' Connect nodes with a Gaussian distribution '''
     np.random.seed()
     source_ids = np.array(source_ids).astype(int)
@@ -160,7 +167,8 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
     b_total = (degree_type == "total")
     # edges
     num_node = num_source if degree_type == "in" else num_target
-    lst_deg = np.around(np.maximum(np.random.normal(avg, std, num_node),0.)).astype(int)
+    lst_deg = np.around( np.maximum(
+                         np.random.normal(avg, std, num_node),0.) ).astype(int)
     edges = np.sum(lst_deg)
     b_one_pop = (False if num_source != num_target else
                            not np.all(source_ids-target_ids))
@@ -175,34 +183,34 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
         if (not directed and b_nd) or (directed and b_d):
             raise InvalidArgument("Required degree is too high")
     
-    ia_edges = np.zeros((edges,2), dtype=int)
-    num_etotal = 0 # current number of edges
+    num_etotal = 0 if existing_edges is None else existing_edges.shape[0]
+    ia_edges = np.zeros((num_etotal+edges, 2), dtype=int)
+    if num_etotal:
+        ia_edges[:num_etotal,:] = existing_edges
+    idx = 0 if b_out else 1 # differenciate source / target
+    variables = source_idx if b_out else target_ids # nodes picked randomly
     
-    ia_sources, ia_targets = None, None
-    if b_out:
-        for i,v in enumerate(target_ids):
-            degree_i = lst_deg[i]
-            edges_i, ecurrent, sources_i = np.zeros((degree,2)), 0, []
-            ia_edges[num_etotal:num_etotal+degree_i,0] = v
-            while len(sources_i) != degree_i:
-                sources = source_ids[randint(0,num_source,degree_i-ecurrent)]
-                sources_i.extend(sources)
-                sources_i = list(set(sources_i))
-                ecurrent = len(sources_i)
-            ia_edges[num_etotal:num_etotal+ecurrent,1] = sources_i
-            num_etotal += ecurrent
-    else:
-        for i,v in enumerate(source_ids):
-            degree_i = lst_deg[i]
-            edges_i, ecurrent, targets_i = np.zeros((degree_i,2)), 0, []
-            ia_edges[num_etotal:num_etotal+degree_i,1] = v
-            while len(targets_i) != degree_i:
-                targets = target_ids[randint(0,num_target,degree_i-ecurrent)]
-                targets_i.extend(targets)
-                targets_i = list(set(targets_i))
-                ecurrent = len(targets_i)
-            ia_edges[num_etotal:num_etotal+ecurrent,0] = targets_i
-            num_etotal += ecurrent
+    for i,v in enumerate(target_ids):
+        degree_i = lst_deg[i]
+        edges_i, ecurrent, variables_i = np.zeros((degree_i,2)), 0, []
+        if existing_edges is not None:
+            with_v = np.where(ia_edge[:,idx] == v)
+            variables_i.extend(ia_edge[with_v:int(not idx)])
+            ecurrent = len(variables_i)
+        rm = np.argwhere(variables == v)[0]
+        rm = rm[0] if len(rm) else -1
+        var_tmp = ( np.array(variables, copy=True) if rm == -1 else
+                    np.concatenate((variables[:rm], variables[rm+1:])) )
+        num_var_i = len(var_tmp)
+        ia_edges[num_etotal:num_etotal+degree_i, idx] = v
+        while len(variables_i) != degree_i:
+            var = var_tmp[randint(0, num_var_i, degree_i-ecurrent)]
+            variables_i.extend(var)
+            if not multigraph:
+                variables_i = list(set(variables_i))
+            ecurrent = len(variables_i)
+        ia_edges[num_etotal:num_etotal+ecurrent, int(not idx)] = variables_i
+        num_etotal += ecurrent
     return ia_edges
     
 

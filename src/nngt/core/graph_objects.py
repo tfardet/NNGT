@@ -11,6 +11,7 @@ import scipy.sparse as ssp
 
 from six import add_metaclass
 from nngt.globals import config, analyze_graph, BWEIGHT
+from nngt.lib import InvalidArgument
 
 
 
@@ -331,7 +332,7 @@ class BaseGraph(config["graph"]):
         pass
     
     @abstractmethod
-    def new_edge(source, target, weight=1.):
+    def new_edge(self, source, target, weight=1.):
         pass
         
     @abstractmethod
@@ -375,8 +376,8 @@ class GtGraph(BaseGraph):
     #-------------------------------------------------------------------------#
     # Constructor and instance properties        
 
-    def __init__ (self, nodes=0, g=None, directed=True, prune=False,
-                  vorder=None):
+    def __init__ (self, nodes=0, g=None, weighted=True, directed=True,
+                  prune=False, vorder=None):
         '''
         @todo: document that
         see :class:`graph_tool.Graph`'s constructor '''
@@ -384,6 +385,8 @@ class GtGraph(BaseGraph):
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
         super(GtGraph,self).__init__(g,directed,prune,vorder)
+        if weighted:
+            self.new_edge_attribute("weight", "double")
         if g is None:
             self.add_vertex(nodes)
         else:
@@ -413,9 +416,12 @@ class GtGraph(BaseGraph):
         The node or an iterator over the nodes created.
         '''
         node = self.add_vertex(n)
-        return node
+        if n == 1:
+            return node
+        else:
+            return tuple(node)
 
-    def new_edge(source, target, weight=1.):
+    def new_edge(self, source, target, weight=1.):
         '''
         Adding an edge to the graph, with optional properties.
         
@@ -434,7 +440,7 @@ class GtGraph(BaseGraph):
         '''
         self._edges[(source, target)] = self.node_nb()
         connection = self.add_edge(source, target, add_missing=True)
-        if self.is_weighted():
+        if "weight" in self.edge_properties:
             self.edge_properties['weight'][connection] = weight
         return connection
 
@@ -557,7 +563,7 @@ class IGraph(BaseGraph):
             node_list.append(first_node_idx+v)
         return node_list
 
-    def new_edge(source, target, weight=1.):
+    def new_edge(self, source, target, weight=1.):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -595,7 +601,7 @@ class IGraph(BaseGraph):
         num_edges = self.ecount()
         if values is None:
             if val is not None:
-                values = np.repeat(val,num_edges)
+                values = np.repeat(val, num_edges)
             else:
                 if "vec" in value_type:
                     values = [ [] for _ in range(num_edges) ]
@@ -757,9 +763,12 @@ edge in the graph.")
         tpl_new_nodes = tuple(range(len(self),len(self)+n))
         for v in tpl_new_nodes:
             self.add_node(v)
-        return node
+        if len(tpl_new_nodes) == 1:
+            return tpl_new_nodes[0]
+        else:
+            return tpl_new_nodes
 
-    def new_edge(source, target, weight=1.):
+    def new_edge(self, source, target, weight=1.):
         '''
         Adding a connection to the graph, with optional properties.
         
