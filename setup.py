@@ -5,13 +5,13 @@ from setuptools import setup, find_packages
 
 setup(
         name='nngt',
-        version = '0.4a',
+        version = '0.5',
         description = 'Package to study growth and activity of neural networks',
-        package_dir={'': 'src'},
-        packages = find_packages('src'),
+        package_dir={'': '.'},
+        packages = find_packages('.'),
         
         # Include the non python files:
-        package_data = { '': ['*.txt', '*.rst', '*.md', '*.plt'] },
+        package_data = { '': ['*.txt', '*.rst', '*.md', '*.default'] },
         
         # Requirements
         install_requires = [ 'numpy', 'scipy>=0.11', 'matplotlib' ],

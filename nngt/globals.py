@@ -64,6 +64,7 @@ def _load_config(path_config):
         'library': None,
         'graph': object,
         'set_logging': False,
+        'load_nest': False,
         'with_nest': False,
         'with_plot': False,
         'to_file': False,

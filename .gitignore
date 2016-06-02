@@ -1,5 +1,5 @@
 *.pyc
 doc/.build/
-src/nngt/testing/Ref/*
-src/nngt/__pycache__
+nngt/testing/Ref/*
+*/__pycache__
 .coverage
