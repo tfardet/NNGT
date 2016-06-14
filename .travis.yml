@@ -27,8 +27,10 @@ cache:
 before_install:
 
   # get repository for clang-3.6 stuff (including clang-format-3.6)
-  - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main\n" >> /etc/apt/sources.list'
-  - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+  #~ - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main\n" >> /etc/apt/sources.list'
+  #~ - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+  - sudo sh -c 'echo -n "deb http://llvm-apt.ecranbleu.org/apt/trusty/ llvm-toolchain-trusty main\n" >> /etc/apt/sources.list'
+  - wget -O - http://llvm-apt.ecranbleu.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
   # add ppa for gcc>4.9
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'

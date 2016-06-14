@@ -3,17 +3,9 @@
 
 """ Matplotlib customization """
 
+import nngt
 import itertools
 import matplotlib.pyplot as plt
-
-
-
-#
-#---
-# Palette
-#------------------------
-
-palette = plt.cm.Set1
 
 
 #
@@ -21,14 +13,27 @@ palette = plt.cm.Set1
 # Customize PyPlot
 #------------------------
 
-try:
-    import seaborn as sns
-    #~ sns.set(style='ticks', palette='Set2')
-    sns.set_style("whitegrid")
-    def sns_palette(arr):
-        return sns.color_palette("Set2", len(arr))
-    palette = sns_palette
-except:
+with_seaborn = False
+palette = None
+
+if nngt.config["color_lib"] == "seaborn":
+    try:
+        import seaborn as sns
+        with_seaborn = True
+        #~ sns.set(style='ticks', palette='Set2')
+        sns.set_style("whitegrid")
+        def sns_palette(c):
+            if isinstance(c, float):
+                pal = sns.color_palette(nngt.config["palette"], 100)
+                return pal[int(c*100)]
+            else:
+                return sns.color_palette(nngt.config["palette"], len(c))
+        palette = sns_palette
+    except ImportError:
+        pass
+        
+if not with_seaborn:
+    palette = plt.get_cmap(nngt.config["palette"])
     try:
         plt.rcParams['font.size'] = 12
         plt.rcParams['font.family'] = 'serif'

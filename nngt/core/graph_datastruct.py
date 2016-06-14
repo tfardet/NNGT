@@ -29,8 +29,8 @@ __all__ = [
 #
 
 class NeuralPop(dict):
-    
-    """    
+
+    """
     The basic class that contains groups of neurons and their properties.
 
     :ivar has_models: :class:`bool`,
@@ -39,11 +39,11 @@ class NeuralPop(dict):
 
     #-------------------------------------------------------------------------#
     # Class attributes and methods
-    
+
     @classmethod
     def from_network(cls, graph, *args):
         '''
-        Make a NeuralPop object from a network. The groups of neurons are 
+        Make a NeuralPop object from a network. The groups of neurons are
         determined using instructions from an arbitrary number of
         :class:`~nngt.properties.GroupProperties`.
         '''
@@ -74,7 +74,7 @@ class NeuralPop(dict):
         pop.new_group("inhibitory", range(num_inhib_neuron), -1, in_model,
            in_param, is_model, es_param)
         return pop
-    
+
     @classmethod
     def copy(cls, pop):
         ''' Copy an existing NeuralPop '''
@@ -86,17 +86,17 @@ class NeuralPop(dict):
 
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
-    
+
     def __init__(self, size=None, parent=None, with_models=True, **kwargs):
         '''
         Initialize NeuralPop instance
-        
+
         Parameters
         ----------
         with_models : :class:`bool`
             whether the population's groups contain models to use in NEST
         **kwargs : :class:`dict`
-            
+
         Returns
         -------
         pop : :class:`~nngt.properties.NeuralPop` instance
@@ -109,13 +109,12 @@ class NeuralPop(dict):
             self._is_valid = True
         else:
             super(NeuralPop, self).__init__()
-        self._iter = iter(self.values())
         self._has_models = with_models
-        
+
     @property
     def size(self):
         return self._size
-    
+
     @property
     def has_models(self):
         return self._has_models
@@ -126,25 +125,11 @@ class NeuralPop(dict):
 
     #-------------------------------------------------------------------------#
     # Methods
-    
-    def __setitem__(self, key, value):
-        super(NeuralPop, self).__setitem__(key, value)
-        self._iter = iter(self.values())
-    
-    def __delitem__(self, key):
-        super(NeuralPop, self).__delitem__(key)
-        self._iter = iter(self.values())
-    
-    def __next__(self):
-        return next(self._iter)
 
-    def next(self):
-        return self.__next__()
-    
     def set_model(self, model, group=None):
         '''
         Set the groups' models.
-        
+
         Parameters
         ----------
         model : dict
@@ -153,14 +138,14 @@ class NeuralPop(dict):
         group : list of strings, optional (default: None)
             List of strings containing the names of the groups which models
             should be updated.
-            
+
         .. warning::
-            No check is performed on the validity of the models, which means 
+            No check is performed on the validity of the models, which means
             that errors will only be detected when building the graph in NEST.
-        
+
         .. note::
-            By default, synapses are registered as "static_synapse"s in NEST; 
-            because of this, only the ``neuron_model`` attribute is checked by 
+            By default, synapses are registered as "static_synapse"s in NEST;
+            because of this, only the ``neuron_model`` attribute is checked by
             the ``has_models`` function: it will answer ``True`` if all groups
             have a 'non-None' ``neuron_model`` attribute.
         '''
@@ -184,11 +169,11 @@ among 'neuron' or 'synapse'.".format(key))
         for group in iter(self.values()):
             b_has_model *= group.has_model
         self._has_models = b_has_models
-    
+
     def set_param(self, param, group=None):
         '''
         Set the groups' parameters.
-        
+
         Parameters
         ----------
         param : dict
@@ -197,10 +182,10 @@ among 'neuron' or 'synapse'.".format(key))
         group : list of strings, optional (default: None)
             List of strings containing the names of the groups which models
             should be updated.
-            
+
         .. warning::
-            No check is performed on the validity of the parameters, which 
-            means that errors will only be detected when building the graph in 
+            No check is performed on the validity of the parameters, which
+            means that errors will only be detected when building the graph in
             NEST.
         '''
         if group is None:
@@ -217,7 +202,7 @@ among 'neuron' or 'synapse'.".format(key))
 among 'neuron' or 'synapse'.".format(key))
         except:
             raise InvalidArgument("Invalid param dict or group; see docstring.")
-    
+
     def new_group(self, name, id_list, ntype=1, neuron_model=None, neuron_param={},
                   syn_model=default_synapse, syn_param={}):
         # create a group
@@ -236,12 +221,12 @@ account; use the `set_models` method to change its behaviour.")
             self._is_valid = False
         else:
             self._is_valid = True
-    
+
     def get_param(self, groups=None, element="neuron"):
         '''
         Return the parameters of the element (neuron or synapse) of a specific,
         several or all groups in the NeuralPop.
-        
+
         Parameters
         ----------
         group : ``str``, optional (default: ``None``)
@@ -250,7 +235,7 @@ account; use the `set_models` method to change its behaviour.")
         element : ``list`` of ``str``, optional (default: ``"neuron"``)
             Element for which the parameters should be returned (either
             ``"neuron"`` or ``"synapse"``).
-        
+
         Returns
         -------
         param : ``list``
@@ -279,29 +264,29 @@ account; use the `set_models` method to change its behaviour.")
 
 
 class NeuralGroup:
-    
+
     """
     Class defining groups of neurons.
-    
+
     :ivar id_list: :class:`list` of :class:`int`s
         the ids of the neurons in this group.
     :ivar neuron_type: :class:`int`
-        the default is ``1`` for excitatory neurons; ``-1`` is for interneurons 
+        the default is ``1`` for excitatory neurons; ``-1`` is for interneurons
     :ivar model: :class:`string`, optional (default: None)
         the name of the model to use when simulating the activity of this group
     :ivar neuron_param: :class:`dict`, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
-        
+
     .. warning::
-        Equality between :class:`~nngt.properties.NeuralGroup`s only compares 
-        the neuronal and synaptic ``model`` and ``param`` attributes, i.e. 
+        Equality between :class:`~nngt.properties.NeuralGroup`s only compares
+        the neuronal and synaptic ``model`` and ``param`` attributes, i.e.
         groups differing only by their ``id_list`` will register as equal.
     .. note::
-        By default, synapses are registered as ``"static_synapse"`` in NEST; 
+        By default, synapses are registered as ``"static_synapse"`` in NEST;
         because of this, only the ``neuron_model`` attribute is checked by the
         ``has_model`` function.
     """
-    
+
     def __init__ (self, id_list=[], ntype=1, model=None, neuron_param={},
                   syn_model=None, syn_param={}):
         self._has_model = False if model is None else True
@@ -313,7 +298,7 @@ class NeuralGroup:
             self.neuron_type = ntype
             self.syn_model = syn_model
             self.syn_param = syn_param
-    
+
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
             same_nmodel = ( self.neuron_model == other.neuron_model *
@@ -323,24 +308,24 @@ class NeuralGroup:
             return same_nmodel * same_smodel
         else:
             return False
-        
+
     @property
     def neuron_model(self):
         return self._neuron_model
-    
+
     @neuron_model.setter
     def neuron_model(self, value):
         self._neuron_model = value
         self._has_model = False if value is None else True
-    
+
     @property
     def id_list(self):
         return self._id_list
-    
+
     @property
     def nest_gids(self):
         return self._nest_gids
-    
+
     @property
     def has_model(self):
         return self._has_model
@@ -354,39 +339,39 @@ class NeuralGroup:
         return dic
 
 class GroupProperty:
-    
+
     """
     Class defining the properties needed to create groups of neurons from an
     existing :class:`~nngt.GraphClass` or one of its subclasses.
-    
+
     :ivar size: :class:`int`
         Size of the group.
     :ivar constraints: :class:`dict`, optional (default: {})
-        Constraints to respect when building the 
+        Constraints to respect when building the
         :class:`~nngt.properties.NeuralGroup` .
     :ivar neuron_model: :class:`string`, optional (default: None)
         name of the model to use when simulating the activity of this group.
     :ivar neuron_param: :class:`dict`, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
     """
-    
+
     def __init__ (self, size, constraints={}, neuron_model=None,
                   neuron_param={}, syn_model=None, syn_param={}):
         '''
         Create a new instance of GroupProperties.
-        
+
         Notes
         -----
         The constraints can be chosen among:
-            - "avg_deg", "min_deg", "max_deg" (:class:`int`) to constrain the 
+            - "avg_deg", "min_deg", "max_deg" (:class:`int`) to constrain the
             total degree of the nodes
-            - "avg/min/max_in_deg", "avg/min/max_out_deg", to work with the 
+            - "avg/min/max_in_deg", "avg/min/max_out_deg", to work with the
             in/out-degrees
             - "avg/min/max_betw" (:class:`double`) to constrain the betweenness
             centrality
-            - "in_shape" (:class:`nngt.Shape`) to chose neurons inside a given 
+            - "in_shape" (:class:`nngt.Shape`) to chose neurons inside a given
             spatial region
-        
+
         Examples
         --------
         >>> di_constrain = { "avg_deg": 10, "min_betw": 0.001 }
@@ -413,22 +398,22 @@ def _make_groups(graph, group_prop):
 #
 
 class Connections:
-    
-    """    
+
+    """
     The basic class that computes the properties of the connections between
     neurons for graphs.
     """
 
     #-------------------------------------------------------------------------#
     # Class methods
-    
+
     @staticmethod
     def distances(graph, pos=None, overwrite=False):
         '''
-        Compute the distances between connected nodes in the graph. Try to add 
-        only the new distances to the graph. If they overlap with previously 
+        Compute the distances between connected nodes in the graph. Try to add
+        only the new distances to the graph. If they overlap with previously
         computed distances, recomputes everything.
-        
+
         Parameters
         ----------
         graph : class:`~nngt.Graph` or subclass
@@ -436,9 +421,9 @@ class Connections:
         elist : class:`numpy.array`, optional (default: None)
             List of the edges
         pos : class:`numpy.array`, optional (default: None)
-            Positions of the nodes; note that if `graph` has a "position" 
+            Positions of the nodes; note that if `graph` has a "position"
             attribute, `pos` will not be taken into account.
-        
+
         Returns
         -------
         new_dist : class:`numpy.array`
@@ -460,13 +445,13 @@ class Connections:
             return ra_dist
         else:
             return []
-    
+
     @staticmethod
     def delays(graph, dlist=None, elist=None, distribution="constant",
                parameters={}, noise_scale=None):
         '''
         Compute the delays of the neuronal connections.
-        
+
         Parameters
         ----------
         graph : class:`~nngt.Graph` or subclass
@@ -476,14 +461,14 @@ class Connections:
         elist : class:`numpy.array`, optional (default: None)
             List of the edges which value should be updated.
         distribution : class:`string`, optional (default: "constant")
-            Type of distribution (choose among "constant", "uniform", 
+            Type of distribution (choose among "constant", "uniform",
             "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
         parameters : class:`dict`, optional (default: {})
             Dictionary containing the distribution parameters.
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
-        
+
         Returns
         -------
         new_delays : class:`scipy.sparse.lil_matrix`
@@ -502,14 +487,14 @@ class Connections:
         # add to the graph container
         graph.set_edge_attribute(DELAY, value_type="double", values=dlist)
         return dlist
-    
+
     @staticmethod
     def weights(graph, elist=None, wlist=None, distribution="constant",
                 parameters={}, noise_scale=None):
         '''
         Compute the weights of the graph's edges.
         @todo: take elist into account
-        
+
         Parameters
         ----------
         graph : class:`~nngt.Graph` or subclass
@@ -519,14 +504,14 @@ class Connections:
         wlist : class:`numpy.array`, optional (default: None)
             List of the weights (for user defined weights).
         distribution : class:`string`, optional (default: "constant")
-            Type of distribution (choose among "constant", "uniform", 
+            Type of distribution (choose among "constant", "uniform",
             "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
         parameters : class:`dict`, optional (default: {})
             Dictionary containing the distribution parameters.
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
-        
+
         Returns
         -------
         new_weights : class:`scipy.sparse.lil_matrix`
@@ -547,12 +532,12 @@ class Connections:
         graph.set_edge_attribute(WEIGHT, value_type="double", values=wlist)
         graph.set_edge_attribute(BWEIGHT, value_type="double", values=bwlist)
         return wlist
-    
+
     @staticmethod
     def types(graph, inhib_nodes=None, inhib_frac=None):
         '''
         @todo
-        
+
         Define the type of a set of neurons.
         If no arguments are given, all edges will be set as excitatory.
 
@@ -634,8 +619,8 @@ for `inhib_nodes`) must be smaller than 1")
                         t_list[idx_edges] *= -1.
             graph.set_edge_attribute("type", value_type="double", values=t_list)
             return t_list
-                
-            
+
+
 
 
 #-----------------------------------------------------------------------------#
@@ -669,7 +654,7 @@ class Shape:
     def rectangle(cls, parent, height, width, pos_com=(0.,0.)):
         '''
         Generate a rectangle of given height, width and center of mass.
-        
+
         Parameters
         ----------
         parent : :class:`~nngt.SpatialGraph` or subclass
@@ -680,7 +665,7 @@ class Shape:
             Width of the rectangle.
         pos_com : tuple of floats, optional (default: (0., 0.))
             Position of the rectangle's center of mass
-        
+
         Returns
         -------
         shape : :class:`~nngt.Shape`
@@ -702,12 +687,12 @@ class Shape:
         self._area = 0.
         self._com = (0.,0.)
         self._convex_hull = None
-    
+
     @property
     def area(self):
         ''' Area of the shape. '''
         return self._area
-    
+
     @property
     def com(self):
         ''' Center of mass of the shape. '''
@@ -723,7 +708,7 @@ class Shape:
     def add_subshape(self, subshape, position, unit='mm'):
         """
         Add a :class:`~nngt.core.Shape` to the current one.
-        
+
         Parameters
         ----------
         subshape: :class:`~nngt.Shape`
@@ -732,7 +717,7 @@ class Shape:
             Position of the subshape's center of gravity in space.
         unit: string (default 'mm')
             Unit in the metric system among 'um', 'mm', 'cm', 'dm', 'm'
-        
+
         Returns
         -------
         None
@@ -749,4 +734,4 @@ class Shape:
         ra_x = uniform(min_x, max_x, size=nodes)
         ra_y = uniform(min_y, max_y, size=nodes)
         return np.vstack((ra_x,ra_y))
-        
+

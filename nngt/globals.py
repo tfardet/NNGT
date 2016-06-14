@@ -71,6 +71,8 @@ def _load_config(path_config):
         'log_folder': "~/.nngt/database",
         'db_url': "mysql:///nngt_db",
         'backend': None,
+        'color_lib': 'matplotlib',
+        'palette': 'Set1',
     }
     with open(path_config, 'r') as fconfig:
         options = [ l.strip() for l in fconfig if l.strip() and l[0] != "#" ]

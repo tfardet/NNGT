@@ -18,7 +18,6 @@ import matplotlib
 from nngt import config
 
 if config["backend"] is not None:
-    print("Changing matplotlib backend to {}".format(config["backend"]))
     matplotlib.use(config["backend"])
 else:
     sav_backend = matplotlib.get_backend()
