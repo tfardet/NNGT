@@ -142,11 +142,17 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
     for i,rec in enumerate(nest_recorder):
         # multi/volt/conductancemeter
         if "meter" in rec:
-            device = nest.Create(rec)
+            device = None
+            di_spec = {"rule": "all_to_all"}
+            if not params[i].get("to_accumulator", False):
+                device = nest.Create(rec, len(gids))
+                di_spec["rule"] = "one_to_one"
+            else:
+                device = nest.Create(rec)
             recorders.append(device)
             new_record.append(params[i]["record_from"])
             nest.SetStatus(device, params[i])
-            nest.Connect(device, gids)
+            nest.Connect(device, gids, conn_spec=di_spec)
         # event detectors
         elif "detector" in rec:
             if network is not None:

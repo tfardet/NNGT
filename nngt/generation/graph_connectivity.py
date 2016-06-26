@@ -90,14 +90,14 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         graph_fd.clear_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_fd = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
+        graph_fd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
                                  directed, multigraph)
-        graph_fd.add_edges(ia_edges)
+        graph_fd.new_edges(ia_edges)
     _set_options(graph_fd, weighted, population, shape, positions)
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
     return graph_fd
@@ -109,6 +109,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
                  **kwargs):
     """
     Generate a random graph with constant in- or out-degree.
+    @todo: adapt it for undirected graphs!
 
     Parameters
     ----------
@@ -164,14 +165,14 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
         graph_gd.clear_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_gd = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
+        graph_gd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
                                     reciprocity, directed, multigraph)
-        graph_gd.add_edges(ia_edges)
+        graph_gd.new_edges(ia_edges)
     _set_options(graph_gd, weighted, population, shape, positions)
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
     return graph_gd
@@ -241,14 +242,14 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
         graph_er.clear_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_er = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
+        graph_er = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                                 directed, multigraph)
-        graph_er.add_edges(ia_edges)
+        graph_er.new_edges(ia_edges)
     _set_options(graph_er, weighted, population, shape, positions)
     graph_er._graph_type = "erdos_renyi"
     return graph_er
@@ -323,14 +324,14 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         graph_rsf.clear_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_rsf = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
+        graph_rsf = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
                           edges, avg_deg, reciprocity, directed, multigraph)
-        graph_rsf.add_edges(ia_edges)
+        graph_rsf.new_edges(ia_edges)
     _set_options(graph_rsf, weighted, population, shape, positions)
     graph_rsf._graph_type = "random_scale_free"
     return graph_rsf
@@ -387,14 +388,18 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     nodes = ( ( population.size if population is not None else nodes )
               if from_graph is None else from_graph.node_nb() )
     #~ c = c if c is not None else 0 if directed else 1
-    
-    graph_obj_price = nngt.GraphObject.to_graph_object(
-                        price_network(nodes,m,c,gamma,directed,seed_graph))
+
+    g = price_network(nodes,m,c,gamma,directed,seed_graph)
+    print(g.num_edges())
+    graph_obj_price = nngt.GraphObject.to_graph_object(g)
+    print(graph_obj_price.__class__, graph_obj_price.edge_nb(), graph_obj_price.num_edges())
     if from_graph is not None:
         from_graph.graph = graph_obj_price
-    
-    graph_price = (nngt.Graph(name=name, libgraph=graph_obj_price, **kwargs)
-                   if from_graph is None else from_graph)
+
+    graph_price = nngt.Graph.from_library(g)
+    #~ graph_price = (nngt.Graph(name=name, libgraph=graph_obj_price, **kwargs)
+                   #~ if from_graph is None else from_graph)
+    print(graph_price.edge_nb())
     
     _set_options(graph_price, weighted, population, shape, positions)
     graph_price._graph_type = "price_scale_free"
@@ -466,14 +471,14 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
         graph_nw.clear_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_nw = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
+        graph_nw = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _newman_watts(ids, ids, coord_nb, proba_shortcut, directed,
                                  multigraph)
-        graph_nw.add_edges(ia_edges)
+        graph_nw.new_edges(ia_edges)
     _set_options(graph_nw, weighted, population, shape, positions)
     graph_nw._graph_type = "newman_watts"
     return graph_nw
@@ -541,7 +546,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         graph_dr.clear_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_dr = nngt.Graph(name=name, nodes=nodes, directed=True, **kwargs)
+        graph_dr = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
     # generate container
     h = w = np.sqrt(float(nodes)/neuron_density)
     shape = shape if shape is not None else nngt.Shape.rectangle(graph_dr,h,w)
@@ -553,7 +558,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         ids = range(nodes)
         ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
                                   rule, shape, positions, directed, multigraph)
-        graph_dr.add_edges(ia_edges)
+        graph_dr.new_edges(ia_edges)
     # set options
     _set_options(graph_dr, weighted, population, shape=None, positions=None)
     graph_dr._graph_type = "{}_distance_rule".format(rule)
@@ -662,10 +667,10 @@ def connect_neural_types(network, source_type, target_type, graph_model,
             target_ids.extend(group._id_list)
     if source_type == target_type:
         edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
-        network.add_edges(edges)
+        network.new_edges(edges)
     else:
         edges = _di_gen_edges[graph_model](source_ids, target_ids, **di_param)
-        network.add_edges(edges)
+        network.new_edges(edges)
     #~ network.set_weights(edges)
     if weighted:
         network.set_weights()
@@ -710,10 +715,10 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
             target_ids.extend(group._id_list)
     if source_groups == target_groups:
         edges = _di_gen_edges[graph_model](source_ids,source_ids,**di_param)
-        network.add_edges(edges)
+        network.new_edges(edges)
     else:
         edges = _di_gen_edges[graph_model](source_ids, target_ids, **di_param)
-        network.add_edges(edges)
+        network.new_edges(edges)
     #~ network.set_weights(edges)
     network.set_weights()
     #~ nngt.Connections.delays(network, elist=edges)

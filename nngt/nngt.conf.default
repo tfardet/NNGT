@@ -6,9 +6,16 @@
 # (choose among "graph-tool", "igraph", "networkx")
 graph_library = graph-tool
 
+## Try to load NEST
+load_nest = True
+
 ## Matplotlib backend
 # Uncomment and choose among your available backends (http://matplotlib.org/faq/usage_faq.html#what-is-a-backend)
 #backend = Qt5Agg
+# color library either matplotlib or seaborn
+color_lib = matplotlib
+# palette to use
+palette = Set1
 
 ## settings for data logging
 set_logging = False

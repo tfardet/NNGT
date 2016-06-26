@@ -125,15 +125,16 @@ except ImportError as e:
     config['with_plot'] = False
 
 # look for nest
-try:
-    sys.argv.append('--quiet')
-    import nest
-    from . import simulation
-    config['with_nest'] = True
-    __all__.append("simulation")
-except ImportError as e:
-    ImportWarning("NEST not found; nngt.simulation not loaded...", e)
-    config["with_nest"] = False
+if config['load_nest']:
+    try:
+        sys.argv.append('--quiet')
+        import nest
+        from . import simulation
+        config['with_nest'] = True
+        __all__.append("simulation")
+    except ImportError as e:
+        ImportWarning("NEST not found; nngt.simulation not loaded...", e)
+        config["with_nest"] = False
     
 # load database module if required
 if config["set_logging"]:

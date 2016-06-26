@@ -131,7 +131,7 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
     if existing:
         ia_edges[:existing,:] = existing_edges
     idx = 0 if b_out else 1 # differenciate source / target
-    variables = source_idx if b_out else target_ids # nodes picked randomly
+    variables = source_ids if b_out else target_ids # nodes picked randomly
     
     for i,v in enumerate(target_ids):
         edges_i, ecurrent, variables_i = np.zeros((degree,2)), 0, []
@@ -152,6 +152,9 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
                 variables_i = list(set(variables_i))
             ecurrent = len(variables_i)
         ia_edges[i*degree:(i+1)*degree, int(not idx)] = variables_i
+    if not directed:
+        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
+        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -173,14 +176,10 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
     b_one_pop = (False if num_source != num_target else
                            not np.all(source_ids-target_ids))
     if not b_one_pop and not multigraph:
-        b_d = (edges > num_source*num_target)
-        b_nd = (edges > int(0.5*num_source*num_target))
-        if (not directed and b_nd) or (directed and b_d):
+        if edges > num_source*num_target:
             raise InvalidArgument("Required degree is too high")
     elif b_one_pop and not multigraph:
-        b_d = (edges > num_source*(num_target-1))
-        b_nd = (edges > int((0.5*num_source-1)*num_target))
-        if (not directed and b_nd) or (directed and b_d):
+        if edges > num_source*(num_target-1):
             raise InvalidArgument("Required degree is too high")
     
     num_etotal = 0 if existing_edges is None else existing_edges.shape[0]
@@ -211,6 +210,9 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
             ecurrent = len(variables_i)
         ia_edges[num_etotal:num_etotal+ecurrent, int(not idx)] = variables_i
         num_etotal += ecurrent
+    if not directed:
+        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
+        ia_edges = _unique_rows(ia_edges)
     return ia_edges
     
 
@@ -277,6 +279,9 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
+    if not directed:
+        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
+        ia_edges = _unique_rows(ia_edges)
     return ia_edges
     
 
@@ -320,6 +325,9 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
+    if not directed:
+        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
+        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -375,6 +383,9 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
                                          b_one_pop, multigraph)
         num_test += 1
     ia_edges = _no_self_loops(ia_edges)
+    if not directed:
+        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
+        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -412,6 +423,9 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          b_one_pop, multigraph)
         num_test += 1
+    if not directed:
+        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
+        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 def price_network():

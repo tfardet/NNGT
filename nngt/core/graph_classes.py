@@ -10,7 +10,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt.analysis as na
-from nngt.core.graph_objects import GraphObject
+import nngt.core
 from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
 from nngt.lib import InvalidArgument, as_string, save_to_file, load_from_file
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
@@ -27,7 +27,7 @@ __all__ = [
 #------------------------
 #
 
-class Graph(GraphObject):
+class Graph(nngt.core.GraphObject):
     
     """
     The basic class that contains a :class:`graph_tool.Graph` and some
@@ -50,6 +50,23 @@ class Graph(GraphObject):
     def num_graphs(cls):
         ''' Returns the number of alive instances. '''
         return cls.__num_graphs
+
+    @classmethod
+    def from_library(cls, library_graph, weighted=True, directed=True,
+                     **kwargs):
+        library_graph = nngt.core.GraphObject.to_graph_object(library_graph)
+        library_graph.__class__ = cls
+        if weighted:
+            if "weights" in kwargs:
+                library_graph._w = kwargs["weights"]
+            else:
+                library_graph._w = {"distribution": "constant"}
+        library_graph.__id = cls.__max_id
+        library_graph._name = "Graph" + str(cls.__num_graphs)
+        cls.__max_id += 1
+        cls.__num_graphs += 1
+        return library_graph
+        
     
     @classmethod
     def from_matrix(cls, matrix, weighted=True, directed=True):
@@ -231,8 +248,8 @@ with non symmetric matrix provided.')
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
     
-    def __init__(self, nodes=0, name="Graph",
-                  weighted=True, directed=True, from_graph=None, **kwargs):
+    def __init__(self, nodes=0, name="Graph", weighted=True, directed=True,
+                 from_graph=None, **kwargs):
         '''
         Initialize Graph instance
 
@@ -255,10 +272,10 @@ with non symmetric matrix provided.')
         '''
         self.__id = self.__class__.__max_id
         self._name = name
-        self._directed = directed
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
         # Init the GraphObject
-        super(Graph, self).__init__(nodes=nodes, g=from_graph)
+        super(Graph, self).__init__(nodes=nodes, g=from_graph,
+                                    directed=directed, weighted=weighted)
         # take care of the weights @todo: use those of the from_graph
         if weighted:
             if "weights" in kwargs:
@@ -334,32 +351,6 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         save_to_file(self, filename, format=format, delimiter=delimiter,
                      secondary=secondary, attributes=attributes,
                      notifier=notifier)
-    
-    def add_edges(self, lst_edges, attributes=None):
-        '''
-        Add a list of edges to the graph.
-        
-        Parameters
-        ----------
-        lst_edges : list of 2-tuples or np.array of shape (edge_nb, 2)
-            List of the edges that should be added as tuples (source, target)
-        attributes : dict, optional (default: ``None``)
-            Dictionary of the form ``{ "name": [], "values": [],
-            "types": [] }``, containing the attributes of the new edges.
-        
-        warning ::
-            For now attributes works only when adding edges for the first time
-            (i.e. adding edges to an empty graph).
-            
-        @todo: add example, check the edges for self-loops and multiple edges
-        '''
-        empty = False if self.edge_nb() else True
-        self.new_edges(lst_edges)
-        n = self.edge_nb()
-        if empty and attributes is not None:
-            for name, value_type, values in zip(attributes["names"],
-                                    attributes["types"], attributes["values"]):
-                self._eattr.new_ea(name, value_type, values=values)
 
     #~ def inhibitory_subgraph(self):
         #~ ''' Create a :class:`~nngt.core.Graph` instance which graph

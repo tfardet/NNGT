@@ -78,10 +78,9 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
             lst_rec.append((rec,))
     num_group = len(network.population) if network is not None else 1
     # sorting
-    sorted_neurons = np.arange(len(gids)).astype(int) + 1
+    sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
     if sort and network is not None:
         sorted_neurons = _sort_neurons(sort, gids, network)
-        print("sorted", sorted_neurons[:10])
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_spike, num_detec = 0, 0
@@ -92,7 +91,6 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
         if str(info["model"]) == "spike_detector":
             c = colors[num_spike]
             times, senders = info["events"]["times"], info["events"]["senders"]
-            print(senders.min(), senders.max())
             sorted_ids = sorted_neurons[senders]
             fig_spike = raster_plot(times, sorted_ids, fignum=fig_spike,
                                     color=c, show=False, label=info["label"],
