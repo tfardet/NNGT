@@ -159,15 +159,10 @@ def _set_igraph():
         n = graph.node_nb()
         if graph.edge_nb():
             xs, ys = map(sp.array, zip(*graph.get_edgelist()))
-            if not graph.is_directed():
-                xs, ys = sp.hstack((xs, ys)).T, sp.hstack((ys, xs)).T
-            else:
-                xs, ys = xs.T, ys.T
+            xs, ys = xs.T, ys.T
             data = sp.ones(xs.shape)
             if issubclass(weight.__class__, str):
                 data *= sp.array(graph.es[weight])
-                if not graph.is_directed():
-                    data.extend(data)
             else:
                 data *= sp.array(weight)
             coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
@@ -256,7 +251,11 @@ def use_library(library, reloading=True):
         raise ValueError("Invalid graph library requested.")
     if reloading:
         sys.modules["nngt"].config = config
-        reload_module(sys.modules["nngt"].core.graph_objects)
+        sys.modules["nngt"].analyze_graph = analyze_graph
+        reload_module(sys.modules["nngt"].core.base_graph)
+        reload_module(sys.modules["nngt"].core.gt_graph)
+        reload_module(sys.modules["nngt"].core.ig_graph)
+        reload_module(sys.modules["nngt"].core.nx_graph)
         reload_module(sys.modules["nngt"].core)
         reload_module(sys.modules["nngt"].analysis)
         reload_module(sys.modules["nngt"].analysis.gt_analysis)

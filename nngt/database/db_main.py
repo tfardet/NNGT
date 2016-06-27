@@ -116,10 +116,10 @@ class NNGTdb:
         neuralnet : :class:`~nngt.database.NeuralNetwork`
             New NeuralNetwork entry.
         '''
-        weighted = network.is_weighted()
+        weighted = network._weighted
         net_prop = {
             'network_type': network.type,
-            'directed': network.is_directed(),
+            'directed': network._directed,
             'nodes': network.node_nb(),
             'edges': network.edge_nb(),
             'weighted': weighted,

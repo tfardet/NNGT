@@ -330,7 +330,7 @@ different.")
     if attributes is None:
         attributes = [ a for a in graph.attributes() if a != "bweight" ]
     di_notifiers = {
-        "directed": graph.is_directed(),
+        "directed": graph._directed,
         "attributes": attributes,
         "attr_types": [graph.get_attribute_type(attr) for attr in attributes],
         "name": graph.get_name(),

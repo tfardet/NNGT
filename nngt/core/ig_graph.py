@@ -105,6 +105,7 @@ class _IGraph(BaseGraph):
     # Constructor and instance properties
     
     def __init__(self, nodes=0, g=None, directed=True, weighted=False):
+        self._edges = OrderedDict()
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
         self._weighted = weighted
@@ -124,7 +125,7 @@ class _IGraph(BaseGraph):
                 di_node_attr[attr] = g.vs[:][attr]
             for attr in eattr:
                 di_edge_attr[attr] = g.es[:][attr]
-            super(_IGraph,self).__init__(n=nodes, vertex_attrs=di_node_attr)
+            super(_IGraph, self).__init__(n=nodes, vertex_attrs=di_node_attr)
             lst_edges = nngt.globals.analyze_graph["get_edges"](g)
             self.new_edges(lst_edges, eprops=di_edge_attr)
 
@@ -153,7 +154,7 @@ class _IGraph(BaseGraph):
             node_list.append(first_node_idx+v)
         return node_list
 
-    def new_edge(self, source, target, weight=1., attributes=None):
+    def new_edge(self, source, target, attributes={}):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -163,27 +164,24 @@ class _IGraph(BaseGraph):
             Source node.
         target : :class:`int/node`
             Target node.
-        weight : :class:`double`, optional (default: 1.)
-            Weight of the connection (synaptic strength with NEST).
-        attributes : :class:`dict`, optional (default: None)
-            Dictionary containing optional
-            .. warning ::
-                Not implemented yet.
+        attributes : :class:`dict`, optional (default: ``{}``)
+            Dictionary containing optional edge properties. If the graph is
+            weighted, defaults to ``{"weight": 1.}``, the unit weight for the
+            connection (synaptic strength in NEST).
             
         Returns
         -------
         The new connection.
         '''
-        if "weight" in attributes:
-            weight = attributes["weight"]
-            del attributes["weight"]
-        self._edges[(source, target)] = self.node_nb()
-        super(_IGraph, self).add_edge(source,target,weight=weight)
+        if self._weighted and "weight" not in attributes:
+            attributes["weight"] = 1.
+        self._edges[(source, target)] = self.edge_nb()
+        super(_IGraph, self).add_edge(source, target, **attributes)
         if not self._directed:
-            super(_IGraph, self).add_edge(target,source,weight=weight)
+            super(_IGraph, self).add_edge(target, source, **attributes)
         return (source, target)
 
-    def new_edges(self, edge_list, attributes=None):
+    def new_edges(self, edge_list, attributes={}):
         '''
         Add a list of edges to the graph.
         
@@ -202,19 +200,21 @@ class _IGraph(BaseGraph):
         @todo: add example, check the edges for self-loops and multiple edges
         '''
         e = self.edge_nb()
+        edge_generator = ( e for e in edge_list )
+        edge_list = np.array(edge_list)
+        if self._weighted and "weight" not in attributes:
+            attributes["weight"] = np.repeat(1., len(edge_list))
         if not self._directed:
             edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
+            for key, val in attributes.items():
+                attributes[key] = np.concatenate((val, val))
         for i, edge in enumerate(edge_list):
             self._edges[tuple(edge)] = e + i
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
         last_eid = self.ecount()
-        if attributes is not None:
-            if not self._directed:
-                for key, val in attributes.items():
-                    attributes[key] = np.concatenate((val, val))
-            for attr,lst in iter(attributes.items()):
-                self.es[first_eid:last_eid][attr] = lst
+        for key, val in attributes.items():
+            self.es[first_eid:last_eid][key] = val
         return edge_list
 
     def new_edge_attribute(self, name, value_type, values=None, val=None):

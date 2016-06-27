@@ -117,10 +117,10 @@ class _NxGraph(BaseGraph):
     def __init__(self, nodes=0, g=None, directed=True, weighted=False):
         self._edges = OrderedDict()
         self._directed = directed
-        self._weighted = _weighted
+        self._weighted = weighted
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
-        super(_NxGraph,self).__init__(g)
+        super(_NxGraph, self).__init__(g)
         if g is not None:
             edges = nngt.globals.analyze_graph["get_edges"](g)
             for i, edge in enumerate(edges):
@@ -148,7 +148,7 @@ node in the graph.")
             self.node[n][name] = val
 
     def new_edge_attribute(self, name, value_type, values=None, val=None):
-        num_edges = self.number_of_edges()
+        num_edges = self.edge_nb()
         if values is None:
             if val is not None:
                 values = np.repeat(val,num_edges)
@@ -186,7 +186,7 @@ edge in the graph.")
         else:
             return tpl_new_nodes
 
-    def new_edge(self, source, target, weight=1.):
+    def new_edge(self, source, target, attributes={}):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -196,42 +196,72 @@ edge in the graph.")
             Source node.
         target : :class:`int/node`
             Target node.
-        add_missing : :class:`bool`, optional (default: None)
-            Add the nodes if they do not exist.
-        weight : :class:`double`, optional (default: 1.)
-            Weight of the connection (synaptic strength with NEST).
+        attributes : :class:`dict`, optional (default: ``{}``)
+            Dictionary containing optional edge properties. If the graph is
+            weighted, defaults to ``{"weight": 1.}``, the unit weight for the
+            connection (synaptic strength in NEST).
             
         Returns
         -------
         The new connection.
         '''
+        if self._weighted and "weight" not in attributes:
+            attributes["weight"] = 1.
         self.add_edge(source, target)
-        self._edges[(source, target)] = self.node_nb()
-        self[source][target]['weight'] = weight
+        self._edges[(source, target)] = self.edge_nb()
+        for key, val in attributes.items:
+            self[source][target][key] = val
         if not self._directed:
             self.add_edge(target,source)
-            self[target][source]['weight'] = weight
+            for key, val in attributes.items:
+                self[target][source][key] = val
         return (source, target)
 
-    def new_edges(self, edge_list, eprops=None):
-        ''' Adds a list of connections to the graph '''
-        n = self.edge_nb()
+    def new_edges(self, edge_list, attributes={}):
+        '''
+        Add a list of edges to the graph.
+        
+        Parameters
+        ----------
+        edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
+            List of the edges that should be added as tuples (source, target)
+        attributes : :class:`dict`, optional (default: ``{}``)
+            Dictionary containing optional edge properties. If the graph is
+            weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
+            array the same length as the `edge_list` containing a unit weight
+            for each connection (synaptic strength in NEST).
+        
+        warning ::
+            For now attributes works only when adding edges for the first time
+            (i.e. adding edges to an empty graph).
+            
+        @todo: add example, check the edges for self-loops and multiple edges
+        '''
+        e = self.edge_nb()
+        edge_generator = ( e for e in edge_list )
+        edge_list = np.array(edge_list)
+        if self._weighted and "weight" not in attributes:
+            attributes["weight"] = np.repeat(1., len(edge_list))
+        if not self._directed:
+            edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
+            for key, val in attributes.items():
+                attributes[key] = np.concatenate((val, val))
         for i, edge in enumerate(edge_list):
-            self._edges[tuple(edge)] = n + i
-        if eprops is not None:
-            for attr in iter(eprops.keys()):
-                arr = eprops[attr]
-                edges = ( (tpl[0],tpl[i][1], arr[i])
-                          for i, tpl in enumerate(edge_list) )
-                self.add_weighted_edges_from(edges, weight=attr)
-                if not self._directed:
-                    self.add_weighted_edges_from(
-                        np.array(edge_list)[:,[1,0,2]], weight=attr)
-        else:
-            self.add_edges_from(edge_list, eprops)
-            if not self._directed:
-                self.add_edges_from(np.array(edge_list)[:,::-1], eprops)
-        return edge_list
+            self._edges[tuple(edge)] = e + i
+        for i, (u,v) in enumerate(edge_list):
+            if u not in self.succ:
+                self.succ[u] = self.adjlist_dict_factory()
+                self.pred[u] = self.adjlist_dict_factory()
+                self.node[u] = {}
+            if v not in self.succ:
+                self.succ[v] = self.adjlist_dict_factory()
+                self.pred[v] = self.adjlist_dict_factory()
+                self.node[v] = {}
+            datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
+            datadict.update({ key: val[i] for key, val in attributes.items() })
+            self.succ[u][v] = datadict
+            self.pred[v][u] = datadict
+        return edge_generator
 
     def clear_all_edges(self):
         ''' Remove all connections in the graph '''
@@ -250,7 +280,7 @@ edge in the graph.")
         return self.number_of_nodes()
 
     def edge_nb(self):
-        return self.size()
+        return self.size() if self._directed else 2*self.size()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         weight = 'weight' if use_weights else None

@@ -291,8 +291,8 @@ with non symmetric matrix provided.')
 
     def __repr__(self):
         ''' Provide unambiguous informations regarding the object. '''
-        d = "directed" if self.is_directed() else "undirected"
-        w = "weighted" if self.is_weighted() else "binary"
+        d = "directed" if self._directed else "undirected"
+        w = "weighted" if self._weighted else "binary"
         t = self.type
         n = self.node_nb()
         e = self.edge_nb()
@@ -332,7 +332,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         instance
         '''
         gc_instance = Graph(name=self._name+'_copy',
-                            weighted=self.is_weighted(),
+                            weighted=self._weighted,
                             from_graph=self)
         if self.is_spatial():
             SpatialGraph.make_spatial(gc_instance)
@@ -360,7 +360,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
                        #~ "bool",-self._graph.edge_properties[TYPE].a+1)
         #~ self._graph.set_edge_filter(eprop_b_type)
         #~ inhib_graph = Graph( name=self._name + '_inhib',
-                             #~ weighted=self.is_weighted(),
+                             #~ weighted=self._weighted,
                              #~ from_graph=GraphObject(self._graph,prune=True) )
         #~ self.clear_filters()
         #~ return inhib_graph
@@ -378,7 +378,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
                        #~ "bool",self._graph.edge_properties[TYPE].a+1)
         #~ self._graph.set_edge_filter(eprop_b_type)
         #~ exc_graph = Graph( name=self._name + '_exc',
-                             #~ weighted=self.is_weighted(),
+                             #~ weighted=self._weighted,
                              #~ graph=GraphObject(self._graph,prune=True) )
         #~ self._graph.clear_filters()
         #~ return exc_graph
