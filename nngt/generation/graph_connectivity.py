@@ -390,16 +390,13 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     #~ c = c if c is not None else 0 if directed else 1
 
     g = price_network(nodes,m,c,gamma,directed,seed_graph)
-    print(g.num_edges())
     graph_obj_price = nngt.GraphObject.to_graph_object(g)
-    print(graph_obj_price.__class__, graph_obj_price.edge_nb(), graph_obj_price.num_edges())
     if from_graph is not None:
         from_graph.graph = graph_obj_price
 
     graph_price = nngt.Graph.from_library(g)
     #~ graph_price = (nngt.Graph(name=name, libgraph=graph_obj_price, **kwargs)
                    #~ if from_graph is None else from_graph)
-    print(graph_price.edge_nb())
     
     _set_options(graph_price, weighted, population, shape, positions)
     graph_price._graph_type = "price_scale_free"
@@ -410,9 +407,9 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
 # Small-world models
 #------------------------
 
-def newman_watts(coord_nb, proba_shortcut, nodes=0, directed=True,
-                 multigraph=False, name="NW", shape=None, positions=None,
-                 population=None, from_graph=None, **kwargs):
+def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
+                 directed=True,multigraph=False, name="NW", shape=None,
+                 positions=None, population=None, from_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
     
@@ -550,17 +547,19 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     # generate container
     h = w = np.sqrt(float(nodes)/neuron_density)
     shape = shape if shape is not None else nngt.Shape.rectangle(graph_dr,h,w)
-    nngt.SpatialGraph.make_spatial(graph_dr, shape, positions)
+    if positions is None:
+        positions = ( graph_dr.positions if graph_dr.is_spatial()
+                      else shape.rnd_distrib() )
     # add edges
-    positions = graph_dr.position
     ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
                                   rule, shape, positions, directed, multigraph)
         graph_dr.new_edges(ia_edges)
-    # set options
-    _set_options(graph_dr, weighted, population, shape=None, positions=None)
+    # set options (graph has already been made spatial)
+    _set_options(graph_dr, weighted, population, shape=shape,
+                 positions=positions)
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
 

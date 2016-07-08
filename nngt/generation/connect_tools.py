@@ -423,6 +423,10 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          b_one_pop, multigraph)
         num_test += 1
+    if num_test == MAXTESTS:
+        ia_edges = ia_edges[:num_ecurrent,:]
+        warnings.warn("Maximum number of tests reached, stopped  generation \
+with {} edges.".format(num_ecurrent), RuntimeWarning)
     if not directed:
         ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
         ia_edges = _unique_rows(ia_edges)

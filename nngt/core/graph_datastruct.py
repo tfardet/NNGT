@@ -408,7 +408,7 @@ class Connections:
     # Class methods
 
     @staticmethod
-    def distances(graph, pos=None, overwrite=False):
+    def distances(graph, elist=None, pos=None, dlist=None, overwrite=False):
         '''
         Compute the distances between connected nodes in the graph. Try to add
         only the new distances to the graph. If they overlap with previously
@@ -419,10 +419,12 @@ class Connections:
         graph : class:`~nngt.Graph` or subclass
             Graph the nodes belong to.
         elist : class:`numpy.array`, optional (default: None)
-            List of the edges
+            List of the edges.
         pos : class:`numpy.array`, optional (default: None)
             Positions of the nodes; note that if `graph` has a "position"
             attribute, `pos` will not be taken into account.
+        dlist : class:`numpy.array`, optional (default: None)
+            List of distances (for user-defined distances)
 
         Returns
         -------
@@ -430,21 +432,24 @@ class Connections:
             Array containing *ONLY* the newly-computed distances.
         '''
         n = graph.node_nb()
-        elist = graph.edges_array
-        print(len(elist), graph.adjacency_matrix().nnz)
-        pos = graph._pos if hasattr(graph, "_pos") else pos
-        # compute the new distances
-        if graph.edge_nb():
-            ra_x = pos[0, elist[:,0]] - pos[0, elist[:,1]]
-            ra_y = pos[1, elist[:,0]] - pos[1, elist[:,1]]
-            ra_dist = np.sqrt( np.square(ra_x) + np.square(ra_y) )
-            #~ ra_dist = np.tile( , 2)
-            # update graph distances
-            print(len(ra_dist), graph.edge_nb())
-            graph.set_edge_attribute(DIST, value_type="double", values=ra_dist)
-            return ra_dist
+        elist = graph.edges_array if elist is None else elist
+        if dlist is not None:
+            graph.set_edge_attribute(DIST, value_type="double", values=dlist)
+            return dlist
         else:
-            return []
+            pos = graph._pos if hasattr(graph, "_pos") else pos
+            # compute the new distances
+            if graph.edge_nb():
+                ra_x = pos[0, elist[:,0]] - pos[0, elist[:,1]]
+                ra_y = pos[1, elist[:,0]] - pos[1, elist[:,1]]
+                ra_dist = np.sqrt( np.square(ra_x) + np.square(ra_y) )
+                #~ ra_dist = np.tile( , 2)
+                # update graph distances
+                graph.set_edge_attribute(DIST, value_type="double",
+                                         values=ra_dist)
+                return ra_dist
+            else:
+                return []
 
     @staticmethod
     def delays(graph, dlist=None, elist=None, distribution="constant",
@@ -523,12 +528,12 @@ class Connections:
         if wlist is not None:
             num_edges = graph.edge_nb() if elist is None else elist.shape[0]
             if len(wlist) != num_edges:
-                raise InvalidArgument("`dlist` must have one entry per edge.")
+                raise InvalidArgument("`wlist` must have one entry per edge. {} {} {}".format(len(wlist), num_edges, graph.name))
         else:
             wlist = eprop_distribution(graph, distribution, elist=elist,
                                        **parameters)
         # add to the graph container
-        bwlist = wlist.max() - wlist if wlist.any() else []
+        bwlist = np.max(wlist) - wlist if np.any(wlist) else np.array([])
         graph.set_edge_attribute(WEIGHT, value_type="double", values=wlist)
         graph.set_edge_attribute(BWEIGHT, value_type="double", values=bwlist)
         return wlist

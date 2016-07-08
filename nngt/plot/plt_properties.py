@@ -119,6 +119,72 @@ def degree_distribution(network, deg_type="total", node_list=None, num_bins=50,
     ax1.set_title("Degree distribution for {}".format(network.name))
     if show:
         plt.show()
+        
+
+def attribute_distribution(network, attribute, num_bins=50, logx=False,
+                           logy=False, fignum=None, show=True):
+    '''
+    Plotting the distribution of a graph attribute (e.g. "weight", or
+    "distance" is the graph is spatial).
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Graph to analyze.
+    attribute : string or tuple of strings
+        Name of a graph attribute.
+    num_bins : int, optional (default: 50):
+        Number of bins used to sample the distribution.
+    logx : bool, optional (default: False)
+        use log-spaced bins.
+    logy : bool, optional (default: False)
+        use logscale for the degree count.
+    fignum : int, optional (default: ``None``)
+        Index of the figure on which the plot should be drawn (default creates
+        a new figure).
+    show : bool, optional (default: True)
+        Show the Figure right away if True, else keep it warm for later use.
+    '''
+    fig, lst_axes = _set_new_plot(fignum)
+    ax1 = lst_axes[0]
+    ax1.axis('tight')
+    maxcounts, maxbins, minbins = 0, 0, np.inf
+    if isinstance(attribute, str):
+        values = network.attributes(name=attribute)
+        bins = np.logspace(np.log(values.min()), np.log(values.max()),
+                           num_bins) if logx else num_bins
+        counts, bins = np.histogram(values, bins=bins)
+        maxcounts, maxbins, minbins = counts.max(), bins.max(), bins.min()
+        line = ax1.scatter(bins[:-1], counts)
+        s_legend = attribute
+        ax1.legend((s_legend,))
+    else:
+        raise NotImplementedError("Multiple attribute plotting not ready yet")
+        #~ colors = palette(np.linspace(0.,0.5,len(deg_type)))
+        #~ m = ["o", "s", "D", "x"]
+        #~ lines, legends = [], []
+        #~ for i,s_type in enumerate(deg_type):
+            #~ counts,bins = degree_distrib(network, s_type, node_list,
+                                         #~ use_weights, logx, num_bins)
+            #~ maxcounts_tmp,mincounts_tmp = counts.max(),counts.min()
+            #~ maxbins_tmp,minbins_tmp = bins.max(),bins.min()
+            #~ maxcounts = max(maxcounts,maxcounts_tmp)
+            #~ maxbins = max(maxbins,maxbins_tmp)
+            #~ minbins = min(minbins,minbins_tmp)
+            #~ lines.append(ax1.scatter(bins, counts, c=colors[i], marker=m[i]))
+            #~ legends.append(attribute)
+        #~ ax1.legend(lines, legends)
+    ax1.set_xlim([0.9*minbins, 1.1*maxbins])
+    ax1.set_ylim([0, 1.1*maxcounts])
+    if logx:
+        ax1.set_xscale("log")
+        ax1.set_xlim([max(0.8,0.8*minbins), 1.5*maxbins])
+    if logy:
+        ax1.set_yscale("log")
+        ax1.set_ylim([0.8, 1.5*maxcounts])
+    ax1.set_title("Attribute distribution for {}".format(network.name))
+    if show:
+        plt.show()
             
 def betweenness_distribution(network, btype="both", use_weights=True,
                              logx=False, logy=False, fignum=None, show=True):

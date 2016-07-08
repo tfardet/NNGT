@@ -22,32 +22,34 @@ adjacency = nngt.globals.analyze_graph["adjacency"]
 #------------------------
 #
 
-class MetaAbcProp(ABCMeta, type):
-    pass
-
-@add_metaclass(MetaAbcProp)
 class BaseProperty(dict):
     
     def __init__(self, parent):
         self.parent = parent
-        self.stored = {}
+        
+    def value_type(self, key=None):
+        if key is not None:
+            return super(BaseProperty, self).__getitem__(key)
+        else:
+            return { k:super(BaseProperty, self).__getitem__(k) for k in self }
     
-    @abstractmethod
-    def __getitem__(self, name):
-        pass
+    def values(self):
+        return [ self[k] for k in self ]
     
-    @abstractmethod
-    def __setitem__(self, name, value):
-        pass
+    def itervalues(self):
+        return ( self[k] for k in self )
+    
+    def items(self):
+        return [ (k, self[k]) for k in self ]
+    
+    def iteritems(self):
+        return ( (k, self[k]) for k in self )
 
 
 #-----------------------------------------------------------------------------#
 # BaseGraph
 #------------------------
 #
-
-class MetaAbcGraph(ABCMeta, type):
-    pass
 
 @add_metaclass(ABCMeta)
 class BaseGraph(nngt.globals.config["graph"]):
@@ -96,10 +98,7 @@ class BaseGraph(nngt.globals.config["graph"]):
     
     def new_node_attribute(self, name, value_type, values=None, val=None):
          self._nattr.new_na(name, value_type, values, val)
-
-    def new_edge_attribute(self, name, value_type, values=None, val=None):
-         self._eattr.new_ea(name, value_type, values, val)
-
+         
     def remove_edge(self, edge):
         raise NotImplementedError("This function has been removed because it \
             makes using edge properties too complicated")

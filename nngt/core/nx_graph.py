@@ -31,12 +31,16 @@ class _NxNProperty(BaseProperty):
         return np.array(lst)
 
     def __setitem__(self, name, value):
-        if len(value) == size:
-            for i in range(self.parent.node_nb()):
-                self.parent.node[i][name] = value[i]
+        if name in self:
+            if len(value) == size:
+                for i in range(self.parent.number_of_nodes()):
+                    self.parent.node[i][name] = value[i]
+            else:
+                raise ValueError("A list or a np.array with one entry per \
+node in the graph is required")
         else:
-            raise ValueError("A list or a np.array with one entry per node in \
-the graph is required")
+            raise InvalidArgument("Attribute does not exist yet, use \
+set_attribute to create it.")
 
     def new_na(self, name, value_type, values=None, val=None):
         if val is None:
@@ -49,9 +53,11 @@ the graph is required")
             else:
                 val = None
         if values is None:
-            values = np.repeat(val, self.parent.node_nb())
+            values = np.repeat(val, self.parent.number_of_nodes())
+        # store name and value type in the dict
+        super(_NxNProperty,self).__setitem__(name, value_type)
+        # store the real values in the attribute
         self[name] = values
-        self.stored[name] = value_type
         
 class _NxEProperty(BaseProperty):
 
@@ -64,13 +70,17 @@ class _NxEProperty(BaseProperty):
         return np.array(lst)
 
     def __setitem__(self, name, value):
-        size = self.parent.edge_nb()
-        if len(value) == size:
-            for i,e in enumerate(self.parent._edges.keys()):
-                self.parent.edge[e[0]][e[1]][name] = value[i]
+        if name in self:
+            size = self.parent.number_of_edges()
+            if len(value) == size:
+                for i,e in enumerate(self.parent._edges.keys()):
+                    self.parent.edge[e[0]][e[1]][name] = value[i]
+            else:
+                raise ValueError("A list or a np.array with one entry per \
+edge in the graph is required")
         else:
-            raise ValueError("A list or a np.array with one entry per edge in \
-the graph is required")
+            raise InvalidArgument("Attribute does not exist yet, use \
+set_attribute to create it.")
 
     def new_ea(self, name, value_type, values=None, val=None):
         if val is None:
@@ -83,13 +93,11 @@ the graph is required")
             else:
                 val = None
         if values is None:
-            values = np.repeat(val, self.parent.ecount())
-        elif len(values) == self.parent.ecount():
-            self[name] = values
-        else:
-            raise ValueError("A list or a np.array with one entry per edge in \
-the graph is required")
-        self.stored[name] = value_type
+            values = np.repeat(val, self.parent.number_of_edges())
+        # store name and value type in the dict
+        super(_NxEProperty,self).__setitem__(name, value_type)
+        # store the real values in the attribute
+        self[name] = values
 
 
 #-----------------------------------------------------------------------------#
@@ -186,7 +194,7 @@ edge in the graph.")
         else:
             return tpl_new_nodes
 
-    def new_edge(self, source, target, attributes={}):
+    def new_edge(self, source, target, attributes=None):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -205,6 +213,8 @@ edge in the graph.")
         -------
         The new connection.
         '''
+        if attributes is None:
+            attributes = {}
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = 1.
         self.add_edge(source, target)
@@ -217,7 +227,7 @@ edge in the graph.")
                 self[target][source][key] = val
         return (source, target)
 
-    def new_edges(self, edge_list, attributes={}):
+    def new_edges(self, edge_list, attributes=None):
         '''
         Add a list of edges to the graph.
         
@@ -237,17 +247,17 @@ edge in the graph.")
             
         @todo: add example, check the edges for self-loops and multiple edges
         '''
-        e = self.edge_nb()
-        edge_generator = ( e for e in edge_list )
-        edge_list = np.array(edge_list)
-        if self._weighted and "weight" not in attributes:
-            attributes["weight"] = np.repeat(1., len(edge_list))
+        if attributes is None:
+            attributes = {}
+        initial_edges = self.number_of_edges()
         if not self._directed:
             edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val))
-        for i, edge in enumerate(edge_list):
-            self._edges[tuple(edge)] = e + i
+        edge_generator = ( e for e in edge_list )
+        edge_list = np.array(edge_list)
+        if self._weighted and "weight" not in attributes:
+            attributes["weight"] = np.repeat(1., edge_list.shape[0])
         for i, (u,v) in enumerate(edge_list):
             if u not in self.succ:
                 self.succ[u] = self.adjlist_dict_factory()
@@ -261,6 +271,8 @@ edge in the graph.")
             datadict.update({ key: val[i] for key, val in attributes.items() })
             self.succ[u][v] = datadict
             self.pred[v][u] = datadict
+        for i, edge in enumerate(edge_list):
+            self._edges[tuple(edge)] = initial_edges + i
         return edge_generator
 
     def clear_all_edges(self):

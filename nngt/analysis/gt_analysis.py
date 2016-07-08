@@ -126,11 +126,11 @@ def assortativity(graph, deg_type="total"):
     a float quantifying the graph assortativity.
     '''
     if nngt.config["graph_library"] == "igraph":
-        return graph._graph.assortativity_degree(graph._directed)
+        return graph.assortativity_degree(graph._directed)
     elif nngt.config["graph_library"] == "graph_tool":
-        return assort(graph._graph,"total")[0]
+        return assort(graph,"total")[0]
     else:
-        return assort(graph._graph)
+        return assort(graph)
 
 def reciprocity(graph):
     '''
@@ -143,9 +143,9 @@ def reciprocity(graph):
     a float quantifying the reciprocity.
     '''
     if nngt.config["graph_library"] == "igraph":
-        return graph._graph.reciprocity()
+        return graph.reciprocity()
     else:
-        return edge_reciprocity(graph._graph)
+        return edge_reciprocity(graph)
 
 def clustering(graph):
     '''
@@ -155,7 +155,7 @@ def clustering(graph):
         c = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
     '''
     if nngt.config["graph_library"] == "igraph":
-        return graph._graph.transitivity_undirected()
+        return graph.transitivity_undirected()
     else:
         return global_clustering(graph)[0]
 
@@ -176,12 +176,12 @@ def num_scc(graph, listing=False):
     '''
     lst_histo = None
     if nngt.config["graph_library"] == "graph_tool":
-        vprop_comp, lst_histo = scc(graph._graph,directed=True)
+        vprop_comp, lst_histo = scc(graph,directed=True)
     elif nngt.config["graph_library"] == "igraph":
-        lst_histo = graph._graph.clusters()
+        lst_histo = graph.clusters()
         lst_histo = [ cluster for cluster in lst_histo ]
     else:
-        lst_histo = [ comp for comp in scc(graph._graph) ]
+        lst_histo = [ comp for comp in scc(graph) ]
     if listing:
         return len(lst_histo), lst_histo
     else:
@@ -199,12 +199,12 @@ def num_wcc(graph, listing=False):
     '''
     lst_histo = None
     if nngt.config["graph_library"] == "graph_tool":
-        vprop_comp, lst_histo = wcc(graph._graph,directed=False)
+        vprop_comp, lst_histo = wcc(graph,directed=False)
     elif nngt.config["graph_library"] == "igraph":
-        lst_histo = graph._graphclusters("WEAK")
+        lst_histo = graphclusters("WEAK")
         lst_histo = [ cluster for cluster in lst_histo ]
     else:
-        lst_histo = [ comp for comp in wcc(graph._graph) ]
+        lst_histo = [ comp for comp in wcc(graph) ]
     if listing:
         return len(lst_histo), lst_histo
     else:
@@ -213,11 +213,11 @@ def num_wcc(graph, listing=False):
 def diameter(graph):
     ''' Pseudo-diameter of the graph @todo: weighted diameter'''
     if nngt.config["graph_library"] == "igraph":
-        return graph._graph.diameter()
+        return graph.diameter()
     elif nngt.config["graph_library"] == "networkx":
-        return diameter(graph._graph)
+        return diameter(graph)
     else:
-        return diameter(graph._graph)[0]
+        return diameter(graph)[0]
 
 
 #-----------------------------------------------------------------------------#

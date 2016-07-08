@@ -92,7 +92,7 @@ class TestAttributes(TestBasis):
         '''
         di_distrib = instructions["weights"]
         distrib = di_distrib["distribution"]
-        delays = graph.set_delays(distribution=distrib, parameters=properties)
+        delays = graph.set_delays(distribution=distrib, parameters=di_distrib)
         ref_result = _results_theo(instructions)
         computed_result = _results_exp(delays, instructions)
         self.assertTrue(np.allclose(ref_result,computed_result,self.tolerance))

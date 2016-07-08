@@ -41,9 +41,15 @@ from nngt.globals import config
 # module import
 
 from .custom_plt import palette
-from .plt_properties import degree_distribution, betweenness_distribution
+from .plt_properties import ( attribute_distribution, betweenness_distribution,
+                              degree_distribution )
 
-__all__ = [ "degree_distribution", "betweenness_distribution" ]
+__all__ = [
+    "attribute_distribution",
+    "betweenness_distribution",
+    "degree_distribution",
+]
+
 
 if config["graph_library"] == 'graph-tool':
     from .plt_networks import draw_network

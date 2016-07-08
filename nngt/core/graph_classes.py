@@ -12,7 +12,8 @@ import scipy.sparse as ssp
 import nngt.analysis as na
 import nngt.core
 from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
-from nngt.lib import InvalidArgument, as_string, save_to_file, load_from_file
+from nngt.lib import (InvalidArgument, as_string, save_to_file, load_from_file,
+                      nonstring_container)
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE)
 
@@ -88,34 +89,37 @@ class Graph(nngt.core.GraphObject):
         :class:`~nngt.Graph`
         '''
         shape = matrix.shape
+        graph_name = "FromYMatrix_Z"
         if shape[0] != shape[1]:
             raise InvalidArgument('A square matrix is required')
         nodes = shape[0]
-        if not directed:
-            if issubclass(matrix.__class__, ssp.spmatrix):
+        if issubclass(matrix.__class__, ssp.spmatrix):
+            graph_name = graph_name.replace('Y', 'Sparse')
+            if not directed:
                 if not (matrix.T != matrix).nnz == 0:
                     raise InvalidArgument('Incompatible directed=False option \
 with non symmetric matrix provided.')
-            else:
+        else:
+            graph_name = graph_name.replace('Y', 'Dense')
+            if not directed:
                 if not (matrix.T == matrix).all():
                     raise InvalidArgument('Incompatible directed=False option \
 with non symmetric matrix provided.')
         edges = np.array(matrix.nonzero()).T
-        graph = cls(nodes,name='FromNpArray_{}'.format(cls.__num_graphs),
+        graph = cls(nodes, name=graph_name.replace("Z", str(cls.__num_graphs)),
                     weighted=weighted, directed=directed)
-        graph.add_edges(edges)
+        weights = None
         if weighted:
-            weights = None
             if issubclass(matrix.__class__, ssp.spmatrix):
                 weights = np.array(matrix[edges[:,0],edges[:,1]])[0]
             else:
-                weights = matrix[edges[:,0],edges[:,1]]
-            graph.set_weights(elist=edges, wlist=weights)
+                weights = matrix[edges[:,0], edges[:,1]]
+        graph.new_edges(edges, {"weight": weights})
         return graph
     
     @staticmethod
     def from_file(filename, format="auto", delimiter=" ", secondary=";",
-                  attributes=[], notifier="@", ignore="#", from_string=False):
+                 attributes=None, notifier="@", ignore="#", from_string=False):
         '''
         Import a saved graph from a file.
         @todo: implement population and shape loading, implement gml, dot, xml, gt
@@ -162,17 +166,19 @@ with non symmetric matrix provided.')
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
+        if attributes is None:
+            attributes = []
         info, edges, attr, pop, shape = load_from_file(filename=filename,
                     format=format, delimiter=delimiter, secondary=secondary,
                     attributes=attributes, notifier=notifier)
         graph = Graph( nodes=info["size"], name=info["name"],
                        directed=info["directed"] )
-        di_attr = {
-            "names": info["attributes"],
-            "types": info["attr_types"],
-            "values": [ attr[name] for name in info["attributes"] ]
-        }
-        graph.add_edges(edges, di_attr)
+        di_attr = {}
+        if info["attributes"]: # their are attributes to add to the graph
+            di_attr["names"] = info["attributes"]
+            di_attr["types"] = info["attr_types"]
+            di_attr["values"] = [ attr[name] for name in info["attributes"] ]
+        graph.new_edges(edges, di_attr)
         if pop is not None:
             Network.make_network(graph, pop)
         if shape is not None:
@@ -273,15 +279,15 @@ with non symmetric matrix provided.')
         self.__id = self.__class__.__max_id
         self._name = name
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
-        # Init the GraphObject
-        super(Graph, self).__init__(nodes=nodes, g=from_graph,
-                                    directed=directed, weighted=weighted)
         # take care of the weights @todo: use those of the from_graph
         if weighted:
             if "weights" in kwargs:
                 self._w = kwargs["weights"]
             else:
                 self._w = {"distribution": "constant"}
+        # Init the GraphObject
+        super(Graph, self).__init__(nodes=nodes, g=from_graph,
+                                    directed=directed, weighted=weighted)
         # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -406,8 +412,8 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             belong to.
         '''
         if attribute not in self.attributes():
-            self.new_edge_attribute(name=attribute,
-                                value_type=value_type, values=values, val=val)
+            self._eattr.new_ea(name=attribute, value_type=value_type,
+                               values=values, val=val)
         else:
             num_edges = self.edge_nb()
             if values is None:
@@ -493,10 +499,49 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
                     del inhib_nodes[node]
         return Connections.types(self, inhib_nodes, fraction)
         
+    def set_delays(self, elist=None, dlist=None, distribution=None,
+                   parameters=None, noise_scale=None):
+        '''
+        Set the delay for spike propagation between neurons.
+        ..todo ::
+            take elist into account in Connections.delays
+        
+        Parameters
+        ----------
+        elist : class:`numpy.array`, optional (default: None)
+            List of the edges (for user defined delays).
+        dlist : class:`numpy.array`, optional (default: None)
+            List of the delays (for user defined delays).
+        distribution : class:`string`, optional (default: None)
+            Type of distribution (choose among "constant", "uniform", 
+            "gaussian", "lognormal", "lin_corr", "log_corr").
+        parameters : dict, optional (default: {})
+            Dictionary containing the properties of the delay distribution.
+        noise_scale : class:`int`, optional (default: None)
+            Scale of the multiplicative Gaussian noise that should be applied
+            on the delays.
+        '''
+        if distribution is None:
+            distribution = self._w["distribution"]
+        if parameters is None:
+            parameters = self._w
+        return Connections.delays(self, elist=elist, dlist=dlist,
+                           distribution=distribution, parameters=parameters,
+                           noise_scale=noise_scale)
         
 
     #-------------------------------------------------------------------------#
     # Getters
+    
+    @property
+    def node_attributes(self):
+        ''' Access node attributes '''
+        return self._nattr
+    
+    @property
+    def edge_attribute(self):
+        ''' Access edge attributes '''
+        return self._eattr
 
     def attributes(self, edge=None, name=None):
         '''
@@ -527,7 +572,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
     
     def get_attribute_type(self, attribute_name):
         ''' Return the type of an attribute '''
-        return self._eattr.stored[attribute_name]
+        return self._eattr.value_type(attribute_name)
     
     def get_name(self):
         ''' Get the name of the graph '''
@@ -733,13 +778,13 @@ class SpatialGraph(Graph):
         Create the positions of the neurons from the graph `shape` attribute
         and computes the connections distances.
         '''
-        if positions is not None and len(positions) != self.node_nb():
-            raise InvalidArgument("Wrong number of neurons in `positions`.")
         if shape is not None:
             shape.set_parent(self)
             self._shape = shape
         else:
             self._shape = Shape.rectangle(self,1,1)
+        if positions is not None and positions.shape[1] != self.node_nb():
+            raise InvalidArgument("Wrong number of neurons in `positions`.")
         b_rnd_pos = True if not self.node_nb() or positions is None else False
         self._pos = self._shape.rnd_distrib() if b_rnd_pos else positions
         Connections.distances(self)
@@ -771,8 +816,8 @@ class Network(Graph):
 
     @classmethod
     def uniform_network(cls, size, neuron_model=default_neuron,
-                        neuron_param={}, syn_model=default_synapse,
-                        syn_param={}):
+                        neuron_param=None, syn_model=default_synapse,
+                        syn_param=None):
         '''
         Generate a network containing only one type of neurons.
         
@@ -796,16 +841,20 @@ class Network(Graph):
         net : :class:`~nngt.Network` or subclass
             Uniform network of disconnected neurons.
         '''
+        if neuron_param is None:
+            neuron_param = {}
+        if syn_param is None:
+            syn_param = {}
         pop = NeuralPop.uniform_population(size, None, neuron_model,
-           neuron_param, syn_model, syn_param)
+                                           neuron_param, syn_model, syn_param)
         net = cls(population=pop)
         return net
 
     @classmethod
     def ei_network(cls, size, ei_ratio=0.2, en_model=default_neuron,
-            en_param={}, es_model=default_synapse, es_param={},
-            in_model=default_neuron, in_param={}, is_model=default_synapse,
-            is_param={}):
+            en_param=None, es_model=default_synapse, es_param=None,
+            in_model=default_neuron, in_param=None, is_model=default_synapse,
+            is_param=None):
         '''
         Generate a network containing a population of two neural groups:
         inhibitory and excitatory neurons.
@@ -838,6 +887,14 @@ class Network(Graph):
         net : :class:`~nngt.Network` or subclass
             Network of disconnected excitatory and inhibitory neurons.
         '''
+        if en_param is None:
+            en_param = {}
+        if es_param is None:
+            es_param = {}
+        if in_param is None:
+            in_param = {}
+        if is_param is None:
+            is_param = {}
         pop = NeuralPop.ei_population(size, ei_ratio, None, en_model, en_param,
                     es_model, es_param, in_model, in_param, is_model, is_param)
         net = cls(population=pop)

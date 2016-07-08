@@ -57,7 +57,7 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     label : str, optional (default: None)
         Add a label to the plot.
     sort : str or list, optional (default: None)
-        Node property among ("in_degree", "out_degree", "total_degree" or
+        Node property among ("in-degree", "out-degree", "total-degree" or
         "betweenness") or list of sorted neuron ids. Neurons are sorted
         by increasing value of the `sort` property from bottom to top inside
         each group.
@@ -147,7 +147,7 @@ def _sort_neurons(sort, gids, network):
     if isinstance(sort, str):
         sorted_ids = None
         if "degree" in sort:
-            deg_type = sort[:sort.find("_")]
+            deg_type = sort[:sort.find("-")]
             degrees = network.get_degrees(deg_type)
             sorted_ids = np.argsort(degrees)
         elif sort == "betweenness":
