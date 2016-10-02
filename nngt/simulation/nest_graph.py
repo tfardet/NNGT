@@ -54,7 +54,11 @@ def make_nest_network(network, use_weights=True):
     for group in iter(network.population.values()):
         group_size = len(group.id_list)
         ia_nngt_ids[current_size:current_size+group_size] = group.id_list
-        gids = nest.Create(group.neuron_model, group_size, group.neuron_param)
+        # clean up parameters
+        default_dict = nest.GetDefaults(group.neuron_model)
+        neuron_param = {key: val for key, val in group.neuron_param.items()
+                        if key in default_dict and key != "model"}
+        gids = nest.Create(group.neuron_model, group_size, neuron_param)
         idx_nest = ia_nngt_ids[np.arange(current_size,current_size+group_size)]
         ia_nest_gids[current_size:current_size+group_size] = gids
         ia_nngt_nest[idx_nest] = gids
@@ -63,7 +67,12 @@ def make_nest_network(network, use_weights=True):
     # get all properties as scipy.sparse.lil matrices
     lil_weights = network.adjacency_matrix(False, True).tolil()
     lil_delays = network.adjacency_matrix(False, DELAY).tolil()
-    
+        
+    # conversions ids/gids
+    network.nest_gid = ia_nngt_nest
+    network.id_from_nest_gid = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
+                                                             ia_nest_gids) }
+
     # connect neurons
     for i in range(num_neurons):
         dic = { "target": None, "weight": None, "delay": None }
@@ -72,6 +81,12 @@ def make_nest_network(network, use_weights=True):
         num_connect = len(ia_targets)
         dic_prop = network.neuron_properties(ia_nngt_ids[i])
         syn_model = dic_prop["syn_model"]
+        # clean up synaptic parameters
+        prop = network.neuron_properties(network.id_from_nest_gid[gids[i]])
+        default_dict = nest.GetDefaults(syn_model)
+        syn_param = {key: val for key, val in prop.items()
+                     if key in default_dict}
+        dic.update(syn_param)
         for key, val in iter(dic_prop["syn_param"].items()):
             dic[key] = np.repeat(val, num_connect)
         syn_sign = dic_prop["neuron_type"]
@@ -82,11 +97,6 @@ def make_nest_network(network, use_weights=True):
         if dic["delay"] is None:
             dic["delay"] = np.array(lil_delays.data[ia_nngt_ids[i]])
         nest.DataConnect((ia_nngt_nest[ia_nngt_ids[i]],), (dic,), syn_model)
-        
-    # conversions ids/gids
-    network.nest_gid = ia_nngt_nest
-    network.id_from_nest_gid = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
-                                                             ia_nest_gids) }
     return subnet, tuple(ia_nest_gids)
 
 

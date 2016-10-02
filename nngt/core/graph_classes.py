@@ -678,6 +678,12 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         :class:`scipy.sparse.lil_matrix`.
         '''
         return self.eproperties["weight"]
+    
+    def get_delays(self):
+        ''' Returns the weighted adjacency matrix as a
+        :class:`scipy.sparse.lil_matrix`.
+        '''
+        return self.eproperties["delay"]
 
     def is_spatial(self):
         '''
@@ -903,7 +909,7 @@ class Network(Graph):
     #-------------------------------------------------------------------------#
     # Constructor, destructor and attributes
     
-    def __init__(self, name="Graph", weighted=True, directed=True,
+    def __init__(self, name="Network", weighted=True, directed=True,
                  from_graph=None, population=None, **kwargs):
         '''
         Initializes :class:`~nngt.Network` instance.
