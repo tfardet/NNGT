@@ -680,8 +680,9 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         return self.eproperties["weight"]
     
     def get_delays(self):
-        ''' Returns the weighted adjacency matrix as a
-        :class:`scipy.sparse.lil_matrix`.
+        ''' Returns the delay adjacency matrix as a
+        :class:`scipy.sparse.lil_matrix` if delays are present; else raises
+        an error.
         '''
         return self.eproperties["delay"]
 
