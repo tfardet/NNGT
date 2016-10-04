@@ -678,6 +678,13 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         :class:`scipy.sparse.lil_matrix`.
         '''
         return self.eproperties["weight"]
+    
+    def get_delays(self):
+        ''' Returns the delay adjacency matrix as a
+        :class:`scipy.sparse.lil_matrix` if delays are present; else raises
+        an error.
+        '''
+        return self.eproperties["delay"]
 
     def is_spatial(self):
         '''
