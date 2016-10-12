@@ -915,7 +915,7 @@ class Network(Graph):
     #-------------------------------------------------------------------------#
     # Constructor, destructor and attributes
     
-    def __init__(self, name="Graph", weighted=True, directed=True,
+    def __init__(self, name="Network", weighted=True, directed=True,
                  from_graph=None, population=None, **kwargs):
         '''
         Initializes :class:`~nngt.Network` instance.

@@ -73,7 +73,12 @@ def make_nest_network(network, use_weights=True):
     # get all properties as scipy.sparse.lil matrices
     lil_weights = network.adjacency_matrix(False, True).tolil()
     lil_delays = network.adjacency_matrix(False, DELAY).tolil()
-    
+        
+    # conversions ids/gids
+    network.nest_gid = ia_nngt_nest
+    network.id_from_nest_gid = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
+                                                             ia_nest_gids) }
+
     # connect neurons
     for i in range(num_neurons):
         dic = { "target": None, WEIGHT: None, DELAY: None }
@@ -83,9 +88,11 @@ def make_nest_network(network, use_weights=True):
         dic_prop = network.neuron_properties(ia_nngt_ids[i])
         # clean up synapse dict
         syn_model = dic_prop["syn_model"]
-        default = nest.GetDefaults(syn_model)
+        # clean up synaptic parameters
+        prop = network.neuron_properties(network.id_from_nest_gid[gids[i]])
+        defauls = nest.GetDefaults(syn_model)
         for key, val in iter(dic_prop["syn_param"].items()):
-            if key in defaults:
+            if key in defaults and key != "synapsemodel":
                 dic[key] = np.repeat(val, num_connect)
         syn_sign = dic_prop["neuron_type"]
         if use_weights:

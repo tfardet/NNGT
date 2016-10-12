@@ -296,7 +296,8 @@ class NeuralGroup:
         if self._has_model:
             self.neuron_param = neuron_param
             self.neuron_type = ntype
-            self.syn_model = syn_model
+            self.syn_model = (syn_model if syn_model is not None
+                              else "static_synapse")
             self.syn_param = syn_param
 
     def __eq__ (self, other):
