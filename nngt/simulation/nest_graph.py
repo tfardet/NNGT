@@ -94,7 +94,12 @@ def make_nest_network(network, use_weights=True):
             dic[WEIGHT] = syn_sign*np.repeat(1., num_connect)
         if dic[DELAY] is None:
             dic[DELAY] = np.array(lil_delays.data[ia_nngt_ids[i]])
-        nest.DataConnect((ia_nngt_nest[ia_nngt_ids[i]],), (dic,), syn_model)
+        nest.Connect(
+            [ia_nngt_nest[ia_nngt_ids[i]]],
+            list(ia_nngt_nest[ia_targets]),
+            syn_spec={"weight": np.atleast_2d(dic[WEIGHT]).T,
+                      "delay": np.atleast_2d(dic[DELAY]).T,
+                      "model": syn_model})
     return subnet, tuple(ia_nest_gids)
 
 

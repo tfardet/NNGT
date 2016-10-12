@@ -271,6 +271,11 @@ with non symmetric matrix provided.')
             Whether the graph is directed or undirected.
         from_graph : :class:`~nngt.core.GraphObject`, optional
             An optional :class:`~nngt.core.GraphObject` to serve as base.
+        kwargs : optional keywords arguments
+            Optional arguments that can be passed to the graph, e.g. a dict
+            containing information on the synaptic weights
+            (``weights={"distribution": "constant", "value": 2.3}``), or a
+            ``type`` information.
         
         Returns
         -------

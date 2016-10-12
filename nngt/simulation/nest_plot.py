@@ -170,7 +170,7 @@ def _moving_average (values, window):
     sma = np.convolve(values, weights, 'same')
     return sma
 
-def raster_plot(times, senders, limits=None, title="Spike raster", hist=True,
+def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 num_bins=1000, color="b", fignum=None, label=None, show=True):
     """
     Plotting routine that constructs a raster plot along with
@@ -282,11 +282,11 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=True,
             ax2.set_xlabel(xlabel)
             ax2.set_xlim(ax1.get_xlim())
         else:
-            ax = fig.axes[0] if fig.axes else fig.subplots(111)
+            ax = fig.axes[0] if fig.axes else fig.add_subplot(111)
             ax.plot(times, senders, c=color, marker="o", linestyle='None',
                 mec="k", mew=0.5, ms=4, label=label)
             ax.set_ylabel(ylabel)
-            ax.set_ylim([np.min(senders),np.max(senders)])
+            #~ ax.set_ylim([np.min(senders),np.max(senders)])
             ax.set_xlim([times[0]-delta_t, times[-1]+delta_t])
             ax.legend(bbox_to_anchor=(1.1, 1.2))
 
