@@ -146,7 +146,7 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
                     np.concatenate((variables[:rm], variables[rm+1:])) )
         num_var_i = len(var_tmp)
         while ecurrent != degree:
-            var = var_tmp[randint(0,num_var_i,degree-ecurrent)]
+            var = var_tmp[randint(0, num_var_i, degree-ecurrent)]
             variables_i.extend(var)
             if not multigraph:
                 variables_i = list(set(variables_i))

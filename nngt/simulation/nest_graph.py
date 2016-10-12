@@ -41,7 +41,7 @@ def make_nest_network(network, use_weights=True):
     '''
 
     # create the node subnetwork
-    subnet = nest.Create('subnet')
+    subnet, gids = nest.Create('subnet'), []
     nest.ChangeSubnet(subnet)
 
     # link NEST Gids to nngt.Network ids as neurons are created
@@ -59,11 +59,12 @@ def make_nest_network(network, use_weights=True):
         n_param = {key: val for key, val in group.neuron_param.items()
                    if key in defaults and key != "model"}
         # create neurons
-        gids = nest.Create(group.neuron_model, group_size, n_param)
+        gids_tmp = nest.Create(group.neuron_model, group_size, n_param)
         idx_nest = ia_nngt_ids[np.arange(current_size,current_size+group_size)]
-        ia_nest_gids[current_size:current_size+group_size] = gids
-        ia_nngt_nest[idx_nest] = gids
+        ia_nest_gids[current_size:current_size+group_size] = gids_tmp
+        ia_nngt_nest[idx_nest] = gids_tmp
         current_size += group_size
+        gids.extend(gids_tmp)
         
     # conversions ids/gids
     network.nest_gid = ia_nngt_nest

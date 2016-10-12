@@ -83,6 +83,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     graph_fd : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
     """
+    degree = int(degree)
     # set node number and library graph
     graph_fd = from_graph
     if graph_fd is not None:
