@@ -320,7 +320,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         return as_string(self)
 
     @property
-    def id(self):
+    def graph_id(self):
         ''' Unique :class:`int` identifying the instance. '''
         return self.__id
     
@@ -991,6 +991,26 @@ class Network(Graph):
         self._nest_gid = gids
         for group in iter(self.population.values()):
             group._nest_gids = gids[group.id_list]
+    
+    def id_from_nest_gid(self, gids):
+        '''
+        Return the ids of the nodes in the :class:`nngt.Network` instance from
+        the corresponding NEST gids.
+        
+        Parameters
+        ----------
+        gids : int or tuple
+            NEST gids.
+        
+        Returns
+        -------
+        ids : int or tuple
+            Ids in the network. Same type as the requested `gids` type.
+        '''
+        if isinstance(gids, int):
+            return self._id_from_nest_gid[gids]
+        else:
+            return tuple(self._id_from_nest_gid[gid] for gid in gids)
 
     #-------------------------------------------------------------------------#
     # Init tool
@@ -999,7 +1019,7 @@ class Network(Graph):
         ''' Set the population attribute and link each neuron to its group. '''
         self._population = None
         self._nest_gid = None
-        self.id_from_nest_gid = None
+        self._id_from_nest_gid = None
         if issubclass(population.__class__, NeuralPop):
             if population.is_valid:
                 self._population = population
@@ -1018,6 +1038,29 @@ class Network(Graph):
 
     def set_types(self, syn_type, nodes=None, fraction=None):
         raise NotImplementedError("Cannot be used on :class:`~nngt.Network`.")
+    
+    def get_neuron_type(self, neuron_ids):
+        '''
+        Return the type of the neurons (+1 for excitatory, -1 for inhibitory).
+        
+        Parameters
+        ----------
+        neuron_ids : int or tuple
+            NEST gids.
+        
+        Returns
+        -------
+        ids : int or tuple
+            Ids in the network. Same type as the requested `gids` type.
+        '''
+        if isinstance(neuron_ids, int):
+            group_name = self._population._neuron_group[neuron_ids]
+            ntype = self._population[group_name].neuron_type
+            return ntype
+        else:
+            groups = (self._population._neuron_group[i] for i in neuron_ids)
+            types = tuple(self._population[gn].neuron_type for gn in groups)
+            return types
 
     #-------------------------------------------------------------------------#
     # Getter
@@ -1033,7 +1076,7 @@ class Network(Graph):
 
         Returns
         -------
-        dict of the neuron properties.
+        dict of the neuron's properties.
         '''
         group_name = self._population._neuron_group[idx_neuron]
         return self._population[group_name].properties()

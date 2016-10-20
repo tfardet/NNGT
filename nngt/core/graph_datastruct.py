@@ -67,11 +67,11 @@ class NeuralPop(dict):
         Make a NeuralPop with a given ratio of inhibitory and excitatory
         neurons.
         '''
-        num_inhib_neuron = int(iratio*size)
+        num_exc_neurons = int(size*(1-iratio))
         pop = cls(size, parent)
-        pop.new_group("excitatory", range(num_inhib_neuron,size), 1, en_model,
+        pop.new_group("excitatory", range(num_exc_neurons), 1, en_model,
            en_param, es_model, es_param)
-        pop.new_group("inhibitory", range(num_inhib_neuron), -1, in_model,
+        pop.new_group("inhibitory", range(num_exc_neurons, size), -1, in_model,
            in_param, is_model, es_param)
         return pop
 

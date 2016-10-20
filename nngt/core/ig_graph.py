@@ -326,3 +326,32 @@ node in the graph.")
         else:
             return ( nbetw/ncoeff_norm, ebetw/ecoeff_norm if norm
                      else nbetw, ebetw )
+
+    def neighbours(self, node, mode="all"):
+        '''
+        Return the neighbours of `node`.
+
+        Parameters
+        ----------
+        node : int
+            Index of the node of interest.
+        mode : string, optional (default: "all")
+            Type of neighbours that will be returned: "all" returns all the
+            neighbours regardless of directionality, "in" returns the
+            in-neighbours (also called predecessors) and "out" retruns the
+            out-neighbours (or successors).
+
+        Returns
+        -------
+        neighbours : tuple
+            The neighbours of `node`.
+        '''
+        if mode == "all":
+            return self.neighbors(node, mode=3)
+        elif mode == "in":
+            return self.neighbors(node, mode=1)
+        elif mode == "out":
+            return self.neighbors(node, mode=2)
+        else:
+            raise ArgumentError('''Invalid `mode` argument {}; possible values
+                                are "all", "out" or "in".'''.format(mode))

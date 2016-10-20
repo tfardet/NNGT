@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from nngt.globals import WEIGHT, DELAY
 from nngt.lib import InvalidArgument
+from .nest_utils import _sort_groups
 
 __all__ = [ 'make_nest_network', 'get_nest_network', 'reproducible_weights' ]
 
@@ -51,9 +52,12 @@ def make_nest_network(network, use_weights=True):
     ia_nngt_nest = np.zeros(num_neurons, dtype=int)
     current_size = 0
 
-    for group in iter(network.population.values()):
+    # sort groups by size
+    _, groups = _sort_groups(network.population)
+
+    for group in groups:
         group_size = len(group.id_list)
-        ia_nngt_ids[current_size:current_size+group_size] = group.id_list
+        ia_nngt_ids[current_size:current_size + group_size] = group.id_list
         # clean up neuron_param dict
         defaults = nest.GetDefaults(group.neuron_model)
         n_param = {key: val for key, val in group.neuron_param.items()
@@ -68,8 +72,8 @@ def make_nest_network(network, use_weights=True):
         
     # conversions ids/gids
     network.nest_gid = ia_nngt_nest
-    network.id_from_nest_gid = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
-                                                             ia_nest_gids) }
+    network._id_from_nest_gid = {gid:idx for (idx, gid)
+                                 in zip(ia_nngt_ids, ia_nest_gids)}
         
     # get all properties as scipy.sparse.lil matrices
     lil_weights = network.adjacency_matrix(False, True).tolil()
@@ -77,7 +81,7 @@ def make_nest_network(network, use_weights=True):
         
     # conversions ids/gids
     network.nest_gid = ia_nngt_nest
-    network.id_from_nest_gid = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
+    network._id_from_nest_gid = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
                                                              ia_nest_gids) }
 
     # connect neurons
@@ -90,7 +94,6 @@ def make_nest_network(network, use_weights=True):
         # clean up synapse dict
         syn_model = dic_prop["syn_model"]
         # clean up synaptic parameters
-        prop = network.neuron_properties(network.id_from_nest_gid[gids[i]])
         defauls = nest.GetDefaults(syn_model)
         for key, val in iter(dic_prop["syn_param"].items()):
             if key in defaults and key != "synapsemodel":

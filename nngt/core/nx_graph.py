@@ -325,3 +325,34 @@ edge in the graph.")
             return ( np.array(tuple(di_nbetw.values())),
                      np.array(tuple(di_ebetw.values())) )
 
+    def neighbours(self, node, mode="all"):
+        '''
+        Return the neighbours of `node`.
+
+        Parameters
+        ----------
+        node : int
+            Index of the node of interest.
+        mode : string, optional (default: "all")
+            Type of neighbours that will be returned: "all" returns all the
+            neighbours regardless of directionality, "in" returns the
+            in-neighbours (also called predecessors) and "out" retruns the
+            out-neighbours (or successors).
+
+        Returns
+        -------
+        neighbours : tuple
+            The neighbours of `node`.
+        '''
+        if mode == "all":
+            neighbours = self.successors(node)
+            neighbours.extend(self.predecessors(node))
+            return neighbours
+        elif mode == "in":
+            return self.predecessors(node)
+        elif mode == "out":
+            return self.successors(node)
+        else:
+            raise ArgumentError('''Invalid `mode` argument {}; possible values
+                                are "all", "out" or "in".'''.format(mode))
+

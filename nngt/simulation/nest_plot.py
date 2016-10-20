@@ -16,6 +16,7 @@ import nest
 from nngt.plot import palette
 from nngt.plot.plt_properties import _set_new_plot
 from nngt.lib import InvalidArgument
+from .nest_utils import _sort_groups
 
 
 
@@ -141,35 +142,6 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
         plt.show()
     return list(set(fignums))
 
-def _sort_neurons(sort, gids, network):
-    max_nest_gid = network.nest_gid.max() + 1
-    sorting = np.zeros(max_nest_gid)
-    if isinstance(sort, str):
-        sorted_ids = None
-        if "degree" in sort:
-            deg_type = sort[:sort.find("-")]
-            degrees = network.get_degrees(deg_type)
-            sorted_ids = np.argsort(degrees)
-        elif sort == "betweenness":
-            betw = network.get_betweenness(btype="node")
-            sorted_ids = np.argsort(betw)
-        else:
-            raise InvalidArgument("Unknown sorting parameter {}".format(sort))
-        num_sorted = 1
-        for group in network.population.values():
-            gids = network.nest_gid[group.id_list]
-            order = np.argsort(sorted_ids[group.id_list])
-            sorting[gids] = num_sorted + order
-            num_sorted += len(group.id_list)
-    else:
-        sorting[network.nest_gid[sort]] = sort
-    return sorting
-
-def _moving_average (values, window):
-    weights = np.repeat(1.0, window)/window
-    sma = np.convolve(values, weights, 'same')
-    return sma
-
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 num_bins=1000, color="b", fignum=None, label=None, show=True):
     """
@@ -286,7 +258,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             ax.plot(times, senders, c=color, marker="o", linestyle='None',
                 mec="k", mew=0.5, ms=4, label=label)
             ax.set_ylabel(ylabel)
-            #~ ax.set_ylim([np.min(senders),np.max(senders)])
+            ax.set_xlabel(xlabel)
             ax.set_xlim([times[0]-delta_t, times[-1]+delta_t])
             ax.legend(bbox_to_anchor=(1.1, 1.2))
 
@@ -327,3 +299,42 @@ def fill_between_steps(x, y1, y2=0, h_align='mid'):
         y2 = np.repeat(y2,2)#[:-1]
 
     return xx, y1, y2
+
+
+#-----------------------------------------------------------------------------
+# Tools
+#------------------------
+#
+
+def _sort_neurons(sort, gids, network):
+    max_nest_gid = network.nest_gid.max() + 1
+    sorting = np.zeros(max_nest_gid)
+    if isinstance(sort, str):
+        sorted_ids = None
+        if "degree" in sort:
+            deg_type = sort[:sort.find("-")]
+            degrees = network.get_degrees(deg_type)
+            sorted_ids = np.argsort(degrees)
+        elif sort == "betweenness":
+            betw = network.get_betweenness(btype="node")
+            sorted_ids = np.argsort(betw)
+        else:
+            raise InvalidArgument(
+                '''Unknown sorting parameter {}; choose among "in-degree",
+                "out-degree", "total-degree" or "betweenness".'''.format(sort))
+        num_sorted = 1
+        _, sorted_groups = _sort_groups(network.population)
+        for group in sorted_groups:
+            gids = network.nest_gid[group.id_list]
+            order = np.argsort(sorted_ids[group.id_list])
+            sorting[gids] = num_sorted + order
+            num_sorted += len(group.id_list)
+    else:
+        sorting[network.nest_gid[sort]] = sort
+    return sorting
+
+
+def _moving_average (values, window):
+    weights = np.repeat(1.0, window)/window
+    sma = np.convolve(values, weights, 'same')
+    return sma

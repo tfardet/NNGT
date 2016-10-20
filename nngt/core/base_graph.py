@@ -155,6 +155,10 @@ class BaseGraph(nngt.globals.config["graph"]):
     @abstractmethod
     def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
         pass
+    
+    @abstractmethod
+    def neighbours(self, node, mode="all"):
+        pass
 
     @abstractmethod
     def clear_all_edges(self):

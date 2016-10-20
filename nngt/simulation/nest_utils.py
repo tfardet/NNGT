@@ -25,6 +25,18 @@ __all__ = [
 ]
 
 
+def _sort_groups(pop):
+    '''
+    Sort the groups of a NeuralPop by decreasing size.
+    '''
+    names, groups = [], []
+    for name, group in iter(pop.items()):
+        names.append(name)
+        groups.append(group)
+    sizes = [len(g.id_list) for g in groups]
+    order = np.argsort(sizes)[::-1]
+    return [names[i] for i in order], [groups[i] for i in order]
+
 
 #-----------------------------------------------------------------------------#
 # Inducing activity
@@ -156,7 +168,8 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
         # event detectors
         elif "detector" in rec:
             if network is not None:
-                for name, group in iter(network.population.items()):
+                sorted_names, sorted_groups = _sort_groups(network.population)
+                for name, group in zip(sorted_names, sorted_groups):
                     device = nest.Create(rec)
                     recorders.append(device)
                     new_record.append(["spikes"])
