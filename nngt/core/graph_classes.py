@@ -991,17 +991,17 @@ class Network(Graph):
         self._nest_gid = gids
         for group in iter(self.population.values()):
             group._nest_gids = gids[group.id_list]
-    
+
     def id_from_nest_gid(self, gids):
         '''
         Return the ids of the nodes in the :class:`nngt.Network` instance from
         the corresponding NEST gids.
-        
+
         Parameters
         ----------
         gids : int or tuple
             NEST gids.
-        
+
         Returns
         -------
         ids : int or tuple
@@ -1038,16 +1038,16 @@ class Network(Graph):
 
     def set_types(self, syn_type, nodes=None, fraction=None):
         raise NotImplementedError("Cannot be used on :class:`~nngt.Network`.")
-    
+
     def get_neuron_type(self, neuron_ids):
         '''
         Return the type of the neurons (+1 for excitatory, -1 for inhibitory).
-        
+
         Parameters
         ----------
         neuron_ids : int or tuple
             NEST gids.
-        
+
         Returns
         -------
         ids : int or tuple
