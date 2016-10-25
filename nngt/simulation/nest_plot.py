@@ -30,7 +30,7 @@ __all__ = [ "plot_activity" ]
 
 def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
                   limits=None, hist=True, title=None, fignum=None, label=None,
-                  sort=None, normalize=1.):
+                  sort=None, normalize=1., decimate=None):
     '''
     Plot the monitored activity.
     
@@ -64,6 +64,11 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
         each group.
     normalize : float, optional (default: None)
         Normalize the recorded results by a given float.
+    decimate : int or list of ints, optional (default: None)
+        Represent only a fraction of the spiking neurons; only one neuron in
+        `decimate` will be represented (e.g. setting `decimate` to 10 will lead
+        to only 10% of the neurons being represented). If a list is provided,
+        it must have one entry per NeuralGroup in the population.
 
     Returns
     -------
@@ -84,20 +89,34 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
         sorted_neurons = _sort_neurons(sort, gids, network)
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
-    num_spike, num_detec = 0, 0
-    fig_spike, fig_detec = None, None
+    num_raster, num_detec = 0, 0
+    fig_raster, fig_detec = None, None
     fignums = []
+    decim = []
+    if decimate is None:
+        decim = [None for _ in range(num_group)]
+    elif isinstance(decimate, int):
+        decim = [decimate for _ in range(num_group)]
+    elif hasattr(decimate, "__len__"):
+        assert len(decimate) == num_group, '''decimate should have one
+            entry per group in the population'''
+        decim = decimate
+    else:
+        raise AttributeError(
+            "decimate must be either an int or a list of ints")
+
+    # plot
     for rec, var in zip(lst_rec, record):
         info = nest.GetStatus(rec)[0]
         if str(info["model"]) == "spike_detector":
-            c = colors[num_spike]
+            c = colors[num_raster]
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
-            fig_spike = raster_plot(times, sorted_ids, fignum=fig_spike,
+            fig_raster = raster_plot(times, sorted_ids, fignum=fig_raster,
                                     color=c, show=False, label=info["label"],
-                                    limits=limits)
-            num_spike += 1
-            fignums.append(fig_spike)
+                                    limits=limits, decimate=decim[num_raster])
+            num_raster += 1
+            fignums.append(fig_raster)
         elif "detector" in str(info["model"]):
             c = colors[num_detec]
             times, senders = info["events"]["times"], info["events"]["senders"]
@@ -143,7 +162,8 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     return list(set(fignums))
 
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
-                num_bins=1000, color="b", fignum=None, label=None, show=True):
+                num_bins=1000, color="b", decimate=None, fignum=None,
+                label=None, show=True):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
@@ -165,8 +185,14 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         Number of bins for the histogram.
     color : string or float, optional (default: 'b')
         Color of the plot lines and markers.
+    decimate : int, optional (default: None)
+        Represent only a fraction of the spiking neurons; only one neuron in
+        `decimate` will be represented (e.g. setting `decimate` to 10 will lead
+        to only 10% of the neurons being represented).
     fignum : int, optional (default: None)
         Id of another raster plot to which the new data should be added.
+    label : str, optional (default: None)
+        Label the current data.
     show : bool, optional (default: True)
         Whether to show the plot right away or to wait for the next plt.show().
     
@@ -176,6 +202,12 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         Id of the :class:`matplotlib.Figure` on which the raster is plotted.
     """
     num_neurons = len(np.unique(senders))
+
+    # decimate if necessary
+    if decimate is not None:
+        idx_keep = np.where(np.mod(senders, decimate) == 0)[0]
+        senders = senders[idx_keep]
+        times = times[idx_keep]
 
     if len(times):
         fig = plt.figure(fignum)
