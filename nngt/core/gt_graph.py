@@ -273,7 +273,7 @@ class _GtGraph(BaseGraph):
         if attributes:
             # take care of classic attributes
             if "weight" in attributes:
-                self.set_weights(elist=edge_list, wlist=attributes["weight"])
+                self.set_weights(weight=attributes["weight"], elist=edge_list)
             if "delay" in attributes:
                 self.set_delays(elist=edge_list, dlist=attributes["delay"])
             if "distance" in attributes:

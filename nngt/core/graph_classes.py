@@ -429,7 +429,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
 `val` arguments should not be ``None``.")
             self._eattr[attribute] = values
     
-    def set_weights(self, elist=None, wlist=None, distribution=None,
+    def set_weights(self, weight=None, elist=None, distribution=None,
                     parameters=None, noise_scale=None):
         '''
         Set the synaptic weights.
@@ -438,10 +438,10 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         
         Parameters
         ----------
+        weight : float or class:`numpy.array`, optional (default: None)
+            Value or list of the weights (for user defined weights).
         elist : class:`numpy.array`, optional (default: None)
             List of the edges (for user defined weights).
-        wlist : class:`numpy.array`, optional (default: None)
-            List of the weights (for user defined weights).
         distribution : class:`string`, optional (default: None)
             Type of distribution (choose among "constant", "uniform", 
             "gaussian", "lognormal", "lin_corr", "log_corr").
@@ -451,11 +451,17 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
         '''
+        if isinstance(weight, float):
+            size = self.edge_nb() if elist is None else len(elist)
+            weight = np.repeat(weight, self.edge_nb())
+        elif not hasattr(weight, "__len__") and weight is not None:
+            raise AttributeError('''Invalid `weight` value: must be either
+                                 float, array-like or None.''')
         if distribution is None:
             distribution = self._w["distribution"]
         if parameters is None:
             parameters = self._w
-        Connections.weights(self, elist=elist, wlist=wlist,
+        Connections.weights(self, elist=elist, wlist=weight,
                             distribution=distribution, parameters=parameters,
                             noise_scale=noise_scale)
 
