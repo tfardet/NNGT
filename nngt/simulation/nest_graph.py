@@ -86,31 +86,33 @@ def make_nest_network(network, use_weights=True):
 
     # connect neurons
     for i in range(num_neurons):
-        dic = { "target": None, WEIGHT: None, DELAY: None }
+        #~ dic = { "target": None, WEIGHT: None, DELAY: None }
         ia_targets = np.array(lil_weights.rows[ia_nngt_ids[i]], dtype=int)
-        dic["target"] = ia_nngt_nest[ia_targets]
+        #~ dic["target"] = ia_nngt_nest[ia_targets]
         num_connect = len(ia_targets)
         dic_prop = network.neuron_properties(ia_nngt_ids[i])
         # clean up synapse dict
         syn_model = dic_prop["syn_model"]
         # clean up synaptic parameters
-        defauls = nest.GetDefaults(syn_model)
+        defaults = nest.GetDefaults(syn_model)
+        di_syn_spec = {"model": syn_model}
         for key, val in iter(dic_prop["syn_param"].items()):
             if key in defaults and key != "synapsemodel":
-                dic[key] = np.repeat(val, num_connect)
+                di_syn_spec[key] = np.atleast_2d(np.repeat(val, num_connect)).T
         syn_sign = dic_prop["neuron_type"]
         if use_weights:
-            dic[WEIGHT] = syn_sign*np.array(lil_weights.data[ia_nngt_ids[i]])
+            tmp = syn_sign*np.array(lil_weights.data[ia_nngt_ids[i]])
+            di_syn_spec[WEIGHT] = np.atleast_2d(tmp).T
         else:
-            dic[WEIGHT] = syn_sign*np.repeat(1., num_connect)
-        if dic[DELAY] is None:
-            dic[DELAY] = np.array(lil_delays.data[ia_nngt_ids[i]])
+            tmp = syn_sign*np.repeat(1., num_connect)
+            di_syn_spec[WEIGHT] = np.atleast_2d(tmp).T
+        if di_syn_spec.get(DELAY, None) is None:
+            tmp = np.array(lil_delays.data[ia_nngt_ids[i]])
+            di_syn_spec[DELAY] = np.atleast_2d(tmp).T
         nest.Connect(
             [ia_nngt_nest[ia_nngt_ids[i]]],
             list(ia_nngt_nest[ia_targets]),
-            syn_spec={"weight": np.atleast_2d(dic[WEIGHT]).T,
-                      "delay": np.atleast_2d(dic[DELAY]).T,
-                      "model": syn_model})
+            syn_spec=di_syn_spec)
     return subnet, tuple(ia_nest_gids)
 
 

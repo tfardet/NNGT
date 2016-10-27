@@ -21,7 +21,7 @@ edge_reciprocity = nngt.analyze_graph["reciprocity"]
 global_clustering = nngt.analyze_graph["clustering"]
 scc = nngt.analyze_graph["scc"]
 wcc = nngt.analyze_graph["wcc"]
-diameter = nngt.analyze_graph["diameter"]
+glib_diameter = nngt.analyze_graph["diameter"]
 
 
 #-----------------------------------------------------------------------------#
@@ -215,9 +215,9 @@ def diameter(graph):
     if nngt.config["graph_library"] == "igraph":
         return graph.diameter()
     elif nngt.config["graph_library"] == "networkx":
-        return diameter(graph)
+        return glib_diameter(graph)
     else:
-        return diameter(graph)[0]
+        return glib_diameter(graph)[0]
 
 
 #-----------------------------------------------------------------------------#
