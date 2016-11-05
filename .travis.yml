@@ -63,7 +63,7 @@ before_install:
     - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
     # coverage analysis
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-nose2-cov; else sudo apt-get install -y python-nose2-cov; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install nose2 nose2-cov cov-core; else sudo pip install nose2 nose2-cov cov-core; fi
 
 install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pip install -e ".[nx,ig]"; fi
 
