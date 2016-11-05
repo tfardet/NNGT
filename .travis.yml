@@ -63,13 +63,12 @@ before_install:
     - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
     # coverage analysis
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-coverage; else sudo pip install coveralls; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-nose2-cov; else sudo apt-get install -y python-nose2-cov; fi
 
 install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pip install -e ".[nx,ig]"; fi
 
 script:
     - export GL=$GL
-    - python -m unittest discover -f
-    - if [[ "$PYVERSION" == "3.x" ]]; then python3-coverage run --source=nngt nngt/testing/__init__.py; else coverage run --source=nngt nngt/testing/__init__.py; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; nose2-3 --with-coverage --coverage nngt -F; else nose2 --with-coverage --coverage nngt -F; fi
 
 after_success: coveralls
