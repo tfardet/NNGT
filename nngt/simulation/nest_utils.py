@@ -21,6 +21,7 @@ __all__ = [
     'set_noise',
     'set_poisson_input',
     'set_step_currents',
+    'monitor_groups',
     'monitor_nodes',
 ]
 
@@ -122,33 +123,7 @@ same')
 #------------------------
 #
 
-def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
-                  network=None):
-    '''
-    Monitoring the activity of nodes in the network.
-    
-    Parameters
-    ----------
-    gids : tuple of ints or list of tuples
-        GIDs of the neurons in the NEST subnetwork; either one list per
-        recorder if they should monitor different neurons or a unique list
-        which will be monitored by all devices.
-    nest_recorder : list of strings, optional (default: ["spike_detector"])
-        List of devices to monitor the network.
-    params : list of dict, optional (default: [{}])
-        List of dictionaries containing the parameters for each recorder (see 
-        `NEST documentation <http://www.nest-simulator.org/quickref/#nodes>`_ 
-        for details).
-    network : :class:`~nngt.Network` or subclass, optional (default: "")
-        Network which population will be used to differentiate inhibitory and 
-        excitatory spikes.
-    
-    Returns
-    -------
-    recorders : tuple
-        Tuple of the recorders' gids
-    '''
-    
+def _monitor(gids, nest_recorder, params):
     new_record = []
     recorders = []
     for i,rec in enumerate(nest_recorder):
@@ -167,19 +142,81 @@ def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
             nest.Connect(device, gids, conn_spec=di_spec)
         # event detectors
         elif "detector" in rec:
-            if network is not None:
-                sorted_names, sorted_groups = _sort_groups(network.population)
-                for name, group in zip(sorted_names, sorted_groups):
-                    device = nest.Create(rec)
-                    recorders.append(device)
-                    new_record.append(["spikes"])
-                    nest.SetStatus(device,params[i])
-                    nest.Connect(tuple(network.nest_gid[group.id_list]), device)
-            else:
-                device = nest.Create(rec)
-                recorders.append(device)
-                nest.SetStatus(device,params[i])
-                nest.Connect(gids, device)
+            device = nest.Create(rec)
+            recorders.append(device)
+            new_record.append("spikes")
+            nest.SetStatus(device,params[i])
+            nest.Connect(gids, device)
         else:
-            raise InvalidArgument("Invalid recorder item in 'nest_recorder'.")
+            raise InvalidArgument('''Invalid recorder item in `nest_recorder`:
+                                  {} is unknown.'''.format(nest_recorder))
     return tuple(recorders), new_record
+
+
+def monitor_groups(group_names, network, nest_recorder=["spike_detector"],
+                   params=[{}]):
+    '''
+    Monitoring the activity of nodes in the network.
+
+    Parameters
+    ----------
+    group_name : list of strings
+        Names of the groups that should be recorded.
+    network : :class:`~nngt.Network` or subclass
+        Network which population will be used to differentiate groups.
+    nest_recorder : list of strings, optional (default: ["spike_detector"])
+        List of devices to monitor the network.
+    params : list of dict, optional (default: [{}])
+        List of dictionaries containing the parameters for each recorder (see 
+        `NEST documentation <http://www.nest-simulator.org/quickref/#nodes>`_ 
+        for details).
+
+    Returns
+    -------
+    recorders : tuple
+        Tuple of the recorders' gids
+    recordables : tuple
+        Typle of the recordables' names.
+    '''
+    recorders, recordables = [], []
+    # sort and monitor
+    nodes_gids = []
+    sorted_names, sorted_groups =_sort_groups(network.population)
+    sort_input = np.argsort([sorted_names.index(name) for name in group_names])
+    sorted_input = [group_names[i] for i in sort_input]
+    for name in sorted_input:
+        gids = tuple(network.population[name].nest_gids)
+        recdr, recdbls = _monitor(gids, nest_recorder, params)
+        recorders.extend(recdr)
+        recordables.extend(recdbls)
+    return recorders, recordables
+
+
+def monitor_nodes(gids, nest_recorder=["spike_detector"], params=[{}],
+                  network=None):
+    '''
+    Monitoring the activity of nodes in the network.
+
+    Parameters
+    ----------
+    gids : tuple of ints or list of tuples
+        GIDs of the neurons in the NEST subnetwork; either one list per
+        recorder if they should monitor different neurons or a unique list
+        which will be monitored by all devices.
+    nest_recorder : list of strings, optional (default: ["spike_detector"])
+        List of devices to monitor the network.
+    params : list of dict, optional (default: [{}])
+        List of dictionaries containing the parameters for each recorder (see
+        `NEST documentation <http://www.nest-simulator.org/quickref/#nodes>`_
+        for details).
+    network : :class:`~nngt.Network` or subclass, optional (default: None)
+        Network which population will be used to differentiate groups.
+
+    Returns
+    -------
+    recorders : tuple
+        Tuple of the recorders' gids
+    recordables : tuple
+        Typle of the recordables' names.
+    '''
+    return _monitor(gids, nest_recorder, params)

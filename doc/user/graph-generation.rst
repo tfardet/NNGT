@@ -20,7 +20,7 @@ Juste to get work on a topological graph/network:
     1) Create graph class
     2) Connect
     3) Set connection weights (optional)
-    4) Spatialize  (optional)
+    4) Spatialize (optional)
     5) Set types (optional: to use with NEST)
 
 To work on a really spatially embedded graph/network:
@@ -122,14 +122,54 @@ Send the network to NEST:
     subnet, gids = make_nest_network(net)
     pg = nest.Create("poisson_generator", params={"rate": 100000.})
     nest.Connect(pg, gids)
-    recorder, record = monitor_nodes( gids, ["spike_detector"],
-                                      [{}], network=net )
+    recorder, record = monitor_nodes(
+        gids, ["spike_detector"], [{}], network=net)
 
     # Simulate
     simtime = 100.
     nest.Simulate(simtime)
-    fignums = plot_activity(recorder, record, network=net, show=True, hist=False, limits=(0,simtime))
+    fignums = plot_activity(
+        recorder, record, network=net, show=True, hist=False,
+        limits=(0,simtime))
 
+
+Advanced examples
+=================
+
+Receptor ports in NEST
+----------------------
+
+Some models, such as multisynaptic neurons, or advanced models incorporating various neurotransmitters use an additional information, called ``"port"`` to identify the synapse that will be used by the ``nest.Connect`` method.
+These models can also be used with NNGT by telling the :class:`~nngt.core.NeuralGroup` which type of port the neuron should try to bind to.
+NB: the port is specified in the **source** neuron and declares which synapse of the **target** neuron is concerned.
+
+.. code-block:: python
+
+    from nngt.simulation import make_nest_network, set_noise
+
+    # parameters
+    neuron_model = "ht_neuron" # hill-tononi model
+    exc_syn = {'receptor_type': 1} # 1 is 'AMPA' in this model
+    inh_syn = {'receptor_type': 3} # 3 is 'GABA_A' in this model
+
+    # (create a mixed population, 20% inhibitory by default)
+    pop = nngt.NeuralPop.exc_and_inhib(
+        num_neurons, en_model=neuron_model, in_model=neuron_model,
+        es_param=exc_syn, is_param=inh_syn)
+    # create the network and send it to NEST
+    avg_degree = 100 # average number of neighbours
+    std_degree = 5 # deviation for the Gaussian graph
+    w_prop = {"distribution": "constant", "value": 1.}
+    net = nngt.generation.gaussian_degree(
+        avg_degree, std_degree, population=pop, weights=w_prop)
+    subnet, gids = make_nest_network(net)
+
+    # add noise to the excitatory neurons
+    excs = list(pop["excitatory"].nest_gids)
+    set_noise(excs, 7., 5.)
+
+    # simulate
+    nest.Simulate(5000.)
 
 .. toctree::
    :maxdepth: 1

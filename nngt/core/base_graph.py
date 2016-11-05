@@ -108,12 +108,33 @@ class BaseGraph(nngt.globals.config["graph"]):
             makes using node properties too complicated")
         
     def adjacency_matrix(self, types=True, weights=True):
+        '''
+        Return the graph adjacency matrix.
+        NB : source nodes are represented by the rows, targets by the
+        corresponding columns.
+
+        Parameters
+        ----------
+        types : bool, optional (default: True)
+            Wether the edge types should be taken into account (negative values
+            for inhibitory connections).
+        weights : bool or string, optional (default: True)
+            Whether the adjacecy matrix should be weighted. If True, all
+            connections are multiply bythe associated synaptic strength; if
+            weight is a string, the connections are scaled bythe corresponding
+            edge attribute.
+
+        Returns
+        -------
+        mat : :class:`scipy.sparse.csr` matrix
+            The adjacency matrix of the graph.
+        '''
         weights = "weight" if weights is True else weights
         types = "type" if types is True else False
         mat = adjacency(self, weights)
         if types in self.attributes() and weights in (True, "weight"):
             mtype = adjacency(self, weight="type")
-            return mat*mtype
+            return mat * mtype
         else:
             return mat
     

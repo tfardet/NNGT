@@ -72,47 +72,39 @@ def make_nest_network(network, use_weights=True):
         
     # conversions ids/gids
     network.nest_gid = ia_nngt_nest
-    network._id_from_nest_gid = {gid:idx for (idx, gid)
-                                 in zip(ia_nngt_ids, ia_nest_gids)}
-        
-    # get all properties as scipy.sparse.lil matrices
-    lil_weights = network.adjacency_matrix(False, True).tolil()
-    lil_delays = network.adjacency_matrix(False, DELAY).tolil()
-        
-    # conversions ids/gids
-    network.nest_gid = ia_nngt_nest
-    network._id_from_nest_gid = { gid:idx for (idx,gid) in zip(ia_nngt_ids,
-                                                             ia_nest_gids) }
+    network._id_from_nest_gid = {
+        gid: idx for (idx, gid) in zip(ia_nngt_ids, ia_nest_gids)
+    }
 
-    # connect neurons
-    for i in range(num_neurons):
-        #~ dic = { "target": None, WEIGHT: None, DELAY: None }
-        ia_targets = np.array(lil_weights.rows[ia_nngt_ids[i]], dtype=int)
-        #~ dic["target"] = ia_nngt_nest[ia_targets]
-        num_connect = len(ia_targets)
-        dic_prop = network.neuron_properties(ia_nngt_ids[i])
-        # clean up synapse dict
-        syn_model = dic_prop["syn_model"]
-        # clean up synaptic parameters
-        defaults = nest.GetDefaults(syn_model)
-        di_syn_spec = {"model": syn_model}
-        for key, val in iter(dic_prop["syn_param"].items()):
-            if key in defaults and key != "synapsemodel":
-                di_syn_spec[key] = np.atleast_2d(np.repeat(val, num_connect)).T
-        syn_sign = dic_prop["neuron_type"]
+    # get all properties as scipy.sparse.csr matrices
+    csr_weights = network.adjacency_matrix(False, True)
+    csr_delays = network.adjacency_matrix(False, DELAY)
+
+    cspec = 'one_to_one'
+    for group in network.population.values():
+        # get the nodes ids and switch the sources back to their real values
+        min_idx = np.min(group.id_list)
+        src_ids = csr_weights[group.id_list, :].nonzero()[0] + min_idx
+        trgt_ids = csr_weights[group.id_list, :].nonzero()[1]
+        # switch to nest gids
+        src_ids = network.nest_gid[src_ids]
+        trgt_ids = network.nest_gid[trgt_ids]
+        # prepare the synaptic parameters
+        syn_param = {"model": group.syn_model}
+        for key, val in group.syn_param.items():
+            if key != "receptor_port":
+                syn_param[key] = np.repeat(val, len(src_ids))
+            else:
+                syn_param[key] = val
+        # prepare weights
+        syn_sign = group.neuron_type
         if use_weights:
-            tmp = syn_sign*np.array(lil_weights.data[ia_nngt_ids[i]])
-            di_syn_spec[WEIGHT] = np.atleast_2d(tmp).T
+            syn_param[WEIGHT] = syn_sign * csr_weights[group.id_list, :].data
         else:
-            tmp = syn_sign*np.repeat(1., num_connect)
-            di_syn_spec[WEIGHT] = np.atleast_2d(tmp).T
-        if di_syn_spec.get(DELAY, None) is None:
-            tmp = np.array(lil_delays.data[ia_nngt_ids[i]])
-            di_syn_spec[DELAY] = np.atleast_2d(tmp).T
-        nest.Connect(
-            [ia_nngt_nest[ia_nngt_ids[i]]],
-            list(ia_nngt_nest[ia_targets]),
-            syn_spec=di_syn_spec)
+            syn_param[WEIGHT] = np.repeat(syn_sign, len(src_ids))
+        syn_param[DELAY] = csr_delays[group.id_list, :].data
+        nest.Connect(src_ids, trgt_ids, syn_spec=syn_param, conn_spec=cspec)
+
     return subnet, tuple(ia_nest_gids)
 
 

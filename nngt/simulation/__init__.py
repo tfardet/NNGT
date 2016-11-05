@@ -3,18 +3,24 @@ Content
 =======
 """
 
+import sys
+sys.argv.append('--quiet')
+
+import nngt
+
 
 #
 #---
 # Dependencies
 #---------------------
 
-depends = ['nest', 'graph_tool', 'nngt.core']
+depends = ['nest', 'nngt.core']
 
 from .nest_graph import *
 from .nest_utils import *
 from .nest_activity import *
-from nngt import config
+
+nngt.__all__.append('simulation')
 
 
 #
@@ -28,6 +34,7 @@ __all__ = [
     'set_noise',
     'set_poisson_input',
     'set_set_step_currents',
+    'monitor_groups',
     'monitor_nodes',
     'plot_activity',
     'activity_types',
@@ -36,6 +43,6 @@ __all__ = [
 
 # test import of simulation plotting tools
 
-if config['with_plot']:
+if nngt.config['with_plot']:
     from .nest_plot import plot_activity
     __all__.append("plot_activity")

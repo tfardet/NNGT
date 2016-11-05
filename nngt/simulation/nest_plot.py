@@ -291,7 +291,10 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 mec="k", mew=0.5, ms=4, label=label)
             ax.set_ylabel(ylabel)
             ax.set_xlabel(xlabel)
-            ax.set_xlim([times[0]-delta_t, times[-1]+delta_t])
+            if limits is not None:
+                ax.set_xlim(limits)
+            else:
+                ax.set_xlim([times[0]-delta_t, times[-1]+delta_t])
             ax.legend(bbox_to_anchor=(1.1, 1.2))
 
         fig.suptitle(title)
