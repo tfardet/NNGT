@@ -5,10 +5,11 @@
 
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
+from six import add_metaclass
+from weakref import ref
 
 import numpy as np
 
-from six import add_metaclass
 import nngt.globals
 from nngt.globals import BWEIGHT
 from nngt.lib import InvalidArgument
@@ -25,7 +26,7 @@ adjacency = nngt.globals.analyze_graph["adjacency"]
 class BaseProperty(dict):
     
     def __init__(self, parent):
-        self.parent = parent
+        self.parent = ref(parent)
         
     def value_type(self, key=None):
         if key is not None:

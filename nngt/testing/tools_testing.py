@@ -8,7 +8,7 @@
 # terms of the GNU General Public License.
 
 import xml.etree.ElementTree as xmlet
-
+import gc
 
 
 #-----------------------------------------------------------------------------#
@@ -19,9 +19,11 @@ import xml.etree.ElementTree as xmlet
 def _bool_from_string(string):
     return True if (string.lower() == "true") else False
 
+
 def _list_from_string(string, elt_type, di_convert):
     lst = string[1:-1].split(", ")
     return [ di_convert[elt_type](elt) for elt in lst ]
+
 
 def _xml_to_dict(xml_elt, di_types):
     di_result = {}
@@ -63,6 +65,7 @@ def foreach_graph(func):
     '''       
     def wrapper(*args, **kwargs):
         self = args[0]
-        for graph, instruct in zip(self.graphs, self.instructions):
-            func(self, graph, instructions=instruct, **kwargs)
+        for graph_name in self.graphs:
+            g, di = self.gen_graph(graph_name)
+            func(self, g, instructions=di, **kwargs)
     return wrapper

@@ -23,17 +23,16 @@ from .base_graph import BaseGraph, BaseProperty
 class _IgNProperty(BaseProperty):
 
     '''
-    @todo
     Class for generic interactions with nodes properties (igraph)
     '''
 
     def __getitem__(self, name):
-        return np.array(self.parent.vs[name])
+        return np.array(self.parent()().vs[name])
 
     def __setitem__(self, name, value):
         if name in self:
             if len(value) == size:
-                self.parent.vs[name] = value
+                self.parent()().vs[name] = value
             else:
                 raise ValueError("A list or a np.array with one entry per \
 node in the graph is required")
@@ -52,7 +51,7 @@ set_attribute to create it.")
             else:
                 val = None
         if values is None:
-            values = np.repeat(val, self.parent.vcount())
+            values = np.repeat(val, self.parent()().vcount())
         # store name and value type in the dict
         super(_IgNProperty,self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -60,19 +59,19 @@ set_attribute to create it.")
 
 class _IgEProperty(BaseProperty):
 
-    ''' Class for generic interactions with nodes properties (networkx)  '''
+    ''' Class for generic interactions with nodes properties (igraph)  '''
 
     def __getitem__(self, name):
-        return np.array(self.parent.es[name])
+        return np.array(self.parent().es[name])
 
     def __setitem__(self, name, value):
         if name in self:
-            size = self.parent.edge_nb()
+            size = self.parent().edge_nb()
             if len(value) == size:
-                self.parent.es[name] = value
+                self.parent().es[name] = value
             else:
-                raise ValueError("A list or a np.array with one entry per edge in \
-the graph is required")
+                raise ValueError("A list or a np.array with one entry per \
+edge in the graph is required")
         else:
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
@@ -88,7 +87,7 @@ set_attribute to create it.")
             else:
                 val = None
         if values is None:
-            values = np.repeat(val, self.parent.ecount())
+            values = np.repeat(val, self.parent().ecount())
         # store name and value type in the dict
         super(_IgEProperty,self).__setitem__(name, value_type)
         # store the real values in the attribute

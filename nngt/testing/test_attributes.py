@@ -81,7 +81,10 @@ class TestAttributes(TestBasis):
         ref_result = _results_theo(instructions)
         weights = graph.get_weights()
         computed_result = _results_exp(weights, instructions)
-        self.assertTrue(np.allclose(ref_result,computed_result,self.tolerance))
+        self.assertTrue(np.allclose(
+            ref_result, computed_result, self.tolerance),
+            '''Error on graph {}: unequal weights for tolerance {}.
+            '''.format(graph.name, self.tolerance))
 
     @foreach_graph
     def test_delays(self, graph, instructions, **kwargs):
@@ -96,9 +99,9 @@ class TestAttributes(TestBasis):
         ref_result = _results_theo(instructions)
         computed_result = _results_exp(delays, instructions)
         self.assertTrue(np.allclose(ref_result,computed_result,self.tolerance))
-        if nngt.config['with_nest']:
-            import nest
-            subnet, gids = nngt.simulation.make_nest_network(graph)
+        if nngt.config['load_nest']:
+            from nngt.simulation import make_nest_network
+            subnet, gids = make_nest_network(graph)
             # @todo
 
 

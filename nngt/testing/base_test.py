@@ -110,7 +110,6 @@ class TestBasis(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.graphs = []
-        cls.instructions = []
     
     tolerance = 1e-5
     parser = XmlHandler()
@@ -122,7 +121,8 @@ class TestBasis(unittest.TestCase):
     
     def setUp(self):
         if not self.graphs:
-            self.make_graphs()
+            for graph_name in self.parser.get_graph_list(self.test_name):
+                self.graphs.append(graph_name)
 
     @abstractproperty
     def test_name(self):
@@ -130,12 +130,6 @@ class TestBasis(unittest.TestCase):
     
     def get_expected_result(self, graph, res_name):
         return self.parser.get_result(graph.get_name(), res_name)
-
-    def make_graphs(self):
-        for graph_name in self.parser.get_graph_list(self.test_name):
-            g, di = self.gen_graph(graph_name)
-            self.graphs.append(g)
-            self.instructions.append(di)
 
     @abstractmethod
     def gen_graph(self, graph_name):

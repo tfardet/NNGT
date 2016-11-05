@@ -25,13 +25,13 @@ class _GtNProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __getitem__(self, name):
-        return np.array(self.parent.vertex_properties[name].a)
+        return np.array(self.parent().vertex_properties[name].a)
 
     def __setitem__(self, name, value):
         if name in self:
-            size = self.parent.num_vertices()
+            size = self.parent().num_vertices()
             if len(value) == size:
-                self.parent.vertex_properties[name].a = np.array(value)
+                self.parent().vertex_properties[name].a = np.array(value)
             else:
                 raise ValueError("A list or a np.array with one entry per \
 node in the graph is required")
@@ -50,15 +50,15 @@ set_attribute to create it.")
             else:
                 val = None
         if values is None:
-            values = np.repeat(val, self.parent.num_edges())
-        if len(values) != self.parent.num_vertices():
+            values = np.repeat(val, self.parent().num_edges())
+        if len(values) != self.parent().num_vertices():
             raise ValueError("A list or a np.array with one entry per \
 edge in the graph is required")
         # store name and value type in the dict
         super(_GtNProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
-        nprop = self.parent.new_node_property(value_type, values)
-        self.parent.node_properties[name] = nprop
+        nprop = self.parent().new_node_property(value_type, values)
+        self.parent().node_properties[name] = nprop
 
 class _GtEProperty(BaseProperty):
 
@@ -69,24 +69,24 @@ class _GtEProperty(BaseProperty):
         Return the attributes of an edge or a list of edges.
         '''
         if isinstance(name, str):
-            return np.array(self.parent.edge_properties[name].a)
+            return np.array(self.parent().edge_properties[name].a)
         elif hasattr(name[0], '__iter__'):
             di_eattr = {}
             for key in self.keys():
-                di_eattr[key] = np.array( [ self.parent.edge_properties[key][e]
-                                            for e in name ] )
+                di_eattr[key] = np.array(
+                    [self.parent().edge_properties[key][e] for e in name])
             return di_eattr
         else:
             di_eattr = {}
             for key in self.keys():
-                di_eattr[key] = self.parent.edge_properties[key][name]
+                di_eattr[key] = self.parent().edge_properties[key][name]
             return di_eattr
 
     def __setitem__(self, name, value):
         if name in self:
-            size = self.parent.num_edges()
+            size = self.parent().num_edges()
             if len(value) == size:
-                self.parent.edge_properties[name].a = np.array(value)
+                self.parent().edge_properties[name].a = np.array(value)
             else:
                 raise ValueError("A list or a np.array with one entry per \
 edge in the graph is required")
@@ -95,13 +95,13 @@ edge in the graph is required")
 set_attribute to create it.")
 
     def edge_prop(self, name, values, edges=None):
-        if edges is None or len(edges) == self.parent.edge_nb():
+        if edges is None or len(edges) == self.parent().edge_nb():
             self[name] = values
         else:
-            edges = self.parent._edges.keys()
+            edges = self.parent()._edges.keys()
             if len(values) == len(edges):
                 for e, val in zip(edges, values):
-                    self.parent.edge_properties[name][e] = val
+                    self.parent().edge_properties[name][e] = val
             else:
                 raise ValueError("A list or a np.array with one entry per \
 edge in `edges` is required")
@@ -117,15 +117,15 @@ edge in `edges` is required")
             else:
                 val = None
         if values is None:
-            values = np.repeat(val, self.parent.num_edges())
-        if len(values) != self.parent.num_edges():
+            values = np.repeat(val, self.parent().num_edges())
+        if len(values) != self.parent().num_edges():
             raise ValueError("A list or a np.array with one entry per \
 edge in the graph is required")
         # store name and value type in the dict
         super(_GtEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
-        eprop = self.parent.new_edge_property(value_type, values)
-        self.parent.edge_properties[name] = eprop
+        eprop = self.parent().new_edge_property(value_type, values)
+        self.parent().edge_properties[name] = eprop
 
 
 #-----------------------------------------------------------------------------#
@@ -220,7 +220,7 @@ class _GtGraph(BaseGraph):
             attributes["weight"] = 1.
         self._edges[(source, target)] = self.edge_nb()
         connection = super(_GtGraph, self).add_edge(source, target,
-                                                   add_missing=True)
+                                                    add_missing=True)
         for key, val in attributes:
             if key in self.edge_properties:
                 self.edge_properties[key][connection] = val
@@ -323,7 +323,8 @@ class _GtGraph(BaseGraph):
             w_p = None
             if "weight" in self.edge_properties.keys() and use_weights:
                 w_p = self.edge_properties[BWEIGHT]
-            tpl = nngt.globals.analyze_graph["betweenness"](self, weight=w_p, norm=norm)
+            tpl = nngt.globals.analyze_graph["betweenness"](
+                self, weight=w_p, norm=norm)
             lst_return = []
             if btype == "node":
                 return tpl[0] if as_prop else np.array(tpl[0].a)

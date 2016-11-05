@@ -27,14 +27,15 @@ class _NxNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
-        lst = [self.parent.node[i][name] for i in range(self.parent.node_nb())]
+        lst = [self.parent().node[i][name]
+               for i in range(self.parent().node_nb())]
         return np.array(lst)
 
     def __setitem__(self, name, value):
         if name in self:
             if len(value) == size:
-                for i in range(self.parent.number_of_nodes()):
-                    self.parent.node[i][name] = value[i]
+                for i in range(self.parent().number_of_nodes()):
+                    self.parent().node[i][name] = value[i]
             else:
                 raise ValueError("A list or a np.array with one entry per \
 node in the graph is required")
@@ -53,7 +54,7 @@ set_attribute to create it.")
             else:
                 val = None
         if values is None:
-            values = np.repeat(val, self.parent.number_of_nodes())
+            values = np.repeat(val, self.parent().number_of_nodes())
         # store name and value type in the dict
         super(_NxNProperty,self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -65,16 +66,16 @@ class _NxEProperty(BaseProperty):
 
     def __getitem__(self, name):
         lst = []
-        for e in iter(self.parent._edges.keys()):
-            lst.append(self.parent.edge[e[0]][e[1]][name])
+        for e in iter(self.parent()._edges.keys()):
+            lst.append(self.parent().edge[e[0]][e[1]][name])
         return np.array(lst)
 
     def __setitem__(self, name, value):
         if name in self:
-            size = self.parent.number_of_edges()
+            size = self.parent().number_of_edges()
             if len(value) == size:
-                for i,e in enumerate(self.parent._edges.keys()):
-                    self.parent.edge[e[0]][e[1]][name] = value[i]
+                for i,e in enumerate(self.parent()._edges.keys()):
+                    self.parent().edge[e[0]][e[1]][name] = value[i]
             else:
                 raise ValueError("A list or a np.array with one entry per \
 edge in the graph is required")
@@ -93,7 +94,7 @@ set_attribute to create it.")
             else:
                 val = None
         if values is None:
-            values = np.repeat(val, self.parent.number_of_edges())
+            values = np.repeat(val, self.parent().number_of_edges())
         # store name and value type in the dict
         super(_NxEProperty,self).__setitem__(name, value_type)
         # store the real values in the attribute
