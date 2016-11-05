@@ -57,9 +57,9 @@ if num_args > 1:
 current_dir = dirname(abspath(__file__))
 dir_files = listdir(current_dir)
 sys.path.insert(0, current_dir)
-testfiles = [ fname[:-3] for fname in dir_files if ( fname.startswith("test_") 
-              and fname.endswith(".py") ) ]
-tests = [ importlib.import_module(name) for name in testfiles ]
+testfiles = [fname[:-3] for fname in dir_files if (fname.startswith("test_") 
+             and fname.endswith(".py"))]
+tests = [importlib.import_module(name) for name in testfiles]
 
 
 #-----------------------------------------------------------------------------#

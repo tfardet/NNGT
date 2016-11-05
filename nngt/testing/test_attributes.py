@@ -99,10 +99,11 @@ class TestAttributes(TestBasis):
         ref_result = _results_theo(instructions)
         computed_result = _results_exp(delays, instructions)
         self.assertTrue(np.allclose(ref_result,computed_result,self.tolerance))
-        if nngt.config['load_nest']:
+        if nngt.config['with_nest']:
+            # @todo
             from nngt.simulation import make_nest_network
             subnet, gids = make_nest_network(graph)
-            # @todo
+        self.assertTrue(False)
 
 
 #-----------------------------------------------------------------------------#

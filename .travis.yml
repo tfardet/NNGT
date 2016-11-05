@@ -5,68 +5,70 @@ sudo: required
 dist: trusty
 
 matrix:
-  include:
-    - python: "2.7"
-      env: GL="GT" PYVERSION="2.7"
-    - python: "2.7"
-      env: GL="IG" PYVERSION="2.7"
-    - python: "2.7"
-      env: GL="NX" PYVERSION="2.7"
-    - python: "3.5"
-      env: GL="GT" PYVERSION="3.x"
-    - python: "3.5"
-      env: GL="IG" PYVERSION="3.5"
-    - python: "3.5"
-      env: GL="NX" PYVERSION="3.5"
-  fast_finish: true
+    include:
+        - python: "2.7"
+          env: GL="GT" PYVERSION="2.7"
+        - python: "2.7"
+          env: GL="IG" PYVERSION="2.7"
+        - python: "2.7"
+          env: GL="NX" PYVERSION="2.7"
+        - python: "3.5"
+          env: GL="GT" PYVERSION="3.x"
+        - python: "3.5"
+          env: GL="IG" PYVERSION="3.5"
+        - python: "3.5"
+          env: GL="NX" PYVERSION="3.5"
+    fast_finish: true
 
 cache:
-  - apt
-  - pip
+    - apt
+    - pip
 
 before_install:
 
-  # get repository for clang-3.6 stuff (including clang-format-3.6)
-  #~ - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main\n" >> /etc/apt/sources.list'
-  #~ - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
-  - sudo sh -c 'echo -n "deb http://llvm-apt.ecranbleu.org/apt/trusty/ llvm-toolchain-trusty main\n" >> /etc/apt/sources.list'
-  - wget -O - http://llvm-apt.ecranbleu.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
-  # add ppa for gcc>4.9
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'
-  - sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'
-  - gpg --keyserver 'http://pgp.skewed.de:11371/pks/lookup?op=get&search=0x612DEFB798507F25' --recv-key 98507f25
-  - gpg -a --export 98507F25 | sudo apt-key add -
-  # update package repository status (-qq is more quiet)
-  - sudo rm -rf /var/lib/apt/lists/*
-  - ls /etc/apt/sources.list.d/
-  - sudo apt-get update -qq
-  # remove any obsolete libraries
-  - sudo apt-get autoremove
+    # get repository for clang-3.6 stuff (including clang-format-3.6)
+    #~ - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main\n" >> /etc/apt/sources.list'
+    #~ - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+    - sudo sh -c 'echo -n "deb http://llvm-apt.ecranbleu.org/apt/trusty/ llvm-toolchain-trusty main\n" >> /etc/apt/sources.list'
+    - wget -O - http://llvm-apt.ecranbleu.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
+    # add ppa for gcc>4.9
+    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    - sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'
+    - sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'
+    - gpg --keyserver 'http://pgp.skewed.de:11371/pks/lookup?op=get&search=0x612DEFB798507F25' --recv-key 98507f25
+    - gpg -a --export 98507F25 | sudo apt-key add -
+    # update package repository status (-qq is more quiet)
+    - sudo rm -rf /var/lib/apt/lists/*
+    - ls /etc/apt/sources.list.d/
+    - sudo apt-get update -qq
+    # remove any obsolete libraries
+    - sudo apt-get autoremove
 
-  # requirements for building + installing scipy
-  - sudo apt-get install -y build-essential gcc-4.9 autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev
-  # Install pip and other libraries
-  - wget https://bootstrap.pypa.io/get-pip.py
-  - sudo python get-pip.py
-  - sudo pip install -U setuptools
-  # test scipy from apt (much faster) and install matplotlib
-  - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev && pip install --user cython==0.23.4; fi
-  - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo pip install matplotlib && pip install --user cython==0.23.4; fi
-  # MPI
-  - sudo apt-get install -y openmpi-bin libopenmpi-dev
-  # install graph-tool and igraph
-  - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-graph-tool; fi
-  - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-graph-tool; fi
-  - if [[ "$GL" == "IG" ]]; then wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1; fi
-  # static code analysis
-  - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
+    # requirements for building + installing scipy
+    - sudo apt-get install -y build-essential gcc-4.9 autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev
+    # Install pip and other libraries
+    - wget https://bootstrap.pypa.io/get-pip.py
+    - sudo python get-pip.py
+    - sudo pip install -U setuptools
+    # test scipy from apt (much faster) and install matplotlib
+    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev && pip install --user cython==0.23.4; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo pip install matplotlib && pip install --user cython==0.23.4; fi
+    # MPI
+    - sudo apt-get install -y openmpi-bin libopenmpi-dev
+    # install graph-tool and igraph
+    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-graph-tool; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-graph-tool; fi
+    - if [[ "$GL" == "IG" ]]; then wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1; fi
+    # static code analysis
+    - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
-  # coverage analysis
-  - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-coverage; else sudo pip install coveralls; fi
+    # coverage analysis
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-coverage; else sudo pip install coveralls; fi
 
 install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pip install -e ".[nx,ig]"; fi
 
-script: if [[ "$PYVERSION" == "3.x" ]]; then python3-coverage run --source=nngt nngt/testing/__init__.py $GL; else coverage run --source=nngt nngt/testing/__init__.py $GL; fi
+script:
+    - python nngt/testing/__init__.py $GL
+    - if [[ "$PYVERSION" == "3.x" ]]; then python3-coverage run --source=nngt nngt/testing/__init__.py $GL; else coverage run --source=nngt nngt/testing/__init__.py $GL; fi
 
 after_success: coveralls

@@ -99,7 +99,7 @@ def _distance_rule_exp(graph, instruct):
 #------------------------
 #
 
-class TestGraphClasses(TestBasis):
+class TestGeneration(TestBasis):
     
     '''
     Class testing the main methods of the :mod:`~nngt.generation` module.
@@ -153,7 +153,7 @@ class TestGraphClasses(TestBasis):
 #------------------------
 #
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestGraphClasses)
+suite = unittest.TestLoader().loadTestsFromTestCase(TestGeneration)
 
 if __name__ == "__main__":
     unittest.main()
