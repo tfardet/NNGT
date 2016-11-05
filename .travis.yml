@@ -68,7 +68,8 @@ before_install:
 install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pip install -e ".[nx,ig]"; fi
 
 script:
-    - python nngt/testing/__init__.py $GL
-    - if [[ "$PYVERSION" == "3.x" ]]; then python3-coverage run --source=nngt nngt/testing/__init__.py $GL; else coverage run --source=nngt nngt/testing/__init__.py $GL; fi
+    - export GL=$GL
+    - python -m unittest discover -f
+    - if [[ "$PYVERSION" == "3.x" ]]; then python3-coverage run --source=nngt nngt/testing/__init__.py; else coverage run --source=nngt nngt/testing/__init__.py; fi
 
 after_success: coveralls
