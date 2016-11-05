@@ -63,7 +63,7 @@ before_install:
     - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
     # testing and coverage analysis
-    - if [[ "$PYVERSION" == "2.7" ]]; then alias pipv=pip; else alias pipv=pip3; fi
+    - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo ' && alias pipv=pip; else alias sudo='sudo ' && alias pipv=pip3; fi
     - sudo pipv install nose2 cov-core
 
 install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pipv install -e ".[$GL]"; fi
