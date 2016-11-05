@@ -103,7 +103,6 @@ class TestAttributes(TestBasis):
             # @todo
             from nngt.simulation import make_nest_network
             subnet, gids = make_nest_network(graph)
-        self.assertTrue(False)
 
 
 #-----------------------------------------------------------------------------#

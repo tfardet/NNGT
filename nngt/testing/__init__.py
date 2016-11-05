@@ -43,11 +43,11 @@ import nngt
 
 # get the arguments
 graph_library = environ.get("GL", None)
-if graph_library == "GT":
+if graph_library == "gt":
     nngt.use_library("graph-tool")
-elif graph_library == "IG":
+elif graph_library == "ig":
     nngt.use_library("igraph")
-elif graph_library == "NX":
+elif graph_library == "nx":
     nngt.use_library("networkx")
 
 # get the tests
