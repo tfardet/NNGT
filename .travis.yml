@@ -70,6 +70,6 @@ before_install:
 install: sudo pipv install -e ".[$GL]"
 
 script:
-    - coverage run --omit=nngt/testing --source=nngt -m nose2.__main__ -F
+    - coverage run -m nose2.__main__ -F
 
 after_success: coveralls

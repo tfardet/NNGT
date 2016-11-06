@@ -146,7 +146,8 @@ class TestGeneration(TestBasis):
         computed_result = self.exp_prop[graph_type](graph, instructions)
         self.assertTrue(np.allclose(
             ref_result, computed_result, self.tolerance),
-            "Test for graph {} failed".format(graph.name))
+            "Test for graph {} failed:\nref = {} vs exp {}\
+            ".format(graph.name, ref_result, computed_result))
 
 
 #-----------------------------------------------------------------------------#

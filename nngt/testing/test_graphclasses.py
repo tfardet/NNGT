@@ -62,7 +62,8 @@ class TestGraphClasses(TestBasis):
         computed_result = graph.adjacency_matrix()
         self.assertTrue(
             (ref_result != computed_result).nnz == 0,
-            "AdjMat test failed for graph {}".format(graph.name))
+            "AdjMat test failed for graph {}:\nref = {} vs exp {}\
+            ".format(graph.name, ref_result, computed_result))
 
     @foreach_graph
     def test_copy_clear(self, graph, **kwargs):
@@ -79,7 +80,8 @@ class TestGraphClasses(TestBasis):
         computed_result.extend((copied.node_nb(), copied.edge_nb())) 
         self.assertEqual(
             ref_result, tuple(computed_result),
-            "Copy test failed for graph {}".format(graph.name))
+            "Copy test failed for graph {}:\nref = {} vs exp {}\
+            ".format(graph.name, ref_result, computed_result))
 
 
 #-----------------------------------------------------------------------------#

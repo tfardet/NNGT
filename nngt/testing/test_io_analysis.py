@@ -49,7 +49,8 @@ class TestIO_Analysis(TestBasis):
         computed_result = graph.node_nb()
         self.assertEqual(
             ref_result, computed_result,
-            "Test failed for graph {}".format(graph.name))
+            "Test failed for graph {}:\nref = {} vs exp {}\
+            ".format(graph.name, ref_result, computed_result))
 
     @foreach_graph
     def test_edge_nb(self, graph, **kwargs):
@@ -57,7 +58,8 @@ class TestIO_Analysis(TestBasis):
         computed_result = graph.edge_nb()
         self.assertEqual(
             ref_result, computed_result,
-            "Test failed for graph {}".format(graph.name))
+            "Test failed for graph {}:\nref = {} vs exp {}\
+            ".format(graph.name, ref_result, computed_result))
 
 
 #-----------------------------------------------------------------------------#
