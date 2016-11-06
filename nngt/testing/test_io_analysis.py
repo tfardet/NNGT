@@ -56,7 +56,7 @@ class TestIO_Analysis(TestBasis):
         ref_result = self.get_expected_result(graph, "edges")
         computed_result = graph.edge_nb()
         self.assertEqual(
-            ref_result, computed_result
+            ref_result, computed_result,
             "Test failed for graph {}".format(graph.name))
 
 
