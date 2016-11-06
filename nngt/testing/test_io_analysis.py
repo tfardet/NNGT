@@ -47,13 +47,17 @@ class TestIO_Analysis(TestBasis):
     def test_node_nb(self, graph, **kwargs):
         ref_result = self.get_expected_result(graph, "nodes")
         computed_result = graph.node_nb()
-        self.assertEqual( ref_result, computed_result )
+        self.assertEqual(
+            ref_result, computed_result,
+            "Test failed for graph {}".format(graph.name))
 
     @foreach_graph
     def test_edge_nb(self, graph, **kwargs):
         ref_result = self.get_expected_result(graph, "edges")
         computed_result = graph.edge_nb()
-        self.assertEqual( ref_result, computed_result )
+        self.assertEqual(
+            ref_result, computed_result
+            "Test failed for graph {}".format(graph.name))
 
 
 #-----------------------------------------------------------------------------#

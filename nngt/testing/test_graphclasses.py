@@ -60,7 +60,9 @@ class TestGraphClasses(TestBasis):
         '''
         ref_result = ssp.csr_matrix(self.matrices[graph.get_name()])
         computed_result = graph.adjacency_matrix()
-        self.assertTrue( (ref_result != computed_result).nnz == 0 )
+        self.assertTrue(
+            (ref_result != computed_result).nnz == 0,
+            "AdjMat test failed for graph {}".format(graph.name))
 
     @foreach_graph
     def test_copy_clear(self, graph, **kwargs):
@@ -71,11 +73,13 @@ class TestGraphClasses(TestBasis):
         '''
         ref_result = (graph.node_nb(), graph.edge_nb(), graph.node_nb(), 0)
         copied = graph.copy()
-        self.assertIsNot( copied, graph )
-        computed_result = [ copied.node_nb(), copied.edge_nb() ]
+        self.assertIsNot(copied, graph)
+        computed_result = [copied.node_nb(), copied.edge_nb()]
         copied.clear_all_edges()
-        computed_result.extend( (copied.node_nb(), copied.edge_nb()) ) 
-        self.assertEqual( ref_result, tuple(computed_result) )
+        computed_result.extend((copied.node_nb(), copied.edge_nb())) 
+        self.assertEqual(
+            ref_result, tuple(computed_result),
+            "Copy test failed for graph {}".format(graph.name))
 
 
 #-----------------------------------------------------------------------------#

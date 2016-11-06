@@ -144,8 +144,9 @@ class TestGeneration(TestBasis):
         graph_type = instructions["graph_type"]
         ref_result = self.theo_prop[graph_type](instructions)
         computed_result = self.exp_prop[graph_type](graph, instructions)
-        #~ print(ref_result, computed_result)
-        self.assertTrue(np.allclose(ref_result,computed_result,self.tolerance))
+        self.assertTrue(np.allclose(
+            ref_result, computed_result, self.tolerance),
+            "Test for graph {} failed".format(graph.name))
 
 
 #-----------------------------------------------------------------------------#
