@@ -65,7 +65,7 @@ before_install:
     # testing and coverage analysis
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo ' && alias pipv=pip3; else alias sudo='sudo ' && alias pipv=pip; fi
-    - sudo pipv install nose2 cov-core coverage
+    - sudo pipv install nose2 cov-core coverage coveralls
 
 install: sudo pipv install -e ".[$GL]"
 
