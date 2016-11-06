@@ -234,7 +234,7 @@
         <graph name="erdos_lincorrbetw_weights">
             <generate_options>
                 <string name="graph_type">erdos_renyi</string>
-                <int name="nodes">2000</int>
+                <int name="nodes">1000</int>
                 <float name="density">0.04</float>
                 <weights>
                     <string name="distribution">lin_corr</string>

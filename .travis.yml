@@ -70,6 +70,6 @@ before_install:
 install: sudo pipv install -e ".[$GL]"
 
 script:
-    - nose2 --with-coverage --coverage nngt -F
+    - travis_wait nose2 --with-coverage --coverage nngt -F
 
 after_success: coveralls
