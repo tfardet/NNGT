@@ -56,18 +56,16 @@ before_install:
     # MPI
     - sudo apt-get install -y openmpi-bin libopenmpi-dev
     # install graph-tool and igraph
-    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-graph-tool; fi
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-graph-tool; fi
+    - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
+    - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
     - if [[ "$GL" == "ig" ]]; then wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1; fi
     # static code analysis
     - sudo apt-get install -y libllvm3.6 clang-format-3.6 vera++
 
     # testing and coverage analysis
-    - shopt -s expand_aliases
-    - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo ' && alias pipv=pip; else alias sudo='sudo ' && alias pipv=pip3; fi
-    - sudo pipv install nose2 cov-core
+    - sudo pip install nose2 cov-core
 
-install: if [[ "$PYVERSION" == "3.x" ]]; then sudo pip3 install -e "."; else sudo pipv install -e ".[$GL]"; fi
+install: sudo pip install -e ".[$GL]"
 
 script:
     - nose2 --with-coverage --coverage nngt -F
