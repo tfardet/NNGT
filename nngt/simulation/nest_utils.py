@@ -137,7 +137,9 @@ def _monitor(gids, nest_recorder, params):
             else:
                 device = nest.Create(rec)
             recorders.append(device)
-            new_record.append(params[i]["record_from"])
+            device_params = nest.GetDefaults(rec)
+            device_params.update(params[i])
+            new_record.append(device_params["record_from"])
             nest.SetStatus(device, params[i])
             nest.Connect(device, gids, conn_spec=di_spec)
         # event detectors

@@ -26,7 +26,8 @@ from tools_testing import foreach_graph
 
 def _results_theo(instruct):
     di_param = instruct["weights"]
-    if di_param["distribution"] == "uniform" or "corr" in di_param["distribution"]:
+    if (di_param["distribution"] == "uniform"
+        or "corr" in di_param["distribution"]):
         return di_param["lower"], di_param["upper"]
     elif di_param["distribution"] == "gaussian":
         return di_param["avg"], di_param["std"]
@@ -37,7 +38,8 @@ def _results_theo(instruct):
 
 def _results_exp(attrib, instruct):
     di_param = instruct["weights"]
-    if di_param["distribution"] == "uniform" or "corr" in di_param["distribution"]:
+    if (di_param["distribution"] == "uniform"
+        or "corr" in di_param["distribution"]):
         return attrib.min(), attrib.max()
     elif di_param["distribution"] == "gaussian":
         return np.average(attrib), np.std(attrib)

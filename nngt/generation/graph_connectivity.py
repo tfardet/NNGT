@@ -30,7 +30,7 @@ __all__ = [
 #
 
 def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
-                 weighted=True, directed=True, multigraph=False, name="ER",
+                 weighted=True, directed=True, multigraph=False, name="FD",
                  shape=None, positions=None, population=None, from_graph=None,
                  **kwargs):
     """
@@ -105,7 +105,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
 
 
 def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
-                 weighted=True, directed=True, multigraph=False, name="ER",
+                 weighted=True, directed=True, multigraph=False, name="GD",
                  shape=None, positions=None, population=None, from_graph=None,
                  **kwargs):
     """
