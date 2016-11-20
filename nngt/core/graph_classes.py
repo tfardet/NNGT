@@ -535,7 +535,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         if isinstance(delay, float):
             size = self.edge_nb() if elist is None else len(elist)
             delay = np.repeat(delay, size)
-        elif not hasattr(weight, "__len__") and weight is not None:
+        elif not hasattr(delay, "__len__") and delay is not None:
             raise AttributeError('''Invalid `delay` value: must be either
                                  float, array-like or None.''')
         if distribution is None:

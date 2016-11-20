@@ -72,6 +72,22 @@ def _compute_connections(num_source, num_target, density, edges, avg_deg,
         warnings.warn("Reciprocity cannot be lower than 2-1/density.")
     return edges, pre_recip_edges
 
+def _check_num_edges(source_ids, target_ids, num_edges, directed, multigraph):
+    num_source, num_target = len(source_ids), len(target_ids)
+    has_only_one_population = (False if num_source != num_target
+                               else not np.all(source_ids - target_ids))
+    if not has_only_one_population and not multigraph:
+        b_d = (num_edges > num_source*num_target)
+        b_nd = (num_edges > int(0.5*num_source*num_target))
+        if (not directed and b_nd) or (directed and b_d):
+            raise InvalidArgument("Required number of edges is too high")
+    elif has_only_one_population and not multigraph:
+        b_d = (num_edges > num_source*(num_target-1))
+        b_nd = (num_edges > int((0.5*num_source-1)*num_target))
+        if (not directed and b_nd) or (directed and b_d):
+            raise InvalidArgument("Required number of edges is too high")
+    return has_only_one_population
+
 def _unique_rows(arr):
     b = np.ascontiguousarray(arr).view(np.dtype((np.void,
         arr.dtype.itemsize * arr.shape[1])))
@@ -113,18 +129,8 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
     b_total = (degree_type == "total")
     # edges
     edges = num_target*degree if degree_type == "out" else num_source*degree
-    b_one_pop = (False if num_source != num_target else
-                           not np.all(source_ids-target_ids))
-    if not b_one_pop and not multigraph:
-        b_d = (edges > num_source*num_target)
-        b_nd = (edges > int(0.5*num_source*num_target))
-        if (not directed and b_nd) or (directed and b_d):
-            raise InvalidArgument("Required degree is too high")
-    elif b_one_pop and not multigraph:
-        b_d = (edges > num_source*(num_target-1))
-        b_nd = (edges > int((0.5*num_source-1)*num_target))
-        if (not directed and b_nd) or (directed and b_d):
-            raise InvalidArgument("Required degree is too high")
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
     
     existing = 0 if existing_edges is None else existing_edges.shape[0]
     ia_edges = np.zeros((existing+edges, 2), dtype=int)
@@ -170,17 +176,11 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
     b_total = (degree_type == "total")
     # edges
     num_node = num_source if degree_type == "in" else num_target
-    lst_deg = np.around( np.maximum(
-                         np.random.normal(avg, std, num_node),0.) ).astype(int)
+    lst_deg = np.around(
+        np.maximum(np.random.normal(avg, std, num_node), 0.)).astype(int)
     edges = np.sum(lst_deg)
-    b_one_pop = (False if num_source != num_target else
-                           not np.all(source_ids-target_ids))
-    if not b_one_pop and not multigraph:
-        if edges > num_source*num_target:
-            raise InvalidArgument("Required degree is too high")
-    elif b_one_pop and not multigraph:
-        if edges > num_source*(num_target-1):
-            raise InvalidArgument("Required degree is too high")
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
     
     num_etotal = 0 if existing_edges is None else existing_edges.shape[0]
     ia_edges = np.zeros((num_etotal+edges, 2), dtype=int)
@@ -226,8 +226,8 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
     num_source, num_target = len(source_ids), len(target_ids)
     edges, pre_recip_edges = _compute_connections(num_source, num_target,
                                 density, edges, avg_deg, directed, reciprocity)
-    b_one_pop = (False if num_source != num_target else
-                           not np.all(source_ids-target_ids))
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
     
     ia_edges = np.zeros((edges,2),dtype=int)
     num_ecurrent, num_test = 0, 0
@@ -298,8 +298,9 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
     num_source, num_target = len(source_ids), len(target_ids)
     edges, pre_recip_edges = _compute_connections(num_source, num_target,
                                 density, edges, avg_deg, directed, reciprocity)
-    b_one_pop = (False if num_source != num_target else
-                           not np.all(source_ids-target_ids))
+    
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
     
     ia_edges = np.zeros((edges,2), dtype=int)
     num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
@@ -365,8 +366,9 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     num_edges = int(circular_edges*(1+proba_shortcut))
     num_edges, circular_edges = (num_edges, circular_edges if directed
                              else (int(num_edges/2), int(circular_edges/2)))
-    b_one_pop = (False if len(target_ids) != nodes else
-                           not np.all(node_ids-target_ids))
+    
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
     if not b_one_pop:
         raise InvalidArgument("This graph model can only be used if source \
                               and target populations are the same")
@@ -408,8 +410,8 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     num_source, num_target = len(source_ids), len(target_ids)
     edges, _ = _compute_connections(num_source, num_target,
                              density, edges, avg_deg, directed, reciprocity=-1)
-    b_one_pop = (False if num_source != num_target else
-                           not np.all(source_ids-target_ids))
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
     # create the edges
     ia_edges = np.zeros((edges,2), dtype=int)
     num_test, num_ecurrent = 0, 0
