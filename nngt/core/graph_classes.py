@@ -453,7 +453,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         '''
         if isinstance(weight, float):
             size = self.edge_nb() if elist is None else len(elist)
-            weight = np.repeat(weight, self.edge_nb())
+            weight = np.repeat(weight, size)
         elif not hasattr(weight, "__len__") and weight is not None:
             raise AttributeError('''Invalid `weight` value: must be either
                                  float, array-like or None.''')
@@ -510,7 +510,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
                     del inhib_nodes[node]
         return Connections.types(self, inhib_nodes, fraction)
         
-    def set_delays(self, elist=None, dlist=None, distribution=None,
+    def set_delays(self, delay=None, elist=None, distribution=None,
                    parameters=None, noise_scale=None):
         '''
         Set the delay for spike propagation between neurons.
@@ -519,10 +519,10 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         
         Parameters
         ----------
+        delay : float or class:`numpy.array`, optional (default: None)
+            Value or list of delays (for user defined delays).
         elist : class:`numpy.array`, optional (default: None)
             List of the edges (for user defined delays).
-        dlist : class:`numpy.array`, optional (default: None)
-            List of the delays (for user defined delays).
         distribution : class:`string`, optional (default: None)
             Type of distribution (choose among "constant", "uniform", 
             "gaussian", "lognormal", "lin_corr", "log_corr").
@@ -532,11 +532,17 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             Scale of the multiplicative Gaussian noise that should be applied
             on the delays.
         '''
+        if isinstance(delay, float):
+            size = self.edge_nb() if elist is None else len(elist)
+            delay = np.repeat(delay, size)
+        elif not hasattr(weight, "__len__") and weight is not None:
+            raise AttributeError('''Invalid `delay` value: must be either
+                                 float, array-like or None.''')
         if distribution is None:
             distribution = self._w["distribution"]
         if parameters is None:
             parameters = self._w
-        return Connections.delays(self, elist=elist, dlist=dlist,
+        return Connections.delays(self, elist=elist, dlist=delay,
                            distribution=distribution, parameters=parameters,
                            noise_scale=noise_scale)
         

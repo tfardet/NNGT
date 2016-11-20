@@ -529,12 +529,15 @@ class Connections:
         if wlist is not None:
             num_edges = graph.edge_nb() if elist is None else elist.shape[0]
             if len(wlist) != num_edges:
-                raise InvalidArgument("`wlist` must have one entry per edge. {} {} {}".format(len(wlist), num_edges, graph.name))
+                raise InvalidArgument(
+                    "`wlist` must have one entry per edge. {} {} {}".format(
+                    len(wlist), num_edges, graph.name))
         else:
             wlist = eprop_distribution(graph, distribution, elist=elist,
                                        **parameters)
         # add to the graph container
-        bwlist = np.max(wlist) - wlist if np.any(wlist) else np.array([])
+        bwlist = (np.max(wlist) - wlist if np.any(wlist)
+                  else np.repeat(0, len(wlist)))
         graph.set_edge_attribute(WEIGHT, value_type="double", values=wlist)
         graph.set_edge_attribute(BWEIGHT, value_type="double", values=bwlist)
         return wlist
