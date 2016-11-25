@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from nngt.globals import WEIGHT, DELAY
 from nngt.lib import InvalidArgument
-from .nest_utils import _sort_groups
+from .tools import _sort_groups
 
 __all__ = [ 'make_nest_network', 'get_nest_network', 'reproducible_weights' ]
 

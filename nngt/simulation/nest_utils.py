@@ -15,6 +15,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from nngt.lib import InvalidArgument
+from nngt.simulation import make_nest_network
+from .tools import _sort_groups, _generate_random
 
 
 __all__ = [
@@ -23,20 +25,8 @@ __all__ = [
     'set_step_currents',
     'monitor_groups',
     'monitor_nodes',
+    'randomize_neural_states',
 ]
-
-
-def _sort_groups(pop):
-    '''
-    Sort the groups of a NeuralPop by decreasing size.
-    '''
-    names, groups = [], []
-    for name, group in iter(pop.items()):
-        names.append(name)
-        groups.append(group)
-    sizes = [len(g.id_list) for g in groups]
-    order = np.argsort(sizes)[::-1]
-    return [names[i] for i in order], [groups[i] for i in order]
 
 
 #-----------------------------------------------------------------------------#
@@ -116,6 +106,45 @@ same')
     scg = nest.Create("step_current_generator", 1, params)
     nest.Connect(scg, gids)
     return scg
+
+
+def randomize_neural_states(network, instructions, make_nest=False):
+    '''
+    Randomize the neural states according to the instructions.
+
+    Parameters
+    ----------
+    network : :class:`~nngt.Network` subclass instance
+        Network that will be simulated.
+    instructions : dict
+        Variables to initialize. Allowed keys are "V_m" and "w". Values are
+        3-tuples of type ``("distrib_name", double, double)``.
+    make_nest : bool, optional (default: False)
+        If ``True`` and network has not been converted to NEST, automatically
+        generate the network, else raises an exception.
+
+    Example
+    -------
+    python::
+        instructions = {
+            "V_m": ("uniform", -80., -60.),
+            "w": ("normal", 50., 5.)
+        }
+    '''
+    allowed = ("V_m", "w")
+    # check whether network is in NEST
+    if network._nest_gid is None:
+        if make_nest:
+            make_nest_network(network)
+        else:
+            raise AttributeError('`network` has not converted to NEST yet.')
+    num_neurons = network.node_nb()
+    for key, val in instructions.items():
+        if key in allowed:
+            state = _generate_random(num_neurons, val)
+            nest.SetStatus(list(network.nest_gid), key, state)
+        else:
+            raise RuntimeError('Only "V_m" and "w" can be randomized.')
 
 
 #-----------------------------------------------------------------------------#
