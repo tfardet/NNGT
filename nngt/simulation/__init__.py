@@ -29,16 +29,17 @@ nngt.__all__.append('simulation')
 #---------------------
 
 __all__ = [
-	'make_nest_network',
+    'activity_types',
+    'analyse_raster',
 	'get_nest_network',
-    'set_noise',
-    'set_poisson_input',
-    'set_set_step_currents',
+	'make_nest_network',
     'monitor_groups',
     'monitor_nodes',
     'plot_activity',
-    'activity_types',
-    'raster_plot'
+    'raster_plot',
+    'set_noise',
+    'set_poisson_input',
+    'set_set_step_currents',
 ]
 
 # test import of simulation plotting tools

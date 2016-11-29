@@ -348,7 +348,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         if self.is_spatial():
             SpatialGraph.make_spatial(gc_instance)
         if self.is_network():
-            Network.make_network(gc_instance)
+            Network.make_network(gc_instance, deepcopy(self.population))
         return gc_instance
 
     def to_file(self, filename, format="auto", delimiter=" ", secondary=";",

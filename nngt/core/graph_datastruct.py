@@ -331,6 +331,7 @@ class NeuralGroup:
     def has_model(self):
         return self._has_model
 
+    @property
     def properties(self):
         dic = { "neuron_type": self.neuron_type,
                 "neuron_model": self._neuron_model,
