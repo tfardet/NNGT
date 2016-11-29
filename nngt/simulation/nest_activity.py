@@ -32,7 +32,7 @@ class ActivityRecord:
     Class to record the properties of the simulated activity.
     '''
     
-    def __init__(self, spike_data, network=None, limits=None, **kwargs):
+    def __init__(self, spike_data, phases, properties, parameters=None):
         '''
         Initialize the instance using `spike_data` (store proxy to an optional
         `network`) and compute the properties of provided data.
@@ -42,63 +42,57 @@ class ActivityRecord:
         spike_data : 2D array
             Array of shape (num_spikes, 2), containing the senders on the 1st
             row and the times on the 2nd row.
-        network : :class:`~nngt.Network`, optional (default: None)
-            Optional network.
-        limits : 2-tuple
-            Start and end times of the simulation. If not provided, will be
-            taken at the times of the 1st and last spikes.
-        **kwargs : optional arguments
-            Arguments to compute the phases from `spike_data` (see arguments
-            for :func:`~nngt.simulation.activity_types` or
-            :func:`~nngt.simulation.analyze_raster`.
+        phases : dict
+            Limits of the different phases in the simulated period.
+        properties : dict
+            Values of the different properties of the activity (e.g.
+            "firing_rate", "IBI"...).
+        parameters : dict, optional (default: None)
+            Parameters used to compute the phases.
         '''
-        self.network = None if network is None else weakref.proxy(network)
-        self.limits = deepcopy(limits)
-        self.data = spike_data
-        self._prop = None
-        self.get_phases(**kwargs)
-        self.compute_properties()
-    
+        self._data = spike_data
+        self._phases = phases.copy()
+        self._properties = properties.copy()
+        self.parameters = parameters
+
+
+    @property
+    def data(self):
+        '''
+        Returns the (N, 2) array of (senders, spike times).
+        '''
+        return self._data
+
+
+    @property
+    def phases(self):
+        '''
+        Returns the phases detected:
+            - "bursting" for periods of high activity where a large fraction
+            of the network is recruited.
+            - "quiescent" for periods of low activity
+            - "mixed" for firing rate in between "quiescent" and "bursting".
+            - "localized" for periods of high activity but where only a small
+            fraction of the network is recruited.
+        
+        .. note:
+            See `parameters` for details on the conditions used to
+            differenciate these phases.
+        '''
+        return self._phases
+
+
     @property
     def properties(self):
-        return self._prop
-    
-    def get_phases(self, **kwargs):
-        net = None if self.network is None else self.network()
-        self.phases, self.firing_rate = _analysis(
-            self.data[:, 1], self.data[:, 0], self.limits, net, **kwargs)
-    
-    def compute_properties(self):
-        prop = {}
-        times = self.data[:, 1]
-        prop["firing_rate"] = self.firing_rate
-        num_bursts = len(self.phases["bursting"])
-        if num_bursts:
-            prop["bursting"] = True
-            prop.update({"T_burst": 0., "IBI": 0. })
-        else:
-            prop["bursting"] = False
-        if np.any(times):
-            prop["avg_spb"] = 0.
-        for i, burst in enumerate(self.phases["bursting"]):
-            # T_burst
-            prop["burst_duration"] += burst[1] - burst[0]
-            # IBI
-            if i > 0:
-                end_older_burst = self.phases["bursting"][i-1][1]
-                prop["IBI"] += burst[0]-end_older_burst
-            # get num_spikes inside the burst, divide by num_neurons
-            if np.any(times):
-                idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
-                spikes = set(times[idxs])
-                neurons = set(self.data[:, 0][idxs])
-                prop["avg_spb"] += len(spikes)/float(len(neurons))
-        for key in iter(prop.keys()):
-            if key != "bursting" and num_bursts:
-                prop[key] /= float(num_bursts)
-        # generate properties as a namedtuple
-        Properties = namedtuple('Properties', prop.keys())
-        self._prop = Properties(**prop)
+        '''
+        Returns the properties of the activity.
+        Contains the following entries:
+            - "firing_rate": average value in Hz for 1 neuron in the network.
+            - "bursting": True if there were bursts of activity detected.
+            - "burst_duration", "ISI", and "IBI" in ms, if "bursting" is True.
+            - "avg_spb": average number of spikes per neuron during a burst.
+        '''
+        return self._properties
 
 
 #-----------------------------------------------------------------------------#
@@ -114,6 +108,10 @@ def _get_data(source):
     ----------
     source : tuple or str
         Index of a spike detector or path to the .gdf file.
+    
+    Returns
+    -------
+    data : 2D array of shape (N, 2)
     '''
     if isinstance(source, str):
         data = np.loadtxt(source)
@@ -247,6 +245,58 @@ def _analysis(times, senders, limits, network=None,
     return phases, 1000 * avg_rate / float(num_neurons)
 
 
+def _compute_properties(data, phases, fr):
+    '''
+    Compute the properties from the spike times and phases.
+    
+    Parameters
+    ----------
+    data : 2D array, shape (N, 2)
+        Spike times and senders.
+    phases : dict
+        The phases.
+    fr : double
+        Firing rate.
+
+    Returns
+    -------
+    prop : dict
+        Properties of the activity. Contains the following pairs:
+            - "firing_rate": average value in Hz for 1 neuron in the network.
+            - "bursting": True if there were bursts of activity detected.
+            - "burst_duration", "ISI", and "IBI" in ms, if "bursting" is True.
+            - "SpB": average number of spikes per burst for one neuron.
+    '''
+    prop = {}
+    times = data[:, 1]
+    # firing rate (in Hz, normalized for 1 neuron)
+    prop["firing_rate"] = fr
+    num_bursts = len(phases["bursting"])
+    if num_bursts:
+        prop["bursting"] = True
+        prop.update({"burst_duration": 0., "IBI": 0., "ISI": 0., "SpB": 0.})
+    else:
+        prop["bursting"] = False
+    for i, burst in enumerate(phases["bursting"]):
+        # burst_duration
+        prop["burst_duration"] += burst[1] - burst[0]
+        # IBI
+        if i > 0:
+            end_older_burst = phases["bursting"][i-1][1]
+            prop["IBI"] += burst[0]-end_older_burst
+        # get num_spikes inside the burst, divide by num_neurons
+        idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
+        num_spikes = len(set(times[idxs]))
+        num_neurons = len(set(data[:, 0][idxs]))
+        prop["SpB"] += num_spikes / float(num_neurons)
+        # ISI
+        prop["ISI"] += num_neurons * (burst[1] - burst[0]) / float(num_spikes)
+    for key in iter(prop.keys()):
+        if key != "bursting" and num_bursts:
+            prop[key] /= float(num_bursts)
+    return prop
+
+
 def _plot_phases(phases, fignums):
     colors = ('r', 'orange', 'g', 'b')
     names = ('bursting', 'mixed', 'localized', 'quiescent')
@@ -329,9 +379,13 @@ def activity_types(spike_detector, limits, network=None,
         for events in nest.GetStatus(spike_detector, "events"):
             times.extend(events["times"])
             senders.extend(events["senders"])
+    # compute phases and properties
+    phases, fr = _analysis(times, senders, limits, network=network,
+              phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
+              simplify=simplify)
+    properties = _compute_properties(data, phases, fr)
     kwargs = {
         "limits": limits,
-        "network": network,
         "phase_coeff": phase_coeff,
         "mbis": mbis,
         "mfb": mfb,
@@ -341,7 +395,9 @@ def activity_types(spike_detector, limits, network=None,
     # plot if required
     if show:
         _plot_phases(phases, fignums)
-    return ActivityRecord(np.array((senders, times)), **kwargs)
+    # compute properties
+    data = np.array((senders, times))
+    return ActivityRecord(data, phases, properties, kwargs)
 
 
 def analyze_raster(raster, limits=None, network=None,
@@ -396,14 +452,18 @@ def analyze_raster(raster, limits=None, network=None,
         limits = [np.min(data[:, 1]), np.max(data[:, 1])]
     kwargs = {
         "limits": limits,
-        "network": network,
         "phase_coeff": phase_coeff,
         "mbis": mbis,
         "mfb": mfb,
         "mflb": mflb,
         "simplify": simplify
     }
+    # compute phases and properties
+    phases, fr = _analysis(data[:, 1], data[:, 0], limits, network=network,
+              phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
+              simplify=simplify)
+    properties = _compute_properties(data, phases, fr)
     # plot if required
     if show:
         _plot_phases(phases, fignums)
-    return ActivityRecord(data, **kwargs)
+    return ActivityRecord(data, phases, properties, kwargs)
