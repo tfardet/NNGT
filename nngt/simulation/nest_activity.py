@@ -448,6 +448,8 @@ def analyze_raster(raster, limits=None, network=None,
         from these phases.
     '''
     data = _get_data(raster) if isinstance(raster, str) else raster
+    idx_sort = np.argsort(data[:, 1])
+    data = data[idx_sort, :]
     if limits is None:
         limits = [np.min(data[:, 1]), np.max(data[:, 1])]
     kwargs = {

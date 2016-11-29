@@ -61,6 +61,7 @@ The docs
    user/install
    user/graph-generation
    user/component-properties
+   user/activity-analysis
 
 .. toctree::
    :glob:
