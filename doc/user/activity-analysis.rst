@@ -62,4 +62,4 @@ Or from a spike detector gid ``sd``:
 .. toctree::
    :maxdepth: 1
    
-   ../modules/generation
+   ../modules/simulation

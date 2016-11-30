@@ -49,11 +49,19 @@ class ActivityRecord:
             "firing_rate", "IBI"...).
         parameters : dict, optional (default: None)
             Parameters used to compute the phases.
+        
+        .. note :
+            The firing rate is computed as num_spikes / total simulation time,
+            the IBI is the sum of an interburst and a bursting period.
         '''
         self._data = spike_data
         self._phases = phases.copy()
         self._properties = properties.copy()
         self.parameters = parameters
+
+
+    def simplify():
+        raise NotImplementedError("Will be implemented soon.")
 
 
     @property
@@ -89,8 +97,10 @@ class ActivityRecord:
         Contains the following entries:
             - "firing_rate": average value in Hz for 1 neuron in the network.
             - "bursting": True if there were bursts of activity detected.
-            - "burst_duration", "ISI", and "IBI" in ms, if "bursting" is True.
-            - "avg_spb": average number of spikes per neuron during a burst.
+            - "burst_duration", "interburst", "ISI", and "IBI" in ms, if
+              "bursting" is True.
+            - "SpB" (Spikes per Burst): average number of spikes per neuron
+              during a burst.
         '''
         return self._properties
 
@@ -113,12 +123,18 @@ def _get_data(source):
     -------
     data : 2D array of shape (N, 2)
     '''
+    data = None
     if isinstance(source, str):
         data = np.loadtxt(source)
-        return data
+        idx_sort = np.argsort(data[:, 1])
+        data = data[idx_sort, :]
     else:
         events = nest.GetStatus(source, "events")
-        return np.array(events["times"], events["senders"])
+        idx_sort = np.argsort(events["times"])
+        data = np.zeros((len(events["times"]), 2))
+        data[:, 1] = events["times"][idx_sort]
+        data[:, 0] = events["senders"][idx_sort]
+    return data
 
 
 def _find_phases(times, phases, lim_burst, lim_quiet, simplify):
@@ -225,12 +241,10 @@ def _analysis(times, senders, limits, network=None,
         idx_start = np.where(times >= limits[0])[0][0]
         times = times[idx_start:]
         senders = senders[idx_start:]
-        num_spikes = len(times)
     if limits[1] <= times[-1]:
         idx_end = np.where(times <= limits[1])[0][-1]
         times = times[:idx_end]
         senders = senders[:idx_end]
-        num_spikes = len(times)
     num_spikes, avg_rate = len(times), 0.
     if num_spikes:
         # get the average firing rate to differenciate the phases
@@ -242,10 +256,11 @@ def _analysis(times, senders, limits, network=None,
         # find the phases
         _find_phases(times, phases, lim_burst, lim_quiet, simplify)
         _check_burst_size(phases, senders, times, network, mflb, mfb)
+    print(avg_rate, num_spikes, num_neurons, limits, times[0], times[-1])
     return phases, 1000 * avg_rate / float(num_neurons)
 
 
-def _compute_properties(data, phases, fr):
+def _compute_properties(data, phases, fr, skip_bursts):
     '''
     Compute the properties from the spike times and phases.
     
@@ -272,28 +287,40 @@ def _compute_properties(data, phases, fr):
     # firing rate (in Hz, normalized for 1 neuron)
     prop["firing_rate"] = fr
     num_bursts = len(phases["bursting"])
+    init_val = 0. if num_bursts > skip_bursts else np.NaN
     if num_bursts:
         prop["bursting"] = True
-        prop.update({"burst_duration": 0., "IBI": 0., "ISI": 0., "SpB": 0.})
+        prop.update({
+            "burst_duration": init_val,
+            "interburst": init_val,
+            "ISI": init_val,
+            "SpB": init_val,
+            "IBI": init_val})
     else:
         prop["bursting"] = False
     for i, burst in enumerate(phases["bursting"]):
-        # burst_duration
-        prop["burst_duration"] += burst[1] - burst[0]
-        # IBI
-        if i > 0:
-            end_older_burst = phases["bursting"][i-1][1]
-            prop["IBI"] += burst[0]-end_older_burst
-        # get num_spikes inside the burst, divide by num_neurons
-        idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
-        num_spikes = len(set(times[idxs]))
-        num_neurons = len(set(data[:, 0][idxs]))
-        prop["SpB"] += num_spikes / float(num_neurons)
-        # ISI
-        prop["ISI"] += num_neurons * (burst[1] - burst[0]) / float(num_spikes)
+        if i >= skip_bursts:
+            # burst_duration
+            prop["burst_duration"] += burst[1] - burst[0]
+            # IBI
+            if i > 0:
+                end_older_burst = phases["bursting"][i-1][1]
+                prop["interburst"] += burst[0]-end_older_burst
+            # get num_spikes inside the burst, divide by num_neurons
+            idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
+            num_spikes = len(times[idxs])
+            num_neurons = len(set(data[:, 0][idxs]))
+            prop["SpB"] += num_spikes / float(num_neurons)
+            # ISI
+            prop["ISI"] += num_neurons * (burst[1] - burst[0])\
+                           / float(num_spikes)
     for key in iter(prop.keys()):
-        if key != "bursting" and num_bursts:
-            prop[key] /= float(num_bursts)
+        if key not in ("bursting", "firing_rate") and num_bursts > skip_bursts:
+            prop[key] /= float(num_bursts - skip_bursts)
+    if num_bursts > skip_bursts:
+        prop["IBI"] = prop["interburst"] + prop["burst_duration"]
+    if prop["SpB"] < 2.:
+        prop["ISI"] = np.NaN
     return prop
 
 
@@ -314,7 +341,7 @@ def _plot_phases(phases, fignums):
 
 def activity_types(spike_detector, limits, network=None,
                    phase_coeff=(0.5, 10.), mbis=0.5, mfb=0.2, mflb=0.05,
-                   simplify=False, fignums=[], show=False):
+                   skip_bursts=0, simplify=False, fignums=[], show=False):
     '''
     Analyze the spiking pattern of a neural network.
     .. todo ::
@@ -331,9 +358,9 @@ def activity_types(spike_detector, limits, network=None,
         Neural network that was analyzed
     phase_coeff : tuple of floats, optional (default: (0.2, 5.))
         A phase is considered `bursting' when the interspike between all spikes
-        that compose it is smaller than ``phase_coeff[0]*avg_rate`` (where
-        ``avg_rate`` is the average firing rate), `quiescent' when it is greater
-        that ``phase_coeff[1]*avg_rate``, `mixed' otherwise.
+        that compose it is smaller than ``phase_coeff[0] / avg_rate`` (where
+        ``avg_rate`` is the average firing rate), `quiescent' when it is
+        greater that ``phase_coeff[1] / avg_rate``, `mixed' otherwise.
     mbis : float, optional (default: 0.5)
         Maximum interspike interval allowed for two spikes to be considered in
         the same burst (in ms).
@@ -347,6 +374,9 @@ def activity_types(spike_detector, limits, network=None,
         burst to be validated (i.e. if the interspike is smaller that the limit
         BUT the number of participating neurons is too small, the phase will be
         considered as `mixed`).
+    skip_bursts : int, optional (default: 0)
+        Skip the `skip_bursts` first bursts to consider only the permanent
+        regime.
     simplify: bool, optional (default: False)
         If ``True``, `mixed` phases that are contiguous to a burst are
         incorporated to it.
@@ -358,6 +388,11 @@ def activity_types(spike_detector, limits, network=None,
     show : bool, optional (default: False)
         Whether the figures should be displayed.
     
+    .. note :
+        Effects of `skip_bursts` and `limits[0]` are cumulative: the 
+        `limits[0]` first milliseconds are ignored, then the `skip_bursts`
+        first bursts of the remaining activity are ignored.
+    
     Returns
     -------
     phases : dict
@@ -365,8 +400,6 @@ def activity_types(spike_detector, limits, network=None,
         (`bursting', `quiescent', `mixed', and `localized`) as lists.
         E.g: ``phases["bursting"]`` could give ``[[123.5,334.2],
         [857.1,1000.6]]``.
-    phases_steps : dict, optional (not implemented yet)
-        Dictionary containing the timesteps in NEST.
     '''
     # check if there are several recorders
     senders, times = [], []
@@ -379,11 +412,14 @@ def activity_types(spike_detector, limits, network=None,
         for events in nest.GetStatus(spike_detector, "events"):
             times.extend(events["times"])
             senders.extend(events["senders"])
+        idx_sort = np.argsort(times)
+        times = times[idx_sort]
+        senders = senders[idx_sort]
     # compute phases and properties
     phases, fr = _analysis(times, senders, limits, network=network,
               phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
               simplify=simplify)
-    properties = _compute_properties(data, phases, fr)
+    properties = _compute_properties(data, phases, fr, skip_bursts)
     kwargs = {
         "limits": limits,
         "phase_coeff": phase_coeff,
@@ -402,7 +438,8 @@ def activity_types(spike_detector, limits, network=None,
 
 def analyze_raster(raster, limits=None, network=None,
                    phase_coeff=(0.5, 10.), mbis=0.5, mfb=0.2, mflb=0.05,
-                   simplify=False, fignums=[], show=False):
+                   skip_bursts=0, skip_ms=0., simplify=False, fignums=[],
+                   show=False):
     '''
     Return the activity types for a given raster.
 
@@ -417,9 +454,9 @@ def analyze_raster(raster, limits=None, network=None,
         Network on which the recorded activity was simulated.
     phase_coeff : tuple of floats, optional (default: (0.2, 5.))
         A phase is considered `bursting' when the interspike between all spikes
-        that compose it is smaller than ``phase_coeff[0]*avg_rate`` (where
-        ``avg_rate`` is the average firing rate), `quiescent' when it is greater
-        that ``phase_coeff[1]*avg_rate``, `mixed' otherwise.
+        that compose it is smaller than ``phase_coeff[0] / avg_rate`` (where
+        ``avg_rate`` is the average firing rate), `quiescent' when it is
+        greater that ``phase_coeff[1] / avg_rate``, `mixed' otherwise.
     mbis : float, optional (default: 0.5)
         Maximum interspike interval allowed for two spikes to be considered in
         the same burst (in ms).
@@ -433,6 +470,9 @@ def analyze_raster(raster, limits=None, network=None,
         burst to be validated (i.e. if the interspike is smaller that the limit
         BUT the number of participating neurons is too small, the phase will be
         considered as `mixed`).
+    skip_bursts : int, optional (default: 0)
+        Skip the `skip_bursts` first bursts to consider only the permanent
+        regime.
     simplify: bool, optional (default: False)
         If ``True``, `mixed` phases that are contiguous to a burst are
         incorporated to it.
@@ -440,6 +480,11 @@ def analyze_raster(raster, limits=None, network=None,
         Indices of figures on which the periods can be drawn.
     show : bool, optional (default: False)
         Whether the figures should be displayed.
+    
+    .. note :
+        Effects of `skip_bursts` and `limits[0]` are cumulative: the 
+        `limits[0]` first milliseconds are ignored, then the `skip_bursts`
+        first bursts of the remaining activity are ignored.
 
     Returns
     -------
@@ -448,8 +493,6 @@ def analyze_raster(raster, limits=None, network=None,
         from these phases.
     '''
     data = _get_data(raster) if isinstance(raster, str) else raster
-    idx_sort = np.argsort(data[:, 1])
-    data = data[idx_sort, :]
     if limits is None:
         limits = [np.min(data[:, 1]), np.max(data[:, 1])]
     kwargs = {
@@ -464,7 +507,7 @@ def analyze_raster(raster, limits=None, network=None,
     phases, fr = _analysis(data[:, 1], data[:, 0], limits, network=network,
               phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
               simplify=simplify)
-    properties = _compute_properties(data, phases, fr)
+    properties = _compute_properties(data, phases, fr, skip_bursts)
     # plot if required
     if show:
         _plot_phases(phases, fignums)
