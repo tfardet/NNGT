@@ -283,7 +283,7 @@ def _compute_properties(data, phases, fr, skip_bursts):
             - "SpB": average number of spikes per burst for one neuron.
     '''
     prop = {}
-    times = data[:, 1]
+    times = data[1, :]
     # firing rate (in Hz, normalized for 1 neuron)
     prop["firing_rate"] = fr
     num_bursts = len(phases["bursting"])
@@ -309,7 +309,8 @@ def _compute_properties(data, phases, fr, skip_bursts):
             # get num_spikes inside the burst, divide by num_neurons
             idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
             num_spikes = len(times[idxs])
-            num_neurons = len(set(data[:, 0][idxs]))
+            num_neurons = len(set(data[0, :][idxs]))
+            print(burst[1], burst[0], times.min(), times.max(), idxs, num_spikes, num_neurons)
             prop["SpB"] += num_spikes / float(num_neurons)
             # ISI
             prop["ISI"] += num_neurons * (burst[1] - burst[0])\
@@ -413,9 +414,10 @@ def activity_types(spike_detector, limits, network=None,
             times.extend(events["times"])
             senders.extend(events["senders"])
         idx_sort = np.argsort(times)
-        times = times[idx_sort]
-        senders = senders[idx_sort]
+        times = np.array(times)[idx_sort]
+        senders = np.array(senders)[idx_sort]
     # compute phases and properties
+    data = np.array((senders, times))
     phases, fr = _analysis(times, senders, limits, network=network,
               phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
               simplify=simplify)
@@ -431,8 +433,6 @@ def activity_types(spike_detector, limits, network=None,
     # plot if required
     if show:
         _plot_phases(phases, fignums)
-    # compute properties
-    data = np.array((senders, times))
     return ActivityRecord(data, phases, properties, kwargs)
 
 
