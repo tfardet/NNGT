@@ -137,6 +137,12 @@ class _NxGraph(BaseGraph):
     #-------------------------------------------------------------------------#
     # Graph manipulation
     
+    @property
+    def edges_array(self):
+        ''' Edges of the graph, sorted by order of creation, as an array of
+        2-tuple. '''
+        return np.array(self.edges())
+    
     def new_node_attribute(self, name, value_type, values=None, val=None):
         num_nodes = self.node_nb()
         if values is None:
@@ -166,7 +172,7 @@ node in the graph.")
         elif len(values) != num_edges:
             raise InvalidArgument("'values' list must contain one element per \
 edge in the graph.")
-        for e, val in zip(self.edges_array,values):
+        for e, val in zip(self.edges(), values):
             self.edge[e[0]][e[1]][name] = val
     
     def new_node(self, n=1, ntype=1):
@@ -272,7 +278,7 @@ edge in the graph.")
 
     def clear_all_edges(self):
         ''' Remove all connections in the graph '''
-        self.remove_edges_from(self.edges_array)
+        self.remove_edges_from(self.edges())
         self._eattr.clear()
 
     def set_node_property(self):
