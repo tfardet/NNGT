@@ -169,6 +169,12 @@ class _GtGraph(BaseGraph):
     #-------------------------------------------------------------------------#
     # Graph manipulation
     
+    @property
+    def edges_array(self):
+        ''' Edges of the graph, sorted by order of creation, as an array of
+        2-tuple. '''
+        return np.array(self.edges())
+    
     def new_node(self, n=1, ntype=1):
         '''
         Adding a node to the graph, with optional properties.

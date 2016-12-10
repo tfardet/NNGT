@@ -76,18 +76,11 @@ class BaseGraph(nngt.globals.config["graph"]):
     
     #-------------------------------------------------------------------------#
     # Shared properties methods
-    
+
     @property
-    def edge_index(self):
-        ''' :class:`OrderedDict` containing the edges as keys (2-tuple) and
-        their index at the time of their creation as value '''
-        return self._edges
-        
-    @property
+    @abstractmethod
     def edges_array(self):
-        ''' Edges of the graph, sorted by order of creation, as an array of
-        2-tuple. '''
-        return np.array(tuple(self._edges.keys()))
+        pass
 
     @property
     def nproperties(self):
