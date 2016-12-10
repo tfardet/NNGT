@@ -9,7 +9,13 @@ import cython
 
 import nngt
 from .connect_tools import _set_options
-from .connect_algorithms import *
+try:
+    import pyximport; pyximport.install()
+    from .cconnect import *
+    from .connect_algorithms import price_network
+except Exception as e:
+    print(e)
+    from .connect_algorithms import *
 
 
 
