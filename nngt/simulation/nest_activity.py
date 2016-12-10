@@ -52,7 +52,7 @@ class ActivityRecord:
         
         .. note :
             The firing rate is computed as num_spikes / total simulation time,
-            the IBI is the sum of an interburst and a bursting period.
+            the period is the sum of an IBI and a bursting period.
         '''
         self._data = spike_data
         self._phases = phases.copy()
@@ -97,7 +97,7 @@ class ActivityRecord:
         Contains the following entries:
             - "firing_rate": average value in Hz for 1 neuron in the network.
             - "bursting": True if there were bursts of activity detected.
-            - "burst_duration", "interburst", "ISI", and "IBI" in ms, if
+            - "burst_duration", "IBI", "ISI", and "period" in ms, if
               "bursting" is True.
             - "SpB" (Spikes per Burst): average number of spikes per neuron
               during a burst.
@@ -292,10 +292,10 @@ def _compute_properties(data, phases, fr, skip_bursts):
         prop["bursting"] = True
         prop.update({
             "burst_duration": init_val,
-            "interburst": init_val,
+            "IBI": init_val,
             "ISI": init_val,
             "SpB": init_val,
-            "IBI": init_val})
+            "period": init_val})
     else:
         prop["bursting"] = False
     for i, burst in enumerate(phases["bursting"]):
@@ -305,7 +305,7 @@ def _compute_properties(data, phases, fr, skip_bursts):
             # IBI
             if i > 0:
                 end_older_burst = phases["bursting"][i-1][1]
-                prop["interburst"] += burst[0]-end_older_burst
+                prop["IBI"] += burst[0]-end_older_burst
             # get num_spikes inside the burst, divide by num_neurons
             idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
             num_spikes = len(times[idxs])
@@ -318,7 +318,7 @@ def _compute_properties(data, phases, fr, skip_bursts):
         if key not in ("bursting", "firing_rate") and num_bursts > skip_bursts:
             prop[key] /= float(num_bursts - skip_bursts)
     if num_bursts > skip_bursts:
-        prop["IBI"] = prop["interburst"] + prop["burst_duration"]
+        prop["period"] = prop["IBI"] + prop["burst_duration"]
     if prop["SpB"] < 2.:
         prop["ISI"] = np.NaN
     return prop

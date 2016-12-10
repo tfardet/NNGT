@@ -73,6 +73,7 @@ def _load_config(path_config):
         'backend': None,
         'color_lib': 'matplotlib',
         'palette': 'Set1',
+        'omp': 1,
     }
     with open(path_config, 'r') as fconfig:
         options = [ l.strip() for l in fconfig if l.strip() and l[0] != "#" ]
@@ -101,6 +102,17 @@ analyze_graph = {
     'scc': not_implemented,
     'wcc': not_implemented,
 }
+
+def set_config(dic_config):
+    for key in dic_config:
+        if key not in nngt.config:
+            raise KeyError("Unknown configuration property: {}".format(key))
+    nngt.config.update(dic_config)
+    if "omp" in dic_config and nngt.config["graph_library"] == "graph-tool":
+        nngt.config["library"].openmp_set_num_threads(nngt.config["omp"])
+
+def show_config():
+    return {key: val for key, val in nngt.config.items()}
 
 
 #-----------------------------------------------------------------------------#

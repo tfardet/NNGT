@@ -76,7 +76,8 @@ if not os.path.isdir(lib_folder):
 if not os.path.isfile(path_config):
     shutil.copy(nngt_root + '/nngt.conf.default', path_config)
 
-from .globals import analyze_graph, config, use_library, version
+from .globals import (analyze_graph, config, use_library, version, set_config,
+                      show_config)
 
 
 #-----------------------------------------------------------------------------#

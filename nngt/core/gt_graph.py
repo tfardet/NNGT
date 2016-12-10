@@ -95,12 +95,12 @@ edge in the graph is required")
 set_attribute to create it.")
 
     def edge_prop(self, name, values, edges=None):
-        if edges is None or len(edges) == self.parent().edge_nb():
+        num_edges = self.parent().num_edges()
+        if edges is None or len(edges) == num_edges:
             self[name] = values
         else:
-            edges = self.parent()._edges.keys()
-            if len(values) == len(edges):
-                for e, val in zip(edges, values):
+            if len(values) == self.parent().edge_nb():
+                for e, val in zip(self.parent().edges(), values):
                     self.parent().edge_properties[name][e] = val
             else:
                 raise ValueError("A list or a np.array with one entry per \
@@ -152,7 +152,6 @@ class _GtGraph(BaseGraph):
         '''
         @todo: document that
         see :class:`graph_tool.Graph`'s constructor '''
-        self._edges = OrderedDict()
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
         self._directed = directed
@@ -166,10 +165,6 @@ class _GtGraph(BaseGraph):
         else:
             if g.__class__ is nngt.globals.config["graph"]:
                 edges = nngt.globals.analyze_graph["get_edges"](g)
-                for i, edge in enumerate(edges):
-                    self._edges[tuple(e)] = i
-            else:
-                self._edges = g._edges.copy()
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -218,7 +213,6 @@ class _GtGraph(BaseGraph):
             attributes = {}
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = 1.
-        self._edges[(source, target)] = self.edge_nb()
         connection = super(_GtGraph, self).add_edge(source, target,
                                                     add_missing=True)
         for key, val in attributes:
@@ -227,7 +221,6 @@ class _GtGraph(BaseGraph):
             else:
                 raise InvalidArgument("Unknown edge property `" + key + "'.")
         if not self._directed:
-            self._edges[(source, target)] = self.edge_nb() + 1
             c2 = super(_GtGraph, self).add_edge(target, source)
             for key, val in attributes:
                 if key in self.edge_properties:
@@ -260,15 +253,14 @@ class _GtGraph(BaseGraph):
             attributes = {}
         initial_edges = self.num_edges()
         edge_generator = ( e for e in edge_list )
-        edge_list = np.array(edge_list)
+        if not isinstance(edge_list, np.ndarray):
+            edge_list = np.array(edge_list)
         if not self._directed:
             edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val))
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = np.repeat(1., edge_list.shape[0])
-        for i, edge in enumerate(edge_list):
-            self._edges[tuple(edge)] = initial_edges + i
         super(_GtGraph, self).add_edge_list(edge_list)
         if attributes:
             # take care of classic attributes
@@ -292,7 +284,6 @@ class _GtGraph(BaseGraph):
     
     def clear_all_edges(self):
         self.clear_edges()
-        self._edges = OrderedDict()
         self._eattr.clear()
     
     #-------------------------------------------------------------------------#

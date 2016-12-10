@@ -112,7 +112,6 @@ class _IGraph(BaseGraph):
     # Constructor and instance properties
     
     def __init__(self, nodes=0, g=None, directed=True, weighted=False):
-        self._edges = OrderedDict()
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
         self._weighted = weighted
@@ -184,7 +183,6 @@ class _IGraph(BaseGraph):
             attributes = {}
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = 1.
-        self._edges[(source, target)] = self.edge_nb()
         super(_IGraph, self).add_edge(source, target, **attributes)
         if not self._directed:
             super(_IGraph, self).add_edge(target, source, **attributes)
@@ -215,8 +213,6 @@ class _IGraph(BaseGraph):
             edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val))
-        for i, edge in enumerate(edge_list):
-            self._edges[tuple(edge)] = initial_ecount + i
         edge_generator = ( edge for edge in edge_list )
         edge_list = np.array(edge_list)
         first_eid = self.ecount()
@@ -286,7 +282,6 @@ node in the graph.")
     def clear_all_edges(self):
         ''' Remove all connections in the graph. '''
         self.delete_edges(None)
-        self._edges = OrderedDict()
         self._eattr.clear()
     
     #-------------------------------------------------------------------------#

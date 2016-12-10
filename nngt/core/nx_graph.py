@@ -66,7 +66,7 @@ class _NxEProperty(BaseProperty):
 
     def __getitem__(self, name):
         lst = []
-        for e in iter(self.parent()._edges.keys()):
+        for e in iter(self.parent().edges()):
             lst.append(self.parent().edge[e[0]][e[1]][name])
         return np.array(lst)
 
@@ -74,7 +74,7 @@ class _NxEProperty(BaseProperty):
         if name in self:
             size = self.parent().number_of_edges()
             if len(value) == size:
-                for i,e in enumerate(self.parent()._edges.keys()):
+                for i, e in enumerate(self.parent().edges()):
                     self.parent().edge[e[0]][e[1]][name] = value[i]
             else:
                 raise ValueError("A list or a np.array with one entry per \
@@ -124,7 +124,6 @@ class _NxGraph(BaseGraph):
     # Constructor and instance properties
     
     def __init__(self, nodes=0, g=None, directed=True, weighted=False):
-        self._edges = OrderedDict()
         self._directed = directed
         self._weighted = weighted
         self._nattr = _NxNProperty(self)
@@ -132,8 +131,6 @@ class _NxGraph(BaseGraph):
         super(_NxGraph, self).__init__(g)
         if g is not None:
             edges = nngt.globals.analyze_graph["get_edges"](g)
-            for i, edge in enumerate(edges):
-                self._edges[tuple(edge)] = i
         elif nodes:
             self.add_nodes_from(range(nodes))
 
@@ -160,7 +157,7 @@ node in the graph.")
         num_edges = self.edge_nb()
         if values is None:
             if val is not None:
-                values = np.repeat(val,num_edges)
+                values = np.repeat(val, num_edges)
             else:
                 if "vec" in value_type:
                     values = [ [] for _ in range(num_edges) ]
@@ -219,7 +216,6 @@ edge in the graph.")
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = 1.
         self.add_edge(source, target)
-        self._edges[(source, target)] = self.edge_nb()
         for key, val in attributes.items:
             self[source][target][key] = val
         if not self._directed:
@@ -272,14 +268,11 @@ edge in the graph.")
             datadict.update({ key: val[i] for key, val in attributes.items() })
             self.succ[u][v] = datadict
             self.pred[v][u] = datadict
-        for i, edge in enumerate(edge_list):
-            self._edges[tuple(edge)] = initial_edges + i
         return edge_generator
 
     def clear_all_edges(self):
         ''' Remove all connections in the graph '''
         self.remove_edges_from(self.edges_array)
-        self._edges = OrderedDict()
         self._eattr.clear()
 
     def set_node_property(self):
