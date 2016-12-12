@@ -5,7 +5,6 @@
 
 from copy import deepcopy
 import numpy as np
-import cython
 
 import nngt
 from .connect_tools import _set_options
