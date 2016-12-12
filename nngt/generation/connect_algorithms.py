@@ -317,7 +317,7 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
                              else (int(num_edges/2), int(circular_edges/2)))
     
     b_one_pop = _check_num_edges(
-        source_ids, target_ids, edges, directed, multigraph)
+        source_ids, target_ids, num_edges, directed, multigraph)
     if not b_one_pop:
         raise InvalidArgument("This graph model can only be used if source \
                               and target populations are the same")

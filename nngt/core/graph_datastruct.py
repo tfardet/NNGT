@@ -448,7 +448,7 @@ class Connections:
                 #~ ra_dist = np.tile( , 2)
                 # update graph distances
                 graph.set_edge_attribute(DIST, value_type="double",
-                                         values=ra_dist)
+                                         values=ra_dist, edges=elist)
                 return ra_dist
             else:
                 return []
@@ -492,7 +492,8 @@ class Connections:
             dlist = eprop_distribution(graph, distribution, elist=elist,
                                        **parameters)
         # add to the graph container
-        graph.set_edge_attribute(DELAY, value_type="double", values=dlist)
+        graph.set_edge_attribute(
+            DELAY, value_type="double", values=dlist, edges=elist)
         return dlist
 
     @staticmethod
@@ -526,21 +527,25 @@ class Connections:
         '''
         parameters["btype"] = parameters.get("btype", "edge")
         parameters["use_weights"] = parameters.get("use_weights", False)
-        elist = np.array(elist) if elist is not None else elist
+        #~ elist = np.array(elist) if elist is not None else elist
+        elist = None
         if wlist is not None:
             num_edges = graph.edge_nb() if elist is None else elist.shape[0]
             if len(wlist) != num_edges:
                 raise InvalidArgument(
-                    "`wlist` must have one entry per edge. {} {} {}".format(
-                    len(wlist), num_edges, graph.name))
+                    '''`wlist` must have one entry per edge. For graph {},
+there are {} edges while {} values where provided'''.format(
+                    graph.name, num_edges, len(wlist)))
         else:
             wlist = eprop_distribution(graph, distribution, elist=elist,
                                        **parameters)
         # add to the graph container
         bwlist = (np.max(wlist) - wlist if np.any(wlist)
                   else np.repeat(0, len(wlist)))
-        graph.set_edge_attribute(WEIGHT, value_type="double", values=wlist)
-        graph.set_edge_attribute(BWEIGHT, value_type="double", values=bwlist)
+        graph.set_edge_attribute(
+            WEIGHT, value_type="double", values=wlist, edges=elist)
+        graph.set_edge_attribute(
+            BWEIGHT, value_type="double", values=bwlist, edges=elist)
         return wlist
 
     @staticmethod

@@ -224,18 +224,21 @@ class _IGraph(BaseGraph):
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
         last_eid = self.ecount()
+        edge_list = self.edges_array
         # attributes
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = np.repeat(1., edge_list.shape[0])
         if attributes:
+            elist0 = None #@todo: make elist supported and remove this
             # take care of classic attributes
             if "weight" in attributes:
-                self.set_weights(weight=attributes["weight"], elist=edge_list)
+                self.set_weights(weight=attributes["weight"], elist=elist0)
             if "delay" in attributes:
-                self.set_delays(elist=edge_list, dlist=attributes["delay"])
+                self.set_delays(delay=attributes["delay"], elist=elist0)
             if "distance" in attributes:
-                self.set_distances(elist=edge_list,
-                                   dlist=attributes["distance"])
+                raise NotImplementedError("distance not implemented yet")
+                #~ self.set_distances(elist=edge_list,
+                                   #~ dlist=attributes["distance"])
             # take care of potential additional attributes
             if "names" in attributes:
                 num_attr = len(attributes["names"])

@@ -405,7 +405,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             self._name = "Graph_" + str(self.__id)
 
     def set_edge_attribute(self, attribute, values=None, val=None,
-                           value_type=None):
+                           value_type=None, edges=None):
         '''
         Set attributes to the connections between neurons.
 
@@ -420,14 +420,20 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             self._eattr.new_ea(name=attribute, value_type=value_type,
                                values=values, val=val)
         else:
-            num_edges = self.edge_nb()
+            num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
                 if val is not None:
-                    values = np.repeat(val,num_edges)
+                    values = np.repeat(val, num_edges)
                 else:
-                    raise InvalidArgument("At least one of the `values` and \
-`val` arguments should not be ``None``.")
-            self._eattr[attribute] = values
+                    raise InvalidArgument('''At least one of the `values` and
+`val` arguments should not be ``None``.''')
+            if num_edges == self.edge_nb():
+                self._eattr[attribute] = values
+            else:
+                raise NotImplementedError('''Currently, it is only possible to
+change the attribute of all the edges at the same time, not of only a
+subset.''')
+                
     
     def set_weights(self, weight=None, elist=None, distribution=None,
                     parameters=None, noise_scale=None):
@@ -919,7 +925,7 @@ class Network(Graph):
             in_param = {}
         if is_param is None:
             is_param = {}
-        pop = NeuralPop.ei_population(size, ei_ratio, None, en_model, en_param,
+        pop = NeuralPop.exc_and_inhib(size, ei_ratio, None, en_model, en_param,
                     es_model, es_param, in_model, in_param, is_model, is_param)
         net = cls(population=pop)
         return net

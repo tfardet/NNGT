@@ -90,7 +90,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     graph_fd = from_graph
     if graph_fd is not None:
         nodes = graph_fd.node_nb()
-        graph_fd.clear_edges()
+        graph_fd.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
         graph_fd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
@@ -170,7 +170,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     graph_gd = from_graph
     if graph_gd is not None:
         nodes = graph_gd.node_nb()
-        graph_gd.clear_edges()
+        graph_gd.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
         graph_gd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
@@ -247,7 +247,7 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
     graph_er = from_graph
     if graph_er is not None:
         nodes = graph_er.node_nb()
-        graph_er.clear_edges()
+        graph_er.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
         graph_er = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
@@ -329,7 +329,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
     graph_rsf = from_graph
     if graph_rsf is not None:
         nodes = graph_rsf.node_nb()
-        graph_rsf.clear_edges()
+        graph_rsf.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
         graph_rsf = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
@@ -473,7 +473,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
     graph_nw = from_graph
     if graph_nw is not None:
         nodes = graph_nw.node_nb()
-        graph_nw.clear_edges()
+        graph_nw.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
         graph_nw = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
@@ -548,7 +548,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     graph_dr = from_graph
     if graph_dr is not None:
         nodes = graph_dr.node_nb()
-        graph_dr.clear_edges()
+        graph_dr.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
         graph_dr = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
