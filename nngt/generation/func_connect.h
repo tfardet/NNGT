@@ -80,8 +80,9 @@ size_t _unique_2d(std::vector< std::vector<int> >& a);
  * \return result        - The desired vecotr of complementary nodes.
  */
 std::vector<size_t> _gen_edge_complement(
-  long seed, std::vector<size_t> nodes, size_t other_end, size_t degree,
-  const std::vector< std::vector<size_t> >* existing_edges, bool multigraph);
+  long seed, const std::vector<size_t>& nodes, const size_t other_end,
+  const size_t degree, const std::vector< std::vector<size_t> >* existing_edges,
+  const bool multigraph);
 
 
 /*
@@ -102,7 +103,7 @@ std::vector<size_t> _gen_edge_complement(
 std::vector< std::vector<size_t> > _gen_edges(
   const std::vector<size_t>& first_nodes, const std::vector<size_t>& degrees,
   const std::vector<size_t>& second_nodes,
-  const std::vector< std::vector<size_t> >& existing_edges,
+  const std::vector< std::vector<size_t> >* existing_edges,
   bool multigraph, bool directed, long msd, size_t omp);
 
 }

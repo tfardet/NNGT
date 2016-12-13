@@ -5,16 +5,16 @@
 
 from copy import deepcopy
 import numpy as np
-import cython
 
 import nngt
 from .connect_tools import _set_options
 try:
+    import cython
     import pyximport; pyximport.install()
     from .cconnect import *
     from .connect_algorithms import price_network
 except Exception as e:
-    print(e)
+    print(e, "Cython import failed, using non accelerated algorithms.")
     from .connect_algorithms import *
 
 
@@ -99,19 +99,15 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         graph_fd.clear_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_fd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+        graph_fd = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
     # add edges
     ia_edges = None
-    import time
-    start = time.time()
     if nodes > 1:
         ids = np.arange(nodes, dtype=np.uint)
         ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
                                  directed, multigraph)
-        print(time.time() - start)
-        start = time.time()
         graph_fd.new_edges(ia_edges)
-        print(time.time() - start)
     _set_options(graph_fd, weighted, population, shape, positions)
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
     return graph_fd

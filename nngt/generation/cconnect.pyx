@@ -86,47 +86,6 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
 #------------------------
 #
 
-#~ def _fixed_degree(size_t [:] source_ids, size_t [:] target_ids,
-#~                   size_t degree, degree_type, float reciprocity,
-#~                   bool directed, bool multigraph, existing_edges=None):
-#~     '''
-#~     Returns a 2D array containing the new edges of a fixe-degree graph.
-#~     If the graph has already existing edges, tries to generate additional
-#~     edges to add a fixed-degree graph "on top" of the existing edges.
-#~     To clarify, if node `n` has already a degree `d_n` and the addition of the
-#~     fixed-degree graph is possible, this node will end up with a degree
-#~     `d_n + degree`.
-
-#~     .. note :
-#~         This function returns only the new edges.
-#~     '''
-#~     np.random.seed()
-#~     cdef int num_source = source_ids.shape[0]
-#~     cdef int num_target = target_ids.shape[0]
-#~     # type of degree
-#~     cdef bool b_out = (degree_type == "out")
-#~     cdef bool b_total = (degree_type == "total")
-#~     # edges
-#~     cdef int edges = num_target*degree if degree_type == "out" else num_source*degree
-#~     cdef bool b_one_pop = _check_num_edges(
-#~         source_ids, target_ids, edges, directed, multigraph)
-#~     # existing edges
-#~     cdef int existing = 0
-#~     if existing_edges is not None:
-#~         existing = np.shape(existing_edges)[0]
-
-#~     # array containing the new edges
-#~     cdef size_t [:, :] ia_edges = np.zeros((existing+edges, 2), dtype=size_t)
-#~     cdef np.ndarray[size_t, ndim=2] ia_edges = np.zeros((existing+edges, 2))
-#~     # differenciate source / target
-#~     cdef int idx = 0 if b_out else 1
-#~     # nodes from which we will pick randomly
-#~     cdef size_t [:] variables = source_ids if b_out else target_ids
-#~     cdef np.ndarray[size_t, ndim=1] variables = source_ids if b_out else target_ids
-#~     cdef int num_var = variables.shape[0]
-
-#~     return ia_edges
-
 cpdef np.ndarray[unsigned long, ndim=2] _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
                   np.ndarray[size_t, ndim=1] target_ids,
                   size_t degree, degree_type, reciprocity,
@@ -151,11 +110,11 @@ cpdef np.ndarray[unsigned long, ndim=2] _fixed_degree(np.ndarray[size_t, ndim=1]
     cdef int idx = 0 if b_out else 1 # differenciate source / target
     cdef vector[size_t] variables = source_ids if b_out else target_ids # nodes picked randomly
 
-    cdef size_t omp = nngt.config["omp"] 
+    cdef size_t omp = nngt.config["omp"]
+    
     cdef int i, j, v
     cdef np.ndarray[size_t, ndim=2] edges_i
     cdef int ecurrent
-#~     cdef np.ndarray[size_t, ndim=1] variables_i
     cdef vector[size_t] variables_i = np.zeros(degree)
     with nogil, parallel(num_threads=omp):
         for i in prange(num_target, schedule='dynamic'):
