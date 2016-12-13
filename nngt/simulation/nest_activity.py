@@ -236,17 +236,17 @@ def _analysis(times, senders, limits, network=None,
     }
     num_neurons = (len(np.unique(senders)) if network is None
                    else network.node_nb())
-    # set the studied region
-    if limits[0] >= times[0]:
-        idx_start = np.where(times >= limits[0])[0][0]
-        times = times[idx_start:]
-        senders = senders[idx_start:]
-    if limits[1] <= times[-1]:
-        idx_end = np.where(times <= limits[1])[0][-1]
-        times = times[:idx_end]
-        senders = senders[:idx_end]
     num_spikes, avg_rate = len(times), 0.
     if num_spikes:
+        # set the studied region
+        if limits[0] >= times[0]:
+            idx_start = np.where(times >= limits[0])[0][0]
+            times = times[idx_start:]
+            senders = senders[idx_start:]
+        if limits[1] <= times[-1]:
+            idx_end = np.where(times <= limits[1])[0][-1]
+            times = times[:idx_end]
+            senders = senders[:idx_end]
         # get the average firing rate to differenciate the phases
         simtime = limits[1] - limits[0]
         lim_burst, lim_quiet = 0., 0.
@@ -256,7 +256,6 @@ def _analysis(times, senders, limits, network=None,
         # find the phases
         _find_phases(times, phases, lim_burst, lim_quiet, simplify)
         _check_burst_size(phases, senders, times, network, mflb, mfb)
-    print(avg_rate, num_spikes, num_neurons, limits, times[0], times[-1])
     return phases, 1000 * avg_rate / float(num_neurons)
 
 
@@ -310,7 +309,6 @@ def _compute_properties(data, phases, fr, skip_bursts):
             idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
             num_spikes = len(times[idxs])
             num_neurons = len(set(data[0, :][idxs]))
-            print(burst[1], burst[0], times.min(), times.max(), idxs, num_spikes, num_neurons)
             prop["SpB"] += num_spikes / float(num_neurons)
             # ISI
             prop["ISI"] += num_neurons * (burst[1] - burst[0])\
@@ -320,7 +318,7 @@ def _compute_properties(data, phases, fr, skip_bursts):
             prop[key] /= float(num_bursts - skip_bursts)
     if num_bursts > skip_bursts:
         prop["period"] = prop["IBI"] + prop["burst_duration"]
-    if prop["SpB"] < 2.:
+    if num_bursts and prop["SpB"] < 2.:
         prop["ISI"] = np.NaN
     return prop
 

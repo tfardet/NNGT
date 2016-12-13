@@ -95,16 +95,11 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         graph_fd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
     # add edges
     ia_edges = None
-    import time
-    start = time.time()
     if nodes > 1:
         ids = np.arange(nodes, dtype=np.uint)
         ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
                                  directed, multigraph)
-        print(time.time() - start)
-        start = time.time()
         graph_fd.new_edges(ia_edges)
-        print(time.time() - start)
     _set_options(graph_fd, weighted, population, shape, positions)
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
     return graph_fd
