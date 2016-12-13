@@ -136,6 +136,30 @@ class _NxGraph(BaseGraph):
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
+
+    def edge_id(self, edge):
+        '''
+        Return the ID a given edge or a list of edges in the graph.
+        Raises an error if the edge is not in the graph or if one of the
+        vertices in the edge is nonexistent.
+
+        Parameters
+        ----------
+        edge : 2-tuple or array of edges
+            Edge descriptor (source, target).
+
+        Returns
+        -------
+        index : int or array of ints
+            Index of the given `edge`.
+        '''
+        if isinstance(edge[0], int):
+            return self[edge[0]][edge[1]]["eid"]
+        elif hasattr(edge[0], "__len__"):
+            return [self[e[0]][e[1]]["eid"] for e in edge]
+        else:
+            raise AttributeError("`edge` must be either a 2-tuple of ints or\
+an array of 2-tuples of ints.")
     
     @property
     def edges_array(self):
@@ -222,10 +246,12 @@ edge in the graph.")
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = 1.
         self.add_edge(source, target)
+        self[source][target]["eid"] = self.number_of_edges()
         for key, val in attributes.items:
             self[source][target][key] = val
         if not self._directed:
             self.add_edge(target,source)
+            self[source][target]["eid"] = self.number_of_edges()
             for key, val in attributes.items:
                 self[target][source][key] = val
         return (source, target)
@@ -254,13 +280,20 @@ edge in the graph.")
             attributes = {}
         initial_edges = self.number_of_edges()
         if not self._directed:
-            edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
+            elist_tmp = np.zeros((2*len(edge_list), 2), dtype=np.uint)
+            i = 0
+            for e, e_reversed in zip(edge_list, edge_list[:,::-1]):
+                elist_tmp[i:i+2,:] = (e, e_reversed)
+                i += 1
+            edge_list = elist_tmp
             for key, val in attributes.items():
-                attributes[key] = np.concatenate((val, val))
+                attributes[key] = np.repeat(val, 2)
         edge_generator = ( e for e in edge_list )
         edge_list = np.array(edge_list)
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = np.repeat(1., edge_list.shape[0])
+        attributes["eid"] = np.arange(
+            initial_edges, initial_edges + len(edge_list))
         for i, (u,v) in enumerate(edge_list):
             if u not in self.succ:
                 self.succ[u] = self.adjlist_dict_factory()
@@ -271,7 +304,7 @@ edge in the graph.")
                 self.pred[v] = self.adjlist_dict_factory()
                 self.node[v] = {}
             datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
-            datadict.update({ key: val[i] for key, val in attributes.items() })
+            datadict.update({key: val[i] for key, val in attributes.items()})
             self.succ[u][v] = datadict
             self.pred[v][u] = datadict
         return edge_generator
@@ -355,4 +388,3 @@ edge in the graph.")
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
-

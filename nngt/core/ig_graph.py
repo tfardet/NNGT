@@ -137,6 +137,30 @@ class _IGraph(BaseGraph):
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
+
+    def edge_id(self, edge):
+        '''
+        Return the ID a given edge or a list of edges in the graph.
+        Raises an error if the edge is not in the graph or if one of the
+        vertices in the edge is nonexistent.
+
+        Parameters
+        ----------
+        edge : 2-tuple or array of edges
+            Edge descriptor (source, target).
+
+        Returns
+        -------
+        index : int or array of ints
+            Index of the given `edge`.
+        '''
+        if isinstance(edge[0], int):
+            return self.get_eid(*edge)
+        elif hasattr(edge[0], "__len__"):
+            return self.get_eids(edge)
+        else:
+            raise AttributeError("`edge` must be either a 2-tuple of ints or\
+an array of 2-tuples of ints.")
     
     @property
     def edges_array(self):
@@ -219,7 +243,7 @@ class _IGraph(BaseGraph):
             edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val))
-        edge_generator = ( edge for edge in edge_list )
+        edge_generator = (edge for edge in edge_list)
         edge_list = np.array(edge_list)
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)

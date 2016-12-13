@@ -168,12 +168,40 @@ class _GtGraph(BaseGraph):
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
+
+    def edge_id(self, edge):
+        '''
+        Return the ID a given edge or a list of edges in the graph.
+        Raises an error if the edge is not in the graph or if one of the
+        vertices in the edge is nonexistent.
+
+        Parameters
+        ----------
+        edge : 2-tuple or array of edges
+            Edge descriptor (source, target).
+
+        Returns
+        -------
+        index : int or array of ints
+            Index of the given `edge`.
+        '''
+        if isinstance(edge[0], int):
+            return self.edge_index[edge]
+        elif hasattr(edge[0], "__len__"):
+            idx = [self.edge_index[e] for e in edge]
+            return idx
+        else:
+            raise AttributeError("`edge` must be either a 2-tuple of ints or\
+an array of 2-tuples of ints.")
     
     @property
     def edges_array(self):
-        ''' Edges of the graph, sorted by order of creation, as an array of
-        2-tuple. '''
-        return np.array(self.edges())
+        '''
+        Edges of the graph, sorted by order of creation, as an array of
+        2-tuple.
+        '''
+        return np.array(
+            [(int(e.source()), int(e.target())) for e in self.edges()])
     
     def new_node(self, n=1, ntype=1):
         '''
