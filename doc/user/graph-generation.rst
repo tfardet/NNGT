@@ -116,14 +116,14 @@ Send the network to NEST:
 .. code-block:: python
 
     import nest
-    from nngt.simulation import make_nest_network, monitor_nodes, plot_activity
+    from nngt.simulation import make_nest_network, monitor_groups, plot_activity
 
     # create the network, excite, record
     subnet, gids = make_nest_network(net)
     pg = nest.Create("poisson_generator", params={"rate": 100000.})
     nest.Connect(pg, gids)
-    recorder, record = monitor_nodes(
-        gids, ["spike_detector"], [{}], network=net)
+    groups = [key for key in net.population]
+    recorder, record = monitor_groups(groups, net)
 
     # Simulate
     simtime = 100.
