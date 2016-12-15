@@ -211,11 +211,9 @@ def _check_burst_size(phases, senders, times, network, mflb, mfb):
             if span[0] == mixed[1]:
                 mixed[1] = span[1]
                 remove.append(j)
-                i=-1
             elif span[1] == mixed[0]:
                 mixed[0] = span[0]
                 remove.append(j)
-                i=-1
             j+=1
         i+=1
     remove = list(set(remove))
