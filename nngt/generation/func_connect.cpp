@@ -155,7 +155,7 @@ std::vector<size_t> _gen_edge_complement(
 std::vector< std::vector<size_t> > _gen_edges(
   const std::vector<size_t>& first_nodes, const std::vector<size_t>& degrees,
   const std::vector<size_t>& second_nodes,
-  const std::vector< std::vector<size_t> >* existing_edges,
+  const std::vector< std::vector<size_t> >& existing_edges,
   bool multigraph, bool directed, long msd, size_t omp)
 {
     // Initialize secondary seeds
@@ -170,16 +170,17 @@ std::vector< std::vector<size_t> > _gen_edges(
     std::partial_sum(degrees.begin(), degrees.end(), cum_degrees.begin());
 
     // generate the edges
-    std::vector< std::vector<size_t> > edges;
+    std::vector< std::vector<size_t> >
+        edges(2, std::vector<size_t>(cum_degrees.back()));
     #pragma omp parallel for schedule(dynamic)
     for (size_t node=0; node < first_nodes.size(); node++)
     {
         // generate the vector of complementary nodes
         std::vector<size_t> res_tmp = _gen_edge_complement(
-          seeds[node], second_nodes, node, degrees[node], existing_edges,
+          seeds[node], second_nodes, node, degrees[node], &existing_edges,
           multigraph);
         // fill the edges
-        size_t idx_start = cum_degrees[node];
+        size_t idx_start = cum_degrees[node] - degrees[0];
         for (size_t j = 0; j < res_tmp.size(); j++)
         {
             edges[0][idx_start + j] = node;

@@ -91,10 +91,11 @@ cpdef np.ndarray[unsigned long, ndim=2] _fixed_degree(np.ndarray[size_t, ndim=1]
                   size_t degree, degree_type, reciprocity,
                   bool directed, bool multigraph, existing_edges=None):
     np.random.seed()
-    cdef size_t num_source = source_ids.shape[0]
-    cdef size_t num_target = target_ids.shape[0]
-    msd = np.random.randint(0, num_target+1)
-    cdef size_t[:] seeds = msd + np.arange(num_target, dtype=DTYPE)
+    cdef:
+        size_t num_source = source_ids.shape[0]
+        size_t num_target = target_ids.shape[0]
+        long msd = np.random.randint(0, num_target+1)
+        size_t[:] seeds = msd + np.arange(num_target, dtype=DTYPE)
     # type of degree
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
@@ -107,23 +108,27 @@ cpdef np.ndarray[unsigned long, ndim=2] _fixed_degree(np.ndarray[size_t, ndim=1]
     cdef np.ndarray[unsigned long, ndim=2] ia_edges = np.zeros((existing+edges, 2), dtype=np.uint)
     if existing:
         ia_edges[:existing,:] = existing_edges
-    cdef int idx = 0 if b_out else 1 # differenciate source / target
-    cdef vector[size_t] variables = source_ids if b_out else target_ids # nodes picked randomly
-
-    cdef size_t omp = nngt.config["omp"]
+    cdef:
+        int idx = 0 if b_out else 1 # differenciate source / target
+        vector[size_t] variables = source_ids if b_out else target_ids # nodes picked randomly
+        size_t omp = nngt.config["omp"]
+        vector[size_t] degrees = np.repeat(degree, num_source)
+        vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
     
-    cdef int i, j, v
-    cdef np.ndarray[size_t, ndim=2] edges_i
-    cdef int ecurrent
-    cdef vector[size_t] variables_i = np.zeros(degree)
-    with nogil, parallel(num_threads=omp):
-        for i in prange(num_target, schedule='dynamic'):
-            v = target_ids[i]
-            variables_i = _gen_edge_complement(seeds[i], variables, v, degree,
-                NULL, multigraph)
-            for j in range(degree):
-                ia_edges[i*degree + j, idx] = v
-                ia_edges[i*degree + j, idx-1] = variables_i[j]
+#~     cdef size_t i, j, v
+#~     cdef np.ndarray[size_t, ndim=2] edges_i
+#~     cdef size_t ecurrent
+#~     cdef vector[size_t] variables_i = np.zeros(degree)
+#~     with nogil, parallel(num_threads=omp):
+#~         for i in prange(num_target, schedule='dynamic'):
+#~             v = target_ids[i]
+#~             variables_i = _gen_edge_complement(seeds[i], variables, v, degree,
+#~                 NULL, multigraph)
+#~             for j in range(degree):
+#~                 ia_edges[i*degree + j, idx] = v
+#~                 ia_edges[i*degree + j, idx-1] = variables_i[j]
+    ia_edges = np.array(_gen_edges(source_ids, degrees, target_ids, old_edges,
+        multigraph, directed, msd, omp), dtype=np.uint).T
     if not directed:
         ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
         ia_edges = _unique_rows(ia_edges)
