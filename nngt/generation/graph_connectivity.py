@@ -179,7 +179,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     # add edges
     ia_edges = None
     if nodes > 1:
-        ids = range(nodes)
+        ids = np.arange(nodes, dtype=np.uint)
         ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
                                     reciprocity, directed, multigraph)
         graph_gd.new_edges(ia_edges)

@@ -49,12 +49,6 @@ DTYPE = np.uint
 #------------------------
 #
 
-cdef size_t _unique_1d(np.ndarray[size_t, ndim=1] arr):
-    cdef np.ndarray[size_t, ndim=1] b = np.unique(arr)
-    cdef size_t num_unique = b.shape[0]
-    arr[:num_unique] = b
-    return num_unique
-
 def _unique_rows(arr):
     b = np.ascontiguousarray(arr).view(np.dtype((np.void,
         arr.dtype.itemsize * arr.shape[1])))
@@ -86,101 +80,94 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
 #------------------------
 #
 
-cpdef np.ndarray[unsigned long, ndim=2] _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
-                  np.ndarray[size_t, ndim=1] target_ids,
-                  size_t degree, degree_type, reciprocity,
-                  bool directed, bool multigraph, existing_edges=None):
+cpdef np.ndarray[unsigned long, ndim=2] _fixed_degree(
+        np.ndarray[size_t, ndim=1] source_ids,
+        np.ndarray[size_t, ndim=1] target_ids, size_t degree, degree_type,
+        float reciprocity, bool directed, bool multigraph,
+        existing_edges=None):
+    ''' Generation of the edges through the C++ function '''
     np.random.seed()
-    cdef:
-        size_t num_source = source_ids.shape[0]
-        size_t num_target = target_ids.shape[0]
-        long msd = np.random.randint(0, num_target+1)
-        size_t[:] seeds = msd + np.arange(num_target, dtype=DTYPE)
     # type of degree
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
+    cdef:
+        size_t num_source = source_ids.shape[0]
+        size_t num_target = target_ids.shape[0]
     # edges
     edges = num_target*degree if degree_type == "out" else num_source*degree
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
     
-    existing = 0 if existing_edges is None else existing_edges.shape[0]
-    cdef np.ndarray[unsigned long, ndim=2] ia_edges = np.zeros((existing+edges, 2), dtype=np.uint)
+    cdef:
+        unsigned int existing = \
+            0 if existing_edges is None else existing_edges.shape[0]
+        np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
+            (existing+edges, 2), dtype=DTYPE)
     if existing:
         ia_edges[:existing,:] = existing_edges
     cdef:
-        int idx = 0 if b_out else 1 # differenciate source / target
-        vector[size_t] variables = source_ids if b_out else target_ids # nodes picked randomly
-        size_t omp = nngt.config["omp"]
-        vector[size_t] degrees = np.repeat(degree, num_source)
+        unsigned int idx = 0 if b_out else 1 # differenciate source / target
+        unsigned int omp = nngt.config["omp"]
+        unsigned int num_node = num_target if b_out else num_source
+        long msd = np.random.randint(0, num_target+1)
+        vector[size_t] degrees = np.repeat(degree, num_node)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
-    
-#~     cdef size_t i, j, v
-#~     cdef np.ndarray[size_t, ndim=2] edges_i
-#~     cdef size_t ecurrent
-#~     cdef vector[size_t] variables_i = np.zeros(degree)
-#~     with nogil, parallel(num_threads=omp):
-#~         for i in prange(num_target, schedule='dynamic'):
-#~             v = target_ids[i]
-#~             variables_i = _gen_edge_complement(seeds[i], variables, v, degree,
-#~                 NULL, multigraph)
-#~             for j in range(degree):
-#~                 ia_edges[i*degree + j, idx] = v
-#~                 ia_edges[i*degree + j, idx-1] = variables_i[j]
-    ia_edges = np.array(_gen_edges(source_ids, degrees, target_ids, old_edges,
-        multigraph, directed, msd, omp), dtype=np.uint).T
+
+    if b_out:
+        _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
+            idx, multigraph, directed, msd, omp)
+    else:
+        _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
+            idx, multigraph, directed, msd, omp)
     if not directed:
         ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
         ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
-def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
-                     reciprocity, directed, multigraph, existing_edges=None):
-    ''' Connect nodes with a Gaussian distribution '''
+cpdef np.ndarray[unsigned long, ndim=2] _gaussian_degree(
+        np.ndarray[size_t, ndim=1] source_ids,
+        np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
+        unsigned int std, degree_type, float reciprocity, bool directed,
+        bool multigraph, existing_edges=None):
+    '''
+    Connect nodes with a Gaussian distribution (generation through C++
+    function.
+    '''
     np.random.seed()
-    source_ids = np.array(source_ids).astype(int)
-    target_ids = np.array(target_ids).astype(int)
-    num_source, num_target = len(source_ids), len(target_ids)
     # type of degree
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
+    cdef:
+        size_t num_source = source_ids.shape[0]
+        size_t num_target = target_ids.shape[0]
+        unsigned int idx = 0 if b_out else 1 # differenciate source / target
+        unsigned int omp = nngt.config["omp"]
+        unsigned int num_node = num_target if b_out else num_source
+        long msd = np.random.randint(0, num_node+1)
+        vector[size_t] degrees = np.around(np.maximum(
+            np.random.normal(avg, std, num_node), 0.)).astype(DTYPE)
+        vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
+
     # edges
-    num_node = num_source if degree_type == "in" else num_target
-    lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_node), 0.)).astype(int)
-    edges = np.sum(lst_deg)
+    edges = np.sum(degrees)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
-    
-    num_etotal = 0 if existing_edges is None else existing_edges.shape[0]
-    ia_edges = np.zeros((num_etotal+edges, 2), dtype=int)
-    if num_etotal:
-        ia_edges[:num_etotal,:] = existing_edges
-    idx = 0 if b_out else 1 # differenciate source / target
-    variables = source_idx if b_out else target_ids # nodes picked randomly
 
-    for i,v in enumerate(target_ids):
-        degree_i = lst_deg[i]
-        edges_i, ecurrent, variables_i = np.zeros((degree_i,2)), 0, []
-        if existing_edges is not None:
-            with_v = np.where(ia_edge[:,idx] == v)
-            variables_i.extend(ia_edge[with_v:int(not idx)])
-            ecurrent = len(variables_i)
-        rm = np.argwhere(variables == v)[0]
-        rm = rm[0] if len(rm) else -1
-        var_tmp = ( np.array(variables, copy=True) if rm == -1 else
-                    np.concatenate((variables[:rm], variables[rm+1:])) )
-        num_var_i = len(var_tmp)
-        ia_edges[num_etotal:num_etotal+degree_i, idx] = v
-        while len(variables_i) != degree_i:
-            var = var_tmp[randint(0, num_var_i, degree_i-ecurrent)]
-            variables_i.extend(var)
-            if not multigraph:
-                variables_i = list(set(variables_i))
-            ecurrent = len(variables_i)
-        ia_edges[num_etotal:num_etotal+ecurrent, int(not idx)] = variables_i
-        num_etotal += ecurrent
+    cdef:
+        unsigned int existing = \
+            0 if existing_edges is None else existing_edges.shape[0]
+        np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
+            (existing + edges, 2), dtype=DTYPE)
+    if existing:
+        ia_edges[:existing,:] = existing_edges
+
+    if b_out:
+        _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
+            idx, multigraph, directed, msd, omp)
+    else:
+        _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
+            idx, multigraph, directed, msd, omp)
     if not directed:
         ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
         ia_edges = _unique_rows(ia_edges)

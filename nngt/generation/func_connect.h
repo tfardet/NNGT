@@ -11,6 +11,10 @@
 #include <unordered_map>
 #include <algorithm>
 #include <numeric>
+#include <stdio.h>
+#include <assert.h>
+
+#include <omp.h>
 
 
 namespace generation {
@@ -85,26 +89,29 @@ std::vector<size_t> _gen_edge_complement(
   const bool multigraph);
 
 
+
 /*
  * Generate random edges from a list of nodes, their target degrees, and a
  * second population of nodes.
  *
+ * \param ia_edges       - Linearized (E, 2) array that will contain the edges
  * \param first_nodes    - Population the degree of which is known.
  * \param degrees        - Degree of each node in `first_nodes`.
  * \param second_nodes   - Population from whch to draw the complementary end of the edges.
  * \param existing_edges - 2D-array containing the existing edges.
  * \param multigraph     - Whether multiple edges are allowed.
+ * \param idx            - Index determining source/target from first/second nodes
  * \param directed       - Whether the edges are directed or not.
  * \param msd            - Master seed.
  * \param omp            - Number of OpenMP threads.
  *
  * \return result        - The desired vector of complementary nodes.
  */
-std::vector< std::vector<size_t> > _gen_edges(
-  const std::vector<size_t>& first_nodes, const std::vector<size_t>& degrees,
-  const std::vector<size_t>& second_nodes,
-  const std::vector< std::vector<size_t> >& existing_edges,
-  bool multigraph, bool directed, long msd, size_t omp);
+void _gen_edges(
+  size_t* ia_edges, const std::vector<size_t>& first_nodes,
+  const std::vector<size_t>& degrees, const std::vector<size_t>& second_nodes,
+  const std::vector< std::vector<size_t> >& existing_edges, unsigned int idx,
+  bool multigraph, bool directed, long msd, unsigned int omp);
 
 }
 
