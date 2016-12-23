@@ -9,8 +9,8 @@ from copy import deepcopy
 
 import nest
 import numpy as np
+import matplotlib.pyplot as plt
 
-from nngt import config
 from nngt.lib import InvalidArgument
 
 
@@ -234,17 +234,17 @@ def _analysis(times, senders, limits, network=None,
     }
     num_neurons = (len(np.unique(senders)) if network is None
                    else network.node_nb())
+    # set the studied region
+    if limits[0] >= times[0]:
+        idx_start = np.where(times >= limits[0])[0][0]
+        times = times[idx_start:]
+        senders = senders[idx_start:]
+    if limits[1] <= times[-1]:
+        idx_end = np.where(times <= limits[1])[0][-1]
+        times = times[:idx_end]
+        senders = senders[:idx_end]
     num_spikes, avg_rate = len(times), 0.
     if num_spikes:
-        # set the studied region
-        if limits[0] >= times[0]:
-            idx_start = np.where(times >= limits[0])[0][0]
-            times = times[idx_start:]
-            senders = senders[idx_start:]
-        if limits[1] <= times[-1]:
-            idx_end = np.where(times <= limits[1])[0][-1]
-            times = times[:idx_end]
-            senders = senders[:idx_end]
         # get the average firing rate to differenciate the phases
         simtime = limits[1] - limits[0]
         lim_burst, lim_quiet = 0., 0.
@@ -316,7 +316,7 @@ def _compute_properties(data, phases, fr, skip_bursts):
             prop[key] /= float(num_bursts - skip_bursts)
     if num_bursts > skip_bursts:
         prop["period"] = prop["IBI"] + prop["burst_duration"]
-    if num_bursts and prop["SpB"] < 2.:
+    if prop["SpB"] < 2.:
         prop["ISI"] = np.NaN
     return prop
 
@@ -324,16 +324,14 @@ def _compute_properties(data, phases, fr, skip_bursts):
 def _plot_phases(phases, fignums):
     colors = ('r', 'orange', 'g', 'b')
     names = ('bursting', 'mixed', 'localized', 'quiescent')
-    if config['with_plot'] and fignums:
-        import matplotlib.pyplot as plt
-        for fignum in fignums:
-            fig = plt.figure(fignum)
-            for ax in fig.axes:
-                for phase, color in zip(names, colors):
-                    for span in phases[phase]:
-                        ax.axvspan(span[0], span[1], facecolor=color,
-                                   alpha=0.2)
-        plt.show()
+    for fignum in fignums:
+        fig = plt.figure(fignum)
+        for ax in fig.axes:
+            for phase, color in zip(names, colors):
+                for span in phases[phase]:
+                    ax.axvspan(span[0], span[1], facecolor=color,
+                               alpha=0.2)
+    plt.show()
 
 
 def activity_types(spike_detector, limits, network=None,
@@ -503,8 +501,13 @@ def analyze_raster(raster, limits=None, network=None,
     phases, fr = _analysis(data[:, 1], data[:, 0], limits, network=network,
               phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
               simplify=simplify)
-    properties = _compute_properties(data, phases, fr, skip_bursts)
+    properties = _compute_properties(data.T, phases, fr, skip_bursts)
     # plot if required
     if show:
-        _plot_phases(phases, fignums)
+        if fignums:
+            _plot_phases(phases, fignums)
+        else:
+            fig, ax = plt.subplots()
+            ax.scatter(data[:, 1], data[:, 0])
+            _plot_phases(phases, [fig.number])
     return ActivityRecord(data, phases, properties, kwargs)
