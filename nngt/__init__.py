@@ -82,7 +82,7 @@ from .globals import (analyze_graph, config, use_library, version, set_config,
                       get_config)
 
 # multithreading
-config["omp"] = os.environ.get("OMP", 1)
+config["omp"] = int(os.environ.get("OMP", 1))
 if config["omp"] > 1:
     config["multithreading"] = True
 
