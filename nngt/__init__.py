@@ -31,8 +31,10 @@ plot
 
 Utilities
 ---------
-show_config
-	@todo: Show build configuration
+get_config
+	Show library configuration
+set_config
+	Set library configuration (graph library, multithreading...)
 version
 	NNGT version string
 
@@ -77,7 +79,12 @@ if not os.path.isfile(path_config):
     shutil.copy(nngt_root + '/nngt.conf.default', path_config)
 
 from .globals import (analyze_graph, config, use_library, version, set_config,
-                      show_config)
+                      get_config)
+
+# multithreading
+config["omp"] = os.environ.get("OMP", 1)
+if config["omp"] > 1:
+    config["multithreading"] = True
 
 
 #-----------------------------------------------------------------------------#
@@ -99,16 +106,17 @@ from . import lib
 __all__ = [
     "analysis",
     "analyze_graph",
-    "config",
     "Connections",
     "core",
     "generate",
     "generation",
+    "get_config",
     "Graph",
     "GroupProperty",
     "lib",
     "Network",
     "NeuralPop",
+    "set_config",
     "Shape",
     "SpatialGraph",
     "SpatialNetwork",

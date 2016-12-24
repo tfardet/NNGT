@@ -73,10 +73,11 @@ def _load_config(path_config):
         'backend': None,
         'color_lib': 'matplotlib',
         'palette': 'Set1',
+        'multithreading': False,
         'omp': 1,
     }
     with open(path_config, 'r') as fconfig:
-        options = [ l.strip() for l in fconfig if l.strip() and l[0] != "#" ]
+        options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
         for opt in options:
             sep = opt.find("=")
             opt_name, opt_value = opt[:sep].strip(), opt[sep+1:].strip()
@@ -111,8 +112,12 @@ def set_config(dic_config):
     if "omp" in dic_config and nngt.config["graph_library"] == "graph-tool":
         nngt.config["library"].openmp_set_num_threads(nngt.config["omp"])
 
-def show_config():
-    return {key: val for key, val in nngt.config.items()}
+def get_config(key=None):
+    if key is None:
+        return {key: val for key, val in nngt.config.items()}
+    else:
+        res = nngt.config[key]
+        return res
 
 
 #-----------------------------------------------------------------------------#

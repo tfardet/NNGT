@@ -50,6 +50,9 @@ elif graph_library == "ig":
 elif graph_library == "nx":
     nngt.use_library("networkx")
 
+omp = environ.get("OMP", 1)
+nngt.set_config({"omp": omp})
+
 # get the tests
 current_dir = dirname(abspath(__file__))
 dir_files = listdir(current_dir)
