@@ -82,7 +82,6 @@ def _load_config(path_config):
             sep = opt.find("=")
             opt_name, opt_value = opt[:sep].strip(), opt[sep+1:].strip()
             config[opt_name] = opt_value if opt_value != "False" else False
-            print(opt_name, opt_value)
     return config
 
 config = _load_config(nngt.path_config)

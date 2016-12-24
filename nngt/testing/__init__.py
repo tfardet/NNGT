@@ -50,7 +50,7 @@ elif graph_library == "ig":
 elif graph_library == "nx":
     nngt.use_library("networkx")
 
-omp = environ.get("OMP", 1)
+omp = int(environ.get("OMP", 1))
 nngt.set_config({"omp": omp})
 
 # get the tests
