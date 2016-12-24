@@ -9,13 +9,18 @@ import numpy as np
 import nngt
 from .connect_tools import _set_options
 
+# try to import multithreaded algorithms
+using_mt_algorithms = False
 if nngt.get_config("multithreading"):
-    import cython
-    import pyximport; pyximport.install()
-    from .cconnect import *
-    from .connect_algorithms import price_network
-except Exception as e:
-    print(e, "Cython import failed, using non-multithreaded algorithms.")
+    try:
+        import cython
+        import pyximport; pyximport.install()
+        from .cconnect import *
+        from .connect_algorithms import price_network
+        using_mt_algorithms = True
+    except Exception as e:
+        print(e, "Cython import failed, using non-multithreaded algorithms.")
+if not using_mt_algorithms:
     from .connect_algorithms import *
 
 
