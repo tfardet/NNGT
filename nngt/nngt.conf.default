@@ -1,23 +1,43 @@
-###########################
+#-------------------------#
 # NNGT configuration file #
-###########################
+#-------------------------#
 
-## default graph library
+#-------------------------
+## default graph library -----------------------------------------------------
+#-------------------------
+
 # (choose among "graph-tool", "igraph", "networkx")
+
 graph_library = graph-tool
 
-## Try to load NEST
+
+#---------------------
+## Try to load NEST? ---------------------------------------------------------
+#---------------------
+
 load_nest = True
 
-## Matplotlib backend
-# Uncomment and choose among your available backends (http://matplotlib.org/faq/usage_faq.html#what-is-a-backend)
+
+#----------------------
+## Matplotlib backend --------------------------------------------------------
+#----------------------
+
+# Uncomment and choose among your available backends.
+# See http://matplotlib.org/faq/usage_faq.html#what-is-a-backend for details
+
 #backend = Qt5Agg
+
 # color library either matplotlib or seaborn
 color_lib = matplotlib
+
 # palette to use
 palette = Set1
 
-## settings for data logging
+
+#-----------------------------
+## Settings for data logging -------------------------------------------------
+#-----------------------------
+
 set_logging = False
 
 # use a database (if False, results will be stored in CSV files)
@@ -27,3 +47,13 @@ to_file = False
 # database url or temporary database used if use_database = False
 # example of real database url: db_url = mysql://user:password@host:port/my_db
 db_url = mysql:///nngt_db
+
+
+#----------------------------
+## Multithreaded algorithms --------------------------------------------------
+#----------------------------
+
+# C++ algorithms using OpenMP are compiled and imported using Cython if True,
+# otherwise regular numpy/scipy algorithms are used (equivalent for one thread)
+
+multithreading = False

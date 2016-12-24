@@ -8,7 +8,15 @@ import numpy as np
 
 import nngt
 from .connect_tools import _set_options
-from .connect_algorithms import *
+
+if nngt.get_config("multithreading"):
+    import cython
+    import pyximport; pyximport.install()
+    from .cconnect import *
+    from .connect_algorithms import price_network
+except Exception as e:
+    print(e, "Cython import failed, using non-multithreaded algorithms.")
+    from .connect_algorithms import *
 
 
 
@@ -92,7 +100,8 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         graph_fd.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_fd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+        graph_fd = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -171,7 +180,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     # add edges
     ia_edges = None
     if nodes > 1:
-        ids = range(nodes)
+        ids = np.arange(nodes, dtype=np.uint)
         ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
                                     reciprocity, directed, multigraph)
         graph_gd.new_edges(ia_edges)

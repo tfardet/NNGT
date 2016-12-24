@@ -7,17 +7,17 @@ dist: trusty
 matrix:
     include:
         - python: "2.7"
-          env: GL="gt" PYVERSION="2.7"
+          env: GL="gt" PYVERSION="2.7" OMP=1
         - python: "2.7"
-          env: GL="ig" PYVERSION="2.7"
+          env: GL="ig" PYVERSION="2.7" OMP=1
         - python: "2.7"
-          env: GL="nx" PYVERSION="2.7"
+          env: GL="nx" PYVERSION="2.7" OMP=1
         - python: "3.5"
-          env: GL="gt" PYVERSION="3.x"
+          env: GL="gt" PYVERSION="3.x" OMP=1
         - python: "3.5"
-          env: GL="ig" PYVERSION="3.5"
+          env: GL="ig" PYVERSION="3.5" OMP=1
         - python: "3.5"
-          env: GL="nx" PYVERSION="3.5"
+          env: GL="nx" PYVERSION="3.5" OMP=1
     fast_finish: true
 
 cache:
@@ -51,8 +51,8 @@ before_install:
     - sudo python get-pip.py
     - sudo pip install -U setuptools
     # test scipy from apt (much faster) and install matplotlib
-    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev && pip install --user cython==0.23.4; fi
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo pip install matplotlib && pip install --user cython==0.23.4; fi
+    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev && pip install --user cython; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo pip install matplotlib && pip install --user cython; fi
     # MPI
     - sudo apt-get install -y openmpi-bin libopenmpi-dev
     # install graph-tool and igraph
@@ -71,5 +71,6 @@ install: sudo pipv install -e ".[$GL]"
 
 script:
     - coverage run -m nose2.__main__ -F
+    - export OMP=4 && coverage run -m nose2.__main__ -F
 
 after_success: coveralls

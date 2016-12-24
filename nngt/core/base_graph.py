@@ -146,7 +146,7 @@ class BaseGraph(nngt.globals.config["graph"]):
     @abstractmethod
     def edge_id(self, edge):
         pass
-    
+
     @abstractmethod
     def new_node(self, n=1, ntype=1):
         pass
