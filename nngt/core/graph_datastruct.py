@@ -3,6 +3,7 @@
 
 """ Graph data strctures in NNGT """
 
+from collections import OrderedDict
 import weakref
 
 import numpy as np
@@ -10,8 +11,8 @@ from numpy.random import randint, uniform
 import scipy.sparse as ssp
 import scipy.spatial as sptl
 
-from nngt.globals import ( default_neuron, default_synapse, POS, WEIGHT, DELAY,
-                           DIST, TYPE, BWEIGHT )
+from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
+                          DIST, TYPE, BWEIGHT)
 from nngt.lib import InvalidArgument, eprop_distribution
 
 
@@ -28,7 +29,7 @@ __all__ = [
 #------------------------
 #
 
-class NeuralPop(dict):
+class NeuralPop(OrderedDict):
 
     """
     The basic class that contains groups of neurons and their properties.
@@ -104,12 +105,26 @@ class NeuralPop(dict):
         self._is_valid = False
         self._size = size if parent is None else parent.node_nb()
         self._neuron_group = np.empty(self._size, dtype=object)
+        super(NeuralPop, self).__init__()
         if "graph" in kwargs.keys():
             dic = _make_groups(kwargs["graph"], kwargs["group_prop"])
             self._is_valid = True
-        else:
-            super(NeuralPop, self).__init__()
+            self.update(dic)
         self._has_models = with_models
+    
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            new_key = tuple(self.keys())[key]
+            return OrderedDict.__getitem__(self, new_key)
+        else:
+            return OrderedDict.__getitem__(self, key)
+    
+    def __setitem__(self, key, value):
+        if isinstance(key, int):
+            new_key = tuple(self.keys())[key]
+            OrderedDict.__setitem__(self, new_key, value)
+        else:
+            OrderedDict.__setitem__(self, key, value)
 
     @property
     def size(self):
@@ -222,16 +237,18 @@ account; use the `set_models` method to change its behaviour.")
         else:
             self._is_valid = True
 
-    def get_param(self, groups=None, element="neuron"):
+    def get_param(self, groups=None, neurons=None, element="neuron"):
         '''
-        Return the parameters of the element (neuron or synapse) of a specific,
-        several or all groups in the NeuralPop.
+        Return the `element` (neuron or synapse) parameters for neurons or
+        groups of neurons in the population.
 
         Parameters
         ----------
-        group : ``str``, optional (default: ``None``)
-            Name of the group for which the neural properties should be
-            returned.
+        groups : ``str``, ``int`` or array-like, optional (default: ``None``)
+            Names or numbers of the groups for which the neural properties
+            should be returned.
+        neurons : int or array-like, optional (default: ``None``)
+            IDs of the neurons for which parameters should be returned.
         element : ``list`` of ``str``, optional (default: ``"neuron"``)
             Element for which the parameters should be returned (either
             ``"neuron"`` or ``"synapse"``).
@@ -241,12 +258,38 @@ account; use the `set_models` method to change its behaviour.")
         param : ``list``
             List of all dictionaries with the elements' parameters.
         '''
-        param = []
-        groups = self.keys() if groups is None else groups
+        if neurons is not None:
+            groups = self._neuron_group[neurons]
+        elif groups is None:
+            groups = tuple(self.keys())
         key = "neuron_param" if element == "neuron" else "syn_param"
-        for group in groups:
-            param.append(self[group].properties[key])
-        return param
+        if isinstance(groups, (str, int)):
+            return self[groups].properties[key]
+        else:
+            param = []
+            for group in groups:
+                param.append(self[group].properties[key])
+            return param
+
+    def get_group(neurons, numbers=False):
+        '''
+        Return the group of the neurons.
+        
+        Parameters
+        ----------
+        neurons : int or array-like
+            IDs of the neurons for which the group should be returned.
+        numbers : bool, optional (default: False)
+            Whether the group identifier should be returned as a number; if
+            ``False``, the group names are returned.
+        '''
+        if not numbers:
+            return self._neuron_group[neurons]
+        elif isinstance(neurons, int):
+            keys.index(self._neuron_group[neurons])
+        else:
+            keys = tuple(self.keys())
+            return [keys.index(self._neuron_group[n]) for n in neurons]
 
     def add_to_group(self, group_name, id_list):
         self[group_name].id_list.extend(id_list)

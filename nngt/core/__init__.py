@@ -29,6 +29,6 @@ GraphObject = di_graphlib[nngt.globals.config["graph_library"]]
 
 __all__ = [
     "Connections",
-	"GraphObject",
+    "GraphObject",
     "NeuralGroup",
 ]
