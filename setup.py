@@ -4,7 +4,6 @@
 import os
 from setuptools import setup, Extension, find_packages
 
-
 try:
     from Cython.Build import cythonize
     with_cython = True
@@ -12,18 +11,34 @@ except ImportError:
     with_cython = False
 
 
+#-----------------------------------------------------------------------------
+# Extension for multithreaded algorithms
+#------------------------
+#
+
+ext = '.pyx' if with_cython else '.cpp'
+
 dirname = os.path.abspath(__file__)[:-8]
 dirname += ("/" if dirname[-1] != "/" else "") + "nngt/generation/"
 
-ext = Extension(
+extensions = Extension(
     "nngt.generation._cconnect", # name of extension
-    sources = [dirname + "cconnect.pyx", dirname + "func_connect.cpp"],
+    sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
     extra_compile_args=["-std=c++11", "-fopenmp"],
     extra_link_args=["-std=c++11"],
     language="c++",
     include_dirs=[dirname],
     library_dirs = [dirname]
 )
+
+if with_cython:
+    extensions = cythonize(extensions)
+
+
+#-----------------------------------------------------------------------------
+# Setup
+#------------------------
+#
 
 setup(
         name='nngt',
@@ -54,7 +69,7 @@ setup(
         },
         
         # Cython module
-        ext_modules = cythonize([ext]) if with_cython else [],
+        ext_modules = extensions,
 
         # Metadata
         url = 'https://github.com/Silmathoron/NNGT',

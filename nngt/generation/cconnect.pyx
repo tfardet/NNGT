@@ -1,5 +1,4 @@
-
-#cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
+#cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 #!/usr/bin/env cython
 #-*- coding:utf-8 -*-
 

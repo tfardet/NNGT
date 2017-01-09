@@ -316,7 +316,7 @@ def _compute_properties(data, phases, fr, skip_bursts):
             prop[key] /= float(num_bursts - skip_bursts)
     if num_bursts > skip_bursts:
         prop["period"] = prop["IBI"] + prop["burst_duration"]
-    if prop["SpB"] < 2.:
+    if num_bursts and prop["SpB"] < 2.:
         prop["ISI"] = np.NaN
     return prop
 
