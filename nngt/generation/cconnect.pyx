@@ -1,7 +1,3 @@
-# distutils: language = c++
-# distutils: sources = func_connect.cpp
-# distutils: extra_compile_args = -fopenmp
-# distutils: extra_link_args= -fopenmp
 #cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 #!/usr/bin/env cython
 #-*- coding:utf-8 -*-
@@ -11,6 +7,10 @@
 import warnings
 
 from cython.parallel import parallel, prange
+cimport numpy as np
+
+from libcpp.vector cimport vector
+from libcpp cimport bool
 
 import numpy as np
 import scipy.sparse as ssp

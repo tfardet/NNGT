@@ -1,32 +1,7 @@
-# distutils: language = c++
-# distutils: sources = connect.cpp
 #!/usr/bin/env cython
 #-*- coding:utf-8 -*-
 
 """ Generation tools for NNGT """
-
-from cython cimport boundscheck
-
-cimport numpy as np
-
-from libcpp.vector cimport vector
-from libcpp cimport bool
-
-
-
-__all__ = [
-    "_distance_rule",
-    "_erdos_renyi",
-    "_filter",
-    "_fixed_degree",
-    "_gaussian_degree",
-    "_newman_watts",
-    "_no_self_loops",
-    "_price_scale_free",
-    "_random_scale_free",
-    "_unique_rows",
-    "price_network",
-]
 
 
 #-----------------------------------------------------------------------------#

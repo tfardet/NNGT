@@ -4,3 +4,4 @@ nngt/testing/Ref/*
 */__pycache__
 .coverage
 *.pyxbldc
+build
