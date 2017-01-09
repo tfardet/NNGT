@@ -109,6 +109,8 @@ def set_config(dic_config):
         if key not in nngt.config:
             raise KeyError("Unknown configuration property: {}".format(key))
     nngt.config.update(dic_config)
+    if "multithreading" in dic_config:
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
     if "omp" in dic_config and nngt.config["graph_library"] == "graph-tool":
         nngt.config["library"].openmp_set_num_threads(nngt.config["omp"])
 
