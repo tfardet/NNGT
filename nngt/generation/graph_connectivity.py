@@ -17,13 +17,15 @@ if nngt.get_config("multithreading"):
         from .connect_algorithms import price_network
         using_mt_algorithms = True
     except Exception as e:
+        print(e,
+            "Missing multithreaded algorithms, trying online compilation.")
         try:
             import cython
             import pyximport; pyximport.install()
             from .cconnect import *
             from .connect_algorithms import price_network
-        except:
-            print(e,
+        except Exception as e2:
+            print(e2,
                 "Cython import failed, using non-multithreaded algorithms.")
 if not using_mt_algorithms:
     from .connect_algorithms import *

@@ -5,8 +5,8 @@ dirname = os.path.dirname(__file__)
 
 def make_ext(modname, pyxfilename):
     return Extension(
-        name="nngt.generation._connect",
-        sources=[pyxfilename, "connect.pxd", "func_connect.cpp"],
+        name=modname,
+        sources=[pyxfilename, "func_connect.cpp"],
         extra_compile_args=["-std=c++11", "-fopenmp"],
         extra_link_args=["-std=c++11", "-fopenmp"],
         language="c++",
