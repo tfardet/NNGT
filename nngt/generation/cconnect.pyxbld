@@ -1,5 +1,6 @@
 import os
 from distutils.extension import Extension
+import numpy
 
 dirname = os.path.dirname(__file__)
 
@@ -10,5 +11,5 @@ def make_ext(modname, pyxfilename):
         extra_compile_args=["-std=c++11", "-fopenmp"],
         extra_link_args=["-std=c++11", "-fopenmp"],
         language="c++",
-        include_dirs=[dirname]
+        include_dirs=[dirname, numpy.get_include()]
     )

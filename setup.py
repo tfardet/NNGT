@@ -3,6 +3,7 @@
 
 import os
 from setuptools import setup, Extension, find_packages
+import numpy
 
 try:
     from Cython.Build import cythonize
@@ -27,7 +28,7 @@ extensions = Extension(
     extra_compile_args=["-std=c++11", "-fopenmp"],
     extra_link_args=["-std=c++11"],
     language="c++",
-    include_dirs=[dirname],
+    include_dirs=[dirname, numpy.get_include()],
     library_dirs = [dirname]
 )
 
