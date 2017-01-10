@@ -2,6 +2,7 @@
 #-*- coding:utf-8 -*-
 
 import os
+import sys
 from setuptools import setup, Extension, find_packages
 import numpy
 
@@ -13,23 +14,33 @@ except ImportError:
 
 
 #-----------------------------------------------------------------------------
+# Paths
+#------------------------
+#
+
+omp_pos = sys.argv.index("--omp") if "--omp" in sys.argv else -1
+omp_lib_dir = "/usr/lib" if omp_pos == -1 else sys.argv[omp_pos + 1]
+
+dirname = os.path.abspath(__file__)[:-8]
+dirname += ("/" if dirname[-1] != "/" else "") + "nngt/generation/"
+
+
+#-----------------------------------------------------------------------------
 # Extension for multithreaded algorithms
 #------------------------
 #
 
 ext = '.pyx' if with_cython else '.cpp'
 
-dirname = os.path.abspath(__file__)[:-8]
-dirname += ("/" if dirname[-1] != "/" else "") + "nngt/generation/"
-
 extensions = Extension(
-    "nngt.generation._cconnect", # name of extension
+    "nngt.generation.cconnect", # name of extension
     sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
     extra_compile_args=["-std=c++11", "-fopenmp"],
     extra_link_args=["-std=c++11"],
     language="c++",
     include_dirs=[dirname, numpy.get_include()],
-    library_dirs = [dirname]
+    libraries = ['gomp'],
+    library_dirs = [dirname, omp_lib_dir]
 )
 
 if with_cython:
