@@ -32,7 +32,7 @@ dirname += ("/" if dirname[-1] != "/" else "") + "nngt/generation/"
 
 ext = '.pyx' if with_cython else '.cpp'
 
-extensions = Extension(
+extensions = [Extension(
     "nngt.generation.cconnect", # name of extension
     sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
     extra_compile_args=["-std=c++11", "-fopenmp"],
@@ -41,7 +41,7 @@ extensions = Extension(
     include_dirs=[dirname, numpy.get_include()],
     libraries = ['gomp'],
     library_dirs = [dirname, omp_lib_dir]
-)
+)]
 
 if with_cython:
     extensions = cythonize(extensions)
@@ -81,7 +81,7 @@ setup(
         },
         
         # Cython module
-        ext_modules = extensions,
+        ext_modules = [extensions],
 
         # Metadata
         url = 'https://github.com/Silmathoron/NNGT',
