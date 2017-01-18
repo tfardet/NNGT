@@ -57,7 +57,8 @@ def set_noise(gids, mean, std):
     nest.SetStatus(noise, {"mean": mean, "std": std })
     nest.Connect(noise,gids)
     return noise
-    
+
+
 def set_poisson_input(gids, rate):
     '''
     Submit neurons to a Poissonian rate of spikes.
@@ -78,6 +79,7 @@ def set_poisson_input(gids, rate):
     nest.SetStatus(poisson_input,{"rate": rate})
     nest.Connect(poisson_input, gids)
     return poisson_input
+
 
 def set_step_currents(gids, times, currents):
     '''
@@ -131,7 +133,6 @@ def randomize_neural_states(network, instructions, make_nest=False):
             "w": ("normal", 50., 5.)
         }
     '''
-    allowed = ("V_m", "w")
     # check whether network is in NEST
     if network._nest_gid is None:
         if make_nest:
@@ -140,11 +141,8 @@ def randomize_neural_states(network, instructions, make_nest=False):
             raise AttributeError('`network` has not converted to NEST yet.')
     num_neurons = network.node_nb()
     for key, val in instructions.items():
-        if key in allowed:
-            state = _generate_random(num_neurons, val)
-            nest.SetStatus(list(network.nest_gid), key, state)
-        else:
-            raise RuntimeError('Only "V_m" and "w" can be randomized.')
+        state = _generate_random(num_neurons, val)
+        nest.SetStatus(list(network.nest_gid), key, state)
 
 
 #-----------------------------------------------------------------------------#
