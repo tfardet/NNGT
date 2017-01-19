@@ -232,19 +232,19 @@ def _analysis(times, senders, limits, network=None,
         "quiescent": [],
         "localized": []
     }
-    num_neurons = (len(np.unique(senders)) if network is None
-                   else network.node_nb())
-    # set the studied region
-    if limits[0] >= times[0]:
-        idx_start = np.where(times >= limits[0])[0][0]
-        times = times[idx_start:]
-        senders = senders[idx_start:]
-    if limits[1] <= times[-1]:
-        idx_end = np.where(times <= limits[1])[0][-1]
-        times = times[:idx_end]
-        senders = senders[:idx_end]
     num_spikes, avg_rate = len(times), 0.
     if num_spikes:
+        num_neurons = (len(np.unique(senders)) if network is None
+                       else network.node_nb())
+        # set the studied region
+        if limits[0] >= times[0]:
+            idx_start = np.where(times >= limits[0])[0][0]
+            times = times[idx_start:]
+            senders = senders[idx_start:]
+        if limits[1] <= times[-1]:
+            idx_end = np.where(times <= limits[1])[0][-1]
+            times = times[:idx_end]
+            senders = senders[:idx_end]
         # get the average firing rate to differenciate the phases
         simtime = limits[1] - limits[0]
         lim_burst, lim_quiet = 0., 0.
@@ -254,7 +254,8 @@ def _analysis(times, senders, limits, network=None,
         # find the phases
         _find_phases(times, phases, lim_burst, lim_quiet, simplify)
         _check_burst_size(phases, senders, times, network, mflb, mfb)
-    return phases, 1000 * avg_rate / float(num_neurons)
+        avg_rate *= 1000. / float(num_neurons)
+    return phases, avg_rate
 
 
 def _compute_properties(data, phases, fr, skip_bursts):
