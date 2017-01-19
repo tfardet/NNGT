@@ -9,7 +9,9 @@ import numpy
 
 try:
     from Cython.Build import cythonize
-    with_cython = True if setuptools.__version__ > "18.0" else False
+    version = setuptools.__version__
+    version = int(version[:version.index(".")])
+    with_cython = True if version >= 18 else False
 except ImportError:
     with_cython = False
 
