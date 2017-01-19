@@ -48,6 +48,8 @@ extensions = Extension(
 
 if with_cython:
     extensions = cythonize(extensions)
+else:
+    extensions = [extensions]
 
 
 #-----------------------------------------------------------------------------
@@ -84,7 +86,7 @@ setup(
         },
         
         # Cython module
-        ext_modules = [extensions],
+        ext_modules = extensions,
 
         # Metadata
         url = 'https://github.com/Silmathoron/NNGT',
