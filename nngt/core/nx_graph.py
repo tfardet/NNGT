@@ -325,7 +325,7 @@ edge in the graph.")
         return self.number_of_nodes()
 
     def edge_nb(self):
-        return self.size() if self._directed else 2*self.size()
+        return self.size()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         weight = 'weight' if use_weights else None

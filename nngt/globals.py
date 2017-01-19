@@ -57,6 +57,17 @@ else:
 #------------------------
 #
 
+def _convert(value):
+    if value.isdecimal():
+        return int(value)
+    elif value == "True":
+        return True
+    elif value == "False":
+        return False
+    else:
+        return value
+
+
 def _load_config(path_config):
     ''' Load `~/.nngt.conf` and parse it, return the settings '''
     config = {
@@ -80,9 +91,11 @@ def _load_config(path_config):
         options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
         for opt in options:
             sep = opt.find("=")
-            opt_name, opt_value = opt[:sep].strip(), opt[sep+1:].strip()
+            opt_name = opt[:sep].strip()
+            opt_value = _convert(opt[sep+1:].strip())
             config[opt_name] = opt_value if opt_value != "False" else False
     return config
+
 
 config = _load_config(nngt.path_config)
 
