@@ -4,7 +4,6 @@
 import os
 import sys
 import setuptools
-print(setuptools.__version__)
 from setuptools import setup, Extension, find_packages
 import numpy
 
@@ -13,7 +12,6 @@ try:
     with_cython = True if setuptools.__version__ > "18.0" else False
 except ImportError:
     with_cython = False
-with_cython = False
 
 
 #-----------------------------------------------------------------------------
