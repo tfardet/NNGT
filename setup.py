@@ -3,12 +3,14 @@
 
 import os
 import sys
+import setuptools
+print(setuptools.__version__)
 from setuptools import setup, Extension, find_packages
 import numpy
 
 try:
     from Cython.Build import cythonize
-    with_cython = True
+    with_cython = True if setuptools.__version__ > "18.0"
 except ImportError:
     with_cython = False
 with_cython = False
@@ -33,7 +35,7 @@ dirname += ("/" if dirname[-1] != "/" else "") + "nngt/generation/"
 
 ext = '.pyx' if with_cython else '.cpp'
 
-extensions = [Extension(
+extensions = Extension(
     "nngt.generation.cconnect", # name of extension
     sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
     extra_compile_args=["-std=c++11", "-fopenmp"],
@@ -42,7 +44,7 @@ extensions = [Extension(
     include_dirs=[dirname, numpy.get_include()],
     libraries = ['gomp'],
     library_dirs = [dirname, omp_lib_dir]
-)]
+)
 
 if with_cython:
     extensions = cythonize(extensions)
