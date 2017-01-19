@@ -58,7 +58,7 @@ else:
 #
 
 def _convert(value):
-    if value.isdecimal():
+    if value.isdigit():
         return int(value)
     elif value == "True":
         return True
