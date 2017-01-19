@@ -10,7 +10,7 @@ import numpy
 
 try:
     from Cython.Build import cythonize
-    with_cython = True if setuptools.__version__ > "18.0"
+    with_cython = True if setuptools.__version__ > "18.0" else False
 except ImportError:
     with_cython = False
 with_cython = False
