@@ -3,15 +3,16 @@
 
 import os
 import sys
-import setuptools
 from setuptools import setup, Extension, find_packages
 import numpy
 
 try:
     from Cython.Build import cythonize
+    import setuptools
     version = setuptools.__version__
     version = int(version[:version.index(".")])
     with_cython = True if version >= 18 else False
+    from _cpp_header import clean_header
 except ImportError:
     with_cython = False
 
@@ -48,6 +49,7 @@ extensions = Extension(
 
 if with_cython:
     extensions = cythonize(extensions)
+    clean_header(dirname + 'cconnect.cpp')
 else:
     extensions = [extensions]
 

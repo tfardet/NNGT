@@ -7,3 +7,4 @@ nngt/testing/Ref/*
 build
 dist/
 nngt.egg-info/
+*.so

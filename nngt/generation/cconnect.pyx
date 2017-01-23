@@ -78,25 +78,22 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
 #------------------------
 #
 
-cpdef np.ndarray[unsigned long, ndim=2] _fixed_degree(
-        np.ndarray[size_t, ndim=1] source_ids,
-        np.ndarray[size_t, ndim=1] target_ids, size_t degree, degree_type,
-        float reciprocity, bool directed, bool multigraph,
-        existing_edges=None):
+def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
+                  np.ndarray[size_t, ndim=1] target_ids, size_t degree,
+                  degree_type, float reciprocity, bool directed,
+                  bool multigraph, existing_edges=None):
     ''' Generation of the edges through the C++ function '''
     np.random.seed()
-    # type of degree
-    b_out = (degree_type == "out")
-    b_total = (degree_type == "total")
     cdef:
+        # type of degree
+        bool b_out = (degree_type == "out")
+        bool b_total = (degree_type == "total")
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
-    # edges
-    edges = num_target*degree if degree_type == "out" else num_source*degree
-    b_one_pop = _check_num_edges(
-        source_ids, target_ids, edges, directed, multigraph)
-    
-    cdef:
+        size_t edges = (num_target * degree
+                        if degree_type == "out" else num_source * degree)
+        bool b_one_pop = _check_num_edges(
+            source_ids, target_ids, edges, directed, multigraph)
         unsigned int existing = \
             0 if existing_edges is None else existing_edges.shape[0]
         np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
@@ -123,20 +120,19 @@ cpdef np.ndarray[unsigned long, ndim=2] _fixed_degree(
     return ia_edges
 
 
-cpdef np.ndarray[unsigned long, ndim=2] _gaussian_degree(
-        np.ndarray[size_t, ndim=1] source_ids,
-        np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
-        unsigned int std, degree_type, float reciprocity, bool directed,
-        bool multigraph, existing_edges=None):
+def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
+                     np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
+                     unsigned int std, degree_type, float reciprocity,
+                     bool directed, bool multigraph, existing_edges=None):
     '''
     Connect nodes with a Gaussian distribution (generation through C++
     function.
     '''
     np.random.seed()
-    # type of degree
-    b_out = (degree_type == "out")
-    b_total = (degree_type == "total")
     cdef:
+        # type of degree
+        b_out = (degree_type == "out")
+        b_total = (degree_type == "total")
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
         unsigned int idx = 0 if b_out else 1 # differenciate source / target

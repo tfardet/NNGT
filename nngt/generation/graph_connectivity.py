@@ -24,9 +24,9 @@ if nngt.get_config("multithreading"):
             from .connect_algorithms import price_network
             using_mt_algorithms = True
             print(
-                "Multithreaded algorithms compiled on-the-run.")
+                str(e) + "\nMultithreaded algorithms compiled on-the-run.")
         except Exception as e2:
-            print(e + "\n" + e2 + "\n" +
+            print(str(e) + "\n" + str(e2) + "\n" +
                   "Cython import failed, using non-multithreaded algorithms.")
 if not using_mt_algorithms:
     from .connect_algorithms import *

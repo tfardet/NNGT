@@ -235,6 +235,10 @@ an array of 2-tuples of ints.")
             (i.e. adding edges to an empty graph).
             
         @todo: add example, check the edges for self-loops and multiple edges
+        
+        Returns
+        -------
+        Returns new edges only.
         '''
         if attributes is None:
             attributes = {}
@@ -243,15 +247,12 @@ an array of 2-tuples of ints.")
             edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val))
-        edge_generator = (edge for edge in edge_list)
-        edge_list = np.array(edge_list)
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
-        last_eid = self.ecount()
-        edge_list = self.edges_array
+        num_edges = self.ecount()
         # attributes
         if self._weighted and "weight" not in attributes:
-            attributes["weight"] = np.repeat(1., edge_list.shape[0])
+            attributes["weight"] = np.repeat(1., num_edges)
         if attributes:
             elist0 = None #@todo: make elist supported and remove this
             # take care of classic attributes
