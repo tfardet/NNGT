@@ -19,10 +19,6 @@ from nngt.lib import InvalidArgument
 from .nest_utils import _sort_groups
 
 
-
-__all__ = [ "plot_activity" ]
-
-
 #-----------------------------------------------------------------------------#
 # Plotting the activity
 #------------------------
@@ -75,13 +71,16 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     fignums : list
         List of the figure numbers.
     '''
-    gids = network.nest_gid if (gids is None and network is not None) else gids
     lst_rec = []
     for rec in gid_recorder:
         if isinstance(gid_recorder[0],tuple):
             lst_rec.append(rec)
         else:
             lst_rec.append((rec,))
+    # get gids and groups
+    gids = network.nest_gid if (gids is None and network is not None) else gids
+    if gids is None:
+        gids = nest.GetStatus(lst_rec[0])[0]["events"]["senders"]
     num_group = len(network.population) if network is not None else 1
     # sorting
     sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
@@ -98,12 +97,12 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     elif isinstance(decimate, int):
         decim = [decimate for _ in range(num_group)]
     elif hasattr(decimate, "__len__"):
-        assert len(decimate) == num_group, '''decimate should have one
-            entry per group in the population'''
+        assert len(decimate) == num_group, "`decimate` should have one \
+entry per group in the population"
         decim = decimate
     else:
         raise AttributeError(
-            "decimate must be either an int or a list of ints")
+            "`decimate must` be either an int or a list of ints")
 
     # plot
     for rec, var in zip(lst_rec, record):
@@ -160,6 +159,7 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     if show:
         plt.show()
     return list(set(fignums))
+
 
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 num_bins=1000, color="b", decimate=None, fignum=None,
@@ -273,12 +273,12 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                         bottom = np.concatenate((bottom,np.zeros(h_len-b_len)))
                 else:
                     bottom = bottom[:-1]
-                #~ x,y1,y2 = fill_between_steps(t_bins,heights,bottom[::2], h_align='left')
-                #~ x,y1,y2 = fill_between_steps(t_bins[:-1],heights+bottom[::2], bottom[::2], h_align='left')
+                #~ x,y1,y2 = _fill_between_steps(t_bins,heights,bottom[::2], h_align='left')
+                #~ x,y1,y2 = _fill_between_steps(t_bins[:-1],heights+bottom[::2], bottom[::2], h_align='left')
                 ax2.fill_between(t_bins,heights+bottom, bottom, color=color)
             else:
-                #~ x,y1,_ = fill_between_steps(t_bins,heights, h_align='left')
-                #~ x,y1,_ = fill_between_steps(t_bins[:-1],heights)
+                #~ x,y1,_ = _fill_between_steps(t_bins,heights, h_align='left')
+                #~ x,y1,_ = _fill_between_steps(t_bins[:-1],heights)
                 ax2.fill(t_bins,heights, color=color)
             yticks = [int(x) for x in np.linspace(0,int(max(heights)*1.1)+5,4)]
             ax2.set_yticks(yticks)
@@ -302,8 +302,11 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             plt.show()
         return fig.number
 
-def fill_between_steps(x, y1, y2=0, h_align='mid'):
-    ''' Fills a hole in matplotlib: fill_between for step plots.
+
+def _fill_between_steps(x, y1, y2=0, h_align='mid'):
+    '''
+    Fills a hole in matplotlib: fill_between for step plots.
+    
     Parameters :
     ------------
     x : array-like
