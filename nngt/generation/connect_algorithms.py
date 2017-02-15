@@ -10,7 +10,7 @@ from numpy.random import randint
 
 import nngt
 from nngt.globals import config
-from nngt.lib.errors import InvalidArgument
+from nngt.lib import InvalidArgument
 from .connect_tools import *
 
 

@@ -93,8 +93,8 @@ if config["omp"] > 1:
 #
 
 from .core import *
-from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .core.graph_datastruct import Shape, NeuralPop, GroupProperty, Connections
+from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .generation.graph_connectivity import generate
 
 from . import core

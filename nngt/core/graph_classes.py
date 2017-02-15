@@ -9,13 +9,14 @@ import warnings
 import numpy as np
 import scipy.sparse as ssp
 
+import nngt
 import nngt.analysis as na
-import nngt.core
-from nngt.core.graph_datastruct import NeuralPop, Shape, Connections
 from nngt.lib import (InvalidArgument, as_string, save_to_file, load_from_file,
                       nonstring_container)
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE)
+if nngt.config['with_nest']:
+    from nngt.simulation import make_nest_network
 
 
 __all__ = [
@@ -186,7 +187,7 @@ with non symmetric matrix provided.')
         return graph
 
     @staticmethod
-    def make_spatial(graph, shape=Shape(), positions=None, copy=False):
+    def make_spatial(graph, shape=nngt.Shape(), positions=None, copy=False):
         '''
         Turn a :class:`~nngt.Graph` object into a :class:`~nngt.SpatialGraph`,
         or a :class:`~nngt.Network` into a :class:`~nngt.SpatialNetwork`.
@@ -279,7 +280,7 @@ with non symmetric matrix provided.')
         
         Returns
         -------
-        self : :class:`~nggt.core.Graph`
+        self : :class:`~nggt.Graph`
         '''
         self.__id = self.__class__.__max_id
         self._name = name
@@ -290,7 +291,7 @@ with non symmetric matrix provided.')
                 self._w = kwargs["weights"]
             else:
                 self._w = {"distribution": "constant"}
-        # Init the GraphObject
+        # Init the core.GraphObject
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
         # update the counters
@@ -339,7 +340,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
     
     def copy(self):
         '''
-        Returns a deepcopy of the current :class:`~nngt.core.Graph`
+        Returns a deepcopy of the current :class:`~nngt.Graph`
         instance
         '''
         gc_instance = Graph(name=self._name+'_copy',
@@ -364,7 +365,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
                      notifier=notifier)
 
     #~ def inhibitory_subgraph(self):
-        #~ ''' Create a :class:`~nngt.core.Graph` instance which graph
+        #~ ''' Create a :class:`~nngt.Graph` instance which graph
         #~ contains only the inhibitory edges of the current instance's
         #~ :class:`graph_tool.Graph` '''
         #~ eprop_b_type = self._graph.new_edge_property(
@@ -372,14 +373,14 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         #~ self._graph.set_edge_filter(eprop_b_type)
         #~ inhib_graph = Graph( name=self._name + '_inhib',
                              #~ weighted=self._weighted,
-                             #~ from_graph=GraphObject(self._graph,prune=True) )
+                             #~ from_graph=core.GraphObject(self._graph,prune=True) )
         #~ self.clear_filters()
         #~ return inhib_graph
 #~ 
     #~ def excitatory_subgraph(self):
         #~ '''
         #~ Create a :class:`~nngt.Graph` instance which graph contains only the
-        #~ excitatory edges of the current instance's :class:`GraphObject`.
+        #~ excitatory edges of the current instance's :class:`core.GraphObject`.
         #~ .. warning ::
             #~ Only works for graph_tool
         #~ .. todo ::
@@ -390,7 +391,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         #~ self._graph.set_edge_filter(eprop_b_type)
         #~ exc_graph = Graph( name=self._name + '_exc',
                              #~ weighted=self._weighted,
-                             #~ graph=GraphObject(self._graph,prune=True) )
+                             #~ graph=core.GraphObject(self._graph,prune=True) )
         #~ self._graph.clear_filters()
         #~ return exc_graph
 
@@ -413,7 +414,7 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
             The special "type" attribute cannot be modified when using graphs
             that inherit from the :class:`~nngt.Network` class. This is because
             for biological networks, neurons make only one kind of synapse,
-            which is determined by the :class:`nngt.core.NeuralGroup` they
+            which is determined by the :class:`nngt.NeuralGroup` they
             belong to.
         '''
         if attribute not in self.attributes():
@@ -467,9 +468,9 @@ subset.''')
             distribution = self._w["distribution"]
         if parameters is None:
             parameters = self._w
-        Connections.weights(self, elist=elist, wlist=weight,
-                            distribution=distribution, parameters=parameters,
-                            noise_scale=noise_scale)
+        nngt.Connections.weights(
+            self, elist=elist, wlist=weight, distribution=distribution,
+            parameters=parameters, noise_scale=noise_scale)
 
     def set_types(self, syn_type, nodes=None, fraction=None):
         '''
@@ -479,7 +480,7 @@ subset.''')
             The special "type" attribute cannot be modified when using graphs
             that inherit from the :class:`~nngt.Network` class. This is because
             for biological networks, neurons make only one kind of synapse,
-            which is determined by the :class:`nngt.core.NeuralGroup` they
+            which is determined by the :class:`nngt.NeuralGroup` they
             belong to.
 
         Parameters
@@ -514,7 +515,7 @@ subset.''')
                 nodes.sort()
                 for node in nodes[::-1]:
                     del inhib_nodes[node]
-        return Connections.types(self, inhib_nodes, fraction)
+        return nngt.Connections.types(self, inhib_nodes, fraction)
         
     def set_delays(self, delay=None, elist=None, distribution=None,
                    parameters=None, noise_scale=None):
@@ -548,9 +549,9 @@ subset.''')
             distribution = self._w["distribution"]
         if parameters is None:
             parameters = self._w
-        return Connections.delays(self, elist=elist, dlist=delay,
-                           distribution=distribution, parameters=parameters,
-                           noise_scale=noise_scale)
+        return nngt.Connections.delays(
+            self, elist=elist, dlist=delay, distribution=distribution,
+            parameters=parameters, noise_scale=noise_scale)
         
 
     #-------------------------------------------------------------------------#
@@ -766,12 +767,12 @@ class SpatialGraph(Graph):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        shape : :class:`~nngt.core.Shape`, optional (default: None)
+        shape : :class:`~nngt.Shape`, optional (default: None)
             Shape of the neurons' environment (None leads to Shape())
         positions : :class:`numpy.array`, optional (default: None)
             Positions of the neurons; if not specified and `nodes` is not 0,
             then neurons will be reparted at random inside the
-            :class:`~nngt.core.Shape` object of the instance.
+            :class:`~nngt.Shape` object of the instance.
         
         Returns
         -------
@@ -812,12 +813,12 @@ class SpatialGraph(Graph):
             shape.set_parent(self)
             self._shape = shape
         else:
-            self._shape = Shape.rectangle(self,1,1)
+            self._shape = nngt.Shape.rectangle(self,1,1)
         if positions is not None and positions.shape[1] != self.node_nb():
             raise InvalidArgument("Wrong number of neurons in `positions`.")
         b_rnd_pos = True if not self.node_nb() or positions is None else False
         self._pos = self._shape.rnd_distrib() if b_rnd_pos else positions
-        Connections.distances(self)
+        nngt.Connections.distances(self)
 
 
 #-----------------------------------------------------------------------------#
@@ -875,8 +876,8 @@ class Network(Graph):
             neuron_param = {}
         if syn_param is None:
             syn_param = {}
-        pop = NeuralPop.uniform_population(size, None, neuron_model,
-                                           neuron_param, syn_model, syn_param)
+        pop = nngt.NeuralPop.uniform_population(
+            size, None, neuron_model, neuron_param, syn_model, syn_param)
         net = cls(population=pop)
         return net
 
@@ -925,8 +926,9 @@ class Network(Graph):
             in_param = {}
         if is_param is None:
             is_param = {}
-        pop = NeuralPop.exc_and_inhib(size, ei_ratio, None, en_model, en_param,
-                    es_model, es_param, in_model, in_param, is_model, is_param)
+        pop = nngt.NeuralPop.exc_and_inhib(
+            size, ei_ratio, None, en_model, en_param, es_model, es_param,
+            in_model, in_param, is_model, is_param)
         net = cls(population=pop)
         return net
 
@@ -950,7 +952,7 @@ class Network(Graph):
             Whether the graph is directed or undirected.
         from_graph : :class:`~nngt.core.GraphObject`, optional (default: None)
             An optional :class:`~nngt.core.GraphObject` to serve as base.
-        population : :class:`NeuralPop`, (default: None)
+        population : :class:`nngt.NeuralPop`, (default: None)
             An object containing the neural groups and their properties:
             model(s) to use in NEST to simulate the neurons as well as their
             parameters.
@@ -986,7 +988,7 @@ class Network(Graph):
 
     @population.setter
     def population(self, population):
-        if issubclass(population.__class__, NeuralPop):
+        if issubclass(population.__class__, nngt.NeuralPop):
             if self.node_nb() == population.size:
                 if population.is_valid:
                     self._population = population
@@ -1030,6 +1032,19 @@ class Network(Graph):
         else:
             return tuple(self._id_from_nest_gid[gid] for gid in gids)
 
+    def to_nest(self, use_weights=True):
+        '''
+        Send the network to NEST.
+        
+        .. seealso::
+            :func:`~nngt.simulation.make_nest_network` for parameters
+        '''
+        from nngt.simulation import make_nest_network
+        if nngt.config['with_nest']:
+            return make_nest_network(self, use_weights)
+        else:
+            raise RuntimeError("NEST is not present.")
+
     #-------------------------------------------------------------------------#
     # Init tool
     
@@ -1038,12 +1053,12 @@ class Network(Graph):
         self._population = None
         self._nest_gid = None
         self._id_from_nest_gid = None
-        if issubclass(population.__class__, NeuralPop):
+        if issubclass(population.__class__, nngt.NeuralPop):
             if population.is_valid:
                 self._population = population
                 nodes = population.size
                 # create the delay attribute
-                Connections.delays(self)
+                nngt.Connections.delays(self)
             else:
                 raise AttributeError("NeuralPop is not valid (not all \
                 neurons are associated to a group).")
@@ -1136,12 +1151,12 @@ class SpatialNetwork(Network,SpatialGraph):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        shape : :class:`~nngt.core.Shape`, optional (default: None)
+        shape : :class:`~nngt.Shape`, optional (default: None)
             Shape of the neurons' environment (None leads to Shape())
         positions : :class:`numpy.array`, optional (default: None)
             Positions of the neurons; if not specified and `nodes` != 0, then
             neurons will be reparted at random inside the
-            :class:`~nngt.core.Shape` object of the instance.
+            :class:`~nngt.Shape` object of the instance.
         population : class:`~nngt.NeuralPop`, optional (default: None)
         
         Returns

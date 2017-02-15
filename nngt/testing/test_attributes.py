@@ -36,6 +36,7 @@ def _results_theo(instruct):
     else:
         raise NotImplementedError("This distribution is not supported yet.")
 
+
 def _results_exp(attrib, instruct):
     di_param = instruct["weights"]
     if (di_param["distribution"] == "uniform"
@@ -101,10 +102,10 @@ class TestAttributes(TestBasis):
         ref_result = _results_theo(instructions)
         computed_result = _results_exp(delays, instructions)
         self.assertTrue(np.allclose(ref_result,computed_result,self.tolerance))
-        if nngt.config['with_nest']:
-            # @todo
-            from nngt.simulation import make_nest_network
-            subnet, gids = make_nest_network(graph)
+        # @todo
+        #~ if nngt.config['with_nest']:
+            #~ from nngt.simulation import make_nest_network
+            #~ gids = make_nest_network(graph)
 
 
 #-----------------------------------------------------------------------------#

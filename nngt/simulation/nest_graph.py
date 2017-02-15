@@ -11,9 +11,13 @@ import matplotlib.pyplot as plt
 
 from nngt.globals import WEIGHT, DELAY
 from nngt.lib import InvalidArgument
-from .tools import _sort_groups
+from nngt.lib.sorting import _sort_groups
 
-__all__ = [ 'make_nest_network', 'get_nest_network', 'reproducible_weights' ]
+__all__ = [
+    'make_nest_network',
+    'get_nest_network',
+    'reproducible_weights'
+]
 
 
 #-----------------------------------------------------------------------------#
@@ -23,7 +27,7 @@ __all__ = [ 'make_nest_network', 'get_nest_network', 'reproducible_weights' ]
 
 def make_nest_network(network, use_weights=True):
     '''
-    Create a new subnetwork which will be filled with neurons and
+    Create a new network which will be filled with neurons and
     connector objects to reproduce the topology from the initial network.
 
     Parameters
@@ -35,15 +39,10 @@ def make_nest_network(network, use_weights=True):
 
     Returns
     -------
-    subnet : tuple (node in NEST)
-        GID of the new NEST subnetwork
     gids : tuple (nodes in NEST)
-        GIDs of the neurons in `subnet`
+        GIDs of the neurons in the network.
     '''
-
-    # create the node subnetwork
-    subnet, gids = nest.Create('subnet'), []
-    nest.ChangeSubnet(subnet)
+    gids = []
 
     # link NEST Gids to nngt.Network ids as neurons are created
     num_neurons = network.node_nb()
@@ -105,17 +104,15 @@ def make_nest_network(network, use_weights=True):
         syn_param[DELAY] = csr_delays[group.id_list, :].data
         nest.Connect(src_ids, trgt_ids, syn_spec=syn_param, conn_spec=cspec)
 
-    return subnet, tuple(ia_nest_gids)
+    return tuple(ia_nest_gids)
 
 
-def get_nest_network(nest_subnet, id_converter=None):
+def get_nest_network(id_converter=None):
     '''
-    Get the adjacency matrix describing a NEST subnetwork.
+    Get the adjacency matrix describing a NEST network.
 
     Parameters
     ----------
-    nest_subnet : tuple
-        Subnetwork node in NEST.
     id_converter : dict, optional (default: None)
         A dictionary which maps NEST gids to the desired neurons ids.
 
@@ -124,7 +121,7 @@ def get_nest_network(nest_subnet, id_converter=None):
     mat_adj : :class:`~scipy.sparse.lil_matrix`
         Adjacency matrix of the network.
     '''
-    gids = nest.GetNodes(nest_subnet)[0]
+    gids = nest.GetNodes()[0]
     n = len(gids)
     mat_adj = ssp.lil_matrix((n,n))
     if id_converter is None:

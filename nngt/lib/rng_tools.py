@@ -7,13 +7,22 @@ import numpy as np
 import scipy.sparse as ssp
 
 
-
 #-----------------------------------------------------------------------------#
 # Return the right distribution
 #------------------------
 #
 
-def eprop_distribution(graph, distrib_type, matrix=False, elist=None, **kw):
+def _generate_random(number, instructions):
+    name = instructions[0]
+    if name in di_dfunc:
+        return di_dfunc[name](None, None, number, *instructions[1:])
+    else:
+        raise NotImplementedError(
+            "Unknown distribution: '{}'. Supported distributions " \
+            "are {}".format(name, ", ".join(di_dfunc.keys())))
+
+
+def _eprop_distribution(graph, distrib_type, matrix=False, elist=None, **kw):
     ra_values = di_dfunc[distrib_type](graph, elist=elist, **kw)
     num_edges = graph.edge_nb()
     if matrix:
@@ -45,7 +54,7 @@ def _make_matrix(graph, ecount, values, elist=None):
 #------------------------
 #
 
-def delta_distrib(graph, elist=None, value=1., **kwargs):
+def delta_distrib(graph=None, elist=None, num=None, value=1., **kwargs):
     '''
     Delta distribution for edge attributes.
     
@@ -60,10 +69,13 @@ def delta_distrib(graph, elist=None, value=1., **kwargs):
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
-    ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    return np.repeat(value, ecount)
+    if num is None:
+        num = elist.shape[0] if elist is not None else graph.edge_nb()
+    return np.repeat(value, num)
 
-def uniform_distrib(graph, elist=None, lower=0., upper=1.5, **kwargs):
+
+def uniform_distrib(graph, elist=None, num=None, lower=0., upper=1.5,
+                    **kwargs):
     '''
     Uniform distribution for edge attributes.
     
@@ -80,10 +92,12 @@ def uniform_distrib(graph, elist=None, lower=0., upper=1.5, **kwargs):
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
-    ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    return np.random.uniform(lower, upper, ecount)
+    if num is None:
+        num = elist.shape[0] if elist is not None else graph.edge_nb()
+    return np.random.uniform(lower, upper, num)
 
-def gaussian_distrib(graph, elist=None, avg=1., std=0.2, **kwargs):
+
+def gaussian_distrib(graph, elist=None, num=None, avg=1., std=0.2, **kwargs):
     '''
     Gaussian distribution for edge attributes.
     
@@ -100,12 +114,17 @@ def gaussian_distrib(graph, elist=None, avg=1., std=0.2, **kwargs):
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
-    ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    return np.random.normal(avg, std, ecount)
+    if num is None:
+        num = elist.shape[0] if elist is not None else graph.edge_nb()
+    return np.random.normal(avg, std, num)
 
-def lognormal_distrib(graph, elist=None, position=1., scale=0.2, **kwargs):
-    ecount = elist.shape[0] if elist is not None else graph.edge_nb()
-    return np.random.lognormal(position, scale, ecount)
+
+def lognormal_distrib(graph, elist=None, num=None, position=1., scale=0.2,
+                      **kwargs):
+    if num is None:
+        num = elist.shape[0] if elist is not None else graph.edge_nb()
+    return np.random.lognormal(position, scale, num)
+
 
 def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
                            noise_scale=None, lower=0., upper=2., **kwargs):
@@ -121,6 +140,7 @@ def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
     else:
         raise NotImplementedError()
 
+
 def log_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
                            noise_scale=None, lower=0., upper=2.,
                            **kwargs):
@@ -133,6 +153,7 @@ di_dfunc = {
     "uniform": uniform_distrib,
     "lognormal": lognormal_distrib,
     "gaussian": gaussian_distrib,
+    "normal": gaussian_distrib,
     "lin_corr": lin_correlated_distrib,
     "log_corr": log_correlated_distrib
 }

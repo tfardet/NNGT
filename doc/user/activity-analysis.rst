@@ -21,12 +21,12 @@ degree or the betweenness:
     import nest
     
     import nngt
-    from nngt.simulation import make_nest_network, monitor_nodes, plot_activity
+    from nngt.simulation import monitor_nodes, plot_activity
     
     pop = nngt.NeuralPop.uniform(1000, neuron_model="aeif_psc_alpha")
     net = nngt.generation.gaussian_degree(100, 20, population=pop)
     
-    _, nodes = make_nest_network(net)
+    nodes = net.to_nest()
     recorders, recordables = monitor_nodes(nodes)
     simtime = 1000.
     nest.Simulate(simtime)

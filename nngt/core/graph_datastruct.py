@@ -13,7 +13,8 @@ import scipy.spatial as sptl
 
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE, BWEIGHT)
-from nngt.lib import InvalidArgument, eprop_distribution
+from nngt.lib import InvalidArgument
+from nngt.lib.rng_tools import _eprop_distribution
 
 
 __all__ = [
@@ -532,8 +533,8 @@ class Connections:
             if len(dlist) != num_edges:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
-            dlist = eprop_distribution(graph, distribution, elist=elist,
-                                       **parameters)
+            dlist = _eprop_distribution(graph, distribution, elist=elist,
+                                        **parameters)
         # add to the graph container
         graph.set_edge_attribute(
             DELAY, value_type="double", values=dlist, edges=elist)
@@ -580,8 +581,8 @@ class Connections:
 there are {} edges while {} values where provided'''.format(
                     graph.name, num_edges, len(wlist)))
         else:
-            wlist = eprop_distribution(graph, distribution, elist=elist,
-                                       **parameters)
+            wlist = _eprop_distribution(graph, distribution, elist=elist,
+                                        **parameters)
         # add to the graph container
         bwlist = (np.max(wlist) - wlist if np.any(wlist)
                   else np.repeat(0, len(wlist)))

@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 from nngt import config
-from nngt.lib.errors import InvalidArgument
+from nngt.lib import InvalidArgument
 
 
 __all__ = [

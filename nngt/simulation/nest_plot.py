@@ -303,6 +303,11 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         return fig.number
 
 
+#-----------------------------------------------------------------------------
+# Tools
+#------------------------
+#
+
 def _fill_between_steps(x, y1, y2=0, h_align='mid'):
     '''
     Fills a hole in matplotlib: fill_between for step plots.
@@ -337,39 +342,6 @@ def _fill_between_steps(x, y1, y2=0, h_align='mid'):
         y2 = np.repeat(y2,2)#[:-1]
 
     return xx, y1, y2
-
-
-#-----------------------------------------------------------------------------
-# Tools
-#------------------------
-#
-
-def _sort_neurons(sort, gids, network):
-    max_nest_gid = network.nest_gid.max() + 1
-    sorting = np.zeros(max_nest_gid)
-    if isinstance(sort, str):
-        sorted_ids = None
-        if "degree" in sort:
-            deg_type = sort[:sort.find("-")]
-            degrees = network.get_degrees(deg_type)
-            sorted_ids = np.argsort(degrees)
-        elif sort == "betweenness":
-            betw = network.get_betweenness(btype="node")
-            sorted_ids = np.argsort(betw)
-        else:
-            raise InvalidArgument(
-                '''Unknown sorting parameter {}; choose among "in-degree",
-                "out-degree", "total-degree" or "betweenness".'''.format(sort))
-        num_sorted = 1
-        _, sorted_groups = _sort_groups(network.population)
-        for group in sorted_groups:
-            gids = network.nest_gid[group.id_list]
-            order = np.argsort(sorted_ids[group.id_list])
-            sorting[gids] = num_sorted + order
-            num_sorted += len(group.id_list)
-    else:
-        sorting[network.nest_gid[sort]] = sort
-    return sorting
 
 
 def _moving_average (values, window):

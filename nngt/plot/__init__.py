@@ -15,10 +15,10 @@ Content
 import sys
 import matplotlib
 
-from nngt import config
+import nngt
 
-if config["backend"] is not None:
-    matplotlib.use(config["backend"])
+if nngt.config["backend"] is not None:
+    matplotlib.use(nngt.config["backend"])
 else:
     sav_backend = matplotlib.get_backend()
     backends = [ 'GTK3Agg', 'Qt4Agg', 'Qt5Agg' ]
@@ -30,31 +30,31 @@ else:
             keep_trying = False
         except:
             matplotlib.use(sav_backend)
-    
-        
+
+
 import warnings
 warnings.filterwarnings("ignore", module="matplotlib")
-
-from nngt.globals import config
 
 
 # module import
 
 from .custom_plt import palette
-from .plt_properties import ( attribute_distribution, betweenness_distribution,
-                              degree_distribution )
+from .animations import Animation2d
+from .plt_properties import (attribute_distribution, betweenness_distribution,
+                             degree_distribution)
 
 __all__ = [
     "attribute_distribution",
     "betweenness_distribution",
     "degree_distribution",
+    "Animation2d",
 ]
 
 
-if config["graph_library"] == 'graph-tool':
+if nngt.config["graph_library"] == 'graph-tool':
     from .plt_networks import draw_network
     __all__.append("draw_network")
 else:
     warnings.warn("Graph drawing is only available with graph_tool at the \
 moment. As {} is currently being used, all graph drawing functions will be \
-disabled.".format(config["graph_library"]))
+disabled.".format(nngt.config["graph_library"]))

@@ -15,8 +15,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from nngt.lib import InvalidArgument
-from nngt.simulation import make_nest_network
-from .tools import _sort_groups, _generate_random
+from nngt.lib.rng_tools import _generate_random
+from nngt.lib.sorting import _sort_groups
 
 
 __all__ = [
@@ -136,7 +136,7 @@ def randomize_neural_states(network, instructions, make_nest=False):
     # check whether network is in NEST
     if network._nest_gid is None:
         if make_nest:
-            make_nest_network(network)
+            network.to_nest()
         else:
             raise AttributeError('`network` has not converted to NEST yet.')
     num_neurons = network.node_nb()

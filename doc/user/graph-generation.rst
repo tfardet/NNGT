@@ -116,10 +116,10 @@ Send the network to NEST:
 .. code-block:: python
 
     import nest
-    from nngt.simulation import make_nest_network, monitor_groups, plot_activity
+    from nngt.simulation import monitor_groups, plot_activity
 
     # create the network, excite, record
-    subnet, gids = make_nest_network(net)
+    gids = net.to_nest()
     pg = nest.Create("poisson_generator", params={"rate": 100000.})
     nest.Connect(pg, gids)
     groups = [key for key in net.population]
@@ -145,7 +145,7 @@ NB: the port is specified in the **source** neuron and declares which synapse of
 
 .. code-block:: python
 
-    from nngt.simulation import make_nest_network, set_noise
+    from nngt.simulation import set_noise
 
     # parameters
     neuron_model = "ht_neuron" # hill-tononi model
@@ -162,7 +162,7 @@ NB: the port is specified in the **source** neuron and declares which synapse of
     w_prop = {"distribution": "constant", "value": 1.}
     net = nngt.generation.gaussian_degree(
         avg_degree, std_degree, population=pop, weights=w_prop)
-    subnet, gids = make_nest_network(net)
+    gids = net.to_nest()
 
     # add noise to the excitatory neurons
     excs = list(pop["excitatory"].nest_gids)
