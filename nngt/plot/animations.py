@@ -315,12 +315,6 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
 
     def _draw(self, framedata):
         i = framedata
-        # restore and init all
-        if i == 0:
-            self.fig.canvas.restore_region(self.bg)
-            self.spks.draw_artist(self.spks.get_xaxis())
-            self.second.draw_artist(self.spks.get_xaxis())
-            self.fig.canvas.blit(self.spks.clipbox)
 
         head = i - 1
         head_slice = ((self.times > self.times[i] - self.trace)
@@ -342,31 +336,14 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
             or np.isclose(current_window, self.simtime - self.start))[0]
         # 3. change if necessary
         if default_window:
-            self.fig.canvas.restore_region(self.bg)
-            #~ self.fig.canvas.restore_region(self.bg_second)
             xlims = self.spks.get_xlim()
             if self.times[i] >= xlims[1]:
-                #~ print(self.times[i] - self.timewindow, self.times[i])
                 self.spks.set_xlim(
                     self.times[i] - self.timewindow, self.times[i])
                 self.second.set_xlim(
                     self.times[i] - self.timewindow, self.times[i])
-                self.spks.draw_artist(self.spks.get_xaxis())
-                self.second.draw_artist(self.second.get_xaxis())
-                #~ for a in self.spks.get_xaxis().get_majorticklabels():
-                    #~ self.spks.draw_artist(a)
-                self.fig.canvas.blit(self.spks.clipbox)
-                self.fig.canvas.blit(self.second.clipbox)
-                #~ self.spks.draw_artist(self.spks.get_xaxis().get_label())
-                #~ self.fig.canvas.blit(self.spks.clipbox)
-                #~ self.spks.set_xticks(xticks)
-                #~ self.spks.set_xticklabels([str(i) for i in xticks])
-                #~ self.second.set_xticks(xticks)
-                #~ self.second.set_xlim(
-                    #~ self.times[i] - self.timewindow, self.times[i])
             elif self.times[i] <= xlims[0]:
                 self.spks.set_xlim(self.start, self.timewindow + self.start)
-                #~ self.second.set_xlim(self.start, self.timewindow + self.start)
 
         return [self.line_ps_, self.line_ps_a, self.line_ps_e, self.line_spks_,
                 self.line_spks_a, self.line_second_, self.line_second_a,
@@ -404,14 +381,6 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
                  self.line_second_, self.line_second_a, self.line_second_e]
         for l in lines:
             l.set_data([], [])
-        self.spks.set_animated(True)
-        #~ self.spks.get_xaxis().set_animated(True)
-        #~ self.spks.draw_artist(self.spks.get_xaxis())
-        self.spks.draw_artist(self.spks)
-        self.second.set_animated(True)
-        #~ self.second.get_xaxis().set_animated(True)
-        #~ self.second.draw_artist(self.second.get_xaxis())
-        self.second.draw_artist(self.second)
 
 
 # ----- #
