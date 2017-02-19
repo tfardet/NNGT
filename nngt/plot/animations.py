@@ -4,6 +4,7 @@
 """ Animation tools """
 
 import warnings
+import weakref
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -57,14 +58,16 @@ class _SpikeAnimator:
         # get data
         data_s = nest.GetStatus(spike_detector)[0]["events"]
         spikes = np.where(data_s["times"] >= self.times[0])[0]
-        print(self.times[0], spikes[0], self.times[-1])
 
         if np.any(spikes):
             idx_start = spikes[0]
             self.spikes = data_s["times"][idx_start:]
             self.senders = data_s["senders"][idx_start:]
 
-            self.num_neurons = np.max(self.senders) - np.min(self.senders)
+            if network is None:
+                self.num_neurons = np.max(self.senders) - np.min(self.senders)
+            else:
+                self.num_neurons = network.node_nb()
             # sorting
             if sort_neurons:
                 if network is not None:
@@ -118,11 +121,14 @@ class _SpikeAnimator:
             [], [], color='red', marker='o', markeredgecolor='r')
 
         # Spikes raster plot
-        xlim = (self.start, min(self.simtime, self.timewindow + self.start))
+        kw_args = {}
+        if self.timewindow != self.duration:
+            kw_args['xlim'] = (self.start,
+                min(self.simtime, self.timewindow + self.start))
         ylim = (0, self.num_neurons)
         self.lines_raster = [self.line_spks_, self.line_spks_a]
         self.set_axis(self.spks, xlabel='Time (ms)', ylabel='Neuron',
-            lines=self.lines_raster, xlim=xlim, ylim=ylim, set_xticks=True)
+            lines=self.lines_raster, ylim=ylim, set_xticks=True, **kw_args)
         self.lines_second = [
             self.line_second_, self.line_second_a, self.line_second_e]
 
@@ -130,7 +136,7 @@ class _SpikeAnimator:
         if make_rate:
             self.set_axis(
                 self.second, xlabel='Time (ms)', ylabel='Rate (Hz)',
-                lines=self.lines_second, ydata=self.firing_rate, xlim=xlim)
+                lines=self.lines_second, ydata=self.firing_rate, **kw_args)
 
     #-------------------------------------------------------------------------
     # Axis definition
@@ -154,20 +160,20 @@ class _SpikeAnimator:
         '''
         axis.set_xlabel(xlabel)
         axis.set_ylabel(ylabel)
+        if kwargs.get('set_xticks', False):
+            self._make_ticks(self.timewindow)
         for line2d in lines:
             axis.add_line(line2d)
         if 'xlim' in kwargs:
             axis.set_xlim(*kwargs['xlim'])
         else:
-            xmin, xmax = np.min(xdata), np.max(xdata)
+            xmin, xmax = self.xticks[0], self.xticks[-1]
             axis.set_xlim(_min_axis(xmin, xmax), _max_axis(xmax, xmin))
         if 'ylim' in kwargs:
             axis.set_ylim(*kwargs['ylim'])
         else:
             ymin, ymax = np.min(ydata), np.max(ydata)
             axis.set_ylim(_min_axis(ymin, ymax), _max_axis(ymax, ymin))
-        if kwargs.get('set_xticks', False):
-            self._make_ticks(self.timewindow)
     
     def _draw(self, i, head, head_slice, spike_cum, spike_slice):
         self.line_spks_.set_data(
@@ -183,6 +189,21 @@ class _SpikeAnimator:
                 self.times[head_slice], self.firing_rate[head_slice])
             self.line_second_e.set_data(
                 self.times[head], self.firing_rate[head])
+        
+        # set axis limits: 1. check user-defined
+        current_window = np.diff(self.spks.get_xlim())
+        default_window = (np.isclose(current_window, self.timewindow)
+            or np.isclose(current_window, self.simtime - self.start))[0]
+        # 3. change if necessary
+        if default_window:
+            xlims = self.spks.get_xlim()
+            if self.times[i] >= xlims[1]:
+                self.spks.set_xlim(
+                    self.times[i] - self.timewindow, self.times[i])
+                self.second.set_xlim(
+                    self.times[i] - self.timewindow, self.times[i])
+            elif self.times[i] <= xlims[0]:
+                self.spks.set_xlim(self.start, self.timewindow + self.start)
     
     def _make_ticks(self, timewindow):
         target_num_ticks = np.ceil(self.duration / timewindow * 5)
@@ -220,7 +241,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
     a 2D phase-space for a network activity.
     '''
 
-    def __init__(self, multimeter, spike_detector, start=0., timewindow=None,
+    def __init__(self, spike_detector, multimeter, start=0., timewindow=None,
                  trace=5., x='time', y='V_m', sort_neurons=False,
                  network=None, interval=50, **kwargs):
         '''
@@ -228,10 +249,10 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         
         Parameters
         ----------
-        multimeter : tuple
-            NEST gid of the ``multimeter``(s) which recorded the network.
         spike_detector : tuple
             NEST gid of the ``spike_detector``(s) which recorded the network.
+        multimeter : tuple
+            NEST gid of the ``multimeter``(s) which recorded the network.
         timewindow : double, optional (default: None)
             Time window which will be shown for the spikes and self.second.
         trace : double, optional (default: 5.)
@@ -251,8 +272,6 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         y = "times" if y == "time" else y
 
         # get data
-        data_s = nest.GetStatus(spike_detector)[0]["events"]
-        spikes = np.where(data_s["times"] >= start)[0]
         data_mm = nest.GetStatus(multimeter)[0]["events"]
         self.times = data_mm["times"]
 
@@ -266,9 +285,9 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.duration = self.simtime - start
         self.trace = trace
         if timewindow is None:
-            self.timewindow = 0.3 * self.simtime
+            self.timewindow = self.duration
         else:
-            self.timewindow = min(timewindow, self.simtime - self.start)
+            self.timewindow = min(timewindow, self.duration)
 
         # init _SpikeAnimator parent class (create figure and right axes)
         make_rate = kwargs.get('make_rate', True)
@@ -286,12 +305,13 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.line_ps_e = Line2D(
             [], [], color='red', marker='o', markeredgecolor='r')
         lines = [self.line_ps_, self.line_ps_a, self.line_ps_e]
+        xlim = (_min_axis(self.x.min()), _max_axis(self.x.max()))
         self.set_axis(
             self.ps, xlabel=_convert_axis(x), ylabel=_convert_axis(y),
-            lines=lines, xdata=self.x, ydata=self.y)
+            lines=lines, xdata=self.x, ydata=self.y, xlim=xlim)
 
         plt.tight_layout()
-        
+
         anim.FuncAnimation.__init__(self, self.fig, self._draw, self._gen_data,
                                     interval=interval, blit=True)
 
@@ -329,21 +349,6 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         
         super(Animation2d, self)._draw(
             i, head, head_slice, spike_cum, spike_slice)
-        
-        # set axis limits: 1. check user-defined
-        current_window = np.diff(self.spks.get_xlim())
-        default_window = (np.isclose(current_window, self.timewindow)
-            or np.isclose(current_window, self.simtime - self.start))[0]
-        # 3. change if necessary
-        if default_window:
-            xlims = self.spks.get_xlim()
-            if self.times[i] >= xlims[1]:
-                self.spks.set_xlim(
-                    self.times[i] - self.timewindow, self.times[i])
-                self.second.set_xlim(
-                    self.times[i] - self.timewindow, self.times[i])
-            elif self.times[i] <= xlims[0]:
-                self.spks.set_xlim(self.start, self.timewindow + self.start)
 
         return [self.line_ps_, self.line_ps_a, self.line_ps_e, self.line_spks_,
                 self.line_spks_a, self.line_second_, self.line_second_a,
@@ -378,6 +383,181 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         # initialize empty lines
         lines = [self.line_ps_, self.line_ps_a, self.line_ps_e,
                  self.line_spks_, self.line_spks_a,
+                 self.line_second_, self.line_second_a, self.line_second_e]
+        for l in lines:
+            l.set_data([], [])
+
+
+class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
+    
+    '''
+    Class to plot the raster plot, firing-rate, and average trajectory in
+    a 2D phase-space for a network activity.
+    '''
+
+    def __init__(self, spike_detector, network, resolution=1, start=0.,
+                 timewindow=None, trace=5., show_spikes=True,
+                 sort_neurons=False, interval=50, **kwargs):
+        '''
+        Generate a SubplotAnimation instance to plot a network activity.
+        
+        Parameters
+        ----------
+        multimeter : tuple
+            NEST gid of the ``multimeter``(s) which recorded the network.
+        spike_detector : tuple
+            NEST gid of the ``spike_detector``(s) which recorded the network.
+        network : :class:`~nngt.SpatialNetwork`
+            Network embedded in space to plot the actvity of the neurons in
+            space.
+        resolution : double, optional (default: None)
+            Time resolution of the animation.
+        timewindow : double, optional (default: None)
+            Time window which will be shown for the spikes and self.second.
+        trace : double, optional (default: 5.)
+            Interval of time (ms) over which the data is overlayed in red.
+        show_spikes : bool, optional (default: True)
+            Whether a spike trajectory should be displayed on the network.
+        **kwargs : dict, optional (default: {})
+            Optional arguments such as 'make_rate'.
+        '''
+        import nest
+
+        self.network = weakref.ref(network)
+        self.simtime = nest.GetStatus(spike_detector)[0]["events"]['times'][-1]
+        self.times = np.arange(start, self.simtime + resolution, resolution)
+
+        self.start = start
+        self.duration = self.simtime - start
+        self.trace = trace
+        self.show_spikes = show_spikes
+        if timewindow is None:
+            self.timewindow = self.duration
+        else:
+            self.timewindow = min(timewindow, self.duration)
+
+        # init _SpikeAnimator parent class (create figure and right axes)
+        make_rate = kwargs.get('make_rate', True)
+        super(Animation2d, self).__init__(
+            spike_detector, sort_neurons=sort_neurons, network=network,
+            make_rate=make_rate)
+
+        # Data and axis for network representation
+        self.nids = self.senders - self.senders.min()
+        area_px = 10000.
+        n_size = 0.5 * np.sqrt(area_px / self.num_neurons)  # neuron size
+        pos = network.position  # positions of the neurons
+        self.x = pos[0]
+        self.y = pos[1]
+        
+        self.env = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
+        # neurons
+        self.line_neurons = Line2D(
+            [], [], ls='None', marker='o', color='black', ms=n_size, mew=0)
+        self.line_neurons_a = Line2D(
+            [], [], ls='None', marker='o', color='red', ms=n_size, mew=0)
+        self.lines_env = [self.line_neurons, self.line_neurons_a]
+        # spike trajectory
+        if show_spikes:
+            self.line_st_a = Line2D([], [], color='red', linewidth=1)
+            self.line_st_e = Line2D(
+                [], [], color='red', marker='d', ms=2, markeredgecolor='r')
+            self.lines_env.extend((self.line_st_a, self.line_st_e))
+        self.set_axis(self.env, xlabel='', ylabel='', lines=self.lines_env,
+                      xdata=self.x, ydata=self.y)
+        # repove the axes and grid from env
+        self.env.set_xticks([])
+        self.env.set_yticks([])
+        self.env.set_xticklabels([])
+        self.env.set_yticklabels([])
+        self.env.set_grid(False)
+
+        plt.tight_layout()
+        
+        anim.FuncAnimation.__init__(self, self.fig, self._draw, self._gen_data,
+                                    interval=interval, blit=True)
+
+    #-------------------------------------------------------------------------
+    # Animation instructions
+
+    def _gen_data(self):
+        i = -1
+        imax = len(self.x) - 1
+        while i < imax - self.increment:
+            if not self.pause:
+                i += self.increment
+            elif self.event is not None:
+                if self.event.key in ('right', 'n'):
+                    i += self.increment
+                elif self.event.key in ('left', 'p'):
+                    i -= self.increment
+                if self.event.key in ('n', 'p'):
+                    self.event = None
+            yield i
+
+    def _draw(self, framedata):
+        i = framedata
+        head = i - 1
+        head_slice = ((self.times > self.times[i] - self.trace)
+                      & (self.times < self.times[i]))
+        spike_slice = ((self.spikes > self.times[i] - self.trace)
+                       & (self.spikes <= self.times[i]))
+        spike_cum = self.spikes < self.times[i]
+
+        self.line_neurons_a.set_data(self.x[spike_slice], self.y[spike_slice])
+
+        if self.show_spikes:
+            # @todo: make this work for heterogeneous delays
+            time = self.times[i]
+            delays = np.average(self.network().get_delays())
+            departures = self.spikes[spikes_slice]
+            arrivals = departures + delays
+            # get the spikers
+            ids_dep = self.nids[self.senders[spikes_slice]]
+            degrees = network.get_degrees('out', node_list=ids_dep)
+            ids_dep = np.repeat(ids_dep, degrees)  # repeat based on out-degree
+            x_dep = self.x[ids_dep]
+            y_dep = self.y[ids_dep]
+            # get their out-neighbours
+            #~ for d, a in zip(departures, arrivals):
+        
+        super(Animation2d, self)._draw(
+            i, head, head_slice, spike_cum, spike_slice)
+
+        return [self.line_neurons, self.line_neurons_a, self.line_spks_,
+                self.line_spks_a, self.line_second_, self.line_second_a,
+                self.line_second_e]
+
+    def _init_draw(self):
+        '''
+        Remove ticks from spks/second axes, save background,
+        then restore state to allow for moveable axes and labels.
+        '''
+        # initialize neurons
+        self.line_neurons.set_data(self.x, self.y)
+        # remove
+        xlim = self.spks.get_xlim()
+        xlabel = self.spks.get_xlabel()
+        self.spks.set_xticks([])
+        self.spks.set_xticklabels([])
+        self.spks.set_xlabel("")
+        self.second.set_xticks([])
+        self.second.set_xticklabels([])
+        self.second.set_xlabel("")
+        # background
+        self.fig.canvas.draw()
+        self.bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
+        # restore
+        self.spks.set_xticks(self.xticks)
+        self.spks.set_xticklabels(self.xlabels)
+        self.spks.set_xlim(*xlim)
+        self.spks.set_xlabel(xlabel)
+        self.second.set_xticks(self.xticks)
+        self.second.set_xticklabels(self.xlabels)
+        self.second.set_xlim(*xlim)
+        self.second.set_xlabel(xlabel)
+        # initialize empty lines
+        lines = [self.line_spks_, self.line_spks_a,
                  self.line_second_, self.line_second_a, self.line_second_e]
         for l in lines:
             l.set_data([], [])

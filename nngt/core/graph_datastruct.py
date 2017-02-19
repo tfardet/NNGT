@@ -792,5 +792,5 @@ class Shape:
         min_y, max_y = points[:,1].min(), points[:,1].max()
         ra_x = uniform(min_x, max_x, size=nodes)
         ra_y = uniform(min_y, max_y, size=nodes)
-        return np.vstack((ra_x,ra_y))
+        return np.vstack((ra_x, ra_y))
 
