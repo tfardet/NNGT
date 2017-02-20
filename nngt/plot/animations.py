@@ -438,39 +438,42 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
 
         # init _SpikeAnimator parent class (create figure and right axes)
         make_rate = kwargs.get('make_rate', True)
-        super(Animation2d, self).__init__(
+        super(AnimationNetwork, self).__init__(
             spike_detector, sort_neurons=sort_neurons, network=network,
             make_rate=make_rate)
+        
+        self.env = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
 
         # Data and axis for network representation
-        self.nids = self.senders - self.senders.min()
-        area_px = 10000.
-        n_size = 0.5 * np.sqrt(area_px / self.num_neurons)  # neuron size
+        bbox = self.env.get_window_extent().transformed(
+            self.fig.dpi_scale_trans.inverted())
+        area_px = bbox.width * bbox.height * self.fig.dpi**2
+        n_size = max(2, 0.5*np.sqrt(area_px/self.num_neurons))  # neuron size
         pos = network.position  # positions of the neurons
         self.x = pos[0]
         self.y = pos[1]
         
-        self.env = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
         # neurons
         self.line_neurons = Line2D(
             [], [], ls='None', marker='o', color='black', ms=n_size, mew=0)
         self.line_neurons_a = Line2D(
-            [], [], ls='None', marker='o', color='red', ms=n_size, mew=0)
+            [], [], ls='None', marker='o', color='red', ms=n_size+1, mew=0)
         self.lines_env = [self.line_neurons, self.line_neurons_a]
+        xlim = (_min_axis(self.x.min()), _max_axis(self.x.max()))
+        self.set_axis(self.env, xlabel='Network', ylabel='',
+            lines=self.lines_env, xdata=self.x, ydata=self.y, xlim=xlim)
         # spike trajectory
         if show_spikes:
             self.line_st_a = Line2D([], [], color='red', linewidth=1)
             self.line_st_e = Line2D(
                 [], [], color='red', marker='d', ms=2, markeredgecolor='r')
             self.lines_env.extend((self.line_st_a, self.line_st_e))
-        self.set_axis(self.env, xlabel='', ylabel='', lines=self.lines_env,
-                      xdata=self.x, ydata=self.y)
-        # repove the axes and grid from env
+        # remove the axes and grid from env
         self.env.set_xticks([])
         self.env.set_yticks([])
         self.env.set_xticklabels([])
         self.env.set_yticklabels([])
-        self.env.set_grid(False)
+        self.env.grid(None)
 
         plt.tight_layout()
         
@@ -482,7 +485,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
 
     def _gen_data(self):
         i = -1
-        imax = len(self.x) - 1
+        imax = len(self.times) - 1
         while i < imax - self.increment:
             if not self.pause:
                 i += self.increment
@@ -497,6 +500,9 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
 
     def _draw(self, framedata):
         i = framedata
+        if i == 0:  # initialize neurons
+            self.line_neurons.set_data(self.x, self.y)
+
         head = i - 1
         head_slice = ((self.times > self.times[i] - self.trace)
                       & (self.times < self.times[i]))
@@ -504,7 +510,8 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
                        & (self.spikes <= self.times[i]))
         spike_cum = self.spikes < self.times[i]
 
-        self.line_neurons_a.set_data(self.x[spike_slice], self.y[spike_slice])
+        pos_ids = self.network().id_from_nest_gid(self.senders[spike_slice])
+        self.line_neurons_a.set_data(self.x[pos_ids], self.y[pos_ids])
 
         if self.show_spikes:
             # @todo: make this work for heterogeneous delays
@@ -521,7 +528,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             # get their out-neighbours
             #~ for d, a in zip(departures, arrivals):
         
-        super(Animation2d, self)._draw(
+        super(AnimationNetwork, self)._draw(
             i, head, head_slice, spike_cum, spike_slice)
 
         return [self.line_neurons, self.line_neurons_a, self.line_spks_,
@@ -533,8 +540,6 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         Remove ticks from spks/second axes, save background,
         then restore state to allow for moveable axes and labels.
         '''
-        # initialize neurons
-        self.line_neurons.set_data(self.x, self.y)
         # remove
         xlim = self.spks.get_xlim()
         xlabel = self.spks.get_xlabel()
@@ -557,7 +562,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         self.second.set_xlim(*xlim)
         self.second.set_xlabel(xlabel)
         # initialize empty lines
-        lines = [self.line_spks_, self.line_spks_a,
+        lines = [self.line_spks_, self.line_spks_a, self.line_neurons_a,
                  self.line_second_, self.line_second_a, self.line_second_e]
         for l in lines:
             l.set_data([], [])

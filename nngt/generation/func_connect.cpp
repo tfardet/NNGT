@@ -142,5 +142,56 @@ void _gen_edges(
         }
     }
 }
+
+/*
+void _distance_rule(size_t* ia_edges, const std::vector<size_t>& first_nodes,
+  const std::vector<size_t>& second_nodes, const std::string& rule,
+  double scale, const std::vector<double>& x, const std::vector<double>& y
+  size_t num_edges, const std::vector< std::vector<size_t> >& existing_edges,
+  bool multigraph, bool directed, long msd, unsigned int omp)
+{
+    // Initialize secondary seeds
+    std::vector<long> seeds(omp, msd);
+    for (size_t i=0; i < omp; i++)
+    {
+        seeds[i] += i + 1;
+    }
+
+    def exp_rule(pos_src, pos_target):
+        dist = np.linalg.norm(pos_src-pos_target,axis=0)
+        return np.exp(np.divide(dist,-scale))
+    def lin_rule(pos_src, pos_target):
+        dist = np.linalg.norm(pos_src-pos_target,axis=0)
+        return np.divide(scale-dist,scale).clip(min=0.)
+    dist_test = exp_rule if rule == "exp" else lin_rule
+    # compute the required values
+    source_ids = np.array(source_ids).astype(int)
+    target_ids = np.array(target_ids).astype(int)
+    num_source, num_target = len(source_ids), len(target_ids)
+    edges, _ = _compute_connections(num_source, num_target,
+                             density, edges, avg_deg, directed, reciprocity=-1)
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
+    # create the edges
+    ia_edges = np.zeros((edges,2), dtype=int)
+    num_test, num_ecurrent = 0, 0
+    while num_ecurrent != edges and num_test < MAXTESTS:
+        num_create = edges-num_ecurrent
+        ia_sources = source_ids[randint(0, num_source, num_create)]
+        ia_targets = target_ids[randint(0, num_target, num_create)]
+        test = dist_test(positions[:,ia_sources],positions[:,ia_targets])
+        ia_valid = np.greater(test,np.random.uniform(size=num_create))
+        ia_edges_tmp = np.array([ia_sources[ia_valid],ia_targets[ia_valid]]).T
+        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
+                                         b_one_pop, multigraph)
+        num_test += 1
+    if num_test == MAXTESTS:
+        ia_edges = ia_edges[:num_ecurrent,:]
+        warnings.warn("Maximum number of tests reached, stopped  generation \
+with {} edges.".format(num_ecurrent), RuntimeWarning)
+    if not directed:
+        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
+        ia_edges = _unique_rows(ia_edges)
+    return ia_edges*/
     
 }

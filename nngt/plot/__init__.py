@@ -39,15 +39,16 @@ warnings.filterwarnings("ignore", module="matplotlib")
 # module import
 
 from .custom_plt import palette
-from .animations import Animation2d
+from .animations import Animation2d, AnimationNetwork
 from .plt_properties import (attribute_distribution, betweenness_distribution,
                              degree_distribution)
 
 __all__ = [
+    "Animation2d",
+    "AnimationNetwork",
     "attribute_distribution",
     "betweenness_distribution",
     "degree_distribution",
-    "Animation2d",
 ]
 
 

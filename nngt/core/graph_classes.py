@@ -1030,7 +1030,8 @@ class Network(Graph):
         if isinstance(gids, int):
             return self._id_from_nest_gid[gids]
         else:
-            return tuple(self._id_from_nest_gid[gid] for gid in gids)
+            return np.array([self._id_from_nest_gid[gid] for gid in gids],
+                            dtype=int)
 
     def to_nest(self, use_weights=True):
         '''
