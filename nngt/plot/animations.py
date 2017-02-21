@@ -7,6 +7,8 @@ import warnings
 import weakref
 
 import numpy as np
+
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import matplotlib.animation as anim
@@ -438,6 +440,9 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
 
         # init _SpikeAnimator parent class (create figure and right axes)
         make_rate = kwargs.get('make_rate', True)
+        self.decim_conn = kwargs.get('decimate_connections', 1)
+        cs = kwargs.get('chunksize', 10000)
+        mpl.rcParams['agg.path.chunksize'] = cs
         super(AnimationNetwork, self).__init__(
             spike_detector, sort_neurons=sort_neurons, network=network,
             make_rate=make_rate)
@@ -500,8 +505,9 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
 
     def _draw(self, framedata):
         i = framedata
-        if i == 0:  # initialize neurons
+        if i == 0:  # initialize neurons and connections
             self.line_neurons.set_data(self.x, self.y)
+            #~ self.line_connections.set_data(self.x_conn, self.y_conn)
 
         head = i - 1
         head_slice = ((self.times > self.times[i] - self.trace)
@@ -566,6 +572,21 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
                  self.line_second_, self.line_second_a, self.line_second_e]
         for l in lines:
             l.set_data([], [])
+        # initialize the connections between neurons
+        num_edges = self.network().edge_nb()
+        self.x_conn = np.zeros(3*num_edges)
+        self.y_conn = np.zeros(3*num_edges)
+        adj_mat = self.network().adjacency_matrix()
+        edges = adj_mat.nonzero()
+        self.x_conn[::3] = self.x[edges[0]]   # x position of source nodes
+        self.x_conn[1::3] = self.x[edges[1]]  # x position of target nodes
+        self.x_conn[2::3] = np.NaN            # NaN to separate
+        self.y_conn[::3] = self.y[edges[0]]   # y position of source nodes
+        self.y_conn[1::3] = self.y[edges[1]]  # y position of target nodes
+        self.y_conn[2::3] = np.NaN            # NaN to separate
+        self.env.plot(
+            self.x_conn[::self.decim_conn], self.y_conn[::self.decim_conn],
+            color='k', alpha=0.3, lw=1)
 
 
 # ----- #
