@@ -19,6 +19,8 @@
 		<graph_list>
             <name>fixed_indegree</name>
             <name>fixed_outdegree</name>
+            <name>gaussian_indegree</name>
+            <name>gaussian_outdegree</name>
 <!--
             <name>erdos_sparse</name>
             <name>erdos_dense</name>
@@ -69,7 +71,7 @@
         <graph name="fixed_indegree">
             <generate_options>
                 <string name="graph_type">fixed_degree</string>
-                <int name="nodes">3000</int>
+                <int name="nodes">5000</int>
                 <int name="degree">100</int>
                 <string name="degree_type">in</string>
             </generate_options>
@@ -78,8 +80,28 @@
         <graph name="fixed_outdegree">
             <generate_options>
                 <string name="graph_type">fixed_degree</string>
-                <int name="nodes">3000</int>
+                <int name="nodes">5000</int>
                 <int name="degree">100</int>
+                <string name="degree_type">out</string>
+            </generate_options>
+        </graph>
+        
+        <graph name="gaussian_indegree">
+            <generate_options>
+                <string name="graph_type">gaussian_degree</string>
+                <int name="nodes">5000</int>
+                <int name="avg">100</int>
+                <float name="std">5.</float>
+                <string name="degree_type">in</string>
+            </generate_options>
+        </graph>
+        
+        <graph name="gaussian_outdegree">
+            <generate_options>
+                <string name="graph_type">gaussian_degree</string>
+                <int name="nodes">5000</int>
+                <int name="avg">100</int>
+                <float name="std">5.</float>
                 <string name="degree_type">out</string>
             </generate_options>
         </graph>
