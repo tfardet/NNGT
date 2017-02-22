@@ -136,7 +136,7 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
     if num_etotal:
         ia_edges[:num_etotal,:] = existing_edges
     idx = 0 if b_out else 1 # differenciate source / target
-    variables = source_idx if b_out else target_ids # nodes picked randomly
+    variables = source_ids if b_out else target_ids # nodes picked randomly
     
     for i,v in enumerate(target_ids):
         degree_i = lst_deg[i]

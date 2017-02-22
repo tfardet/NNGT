@@ -21,7 +21,7 @@ from nngt.generation import _compute_connections
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
-
+nngt.set_config({"multithreading": False})
 
 #-----------------------------------------------------------------------------#
 # Test tools
@@ -172,7 +172,6 @@ class TestGeneration(TestBasis):
         the expected properties are indeed obtained.
         '''
         graph_type = instructions["graph_type"]
-        print(graph_type)
         ref_result = self.theo_prop[graph_type](instructions)
         computed_result = self.exp_prop[graph_type](graph, instructions)
         self.assertTrue(np.allclose(
