@@ -1762,6 +1762,7 @@ static const char __pyx_k_itemsize[] = "itemsize";
 static const char __pyx_k_lin_rule[] = "lin_rule";
 static const char __pyx_k_multiply[] = "multiply";
 static const char __pyx_k_neg_dist[] = "neg_dist";
+static const char __pyx_k_nngt_lib[] = "nngt.lib";
 static const char __pyx_k_node_ids[] = "node_ids";
 static const char __pyx_k_num_node[] = "num_node";
 static const char __pyx_k_num_test[] = "num_test";
@@ -1816,7 +1817,6 @@ static const char __pyx_k_InvalidArgument[] = "InvalidArgument";
 static const char __pyx_k_check_num_edges[] = "_check_num_edges";
 static const char __pyx_k_gaussian_degree[] = "_gaussian_degree";
 static const char __pyx_k_idx_correct_out[] = "idx_correct_out";
-static const char __pyx_k_nngt_lib_errors[] = "nngt.lib.errors";
 static const char __pyx_k_pre_recip_edges[] = "pre_recip_edges";
 static const char __pyx_k_price_scale_free[] = "_price_scale_free";
 static const char __pyx_k_ascontiguousarray[] = "ascontiguousarray";
@@ -1934,7 +1934,7 @@ static PyObject *__pyx_n_s_neg_dist;
 static PyObject *__pyx_n_s_newman_watts;
 static PyObject *__pyx_n_s_nngt;
 static PyObject *__pyx_n_s_nngt_generation_cconnect;
-static PyObject *__pyx_n_s_nngt_lib_errors;
+static PyObject *__pyx_n_s_nngt_lib;
 static PyObject *__pyx_n_s_no_self_loops;
 static PyObject *__pyx_n_s_node_ids;
 static PyObject *__pyx_n_s_nodes;
@@ -17325,10 +17325,10 @@ static PyMethodDef __pyx_methods[] = {
 static int __pyx_import_star_set(PyObject *o, PyObject* py_name, char *name) {
   static const char* internal_type_names[] = {
     "X",
+    "__pyx_ctuple_564fc__unsigned__space_int__and_unsigned__space_int__and_unsigned__space_int__etc",
+    "__pyx_ctuple_564fc__unsigned__space_int__and_unsigned__space_int__and_unsigned__space_int__etc_struct",
     "__pyx_ctuple___dunderpyx_ctuple_size_t__dunderand_long",
     "__pyx_ctuple___dunderpyx_ctuple_size_t__dunderand_long_struct",
-    "__pyx_ctuple_adde2__unsigned__space_int__and_unsigned__space_int__and_unsigned__space_int__etc",
-    "__pyx_ctuple_adde2__unsigned__space_int__and_unsigned__space_int__and_unsigned__space_int__etc_struct",
     "__pyx_ctuple_long__and_long",
     "__pyx_ctuple_long__and_long_struct",
     "__pyx_ctuple_long__and_size_t",
@@ -17721,7 +17721,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_newman_watts, __pyx_k_newman_watts, sizeof(__pyx_k_newman_watts), 0, 0, 1, 1},
   {&__pyx_n_s_nngt, __pyx_k_nngt, sizeof(__pyx_k_nngt), 0, 0, 1, 1},
   {&__pyx_n_s_nngt_generation_cconnect, __pyx_k_nngt_generation_cconnect, sizeof(__pyx_k_nngt_generation_cconnect), 0, 0, 1, 1},
-  {&__pyx_n_s_nngt_lib_errors, __pyx_k_nngt_lib_errors, sizeof(__pyx_k_nngt_lib_errors), 0, 0, 1, 1},
+  {&__pyx_n_s_nngt_lib, __pyx_k_nngt_lib, sizeof(__pyx_k_nngt_lib), 0, 0, 1, 1},
   {&__pyx_n_s_no_self_loops, __pyx_k_no_self_loops, sizeof(__pyx_k_no_self_loops), 0, 0, 1, 1},
   {&__pyx_n_s_node_ids, __pyx_k_node_ids, sizeof(__pyx_k_node_ids), 0, 0, 1, 1},
   {&__pyx_n_s_nodes, __pyx_k_nodes, sizeof(__pyx_k_nodes), 0, 0, 1, 1},
@@ -18546,7 +18546,7 @@ PyMODINIT_FUNC PyInit_cconnect(void)
  * from numpy.random import randint
  * 
  * import nngt             # <<<<<<<<<<<<<<
- * from nngt.lib.errors import InvalidArgument
+ * from nngt.lib import InvalidArgument
  * from .connect_tools import *
  */
   __pyx_t_1 = __Pyx_Import(__pyx_n_s_nngt, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 17, __pyx_L1_error)
@@ -18557,7 +18557,7 @@ PyMODINIT_FUNC PyInit_cconnect(void)
   /* "nngt/generation/cconnect.pyx":18
  * 
  * import nngt
- * from nngt.lib.errors import InvalidArgument             # <<<<<<<<<<<<<<
+ * from nngt.lib import InvalidArgument             # <<<<<<<<<<<<<<
  * from .connect_tools import *
  * 
  */
@@ -18566,7 +18566,7 @@ PyMODINIT_FUNC PyInit_cconnect(void)
   __Pyx_INCREF(__pyx_n_s_InvalidArgument);
   __Pyx_GIVEREF(__pyx_n_s_InvalidArgument);
   PyList_SET_ITEM(__pyx_t_1, 0, __pyx_n_s_InvalidArgument);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_nngt_lib_errors, __pyx_t_1, -1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 18, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_nngt_lib, __pyx_t_1, -1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 18, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_InvalidArgument); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 18, __pyx_L1_error)
@@ -18577,7 +18577,7 @@ PyMODINIT_FUNC PyInit_cconnect(void)
 
   /* "nngt/generation/cconnect.pyx":19
  * import nngt
- * from nngt.lib.errors import InvalidArgument
+ * from nngt.lib import InvalidArgument
  * from .connect_tools import *             # <<<<<<<<<<<<<<
  * 
  * 

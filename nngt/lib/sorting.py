@@ -6,9 +6,22 @@
 import numpy as np
 
 
-def _sort_neurons(sort, gids, network):
-    max_nest_gid = network.nest_gid.max() + 1
-    sorting = np.zeros(max_nest_gid)
+def _sort_neurons(sort, gids, network, data=None):
+    '''
+    Sort the neurons according to the `sort` property.
+
+    If `sort` is "firing_rate", then data contains the `senders` list given by
+    a NEST ``spike_recorder``.
+
+    Returns
+    -------
+    For N neurons, labeled from ``GID_MIN`` to ``GID_MAX``, returns a`sorting`
+    array of size ``GID_MAX``, where ``sorting[gids]`` gives the sorted ids of
+    the neurons, i.e. an integer between 1 and N.
+    '''
+    min_nest_gid = network.nest_gid.min()
+    max_nest_gid = network.nest_gid.max()
+    sorting = np.zeros(max_nest_gid + 1)
     if isinstance(sort, str):
         sorted_ids = None
         if "degree" in sort:
@@ -18,10 +31,15 @@ def _sort_neurons(sort, gids, network):
         elif sort == "betweenness":
             betw = network.get_betweenness(btype="node")
             sorted_ids = np.argsort(betw)
+        elif sort == "firing_rate" and data is not None:
+            # compute number of spikes per neuron
+            spikes = np.bincount(data)
+            # sort them (neuron with least spikes arrives at min_nest_gid)
+            sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
         else:
             raise InvalidArgument(
-                '''Unknown sorting parameter {}; choose among "in-degree",
-                "out-degree", "total-degree" or "betweenness".'''.format(sort))
+                'Unknown sorting parameter {}; choose among "in-degree" ' + \
+                'out-degree", "total-degree" or "betweenness".'.format(sort))
         num_sorted = 1
         _, sorted_groups = _sort_groups(network.population)
         for group in sorted_groups:

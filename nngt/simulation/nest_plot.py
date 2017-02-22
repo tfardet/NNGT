@@ -16,7 +16,7 @@ import nest
 from nngt.plot import palette
 from nngt.plot.plt_properties import _set_new_plot
 from nngt.lib import InvalidArgument
-from .nest_utils import _sort_groups
+from nngt.lib.sorting import _sort_groups, _sort_neurons
 
 
 #-----------------------------------------------------------------------------#
@@ -54,17 +54,23 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     label : str, optional (default: None)
         Add a label to the plot.
     sort : str or list, optional (default: None)
-        Node property among ("in-degree", "out-degree", "total-degree" or
-        "betweenness") or list of sorted neuron ids. Neurons are sorted
-        by increasing value of the `sort` property from bottom to top inside
-        each group.
+        Sort neurons using a topological property ("in-degree", "out-degree",
+        "total-degree" or "betweenness"), an activity-related property
+        ("firing_rate") or a user-defined list of sorted neuron ids.
+        Sorting is performed by increasing value of the `sort` property from
+        bottom to top inside each group.
     normalize : float, optional (default: None)
         Normalize the recorded results by a given float.
     decimate : int or list of ints, optional (default: None)
         Represent only a fraction of the spiking neurons; only one neuron in
-        `decimate` will be represented (e.g. setting `decimate` to 10 will lead
-        to only 10% of the neurons being represented). If a list is provided,
+        `decimate` will be represented (e.g. setting `decimate` to 5 will lead
+        to only 20% of the neurons being represented). If a list is provided,
         it must have one entry per NeuralGroup in the population.
+
+    Warning
+    -------
+    Sorting with "firing_rate" only works if NEST gids form a continuous
+    integer range.
 
     Returns
     -------
@@ -85,7 +91,14 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     # sorting
     sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
     if sort and network is not None:
-        sorted_neurons = _sort_neurons(sort, gids, network)
+        data = None
+        if sort == "firing_rate":  # get senders
+            data = []
+            for rec, var in zip(lst_rec, record):
+                info = nest.GetStatus(rec)[0]
+                if str(info["model"]) == "spike_detector":
+                    data.extend(info["events"]["senders"])
+        sorted_neurons = _sort_neurons(sort, gids, network, data=data)
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_raster, num_detec = 0, 0
