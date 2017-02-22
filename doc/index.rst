@@ -7,9 +7,11 @@ Welcome to NNGT's documentation!
 .. image:: https://travis-ci.org/Silmathoron/NNGT.svg?branch=master
     :target: https://travis-ci.org/Silmathoron/NNGT
     :height: 20px
+    :width: auto
 .. image:: https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master
     :target: https://coveralls.io/github/Silmathoron/NNGT?branch=master
     :height: 20px
+    :width: auto
 
 
 Overview
