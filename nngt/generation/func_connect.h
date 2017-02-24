@@ -5,16 +5,11 @@
 #ifndef FUNC_CONNECT_H
 #define FUNC_CONNECT_H
 
-#include <random>
 #include <vector>
 #include <tuple>
 #include <unordered_map>
-#include <algorithm>
-#include <numeric>
-#include <stdio.h>
-#include <assert.h>
 
-#include <omp.h>
+#include <algorithm>
 
 
 namespace generation {
@@ -43,6 +38,7 @@ struct key_equal : public std::binary_function<edge_t, edge_t, bool>
 };
 
 typedef std::unordered_map<edge_t, size_t, key_hash, key_equal> map_t;
+typedef std::unordered_map<edge_t, double, key_hash, key_equal> map_proba;
 
 
 /*
@@ -89,7 +85,6 @@ std::vector<size_t> _gen_edge_complement(
   const bool multigraph);
 
 
-
 /*
  * Generate random edges from a list of nodes, their target degrees, and a
  * second population of nodes.
@@ -104,14 +99,39 @@ std::vector<size_t> _gen_edge_complement(
  * \param directed       - Whether the edges are directed or not.
  * \param msd            - Master seed.
  * \param omp            - Number of OpenMP threads.
- *
- * \return result        - The desired vector of complementary nodes.
  */
 void _gen_edges(
   size_t* ia_edges, const std::vector<size_t>& first_nodes,
   const std::vector<size_t>& degrees, const std::vector<size_t>& second_nodes,
   const std::vector< std::vector<size_t> >& existing_edges, unsigned int idx,
   bool multigraph, bool directed, long msd, unsigned int omp);
+
+
+/*
+ * Parallel distance-rule generator.
+ * 
+ * \param ia_edges       - array that will contain the edges
+ * \param source_nodes   - array containing the ids of the source nodes
+ * \param target_nodes   - array containing the ids of the target nodes
+ * \param rule           - rule for prabability computation ("exp" or "lin")
+ * \param scale          - typical distance for probability computation
+ * \param x              - x coordinate of the neurons' positions
+ * \param y              - y coordinate of the neurons' positions
+ * \param area           - total area of the spatial environment
+ * \param num_neurons    - total number of neurons
+ * \param num_edges      - desired number of edges
+ * \param existing_edges - array containing the edges that are already present
+ *                         in the graph
+ * \param multigraph     - whether the graph can have duplicate edges
+ * \param msd            - master seed given by numpy in the cython function
+ * \param omp            - number of OpenMP threads
+ */
+void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
+  const std::vector<size_t>& target_nodes, const std::string& rule,
+  double scale, const std::vector<double>& x, const std::vector<double>& y,
+  double area, size_t num_neurons, size_t num_edges,
+  const std::vector< std::vector<size_t> >& existing_edges, bool multigraph,
+  long msd, unsigned int omp);
 
 }
 

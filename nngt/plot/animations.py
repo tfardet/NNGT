@@ -74,7 +74,7 @@ class _SpikeAnimator:
             if sort_neurons:
                 if network is not None:
                     sorted_neurons = _sort_neurons(
-                        sort_neurons, self.senders, network)
+                        sort_neurons, self.senders, network, self.senders)
                     self.senders = sorted_neurons[self.senders]
                 else:
                     warnings.warn("Could not sort neurons because no " \

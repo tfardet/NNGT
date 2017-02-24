@@ -5,6 +5,8 @@
 
 import numpy as np
 
+from .errors import InvalidArgument
+
 
 def _sort_neurons(sort, gids, network, data=None):
     '''

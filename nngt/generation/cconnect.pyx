@@ -47,6 +47,12 @@ DTYPE = np.uint
 #------------------------
 #
 
+cdef bytes _to_bytes(string):
+    ''' Convert string to bytes '''
+    if not isinstance(string, bytes):
+        return bytes(string, "UTF-8")
+    return string
+
 def _unique_rows(arr):
     b = np.ascontiguousarray(arr).view(np.dtype((np.void,
         arr.dtype.itemsize * arr.shape[1])))
@@ -343,44 +349,41 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     return ia_edges
 
 
-def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
-                   rule, shape, positions, directed, multigraph, **kwargs):
+def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
+                   np.ndarray[size_t, ndim=1] target_ids,
+                   density, edges, avg_deg, double scale,
+                   str rule, shape, np.ndarray[double, ndim=2] positions,
+                   bool directed, bool multigraph, num_neurons=None, **kwargs):
     '''
     Returns a distance-rule graph
     '''
     np.random.seed()
-    def exp_rule(pos_src, pos_target):
-        dist = np.linalg.norm(pos_src-pos_target,axis=0)
-        return np.exp(np.divide(dist,-scale))
-    def lin_rule(pos_src, pos_target):
-        dist = np.linalg.norm(pos_src-pos_target,axis=0)
-        return np.divide(scale-dist,scale).clip(min=0.)
-    dist_test = exp_rule if rule == "exp" else lin_rule
+    if num_neurons is None:
+        num_neurons = len(set(np.concatenate((source_ids, target_ids))))
+    cdef:
+        size_t cnum_neurons = num_neurons
+        size_t num_source = source_ids.shape[0]
+        size_t num_target = target_ids.shape[0]
+        string crule = _to_bytes(rule)
+        unsigned int omp = nngt.config["omp"]
+        long msd = np.random.randint(0, num_node + 1)
+        vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
+        vector[double] x = positions[0]
+        vector[double] y = positions[1]
     # compute the required values
-    source_ids = np.array(source_ids).astype(int)
-    target_ids = np.array(target_ids).astype(int)
-    num_source, num_target = len(source_ids), len(target_ids)
-    edges, _ = _compute_connections(num_source, num_target,
-                             density, edges, avg_deg, directed, reciprocity=-1)
-    b_one_pop = _check_num_edges(
-        source_ids, target_ids, edges, directed, multigraph)
+    edge_num, _ = _compute_connections(
+        num_source, num_target, density, edges, avg_deg, directed)
+    #~ b_one_pop = _check_num_edges(
+        #~ source_ids, target_ids, edges, directed, multigraph)
     # create the edges
-    ia_edges = np.zeros((edges,2), dtype=int)
-    num_test, num_ecurrent = 0, 0
-    while num_ecurrent != edges and num_test < MAXTESTS:
-        num_create = edges-num_ecurrent
-        ia_sources = source_ids[randint(0, num_source, num_create)]
-        ia_targets = target_ids[randint(0, num_target, num_create)]
-        test = dist_test(positions[:,ia_sources],positions[:,ia_targets])
-        ia_valid = np.greater(test,np.random.uniform(size=num_create))
-        ia_edges_tmp = np.array([ia_sources[ia_valid],ia_targets[ia_valid]]).T
-        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         b_one_pop, multigraph)
-        num_test += 1
-    if num_test == MAXTESTS:
-        ia_edges = ia_edges[:num_ecurrent,:]
-        warnings.warn("Maximum number of tests reached, stopped  generation \
-with {} edges.".format(num_ecurrent), RuntimeWarning)
+    cdef:
+        double area = shape.area
+        size_t cedges = edge_num
+        np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
+            (existing + edges, 2), dtype=DTYPE)
+    _cdistance_rule(&ia_edges[0,0], source_ids, target_ids, crule, scale, x, y,
+                    area, cnum_neurons, cedges, old_edges, multigraph, msd,
+                    omp)
     if not directed:
         ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
         ia_edges = _unique_rows(ia_edges)
