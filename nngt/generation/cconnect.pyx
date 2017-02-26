@@ -110,7 +110,7 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt.config["omp"]
         unsigned int num_node = num_target if b_out else num_source
-        long msd = np.random.randint(0, num_target+1)
+        long msd = np.random.randint(0, edges + 1)
         vector[size_t] degrees = np.repeat(degree, num_node)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
@@ -144,7 +144,6 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt.config["omp"]
         unsigned int num_node = num_target if b_out else num_source
-        long msd = np.random.randint(0, num_node+1)
         vector[size_t] degrees = np.around(np.maximum(
             np.random.normal(avg, std, num_node), 0.)).astype(DTYPE)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
@@ -155,6 +154,7 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
         source_ids, target_ids, edges, directed, multigraph)
 
     cdef:
+        long msd = np.random.randint(0, edges + 1)
         unsigned int existing = \
             0 if existing_edges is None else existing_edges.shape[0]
         np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
@@ -366,24 +366,27 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
         size_t num_target = target_ids.shape[0]
         string crule = _to_bytes(rule)
         unsigned int omp = nngt.config["omp"]
-        long msd = np.random.randint(0, num_node + 1)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
         vector[double] x = positions[0]
         vector[double] y = positions[1]
     # compute the required values
     edge_num, _ = _compute_connections(
         num_source, num_target, density, edges, avg_deg, directed)
+    existing = 0  # for now
     #~ b_one_pop = _check_num_edges(
         #~ source_ids, target_ids, edges, directed, multigraph)
     # create the edges
     cdef:
+        long msd = np.random.randint(0, edge_num + 1)
         double area = shape.area
         size_t cedges = edge_num
         np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
-            (existing + edges, 2), dtype=DTYPE)
+            (existing + edge_num, 2), dtype=DTYPE)
+
     _cdistance_rule(&ia_edges[0,0], source_ids, target_ids, crule, scale, x, y,
                     area, cnum_neurons, cedges, old_edges, multigraph, msd,
                     omp)
+
     if not directed:
         ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
         ia_edges = _unique_rows(ia_edges)

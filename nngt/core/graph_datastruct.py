@@ -731,7 +731,7 @@ class Shape:
             Rectangle shape.
         '''
         shape = cls(parent)
-        half_diag = np.sqrt(np.square(height/2.)+np.square(width/2.))/2.
+        half_diag = np.sqrt(np.square(height/2.) + np.square(width/2.)) / 2.
         pos_com = np.array(pos_com)
         points = [  pos_com + [half_diag,half_diag],
                     pos_com + [half_diag,-half_diag],
@@ -739,12 +739,13 @@ class Shape:
                     pos_com - [half_diag,-half_diag] ]
         shape._convex_hull = sptl.Delaunay(points)
         shape._com = pos_com
+        shape._area = height * width
         return shape
 
-    def __init__(self, parent=None, ):
+    def __init__(self, parent=None):
         self.parent = weakref.proxy(parent) if parent is not None else None
         self._area = 0.
-        self._com = (0.,0.)
+        self._com = (0., 0.)
         self._convex_hull = None
 
     @property

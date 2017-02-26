@@ -6,8 +6,10 @@
 
 #include <omp.h>
 
-#include <random>
+#define _USE_MATH_DEFINES
 #include <cmath>
+#include <limits>
+#include <random>
 
 #include <assert.h>
 
@@ -46,11 +48,11 @@ size_t _unique_1d(std::vector<size_t>& a,
 
 size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
 {
-    size_t total_unique = 0;
+    size_t total_unique = hash_map.size();
     size_t num_edges = a[0].size();
-
     edge_t edge;
-    for (size_t i = 0; i < num_edges; i++)
+
+    for (size_t i = total_unique; i < num_edges; i++)
     {
         edge = edge_t(a[0][i], a[1][i]);
         // check if this number is already in the map
@@ -63,7 +65,6 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
             total_unique += 1;
         }
     }
-    
     // this is required to avoid parasitic values
     a[0].resize(total_unique);
     a[1].resize(total_unique);
@@ -132,7 +133,7 @@ void _gen_edges(
 {
     // Initialize secondary seeds
     std::vector<long> seeds(omp);
-    _init_seeds(seeds);
+    _init_seeds(seeds, omp, msd);
 
     // compute the cumulated sum of the degrees
     std::vector<size_t> cum_degrees(degrees.size());
@@ -169,9 +170,9 @@ void _gen_edges(
 double _proba(int rule, double scale, double distance)
 {
     if (rule == 0) // linear
-        return std::max(0., 1. - distance/scale);
+        return 2 * std::max(0., 1. - distance/scale) / scale;
     else
-        return std::exp(-distance / scale);
+        return std::exp(-distance / scale) / scale;
 }
 
 void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
@@ -179,11 +180,11 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
   double scale, const std::vector<double>& x, const std::vector<double>& y,
   double area, size_t num_neurons, size_t num_edges,
   const std::vector< std::vector<size_t> >& existing_edges, bool multigraph,
-  bool directed, long msd, unsigned int omp)
+  long msd, unsigned int omp)
 {
     // Initialize secondary seeds and RNGs
     std::vector<long> seeds(omp);
-    _init_seeds(seeds);
+    _init_seeds(seeds, omp, msd);
 
     size_t min_src = *std::min_element(
         source_nodes.begin(), source_nodes.end());
@@ -198,31 +199,51 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     std::uniform_real_distribution<double> rnd_uniform(0., 1.);
     
     // initialize edge container and hash map to check uniqueness
-    std::vector< std::vector<size_t> > edges_tmp;
-    edges_tmp.push_back(existing_edges[0]);
-    edges_tmp.push_back(existing_edges[1]);
+    std::vector< std::vector<size_t> > edges_tmp(2, std::vector<size_t>());
+    if (!existing_edges.empty())
+    {
+        edges_tmp.push_back(existing_edges[0]);
+        edges_tmp.push_back(existing_edges[1]);
+    }
     map_t hash_map;
-
+    
     // unordered map to translate rule into int
     std::unordered_map<std::string, int> r_to_int = {{"lin", 0}, {"exp", 1}};
     int rule_type = r_to_int[rule];
 
-    size_t initial_enum = existing_edges[0].size(); // initial number of edges
+    size_t initial_enum = existing_edges.empty() ?
+        0 : existing_edges[0].size(); // initial number of edges
     size_t current_enum = initial_enum;             // current number of edges
     size_t target_enum = current_enum + num_edges;  // target number of edges
-
+    
+    edges_tmp[0].reserve(target_enum);
+    edges_tmp[1].reserve(target_enum);
+    
     // estimate the number of tests that should be necessary
-    double avg_distance = sqrt(area / num_neurons);
-    size_t num_tests = num_edges * _proba(rule_type, scale, avg_distance);
+    //~ double avg_distance = sqrt(area / num_neurons);
+    double typical_distance = sqrt(area);
+    double avg_distance = typical_distance * sqrt(M_PI / 2.);
+    double avg_proba = _proba(rule_type, scale, avg_distance);
+    //~ double avg_proba = avg_distance * std::exp(-avg_distance*avg_distance /
+        //~ (4*typical_distance*typical_distance)) * _proba(rule_type, scale,
+        //~ avg_distance) / (typical_distance*typical_distance);
+    double proba_c = num_edges / ((double) num_neurons * (num_neurons - 1));
+    size_t num_tests = avg_proba <= proba_c ? num_neurons * (num_neurons - 1)
+                                            : num_edges / avg_proba;
     if (current_enum != 0)
     {
-        num_tests *= num_neurons * (num_neurons - 1) / existing_edges.size();
+        num_tests *=
+            1. - existing_edges.size() / (num_neurons * (num_neurons - 1));
     }
+
+    printf("%f %f %f %lu; Num tests: %lu\n", proba_c, avg_distance, avg_proba, num_edges, num_tests);
+    size_t ntests = 0;
 
     // test whether we would statistically need to make more tests than the
     // total number of possible edges.
     if (num_tests >= num_neurons * (num_neurons - 1))
     {
+        printf("BIGGER\n");
         // here RNG is serial, so we use "master" seed
         std::mt19937 generator(msd);
         // if yes, make a map containing the proba for each possible edge
@@ -232,19 +253,20 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
         {
             map_proba proba_local;
             #pragma omp for nowait schedule(static)
-            for (auto u=source_nodes.begin(); u != source_nodes.end(); u++)
+            for (size_t i=0; i<source_nodes.size(); i++)
             {
-                for (auto v=target_nodes.begin(); v != target_nodes.end(); v++)
+                for (size_t j=0; j<target_nodes.size(); j++)
                 {
-                    distance = sqrt((x[v] - x[u])*(x[v] - x[u])
-                                    + (y[v] - y[u])*(y[v] - y[u]));
-                    proba_local[edge_t(u, v)] = _proba(
-                        rule_type, scale, distance);
+                    distance = sqrt((x[j] - x[i])*(x[j] - x[i])
+                                    + (y[j] - y[i])*(y[j] - y[i]));
+                    proba_local[edge_t(source_nodes[i], target_nodes[j])] =
+                        _proba(rule_type, scale, distance);
                 }
             }
             #pragma omp critical
             proba_edges.insert(proba_local.begin(), proba_local.end());
         }
+        printf("proba computed\n");
         // generate the edges
         while (current_enum < target_enum)
         {
@@ -263,7 +285,9 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
 
             // update ecurrent and (potentially) the results
             current_enum = multigraph ?
-                target_degree : _unique_2d(edges_tmp, hash_map);
+                target_enum : _unique_2d(edges_tmp, hash_map);
+
+            printf("current: %lu\n", current_enum);
         }
     }
     else
@@ -272,42 +296,60 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
         #pragma omp parallel num_threads(omp)
         {
             double distance, proba;
+            size_t src, tgt, local_tests(0);
             std::mt19937 generator_(seeds[omp_get_thread_num()]);
-            std::vector< std::vector<size_t> > elocal(2, {}); // thread local edges
+            // thread local edges
+            std::vector< std::vector<size_t> > elocal(2,
+                                                      std::vector<size_t>());
+            elocal[0].reserve((size_t) (num_edges / std::max(1u, omp - 1)));
+            elocal[1].reserve((size_t) (num_edges / std::max(1u, omp - 1)));
             
             while (current_enum < target_enum)
             {
                 #pragma omp for nowait schedule(static)
-                for (size_t i=current_enum; i<target_enum; i++)
+                for (size_t i=0; i<num_tests; i++)
                 {
                     src = rnd_source(generator_);
                     tgt = rnd_target(generator_);
                     distance = sqrt((x[tgt] - x[src])*(x[tgt] - x[src]) +
                                     (y[tgt] - y[src])*(y[tgt] - y[src]));
                     proba = _proba(rule_type, scale, distance);
-                    if (proba > rnd_uniform(generator_))
+                    if (proba >= rnd_uniform(generator_))
                     {
                         elocal[0].push_back(src);
                         elocal[1].push_back(tgt);
                     }
+                    local_tests += 1;
                 }
                 
                 #pragma omp critical
                 {
-                    edges_tmp[0].insert(elocal.begin(), elocal.end());
-                    edges_tmp[0].insert(elocal.begin(), elocal.end());
+                    edges_tmp[0].insert(edges_tmp[0].end(),
+                                        elocal[0].begin(), elocal[0].end());
+                    edges_tmp[1].insert(edges_tmp[1].end(),
+                                        elocal[1].begin(), elocal[1].end());
+                    ntests += local_tests;
                 }
+
+                elocal[0].clear();
+                elocal[1].clear();
 
                 #pragma omp barrier // make sure edges_tmp ready before single
 
                 #pragma omp single
+                {
                 current_enum = multigraph ?
-                    target_degree : _unique_2d(edges_tmp, hash_map);
-                
+                    target_enum : _unique_2d(edges_tmp, hash_map);
+                num_tests = (target_enum - current_enum)
+                    * (1. - current_enum / (num_neurons * (num_neurons - 1)))
+                    / avg_proba;
+                }
                 #pragma omp barrier // current_enum ready for all
             }
         }
     }
+
+    printf("Total tests: %lu", ntests);
 
     // fill the final edge container
     for (size_t i=0; i<num_edges; i++)
@@ -315,4 +357,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
         ia_edges[2*i] = edges_tmp[0][i + initial_enum];
         ia_edges[2*i + 1] = edges_tmp[1][i + initial_enum];
     }
+}
+
 }

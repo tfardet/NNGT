@@ -577,7 +577,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     # add edges
     ia_edges = None
     if nodes > 1:
-        ids = range(nodes)
+        ids = np.arange(0, nodes, dtype=np.uint)
         ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
                                   rule, shape, positions, directed, multigraph)
         graph_dr.new_edges(ia_edges)

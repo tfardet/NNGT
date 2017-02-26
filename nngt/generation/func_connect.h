@@ -107,6 +107,9 @@ void _gen_edges(
   bool multigraph, bool directed, long msd, unsigned int omp);
 
 
+
+double _proba(int rule, double scale, double distance);
+
 /*
  * Parallel distance-rule generator.
  * 
