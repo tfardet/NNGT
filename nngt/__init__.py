@@ -67,7 +67,7 @@ import sys
 #
 
 # Python > 2.6
-assert(sys.hexversion > 0x02060000)
+assert sys.hexversion > 0x02060000, 'NNGT requires Python > 2.6'
 
 # configuration
 lib_folder = os.path.expanduser('~') + '/.nngt'
