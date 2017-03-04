@@ -25,6 +25,10 @@ class _SpikeAnimator:
     '''
     Generic class to plot raster plot and firing-rate in time for a given
     network.
+
+    .. warning:
+        This class is not supposed to be instantiated directly, but only
+        through Animation2d or AnimationNetwork.
     '''
     
     steps = [
@@ -235,6 +239,53 @@ class _SpikeAnimator:
     def on_keyboard_release(self, kb_event):
         self.event = None
 
+    def save_movie(self, filename, fps=30, video_encoder='html5', codec=None,
+                   bitrate=-1, interval=None, num_frames=None, metadata=None):
+        '''
+        Save the animation to a movie file.
+
+        Parameters
+        ----------
+        filename : :obj:`str`
+            Name of the file where the movie will be saved.
+        fps : int, optional (default: 30)
+            Frame per second.
+        video_encoder : :obj:`str`, optional (default 'html5')
+            Movie encoding format; either 'ffmpeg', 'html5', or 'imagemagick'.
+        codec : :obj:`str`, optional (default: None)
+            Codec to use for writing movie; if None, default `animation.codec`
+            from `matplotlib` will be used.
+        bitrate : int, optional (default: -1)
+            Controls size/quality tradeoff for movie. Default (-1) lets utility
+            auto-determine.
+        interval : int, optional (default: None)
+            Timestep increment for each new frame. Default saves all
+            timesteps (often heavy). E.g. setting `interval` to 10 will make
+            the file 10 times lighter.
+        num_frames
+        metadata : :obj:`dict`, optional (default: None)
+            Metadata for the video (e.g. 'title', 'artist', 'comment',
+            'copyright')
+
+        Notes
+        -----
+        * ``ffmpeg`` is required for 'ffmpeg' and 'html5' encoders.
+          To get available formats, type ``ffmpeg -formats`` in a terminal;
+          type ``ffmpeg -codecs | grep EV`` for available codecs.
+        * Imagemagick is required for 'imagemagick' encoder.
+        '''
+        if interval is not None and num_frames is not None:
+            raise InvalidArgument("Incompatible arguments `interval` and "
+                                  "`num_frames` provided. Choose one.")
+        elif interval is None:
+            self.self.increment = max(1, int(self.num_frames / num_frames))
+            self.save_count = num_frames
+        else:
+            self.increment = interval
+            self.save_count = int(self.num_frames / interval)
+        _save_movie(
+            self, filename, fps, video_encoder, codec, bitrate, metadata)
+
 
 class Animation2d(_SpikeAnimator, anim.FuncAnimation):
     
@@ -277,6 +328,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         data_mm = nest.GetStatus(multimeter)[0]["events"]
         self.times = data_mm["times"]
 
+        self.num_frames = len(self.times)
         idx_start = np.where(self.times >= start)[0][0]
         self.idx_start = idx_start
         self.times = self.times[idx_start:]
@@ -399,7 +451,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
 
     def __init__(self, spike_detector, network, resolution=1, start=0.,
                  timewindow=None, trace=5., show_spikes=True,
-                 sort_neurons=False, interval=50, **kwargs):
+                 sort_neurons=False, interval=50, repeat=True, **kwargs):
         '''
         Generate a SubplotAnimation instance to plot a network activity.
         
@@ -429,6 +481,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         self.simtime = nest.GetStatus(spike_detector)[0]["events"]['times'][-1]
         self.times = np.arange(start, self.simtime + resolution, resolution)
 
+        self.num_frames = len(self.times)
         self.start = start
         self.duration = self.simtime - start
         self.trace = trace
@@ -482,8 +535,9 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
 
         plt.tight_layout()
         
-        anim.FuncAnimation.__init__(self, self.fig, self._draw, self._gen_data,
-                                    interval=interval, blit=True)
+        anim.FuncAnimation.__init__(
+            self, self.fig, self._draw, self._gen_data, repeat=repeat,
+            interval=interval, blit=True)
 
     #-------------------------------------------------------------------------
     # Animation instructions
@@ -569,10 +623,12 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         self.second.set_xlabel(xlabel)
         # initialize empty lines
         lines = [self.line_spks_, self.line_spks_a, self.line_neurons_a,
-                 self.line_second_, self.line_second_a, self.line_second_e]
+                 self.line_second_, self.line_second_a, self.line_second_e,
+                 self.line_neurons]
         for l in lines:
             l.set_data([], [])
-        # initialize the connections between neurons
+        # initialize the neurons and connections between neurons
+        self.line_neurons.set_data(self.x, self.y)
         num_edges = self.network().edge_nb()
         self.x_conn = np.zeros(3*num_edges)
         self.y_conn = np.zeros(3*num_edges)
@@ -635,3 +691,14 @@ def _convert_axis(axis_name):
         else:
             new_name += lowercase + "$"
     return new_name
+
+
+def _save_movie(animation, filename, fps, video_encoder, codec, bitrate,
+                metadata):
+    if metadata is None:
+        metadata = {"artist": "NNGT"}
+    encoder = 'ffmpeg' if video_encoder == 'html5' else video_encoder
+    Writer = anim.writers[encoder]
+    writer = Writer(codec=codec, fps=fps, bitrate=bitrate, metadata=metadata)
+    extra = ['-vcodec', 'libx264'] if video_encoder == 'html5' else []
+    animation.save(filename, writer=writer, extra_args=extra)

@@ -369,7 +369,7 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
                  else np.exp(-avg_distance / scale) / scale)
     proba_c = edges / (num_neurons * (num_neurons - 1))
     num_tests = (num_neurons * (num_neurons - 1) if avg_proba <= proba_c
-                 else num_edges / avg_proba)
+                 else edges / avg_proba)
     max_tests = (num_neurons * (num_neurons - 1))
     max_create = kwargs.get("max_test_edges", 10000000)
     # create the edges
