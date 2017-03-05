@@ -28,7 +28,7 @@ size_t _unique_1d(std::vector<size_t>& a,
                   std::unordered_map<size_t, size_t>& hash_map)
 {
     size_t number;
-    size_t total_unique = 0;
+    size_t total_unique = hash_map.size();
 
     for (size_t i = 0; i < a.size(); i++)
     {
