@@ -10,6 +10,7 @@ Provides algorithms for
 	2. analyzing their activity
 	3. studying the graph theoretical properties of those networks
 
+
 Available subpackages
 =====================
 
@@ -29,6 +30,7 @@ growth
 plot
 	plot data or graphs (@todo) using matplotlib and graph_tool
 
+
 Utilities
 ---------
 get_config
@@ -37,6 +39,7 @@ set_config
 	Set library configuration (graph library, multithreading...)
 version
 	NNGT version string
+
 
 Units
 =====
@@ -49,7 +52,8 @@ provided:
 - `cm` centimeters
 - `dm` for decimeters
 - `m` for meters
-    
+
+
 Main classes and functions
 ==========================
 """
@@ -79,7 +83,7 @@ if not os.path.isfile(path_config):
     shutil.copy(nngt_root + '/nngt.conf.default', path_config)
 
 from .globals import (analyze_graph, config, use_library, version, set_config,
-                      get_config)
+                      get_config, seed)
 
 # multithreading
 config["omp"] = int(os.environ.get("OMP", 1))
@@ -92,14 +96,16 @@ if config["omp"] > 1:
 #------------------------
 #
 
+# importing core directly
 from .core import *
 from .core.graph_datastruct import Shape, NeuralPop, GroupProperty, Connections
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .generation.graph_connectivity import generate
 
+# import modules
+from . import analysis
 from . import core
 from . import generation
-from . import analysis
 from . import lib
 
 
@@ -116,6 +122,7 @@ __all__ = [
     "lib",
     "Network",
     "NeuralPop",
+    "seed",
     "set_config",
     "Shape",
     "SpatialGraph",

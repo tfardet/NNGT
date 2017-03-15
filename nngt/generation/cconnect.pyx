@@ -89,7 +89,6 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
                   degree_type, float reciprocity, bool directed,
                   bool multigraph, existing_edges=None):
     ''' Generation of the edges through the C++ function '''
-    np.random.seed()
     cdef:
         # type of degree
         bool b_out = (degree_type == "out")
@@ -134,7 +133,6 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
     Connect nodes with a Gaussian distribution (generation through C++
     function.
     '''
-    np.random.seed()
     cdef:
         # type of degree
         b_out = (degree_type == "out")
@@ -178,7 +176,6 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
                        edges, avg_deg, reciprocity, directed, multigraph,
                        **kwargs):
     ''' Connect the nodes with power law distributions '''
-    np.random.seed()
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -250,7 +247,6 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
     of an Erdos-Renyi graph.
     @todo: perform all the calculations here
     '''
-    np.random.seed()
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -316,7 +312,6 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     Returns a numpy array of dimension (num_edges,2) that describes the edge 
     list of a Newmaan-Watts graph.
     '''
-    np.random.seed()
     node_ids = np.array(source_ids, dtype=int)
     target_ids = np.array(target_ids, dtype=int)
     nodes = len(node_ids)
@@ -357,7 +352,6 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
     '''
     Returns a distance-rule graph
     '''
-    np.random.seed()
     if num_neurons is None:
         num_neurons = len(set(np.concatenate((source_ids, target_ids))))
     cdef:

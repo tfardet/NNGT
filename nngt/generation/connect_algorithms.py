@@ -69,7 +69,6 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph):
 
 def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
                   directed, multigraph, existing_edges=None):
-    np.random.seed()
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -116,7 +115,6 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
 def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
                      reciprocity, directed, multigraph, existing_edges=None):
     ''' Connect nodes with a Gaussian distribution '''
-    np.random.seed()
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -169,7 +167,6 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
                        edges, avg_deg, reciprocity, directed, multigraph,
                        **kwargs):
     ''' Connect the nodes with power law distributions '''
-    np.random.seed()
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -241,7 +238,6 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
     of an Erdos-Renyi graph.
     @todo: perform all the calculations here
     '''
-    np.random.seed()
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -307,7 +303,6 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     Returns a numpy array of dimension (num_edges,2) that describes the edge 
     list of a Newmaan-Watts graph.
     '''
-    np.random.seed()
     node_ids = np.array(source_ids, dtype=int)
     target_ids = np.array(target_ids, dtype=int)
     nodes = len(node_ids)
@@ -345,7 +340,6 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     '''
     Returns a distance-rule graph
     '''
-    np.random.seed()
     def exp_rule(pos_src, pos_target):
         dist = np.linalg.norm(pos_src-pos_target,axis=0)
         return np.exp(np.divide(dist,-scale)) / scale

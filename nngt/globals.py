@@ -13,10 +13,9 @@ import nngt
 
 
 
-#-----------------------------------------------------------------------------#
-# All and version
-#------------------------
-#
+# --------------- #
+# All and version #
+# --------------- #
 
 __all__ = [
     "version",
@@ -34,10 +33,9 @@ version = '0.6'
 ''' :class:`string`, the current version '''
 
 
-#-----------------------------------------------------------------------------#
-# Python 2/3 compatibility
-#------------------------
-#
+# ------------------------ #
+# Python 2/3 compatibility #
+# ------------------------ #
 
 # compatible reload
 
@@ -52,10 +50,9 @@ else:
     reload_module = reload
 
 
-#-----------------------------------------------------------------------------#
-# Config
-#------------------------
-#
+# ------ #
+# Config #
+# ------ #
 
 def _convert(value):
     if value.isdigit():
@@ -86,6 +83,7 @@ def _load_config(path_config):
         'palette': 'Set1',
         'multithreading': False,
         'omp': 1,
+        'seed': None
     }
     with open(path_config, 'r') as fconfig:
         options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
@@ -135,10 +133,28 @@ def get_config(key=None):
         return res
 
 
-#-----------------------------------------------------------------------------#
-# Graph libraries
-#------------------------
-#
+# ----------- #
+# Random seed #
+# ----------- #
+
+def seed(seed=None):
+    '''
+    Seed the random generator used by NNGT (i.e. the numpy `RandomState`: for
+    details, see :class:`numpy.random.RandomState`).
+
+    Parameters
+    ----------
+    seed : int or array_like, optional
+        Seed for `RandomState`.
+        Must be convertible to 32 bit unsigned integers.
+    '''
+    np.random.seed(seed)
+    nngt.config["seed"] = seed
+
+
+# --------------- #
+# Graph libraries #
+# --------------- #
 
 def _set_graph_tool():
     '''
