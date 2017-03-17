@@ -296,7 +296,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
 
     def __init__(self, spike_detector, multimeter, start=0., timewindow=None,
                  trace=5., x='time', y='V_m', sort_neurons=False,
-                 network=None, interval=50, **kwargs):
+                 network=None, interval=50, vector_field=False, **kwargs):
         '''
         Generate a SubplotAnimation instance to plot a network activity.
         
@@ -316,8 +316,79 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         y : str, optional (default: "V_m")
             Name of the `y`-axis variable (must be either "time" or the name
             of a NEST recordable in the `multimeter`).
+        vector_field : bool, optional (default: False)
+            Whether the :math:`\dot{x}` and :math:`\dot{y}` arrows should be
+            added to phase space. Requires additional 'dotx' and 'doty'
+            arguments which are user defined functions to compute the
+            derivatives of `x` and `x` in time. These functions take 3
+            parameters, which are `x`, `y`, and `time_dependent`, where the
+            last parameter is a list of doubles associated to recordables
+            from the neuron model (see example for details). These recordables
+            must be declared in a `time_dependent` parameter.
         **kwargs : dict, optional (default: {})
-            Optional arguments such as 'make_rate'.
+            Optional arguments such as 'make_rate', 'num_xarrows',
+            'num_yarrows', 'dotx', 'doty', 'time_dependent', 'recordables',
+            'arrow_scale'.
+        
+        Example
+        -------
+        To use the quiver (vector field) plot, with the `"aeif_psc_alpha"`
+        model in NEST, use:
+            
+            # neuron and network parameters
+            di_param = {
+                'V_reset': -55.,
+                'V_peak': 0.0,
+                'V_th': -50.,
+                'I_e': 400.,
+                'g_L': 11.7,
+                'tau_w': 900.,
+                'E_L': -65.,
+                'Delta_T': 2.,
+                'a': 2.8,
+                'b': 36.3,
+                'C_m': 200.,
+                'V_m': -70.,
+                'w': 100.,
+                'tau_syn_ex': 2.
+            }
+            
+            num_neurons = 1000
+            avg_degree = 100
+            weight = 5.
+            delay = 20.
+            
+            # create network
+            pop = nngt.NeuralPop.uniform(num_neurons,
+                neuron_model="aeif_psc_alpha", neuron_param=di_param)
+            
+            net = nngt.generation.fixed_degree(
+                avg_degree, population=pop, weights=weight, delays=delay)
+            gids = net.to_nest()
+            
+            # record
+            mm_param = {
+                'record_from': ['V_m', 'w', "I_syn_ex"],
+                'to_accumulator': True,
+                'interval': resol
+            }
+            (mm, sd), recordables = monitor_nodes(
+                gids, nest_recorder=['multimeter', 'spike_detector'],
+                params=[mm_param, {}])
+
+            # derivatives
+            def dotV(V, w, time_dependent):
+                gL, DT = di_param['g_L'], di_param['Delta_T']
+                Ie = di_param['I_e']
+                leak = gL*(V - di_param['E_L'])
+                spike = gL*DT*np.exp((V - di_param['V_th']) / DT)
+                return leak + spike - w + Ie + np.sum(time_dependent)
+
+            def dotw(V, w, time_dependent):
+                a, EL, tw = di_param['a'], di_param['E_L'], di_param['tau_w']
+                return (a*(V - EL ) - w) / tw
+
+            Animation2d(sd, mm, x='V_m', y='w', vector_field=True,
         '''
         import nest
 
@@ -338,6 +409,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.start = start
         self.duration = self.simtime - start
         self.trace = trace
+        self.vector_field = vector_field
         if timewindow is None:
             self.timewindow = self.duration
         else:
@@ -354,6 +426,9 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.y = data_mm[y][idx_start:] / self.num_neurons
         
         self.ps = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
+        self.ps.grid(False)
+        
+        # lines
         self.line_ps_ = Line2D([], [], color='black')
         self.line_ps_a = Line2D([], [], color='red', linewidth=2)
         self.line_ps_e = Line2D(
@@ -363,6 +438,21 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.set_axis(
             self.ps, xlabel=_convert_axis(x), ylabel=_convert_axis(y),
             lines=lines, xdata=self.x, ydata=self.y, xlim=xlim)
+        
+        # For quiver plot (vector field)
+        nx = kwargs.get('num_xarrows', 20)
+        ny = kwargs.get('num_yarrows', 20)
+        scale = kwargs.get('arrow_scale', 30.)
+        if self.vector_field:
+            time_dependent_rec = kwargs.get('time_dependent', [])
+            self.time_dependent = [
+                data_mm[key][idx_start:] / self.num_neurons
+                for key in time_dependent_rec
+            ]
+            self.dotx, self.doty = kwargs['dotx'], kwargs['doty']
+            xx = np.repeat(np.linspace(xlim[0], xlim[1], nx), ny)
+            yy = np.tile(np.linspace(self.y.min(), self.y.max(), ny), nx)
+            self.q = self.ps.quiver(xx, yy, [], [], scale=scale, color='grey')
 
         plt.tight_layout()
 
@@ -396,17 +486,27 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         spike_slice = ((self.spikes > self.times[i] - self.trace)
                        & (self.spikes <= self.times[i]))
         spike_cum = self.spikes < self.times[i]
+        
+        lines = []
+        if self.vector_field:
+            time_dep = [arr[i] for arr in self.time_dependent]
+            u = self.dotx(self.q.X, self.q.Y, time_dep)
+            v = self.doty(self.q.X, self.q.Y, time_dep)
+            self.q.set_UVC(u, v)
+            lines.append(self.q)
 
         self.line_ps_.set_data(self.x[:i], self.y[:i])
         self.line_ps_a.set_data(self.x[head_slice], self.y[head_slice])
-        self.line_ps_e.set_data(self.x[head], self.y[head])
+        self.line_ps_e.set_data(self.x[i], self.y[i])
+        
+        lines.extend([self.line_ps_, self.line_ps_a, self.line_ps_e,
+             self.line_spks_, self.line_spks_a, self.line_second_,
+             self.line_second_a, self.line_second_e])
         
         super(Animation2d, self)._draw(
             i, head, head_slice, spike_cum, spike_slice)
 
-        return [self.line_ps_, self.line_ps_a, self.line_ps_e, self.line_spks_,
-                self.line_spks_a, self.line_second_, self.line_second_a,
-                self.line_second_e]
+        return lines
 
     def _init_draw(self):
         '''
@@ -434,6 +534,8 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.second.set_xticklabels(self.xlabels)
         self.second.set_xlim(*xlim)
         self.second.set_xlabel(xlabel)
+        if self.vector_field:
+            self.q.set_UVC([], [])
         # initialize empty lines
         lines = [self.line_ps_, self.line_ps_a, self.line_ps_e,
                  self.line_spks_, self.line_spks_a,
@@ -702,3 +804,23 @@ def _save_movie(animation, filename, fps, video_encoder, codec, bitrate,
     writer = Writer(codec=codec, fps=fps, bitrate=bitrate, metadata=metadata)
     extra = ['-vcodec', 'libx264'] if video_encoder == 'html5' else []
     animation.save(filename, writer=writer, extra_args=extra)
+
+
+def _vector_field(q, dotx_func, doty_func, x, y, Is):
+    '''
+    Add the vector field of the x and y derivatives in phase space.
+    
+    Parameters
+    ----------
+    q : :class:`matplotlib.quiver.Quiver`
+        Phase space quiver object.
+    dotx_func : function
+        User provided function giving :math:`\dot{x} = f(x, y, Is(t))`.
+    doty_func : function
+        User provided function giving :math:`\dot{y} = g(x, y, Is(t))`.
+    x : :class:`numpy.ndarray`.
+    y : :class:`numpy.ndarray`.
+    Is : float
+        Current (time dependent data).
+    '''
+    q.set_UVC(dotx_func(x, y, Is), doty_func(x, y, Is))

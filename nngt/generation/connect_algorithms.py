@@ -6,6 +6,7 @@
 import warnings
 import numpy as np
 import scipy.sparse as ssp
+from scipy.spatial.distance import cdist
 from numpy.random import randint
 
 import nngt
@@ -342,6 +343,7 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     '''
     def exp_rule(pos_src, pos_target):
         dist = np.linalg.norm(pos_src-pos_target,axis=0)
+        #dist = cdist(pos_src, pos_target)
         return np.exp(np.divide(dist,-scale)) / scale
     def lin_rule(pos_src, pos_target):
         dist = np.linalg.norm(pos_src-pos_target,axis=0)

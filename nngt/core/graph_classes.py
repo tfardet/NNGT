@@ -13,6 +13,7 @@ import nngt
 import nngt.analysis as na
 from nngt.lib import (InvalidArgument, as_string, save_to_file, load_from_file,
                       nonstring_container)
+from nngt.lib.graph_helpers import _edge_prop, _set_edge_attr
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE)
 if nngt.config['with_nest']:
@@ -59,10 +60,8 @@ class Graph(nngt.core.GraphObject):
         library_graph = nngt.core.GraphObject.to_graph_object(library_graph)
         library_graph.__class__ = cls
         if weighted:
-            if "weights" in kwargs:
-                library_graph._w = kwargs["weights"]
-            else:
-                library_graph._w = {"distribution": "constant"}
+            library_graph._w = _edge_prop("weights", kwargs)
+        library_graph._d = _edge_prop("delays", kwargs)
         library_graph.__id = cls.__max_id
         library_graph._name = "Graph" + str(cls.__num_graphs)
         cls.__max_id += 1
@@ -275,22 +274,22 @@ with non symmetric matrix provided.')
         kwargs : optional keywords arguments
             Optional arguments that can be passed to the graph, e.g. a dict
             containing information on the synaptic weights
-            (``weights={"distribution": "constant", "value": 2.3}``), or a
+            (``weights={"distribution": "constant", "value": 2.3}`` which is
+            equivalent to ``weights=2.3``), the synaptic `delays`, or a
             ``type`` information.
         
         Returns
         -------
-        self : :class:`~nggt.Graph`
+        self : :class:`~nngt.Graph`
         '''
         self.__id = self.__class__.__max_id
         self._name = name
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
-        # take care of the weights @todo: use those of the from_graph
+        # take care of the weights and delays
+        # @todo: use those of the from_graph
         if weighted:
-            if "weights" in kwargs:
-                self._w = kwargs["weights"]
-            else:
-                self._w = {"distribution": "constant"}
+            self._w = _edge_prop("weights", kwargs)
+        self._d = _edge_prop("delays", kwargs)
         # Init the core.GraphObject
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
@@ -308,10 +307,10 @@ with non symmetric matrix provided.')
         t = self.type
         n = self.node_nb()
         e = self.edge_nb()
-        return "<{directed}/{weighted} {obj} object of type '{net_type}' \
-with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
-            directed=d, weighted=w, obj=type(self).__name__, net_type=t,
-            nodes=n, edges=e, obj_id = id(self))
+        return "<{directed}/{weighted} {obj} object of type '{net_type}' " \
+               "with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
+                    directed=d, weighted=w, obj=type(self).__name__,
+                    net_type=t, nodes=n, edges=e, obj_id=id(self))
 
     def __str__(self):
         '''
@@ -395,6 +394,56 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
         #~ self._graph.clear_filters()
         #~ return exc_graph
 
+    def new_edge(self, source, target, attributes=None):
+        '''
+        Adding a connection to the graph, with optional properties.
+        
+        Parameters
+        ----------
+        source : :class:`int/node`
+            Source node.
+        target : :class:`int/node`
+            Target node.
+        attributes : :class:`dict`, optional (default: ``{}``)
+            Dictionary containing optional edge properties. If the graph is
+            weighted, defaults to ``{"weight": 1.}``, the unit weight for the
+            connection (synaptic strength in NEST).
+            
+        Returns
+        -------
+        The new connection.
+        '''
+        if attributes is None:
+            attributes = {}
+            _set_edge_attr(self, [(source, target)], attributes)
+        super(Graph, self).new_edge(source, target, attributes=attributes)
+
+    def new_edges(self, edge_list, attributes=None):
+        '''
+        Add a list of edges to the graph.
+        
+        Parameters
+        ----------
+        edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
+            List of the edges that should be added as tuples (source, target)
+        attributes : :class:`dict`, optional (default: ``{}``)
+            Dictionary containing optional edge properties. If the graph is
+            weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
+            array the same length as the `edge_list` containing a unit weight
+            for each connection (synaptic strength in NEST).
+        
+        warning ::
+            For now attributes works only when adding edges for the first time
+            (i.e. adding edges to an empty graph).
+            
+        @todo: add example, check the edges for self-loops and multiple edges
+        '''
+        if attributes is None:
+            attributes = {}
+            _set_edge_attr(self, edge_list, attributes)
+        super(Graph, self).new_edges(edge_list, attributes=attributes)
+
+
     #-------------------------------------------------------------------------#
     # Setters
         
@@ -426,14 +475,15 @@ with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
                 if val is not None:
                     values = np.repeat(val, num_edges)
                 else:
-                    raise InvalidArgument('''At least one of the `values` and
-`val` arguments should not be ``None``.''')
+                    raise InvalidArgument("At least one of the `values` and "
+                        "`val` arguments should not be ``None``.")
             if num_edges == self.edge_nb():
+                assert num_edges == len(values), "One value per edge required."
                 self._eattr[attribute] = values
             else:
-                raise NotImplementedError('''Currently, it is only possible to
-change the attribute of all the edges at the same time, not of only a
-subset.''')
+                raise NotImplementedError("Currently, it is only possible to "
+                    "change the attribute of all the edges at the same time, "
+                    "not of only a subset.")
                 
     
     def set_weights(self, weight=None, elist=None, distribution=None,
@@ -546,9 +596,9 @@ subset.''')
             raise AttributeError('''Invalid `delay` value: must be either
                                  float, array-like or None.''')
         if distribution is None:
-            distribution = self._w["distribution"]
+            distribution = self._d["distribution"]
         if parameters is None:
-            parameters = self._w
+            parameters = self._d
         return nngt.Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
@@ -1058,8 +1108,9 @@ class Network(Graph):
             if population.is_valid:
                 self._population = population
                 nodes = population.size
-                # create the delay attribute
-                nngt.Connections.delays(self)
+                # create the delay attribute if necessary
+                if "delay" not in self.attributes():
+                    nngt.Connections.delays(self)
             else:
                 raise AttributeError("NeuralPop is not valid (not all \
                 neurons are associated to a group).")

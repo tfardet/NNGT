@@ -498,7 +498,7 @@ class Connections:
                 return []
 
     @staticmethod
-    def delays(graph, dlist=None, elist=None, distribution="constant",
+    def delays(graph=None, dlist=None, elist=None, distribution="constant",
                parameters={}, noise_scale=None):
         '''
         Compute the delays of the neuronal connections.
@@ -536,12 +536,13 @@ class Connections:
             dlist = _eprop_distribution(graph, distribution, elist=elist,
                                         **parameters)
         # add to the graph container
-        graph.set_edge_attribute(
-            DELAY, value_type="double", values=dlist, edges=elist)
+        if graph is not None:
+            graph.set_edge_attribute(
+                DELAY, value_type="double", values=dlist, edges=elist)
         return dlist
 
     @staticmethod
-    def weights(graph, elist=None, wlist=None, distribution="constant",
+    def weights(graph=None, elist=None, wlist=None, distribution="constant",
                 parameters={}, noise_scale=None):
         '''
         Compute the weights of the graph's edges.
@@ -586,10 +587,11 @@ there are {} edges while {} values where provided'''.format(
         # add to the graph container
         bwlist = (np.max(wlist) - wlist if np.any(wlist)
                   else np.repeat(0, len(wlist)))
-        graph.set_edge_attribute(
-            WEIGHT, value_type="double", values=wlist, edges=elist)
-        graph.set_edge_attribute(
-            BWEIGHT, value_type="double", values=bwlist, edges=elist)
+        if graph is not None:
+            graph.set_edge_attribute(
+                WEIGHT, value_type="double", values=wlist, edges=elist)
+            graph.set_edge_attribute(
+                BWEIGHT, value_type="double", values=bwlist, edges=elist)
         return wlist
 
     @staticmethod
