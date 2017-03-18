@@ -119,6 +119,4 @@ class TestAttributes(TestBasis):
 suite = unittest.TestLoader().loadTestsFromTestCase(TestAttributes)
 
 if __name__ == "__main__":
-    import nngt
-    nngt.use_library("networkx")
     unittest.main()
