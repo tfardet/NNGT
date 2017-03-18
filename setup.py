@@ -39,8 +39,8 @@ ext = '.pyx' if with_cython else '.cpp'
 extensions = Extension(
     "nngt.generation.cconnect", # name of extension
     sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
-    extra_compile_args==[
-            "-std=c++11", "-fopenmp", "-Wno-cpp", "-Wno-strict-prototypes"
+    extra_compile_args = [
+        "-std=c++11", "-fopenmp", "-Wno-cpp", "-Wno-unused-function"
     ],
     language="c++",
     include_dirs=[dirname, numpy.get_include()],
