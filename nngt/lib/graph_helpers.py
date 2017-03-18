@@ -25,11 +25,13 @@ def _edge_prop(name, arg_dict):
 
 def _set_edge_attr(graph, elist, attributes):
     ''' Fill the `attributes` dictionnary '''
-    distrib = graph._w["distribution"]
-    params = {k: v for (k, v) in graph._w.items() if k != "distribution"}
-    attributes["weight"] = _eprop_distribution(graph, distrib, elist=elist,
-                                               **params)
-    distrib = graph._d["distribution"]
-    params = {k: v for (k, v) in graph._d.items() if k != "distribution"}
-    attributes["delay"] = _eprop_distribution(graph, distrib, elist=elist,
-                                              **params)
+    if graph._weighted and "weight" not in attributes:
+        distrib = graph._w["distribution"]
+        params = {k: v for (k, v) in graph._w.items() if k != "distribution"}
+        attributes["weight"] = _eprop_distribution(graph, distrib, elist=elist,
+                                                   **params)
+    if hasattr(graph, "_d") and "delay" not in attributes:
+        distrib = graph._d["distribution"]
+        params = {k: v for (k, v) in graph._d.items() if k != "distribution"}
+        attributes["delay"] = _eprop_distribution(graph, distrib, elist=elist,
+                                                  **params)

@@ -69,8 +69,7 @@ def delta_distrib(graph=None, elist=None, num=None, value=1., **kwargs):
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
-    if num is None:
-        num = elist.shape[0] if elist is not None else graph.edge_nb()
+    num = _compute_num_prop(elist, graph, num)
     return np.repeat(value, num)
 
 
@@ -92,8 +91,7 @@ def uniform_distrib(graph, elist=None, num=None, lower=0., upper=1.5,
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
-    if num is None:
-        num = elist.shape[0] if elist is not None else graph.edge_nb()
+    num = _compute_num_prop(elist, graph, num)
     return np.random.uniform(lower, upper, num)
 
 
@@ -114,21 +112,19 @@ def gaussian_distrib(graph, elist=None, num=None, avg=1., std=0.2, **kwargs):
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
-    if num is None:
-        num = elist.shape[0] if elist is not None else graph.edge_nb()
+    num = _compute_num_prop(elist, graph, num)
     return np.random.normal(avg, std, num)
 
 
 def lognormal_distrib(graph, elist=None, num=None, position=1., scale=0.2,
                       **kwargs):
-    if num is None:
-        num = elist.shape[0] if elist is not None else graph.edge_nb()
+    num = _compute_num_prop(elist, graph, num)
     return np.random.lognormal(position, scale, num)
 
 
 def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
                            noise_scale=None, lower=0., upper=2., **kwargs):
-    ecount = elist.shape[0] if elist is not None else graph.edge_nb()
+    ecount = _compute_num_prop(elist, graph)
     noise = ( 1. if noise_scale is None
                  else np.abs(np.random.normal(1, noise_scale, ecount)) )
     if correl_attribute == "betweenness":
@@ -144,7 +140,7 @@ def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
 def log_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
                            noise_scale=None, lower=0., upper=2.,
                            **kwargs):
-    ecount = elist.shape[0] if elist is not None else graph.edge_nb()
+    ecount = _compute_num_prop(elist, graph)
     raise NotImplementedError()
 
 
@@ -157,3 +153,13 @@ di_dfunc = {
     "lin_corr": lin_correlated_distrib,
     "log_corr": log_correlated_distrib
 }
+
+
+# ----- #
+# Tools #
+# ----- #
+
+def _compute_num_prop(elist, graph, ecount=None):
+    if ecount is None:
+        return len(elist) if elist is not None else graph.edge_nb()
+    return ecount

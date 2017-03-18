@@ -20,9 +20,7 @@ __all__ = [
 ]
 
 
-def _set_options(graph, weighted, population, shape, positions):
-    if weighted:
-        graph.set_weights()
+def _set_options(graph, population, shape, positions):
     if issubclass(graph.__class__, nngt.Network):
         Connections.delays(graph)
     elif population is not None:

@@ -18,7 +18,6 @@ import matplotlib
 import nngt
 
 if nngt.config["backend"] is not None:
-    print("using " + nngt.config["backend"])
     matplotlib.use(nngt.config["backend"])
 else:
     sav_backend = matplotlib.get_backend()
@@ -27,7 +26,6 @@ else:
     while backends and keep_trying:
         try:
             backend = backends.pop()
-            print("trying " + backend)
             matplotlib.use(backend)
             keep_trying = False
         except:

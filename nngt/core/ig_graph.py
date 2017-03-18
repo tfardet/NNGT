@@ -11,6 +11,7 @@ import scipy.sparse as ssp
 import nngt.globals
 from nngt.globals import BWEIGHT
 from nngt.lib import InvalidArgument, nonstring_container
+from nngt.lib.graph_helpers import _set_edge_attr
 from .base_graph import BaseGraph, BaseProperty
 
 
@@ -128,9 +129,9 @@ class _IGraph(BaseGraph):
             if edges:
                 eattr = g.es[0].attributes().keys()
             for attr in nattr:
-                di_node_attr[attr] = g.vs[:][attr]
+                di_node_attr[attr] = np.array(g.vs[:][attr])
             for attr in eattr:
-                di_edge_attr[attr] = g.es[:][attr]
+                di_edge_attr[attr] = np.array(g.es[:][attr])
             super(_IGraph, self).__init__(n=nodes, vertex_attrs=di_node_attr)
             lst_edges = nngt.globals.analyze_graph["get_edges"](g)
             self.new_edges(lst_edges, attributes=di_edge_attr)
@@ -209,13 +210,17 @@ an array of 2-tuples of ints.")
         -------
         The new connection.
         '''
+        enum = self.ecount()
         if attributes is None:
             attributes = {}
-        if self._weighted and "weight" not in attributes:
-            attributes["weight"] = 1.
-        super(_IGraph, self).add_edge(source, target, **attributes)
+        super(_IGraph, self).add_edge(source, target)
+        _set_edge_attr(self, [(source, target)], attributes)
+        for key, val in attributes.items():
+            self.es[enum][key] = val[0]
         if not self._directed:
-            super(_IGraph, self).add_edge(target, source, **attributes)
+            super(_IGraph, self).add_edge(target, source)
+            for key, val in attributes.items():
+                self.es[enum][key] = val[0]
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None):
@@ -249,6 +254,7 @@ an array of 2-tuples of ints.")
                 attributes[key] = np.concatenate((val, val))
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
+        _set_edge_attr(self, edge_list, attributes)
         num_edges = self.ecount()
         # attributes
         if self._weighted and "weight" not in attributes:
@@ -383,3 +389,26 @@ node in the graph.")
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
+
+    #-------------------------------------------------------------------------
+    # Prevent users from calling igraph functions
+
+    def add_vertex(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic igraph functions for vertex "
+                           "creation have been disabled.")
+
+    def add_vertices(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic igraph functions for vertex "
+                           "creation have been disabled.")
+
+    def add_edge(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic igraph functions for edge "
+                           "creation have been disabled.")
+
+    def add_edges(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic igraph functions for edge "
+                           "creation have been disabled.")
+
+    def clear_edges(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for edge "
+                           "deletion have been disabled.")

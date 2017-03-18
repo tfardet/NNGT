@@ -11,6 +11,7 @@ import scipy.sparse as ssp
 import nngt.globals
 from nngt.globals import BWEIGHT
 from nngt.lib import InvalidArgument
+from nngt.lib.graph_helpers import _set_edge_attr
 from .base_graph import BaseGraph, BaseProperty
 
 
@@ -161,10 +162,10 @@ class _GtGraph(BaseGraph):
         #~ if weighted:
             #~ self.new_edge_attribute("weight", "double")
         if g is None:
-            self.add_vertex(nodes)
+            super(_GtGraph, self).add_vertex(nodes)
         else:
             if g.__class__ is nngt.globals.config["graph"]:
-                edges = nngt.globals.analyze_graph["get_edges"](g)
+                edges = nngt.analyze_graph["get_edges"](g)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -245,20 +246,19 @@ an array of 2-tuples of ints.")
         '''
         if attributes is None:
             attributes = {}
-        if self._weighted and "weight" not in attributes:
-            attributes["weight"] = 1.
         connection = super(_GtGraph, self).add_edge(source, target,
                                                     add_missing=True)
+        _set_edge_attr(self, [(source, target)], attributes)
         for key, val in attributes:
             if key in self.edge_properties:
-                self.edge_properties[key][connection] = val
+                self.edge_properties[key][connection] = val[0]
             else:
                 raise InvalidArgument("Unknown edge property `" + key + "'.")
         if not self._directed:
             c2 = super(_GtGraph, self).add_edge(target, source)
             for key, val in attributes:
                 if key in self.edge_properties:
-                    self.edge_properties[key][c2] = val
+                    self.edge_properties[key][c2] = val[0]
                 else:
                     raise InvalidArgument("Unknown edge property `"+ key +"'.")
         return connection
@@ -289,13 +289,12 @@ an array of 2-tuples of ints.")
         edge_generator = ( e for e in edge_list )
         if not isinstance(edge_list, np.ndarray):
             edge_list = np.array(edge_list)
+        super(_GtGraph, self).add_edge_list(edge_list)
+        _set_edge_attr(self, edge_list, attributes)
         if not self._directed:
             edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val))
-        if self._weighted and "weight" not in attributes:
-            attributes["weight"] = np.repeat(1., edge_list.shape[0])
-        super(_GtGraph, self).add_edge_list(edge_list)
         if attributes:
             elist0 = None #@todo: make elist supported and remove this
             # take care of classic attributes
@@ -319,9 +318,9 @@ an array of 2-tuples of ints.")
         return edge_generator
     
     def clear_all_edges(self):
-        self.clear_edges()
+        super(_GtGraph, self).clear_edges()
         self._eattr.clear()
-    
+
     #-------------------------------------------------------------------------#
     # Getters
     
@@ -346,11 +345,11 @@ an array of 2-tuples of ints.")
 
     def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
                          norm=True):
-        if self.edge_nb():
+        if self.num_edges():
             w_p = None
             if "weight" in self.edge_properties.keys() and use_weights:
                 w_p = self.edge_properties[BWEIGHT]
-            tpl = nngt.globals.analyze_graph["betweenness"](
+            tpl = nngt.analyze_graph["betweenness"](
                 self, weight=w_p, norm=norm)
             lst_return = []
             if btype == "node":
@@ -358,13 +357,16 @@ an array of 2-tuples of ints.")
             elif btype == "edge":
                 return tpl[1] if as_prop else np.array(tpl[1].a)
             else:
-                return ( tpl[0], tpl[1] if as_prop
+                return ( np.array(tpl[0], tpl[1]) if as_prop
                          else np.array(tpl[0].a), np.array(tpl[1].a) )
         else:
             if as_prop:
-                return None, None
+                return (None, None) if btype == "both" else None
             else:
-                return np.array([]), np.array([])
+                if btype == "both":
+                    return np.array([]), np.array([])
+                else:
+                    return np.array([])
 
     def neighbours(self, node, mode="all"):
         '''
@@ -395,3 +397,46 @@ an array of 2-tuples of ints.")
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
+
+    #-------------------------------------------------------------------------
+    # Prevent users from calling graph_tool functions
+
+    def add_vertex(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for vertex "
+                           "creation have been disabled.")
+
+    def add_edge(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for edge "
+                           "creation have been disabled.")
+
+    def add_edge_list(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for edge "
+                           "creation have been disabled.")
+
+    def remove_vertex(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for vertex "
+                           "deletion have been disabled.")
+
+    def clear_vertex(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for vertex "
+                           "deletion have been disabled.")
+
+    def purge_vertices(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for vertex "
+                           "deletion have been disabled.")
+
+    def remove_edge(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for edge "
+                           "deletion have been disabled.")
+
+    def clear_edges(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for edge "
+                           "deletion have been disabled.")
+
+    def purge_edges(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool functions for edge "
+                           "deletion have been disabled.")
+
+    def clear(self, *args, **kwargs):
+        raise RuntimeError("Intrinsic graph_tool `clear` function has been "
+                           "disabled.")

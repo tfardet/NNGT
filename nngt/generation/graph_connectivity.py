@@ -122,7 +122,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
                                  directed, multigraph)
         graph_fd.new_edges(ia_edges)
-    _set_options(graph_fd, weighted, population, shape, positions)
+    _set_options(graph_fd, population, shape, positions)
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
     return graph_fd
 
@@ -197,7 +197,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
         ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
                                     reciprocity, directed, multigraph)
         graph_gd.new_edges(ia_edges)
-    _set_options(graph_gd, weighted, population, shape, positions)
+    _set_options(graph_gd, population, shape, positions)
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
     return graph_gd
 
@@ -274,7 +274,7 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
         ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                                 directed, multigraph)
         graph_er.new_edges(ia_edges)
-    _set_options(graph_er, weighted, population, shape, positions)
+    _set_options(graph_er, population, shape, positions)
     graph_er._graph_type = "erdos_renyi"
     return graph_er
 
@@ -348,7 +348,8 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         graph_rsf.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_rsf = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+        graph_rsf = nngt.Graph(
+            name=name,nodes=nodes,directed=directed,**kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -356,7 +357,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
                           edges, avg_deg, reciprocity, directed, multigraph)
         graph_rsf.new_edges(ia_edges)
-    _set_options(graph_rsf, weighted, population, shape, positions)
+    _set_options(graph_rsf, population, shape, positions)
     graph_rsf._graph_type = "random_scale_free"
     return graph_rsf
 
@@ -422,7 +423,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     #~ graph_price = (nngt.Graph(name=name, libgraph=graph_obj_price, **kwargs)
                    #~ if from_graph is None else from_graph)
     
-    _set_options(graph_price, weighted, population, shape, positions)
+    _set_options(graph_price, population, shape, positions)
     graph_price._graph_type = "price_scale_free"
     return graph_price
 
@@ -500,7 +501,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
         ia_edges = _newman_watts(ids, ids, coord_nb, proba_shortcut, directed,
                                  multigraph)
         graph_nw.new_edges(ia_edges)
-    _set_options(graph_nw, weighted, population, shape, positions)
+    _set_options(graph_nw, population, shape, positions)
     graph_nw._graph_type = "newman_watts"
     return graph_nw
 
@@ -582,8 +583,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
                                   rule, shape, positions, directed, multigraph)
         graph_dr.new_edges(ia_edges)
     # set options (graph has already been made spatial)
-    _set_options(graph_dr, weighted, population, shape=shape,
-                 positions=positions)
+    _set_options(graph_dr, population, shape=shape, positions=positions)
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
 

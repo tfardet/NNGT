@@ -13,7 +13,7 @@ import nngt
 import nngt.analysis as na
 from nngt.lib import (InvalidArgument, as_string, save_to_file, load_from_file,
                       nonstring_container)
-from nngt.lib.graph_helpers import _edge_prop, _set_edge_attr
+from nngt.lib.graph_helpers import _edge_prop
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE)
 if nngt.config['with_nest']:
@@ -289,7 +289,8 @@ with non symmetric matrix provided.')
         # @todo: use those of the from_graph
         if weighted:
             self._w = _edge_prop("weights", kwargs)
-        self._d = _edge_prop("delays", kwargs)
+        if "delays" in kwargs:
+            self._d = _edge_prop("delays", kwargs)
         # Init the core.GraphObject
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
@@ -394,56 +395,6 @@ with non symmetric matrix provided.')
         #~ self._graph.clear_filters()
         #~ return exc_graph
 
-    def new_edge(self, source, target, attributes=None):
-        '''
-        Adding a connection to the graph, with optional properties.
-        
-        Parameters
-        ----------
-        source : :class:`int/node`
-            Source node.
-        target : :class:`int/node`
-            Target node.
-        attributes : :class:`dict`, optional (default: ``{}``)
-            Dictionary containing optional edge properties. If the graph is
-            weighted, defaults to ``{"weight": 1.}``, the unit weight for the
-            connection (synaptic strength in NEST).
-            
-        Returns
-        -------
-        The new connection.
-        '''
-        if attributes is None:
-            attributes = {}
-            _set_edge_attr(self, [(source, target)], attributes)
-        super(Graph, self).new_edge(source, target, attributes=attributes)
-
-    def new_edges(self, edge_list, attributes=None):
-        '''
-        Add a list of edges to the graph.
-        
-        Parameters
-        ----------
-        edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
-            List of the edges that should be added as tuples (source, target)
-        attributes : :class:`dict`, optional (default: ``{}``)
-            Dictionary containing optional edge properties. If the graph is
-            weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
-            array the same length as the `edge_list` containing a unit weight
-            for each connection (synaptic strength in NEST).
-        
-        warning ::
-            For now attributes works only when adding edges for the first time
-            (i.e. adding edges to an empty graph).
-            
-        @todo: add example, check the edges for self-loops and multiple edges
-        '''
-        if attributes is None:
-            attributes = {}
-            _set_edge_attr(self, edge_list, attributes)
-        super(Graph, self).new_edges(edge_list, attributes=attributes)
-
-
     #-------------------------------------------------------------------------#
     # Setters
         
@@ -466,10 +417,12 @@ with non symmetric matrix provided.')
             which is determined by the :class:`nngt.NeuralGroup` they
             belong to.
         '''
+        #~ print("sea", attribute, values, val, value_type, edges)
         if attribute not in self.attributes():
             self._eattr.new_ea(name=attribute, value_type=value_type,
                                values=values, val=val)
         else:
+            #~ print("sea2", values, val, edges)
             num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
                 if val is not None:
@@ -593,12 +546,22 @@ with non symmetric matrix provided.')
             size = self.edge_nb() if elist is None else len(elist)
             delay = np.repeat(delay, size)
         elif not hasattr(delay, "__len__") and delay is not None:
-            raise AttributeError('''Invalid `delay` value: must be either
-                                 float, array-like or None.''')
+            raise AttributeError("Invalid `delay` value: must be either "
+                                 "float, array-like or None")
         if distribution is None:
-            distribution = self._d["distribution"]
+            if hasattr(self, "_d"):
+                distribution = self._d["distribution"]
+            else:
+                raise AttributeError("Invalid `distribution` value: cannot be "
+                                     "None if default delays were not set at "
+                                     "graph creation.")
         if parameters is None:
-            parameters = self._d
+            if hasattr(self, "_d"):
+                parameters = self._d
+            else:
+                raise AttributeError("Invalid `parameters` value: cannot be "
+                                     "None if default delays were not set at "
+                                     "graph creation.")
         return nngt.Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
