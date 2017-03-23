@@ -67,6 +67,7 @@ if on_rtd:
     sys.modules["graph_tool.topology"] = mock_object
     sys.modules["graph_tool.draw"] = mock_object
     sys.modules["graph_tool.clustering"] = mock_object
+    sys.modules["matplotlib"] = Mock()
     sys.modules["nest"] = mock_object
 
 from nngt import version as nngt_version
