@@ -100,7 +100,8 @@ class _SpikeAnimator:
                 start, self.times[-1]))
 
         # figure/canvas: pause/resume and step by step interactions
-        self.fig = plt.figure()
+        self.fig = plt.figure(
+            figsize=kwargs.get("figsize", (8, 6)), dpi=kwargs.get("dpi", 75))
         self.pause = False
         self.event = None
         self.increment = 1
@@ -284,7 +285,8 @@ class _SpikeAnimator:
             self.increment = interval
             self.save_count = int(self.num_frames / interval)
         _save_movie(
-            self, filename, fps, video_encoder, codec, bitrate, metadata)
+            self, filename, fps, video_encoder, codec, bitrate, metadata,
+            self.fig.dpi)
 
 
 class Animation2d(_SpikeAnimator, anim.FuncAnimation):
@@ -416,10 +418,11 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
             self.timewindow = min(timewindow, self.duration)
 
         # init _SpikeAnimator parent class (create figure and right axes)
-        make_rate = kwargs.get('make_rate', True)
+        if 'make_rate' not in kwargs:
+            kwargs['make_rate'] = True
         super(Animation2d, self).__init__(
             spike_detector, sort_neurons=sort_neurons, network=network,
-            make_rate=make_rate)
+            **kwargs)
 
         # Data and axis for phase-space
         self.x = data_mm[x][idx_start:] / self.num_neurons
@@ -594,13 +597,14 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             self.timewindow = min(timewindow, self.duration)
 
         # init _SpikeAnimator parent class (create figure and right axes)
-        make_rate = kwargs.get('make_rate', True)
         self.decim_conn = kwargs.get('decimate_connections', 1)
         cs = kwargs.get('chunksize', 10000)
         mpl.rcParams['agg.path.chunksize'] = cs
+        if 'make_rate' not in kwargs:
+            kwargs['make_rate'] = True
         super(AnimationNetwork, self).__init__(
             spike_detector, sort_neurons=sort_neurons, network=network,
-            make_rate=make_rate)
+            make_rate=make_rate, **kwargs)
         
         self.env = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
 
@@ -796,14 +800,15 @@ def _convert_axis(axis_name):
 
 
 def _save_movie(animation, filename, fps, video_encoder, codec, bitrate,
-                metadata):
+                metadata, dpi):
     if metadata is None:
         metadata = {"artist": "NNGT"}
     encoder = 'ffmpeg' if video_encoder == 'html5' else video_encoder
     Writer = anim.writers[encoder]
+    if video_encoder == 'html5':
+        codec = 'libx264'
     writer = Writer(codec=codec, fps=fps, bitrate=bitrate, metadata=metadata)
-    extra = ['-vcodec', 'libx264'] if video_encoder == 'html5' else []
-    animation.save(filename, writer=writer, extra_args=extra)
+    animation.save(filename, writer=writer, dpi=dpi)
 
 
 def _vector_field(q, dotx_func, doty_func, x, y, Is):
