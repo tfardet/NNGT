@@ -3,7 +3,7 @@ sphinx_bootstrap_theme
 
 ## Plot module ##
 matplotlib
-PyQt4
+PyQt5
 
 ## Database tools ##
 peewee
