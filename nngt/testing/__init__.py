@@ -45,10 +45,16 @@ import nngt
 graph_library = environ.get("GL", None)
 if graph_library == "gt":
     nngt.use_library("graph-tool")
+    assert nngt.get_config('graph_library') == "graph-tool", \
+           "Loading graph-tool failed..."
 elif graph_library == "ig":
     nngt.use_library("igraph")
+    assert nngt.get_config('graph_library') == "igraph", \
+           "Loading igraph failed..."
 elif graph_library == "nx":
     nngt.use_library("networkx")
+    assert nngt.get_config('graph_library') == "networkx", \
+           "Loading networkx failed..."
 
 omp = int(environ.get("OMP", 1))
 nngt.set_config({"omp": omp})

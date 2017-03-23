@@ -58,7 +58,8 @@ before_install:
     # install graph-tool and igraph
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
-    - if [[ "$GL" == "ig" ]]; then wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1; fi
+    - if [[ "$PYVERSION" == "3.5" && "$GL" == "ig" ]]; then sudo apt-get libcairo2 libxml2-dev && wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1 && sudo pip install python-igraph; fi
+    - if [[ "$PYVERSION" == "2.7" && "$GL" == "ig" ]]; then sudo apt-get install python-igraph; fi
 
     # testing and coverage analysis
     - shopt -s expand_aliases
