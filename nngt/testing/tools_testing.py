@@ -8,8 +8,8 @@
 # terms of the GNU General Public License.
 
 import xml.etree.ElementTree as xmlet
-import gc
-
+import unittest
+import nngt
 
 #-----------------------------------------------------------------------------#
 # Xml tools
@@ -62,10 +62,14 @@ def foreach_graph(func):
     '''
     Decorator that automatically does the test for all graph instructions
     provided in the argument.
-    '''       
+    '''
     def wrapper(*args, **kwargs):
         self = args[0]
+        nx = nngt.get_config("graph_library") == "networkx"
         for graph_name in self.graphs:
-            g, di = self.gen_graph(graph_name)
-            func(self, g, instructions=di, **kwargs)
+            if nx and "corr" in graph_name:
+                print("Skipping correlated attributes with networkx")
+            else:
+                g, di = self.gen_graph(graph_name)
+                func(self, g, instructions=di, **kwargs)
     return wrapper

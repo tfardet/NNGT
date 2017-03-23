@@ -70,7 +70,6 @@ class TestAttributes(TestBasis):
         return "test_attributes"
 
     def gen_graph(self, graph_name):
-        print(graph_name)
         di_instructions = self.parser.get_graph_options(graph_name)
         graph = nngt.generate(di_instructions)
         graph.set_name(graph_name)
@@ -82,8 +81,6 @@ class TestAttributes(TestBasis):
         When generating graphs with weights, check that the expected properties
         are indeed obtained.
         '''
-        if graph.name == "erdos_uniform_weights":
-            print(instructions, graph.get_weights()[0], len(graph.get_weights()), graph.edge_nb())
         ref_result = _results_theo(instructions)
         weights = graph.get_weights()
         computed_result = _results_exp(weights, instructions)
@@ -104,7 +101,10 @@ class TestAttributes(TestBasis):
         delays = graph.set_delays(distribution=distrib, parameters=di_distrib)
         ref_result = _results_theo(instructions)
         computed_result = _results_exp(delays, instructions)
-        self.assertTrue(np.allclose(ref_result,computed_result,self.tolerance))
+        self.assertTrue(np.allclose(
+            ref_result, computed_result, self.tolerance),
+            '''Error on graph {}: unequal delays for tolerance {}.
+            '''.format(graph.name, self.tolerance))
         # @todo
         #~ if nngt.config['with_nest']:
             #~ from nngt.simulation import make_nest_network
@@ -119,4 +119,5 @@ class TestAttributes(TestBasis):
 suite = unittest.TestLoader().loadTestsFromTestCase(TestAttributes)
 
 if __name__ == "__main__":
+    nngt.use_library("networkx")
     unittest.main()

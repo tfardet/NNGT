@@ -266,7 +266,8 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
         graph_er.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_er = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+        graph_er = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
     # add edges
     ia_edges = None
     if nodes > 1:
