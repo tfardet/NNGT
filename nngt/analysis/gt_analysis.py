@@ -113,14 +113,14 @@ def assortativity(graph, deg_type="total"):
     Assortativity of the graph.
     .. todo ::
         check how the various libraries functions work.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
         Network to analyze.
     deg_type : string, optional (default: 'total')
         Type of degree to take into account (among 'in', 'out' or 'total').
-    
+
     Returns
     -------
     a float quantifying the graph assortativity.

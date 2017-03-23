@@ -21,4 +21,3 @@ For more details regarding the main classes, see:
    plot
    analysis
    lib
-   properties

@@ -143,8 +143,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 		The standard deviation of the Gaussian distribution.
     degree_type : str, optional (default: 'in')
         The type of the fixed degree, among 'in', 'out' or 'total'
-        @todo
-			Implement 'total' degree
+        @todo: Implement 'total' degree
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     reciprocity : double, optional (default: -1 to let it free)
@@ -667,7 +666,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     network : :class:`Network` or :class:`SpatialNetwork`
         The network to connect.
     source_type : int
-        The type of source neurons (``1`` for excitatory, ``-1 for 
+        The type of source neurons (``1`` for excitatory, ``-1`` for
         inhibitory neurons).
     source_type : int
         The type of target neurons.

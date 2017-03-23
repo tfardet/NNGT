@@ -480,11 +480,11 @@ with non symmetric matrix provided.')
         Set the synaptic/connection types.
 
         .. warning ::
-            The special "type" attribute cannot be modified when using graphs
-            that inherit from the :class:`~nngt.Network` class. This is because
-            for biological networks, neurons make only one kind of synapse,
-            which is determined by the :class:`nngt.NeuralGroup` they
-            belong to.
+        The special "type" attribute cannot be modified when using graphs
+        that inherit from the :class:`~nngt.Network` class. This is because
+        for biological networks, neurons make only one kind of synapse,
+        which is determined by the :class:`nngt.NeuralGroup` they
+        belong to.
 
         Parameters
         ----------
@@ -525,8 +525,8 @@ with non symmetric matrix provided.')
         '''
         Set the delay for spike propagation between neurons.
         ..todo ::
-            take elist into account in Connections.delays
-        
+        take elist into account in Connections.delays
+
         Parameters
         ----------
         delay : float or class:`numpy.array`, optional (default: None)
@@ -768,7 +768,7 @@ class SpatialGraph(Graph):
         '''
         Initialize SpatialClass instance.
         .. todo::
-            see what we do with the from_graph argument
+        see what we do with the from_graph argument
 
         Parameters
         ----------

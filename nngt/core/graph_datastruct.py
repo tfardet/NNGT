@@ -312,7 +312,7 @@ class NeuralGroup:
     """
     Class defining groups of neurons.
 
-    :ivar id_list: :class:`list` of :class:`int`s
+    :ivar id_list: :obj:`list` of :obj:`int`
         the ids of the neurons in this group.
     :ivar neuron_type: :class:`int`
         the default is ``1`` for excitatory neurons; ``-1`` is for interneurons
@@ -410,13 +410,13 @@ class GroupProperty:
         -----
         The constraints can be chosen among:
             - "avg_deg", "min_deg", "max_deg" (:class:`int`) to constrain the
-            total degree of the nodes
+              total degree of the nodes
             - "avg/min/max_in_deg", "avg/min/max_out_deg", to work with the
-            in/out-degrees
+              in/out-degrees
             - "avg/min/max_betw" (:class:`double`) to constrain the betweenness
-            centrality
+              centrality
             - "in_shape" (:class:`nngt.Shape`) to chose neurons inside a given
-            spatial region
+              spatial region
 
         Examples
         --------

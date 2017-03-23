@@ -298,6 +298,7 @@ def _circular_graph(node_ids, coord_nb):
     ia_targets[ia_targets>nodes-0.5] -= nodes
     return np.array([node_ids[ia_sources], node_ids[ia_targets]]).astype(int).T
 
+
 def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
                   directed, multigraph, **kwargs):
     '''
@@ -375,9 +376,7 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     probas, test = None, None
     if num_tests >= max_tests:
         # compute the distances
-        distances = np.linalg.norm(
-            np.array([np.repeat(positions[0, ], num_neurons),
-                      np.tile(positions[1], num_neurons)]), axis=0)
+        distances = cdist(pos_src, pos_target)
         probas = np.exp(-distances / scale) / scale
     while num_ecurrent <= edges:
         num_create = min((edges-num_ecurrent) / avg_proba,
