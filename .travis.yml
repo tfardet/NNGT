@@ -33,9 +33,9 @@ before_install:
     - wget -O - http://llvm-apt.ecranbleu.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
     # add ppa for gcc>4.9
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-    - if [["$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'; fi
-    - if [["$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'; fi
-    - if [["$GL" == "gt" ]]; then gpg --keyserver 'http://pgp.skewed.de:11371/pks/lookup?op=get&search=0x612DEFB798507F25' --recv-key 98507f25 && gpg -a --export 98507F25 | sudo apt-key add -; fi
+    - if [[ "$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'; fi
+    - if [[ "$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'; fi
+    - if [[ "$GL" == "gt" ]]; then gpg --keyserver 'http://pgp.skewed.de:11371/pks/lookup?op=get&search=0x612DEFB798507F25' --recv-key 98507f25 && gpg -a --export 98507F25 | sudo apt-key add -; fi
     # update package repository status (-qq is more quiet)
     - sudo rm -rf /var/lib/apt/lists/*
     - ls /etc/apt/sources.list.d/
@@ -55,7 +55,7 @@ before_install:
     # install graph-tool and igraph
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
-    - if [[ "$PYVERSION" == "3.5" && "$GL" == "ig" ]]; then sudo apt-get install libcairo2 libxml2-dev && wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1 && sudo pip install python-igraph; fi
+    - if [[ "$PYVERSION" == "3.5" && "$GL" == "ig" ]]; then sudo apt-get install libcairo2 libxml2-dev && wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1 && pip install --user python-igraph; fi
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "ig" ]]; then sudo apt-get install python-igraph; fi
 
     # testing and coverage analysis
