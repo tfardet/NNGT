@@ -65,9 +65,6 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
             total_unique += 1;
         }
     }
-    // this is required to avoid parasitic values
-    a[0].resize(total_unique);
-    a[1].resize(total_unique);
 
     return total_unique;
 }
@@ -216,8 +213,8 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     size_t current_enum = initial_enum;             // current number of edges
     size_t target_enum = current_enum + num_edges;  // target number of edges
     
-    edges_tmp[0].reserve(target_enum);
-    edges_tmp[1].reserve(target_enum);
+    edges_tmp[0] = std::vector<size_t>(target_enum);
+    edges_tmp[1] = std::vector<size_t>(target_enum);
     
     // estimate the number of tests that should be necessary
     //~ double avg_distance = sqrt(area / num_neurons);
@@ -236,58 +233,72 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             1. - existing_edges.size() / (num_neurons * (num_neurons - 1));
     }
 
-    printf("%f %f %f %lu; Num tests: %lu\n", proba_c, avg_distance, avg_proba, num_edges, num_tests);
     size_t ntests = 0;
 
     // test whether we would statistically need to make more tests than the
     // total number of possible edges.
     if (num_tests >= num_neurons * (num_neurons - 1))
     {
-        printf("BIGGER\n");
-        // here RNG is serial, so we use "master" seed
-        std::mt19937 generator(msd);
-        // if yes, make a map containing the proba for each possible edge
+        // make a map containing the proba for each possible edge
         map_proba proba_edges;
         double distance;
+
         #pragma omp parallel num_threads(omp)
         {
             map_proba proba_local;
+            double proba;
+            edge_t in, out;
             #pragma omp for nowait schedule(static)
             for (size_t i=0; i<source_nodes.size(); i++)
             {
-                for (size_t j=0; j<target_nodes.size(); j++)
+                for (size_t j=0; j<=i; j++)
                 {
                     distance = sqrt((x[j] - x[i])*(x[j] - x[i])
                                     + (y[j] - y[i])*(y[j] - y[i]));
-                    proba_local[edge_t(source_nodes[i], target_nodes[j])] =
-                        _proba(rule_type, scale, distance);
+                    proba = _proba(rule_type, scale, distance);
+                    in = edge_t(source_nodes[i], target_nodes[j]);
+                    out = edge_t(target_nodes[j], source_nodes[i]);
+                    proba_local[in] = proba;
+                    proba_local[out] = proba;
                 }
             }
+            
             #pragma omp critical
             proba_edges.insert(proba_local.begin(), proba_local.end());
-        }
-        printf("proba computed\n");
-        // generate the edges
-        while (current_enum < target_enum)
-        {
-            size_t src, tgt, i(current_enum);
-            while (i < target_enum)
+            #pragma omp barrier // make sure proba_edges is ready
+
+            // generate the edges
+            std::mt19937 generator_(seeds[omp_get_thread_num()]);
+            
+            while (current_enum < target_enum)
             {
-                src = rnd_source(generator);
-                tgt = rnd_target(generator);
-                if (proba_edges[edge_t(src, tgt)] > rnd_uniform(generator))
+                size_t src, tgt;
+                bool test(true);
+
+                #pragma omp for nowait schedule(static)
+                for (size_t j=current_enum; j<target_enum; j++)
                 {
-                    edges_tmp[0].push_back(src);
-                    edges_tmp[1].push_back(tgt);
-                    i++;
+                    while (test)
+                    {
+                        src = rnd_source(generator_);
+                        tgt = rnd_target(generator_);
+                        if (proba_edges[edge_t(src, tgt)]
+                            > rnd_uniform(generator_) and src != tgt)
+                        {
+                            edges_tmp[0][j] = src;
+                            edges_tmp[1][j] = tgt;
+                            test = false;
+                        }
+                    }
+                    test = true;
                 }
+
+                // update ecurrent and (potentially) the results
+                #pragma omp single
+                current_enum = multigraph ?
+                    target_enum : _unique_2d(edges_tmp, hash_map);
+                #pragma omp barrier // make sure current_enum is updated
             }
-
-            // update ecurrent and (potentially) the results
-            current_enum = multigraph ?
-                target_enum : _unique_2d(edges_tmp, hash_map);
-
-            printf("current: %lu\n", current_enum);
         }
     }
     else

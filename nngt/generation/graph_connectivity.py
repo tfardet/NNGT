@@ -554,7 +554,8 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     name : string, optional (default: "DR")
         Name of the created graph.
     positions : :class:`numpy.ndarray`, optional (default: None)
-        A 2D or 3D array containing the positions of the neurons in space.
+        A 2D (2, N) or 3D (3, N) shaped array containing the positions of the
+        neurons in space.
     population : :class:`~nngt.NeuralPop`, optional (default: None)
         Population of neurons defining their biological properties (to create a
         :class:`~nngt.Network`).

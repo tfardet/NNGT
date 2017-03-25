@@ -344,7 +344,6 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     '''
     def exp_rule(pos_src, pos_target):
         dist = np.linalg.norm(pos_src-pos_target,axis=0)
-        #dist = cdist(pos_src, pos_target)
         return np.exp(np.divide(dist,-scale)) / scale
     def lin_rule(pos_src, pos_target):
         dist = np.linalg.norm(pos_src-pos_target,axis=0)
@@ -362,37 +361,43 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     # compute the number of tests required
     typical_distance = np.sqrt(shape.area)
     avg_distance = typical_distance * np.sqrt(np.pi / 2.)
-    avg_proba = (2 * (1. - avg_distance / scale) if rule == "lin"
-                 else np.exp(-avg_distance / scale) / scale)
+    typical_proba = (2 * (1. - avg_distance / scale) if rule == "lin"
+                    else np.exp(-avg_distance / scale) / scale)
     proba_c = edges / (num_neurons * (num_neurons - 1))
-    num_tests = (num_neurons * (num_neurons - 1) if avg_proba <= proba_c
-                 else edges / avg_proba)
+    num_tests = (num_neurons * (num_neurons - 1) if typical_proba <= proba_c
+                 else edges / typical_proba)
     max_tests = (num_neurons * (num_neurons - 1))
-    max_create = kwargs.get("max_test_edges", 10000000)
+    max_create = kwargs.get("max_test_edges", 2*edges)
     # create the edges
     ia_edges = np.zeros((max_create, 2), dtype=int)
     num_ecurrent = 0
 
     probas, test = None, None
-    if num_tests >= max_tests:
-        # compute the distances
-        distances = cdist(pos_src, pos_target)
-        probas = np.exp(-distances / scale) / scale
-    while num_ecurrent <= edges:
-        num_create = min((edges-num_ecurrent) / avg_proba,
-                         max_create - num_ecurrent)
+    if num_tests >= max_tests:  # compute all distances
+        distances = np.reshape(
+            cdist(positions[:, source_ids].T, positions[:, target_ids].T),
+            (num_source*num_target,))
+        if rule == "exp":
+            probas = np.exp(-distances / scale) / scale
+        else:
+            probas = 2 * np.divide(scale-distances, scale).clip(min=0.)
+    while num_ecurrent < edges:
+        num_create = int(min((edges-num_ecurrent) / typical_proba + 1, edges))
         ia_sources = source_ids[randint(0, num_source, num_create)]
         ia_targets = target_ids[randint(0, num_target, num_create)]
         if num_tests >= max_tests:
-            test = probas[ia_sources*num_neurons + ia_targets]
+            test = probas[ia_sources*num_target + ia_targets]
         else:
             test = dist_test(positions[:,ia_sources], positions[:,ia_targets])
-        ia_valid = np.greater(test, np.random.uniform(size=num_create))
-        ia_edges_tmp = np.array([ia_sources[ia_valid], ia_targets[ia_valid]]).T
+        test = np.greater(test, np.random.uniform(size=num_create))
+        ia_edges_tmp = np.array([ia_sources[test], ia_targets[test]]).T
         ia_edges, num_ecurrent = _filter(
             ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph)
-    
+
+    ia_edges = ia_edges[:num_ecurrent, :]
+
     if num_ecurrent > edges:
+        np.random.shuffle(ia_edges)
         ia_edges = ia_edges[:edges, :]
 
     if not directed:

@@ -87,7 +87,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             esize.a *= 0.01*size[0]
     elif issubclass(float, esize.__class__):
         esize = np.repeat(esize, e)
-        esize = network.graph.new_edge_property("double",esize)
+        esize = network.new_edge_property("double",esize)
     ncolor = _node_color(network, ncolor)        
     if issubclass(float, nborder_color.__class__):
         nborder_color = np.repeat(nborder_color, n)
@@ -104,11 +104,11 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
             pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
     elif spatial and network.is_spatial():
-        pos = network[POS]
-        pos = network.graph.new_vertex_property("vector<double>",pos)
+        pos = network.position.T
+        pos = network.new_vertex_property("vector<double>", pos)
     else:
-        ebetw = network.graph.betweenness_list(as_prop=True)[1]
-        pos = gplot.sfdp_layout(network.graph, eweight=ebetw)
+        ebetw = network.betweenness_list(as_prop=True)[1]
+        pos = gplot.sfdp_layout(network, eweight=ebetw)
     if not e:
         size_inches = (size[0]/float(dpi),size[1]/float(dpi))
         fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
@@ -127,11 +127,11 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         ax.set_ylim([-0.51*size[1],0.51*size[1]])
         plt.show()
     elif spatial and network.is_spatial():
-        gplot.graph_draw(network.graph, pos=pos, vertex_color=nborder_color,
+        gplot.graph_draw(network, pos=pos, vertex_color=nborder_color,
             vertex_fill_color=ncolor, vertex_size=nsize, edge_color=ecolor,
             edge_pen_width=esize, output_size=size)
     else:
-        gplot.graph_draw(network.graph, pos=pos, vertex_color=nborder_color,
+        gplot.graph_draw(network, pos=pos, vertex_color=nborder_color,
             vertex_fill_color=ncolor, vertex_size=nsize, edge_color=ecolor,
             edge_pen_width=esize, output_size=size)
 
@@ -142,15 +142,15 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 #
 
 def _node_size(network, nsize):
-    size = network.graph.new_vertex_property("double",1.)
-    w = network.graph.edge_properties['weight'] if network.is_weighted() else None
+    size = network.new_vertex_property("double",1.)
+    w = network.edge_properties['weight'] if network.is_weighted() else None
     if "degree" in nsize:
         deg_type = nsize[:nsize.index("-")]
-        size = network.graph.degree_property_map(deg_type, weight=w)
+        size = network.degree_property_map(deg_type, weight=w)
         if size.a.max() > 15*size.a.min():
             size.a = np.power(size.a,0.4)
     if nsize == "betweenness":
-        size = network.graph.betweenness_list(as_prop=True)[0]
+        size = network.betweenness_list(as_prop=True)[0]
         if size.a.max() > 15*size.a.min():
             min_size = size.a[size.a!=0].min()
             size.a[size.a == 0.] = min_size
@@ -161,9 +161,9 @@ def _node_size(network, nsize):
     return size
 
 def _edge_size(network, esize):
-    size = network.graph.new_edge_property("double",1.)
+    size = network.new_edge_property("double",1.)
     if esize == "betweenness":
-        size = network.graph.betweenness_list(as_prop=True)[1]
+        size = network.betweenness_list(as_prop=True)[1]
         size.a /= size.a.max()
     return size
 
@@ -178,5 +178,5 @@ def _node_color(network, ncolor):
             c = np.linspace(0,1,l)
             for i,group in enumerate(network.population.values()):
                 color[group.id_list] = c[i]
-    color = network.graph.new_vertex_property("double",color)
+    color = network.new_vertex_property("double",color)
     return color

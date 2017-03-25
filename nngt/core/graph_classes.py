@@ -42,12 +42,6 @@ class Graph(nngt.core.GraphObject):
 
     __num_graphs = 0
     __max_id = 0
-    #~ __di_property_func = {
-            #~ "reciprocity": reciprocity, "clustering": clustering,
-            #~ "assortativity": assortativity, "diameter": diameter,
-            #~ "scc": num_scc, "wcc": num_wcc, "radius": spectral_radius, 
-            #~ "num_iedges": num_iedges }
-    #~ __properties = __di_property_func.keys()
     
     @classmethod
     def num_graphs(cls):
@@ -57,6 +51,15 @@ class Graph(nngt.core.GraphObject):
     @classmethod
     def from_library(cls, library_graph, weighted=True, directed=True,
                      **kwargs):
+        '''
+        Returns a :class:`~nngt.Graph` object from a graph-tool, igraph or
+        networkx graph.
+
+        .. warning ::
+            This works only on objects from the graph library backend that
+            NNGT is currently using. E.g. when using the "graph-tool" backend,
+            only :class:`graph_tool.Graph` objects can be converted.
+        '''
         library_graph = nngt.core.GraphObject.to_graph_object(library_graph)
         library_graph.__class__ = cls
         if weighted:
@@ -67,7 +70,6 @@ class Graph(nngt.core.GraphObject):
         cls.__max_id += 1
         cls.__num_graphs += 1
         return library_graph
-        
     
     @classmethod
     def from_matrix(cls, matrix, weighted=True, directed=True):
@@ -97,14 +99,16 @@ class Graph(nngt.core.GraphObject):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
                 if not (matrix.T != matrix).nnz == 0:
-                    raise InvalidArgument('Incompatible directed=False option \
-with non symmetric matrix provided.')
+                    raise InvalidArgument('Incompatible directed=False option '
+                                          'with non symmetric matrix '
+                                          'provided.')
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
                 if not (matrix.T == matrix).all():
-                    raise InvalidArgument('Incompatible directed=False option \
-with non symmetric matrix provided.')
+                    raise InvalidArgument('Incompatible directed=False option '
+                                          'with non symmetric matrix '
+                                          'provided.')
         edges = np.array(matrix.nonzero()).T
         graph = cls(nodes, name=graph_name.replace("Z", str(cls.__num_graphs)),
                     weighted=weighted, directed=directed)
@@ -122,7 +126,8 @@ with non symmetric matrix provided.')
                  attributes=None, notifier="@", ignore="#", from_string=False):
         '''
         Import a saved graph from a file.
-        @todo: implement population and shape loading, implement gml, dot, xml, gt
+        @todo: implement population and shape loading, implement gml, dot,
+        xml, gt; add examples
 
         Parameters
         ----------
@@ -417,12 +422,10 @@ with non symmetric matrix provided.')
             which is determined by the :class:`nngt.NeuralGroup` they
             belong to.
         '''
-        #~ print("sea", attribute, values, val, value_type, edges)
         if attribute not in self.attributes():
             self._eattr.new_ea(name=attribute, value_type=value_type,
                                values=values, val=val)
         else:
-            #~ print("sea2", values, val, edges)
             num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
                 if val is not None:
@@ -812,6 +815,10 @@ class SpatialGraph(Graph):
 
     @property
     def position(self):
+        '''
+        Array of shape (2, node_nb) containing the spatial positions of the
+        nodes in the :class:`~nngt.SpatialGraph`.
+        '''
         return self._pos
 
     #-------------------------------------------------------------------------#

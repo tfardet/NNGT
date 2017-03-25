@@ -50,9 +50,9 @@ else:
     reload_module = reload
 
 
-# ------ #
-# Config #
-# ------ #
+# ----- #
+# Tools #
+# ----- #
 
 def _convert(value):
     if value.isdigit():
@@ -63,6 +63,88 @@ def _convert(value):
         return False
     else:
         return value
+
+
+def not_implemented(*args, **kwargs):
+    return NotImplementedError("Not implemented yet.")
+
+
+analyze_graph = {
+    'adjacency': not_implemented,
+    'assortativity': not_implemented,
+    'betweenness': not_implemented,
+    'clustering': not_implemented,
+    'diameter': not_implemented,
+    'ebetweenness': not_implemented,
+    'get_edges': not_implemented,
+    'nbetweenness': not_implemented,
+    'reciprocity': not_implemented,
+    'scc': not_implemented,
+    'wcc': not_implemented,
+}
+
+
+# ------ #
+# Config #
+# ------ #
+
+
+def set_config(config, value=None):
+    '''
+    Set NNGT's configuration.
+
+    Parameters
+    ----------
+    config : dict or str
+        Either a full configuration dictionary or one key to be set together
+        with its associated value.
+    value : object, optional (default: None)
+        Value associated to `config` if `config` is a key.
+
+    Examples
+    --------
+
+    >>> nngt.set_config({'multithreading': True, 'omp': 4})
+    >>> nngt.set_config('multithreading', False)
+
+    Note
+    ----
+    See the config file `nngt/nngt.conf.default` or `~/.nngt/nngt.conf` for
+    details about your configuration.
+
+    See also
+    --------
+    :func:`~nngt.get_config`
+    '''
+    old_multithreading = nngt.config["multithreading"]
+    if not isinstance(config, dict):
+        config = {config: value}
+    for key in config:
+        if key not in nngt.config:
+            raise KeyError("Unknown configuration property: {}".format(key))
+    # check multithreading status and number of threads 
+    if "omp" in config:
+        if config["omp"] > 1:
+            config["multithreading"] = True
+        else:
+            config["multithreading"] = False
+    if not config.get("multithreading", old_multithreading):
+        config["omp"] = 1
+    # update
+    nngt.config.update(config)
+    # apply multithreading parameters
+    if config["multithreading"] != old_multithreading:
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
+    if "omp" in config and nngt.config["graph_library"] == "graph-tool":
+        nngt.config["library"].openmp_set_num_threads(nngt.config["omp"])
+
+
+def get_config(key=None):
+    if key is None:
+        return {key: val for key, val in nngt.config.items()}
+    else:
+        res = nngt.config[key]
+        return res
 
 
 def _load_config(path_config):
@@ -96,41 +178,6 @@ def _load_config(path_config):
 
 
 config = _load_config(nngt.path_config)
-
-
-def not_implemented(*args, **kwargs):
-    return NotImplementedError("Not implemented yet.")
-
-analyze_graph = {
-    'adjacency': not_implemented,
-    'assortativity': not_implemented,
-    'betweenness': not_implemented,
-    'clustering': not_implemented,
-    'diameter': not_implemented,
-    'ebetweenness': not_implemented,
-    'get_edges': not_implemented,
-    'nbetweenness': not_implemented,
-    'reciprocity': not_implemented,
-    'scc': not_implemented,
-    'wcc': not_implemented,
-}
-
-def set_config(dic_config):
-    for key in dic_config:
-        if key not in nngt.config:
-            raise KeyError("Unknown configuration property: {}".format(key))
-    nngt.config.update(dic_config)
-    if "multithreading" in dic_config:
-        reload_module(sys.modules["nngt"].generation.graph_connectivity)
-    if "omp" in dic_config and nngt.config["graph_library"] == "graph-tool":
-        nngt.config["library"].openmp_set_num_threads(nngt.config["omp"])
-
-def get_config(key=None):
-    if key is None:
-        return {key: val for key, val in nngt.config.items()}
-    else:
-        res = nngt.config[key]
-        return res
 
 
 # ----------- #
@@ -254,8 +301,9 @@ def _set_networkx():
         from networkx.algorithms import overall_reciprocity
     except ImportError:
         def overall_reciprocity(*args, **kwargs):
-            return NotImplementedError("Not implemented for networkx {}; \
-try to install latest version.".format(nx_version))
+            return NotImplementedError("Not implemented for networkx " +
+                                       str(nx_version) + "; try installing "
+                                       "the latest version.")
     # defining the adjacency function
     from networkx import to_scipy_sparse_matrix
     def adj_mat(graph, weight=None):
@@ -270,7 +318,6 @@ try to install latest version.".format(nx_version))
     analyze_graph["wcc"] = diameter
     analyze_graph["adjacency"] = adj_mat
     analyze_graph["get_edges"] = get_edges
-
 
 
 def use_library(library, reloading=True):
@@ -323,10 +370,9 @@ def use_library(library, reloading=True):
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
 
 
-#-----------------------------------------------------------------------------#
-# Loading graph library
-#------------------------
-#
+# --------------------- #
+# Loading graph library #
+#---------------------- #
 
 _libs = [ 'graph-tool', 'igraph', 'networkx' ]
 
@@ -348,10 +394,9 @@ if not _libs:
 to work:  `graph_tool`, `igraph`, or `networkx`.")
 
 
-#-----------------------------------------------------------------------------#
-# Names
-#------------------------
-#
+# ----- #
+# Names #
+# ----- #
 
 POS = "position"
 DIST = "distance"
@@ -361,10 +406,9 @@ DELAY = "delay"
 TYPE = "type"
 
 
-#-----------------------------------------------------------------------------#
-# Basic values
-#------------------------
-#
+# ------------ #
+# Basic values #
+# ------------ #
 
 default_neuron = "aeif_cond_alpha"
 ''' :class:`string`, the default NEST neuron model '''

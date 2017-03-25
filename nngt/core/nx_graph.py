@@ -302,7 +302,6 @@ edge in the graph.")
         edge_generator = ( e for e in edge_list )
         edge_list = np.array(edge_list)
         if self._weighted and "weight" not in attributes:
-            print("not weighted " + self.name)
             attributes["weight"] = np.repeat(1., edge_list.shape[0])
         attributes["eid"] = np.arange(
             initial_edges, initial_edges + len(edge_list))

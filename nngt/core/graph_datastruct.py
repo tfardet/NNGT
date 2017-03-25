@@ -579,7 +579,6 @@ class Connections:
         #~ elist = np.array(elist) if elist is not None else elist
         elist = None
         if wlist is not None:
-            print(graph.name, wlist.__class__)
             assert isinstance(wlist, np.ndarray), "numpy.ndarray required in "\
                                                   "Connections.weights"
             num_edges = graph.edge_nb() if elist is None else elist.shape[0]

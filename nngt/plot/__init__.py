@@ -12,28 +12,27 @@ Content
 =======
 """
 
-import sys
-import matplotlib
+import matplotlib as _mpl
 
-import nngt
+import nngt as _nngt
 
-if nngt.config["backend"] is not None:
-    matplotlib.use(nngt.config["backend"])
+if _nngt.config["backend"] is not None:
+    _mpl.use(_nngt.config["backend"])
 else:
-    sav_backend = matplotlib.get_backend()
+    sav_backend = _mpl.get_backend()
     backends = [ 'GTK3Agg', 'Qt4Agg', 'Qt5Agg' ]
     keep_trying = True
     while backends and keep_trying:
         try:
             backend = backends.pop()
-            matplotlib.use(backend)
+            _mpl.use(backend)
             keep_trying = False
         except:
-            matplotlib.use(sav_backend)
+            _mpl.use(sav_backend)
 
 
-import warnings
-warnings.filterwarnings("ignore", module="matplotlib")
+import warnings as _warn
+_warn.filterwarnings("ignore", module="matplotlib")
 
 
 # module import
@@ -52,10 +51,10 @@ __all__ = [
 ]
 
 
-if nngt.config["graph_library"] == 'graph-tool':
+if _nngt.config["graph_library"] == 'graph-tool':
     from .plt_networks import draw_network
     __all__.append("draw_network")
 else:
     warnings.warn("Graph drawing is only available with graph_tool at the \
 moment. As {} is currently being used, all graph drawing functions will be \
-disabled.".format(nngt.config["graph_library"]))
+disabled.".format(_nngt.config["graph_library"]))
