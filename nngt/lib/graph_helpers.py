@@ -20,6 +20,7 @@ def _edge_prop(name, arg_dict):
                                   " a number.")
     else:
         final_prop = {"distribution": "constant"}
+    print(final_prop)
     return final_prop
 
 

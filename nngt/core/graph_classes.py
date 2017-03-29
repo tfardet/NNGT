@@ -42,6 +42,12 @@ class Graph(nngt.core.GraphObject):
 
     __num_graphs = 0
     __max_id = 0
+    #~ __di_property_func = {
+            #~ "reciprocity": reciprocity, "clustering": clustering,
+            #~ "assortativity": assortativity, "diameter": diameter,
+            #~ "scc": num_scc, "wcc": num_wcc, "radius": spectral_radius, 
+            #~ "num_iedges": num_iedges }
+    #~ __properties = __di_property_func.keys()
     
     @classmethod
     def num_graphs(cls):
@@ -51,15 +57,6 @@ class Graph(nngt.core.GraphObject):
     @classmethod
     def from_library(cls, library_graph, weighted=True, directed=True,
                      **kwargs):
-        '''
-        Returns a :class:`~nngt.Graph` object from a graph-tool, igraph or
-        networkx graph.
-
-        .. warning ::
-            This works only on objects from the graph library backend that
-            NNGT is currently using. E.g. when using the "graph-tool" backend,
-            only :class:`graph_tool.Graph` objects can be converted.
-        '''
         library_graph = nngt.core.GraphObject.to_graph_object(library_graph)
         library_graph.__class__ = cls
         if weighted:
@@ -70,6 +67,7 @@ class Graph(nngt.core.GraphObject):
         cls.__max_id += 1
         cls.__num_graphs += 1
         return library_graph
+        
     
     @classmethod
     def from_matrix(cls, matrix, weighted=True, directed=True):
@@ -99,16 +97,14 @@ class Graph(nngt.core.GraphObject):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
                 if not (matrix.T != matrix).nnz == 0:
-                    raise InvalidArgument('Incompatible directed=False option '
-                                          'with non symmetric matrix '
-                                          'provided.')
+                    raise InvalidArgument('Incompatible directed=False option \
+with non symmetric matrix provided.')
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
                 if not (matrix.T == matrix).all():
-                    raise InvalidArgument('Incompatible directed=False option '
-                                          'with non symmetric matrix '
-                                          'provided.')
+                    raise InvalidArgument('Incompatible directed=False option \
+with non symmetric matrix provided.')
         edges = np.array(matrix.nonzero()).T
         graph = cls(nodes, name=graph_name.replace("Z", str(cls.__num_graphs)),
                     weighted=weighted, directed=directed)
@@ -126,8 +122,7 @@ class Graph(nngt.core.GraphObject):
                  attributes=None, notifier="@", ignore="#", from_string=False):
         '''
         Import a saved graph from a file.
-        @todo: implement population and shape loading, implement gml, dot,
-        xml, gt; add examples
+        @todo: implement population and shape loading, implement gml, dot, xml, gt
 
         Parameters
         ----------
@@ -225,7 +220,7 @@ class Graph(nngt.core.GraphObject):
             return graph
 
     @staticmethod
-    def make_network(graph, neural_pop, copy=False):
+    def make_network(graph, neural_pop, copy=False, **kwargs):
         '''
         Turn a :class:`~nngt.Graph` object into a :class:`~nngt.Network`, or a
         :class:`~nngt.SpatialGraph` into a :class:`~nngt.SpatialNetwork`.
@@ -252,6 +247,11 @@ class Graph(nngt.core.GraphObject):
             graph.__class__ = SpatialNetwork
         else:
             graph.__class__ = Network
+        # set default delays
+        if "delays" not in kwargs:  # set default delay to 1.
+            graph._d = {"distribution": "constant", "value": 1.}
+        else:
+            graph._d = kwargs["delays"]
         graph._init_bioproperties(neural_pop)
         if copy:
             return graph
@@ -287,6 +287,7 @@ class Graph(nngt.core.GraphObject):
         -------
         self : :class:`~nngt.Graph`
         '''
+        print(kwargs)
         self.__id = self.__class__.__max_id
         self._name = name
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
@@ -296,6 +297,7 @@ class Graph(nngt.core.GraphObject):
             self._w = _edge_prop("weights", kwargs)
         if "delays" in kwargs:
             self._d = _edge_prop("delays", kwargs)
+            print(self.d)
         # Init the core.GraphObject
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
@@ -415,17 +417,19 @@ class Graph(nngt.core.GraphObject):
         '''
         Set attributes to the connections between neurons.
 
-        .. warning::
+        .. warning ::
             The special "type" attribute cannot be modified when using graphs
             that inherit from the :class:`~nngt.Network` class. This is because
             for biological networks, neurons make only one kind of synapse,
             which is determined by the :class:`nngt.NeuralGroup` they
             belong to.
         '''
+        #~ print("sea", attribute, values, val, value_type, edges)
         if attribute not in self.attributes():
             self._eattr.new_ea(name=attribute, value_type=value_type,
                                values=values, val=val)
         else:
+            #~ print("sea2", values, val, edges)
             num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
                 if val is not None:
@@ -446,7 +450,7 @@ class Graph(nngt.core.GraphObject):
                     parameters=None, noise_scale=None):
         '''
         Set the synaptic weights.
-        ..todo::
+        ..todo ::
             take elist into account in Connections.weights
         
         Parameters
@@ -482,12 +486,12 @@ class Graph(nngt.core.GraphObject):
         '''
         Set the synaptic/connection types.
 
-        .. warning::
-            The special "type" attribute cannot be modified when using graphs
-            that inherit from the :class:`~nngt.Network` class. This is because
-            for biological networks, neurons make only one kind of synapse,
-            which is determined by the :class:`nngt.NeuralGroup` they
-            belong to.
+        .. warning ::
+        The special "type" attribute cannot be modified when using graphs
+        that inherit from the :class:`~nngt.Network` class. This is because
+        for biological networks, neurons make only one kind of synapse,
+        which is determined by the :class:`nngt.NeuralGroup` they
+        belong to.
 
         Parameters
         ----------
@@ -527,8 +531,8 @@ class Graph(nngt.core.GraphObject):
                    parameters=None, noise_scale=None):
         '''
         Set the delay for spike propagation between neurons.
-        ..todo::
-            take elist into account in Connections.delays
+        ..todo ::
+        take elist into account in Connections.delays
 
         Parameters
         ----------
@@ -551,20 +555,21 @@ class Graph(nngt.core.GraphObject):
         elif not hasattr(delay, "__len__") and delay is not None:
             raise AttributeError("Invalid `delay` value: must be either "
                                  "float, array-like or None")
-        if distribution is None:
-            if hasattr(self, "_d"):
-                distribution = self._d["distribution"]
-            else:
-                raise AttributeError("Invalid `distribution` value: cannot be "
-                                     "None if default delays were not set at "
-                                     "graph creation.")
-        if parameters is None:
-            if hasattr(self, "_d"):
-                parameters = self._d
-            else:
-                raise AttributeError("Invalid `parameters` value: cannot be "
-                                     "None if default delays were not set at "
-                                     "graph creation.")
+        if delay is None:
+            if distribution is None:
+                if hasattr(self, "_d"):
+                    distribution = self._d["distribution"]
+                else:
+                    raise AttributeError(
+                        "Invalid `distribution` value: cannot be None if "
+                        "default delays were not set at graph creation.")
+            if parameters is None:
+                if hasattr(self, "_d"):
+                    parameters = self._d
+                else:
+                    raise AttributeError(
+                        "Invalid `parameters` value: cannot be None if default"
+                        " delays were not set at graph creation.")
         return nngt.Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
@@ -771,7 +776,7 @@ class SpatialGraph(Graph):
         '''
         Initialize SpatialClass instance.
         .. todo::
-            see what we do with the from_graph argument
+        see what we do with the from_graph argument
 
         Parameters
         ----------
@@ -815,10 +820,6 @@ class SpatialGraph(Graph):
 
     @property
     def position(self):
-        '''
-        Array of shape (2, node_nb) containing the spatial positions of the
-        nodes in the :class:`~nngt.SpatialGraph`.
-        '''
         return self._pos
 
     #-------------------------------------------------------------------------#
@@ -988,7 +989,12 @@ class Network(Graph):
             raise InvalidArgument("Network needs a NeuralPop to be created")
         nodes = population.size
         if "nodes" in kwargs.keys():
+            assert kwargs["nodes"] == nodes, "Incompatible values for " +\
+                "`nodes` = {} with a `population` of size {}.".format(
+                    kwargs["nodes"], nodes)
             del kwargs["nodes"]
+        if "delays" not in kwargs:  # set default delay to 1.
+            kwargs["delays"] = 1.
         super(Network, self).__init__(nodes=nodes, name=name,
                                       weighted=weighted, directed=directed,
                                       from_graph=from_graph, **kwargs)
@@ -1080,7 +1086,7 @@ class Network(Graph):
                 nodes = population.size
                 # create the delay attribute if necessary
                 if "delay" not in self.attributes():
-                    nngt.Connections.delays(self)
+                    self.set_delays()
             else:
                 raise AttributeError("NeuralPop is not valid (not all \
                 neurons are associated to a group).")
