@@ -501,7 +501,7 @@ class Connections:
 
     @staticmethod
     def delays(graph=None, dlist=None, elist=None, distribution="constant",
-               parameters={}, noise_scale=None):
+               parameters=None, noise_scale=None):
         '''
         Compute the delays of the neuronal connections.
 
@@ -527,8 +527,9 @@ class Connections:
         new_delays : class:`scipy.sparse.lil_matrix`
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
-        parameters["btype"] = parameters.get("btype", "edge")
-        parameters["use_weights"] = parameters.get("use_weights", False)
+        print("\n\nDatastruct\n")
+        print(elist, dlist, distribution, parameters, noise_scale)
+        print("\n\n\n")
         elist = np.array(elist) if elist is not None else elist
         if dlist is not None:
             assert isinstance(dlist, np.ndarray), "numpy.ndarray required in "\
@@ -537,6 +538,8 @@ class Connections:
             if len(dlist) != num_edges:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
+            parameters["btype"] = parameters.get("btype", "edge")
+            parameters["use_weights"] = parameters.get("use_weights", False)
             dlist = _eprop_distribution(graph, distribution, elist=elist,
                                         **parameters)
         # add to the graph container
