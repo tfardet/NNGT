@@ -33,7 +33,7 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
                    log=False, num_bins=30):
     '''
     Degree distribution of a graph.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -47,7 +47,7 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
         are positive).
     log : bool, optional (default: False)
         use log-spaced bins.
-    
+
     Returns
     -------
     counts : :class:`numpy.array`
@@ -63,11 +63,12 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
     counts,deg = sp.histogram(ia_node_deg, ra_bins)
     ia_indices = sp.argwhere(counts)
     return counts[ia_indices], deg[ia_indices]
-            
+
+
 def betweenness_distrib(graph, use_weights=True, log=False):
     '''
     Betweenness distribution of a graph.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -77,7 +78,7 @@ def betweenness_distrib(graph, use_weights=True, log=False):
         are positive).
     log : bool, optional (default: False)
         use log-spaced bins.
-    
+
     Returns
     -------
     ncounts : :class:`numpy.array`
@@ -132,12 +133,13 @@ def assortativity(graph, deg_type="total"):
     else:
         return assort(graph)
 
+
 def reciprocity(graph):
     '''
     Graph reciprocity, defined as :math:`E^\leftrightarrow/E`,
     where :math:`E^\leftrightarrow` and :math:`E` are, respectively, the number
     of bidirectional edges and the total number of edges in the graph.
-    
+
     Returns
     -------
     a float quantifying the reciprocity.
@@ -147,10 +149,11 @@ def reciprocity(graph):
     else:
         return edge_reciprocity(graph)
 
+
 def clustering(graph):
     '''
     Global clustering coefficient of the graph, defined as
-    
+
     .. math::
         c = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
     '''
@@ -159,17 +162,19 @@ def clustering(graph):
     else:
         return global_clustering(graph)[0]
 
+
 def num_iedges(graph):
     ''' Returns the number of inhibitory connections. '''
     num_einhib = len(graph["type"].a < 0)
     return float(num_einhib)/graph.edge_nb()
 
+
 def num_scc(graph, listing=False):
     '''
-    Returns the number of strongly connected components, i.e. ensembles where 
+    Returns the number of strongly connected components, i.e. ensembles where
     all nodes inside the ensemble can reach any other node in the ensemble
     using the directed edges.
-    
+
     See also
     --------
     num_wcc
@@ -186,13 +191,13 @@ def num_scc(graph, listing=False):
         return len(lst_histo), lst_histo
     else:
         return len(lst_histo)
-        
+
 
 def num_wcc(graph, listing=False):
     '''
-    Connected components if the directivity of the edges is ignored (i.e. all 
+    Connected components if the directivity of the edges is ignored (i.e. all
     edges are considered as bidirectional).
-    
+
     See also
     --------
     num_scc
@@ -209,6 +214,7 @@ def num_wcc(graph, listing=False):
         return len(lst_histo), lst_histo
     else:
         return len(lst_histo)
+
 
 def diameter(graph):
     ''' Pseudo-diameter of the graph @todo: weighted diameter'''
@@ -228,7 +234,7 @@ def diameter(graph):
 def spectral_radius(graph, typed=True, weighted=True):
     '''
     Spectral radius of the graph, defined as the eigenvalue of greatest module.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -238,7 +244,7 @@ def spectral_radius(graph, typed=True, weighted=True):
         considered.
     weighted : bool, optional (default: True)
         Whether the weights should be taken into account.
-    
+
     Returns
     -------
     the spectral radius as a float.
@@ -263,10 +269,11 @@ def spectral_radius(graph, typed=True, weighted=True):
     else:
         raise spl.eigen.arpack.ArpackNoConvergence()
 
+
 def adjacency_matrix(graph, types=True, weights=True):
     '''
     Adjacency matrix of the graph.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -278,12 +285,12 @@ def adjacency_matrix(graph, types=True, weights=True):
         Whether weights should be taken into account; if True, then connections
         are weighed by their synaptic strength, if False, then a binary matrix
         is returned, if `weights` is a string, then the ponderation is the
-        correponding value of the edge attribute (e.g. "distance" will return 
+        correponding value of the edge attribute (e.g. "distance" will return
         an adjacency matrix where each connection is multiplied by its length).
-    
+
     Returns
     -------
     a :class:`~scipy.sparse.csr_matrix`.
     '''
     return graph.adjacency_matrix(types, weights)
-        
+

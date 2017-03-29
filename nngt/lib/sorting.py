@@ -14,6 +14,8 @@ def _sort_neurons(sort, gids, network, data=None):
 
     If `sort` is "firing_rate", then data contains the `senders` list given by
     a NEST ``spike_recorder``.
+    If `sort` is "B2", then data contains both the senders and the spike time
+    associated.
 
     Returns
     -------
@@ -37,6 +39,9 @@ def _sort_neurons(sort, gids, network, data=None):
             # compute number of spikes per neuron
             spikes = np.bincount(data)
             # sort them (neuron with least spikes arrives at min_nest_gid)
+            sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
+        elif sort.lower() == "b2":
+            b2 = _b2(data)
             sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
         else:
             raise InvalidArgument(
@@ -65,3 +70,17 @@ def _sort_groups(pop):
     sizes = [len(g.id_list) for g in groups]
     order = np.argsort(sizes)[::-1]
     return [names[i] for i in order], [groups[i] for i in order]
+
+
+def _b2(data):
+    ''' Compute the b2 coefficient for the neurons. '''
+    senders = data[0,:]
+    times = data[1,:]
+    gid_start, gid_stop = senders.min(), senders.max()
+    b2 = np.zeros(gid_stop + 1 - gid_start)
+    for i in range(gid_start, gid_stop+1):
+        ids = np.where(senders == i)[0]
+        dt1 = np.diff(times[ids])
+        dt2 = np.diff(dt1)
+        b2[i - gid_start] = (2*np.var(dt1) - np.var(dt2)) / (2*np.average(dt1))
+    return b2
