@@ -47,7 +47,7 @@ def _sort_neurons(sort, gids, network, data=None):
             num_b2 = b2.shape[0]
             if num_b2 < network.node_nb():
                 spikes = np.bincount(data[0])
-                non_spiking = np.where(spikes[min_nest_gid,:] == 0)[0]
+                non_spiking = np.where(spikes[min_nest_gid] == 0)[0]
                 sorted_ids.resize(network.node_nb())
                 for i, n in enumerate(non_spiking):
                     sorted_ids[sorted_ids >= n] += 1
@@ -84,14 +84,18 @@ def _sort_groups(pop):
 
 def _b2(data):
     ''' Compute the b2 coefficient for the neurons. '''
-    senders = data[0][:]
-    times = np.array(data[1][:])
-    gid_start, gid_stop = np.min(senders), np.max(senders) + 1
-    b2 = np.zeros(gid_stop - gid_start)
-    for i in range(gid_start, gid_stop):
-        ids = np.where(senders == i)[0]
+    senders = data[0]
+    times = np.array(data[1])
+    gid_start = np.min(senders)
+    num_active = np.max(senders) - gid_start + 1
+    b2 = np.zeros(num_active)
+    for i in range(num_active):
+        ids = np.where(senders == gid_start + i)[0]
         dt1 = np.diff(times[ids])
         dt2 = dt1[1:] + dt1[:-1]
-        b2[i - gid_start] = (2*np.var(dt1) - np.var(dt2)) \
-                            / (2*np.average(dt1)**2)
+        avg_isi = np.mean(dt1)
+        if avg_isi != 0.:
+            b2[i] = (2*np.var(dt1) - np.var(dt2)) / (2*avg_isi**2)
+        else:
+            b2[i] = np.inf
     return b2

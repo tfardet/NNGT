@@ -56,18 +56,20 @@ def make_nest_network(network, use_weights=True):
 
     for group in groups:
         group_size = len(group.id_list)
-        ia_nngt_ids[current_size:current_size + group_size] = group.id_list
-        # clean up neuron_param dict
-        defaults = nest.GetDefaults(group.neuron_model)
-        n_param = {key: val for key, val in group.neuron_param.items()
-                   if key in defaults and key != "model"}
-        # create neurons
-        gids_tmp = nest.Create(group.neuron_model, group_size, n_param)
-        idx_nest = ia_nngt_ids[np.arange(current_size,current_size+group_size)]
-        ia_nest_gids[current_size:current_size+group_size] = gids_tmp
-        ia_nngt_nest[idx_nest] = gids_tmp
-        current_size += group_size
-        gids.extend(gids_tmp)
+        if group_size:
+            ia_nngt_ids[current_size:current_size + group_size] = group.id_list
+            # clean up neuron_param dict
+            defaults = nest.GetDefaults(group.neuron_model)
+            n_param = {key: val for key, val in group.neuron_param.items()
+                       if key in defaults and key != "model"}
+            # create neurons
+            gids_tmp = nest.Create(group.neuron_model, group_size, n_param)
+            idx_nest = ia_nngt_ids[np.arange(
+                current_size, current_size + group_size)]
+            ia_nest_gids[current_size:current_size + group_size] = gids_tmp
+            ia_nngt_nest[idx_nest] = gids_tmp
+            current_size += group_size
+            gids.extend(gids_tmp)
         
     # conversions ids/gids
     network.nest_gid = ia_nngt_nest
@@ -82,27 +84,29 @@ def make_nest_network(network, use_weights=True):
     cspec = 'one_to_one'
     for group in network.population.values():
         # get the nodes ids and switch the sources back to their real values
-        min_idx = np.min(group.id_list)
-        src_ids = csr_weights[group.id_list, :].nonzero()[0] + min_idx
-        trgt_ids = csr_weights[group.id_list, :].nonzero()[1]
-        # switch to nest gids
-        src_ids = network.nest_gid[src_ids]
-        trgt_ids = network.nest_gid[trgt_ids]
-        # prepare the synaptic parameters
-        syn_param = {"model": group.syn_model}
-        for key, val in group.syn_param.items():
-            if key != "receptor_port":
-                syn_param[key] = np.repeat(val, len(src_ids))
+        if len(group.id_list) > 0:
+            min_idx = np.min(group.id_list)
+            src_ids = csr_weights[group.id_list, :].nonzero()[0] + min_idx
+            trgt_ids = csr_weights[group.id_list, :].nonzero()[1]
+            # switch to nest gids
+            src_ids = network.nest_gid[src_ids]
+            trgt_ids = network.nest_gid[trgt_ids]
+            # prepare the synaptic parameters
+            syn_param = {"model": group.syn_model}
+            for key, val in group.syn_param.items():
+                if key != "receptor_port":
+                    syn_param[key] = np.repeat(val, len(src_ids))
+                else:
+                    syn_param[key] = val
+            # prepare weights
+            syn_sign = group.neuron_type
+            if use_weights:
+                syn_param[WEIGHT] = syn_sign*csr_weights[group.id_list, :].data
             else:
-                syn_param[key] = val
-        # prepare weights
-        syn_sign = group.neuron_type
-        if use_weights:
-            syn_param[WEIGHT] = syn_sign * csr_weights[group.id_list, :].data
-        else:
-            syn_param[WEIGHT] = np.repeat(syn_sign, len(src_ids))
-        syn_param[DELAY] = csr_delays[group.id_list, :].data
-        nest.Connect(src_ids, trgt_ids, syn_spec=syn_param, conn_spec=cspec)
+                syn_param[WEIGHT] = np.repeat(syn_sign, len(src_ids))
+            syn_param[DELAY] = csr_delays[group.id_list, :].data
+            nest.Connect(
+                src_ids, trgt_ids, syn_spec=syn_param, conn_spec=cspec)
 
     return tuple(ia_nest_gids)
 

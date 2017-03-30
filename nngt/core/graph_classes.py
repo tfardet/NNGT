@@ -287,7 +287,6 @@ with non symmetric matrix provided.')
         -------
         self : :class:`~nngt.Graph`
         '''
-        print(kwargs)
         self.__id = self.__class__.__max_id
         self._name = name
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
@@ -297,7 +296,6 @@ with non symmetric matrix provided.')
             self._w = _edge_prop("weights", kwargs)
         if "delays" in kwargs:
             self._d = _edge_prop("delays", kwargs)
-            print(self.d)
         # Init the core.GraphObject
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
@@ -424,12 +422,10 @@ with non symmetric matrix provided.')
             which is determined by the :class:`nngt.NeuralGroup` they
             belong to.
         '''
-        #~ print("sea", attribute, values, val, value_type, edges)
         if attribute not in self.attributes():
             self._eattr.new_ea(name=attribute, value_type=value_type,
                                values=values, val=val)
         else:
-            #~ print("sea2", values, val, edges)
             num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
                 if val is not None:
@@ -1035,7 +1031,7 @@ class Network(Graph):
     @nest_gid.setter
     def nest_gid(self, gids):
         self._nest_gid = gids
-        for group in iter(self.population.values()):
+        for group in self.population.values():
             group._nest_gids = gids[group.id_list]
 
     def id_from_nest_gid(self, gids):

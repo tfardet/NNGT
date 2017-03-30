@@ -13,7 +13,7 @@ import scipy.spatial as sptl
 
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE, BWEIGHT)
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.rng_tools import _eprop_distribution
 
 
@@ -49,14 +49,37 @@ class NeuralPop(OrderedDict):
         determined using instructions from an arbitrary number of
         :class:`~nngt.properties.GroupProperties`.
         '''
-        return cls.__init__(parent=graph,graph=graph,group_prop=args)
+        return cls(parent=graph, graph=graph, group_prop=args)
+    
+    @classmethod
+    def from_groups(cls, groups, names=None, parent=None):
+        '''
+        Make a NeuralPop object from a (list of) :class:`~nngt.NeuralGroup`
+        object(s).
+        '''
+        if not nonstring_container(groups):
+            groups = [groups]
+        neurons = []
+        name = [i for i in range(len(groups))] if names is None else names
+        assert len(names) == len(groups), "`names` and `groups` must have " +\
+                                          "the same size."
+        for g in groups:
+            neurons.extend(g.id_list)
+        neurons = list(set(neurons))
+        size = len(neurons)
+        pop = cls(size, parent=parent)
+        for name, g in zip(names, groups):
+            pop.add_group(name, g)
+        return pop
 
     @classmethod
     def uniform(cls, size, parent=None, neuron_model=default_neuron,
-                neuron_param={}, syn_model=default_synapse, syn_param={}):
+                neuron_param=None, syn_model=default_synapse, syn_param=None):
         ''' Make a NeuralPop of identical neurons '''
+        neuron_param = {} if neuron_param is None else neuron_param.copy()
+        syn_param = {} if syn_param is None else syn_param.copy()
         pop = cls(size, parent)
-        pop.new_group("default", range(size), 1, neuron_model, neuron_param,
+        pop.create_group("default", range(size), 1, neuron_model, neuron_param,
            syn_model, syn_param)
         return pop
 
@@ -71,10 +94,10 @@ class NeuralPop(OrderedDict):
         '''
         num_exc_neurons = int(size*(1-iratio))
         pop = cls(size, parent)
-        pop.new_group("excitatory", range(num_exc_neurons), 1, en_model,
-           en_param, es_model, es_param)
-        pop.new_group("inhibitory", range(num_exc_neurons, size), -1, in_model,
-           in_param, is_model, es_param)
+        pop.create_group("excitatory", range(num_exc_neurons), 1, en_model,
+                         en_param, es_model, es_param)
+        pop.create_group("inhibitory", range(num_exc_neurons, size), -1,
+                         in_model, in_param, is_model, es_param)
         return pop
 
     @classmethod
@@ -82,30 +105,37 @@ class NeuralPop(OrderedDict):
         ''' Copy an existing NeuralPop '''
         new_pop = cls.__init__(pop.has_models)
         for name, group in pop.items():
-             new_pop.new_group(name, group.id_list, group.model,
+             new_pop.create_group(name, group.id_list, group.model,
                                group.neuron_param)
         return new_pop
 
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
 
-    def __init__(self, size=None, parent=None, with_models=True, **kwargs):
+    def __init__(self, size, parent=None, with_models=True, **kwargs):
         '''
         Initialize NeuralPop instance
 
         Parameters
         ----------
+        size : int
+            Number of neurons that the population will contain.
+        parent : :class:`~nngt.Network`, optional (default: None)
+            Network associated to this population.
         with_models : :class:`bool`
             whether the population's groups contain models to use in NEST
         **kwargs : :class:`dict`
 
         Returns
         -------
-        pop : :class:`~nngt.properties.NeuralPop` instance
+        pop : :class:`~nngt.NeuralPop` object.
         '''
         self._is_valid = False
         self._size = size if parent is None else parent.node_nb()
+        # array of strings containing the name of the group where each neuron
+        # belongs
         self._neuron_group = np.empty(self._size, dtype=object)
+        self._max_id = 0  # highest id among the existing neurons + 1
         super(NeuralPop, self).__init__()
         if "graph" in kwargs.keys():
             dic = _make_groups(kwargs["graph"], kwargs["group_prop"])
@@ -121,11 +151,21 @@ class NeuralPop(OrderedDict):
             return OrderedDict.__getitem__(self, key)
     
     def __setitem__(self, key, value):
+        self._validity_check(key, value)
         if isinstance(key, int):
             new_key = tuple(self.keys())[key]
             OrderedDict.__setitem__(self, new_key, value)
         else:
             OrderedDict.__setitem__(self, key, value)
+        # update _max_id
+        if len(value.id_list) > 0:
+            self._max_id = max(self._max_id, *value.id_list) + 1
+        # update the group node property
+        self._neuron_group[value.id_list] = key
+        if None in list(self._neuron_group):
+            self._is_valid = False
+        else:
+            self._is_valid = True
 
     @property
     def size(self):
@@ -175,12 +215,14 @@ class NeuralPop(OrderedDict):
                     elif key == "synapse":
                         self[name].syn_model = val
                     else:
-                        raise ValueError("Model type {} is not valid; choose \
-among 'neuron' or 'synapse'.".format(key))
+                        raise ValueError(
+                            "Model type {} is not valid; choose among 'neuron'"
+                            " or 'synapse'.".format(key))
             else:
                 raise
         except:
-            raise InvalidArgument("Invalid model dict or group; see docstring.")
+            raise InvalidArgument(
+                "Invalid model dict or group; see docstring.")
         b_has_models = True
         for group in iter(self.values()):
             b_has_model *= group.has_model
@@ -214,29 +256,47 @@ among 'neuron' or 'synapse'.".format(key))
                     elif key == "synapse":
                         self[name].syn_param = val
                     else:
-                        raise ValueError("Model type {} is not valid; choose \
-among 'neuron' or 'synapse'.".format(key))
+                        raise ValueError(
+                            "Model type {} is not valid; choose among 'neuron'"
+                            " or 'synapse'.".format(key))
         except:
-            raise InvalidArgument("Invalid param dict or group; see docstring.")
+            raise InvalidArgument(
+                "Invalid param dict or group; see docstring.")
 
-    def new_group(self, name, id_list, ntype=1, neuron_model=None, neuron_param={},
-                  syn_model=default_synapse, syn_param={}):
+    def create_group(self, name, neurons, ntype=1, neuron_model=None,
+                     neuron_param=None, syn_model=default_synapse,
+                     syn_param=None):
+        '''
+        Create a new groupe from given properties.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the group.
+        neurons : array-like
+            List of the neurons indices.
+        ntype : int, optional (default: 1)
+            Type of the neurons : 1 for excitatory, -1 for inhibitory.
+        neuron_model : str, optional (default: None)
+            Name of a neuron model in NEST.
+        neuron_param : dict, optional (default: None)
+            Parameters for `neuron_model` in the NEST simulator. If None,
+            default parameters will be used.
+        syn_model : str, optional (default: "static_synapse")
+            Name of a synapse model in NEST.
+        syn_param : dict, optional (default: None)
+            Parameters for `syn_model` in the NEST simulator. If None,
+            default parameters will be used.
+        '''
+        neuron_param = {} if neuron_param is None else neuron_param.copy()
+        syn_param = {} if syn_param is None else syn_param.copy()
         # create a group
-        group = NeuralGroup(id_list, ntype, neuron_model, neuron_param, syn_model, syn_param)
-        if self._has_models and not group.has_model:
-            raise AttributeError("This NeuralPop requires group to have a \
-model attribute that is not `None`; to disable this, use `set_models(None)` \
-method on this NeuralPop instance.")
-        elif group.has_model and not self._has_models:
-            warnings.warn("This NeuralPop is not set to take models into \
-account; use the `set_models` method to change its behaviour.")
+        if isinstance(neurons, int):
+            group_size = neurons
+            neurons = list(range(self._max_id, self._max_id + group_size))
+        group = NeuralGroup(neurons, ntype, neuron_model, neuron_param,
+                            syn_model, syn_param)
         self[name] = group
-        # update the group node property
-        self._neuron_group[id_list] = name
-        if None in list(self._neuron_group):
-            self._is_valid = False
-        else:
-            self._is_valid = True
 
     def get_param(self, groups=None, neurons=None, element="neuron"):
         '''
@@ -299,13 +359,22 @@ account; use the `set_models` method to change its behaviour.")
             self._is_valid = False
         else:
             self._is_valid = True
+    
+    def _validity_check(self, name, group):
+        if self._has_models and not group.has_model:
+            raise AttributeError(
+                "This NeuralPop requires group to have a model attribute that "
+                "is not `None`; to disable this, use `set_models(None)` "
+                "method on this NeuralPop instance.")
+        elif group.has_model and not self._has_models:
+            warnings.warn(
+                "This NeuralPop is not set to take models into account; use "
+                "the `set_models` method to change its behaviour.")
 
 
-#-----------------------------------------------------------------------------#
-# NeuralGroup and GroupProperty
-#------------------------
-#
-
+# ----------------------------- #
+# NeuralGroup and GroupProperty #
+# ----------------------------- #
 
 class NeuralGroup:
 
@@ -331,8 +400,10 @@ class NeuralGroup:
         ``has_model`` function.
     """
 
-    def __init__ (self, id_list=[], ntype=1, model=None, neuron_param={},
-                  syn_model=None, syn_param={}):
+    def __init__ (self, id_list=[], ntype=1, model=None, neuron_param=None,
+                  syn_model=None, syn_param=None):
+        neuron_param = {} if neuron_param is None else neuron_param.copy()
+        syn_param = {} if syn_param is None else syn_param.copy()
         self._has_model = False if model is None else True
         self._neuron_model = model
         self._id_list = list(id_list)
@@ -438,10 +509,9 @@ def _make_groups(graph, group_prop):
     pass
 
 
-#-----------------------------------------------------------------------------#
-# Connections
-#------------------------
-#
+# ----------- #
+# Connections #
+# ----------- #
 
 class Connections:
 
@@ -527,9 +597,6 @@ class Connections:
         new_delays : class:`scipy.sparse.lil_matrix`
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
-        print("\n\nDatastruct\n")
-        print(elist, dlist, distribution, parameters, noise_scale)
-        print("\n\n\n")
         elist = np.array(elist) if elist is not None else elist
         if dlist is not None:
             assert isinstance(dlist, np.ndarray), "numpy.ndarray required in "\
