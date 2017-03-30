@@ -24,18 +24,20 @@ from nngt.lib.sorting import _sort_groups, _sort_neurons
 #------------------------
 #
 
-def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
-                  limits=None, hist=True, title=None, fignum=None, label=None,
-                  sort=None, normalize=1., decimate=None):
+def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
+                  show=True, limits=None, hist=True, title=None, fignum=None,
+                  label=None, sort=None, normalize=1., decimate=None):
     '''
     Plot the monitored activity.
     
     Parameters
     ----------
-    gid_recorder : tuple or list
-        The gids of the recording devices.
-    record : tuple or list
-        List of the monitored variables for each device.
+    gid_recorder : tuple or list, optional (default: None)
+        The gids of the recording devices. If None, then all existing
+        "spike_detector"s are used.
+    record : tuple or list, optional (default: None)
+        List of the monitored variables for each device. If `gid_recorder` is
+        None, record can also be None and only spikes are considered.
     network : :class:`~nngt.Network` or subclass, optional (default: None)
         Network which activity will be monitored.
     gids : tuple, optional (default: None)
@@ -78,11 +80,16 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
         List of the figure numbers.
     '''
     lst_rec = []
-    for rec in gid_recorder:
-        if isinstance(gid_recorder[0],tuple):
-            lst_rec.append(rec)
-        else:
-            lst_rec.append((rec,))
+    if gid_recorder is not None:
+        for rec in gid_recorder:
+            if isinstance(gid_recorder[0],tuple):
+                lst_rec.append(rec)
+            else:
+                lst_rec.append((rec,))
+    else:
+        lst_rec = nest.GetNodes(
+            (0,), properties={'model': 'spike_detector'})
+        record = ("spikes" for _ in range(len(lst_rec)))
     # get gids and groups
     gids = network.nest_gid if (gids is None and network is not None) else gids
     if gids is None:
@@ -94,7 +101,7 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
         data = None
         if sort.lower() in ("firing_rate", "b2"):  # get senders
             data = [[], []]
-            for rec, var in zip(lst_rec, record):
+            for rec in lst_rec:
                 info = nest.GetStatus(rec)[0]
                 if str(info["model"]) == "spike_detector":
                     data[0].extend(info["events"]["senders"])

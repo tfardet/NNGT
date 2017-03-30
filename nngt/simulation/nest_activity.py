@@ -106,6 +106,69 @@ class ActivityRecord:
 #------------------------
 #
 
+def get_spikes(recorder=None, spike_times=None, senders=None):
+    '''
+    Return a 2D sparse matrix, where:
+        - each row i contains the spikes of neuron i
+        - each column j contains the times of the jth spike for all neurons
+
+    Parameters
+    ----------
+    recorder : tuple, optional (default: None)
+        Tuple of NEST gids, where the first one should point to the
+        spike_detector which recorded the spikes.
+    spike_times : array-like, optional (default: None)
+        If `recorder` is not provided, the spikes' data can be passed directly
+        through their `spike_times` and the associated `senders`.
+    senders : array-like, optional (default: None)
+        `senders[i]` corresponds to the neuron which fired at `spike_times[i]`.
+
+    Example
+    -------
+    >> get_spikes()
+
+    >> get_spikes(recorder)
+
+    >> times = [1.5, 2.68, 125.6]
+    >> neuron_ids = [12, 0, 65]
+    >> get_spikes(spike_times=times, senders=neuron_ids)
+
+    Note
+    ----
+    This function supposes that neuron GIDs for a continuous set of integers.
+    If no arguments are passed to the function, the first spike_recorder
+    available in NEST will be used.
+
+    Returns
+    -------
+    CSR matrix containing the spikes sorted by neuron (rows) and time
+    (columns).
+    '''
+    import nest
+    # get spikes
+    if recorder is not None:
+        data = nest.GetStatus(recorder[0])[0]["events"]
+        spike_times = data["times"]
+        senders = data["senders"]
+        senders -= np.min(senders)
+    elif spike_times is None and senders is None:
+        nodes = nest.GetNodes(
+            (0,), properties={'model': 'spike_detector'})
+        data = nest.GetStatus(nodes[0])[0]["events"]
+        spike_times = data["times"]
+        senders = data["senders"]
+        senders -= np.min(senders)
+    # create the sparse matrix
+    data = [0 for _ in range(len(set(senders)))]
+    row_idx = []
+    col_idx = []
+    for time, neuron in zip(spike_times, senders):
+        row_idx.append(neuron)
+        col_idx.append(data[neuron])
+        data[neuron] += 1
+    return ssp.csr_matrix((spike_times, (row_idx, col_idx)))
+
+
 def activity_types(spike_detector, limits, network=None,
                    phase_coeff=(0.5, 10.), mbis=0.5, mfb=0.2, mflb=0.05,
                    skip_bursts=0, simplify=False, fignums=[], show=False):
@@ -202,7 +265,7 @@ def activity_types(spike_detector, limits, network=None,
     return ActivityRecord(data, phases, properties, kwargs)
 
 
-def analyze_raster(raster, limits=None, network=None,
+def analyze_raster(raster=None, limits=None, network=None,
                    phase_coeff=(0.5, 10.), mbis=0.5, mfb=0.2, mflb=0.05,
                    skip_bursts=0, skip_ms=0., simplify=False, fignums=[],
                    show=False):
