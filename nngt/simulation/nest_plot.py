@@ -83,13 +83,13 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     if gid_recorder is not None:
         for rec in gid_recorder:
             if isinstance(gid_recorder[0],tuple):
-                lst_rec.append(rec)
+                lst_rec.append(rec[0])
             else:
-                lst_rec.append((rec,))
+                lst_rec.append(rec)
     else:
         lst_rec = nest.GetNodes(
-            (0,), properties={'model': 'spike_detector'})
-        record = ("spikes" for _ in range(len(lst_rec)))
+            (0,), properties={'model': 'spike_detector'})[0]
+        record = tuple("spikes" for _ in range(len(lst_rec)))
     # get gids and groups
     gids = network.nest_gid if (gids is None and network is not None) else gids
     if gids is None:
@@ -102,7 +102,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         if sort.lower() in ("firing_rate", "b2"):  # get senders
             data = [[], []]
             for rec in lst_rec:
-                info = nest.GetStatus(rec)[0]
+                info = nest.GetStatus([rec])[0]
                 if str(info["model"]) == "spike_detector":
                     data[0].extend(info["events"]["senders"])
                     data[1].extend(info["events"]["times"])
@@ -127,7 +127,7 @@ entry per group in the population"
 
     # plot
     for rec, var in zip(lst_rec, record):
-        info = nest.GetStatus(rec)[0]
+        info = nest.GetStatus([rec])[0]
         if str(info["model"]) == "spike_detector":
             c = colors[num_raster]
             times, senders = info["events"]["times"], info["events"]["senders"]
