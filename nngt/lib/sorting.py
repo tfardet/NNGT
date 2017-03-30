@@ -12,10 +12,8 @@ def _sort_neurons(sort, gids, network, data=None):
     '''
     Sort the neurons according to the `sort` property.
 
-    If `sort` is "firing_rate", then data contains the `senders` list given by
-    a NEST ``spike_recorder``.
-    If `sort` is "B2", then data contains both the senders and the spike time
-    associated.
+    If `sort` is "firing_rate" or "B2", then data must contain the `senders`
+    and `times` list given by a NEST ``spike_recorder``.
 
     Returns
     -------
@@ -37,16 +35,28 @@ def _sort_neurons(sort, gids, network, data=None):
             sorted_ids = np.argsort(betw)
         elif sort == "firing_rate" and data is not None:
             # compute number of spikes per neuron
-            spikes = np.bincount(data)
+            spikes = np.bincount(data[0])
+            if spikes.shape[0] < max_nest_gid: # one entry per neuron
+                spikes.resize(max_nest_gid)
             # sort them (neuron with least spikes arrives at min_nest_gid)
             sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
         elif sort.lower() == "b2":
             b2 = _b2(data)
-            sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
+            sorted_ids = np.argsort(b2)
+            # check for non-spiking neurons
+            num_b2 = b2.shape[0]
+            if num_b2 < network.node_nb():
+                spikes = np.bincount(data[0])
+                non_spiking = np.where(spikes[min_nest_gid,:] == 0)[0]
+                sorted_ids.resize(network.node_nb())
+                for i, n in enumerate(non_spiking):
+                    sorted_ids[sorted_ids >= n] += 1
+                    sorted_ids[num_b2 + i] = n
         else:
             raise InvalidArgument(
-                'Unknown sorting parameter {}; choose among "in-degree" ' + \
-                'out-degree", "total-degree" or "betweenness".'.format(sort))
+                'Unknown sorting parameter {}; choose among "in-degree" '   + \
+                'out-degree", "total-degree", "betweenness", "firing_rate"' + \
+                'or "B2".'.format(sort))
         num_sorted = 1
         _, sorted_groups = _sort_groups(network.population)
         for group in sorted_groups:
@@ -74,13 +84,14 @@ def _sort_groups(pop):
 
 def _b2(data):
     ''' Compute the b2 coefficient for the neurons. '''
-    senders = data[0,:]
-    times = data[1,:]
-    gid_start, gid_stop = senders.min(), senders.max()
-    b2 = np.zeros(gid_stop + 1 - gid_start)
-    for i in range(gid_start, gid_stop+1):
+    senders = data[0][:]
+    times = np.array(data[1][:])
+    gid_start, gid_stop = np.min(senders), np.max(senders) + 1
+    b2 = np.zeros(gid_stop - gid_start)
+    for i in range(gid_start, gid_stop):
         ids = np.where(senders == i)[0]
         dt1 = np.diff(times[ids])
-        dt2 = np.diff(dt1)
-        b2[i - gid_start] = (2*np.var(dt1) - np.var(dt2)) / (2*np.average(dt1))
+        dt2 = dt1[1:] + dt1[:-1]
+        b2[i - gid_start] = (2*np.var(dt1) - np.var(dt2)) \
+                            / (2*np.average(dt1)**2)
     return b2

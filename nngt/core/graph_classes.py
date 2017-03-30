@@ -689,7 +689,7 @@ with non symmetric matrix provided.')
         if deg_type in valid_types:
             return self.degree_list(node_list, deg_type, use_weights)
         else:
-            raise InvalidArgument("Invalid degree type '{}'".format(strType))
+            raise InvalidArgument("Invalid degree type '{}'".format(deg_type))
 
     def get_betweenness(self, btype="both", use_weights=False):
         '''

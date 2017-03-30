@@ -92,12 +92,13 @@ def plot_activity(gid_recorder, record, network=None, gids=None, show=True,
     sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
     if sort and network is not None:
         data = None
-        if sort == "firing_rate":  # get senders
-            data = []
+        if sort.lower() in ("firing_rate", "b2"):  # get senders
+            data = [[], []]
             for rec, var in zip(lst_rec, record):
                 info = nest.GetStatus(rec)[0]
                 if str(info["model"]) == "spike_detector":
-                    data.extend(info["events"]["senders"])
+                    data[0].extend(info["events"]["senders"])
+                    data[1].extend(info["events"]["times"])
         sorted_neurons = _sort_neurons(sort, gids, network, data=data)
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
