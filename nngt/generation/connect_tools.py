@@ -9,7 +9,6 @@ import scipy.sparse as ssp
 from numpy.random import randint
 
 import nngt
-from nngt.globals import config
 from nngt.lib import InvalidArgument
 
 

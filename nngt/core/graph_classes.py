@@ -16,7 +16,7 @@ from nngt.lib import (InvalidArgument, as_string, save_to_file, load_from_file,
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
                           DIST, TYPE)
-if nngt.config['with_nest']:
+if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
 
@@ -1063,7 +1063,7 @@ class Network(Graph):
             :func:`~nngt.simulation.make_nest_network` for parameters
         '''
         from nngt.simulation import make_nest_network
-        if nngt.config['with_nest']:
+        if nngt._config['with_nest']:
             return make_nest_network(self, use_weights)
         else:
             raise RuntimeError("NEST is not present.")

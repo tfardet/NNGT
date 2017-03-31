@@ -34,9 +34,9 @@ plot
 Utilities
 ---------
 get_config
-	Show library configuration
+	Show library _configuration
 set_config
-	Set library configuration (graph library, multithreading...)
+	Set library _configuration (graph library, multithreading...)
 version
 	NNGT version string
 
@@ -58,43 +58,39 @@ Main classes and functions
 ==========================
 """
 
-from __future__ import absolute_import
-import os
-import shutil
-import sys
+import os as _os
+import shutil as _shutil
+import sys as _sys
 
 
-
-#-----------------------------------------------------------------------------#
-# Requirements and config
-#------------------------
-#
+# ----------------------- #
+# Requirements and config #
+# ----------------------- #
 
 # Python > 2.6
-assert sys.hexversion > 0x02060000, 'NNGT requires Python > 2.6'
+assert _sys.hexversion > 0x02060000, 'NNGT requires Python > 2.6'
 
-# configuration
-lib_folder = os.path.expanduser('~') + '/.nngt'
-path_config = os.path.expanduser('~') + '/.nngt/nngt.conf'
-nngt_root = os.path.dirname(os.path.realpath(__file__))
-if not os.path.isdir(lib_folder):
-    os.mkdir(lib_folder)
-if not os.path.isfile(path_config):
-    shutil.copy(nngt_root + '/nngt.conf.default', path_config)
+# _configuration
+_lib_folder = _os.path.expanduser('~') + '/.nngt'
+_path_config = _os.path.expanduser('~') + '/.nngt/nngt.conf'
+_nngt_root = _os.path.dirname(_os.path.realpath(__file__))
+if not _os.path.isdir(_lib_folder):
+    _os.mkdir(_lib_folder)
+if not _os.path.isfile(_path_config):
+    _shutil.copy(_nngt_root + '/nngt.conf.default', _path_config)
 
-from .globals import (analyze_graph, config, use_library, version, set_config,
+from .globals import (analyze_graph, _config, use_library, version, set_config,
                       get_config, seed)
 
 # multithreading
-config["omp"] = int(os.environ.get("OMP", 1))
-if config["omp"] > 1:
-    config["multithreading"] = True
+_config["omp"] = int(_os.environ.get("OMP", 1))
+if _config["omp"] > 1:
+    _config["multithreading"] = True
 
 
-#-----------------------------------------------------------------------------#
-# Modules
-#------------------------
-#
+# ------- #
+# Modules #
+# ------- #
 
 # importing core directly
 from .core import *
@@ -134,29 +130,29 @@ __all__ = [
 # test if plot module is supported
 try:
     from . import plot
-    config['with_plot'] = True
+    _config['with_plot'] = True
     __all__.append('plot')
 except ImportError as e:
     ImportWarning("Error, plot module will not be loaded...", e)
-    config['with_plot'] = False
+    _config['with_plot'] = False
 
 # look for nest
-if config['load_nest']:
+if _config['load_nest']:
     try:
-        sys.argv.append('--quiet')
+        _sys.argv.append('--quiet')
         import nest
         from . import simulation
-        config['with_nest'] = True
+        _config['with_nest'] = True
         __all__.append("simulation")
     except ImportError as e:
         ImportWarning("NEST not found; nngt.simulation not loaded...", e)
-        config["with_nest"] = False
+        _config["with_nest"] = False
     
 # load database module if required
-if config["set_logging"]:
-    if config["to_file"]:
-        if not os.path.isdir(config["log_folder"]):
-            os.mkdir(config["log_folder"])
+if _config["set_logging"]:
+    if _config["to_file"]:
+        if not _os.path.isdir(_config["log_folder"]):
+            _os.mkdir(_config["log_folder"])
     try:
         from .database import db
         __all__.append('db')

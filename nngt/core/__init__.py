@@ -6,7 +6,7 @@ Content
 =======
 """
 
-import nngt.globals
+import nngt
 from .gt_graph import _GtGraph
 from .ig_graph import _IGraph
 from .nx_graph import _NxGraph
@@ -23,7 +23,7 @@ di_graphlib = {
 
 
 #: Graph object (reference to one of the main libraries' wrapper
-GraphObject = di_graphlib[nngt.globals.config["graph_library"]]
+GraphObject = di_graphlib[nngt._config["graph_library"]]
 #~ GraphObject = None
 
 

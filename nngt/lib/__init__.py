@@ -3,8 +3,6 @@ Content
 =======
 """
 
-from __future__ import absolute_import
-
 from .errors import *
 from .io_tools import *
 from .rng_tools import *

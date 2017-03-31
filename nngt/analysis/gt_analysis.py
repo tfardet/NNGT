@@ -126,9 +126,9 @@ def assortativity(graph, deg_type="total"):
     -------
     a float quantifying the graph assortativity.
     '''
-    if nngt.config["graph_library"] == "igraph":
+    if nngt._config["graph_library"] == "igraph":
         return graph.assortativity_degree(graph._directed)
-    elif nngt.config["graph_library"] == "graph_tool":
+    elif nngt._config["graph_library"] == "graph_tool":
         return assort(graph,"total")[0]
     else:
         return assort(graph)
@@ -144,7 +144,7 @@ def reciprocity(graph):
     -------
     a float quantifying the reciprocity.
     '''
-    if nngt.config["graph_library"] == "igraph":
+    if nngt._config["graph_library"] == "igraph":
         return graph.reciprocity()
     else:
         return edge_reciprocity(graph)
@@ -157,7 +157,7 @@ def clustering(graph):
     .. math::
         c = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
     '''
-    if nngt.config["graph_library"] == "igraph":
+    if nngt._config["graph_library"] == "igraph":
         return graph.transitivity_undirected()
     else:
         return global_clustering(graph)[0]
@@ -180,9 +180,9 @@ def num_scc(graph, listing=False):
     num_wcc
     '''
     lst_histo = None
-    if nngt.config["graph_library"] == "graph_tool":
+    if nngt._config["graph_library"] == "graph_tool":
         vprop_comp, lst_histo = scc(graph,directed=True)
-    elif nngt.config["graph_library"] == "igraph":
+    elif nngt._config["graph_library"] == "igraph":
         lst_histo = graph.clusters()
         lst_histo = [ cluster for cluster in lst_histo ]
     else:
@@ -203,9 +203,9 @@ def num_wcc(graph, listing=False):
     num_scc
     '''
     lst_histo = None
-    if nngt.config["graph_library"] == "graph_tool":
+    if nngt._config["graph_library"] == "graph_tool":
         vprop_comp, lst_histo = wcc(graph,directed=False)
-    elif nngt.config["graph_library"] == "igraph":
+    elif nngt._config["graph_library"] == "igraph":
         lst_histo = graphclusters("WEAK")
         lst_histo = [ cluster for cluster in lst_histo ]
     else:
@@ -218,9 +218,9 @@ def num_wcc(graph, listing=False):
 
 def diameter(graph):
     ''' Pseudo-diameter of the graph @todo: weighted diameter'''
-    if nngt.config["graph_library"] == "igraph":
+    if nngt._config["graph_library"] == "igraph":
         return graph.diameter()
-    elif nngt.config["graph_library"] == "networkx":
+    elif nngt._config["graph_library"] == "networkx":
         return glib_diameter(graph)
     else:
         return glib_diameter(graph)[0]

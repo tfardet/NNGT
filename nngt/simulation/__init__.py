@@ -44,6 +44,6 @@ __all__ = [
 
 # test import of simulation plotting tools
 
-if nngt.config['with_plot']:
+if nngt._config['with_plot']:
     from .nest_plot import plot_activity
     __all__.append("plot_activity")

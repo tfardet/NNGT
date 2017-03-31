@@ -107,7 +107,7 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
         ia_edges[:existing,:] = existing_edges
     cdef:
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
-        unsigned int omp = nngt.config["omp"]
+        unsigned int omp = nngt._config["omp"]
         unsigned int num_node = num_target if b_out else num_source
         long msd = np.random.randint(0, edges + 1)
         vector[size_t] degrees = np.repeat(degree, num_node)
@@ -140,7 +140,7 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
-        unsigned int omp = nngt.config["omp"]
+        unsigned int omp = nngt._config["omp"]
         unsigned int num_node = num_target if b_out else num_source
         vector[size_t] degrees = np.around(np.maximum(
             np.random.normal(avg, std, num_node), 0.)).astype(DTYPE)
@@ -359,7 +359,7 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
         string crule = _to_bytes(rule)
-        unsigned int omp = nngt.config["omp"]
+        unsigned int omp = nngt._config["omp"]
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
         vector[double] x = positions[0]
         vector[double] y = positions[1]

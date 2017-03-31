@@ -7,8 +7,6 @@ Content
 
 """
 
-from __future__ import absolute_import
-
 from .graph_connectivity import *
 from .connect_tools import _compute_connections
 

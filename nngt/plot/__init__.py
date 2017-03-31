@@ -16,8 +16,8 @@ import matplotlib as _mpl
 
 import nngt as _nngt
 
-if _nngt.config["backend"] is not None:
-    _mpl.use(_nngt.config["backend"])
+if _nngt._config["backend"] is not None:
+    _mpl.use(_nngt._config["backend"])
 else:
     sav_backend = _mpl.get_backend()
     backends = [ 'GTK3Agg', 'Qt4Agg', 'Qt5Agg' ]
@@ -51,10 +51,10 @@ __all__ = [
 ]
 
 
-if _nngt.config["graph_library"] == 'graph-tool':
+if _nngt._config["graph_library"] == 'graph-tool':
     from .plt_networks import draw_network
     __all__.append("draw_network")
 else:
     warnings.warn("Graph drawing is only available with graph_tool at the \
 moment. As {} is currently being used, all graph drawing functions will be \
-disabled.".format(_nngt.config["graph_library"]))
+disabled.".format(_nngt._config["graph_library"]))

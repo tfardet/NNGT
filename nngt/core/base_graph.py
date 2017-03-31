@@ -10,7 +10,7 @@ from weakref import ref
 
 import numpy as np
 
-import nngt.globals
+import nngt
 from nngt.globals import BWEIGHT
 from nngt.lib import InvalidArgument
 
@@ -53,7 +53,7 @@ class BaseProperty(dict):
 #
 
 @add_metaclass(ABCMeta)
-class BaseGraph(nngt.globals.config["graph"]):
+class BaseGraph(nngt._config["graph"]):
     
     #-------------------------------------------------------------------------#
     # Class methods and attributes

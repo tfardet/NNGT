@@ -106,7 +106,7 @@ class TestAttributes(TestBasis):
             '''Error on graph {}: unequal delays for tolerance {}.
             '''.format(graph.name, self.tolerance))
         # @todo
-        #~ if nngt.config['with_nest']:
+        #~ if nngt._config['with_nest']:
             #~ from nngt.simulation import make_nest_network
             #~ gids = make_nest_network(graph)
 

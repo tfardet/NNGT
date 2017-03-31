@@ -10,7 +10,6 @@ from scipy.spatial.distance import cdist
 from numpy.random import randint
 
 import nngt
-from nngt.globals import config
 from nngt.lib import InvalidArgument
 from .connect_tools import *
 
@@ -410,5 +409,5 @@ def price_network():
     #@todo: do it for other libraries
     pass
 
-if config["graph_library"] == "graph-tool":
+if nngt._config["graph_library"] == "graph-tool":
     from graph_tool.generation import price_network

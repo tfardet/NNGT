@@ -6,7 +6,7 @@
 import numpy as np
 import scipy.sparse as ssp
 
-from nngt import config
+import nngt
 from nngt.lib import InvalidArgument
 
 
@@ -31,7 +31,7 @@ def _get_format(format, filename):
         elif filename.endswith('.dot'):
             format = 'dot'
         elif ( filename.endswith('gt') and
-               config["graph_library"] == "graph_tool" ):
+               nngt._config["graph_library"] == "graph_tool" ):
             format = 'gt'
         else:
             format = 'neighbour'

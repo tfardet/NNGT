@@ -116,11 +116,11 @@ def set_config(config, value=None):
     --------
     :func:`~nngt.get_config`
     '''
-    old_multithreading = nngt.config["multithreading"]
+    old_multithreading = nngt._config["multithreading"]
     if not isinstance(config, dict):
         config = {config: value}
     for key in config:
-        if key not in nngt.config:
+        if key not in nngt._config:
             raise KeyError("Unknown configuration property: {}".format(key))
     # check multithreading status and number of threads 
     if "omp" in config:
@@ -131,19 +131,19 @@ def set_config(config, value=None):
     if not config.get("multithreading", old_multithreading):
         config["omp"] = 1
     # update
-    nngt.config.update(config)
+    nngt._config.update(config)
     # apply multithreading parameters
     if config["multithreading"] != old_multithreading:
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
-    if "omp" in config and nngt.config["graph_library"] == "graph-tool":
-        nngt.config["library"].openmp_set_num_threads(nngt.config["omp"])
+    if "omp" in config and nngt._config["graph_library"] == "graph-tool":
+        nngt._config["library"].openmp_set_num_threads(nngt._config["omp"])
 
 
 def get_config(key=None):
     if key is None:
-        return {key: val for key, val in nngt.config.items()}
+        return {key: val for key, val in nngt._config.items()}
     else:
-        res = nngt.config[key]
+        res = nngt._config[key]
         return res
 
 
@@ -177,7 +177,7 @@ def _load_config(path_config):
     return config
 
 
-config = _load_config(nngt.path_config)
+_config = _load_config(nngt._path_config)
 
 
 # ----------- #
@@ -196,7 +196,7 @@ def seed(seed=None):
         Must be convertible to 32 bit unsigned integers.
     '''
     np.random.seed(seed)
-    nngt.config["seed"] = seed
+    nngt._config["seed"] = seed
 
 
 # --------------- #
@@ -210,9 +210,9 @@ def _set_graph_tool():
     '''
     import graph_tool as glib
     from graph_tool import Graph as GraphLib
-    config["graph_library"] = "graph-tool"
-    config["library"] = glib
-    config["graph"] = GraphLib
+    _config["graph_library"] = "graph-tool"
+    _config["library"] = glib
+    _config["graph"] = GraphLib
     # analysis functions
     from graph_tool.spectral import adjacency as _adj
     from graph_tool.centrality import betweenness
@@ -246,9 +246,9 @@ def _set_igraph():
     '''
     import igraph as glib
     from igraph import Graph as GraphLib
-    config["graph_library"] = "igraph"
-    config["library"] = glib
-    config["graph"] = GraphLib
+    _config["graph_library"] = "igraph"
+    _config["library"] = glib
+    _config["graph"] = GraphLib
     # defining the adjacency function
     def adj_mat(graph, weight=None):
         n = graph.node_nb()
@@ -282,9 +282,9 @@ def _set_igraph():
 def _set_networkx():
     import networkx as glib
     from networkx import DiGraph as GraphLib
-    config["graph_library"] = "networkx"
-    config["library"] = glib
-    config["graph"] = GraphLib
+    _config["graph_library"] = "networkx"
+    _config["library"] = glib
+    _config["graph"] = GraphLib
     # analysis functions
     from networkx.algorithms import ( diameter, 
         strongly_connected_components, weakly_connected_components,
@@ -345,7 +345,7 @@ def use_library(library, reloading=True):
     else:
         raise ValueError("Invalid graph library requested.")
     if reloading:
-        sys.modules["nngt"].config = config
+        sys.modules["nngt"]._config = _config
         sys.modules["nngt"].analyze_graph = analyze_graph
         reload_module(sys.modules["nngt"].core.base_graph)
         reload_module(sys.modules["nngt"].core.gt_graph)
@@ -356,9 +356,9 @@ def use_library(library, reloading=True):
         reload_module(sys.modules["nngt"].analysis.gt_analysis)
         reload_module(sys.modules["nngt"].generation)
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
-        if config['with_plot']:
+        if _config['with_plot']:
             reload_module(sys.modules["nngt"].plot)
-        if config['with_nest']:
+        if _config['with_nest']:
             reload_module(sys.modules["nngt"].simulation)
         reload_module(sys.modules["nngt"].lib)
         reload_module(sys.modules["nngt"].core.graph_classes)
@@ -377,9 +377,9 @@ def use_library(library, reloading=True):
 _libs = [ 'graph-tool', 'igraph', 'networkx' ]
 
 try:
-    use_library(config['graph_library'], False)
+    use_library(_config['graph_library'], False)
 except ImportError:
-    idx = _libs.index(config['graph_library'])
+    idx = _libs.index(_config['graph_library'])
     del _libs[idx]
     keep_trying = True
     while _libs and keep_trying:
