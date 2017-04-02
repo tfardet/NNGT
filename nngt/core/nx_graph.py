@@ -353,14 +353,14 @@ edge in the graph.")
         di_nbetw, di_ebetw = None, None
         w = BWEIGHT if use_weights else None
         if btype in ("both", "node"):
-            di_nbetw = nngt.globals.config["library"].betweenness_centrality(self,
+            di_nbetw = nngt._config["library"].betweenness_centrality(self,
                                                                 weight=BWEIGHT)
         if btype in ("both", "edge"):
-            di_ebetw = nngt.globals.config["library"].edge_betweenness_centrality(self,
+            di_ebetw = nngt._config["library"].edge_betweenness_centrality(self,
                                                                 weight=BWEIGHT)
         else:
-            di_nbetw = nngt.globals.config["library"].betweenness_centrality(self)
-            di_ebetw = nngt.globals.config["library"].edge_betweenness_centrality(self)
+            di_nbetw = nngt._config["library"].betweenness_centrality(self)
+            di_ebetw = nngt._config["library"].edge_betweenness_centrality(self)
         if btype == "node":
             return np.array(tuple(di_nbetw.values()))
         elif btype == "edge":

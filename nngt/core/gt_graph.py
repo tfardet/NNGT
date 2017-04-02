@@ -164,7 +164,7 @@ class _GtGraph(BaseGraph):
         if g is None:
             super(_GtGraph, self).add_vertex(nodes)
         else:
-            if g.__class__ is nngt.globals.config["graph"]:
+            if g.__class__ is nngt._config["graph"]:
                 edges = nngt.analyze_graph["get_edges"](g)
 
     #-------------------------------------------------------------------------#
