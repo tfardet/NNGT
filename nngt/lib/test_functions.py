@@ -4,6 +4,10 @@
 """ Test functions for the NNGT """
 
 import collections
+try:
+    from collections.abc import Container as _container
+except:
+    from collections import Container as _container
 
 
 def valid_gen_arguments(func):
@@ -16,7 +20,7 @@ def nonstring_container(obj):
     '''
     Returns true for any iterable which is not a string or byte sequence.
     '''
-    if not isinstance(obj, collection.abc.Container):
+    if not isinstance(obj, _container):
         return False
     try:
         if isinstance(obj, unicode):

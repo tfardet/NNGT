@@ -7,7 +7,23 @@ import scipy as sp
 import scipy.sparse.linalg as spl
 
 import nngt
+from nngt.lib import InvalidArgument
 
+
+__all__ = [
+    "adjacency_matrix",
+    "assortativity",
+    "betweenness_distrib",
+	"clustering",
+    "degree_distrib",
+	"diameter",
+	"num_iedges",
+	"num_scc",
+	"num_wcc",
+	"reciprocity",
+	"spectral_radius",
+    "subgraph_centrality",
+]
 
 
 #-----------------------------------------------------------------------------#
@@ -294,3 +310,46 @@ def adjacency_matrix(graph, types=True, weights=True):
     '''
     return graph.adjacency_matrix(types, weights)
 
+
+def subgraph_centrality(graph, weights=True, normalize=False):
+    '''
+    Subgraph centrality, accordign to [Estrada2005], for each node in the
+    graph.
+
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Network to analyze.
+    weights : bool or string, optional (default: True)
+        Whether weights should be taken into account; if True, then connections
+        are weighed by their synaptic strength, if False, then a binary matrix
+        is returned, if `weights` is a string, then the ponderation is the
+        correponding value of the edge attribute (e.g. "distance" will return
+        an adjacency matrix where each connection is multiplied by its length).
+    normalize : str, optional (default: False)
+        Whether the centrality should be normalized. Accepted normalizations
+        are "eigenmax" and "centralmax"; the first rescales the centralities by
+        the exponential of the largest eigenvalue of the adjacency matrix, the
+        second sets the maximum centrality to one.
+
+    Returns
+    -------
+    centralities : :class:`numpy.ndarray`
+        The subgraph centrality of each node.
+
+    **[Estrada2005]:** Ernesto Estrada and Juan A. Rodríguez-Velázquez,
+      Subgraph centrality in complex networks, PHYSICAL REVIEW E 71, 056103
+      (2005), `available on ArXiv<arxiv.org/pdf/cond-mat/0504730>`_.
+    '''
+    adj_mat = graph.adjacency_matrix(types=False, weights=weights)
+    exp_adj = spl.expm(adj_mat)
+    centralities = exp_adj.diagonal()
+    if normalize == "centralmax":
+        centralities /= centralities.max()
+    elif normalize == "eigenmax":
+        norm, _ = spl.eigs(adj_mat, k=1)
+        centralities /= sp.exp(norm[0])
+    elif normalize:
+        raise InvalidArgument('`normalize` should be either False, "eigenmax",'
+                              ' or "centralmax".')
+    return centralities

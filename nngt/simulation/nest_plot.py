@@ -15,7 +15,7 @@ import nest
 
 from nngt.plot import palette
 from nngt.plot.plt_properties import _set_new_plot
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.sorting import _sort_groups, _sort_neurons
 
 
@@ -97,16 +97,20 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     num_group = len(network.population) if network is not None else 1
     # sorting
     sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
-    if sort and network is not None:
-        data = None
-        if sort.lower() in ("firing_rate", "b2"):  # get senders
-            data = [[], []]
-            for rec in lst_rec:
-                info = nest.GetStatus([rec])[0]
-                if str(info["model"]) == "spike_detector":
-                    data[0].extend(info["events"]["senders"])
-                    data[1].extend(info["events"]["times"])
-        sorted_neurons = _sort_neurons(sort, gids, network, data=data)
+    if network is not None:
+        if nonstring_container(sort):
+            sorted_neurons = np.zeros(network.nest_gid.max() + 1)
+            sorted_neurons[network.nest_gid[sort]] = sort
+        else:
+            data = None
+            if sort.lower() in ("firing_rate", "b2"):  # get senders
+                data = [[], []]
+                for rec in lst_rec:
+                    info = nest.GetStatus([rec])[0]
+                    if str(info["model"]) == "spike_detector":
+                        data[0].extend(info["events"]["senders"])
+                        data[1].extend(info["events"]["times"])
+            sorted_neurons = _sort_neurons(sort, gids, network, data=data)
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_raster, num_detec = 0, 0
