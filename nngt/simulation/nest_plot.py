@@ -80,9 +80,16 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         List of the figure numbers.
     '''
     lst_rec = []
+    # normalize recorders and recordables
     if gid_recorder is not None:
+        if len(record) != gid_recorder and nonstring_container(record[0]):
+            raise InvalidArgument('`record` must either be the same for all '
+                                  'recorders, or contain one entry per '
+                                  'recorder in `gid_recorder`')
+        elif len(record) > 0 and not nonstring_container(record[0]):
+            record = [record for _ in range(len(gid_recorder))]
         for rec in gid_recorder:
-            if isinstance(gid_recorder[0],tuple):
+            if isinstance(gid_recorder[0], tuple):
                 lst_rec.append(rec[0])
             else:
                 lst_rec.append(rec)
@@ -93,7 +100,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     # get gids and groups
     gids = network.nest_gid if (gids is None and network is not None) else gids
     if gids is None:
-        gids = nest.GetStatus(lst_rec[0])[0]["events"]["senders"]
+        gids = nest.GetStatus(lst_rec)[0]["events"]["senders"]
     num_group = len(network.population) if network is not None else 1
     # sorting
     sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1

@@ -254,7 +254,7 @@ def _monitor(gids, nest_recorder, params):
         if "meter" in rec:
             device = None
             di_spec = {"rule": "all_to_all"}
-            if not params[i].get("to_accumulator", False):
+            if not params[i].get("to_accumulator", True):
                 device = nest.Create(rec, len(gids))
                 di_spec["rule"] = "one_to_one"
             else:
@@ -273,6 +273,6 @@ def _monitor(gids, nest_recorder, params):
             nest.SetStatus(device,params[i])
             nest.Connect(gids, device)
         else:
-            raise InvalidArgument('''Invalid recorder item in `nest_recorder`:
-                                  {} is unknown.'''.format(nest_recorder))
+            raise InvalidArgument('Invalid recorder item in `nest_recorder`: '
+                                  '{} is unknown.'.format(nest_recorder))
     return tuple(recorders), new_record

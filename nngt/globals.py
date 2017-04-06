@@ -124,18 +124,23 @@ def set_config(config, value=None):
             raise KeyError("Unknown configuration property: {}".format(key))
     # check multithreading status and number of threads 
     if "omp" in config:
-        if config["omp"] > 1:
-            config["multithreading"] = True
-        else:
-            config["multithreading"] = False
-    if not config.get("multithreading", old_multithreading):
-        config["omp"] = 1
+        has_mt = config.get("multithreading", old_multithreading)
+        if config["omp"] > 1 and not has_mt:
+             print("Warning: 'multithreading' is set to False but 'omp' is "
+                   "greater than one.")
     # update
     nngt._config.update(config)
     # apply multithreading parameters
     if config["multithreading"] != old_multithreading:
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
     if "omp" in config and nngt._config["graph_library"] == "graph-tool":
+        if nngt._config['with_nest']:
+            import nest
+            omp_nest = nest.GetKernelStatus("local_num_threads")
+            assert omp_nest == config["omp"], "Using NEST and graph_tool, " +\
+                "OpenMP number must be consistent throughout the code: " +\
+                "current NEST config states omp = {}.".format(omp_nest) +\
+                "\n`graph_tool` configuration was not changed."
         nngt._config["library"].openmp_set_num_threads(nngt._config["omp"])
 
 
@@ -165,6 +170,7 @@ def _load_config(path_config):
         'palette': 'Set1',
         'multithreading': False,
         'omp': 1,
+        'set_omp_graph_tool': False,
         'seed': None
     }
     with open(path_config, 'r') as fconfig:

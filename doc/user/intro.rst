@@ -7,19 +7,29 @@ Yet another graph library?
 
 It is not ;)
 
-This library is based on existing graph libraries (such as `graph_tool <https://graph-tool.skewed.de>`_, and possibly soon `SNAP <http://snap.stanford.edu/snap/>`_) and acts as a convenient interface to build various networks from efficient and verified algorithms.
+This library is based on existing graph libraries (such as
+graph_tool_, igraph_, networkx_, and possibly soon
+`SNAP <http://snap.stanford.edu/snap/>`_) and acts as a convenient interface to
+build various networks from efficient and verified algorithms.
 
-Moreover, it also acts as an interface between those graph libraries and the NEST simulator.
+Moreover, it also acts as an interface between those graph libraries and the
+`NEST simulator`_.
 
 
 Description
 ===========
 
-Neural networks are described by four graph classes which inherit from the main class of the chosen graph library (:class:`graph_tool.Graph`, :class:`igraph.Graph` or :class:`networkx.DiGraph`):
-	- :class:`~nngt.Graph`: base for simple topological graphs with no spatial structure, nor biological properties
-	- :class:`~nngt.SpatialGraph`: subclass for spatial graphs without biological properties
-	- :class:`~nngt.Network`: subclass for topological graphs with biological properties (to interact with NEST)
-	- :class:`~nngt.SpatialNetwork`: subclass with spatial and biological properties (to interact with NEST)
+Neural networks are described by four graph classes which inherit from the main
+class of the chosen graph library (:class:`graph_tool.Graph`,
+:class:`igraph.Graph` or :class:`networkx.DiGraph`):
+	- :class:`~nngt.Graph`: base for simple topological graphs with no spatial
+      structure, nor biological properties
+	- :class:`~nngt.SpatialGraph`: subclass for spatial graphs without
+      biological properties
+	- :class:`~nngt.Network`: subclass for topological graphs with biological
+      properties (to interact with NEST)
+	- :class:`~nngt.SpatialNetwork`: subclass with spatial and biological
+      properties (to interact with NEST)
 
 Using these objects, the user can access to the topological structure of the network (including the connections' type -- inhibitory or excitatory -- and its weight which is always positive)
 
@@ -43,3 +53,9 @@ Several classical graphs are efficiently implemented and the generation procedur
    :maxdepth: 2
    
    ../modules/nngt
+
+
+.. _graph_tool: http://graph-tool.skewed.de
+.. _igraph: http://igraph.org/
+.. _`NEST simulator`: http://www.nest-simulator.org/
+.. _networkx: https://networkx.github.io/

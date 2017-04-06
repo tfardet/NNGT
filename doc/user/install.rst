@@ -15,9 +15,9 @@ Regardless of your needs, the following libraries are required:
 
 * `numpy <http://www.numpy.org/>`_ 
 * `scipy <http://www.scipy.org/scipylib/index.html>`_
-* `graph_tool <http://graph-tool.skewed.de>`_ (recommended)
-* or `igraph <http://igraph.org/>`_
-* or `networkx <https://networkx.github.io/>`_
+* graph_tool_
+* or igraph_
+* or networkx_
 
 Additionnal dependencies
 -----------------------
@@ -122,4 +122,8 @@ If you want to simulate activities on your complex networks, NNGT can directly i
 * `readlines`
 * `gsl` (the GNU Scientific Library) for many neuronal models
 
+
+.. _graph_tool: http://graph-tool.skewed.de
+.. _igraph: http://igraph.org/
 .. _NEST simulator: http://www.nest-simulator.org/
+.. _networkx: https://networkx.github.io/
