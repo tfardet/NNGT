@@ -28,33 +28,33 @@ Main classes
 NNGT uses four main classes:
 
 :class:`~nngt.Graph`
-	provides a simple implementation over graphs objects from graph libraries
-    (namely the addition of a name, management of detailed nodes and connection
-    properties, and simple access to basic graph measurements).
+  provides a simple implementation over graphs objects from graph libraries
+  (namely the addition of a name, management of detailed nodes and connection
+  properties, and simple access to basic graph measurements).
 :class:`~nngt.SpatialGraph`
-    a Graph embedded in space (neurons have positions and connections are
-    associated to a distance)
+  a Graph embedded in space (neurons have positions and connections are
+  associated to a distance)
 :class:`~nngt.Network`
-	provides more detailed characteristics to emulate biological neural
-    networks, such as classes of inhibitory and excitatory neurons, synaptic
-    properties...
+  provides more detailed characteristics to emulate biological neural
+  networks, such as classes of inhibitory and excitatory neurons, synaptic
+  properties...
 :class:`~nngt.SpatialNetwork`
-	combines spatial embedding and biological properties
+  combines spatial embedding and biological properties
 
 
 Generation of graphs
 --------------------
 
 Structured connectivity:
-	connectivity between the nodes can be chosen from various well-known graph
-    models
+  connectivity between the nodes can be chosen from various well-known graph
+  models
 Populations:
-	populations of neurons are distributed afterwards on the structured
-    connectivity, and can be set to respect various constraints (for instance a
-    given fraction of inhibitory neurons and synapses)
+  populations of neurons are distributed afterwards on the structured
+  connectivity, and can be set to respect various constraints (for instance a
+  given fraction of inhibitory neurons and synapses)
 Synaptic properties:
-	synaptic weights and delays can be set from various distributions or
-    correlated to edge properties
+  synaptic weights and delays can be set from various distributions or
+  correlated to edge properties
 
 
 Interacting with NEST
