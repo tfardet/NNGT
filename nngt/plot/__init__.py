@@ -55,6 +55,7 @@ if _nngt._config["graph_library"] == 'graph-tool':
     from .plt_networks import draw_network
     __all__.append("draw_network")
 else:
-    warnings.warn("Graph drawing is only available with graph_tool at the \
-moment. As {} is currently being used, all graph drawing functions will be \
-disabled.".format(_nngt._config["graph_library"]))
+    _warn.warn("Graph drawing is only available with graph_tool at the "
+               "moment. As {} is currently being used, all graph drawing "
+               "functions will be disabled.".format(
+               _nngt._config["graph_library"]))
