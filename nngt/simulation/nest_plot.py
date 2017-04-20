@@ -104,7 +104,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     num_group = len(network.population) if network is not None else 1
     # sorting
     sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
-    if network is not None:
+    if network is not None and sort is not None:
         if nonstring_container(sort):
             sorted_neurons = np.zeros(network.nest_gid.max() + 1)
             sorted_neurons[network.nest_gid[sort]] = sort
