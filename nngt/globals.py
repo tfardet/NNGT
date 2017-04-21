@@ -226,7 +226,14 @@ def _set_graph_tool():
     from graph_tool.correlations import assortativity as assort
     from graph_tool.topology import (edge_reciprocity,
                                     label_components, pseudo_diameter)
-    from graph_tool.clustering import global_clustering
+    from graph_tool.clustering import global_clustering, local_clustering
+    def global_clustering_coeff(g):
+        return global_clustering(g)[0]
+    def local_clustering_coeff(g, nodes=None):
+        lc = local_clustering(g).a
+        if nodes is None:
+            return lc
+        return lc[nodes]
     # defining the adjacency function
     def adj_mat(graph, weight=None):
         if weight is not None:
@@ -237,7 +244,8 @@ def _set_graph_tool():
     # store the functions
     analyze_graph["assortativity"] = assort
     analyze_graph["betweenness"] = betweenness
-    analyze_graph["clustering"] = global_clustering
+    analyze_graph["clustering"] = global_clustering_coeff
+    analyze_graph["local_clustering"] = local_clustering_coeff
     analyze_graph["scc"] = label_components
     analyze_graph["wcc"] = label_components
     analyze_graph["diameter"] = pseudo_diameter
@@ -278,6 +286,7 @@ def _set_igraph():
     analyze_graph["nbetweenness"] = not_implemented
     analyze_graph["ebetweenness"] = not_implemented
     analyze_graph["clustering"] = not_implemented
+    analyze_graph["local_clustering"] = not_implemented
     analyze_graph["scc"] = not_implemented
     analyze_graph["wcc"] = not_implemented
     analyze_graph["diameter"] = not_implemented
@@ -311,6 +320,8 @@ def _set_networkx():
             return NotImplementedError("Not implemented for networkx " +
                                        str(nx_version) + "; try installing "
                                        "the latest version.")
+    def local_clustering(g, nodes=None):
+        return np.array(networkx.clustering(g, nodes).values())
     # defining the adjacency function
     from networkx import to_scipy_sparse_matrix
     def adj_mat(graph, weight=None):
@@ -320,6 +331,8 @@ def _set_networkx():
     # store functions
     analyze_graph["assortativity"] = degree_assortativity_coefficient
     analyze_graph["diameter"] = diameter
+    analyze_graph["clustering"] = networkx.average_clustering
+    analyze_graph["local_clustering"] = local_clustering
     analyze_graph["reciprocity"] = overall_reciprocity
     analyze_graph["scc"] = strongly_connected_components
     analyze_graph["wcc"] = diameter

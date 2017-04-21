@@ -129,12 +129,12 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     elif isinstance(decimate, int):
         decim = [decimate for _ in range(num_group)]
     elif hasattr(decimate, "__len__"):
-        assert len(decimate) == num_group, "`decimate` should have one \
-entry per group in the population"
+        assert len(decimate) == num_group, "`decimate` should have one " +\
+                                           "entry per group in the population."
         decim = decimate
     else:
         raise AttributeError(
-            "`decimate must` be either an int or a list of ints")
+            "`decimate` must be either an int or a list of `int`.")
 
     # plot
     for rec, var in zip(lst_rec, record):

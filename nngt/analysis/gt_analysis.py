@@ -17,6 +17,7 @@ __all__ = [
 	"clustering",
     "degree_distrib",
 	"diameter",
+    "local_clustering",
 	"num_iedges",
 	"num_scc",
 	"num_wcc",
@@ -35,6 +36,7 @@ adjacency = nngt.analyze_graph["adjacency"]
 assort = nngt.analyze_graph["assortativity"]
 edge_reciprocity = nngt.analyze_graph["reciprocity"]
 global_clustering = nngt.analyze_graph["clustering"]
+local_clustering_coeff = nngt.analyze_graph["local_clustering"]
 scc = nngt.analyze_graph["scc"]
 wcc = nngt.analyze_graph["wcc"]
 glib_diameter = nngt.analyze_graph["diameter"]
@@ -176,7 +178,27 @@ def clustering(graph):
     if nngt._config["graph_library"] == "igraph":
         return graph.transitivity_undirected()
     else:
-        return global_clustering(graph)[0]
+        return global_clustering(graph)
+
+
+def local_clustering(graph, nodes=None):
+    '''
+    Local clustering coefficient of the nodes, defined as
+
+    .. math::
+        c_i = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` object
+        Graph to analyze.
+    nodes : array-like container with node ids, optional (default = all nodes)
+        Nodes for which the local clustering coefficient should be computed.
+    '''
+    if nngt._config["graph_library"] == "igraph":
+        return graph.transitivity_local_undirected(nodes)
+    else:
+        return local_clustering_coeff(graph, nodes)
 
 
 def num_iedges(graph):

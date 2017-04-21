@@ -81,6 +81,32 @@ def set_poisson_input(gids, rate):
     return poisson_input
 
 
+def set_minis(network, base_rate, weight_fraction=0.05, gids=None):
+    '''
+    Mimick spontaneous release of neurotransmitters, called spontaneous PSCs or
+    "minis".
+    These minis consists in only a fraction of the usual strength of a spike-
+    triggered PSC and can be modeled by a Poisson process.
+    This Poisson process occurs independently at every synapse of a neuron, so
+    a neuron receiving :math:`k` inputs will be subjected to these events with
+    a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
+    
+    Parameters
+    ----------
+    network : :class:`~nngt.Network` object
+        Network on which the minis should be simulated.
+    base_rate : float
+        Rate for the Poisson process on one synapse (:math:`\\lambda`).
+    weight_fraction : float, optional (default: 0.05)
+        Fraction of a spike-triggered PSC that will be released by a mini.
+    gids : array-like container of NEST gids, optional (default = all neurons)
+        Neurons that should be subjected to minis.
+    '''
+    assert (weight_fraction >= 0. and weight_fraction <= 1.), \
+           "`weight_fraction` must be between 0 and 1."
+    raise NotImplementedError("coming soon (4/21/2017).")
+
+
 def set_step_currents(gids, times, currents):
     '''
     Set step-current excitations
