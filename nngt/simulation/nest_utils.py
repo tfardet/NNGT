@@ -20,12 +20,13 @@ from nngt.lib.sorting import _sort_groups
 
 
 __all__ = [
-    'set_noise',
-    'set_poisson_input',
-    'set_step_currents',
     'monitor_groups',
     'monitor_nodes',
     'randomize_neural_states',
+    'set_minis',
+    'set_noise',
+    'set_poisson_input',
+    'set_step_currents',
 ]
 
 
@@ -90,7 +91,7 @@ def set_minis(network, base_rate, weight_fraction=0.05, gids=None):
     This Poisson process occurs independently at every synapse of a neuron, so
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
-    
+
     Parameters
     ----------
     network : :class:`~nngt.Network` object
@@ -104,7 +105,23 @@ def set_minis(network, base_rate, weight_fraction=0.05, gids=None):
     '''
     assert (weight_fraction >= 0. and weight_fraction <= 1.), \
            "`weight_fraction` must be between 0 and 1."
-    raise NotImplementedError("coming soon (4/21/2017).")
+    assert network.nest_gid is not None, "Create the NEST network first."
+    degrees = network.get_degrees("in")
+    weights = np.array(network.adjacency_matrix().mean(1).data)
+    deg_set = set(degrees)
+    map_deg_pg = {d: i for i, d in enumerate(deg_set)}
+    pgs = nest.Create("poisson_generator", len(deg_set))
+    for d, pg in zip(deg_set, pgs):
+        nest.SetStatus([pg], {"rate": d*base_rate})
+    if gids is None:
+        gids = network.nest_gid
+    else:
+        raise NotImplementedError(
+            "Choosing only specific nodes is not yet implemented.")
+    for i in range(len(gids)):
+        gid, d, w = [gids[i]], degrees[i], weights[i]*weight_fraction
+        pg = [pgs[map_deg_pg[d]]]
+        nest.Connect(pg, gid, syn_spec={"weight": w})
 
 
 def set_step_currents(gids, times, currents):
@@ -199,12 +216,12 @@ def monitor_groups(group_names, network, nest_recorder=None, params=None):
         Names of the groups that should be recorded.
     network : :class:`~nngt.Network` or subclass
         Network which population will be used to differentiate groups.
-    nest_recorder : strings or list, optional (default: None)
-        Device(s) to monitor the network. Defaults to "spike_detector".
-    params : dict or list of, optional (default: None)
+    nest_recorder : strings or list, optional (default: "spike_detector"0)
+        Device(s) to monitor the network.
+    params : dict or list of, optional (default: `{}`)
         Dictionarie(s) containing the parameters for each recorder (see
         `NEST documentation <http://www.nest-simulator.org/quickref/#nodes>`_
-        for details). Defaults to ``{}``.
+        for details).
 
     Returns
     -------
@@ -245,12 +262,12 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
         GIDs of the neurons in the NEST subnetwork; either one list per
         recorder if they should monitor different neurons or a unique list
         which will be monitored by all devices.
-    nest_recorder : strings or list, optional (default: None)
-        Device(s) to monitor the network. Defaults to "spike_detector".
-    params : dict or list of, optional (default: None)
+    nest_recorder : strings or list, optional (default: "spike_detector")
+        Device(s) to monitor the network.
+    params : dict or list of, optional (default: `{}`)
         Dictionarie(s) containing the parameters for each recorder (see
         `NEST documentation <http://www.nest-simulator.org/quickref/#nodes>`_
-        for details). Defaults to ``{}``.
+        for details).
     network : :class:`~nngt.Network` or subclass, optional (default: None)
         Network which population will be used to differentiate groups.
 
