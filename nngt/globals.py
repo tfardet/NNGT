@@ -321,7 +321,7 @@ def _set_networkx():
                                        str(nx_version) + "; try installing "
                                        "the latest version.")
     def local_clustering(g, nodes=None):
-        return np.array(networkx.clustering(g, nodes).values())
+        return np.array(glib.clustering(g, nodes).values())
     # defining the adjacency function
     from networkx import to_scipy_sparse_matrix
     def adj_mat(graph, weight=None):
@@ -331,7 +331,7 @@ def _set_networkx():
     # store functions
     analyze_graph["assortativity"] = degree_assortativity_coefficient
     analyze_graph["diameter"] = diameter
-    analyze_graph["clustering"] = networkx.average_clustering
+    analyze_graph["clustering"] = glib.average_clustering
     analyze_graph["local_clustering"] = local_clustering
     analyze_graph["reciprocity"] = overall_reciprocity
     analyze_graph["scc"] = strongly_connected_components
