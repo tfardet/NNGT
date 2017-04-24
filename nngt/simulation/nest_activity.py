@@ -19,6 +19,7 @@ __all__ = [
     "ActivityRecord",
     "activity_types",
     "analyze_raster"
+    "get_spikes"
 ]
 
 
@@ -167,6 +168,34 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
         col_idx.append(data[neuron])
         data[neuron] += 1
     return ssp.csr_matrix((spike_times, (row_idx, col_idx)))
+
+
+def get_b2(network, spike_detector=None, data=None):
+    '''
+    Return the B2 coefficient for the neurons.
+
+    Parameters
+    ----------
+    network : :class:`nngt.Network`
+        Network for which the activity was simulated.
+    spike_detector : tuple of ints, optional (default: spike detectors)
+        GID of the "spike_detector" objects recording the network activity.
+    data :
+
+    Returns
+    -------
+    b2 : array-like
+        B2 coefficient for each neuron in the network.
+    '''
+    #~ b2 = np.zeros(network.node_nb())
+    #~ if data is None and spike_detector is None:
+        #~ data = ([], [])
+        #~ spike_detector = nest.GetNodes(
+            #~ (0,), properties={'model': 'spike_detector'})[0]
+        #~ events = nest.GetStatus(spike_detector, "events")
+        #~ for ev_dict in events:
+            
+    #~ for neuron in network.nest_gid:
 
 
 def activity_types(spike_detector, limits, network=None,
