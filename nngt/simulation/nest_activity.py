@@ -18,8 +18,9 @@ from nngt.lib import InvalidArgument
 __all__ = [
     "ActivityRecord",
     "activity_types",
-    "analyze_raster"
-    "get_spikes"
+    "analyze_raster",
+    "get_b2",
+    "get_spikes",
 ]
 
 
@@ -180,22 +181,39 @@ def get_b2(network, spike_detector=None, data=None):
         Network for which the activity was simulated.
     spike_detector : tuple of ints, optional (default: spike detectors)
         GID of the "spike_detector" objects recording the network activity.
-    data :
+    data : array-like of shape (2, N), optionale (default: None)
+        Array containing the spikes data (first line must contain the NEST GID
+        of the neuron that fired, second line must contain the associated spike
+        time).
 
     Returns
     -------
     b2 : array-like
         B2 coefficient for each neuron in the network.
     '''
-    #~ b2 = np.zeros(network.node_nb())
-    #~ if data is None and spike_detector is None:
-        #~ data = ([], [])
-        #~ spike_detector = nest.GetNodes(
-            #~ (0,), properties={'model': 'spike_detector'})[0]
-        #~ events = nest.GetStatus(spike_detector, "events")
-        #~ for ev_dict in events:
-            
-    #~ for neuron in network.nest_gid:
+    b2 = np.zeros(network.node_nb())
+    if data is None:
+        data = [[], []]
+    if not len(data[0]):
+        if spike_detector is None:
+            spike_detector = nest.GetNodes(
+                (0,), properties={'model': 'spike_detector'})[0]
+        events = nest.GetStatus(spike_detector, "events")
+        for ev_dict in events:
+            data[0].extend(ev_dict["senders"])
+            data[1].extend(ev_dict["times"])
+    data[0] = np.array(data[0])
+    data[1] = np.array(data[1])
+    for i, neuron in enumerate(network.nest_gid):
+        ids = np.where(data[0] == neuron)[0]
+        dt1 = np.diff(data[1][ids])
+        dt2 = dt1[1:] + dt1[:-1]
+        avg_isi = np.mean(dt1)
+        if avg_isi != 0.:
+            b2[i] = (2*np.var(dt1) - np.var(dt2)) / (2*avg_isi**2)
+        else:
+            b2[i] = np.inf
+    return b2
 
 
 def activity_types(spike_detector, limits, network=None,

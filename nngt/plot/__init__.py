@@ -39,8 +39,7 @@ _warn.filterwarnings("ignore", module="matplotlib")
 
 from .custom_plt import palette
 from .animations import Animation2d, AnimationNetwork
-from .plt_properties import (attribute_distribution, betweenness_distribution,
-                             degree_distribution)
+from .plt_properties import *
 
 __all__ = [
     "Animation2d",
@@ -48,6 +47,7 @@ __all__ = [
     "attribute_distribution",
     "betweenness_distribution",
     "degree_distribution",
+    "node_attributes_distribution",
 ]
 
 
