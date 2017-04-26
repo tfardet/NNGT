@@ -222,7 +222,7 @@ def _set_graph_tool():
     _config["graph"] = GraphLib
     # analysis functions
     from graph_tool.spectral import adjacency as _adj
-    from graph_tool.centrality import betweenness
+    from graph_tool.centrality import betweenness, closeness
     from graph_tool.correlations import assortativity as assort
     from graph_tool.topology import (edge_reciprocity,
                                     label_components, pseudo_diameter)
@@ -234,6 +234,15 @@ def _set_graph_tool():
         if nodes is None:
             return lc
         return lc[nodes]
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = graph.edge_properties[weight]
+        else:
+            weights=None
+        c = closeness(graph, weight=weights)
+        if nodes is None:
+            return c.a
+        return c.a[nodes]
     # defining the adjacency function
     def adj_mat(graph, weight=None):
         if weight is not None:
@@ -244,6 +253,7 @@ def _set_graph_tool():
     # store the functions
     analyze_graph["assortativity"] = assort
     analyze_graph["betweenness"] = betweenness
+    analyze_graph["closeness"] = _closeness
     analyze_graph["clustering"] = global_clustering_coeff
     analyze_graph["local_clustering"] = local_clustering_coeff
     analyze_graph["scc"] = label_components
@@ -264,6 +274,13 @@ def _set_igraph():
     _config["graph_library"] = "igraph"
     _config["library"] = glib
     _config["graph"] = GraphLib
+    # define
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = weight
+        else:
+            weights=None
+        return graph.closeness(nodes, mode="out", weights=weights)
     # defining the adjacency function
     def adj_mat(graph, weight=None):
         n = graph.node_nb()
@@ -286,6 +303,7 @@ def _set_igraph():
     analyze_graph["nbetweenness"] = not_implemented
     analyze_graph["ebetweenness"] = not_implemented
     analyze_graph["clustering"] = not_implemented
+    analyze_graph["closeness"] = _closeness
     analyze_graph["local_clustering"] = not_implemented
     analyze_graph["scc"] = not_implemented
     analyze_graph["wcc"] = not_implemented
@@ -305,6 +323,17 @@ def _set_networkx():
     from networkx.algorithms import ( diameter, 
         strongly_connected_components, weakly_connected_components,
         degree_assortativity_coefficient )
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = graph.edge_properties[weight]
+        else:
+            weights=None
+        if nodes is None:
+            return glib.closeness_centrality(graph, distance=weights)
+        else:
+            c = [glib.closeness_centrality(graph, u=n, distance=weights)
+                 for n in nodes]
+            return c
     def overall_reciprocity(g):
         num_edges = g.number_of_edges()
         num_recip = (num_edges - g.to_undirected().number_of_edges()) * 2
@@ -331,6 +360,7 @@ def _set_networkx():
     # store functions
     analyze_graph["assortativity"] = degree_assortativity_coefficient
     analyze_graph["diameter"] = diameter
+    analyze_graph["closeness"] = _closeness
     analyze_graph["clustering"] = glib.average_clustering
     analyze_graph["local_clustering"] = local_clustering
     analyze_graph["reciprocity"] = overall_reciprocity

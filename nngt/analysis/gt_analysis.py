@@ -14,6 +14,7 @@ __all__ = [
     "adjacency_matrix",
     "assortativity",
     "betweenness_distrib",
+	"closeness",
 	"clustering",
     "degree_distrib",
 	"diameter",
@@ -36,6 +37,7 @@ __all__ = [
 adjacency = nngt.analyze_graph["adjacency"]
 assort = nngt.analyze_graph["assortativity"]
 edge_reciprocity = nngt.analyze_graph["reciprocity"]
+_closeness = nngt.analyze_graph["closeness"]
 global_clustering = nngt.analyze_graph["clustering"]
 local_clustering_coeff = nngt.analyze_graph["local_clustering"]
 scc = nngt.analyze_graph["scc"]
@@ -117,9 +119,9 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins=None,
     if nodes is not None:
         ia_nbetw = ia_nbetw[nodes]
     if num_nbins is None:
-        num_nbins = min(10, int(len(ia_nbetw) / 50))
+        num_nbins = max(10, int(len(ia_nbetw) / 50))
     if num_ebins is None:
-        num_ebins = int(len(ia_ebetw) / 50)
+        num_ebins = max(10, int(len(ia_ebetw) / 50))
     ra_nbins = sp.linspace(ia_nbetw.min(), ia_nbetw.max(), num_nbins)
     ra_ebins = sp.linspace(ia_ebetw.min(), ia_ebetw.max(), num_ebins)
     if log:
@@ -127,13 +129,56 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins=None,
                                sp.log10(ia_nbetw.max()), num_nbins)
         ra_ebins = sp.logspace(sp.log10(sp.maximum(ia_ebetw.min(),10**-8)),
                                sp.log10(ia_ebetw.max()), num_ebins)
-    ncounts,nbetw = sp.histogram(ia_nbetw, ra_nbins)
-    ecounts,ebetw = sp.histogram(ia_ebetw, ra_ebins)
-    return ncounts, nbetw[:-1], ecounts, ebetw[:-1]
+    ncounts, nbetw = sp.histogram(ia_nbetw, ra_nbins)
+    ecounts, ebetw = sp.histogram(ia_ebetw, ra_ebins)
+    nbetw = nbetw[:-1] + 0.5*sp.diff(nbetw)
+    ebetw = ebetw[:-1] + 0.5*sp.diff(ebetw)
+    return ncounts, nbetw, ecounts, ebetw
 
 
 #-----------------------------------------------------------------------------#
-# Scalar properties
+# Node properties
+#------------------------
+#
+
+def closeness(graph, nodes=None, use_weights=False):
+    '''
+    Return the closeness centrality for each node in `nodes`.
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` object
+        Graph to analyze.
+    nodes : array-like container with node ids, optional (default = all nodes)
+        Nodes for which the local clustering coefficient should be computed.
+    use_weights : bool, optional (default: False)
+        Whether weighted closeness should be used.
+    '''
+    return _closeness(graph, nodes, use_weights)
+
+
+def local_clustering(graph, nodes=None):
+    '''
+    Local clustering coefficient of the nodes, defined as
+
+    .. math::
+        c_i = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` object
+        Graph to analyze.
+    nodes : array-like container with node ids, optional (default = all nodes)
+        Nodes for which the local clustering coefficient should be computed.
+    '''
+    if nngt._config["graph_library"] == "igraph":
+        return graph.transitivity_local_undirected(nodes)
+    else:
+        return local_clustering_coeff(graph, nodes)
+
+
+#-----------------------------------------------------------------------------#
+# Graph properties
 #------------------------
 #
 
@@ -189,26 +234,6 @@ def clustering(graph):
         return graph.transitivity_undirected()
     else:
         return global_clustering(graph)
-
-
-def local_clustering(graph, nodes=None):
-    '''
-    Local clustering coefficient of the nodes, defined as
-
-    .. math::
-        c_i = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
-    
-    Parameters
-    ----------
-    graph : :class:`~nngt.Graph` object
-        Graph to analyze.
-    nodes : array-like container with node ids, optional (default = all nodes)
-        Nodes for which the local clustering coefficient should be computed.
-    '''
-    if nngt._config["graph_library"] == "igraph":
-        return graph.transitivity_local_undirected(nodes)
-    else:
-        return local_clustering_coeff(graph, nodes)
 
 
 def num_iedges(graph):
@@ -528,6 +553,8 @@ def _get_attribute(network, attribute, nodes=None):
         if nodes is not None:
             return betw[nodes]
         return betw
+    elif attribute == "closeness":
+        return closeness(network, nodes=nodes)
     elif attribute == "clustering":
         return local_clustering(network, nodes=nodes)
     elif attribute == "subgraph_centrality":

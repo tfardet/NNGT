@@ -40,15 +40,15 @@ _warn.filterwarnings("ignore", module="matplotlib")
 from .custom_plt import palette
 from .animations import Animation2d, AnimationNetwork
 from .plt_properties import *
+from . import plt_properties as _plt_prop
+
 
 __all__ = [
     "Animation2d",
     "AnimationNetwork",
-    "attribute_distribution",
-    "betweenness_distribution",
-    "degree_distribution",
-    "node_attributes_distribution",
+    "palette",
 ]
+__all__.extend(_plt_prop.__all__)
 
 
 if _nngt._config["graph_library"] == 'graph-tool':
