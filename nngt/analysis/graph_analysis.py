@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-""" Tools for graph analysis using the graph_tool library """
+""" Tools for graph analysis using the graph libraries """
 
 import scipy as sp
 import scipy.sparse.linalg as spl
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container
+from .activity_analysis import _b2_from_data, _fr_from_data
 
 
 __all__ = [
@@ -445,11 +446,12 @@ def node_attributes(network, attributes, nodes=None):
             values[attr] = _get_attribute(network, attr, nodes)
         return values
     else:
-        return _get_attribute(network, attr, nodes)
+        return _get_attribute(network, attributes, nodes)
 
     
 def find_nodes(network, attributes, equal=None, upper_bound=None,
-               lower_bound=None, upper_fraction=None, lower_fraction=None):
+               lower_bound=None, upper_fraction=None, lower_fraction=None,
+               data=None):
     '''
     Return the nodes in the graph which fulfill the given conditions.
     
@@ -459,10 +461,10 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
         The graph where the `nodes` belong.
     attributes : str or list
         Properties on which the conditions apply, among:
-        * "B2"
+        * "B2" (requires NEST or `data` entry)
         * "betweenness"
         * "clustering"
-        * "firing_rate"
+        * "firing_rate" (requires NEST or `data` entry)
         * "in-degree", "out-degree", "total-degree"
         * "subgraph_centrality"
         * any custom property formerly set by the user
@@ -544,10 +546,16 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
     return nodes
 
 
-def _get_attribute(network, attribute, nodes=None):
-    if "degree" in attribute.lower():
-        dtype = attribute[:attribute.index("-")]
-        return network.get_degrees(dtype, node_list=nodes)
+def _get_attribute(network, attribute, nodes=None, data=None):
+    if attribute.lower() == "b2":
+        if data is None:
+            from nngt.simulation import get_b2
+            return get_b2(network, nodes=nodes)
+        else:
+            if nodes is None:
+                raise InvalidArgument(
+                    "`nodes` entry is required when using `data`.")
+            return _b2_from_data(nodes, data)
     elif attribute == "betweenness":
         betw = network.get_betweenness("node")
         if nodes is not None:
@@ -557,6 +565,18 @@ def _get_attribute(network, attribute, nodes=None):
         return closeness(network, nodes=nodes)
     elif attribute == "clustering":
         return local_clustering(network, nodes=nodes)
+    elif "degree" in attribute.lower():
+        dtype = attribute[:attribute.index("-")]
+        return network.get_degrees(dtype, node_list=nodes)
+    if attribute == "firing_rate":
+        if data is None:
+            from nngt.simulation import get_firing_rate
+            return get_firing_rate(network, nodes=nodes)
+        else:
+            if nodes is None:
+                raise InvalidArgument(
+                    "`nodes` entry is required when using `data`.")
+            return _fr_from_data(nodes, data)
     elif attribute == "subgraph_centrality":
         sc = subgraph_centrality(network)
         if nodes is not None:

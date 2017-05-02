@@ -107,7 +107,9 @@ def set_minis(network, base_rate, weight_fraction=0.05, gids=None):
            "`weight_fraction` must be between 0 and 1."
     assert network.nest_gid is not None, "Create the NEST network first."
     degrees = network.get_degrees("in")
-    weights = np.array(network.adjacency_matrix().mean(1).data).T[0]
+    weights = np.array(network.adjacency_matrix().mean(1).data).T
+    if nonstring_container(weights[0]):  # @TODO: check what's going on here!
+        weights = np.array(network.adjacency_matrix().mean(1).data).T[0]
     deg_set = set(degrees)
     map_deg_pg = {d: i for i, d in enumerate(deg_set)}
     pgs = nest.Create("poisson_generator", len(deg_set))

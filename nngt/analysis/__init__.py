@@ -6,4 +6,4 @@ Content
 =======
 """
 
-from .gt_analysis import *
+from .graph_analysis import *

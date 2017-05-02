@@ -15,7 +15,8 @@ __all__ = [
     'degree_distribution',
     'betweenness_distribution',
     'node_attributes_distribution',
-    'compare_attributes_distribution'
+    'compare_population_attributes',
+    "correlation_to_attribute",
 ]
 
 
@@ -291,6 +292,8 @@ def node_attributes_distribution(network, attributes, nodes=None, num_bins=50,
         * "clustering"
         * "in-degree", "out-degree", "total-degree"
         * "subgraph_centrality"
+        * "b2" (requires NEST)
+        * "firing_rate" (requires NEST)
     nodes : list, optional (default: all nodes)
         Nodes for which the attributes should be returned.
     num_bins : int or list, optional (default: 50)
@@ -308,6 +311,7 @@ def node_attributes_distribution(network, attributes, nodes=None, num_bins=50,
     else:
         num_bins = [num_bins for _ in range(len(attributes))]
     fig = plt.figure()
+    num_plot = 0
     # plot degrees if required
     degrees = []
     for name in attributes:
@@ -326,6 +330,7 @@ def node_attributes_distribution(network, attributes, nodes=None, num_bins=50,
         degree_distribution(
             network, deg_type=degrees, nodes=nodes, num_bins=deg_bin,
             fignum=fig.number, show=False)
+        num_plot += 1
     # plot betweenness if needed
     if "betweenness" in attributes:
         idx = attributes.index("betweenness")
@@ -333,6 +338,7 @@ def node_attributes_distribution(network, attributes, nodes=None, num_bins=50,
             network, btype="node", nodes=nodes, fignum=fig.number, show=False)
         del attributes[idx]
         del num_bins[idx]
+        num_plot += 1
     # plot the remaining attributes
     values = node_attributes(network, attributes, nodes=None)
     fig, axes = _set_new_plot(fignum=fig.number, names=attributes)
@@ -342,15 +348,61 @@ def node_attributes_distribution(network, attributes, nodes=None, num_bins=50,
         axes[i].plot(bins, counts, ls="--", marker="o")
         axes[i].set_title("{}{} distribution for {}".format(
             attr[0].upper(), attr[1:], network.name), x=0., y=1.05)
-    plt.tight_layout()
-    if show:
-        plt.show()
+    # adjust space, set title, and show
+    _format_and_show(fig, num_plot, values, title, show)
 
 
-def compare_attributes_distribution(network, attributes, nodes=None,
-                                    reference_nodes=None, num_bins=50,
-                                    reference_color="gray", title=None,
-                                    show=True):
+def correlation_to_attribute(network, reference_attribute, other_attributes,
+                             nodes=None, title=None, show=True):
+    '''
+    For each node plot the value of `reference_attributes` against each of the
+    `other_attributes` to check for correlations.
+    
+    Parameters
+    ----------
+    network : :class:`~nngt.Graph`
+        The graph where the `nodes` belong.
+    reference_attribute : str or array-like
+        Attribute which should serve as reference, among:
+        * "betweenness"
+        * "clustering"
+        * "in-degree", "out-degree", "total-degree"
+        * "subgraph_centrality"
+        * "b2" (requires NEST)
+        * "firing_rate" (requires NEST)
+        * a custom array of values, in which case one entry per node in `nodes`
+          is required.
+    other_attributes : str or list
+    nodes : list, optional (default: all nodes)
+        Nodes for which the attributes should be returned.
+    '''
+    if not nonstring_container(other_attributes):
+        other_attributes = [other_attributes]
+    fig = plt.figure()
+    # get reference data
+    ref_data = reference_attribute
+    if isinstance(str, reference_attribute):
+        ref_data = node_attributes(network, reference_attribute, nodes=nodes)
+    # plot the remaining attributes
+    values = node_attributes(network, other_attributes, nodes=nodes)
+    fig, axes = _set_new_plot(fignum=fig.number, names=other_attributes)
+    for i, (attr, val) in enumerate(values.items()):
+        # reference nodes
+        axes[i].plot(val, ref_data, ls="", marker="o")
+        axes[i].set_xlabel(attr[0].upper() + attr[1:])
+        axes[i].set_ylabel(
+            reference_attribute[0].upper() + reference_attribute[1:])
+        axes[i].set_title("{}{} vs {} for each ".format(
+            attr[0].upper(), attr[1:], reference_attribute, network.name) +\
+            "node in {}".format(network.name), loc='left', x=0., y=1.05)
+    # adjust space, set title, and show
+    _format_and_show(fig, 0, values, title, show)
+
+
+def compare_population_attributes(network, attributes, nodes=None,
+                                  reference_nodes=None, num_bins=50,
+                                  reference_color="gray", title=None,
+                                  show=True):
     '''
     Compare node `attributes` between two sets of nodes. Since number of nodes
     can vary, normalized distributions are used.
@@ -365,6 +417,8 @@ def compare_attributes_distribution(network, attributes, nodes=None,
         * "clustering"
         * "in-degree", "out-degree", "total-degree"
         * "subgraph_centrality"
+        * "b2" (requires NEST)
+        * "firing_rate" (requires NEST)
     nodes : list, optional (default: all nodes)
         Nodes for which the attributes should be returned.
     reference_nodes : list, optional (default: all nodes)
@@ -468,18 +522,8 @@ def compare_attributes_distribution(network, attributes, nodes=None,
             attr[0].upper(), attr[1:], network.name), loc='left', x=0., y=1.05)
         axes[i].legend(loc='center', bbox_to_anchor=[0.9, 1.], ncol=1,
                    frameon=True)
-    # adjust space
-    num_cols = max(int(np.ceil(np.sqrt(num_plot+len(values)))), 1)
-    ratio = (num_plot + len(values)) / float(num_cols)
-    num_rows = int(ratio)
-    if int(ratio) != int(np.ceil(ratio)):
-        num_rows += 1
-    plt.subplots_adjust(hspace=num_rows*0.2, wspace=num_cols*0.1, left=0.075,
-                        right=0.95, top=0.9, bottom=0.075)
-    if title is not None:
-        fig.suptitle(title)
-    if show:
-        plt.show()
+    # adjust space, set title, and show
+    _format_and_show(fig, num_plot, values, title, show)
 
 
 # ----------------- #
@@ -527,3 +571,17 @@ def _set_scale(ax1, maxbins, minbins, maxcounts, logx, logy):
     if logy:
         ax1.set_yscale("log")
         ax1.set_ylim([0.8, 1.5*maxcounts])
+
+
+def _format_and_show(fig, num_plot, values, title, show):
+    num_cols = max(int(np.ceil(np.sqrt(num_plot + len(values)))), 1)
+    ratio = (num_plot + len(values)) / float(num_cols)
+    num_rows = int(ratio)
+    if int(ratio) != int(np.ceil(ratio)):
+        num_rows += 1
+    plt.subplots_adjust(hspace=num_rows*0.2, wspace=num_cols*0.1, left=0.075,
+                        right=0.95, top=0.9, bottom=0.075)
+    if title is not None:
+        fig.suptitle(title)
+    if show:
+        plt.show()
