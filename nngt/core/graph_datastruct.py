@@ -714,7 +714,7 @@ there are {} edges while {} values where provided'''.format(
                 num_current = 0
                 while num_current < num_inhib:
                     new = randint(0,num_edges,num_inhib-num_current)
-                    idx_inhib = np.unique( np.concatenate( (idx_inhib, new) ) )
+                    idx_inhib = np.unique(np.concatenate((idx_inhib, new)))
                     num_current = len(idx_inhib)
                 t_list[idx_inhib.astype(int)] *= -1.
             else:
@@ -726,8 +726,9 @@ there are {} edges while {} values where provided'''.format(
                     num_inhib_nodes = len(idx_nodes)
                 if issubclass(inhib_nodes.__class__, float):
                     if inhib_nodes > 1:
-                        raise InvalidArgument("Inhibitory ratio (float value \
-for `inhib_nodes`) must be smaller than 1")
+                        raise InvalidArgument(
+                            "Inhibitory ratio (float value for `inhib_nodes`) "
+                            "must be smaller than 1.")
                         num_inhib_nodes = int(inhib_nodes*n)
                 if issubclass(inhib_nodes.__class__, int):
                     num_inhib_nodes = int(inhib_nodes)

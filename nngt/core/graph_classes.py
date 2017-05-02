@@ -20,9 +20,7 @@ if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
 
-__all__ = [
-    'Graph', 'SpatialGraph', 'Network', 'SpatialNetwork'
-]
+__all__ = ['Graph', 'SpatialGraph', 'Network', 'SpatialNetwork']
 
 
 #-----------------------------------------------------------------------------#

@@ -57,6 +57,7 @@ if not with_seaborn:
         plt.rcParams['legend.numpoints'] = 1
         plt.rcParams['axes.linewidth'] = 1
         plt.rcParams['axes.grid'] = True
+        plt.rcParams['grid.linestyle'] = ':'
         plt.rcParams['path.simplify'] = True
     except:
         pass

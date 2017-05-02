@@ -12,13 +12,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from nngt.lib import InvalidArgument
+from nngt.analysis.activity_analysis import _b2_from_data, _fr_from_data
 
 
 
 __all__ = [
     "ActivityRecord",
     "activity_types",
-    "analyze_raster"
+    "analyze_raster",
+    "get_b2",
+    "get_firing_rate",
+    "get_spikes",
 ]
 
 
@@ -167,6 +171,88 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
         col_idx.append(data[neuron])
         data[neuron] += 1
     return ssp.csr_matrix((spike_times, (row_idx, col_idx)))
+
+
+def get_b2(network, spike_detector=None, data=None, nodes=None):
+    '''
+    Return the B2 coefficient for the neurons.
+
+    Parameters
+    ----------
+    network : :class:`nngt.Network`
+        Network for which the activity was simulated.
+    spike_detector : tuple of ints, optional (default: spike detectors)
+        GID of the "spike_detector" objects recording the network activity.
+    data : array-like of shape (2, N), optionale (default: None)
+        Array containing the spikes data (first line must contain the NEST GID
+        of the neuron that fired, second line must contain the associated spike
+        time).
+    nodes : array-like, optional (default: all neurons)
+        NNGT ids of the nodes for which the B2 should be computed.
+
+    Returns
+    -------
+    b2 : array-like
+        B2 coefficient for each neuron in `nodes`.
+    '''
+    if data is None:
+        data = [[], []]
+    if nodes is None:
+        nodes = network.nest_gid
+    else:
+        nodes = network.nest_gid[nodes]
+    if not len(data[0]):
+        if spike_detector is None:
+            spike_detector = nest.GetNodes(
+                (0,), properties={'model': 'spike_detector'})[0]
+        events = nest.GetStatus(spike_detector, "events")
+        for ev_dict in events:
+            data[0].extend(ev_dict["senders"])
+            data[1].extend(ev_dict["times"])
+    data[0] = np.array(data[0])
+    data[1] = np.array(data[1])
+    return _b2_from_data(nodes, data)
+
+
+def get_firing_rate(network, spike_detector=None, data=None, nodes=None):
+    '''
+    Return the average firing rate for the neurons.
+
+    Parameters
+    ----------
+    network : :class:`nngt.Network`
+        Network for which the activity was simulated.
+    spike_detector : tuple of ints, optional (default: spike detectors)
+        GID of the "spike_detector" objects recording the network activity.
+    data : array-like of shape (2, N), optionale (default: None)
+        Array containing the spikes data (first line must contain the NEST GID
+        of the neuron that fired, second line must contain the associated spike
+        time).
+    nodes : array-like, optional (default: all nodes)
+        NNGT ids of the nodes for which the B2 should be computed.
+
+    Returns
+    -------
+    fr : array-like
+        Firing rate for each neuron in `nodes`.
+    '''
+    if data is None:
+        data = [[], []]
+    if nodes is None:
+        nodes = network.nest_gid
+    else:
+        nodes = network.nest_gid[nodes]
+    if not len(data[0]):
+        if spike_detector is None:
+            spike_detector = nest.GetNodes(
+                (0,), properties={'model': 'spike_detector'})[0]
+        events = nest.GetStatus(spike_detector, "events")
+        for ev_dict in events:
+            data[0].extend(ev_dict["senders"])
+            data[1].extend(ev_dict["times"])
+    data[0] = np.array(data[0])
+    data[1] = np.array(data[1])
+    return _fr_from_data(nodes, data)
 
 
 def activity_types(spike_detector, limits, network=None,

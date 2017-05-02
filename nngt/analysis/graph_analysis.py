@@ -1,22 +1,26 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-""" Tools for graph analysis using the graph_tool library """
+""" Tools for graph analysis using the graph libraries """
 
 import scipy as sp
 import scipy.sparse.linalg as spl
 
 import nngt
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, nonstring_container
+from .activity_analysis import _b2_from_data, _fr_from_data
 
 
 __all__ = [
     "adjacency_matrix",
     "assortativity",
     "betweenness_distrib",
+	"closeness",
 	"clustering",
     "degree_distrib",
 	"diameter",
+    "local_clustering",
+    "node_attributes",
 	"num_iedges",
 	"num_scc",
 	"num_wcc",
@@ -34,7 +38,9 @@ __all__ = [
 adjacency = nngt.analyze_graph["adjacency"]
 assort = nngt.analyze_graph["assortativity"]
 edge_reciprocity = nngt.analyze_graph["reciprocity"]
+_closeness = nngt.analyze_graph["closeness"]
 global_clustering = nngt.analyze_graph["clustering"]
+local_clustering_coeff = nngt.analyze_graph["local_clustering"]
 scc = nngt.analyze_graph["scc"]
 wcc = nngt.analyze_graph["wcc"]
 glib_diameter = nngt.analyze_graph["diameter"]
@@ -45,7 +51,7 @@ glib_diameter = nngt.analyze_graph["diameter"]
 #------------------------
 #
 
-def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
+def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
                    log=False, num_bins=30):
     '''
     Degree distribution of a graph.
@@ -58,7 +64,7 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
         type of degree to consider ("in", "out", or "total").
     node_list : list or numpy.array of ints, optional (default: None)
         Restrict the distribution to a set of nodes (default: all nodes).
-    use_weights : bool, optional (default: True)
+    use_weights : bool, optional (default: False)
         use weighted degrees (do not take the sign into account: all weights
         are positive).
     log : bool, optional (default: False)
@@ -75,13 +81,14 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=True,
     ra_bins = sp.linspace(ia_node_deg.min(), ia_node_deg.max(), num_bins)
     if log:
         ra_bins = sp.logspace(sp.log10(sp.maximum(ia_node_deg.min(),1)),
-                               sp.log10(ia_node_deg.max()), num_bins)
-    counts,deg = sp.histogram(ia_node_deg, ra_bins)
+                              sp.log10(ia_node_deg.max()), num_bins)
+    counts, deg = sp.histogram(ia_node_deg, ra_bins)
     ia_indices = sp.argwhere(counts)
     return counts[ia_indices], deg[ia_indices]
 
 
-def betweenness_distrib(graph, use_weights=True, log=False):
+def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins=None,
+                        num_ebins=None, log=False):
     '''
     Betweenness distribution of a graph.
 
@@ -92,6 +99,9 @@ def betweenness_distrib(graph, use_weights=True, log=False):
     use_weights : bool, optional (default: True)
         use weighted degrees (do not take the sign into account : all weights
         are positive).
+    nodes : list or numpy.array of ints, optional (default: all nodes)
+        Restrict the distribution to a set of nodes (only impacts the node
+        attribute).
     log : bool, optional (default: False)
         use log-spaced bins.
 
@@ -107,7 +117,12 @@ def betweenness_distrib(graph, use_weights=True, log=False):
         bins for edge betweenness
     '''
     ia_nbetw, ia_ebetw = graph.get_betweenness(use_weights)
-    num_nbins, num_ebins = int(len(ia_nbetw) / 50), int(len(ia_ebetw) / 50)
+    if nodes is not None:
+        ia_nbetw = ia_nbetw[nodes]
+    if num_nbins is None:
+        num_nbins = max(10, int(len(ia_nbetw) / 50))
+    if num_ebins is None:
+        num_ebins = max(10, int(len(ia_ebetw) / 50))
     ra_nbins = sp.linspace(ia_nbetw.min(), ia_nbetw.max(), num_nbins)
     ra_ebins = sp.linspace(ia_ebetw.min(), ia_ebetw.max(), num_ebins)
     if log:
@@ -115,13 +130,56 @@ def betweenness_distrib(graph, use_weights=True, log=False):
                                sp.log10(ia_nbetw.max()), num_nbins)
         ra_ebins = sp.logspace(sp.log10(sp.maximum(ia_ebetw.min(),10**-8)),
                                sp.log10(ia_ebetw.max()), num_ebins)
-    ncounts,nbetw = sp.histogram(ia_nbetw, ra_nbins)
-    ecounts,ebetw = sp.histogram(ia_ebetw, ra_ebins)
-    return ncounts, nbetw[:-1], ecounts, ebetw[:-1]
+    ncounts, nbetw = sp.histogram(ia_nbetw, ra_nbins)
+    ecounts, ebetw = sp.histogram(ia_ebetw, ra_ebins)
+    nbetw = nbetw[:-1] + 0.5*sp.diff(nbetw)
+    ebetw = ebetw[:-1] + 0.5*sp.diff(ebetw)
+    return ncounts, nbetw, ecounts, ebetw
 
 
 #-----------------------------------------------------------------------------#
-# Scalar properties
+# Node properties
+#------------------------
+#
+
+def closeness(graph, nodes=None, use_weights=False):
+    '''
+    Return the closeness centrality for each node in `nodes`.
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` object
+        Graph to analyze.
+    nodes : array-like container with node ids, optional (default = all nodes)
+        Nodes for which the local clustering coefficient should be computed.
+    use_weights : bool, optional (default: False)
+        Whether weighted closeness should be used.
+    '''
+    return _closeness(graph, nodes, use_weights)
+
+
+def local_clustering(graph, nodes=None):
+    '''
+    Local clustering coefficient of the nodes, defined as
+
+    .. math::
+        c_i = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
+    
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` object
+        Graph to analyze.
+    nodes : array-like container with node ids, optional (default = all nodes)
+        Nodes for which the local clustering coefficient should be computed.
+    '''
+    if nngt._config["graph_library"] == "igraph":
+        return graph.transitivity_local_undirected(nodes)
+    else:
+        return local_clustering_coeff(graph, nodes)
+
+
+#-----------------------------------------------------------------------------#
+# Graph properties
 #------------------------
 #
 
@@ -176,7 +234,7 @@ def clustering(graph):
     if nngt._config["graph_library"] == "igraph":
         return graph.transitivity_undirected()
     else:
-        return global_clustering(graph)[0]
+        return global_clustering(graph)
 
 
 def num_iedges(graph):
@@ -353,3 +411,177 @@ def subgraph_centrality(graph, weights=True, normalize=False):
         raise InvalidArgument('`normalize` should be either False, "eigenmax",'
                               ' or "centralmax".')
     return centralities
+
+
+# ----------------------- #
+# Get all node properties #
+# ----------------------- #
+
+def node_attributes(network, attributes, nodes=None):
+    '''
+    Return node `attributes` for a set of `nodes`.
+    
+    Parameters
+    ----------
+    network : :class:`~nngt.Graph`
+        The graph where the `nodes` belong.
+    attributes : str or list
+        Attributes which should be returned, among:
+        * "betweenness"
+        * "clustering"
+        * "in-degree", "out-degree", "total-degree"
+        * "subgraph_centrality"
+    nodes : list, optional (default: all nodes)
+        Nodes for which the attributes should be returned.
+    
+    Returns
+    -------
+    values : array-like or dict
+        Returns the attributes, either as an array if only one attribute is
+        required (`attributes` is a :obj:`str`) or as a :obj:`dict` of arrays.
+    '''
+    if nonstring_container(attributes):
+        values = {}
+        for attr in attributes:
+            values[attr] = _get_attribute(network, attr, nodes)
+        return values
+    else:
+        return _get_attribute(network, attributes, nodes)
+
+    
+def find_nodes(network, attributes, equal=None, upper_bound=None,
+               lower_bound=None, upper_fraction=None, lower_fraction=None,
+               data=None):
+    '''
+    Return the nodes in the graph which fulfill the given conditions.
+    
+    Parameters
+    ----------
+    network : :class:`~nngt.Graph`
+        The graph where the `nodes` belong.
+    attributes : str or list
+        Properties on which the conditions apply, among:
+        * "B2" (requires NEST or `data` entry)
+        * "betweenness"
+        * "clustering"
+        * "firing_rate" (requires NEST or `data` entry)
+        * "in-degree", "out-degree", "total-degree"
+        * "subgraph_centrality"
+        * any custom property formerly set by the user
+    equal : optional (default: None)
+        Value to which `attributes` should be equal. For a given
+        property, this entry is cannot be used together with any of the
+        others.
+    upper_bound : optional (default: None)
+        Value which should strictly major `attributes` in the desired
+        nodes. Can be combined with all other entries, except `equal`.
+    lower_bound : optional (default: None)
+        Value which should minor or be equal to the value of `attributes`
+        in the desired nodes. Can be combined with all other entries,
+        except `equal`.
+    upper_fraction : optional (default: None)
+        Only the nodes that belong to the `upper_fraction` with the highest
+        values for `attributes` are kept.
+    lower_fraction : optional (default: None)
+        Only the nodes that belong to the `lower_fraction` with the lowest
+        values for `attributes` are kept.
+    
+    Notes
+    -----
+    When combining both `*_fraction` and `*_bound` entries, their effects
+    are cumulated, i.e. only the nodes belonging to the fraction AND
+    displaying a value that is consistent with the boundary are kept.
+    
+    Examples
+    --------
+    
+        nodes = g.find("in-degree", upper_bound=15, lower_bound=10)
+        nodes2 = g.find(["total-degree", "clustering"], equal=[20, None],
+            lower=[None, 0.1])
+    '''
+    if not nonstring_container(attributes):
+        attributes = [attributes]
+        equal = [equal]
+        upper_bound = [upper_bound]
+        lower_bound = [lower_bound]
+        upper_fraction = [upper_fraction]
+        lower_fraction = [lower_fraction]
+        assert not np.any([
+            len(attributes)-len(equal), len(upper_bound)-len(equal),
+            len(lower_bound)-len(equal), len(upper_fraction)-len(equal), 
+            len(lower_fraction)-len(equal)])
+    nodes = set(range(self.node_nb()))
+    # find the nodes
+    di_attr = node_attributes(self, attributes)
+    keep = np.ones(self.node_nb(), dtype=bool)
+    for i in range(len(attributes)):
+        attr, eq = attributes[i], equal[i]
+        ub, lb = upper_bound[i], lower_bound[i]
+        uf, lf = upper_fraction[i], lower_fraction[i]
+        # check that the combination is valid
+        if eq is not None:
+            assert (ub is None)*(lb is None)*(uf is None)*(lf is None), \
+            "`equal` entry is incompatible with all other entries."
+            keep *= (_get_attribute(self, attr) == eq)
+        if ub is not None:
+            keep *= (_get_attribute(self, attr) < ub)
+        if lb is not None:
+            keep *= (_get_attribute(self, attr) >= lb)
+        values = None
+        if uf is not None or lf is not None:
+            values = _get_attribute(self, attr)
+        if uf is not None:
+            num_keep = int(self.node_nb()*uf)
+            sort = np.argsort(values)[:-num_keep]
+            keep_tmp = np.ones(self.node_nb(), dtype=bool)
+            keep_tmp[sort] = 0
+            keep *= keep_tmp
+        if lf is not None:
+            num_keep = int(self.node_nb()*lf)
+            sort = np.argsort(values)[:num_keep]
+            keep_tmp = np.zeros(self.node_nb(), dtype=bool)
+            keep_tmp[sort] = 1
+            keep *= keep_tmp
+    nodes = nodes.intersection_update(np.array(nodes)[keep])
+    return nodes
+
+
+def _get_attribute(network, attribute, nodes=None, data=None):
+    if attribute.lower() == "b2":
+        if data is None:
+            from nngt.simulation import get_b2
+            return get_b2(network, nodes=nodes)
+        else:
+            if nodes is None:
+                raise InvalidArgument(
+                    "`nodes` entry is required when using `data`.")
+            return _b2_from_data(nodes, data)
+    elif attribute == "betweenness":
+        betw = network.get_betweenness("node")
+        if nodes is not None:
+            return betw[nodes]
+        return betw
+    elif attribute == "closeness":
+        return closeness(network, nodes=nodes)
+    elif attribute == "clustering":
+        return local_clustering(network, nodes=nodes)
+    elif "degree" in attribute.lower():
+        dtype = attribute[:attribute.index("-")]
+        return network.get_degrees(dtype, node_list=nodes)
+    if attribute == "firing_rate":
+        if data is None:
+            from nngt.simulation import get_firing_rate
+            return get_firing_rate(network, nodes=nodes)
+        else:
+            if nodes is None:
+                raise InvalidArgument(
+                    "`nodes` entry is required when using `data`.")
+            return _fr_from_data(nodes, data)
+    elif attribute == "subgraph_centrality":
+        sc = subgraph_centrality(network)
+        if nodes is not None:
+            return sc[nodes]
+        return sc
+    else:
+        raise RuntimeError(
+            "Attribute '{}' is not available.".format(attribute))

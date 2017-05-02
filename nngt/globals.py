@@ -6,7 +6,7 @@
 from os.path import expanduser
 import sys
 
-import scipy as sp
+import numpy as np
 import scipy.sparse as ssp
 
 import nngt
@@ -222,11 +222,27 @@ def _set_graph_tool():
     _config["graph"] = GraphLib
     # analysis functions
     from graph_tool.spectral import adjacency as _adj
-    from graph_tool.centrality import betweenness
+    from graph_tool.centrality import betweenness, closeness
     from graph_tool.correlations import assortativity as assort
     from graph_tool.topology import (edge_reciprocity,
                                     label_components, pseudo_diameter)
-    from graph_tool.clustering import global_clustering
+    from graph_tool.clustering import global_clustering, local_clustering
+    def global_clustering_coeff(g):
+        return global_clustering(g)[0]
+    def local_clustering_coeff(g, nodes=None):
+        lc = local_clustering(g).a
+        if nodes is None:
+            return lc
+        return lc[nodes]
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = graph.edge_properties[weight]
+        else:
+            weights=None
+        c = closeness(graph, weight=weights)
+        if nodes is None:
+            return c.a
+        return c.a[nodes]
     # defining the adjacency function
     def adj_mat(graph, weight=None):
         if weight is not None:
@@ -237,7 +253,9 @@ def _set_graph_tool():
     # store the functions
     analyze_graph["assortativity"] = assort
     analyze_graph["betweenness"] = betweenness
-    analyze_graph["clustering"] = global_clustering
+    analyze_graph["closeness"] = _closeness
+    analyze_graph["clustering"] = global_clustering_coeff
+    analyze_graph["local_clustering"] = local_clustering_coeff
     analyze_graph["scc"] = label_components
     analyze_graph["wcc"] = label_components
     analyze_graph["diameter"] = pseudo_diameter
@@ -256,17 +274,24 @@ def _set_igraph():
     _config["graph_library"] = "igraph"
     _config["library"] = glib
     _config["graph"] = GraphLib
+    # define
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = weight
+        else:
+            weights=None
+        return graph.closeness(nodes, mode="out", weights=weights)
     # defining the adjacency function
     def adj_mat(graph, weight=None):
         n = graph.node_nb()
         if graph.edge_nb():
-            xs, ys = map(sp.array, zip(*graph.get_edgelist()))
+            xs, ys = map(np.array, zip(*graph.get_edgelist()))
             xs, ys = xs.T, ys.T
-            data = sp.ones(xs.shape)
+            data = np.ones(xs.shape)
             if issubclass(weight.__class__, str):
-                data *= sp.array(graph.es[weight])
+                data *= np.array(graph.es[weight])
             else:
-                data *= sp.array(weight)
+                data *= np.array(weight)
             coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
             return coo_adj.tocsr()
         else:
@@ -278,6 +303,8 @@ def _set_igraph():
     analyze_graph["nbetweenness"] = not_implemented
     analyze_graph["ebetweenness"] = not_implemented
     analyze_graph["clustering"] = not_implemented
+    analyze_graph["closeness"] = _closeness
+    analyze_graph["local_clustering"] = not_implemented
     analyze_graph["scc"] = not_implemented
     analyze_graph["wcc"] = not_implemented
     analyze_graph["diameter"] = not_implemented
@@ -296,6 +323,17 @@ def _set_networkx():
     from networkx.algorithms import ( diameter, 
         strongly_connected_components, weakly_connected_components,
         degree_assortativity_coefficient )
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = graph.edge_properties[weight]
+        else:
+            weights=None
+        if nodes is None:
+            return glib.closeness_centrality(graph, distance=weights)
+        else:
+            c = [glib.closeness_centrality(graph, u=n, distance=weights)
+                 for n in nodes]
+            return c
     def overall_reciprocity(g):
         num_edges = g.number_of_edges()
         num_recip = (num_edges - g.to_undirected().number_of_edges()) * 2
@@ -311,6 +349,8 @@ def _set_networkx():
             return NotImplementedError("Not implemented for networkx " +
                                        str(nx_version) + "; try installing "
                                        "the latest version.")
+    def local_clustering(g, nodes=None):
+        return np.array(glib.clustering(g, nodes).values())
     # defining the adjacency function
     from networkx import to_scipy_sparse_matrix
     def adj_mat(graph, weight=None):
@@ -320,6 +360,9 @@ def _set_networkx():
     # store functions
     analyze_graph["assortativity"] = degree_assortativity_coefficient
     analyze_graph["diameter"] = diameter
+    analyze_graph["closeness"] = _closeness
+    analyze_graph["clustering"] = glib.average_clustering
+    analyze_graph["local_clustering"] = local_clustering
     analyze_graph["reciprocity"] = overall_reciprocity
     analyze_graph["scc"] = strongly_connected_components
     analyze_graph["wcc"] = diameter
@@ -340,8 +383,8 @@ def use_library(library, reloading=True):
     library : string
         Name of a graph library among 'graph_tool', 'igraph', 'networkx'.
     reload_moduleing : bool, optional (default: True)
-        Whether the graph objects should be reload_moduleed (this should always be set
-        to True except when NNGT is first initiated!)
+        Whether the graph objects should be reload_moduleed (this should always
+        be set to True except when NNGT is first initiated!)
     '''
     if library == "graph-tool":
         _set_graph_tool()
@@ -397,8 +440,8 @@ except ImportError:
             _libs.pop()
 
 if not _libs:
-    raise ImportError("This module needs one of the following graph libraries \
-to work:  `graph_tool`, `igraph`, or `networkx`.")
+    raise ImportError("This module needs one of the following graph libraries "
+                      "to work:  `graph_tool`, `igraph`, or `networkx`.")
 
 
 # ----- #
