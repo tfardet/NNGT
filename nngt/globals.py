@@ -403,7 +403,6 @@ def use_library(library, reloading=True):
         reload_module(sys.modules["nngt"].core.nx_graph)
         reload_module(sys.modules["nngt"].core)
         reload_module(sys.modules["nngt"].analysis)
-        reload_module(sys.modules["nngt"].analysis.gt_analysis)
         reload_module(sys.modules["nngt"].generation)
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
         if _config['with_plot']:
