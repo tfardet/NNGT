@@ -6,7 +6,7 @@
 from os.path import expanduser
 import sys
 
-import scipy as sp
+import numpy as np
 import scipy.sparse as ssp
 
 import nngt
@@ -285,13 +285,13 @@ def _set_igraph():
     def adj_mat(graph, weight=None):
         n = graph.node_nb()
         if graph.edge_nb():
-            xs, ys = map(sp.array, zip(*graph.get_edgelist()))
+            xs, ys = map(np.array, zip(*graph.get_edgelist()))
             xs, ys = xs.T, ys.T
-            data = sp.ones(xs.shape)
+            data = np.ones(xs.shape)
             if issubclass(weight.__class__, str):
-                data *= sp.array(graph.es[weight])
+                data *= np.array(graph.es[weight])
             else:
-                data *= sp.array(weight)
+                data *= np.array(weight)
             coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
             return coo_adj.tocsr()
         else:

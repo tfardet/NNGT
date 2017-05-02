@@ -381,7 +381,7 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     fig = plt.figure()
     # get reference data
     ref_data = reference_attribute
-    if isinstance(str, reference_attribute):
+    if isinstance(reference_attribute, str):
         ref_data = node_attributes(network, reference_attribute, nodes=nodes)
     # plot the remaining attributes
     values = node_attributes(network, other_attributes, nodes=nodes)
