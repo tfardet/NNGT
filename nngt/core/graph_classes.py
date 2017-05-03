@@ -184,7 +184,7 @@ with non symmetric matrix provided.')
         return graph
 
     @staticmethod
-    def make_spatial(graph, shape=nngt.Shape(), positions=None, copy=False):
+    def make_spatial(graph, shape, positions=None, copy=False):
         '''
         Turn a :class:`~nngt.Graph` object into a :class:`~nngt.SpatialGraph`,
         or a :class:`~nngt.Network` into a :class:`~nngt.SpatialNetwork`.
@@ -193,7 +193,7 @@ with non symmetric matrix provided.')
         ----------
         graph : :class:`~nngt.Graph` or :class:`~nngt.SpatialGraph`
             Graph to convert.
-        shape : :class:`~nngt.Shape`
+        shape : :class:`~nngt.geometry.Shape`, optional
             Shape to associate to the new :class:`~nngt.SpatialGraph`.
         positions : (2,N) array
             Positions, in a 2D space, of the N neurons.
@@ -728,7 +728,7 @@ with non symmetric matrix provided.')
     def is_spatial(self):
         '''
         Whether the graph is embedded in space (i.e. if it has a
-        :class:`~nngt.Shape` attribute).
+        :class:`~nngt.geometry.Shape` attribute).
         Returns ``True`` is the graph is a subclass of
         :class:`~nngt.SpatialGraph`.
         '''
@@ -737,7 +737,7 @@ with non symmetric matrix provided.')
     def is_network(self):
         '''
         Whether the graph is a subclass of :class:`~nngt.Network` (i.e. if it
-        has a :class:`~nngt.Shape` attribute).
+        has a :class:`~nngt.NeuralPop` attribute).
         '''
         return True if issubclass(self.__class__, Network) else False
 
@@ -782,12 +782,13 @@ class SpatialGraph(Graph):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        shape : :class:`~nngt.Shape`, optional (default: None)
-            Shape of the neurons' environment (None leads to Shape())
+        shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+            Shape of the neurons' environment (None leads to a square of
+            side 1 cm)
         positions : :class:`numpy.array`, optional (default: None)
             Positions of the neurons; if not specified and `nodes` is not 0,
             then neurons will be reparted at random inside the
-            :class:`~nngt.Shape` object of the instance.
+            :class:`~nngt.geometry.Shape` object of the instance.
         
         Returns
         -------
@@ -828,7 +829,7 @@ class SpatialGraph(Graph):
             shape.set_parent(self)
             self._shape = shape
         else:
-            self._shape = nngt.Shape.rectangle(self,1,1)
+            self._shape = nngt.Shape.rectangle(self, 1, 1)
         if positions is not None and positions.shape[1] != self.node_nb():
             raise InvalidArgument("Wrong number of neurons in `positions`.")
         b_rnd_pos = True if not self.node_nb() or positions is None else False
@@ -1173,8 +1174,9 @@ class SpatialNetwork(Network,SpatialGraph):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        shape : :class:`~nngt.Shape`, optional (default: None)
-            Shape of the neurons' environment (None leads to Shape())
+        shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+            Shape of the neurons' environment (None leads to a square of side
+            1 cm)
         positions : :class:`numpy.array`, optional (default: None)
             Positions of the neurons; if not specified and `nodes` != 0, then
             neurons will be reparted at random inside the
@@ -1183,7 +1185,7 @@ class SpatialNetwork(Network,SpatialGraph):
         
         Returns
         -------
-        self : :class:`~nggt.SpatialNetwork`
+        self : :class:`~nngt.SpatialNetwork`
         '''
         self.__id = self.__class__.__max_id
         self.__class__.__num_networks += 1
@@ -1204,5 +1206,5 @@ class SpatialNetwork(Network,SpatialGraph):
     # Setter
 
     def set_types(self, syn_type, nodes=None, fraction=None):
-        raise NotImplementedError("Cannot be used on \
-:class:`~nngt.SpatialNetwork`.")
+        raise NotImplementedError("Cannot be used on "
+                                  ":class:`~nngt.SpatialNetwork`.")

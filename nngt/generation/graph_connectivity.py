@@ -84,7 +84,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         nodes.
     name : string, optional (default: "ER")
         Name of the created graph.
-    shape : :class:`~nngt.core.Shape`, optional (default: None)
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
         Shape of the neurons' environment.
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space.
@@ -160,7 +160,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
         nodes.
     name : string, optional (default: "ER")
         Name of the created graph.
-    shape : :class:`~nngt.core.Shape`, optional (default: None)
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
         Shape of the neurons' environment.
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space.
@@ -237,7 +237,7 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
         nodes.
     name : string, optional (default: "ER")
         Name of the created graph.
-    shape : :class:`~nngt.core.Shape`, optional (default: None)
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
         Shape of the neurons' environment.
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space.
@@ -319,7 +319,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         nodes. can contain multiple edges between two
     name : string, optional (default: "ER")
         Name of the created graph.
-    shape : :class:`~nngt.core.Shape`, optional (default: None)
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
         Shape of the neurons' environment.
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space.
@@ -392,7 +392,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
         nodes.
     name : string, optional (default: "ER")
         Name of the created graph.
-    shape : :class:`~nngt.core.Shape`, optional (default: None)
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
         Shape of the neurons' environment
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space.
@@ -468,7 +468,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
         nodes.
     name : string, optional (default: "ER")
         Name of the created graph.
-    shape : :class:`~nngt.core.Shape`, optional (default: None)
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
         Shape of the neurons' environment
     positions : :class:`numpy.ndarray`, optional (default: None)
         A 2D or 3D array containing the positions of the neurons in space.
@@ -529,7 +529,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         Rule that will be apply to draw the connections between neurons.
         Choose among "exp" (exponential), "lin" (linear),
         "power" (power-law, not implemented yet).
-    shape : :class:`~nngt.core.Shape`, optional (default: None)
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
         Shape of the neurons' environment. If not specified, a square will be
         created with the appropriate dimensions for the number of neurons and
         the neuron spatial density.

@@ -94,7 +94,7 @@ if _config["omp"] > 1:
 
 # importing core directly
 from .core import *
-from .core.graph_datastruct import Shape, NeuralPop, GroupProperty, Connections
+from .core.graph_datastruct import NeuralPop, GroupProperty, Connections
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .generation.graph_connectivity import generate
 
@@ -102,6 +102,7 @@ from .generation.graph_connectivity import generate
 from . import analysis
 from . import core
 from . import generation
+from . import geometry
 from . import lib
 
 
@@ -112,6 +113,7 @@ __all__ = [
     "core",
     "generate",
     "generation",
+    "geometry",
     "get_config",
     "Graph",
     "GroupProperty",
@@ -120,7 +122,6 @@ __all__ = [
     "NeuralPop",
     "seed",
     "set_config",
-    "Shape",
     "SpatialGraph",
     "SpatialNetwork",
     "use_library",

@@ -20,7 +20,6 @@ from nngt.lib.rng_tools import _eprop_distribution
 __all__ = [
     'GroupProperty',
     'NeuralPop',
-    'Shape',
 ]
 
 
@@ -455,6 +454,7 @@ class NeuralGroup:
                 "syn_param": self.syn_param }
         return dic
 
+
 class GroupProperty:
 
     """
@@ -486,8 +486,8 @@ class GroupProperty:
               in/out-degrees
             - "avg/min/max_betw" (:class:`double`) to constrain the betweenness
               centrality
-            - "in_shape" (:class:`nngt.Shape`) to chose neurons inside a given
-              spatial region
+            - "in_shape" (:class:`nngt.geometry.Shape`) to chose neurons inside
+              a given spatial region
 
         Examples
         --------
@@ -500,6 +500,7 @@ class GroupProperty:
         self.neuron_param = neuron_param
         self.syn_model = syn_model
         self.syn_param = syn_param
+
 
 def _make_groups(graph, group_prop):
     '''
@@ -757,120 +758,3 @@ there are {} edges while {} values where provided'''.format(
                         t_list[idx_edges] *= -1.
             graph.set_edge_attribute("type", value_type="double", values=t_list)
             return t_list
-
-
-
-
-#-----------------------------------------------------------------------------#
-# Shape
-#------------------------
-#
-
-class Shape:
-    """
-    Class containing the shape of the area where neurons will be distributed to
-    form a network.
-
-    ..warning :
-        so far, only a rectangle can be created.
-
-    Attributes
-    ----------
-    area: double
-        Area of the shape in mm^2.
-    com: tuple of doubles
-        Position of the center of mass of the current shape.
-
-    Methods
-    -------
-    add_subshape: void
-        @todo
-        Add a :class:`~nngt.Shape` to a preexisting one.
-    """
-
-    @classmethod
-    def rectangle(cls, parent, height, width, pos_com=(0.,0.)):
-        '''
-        Generate a rectangle of given height, width and center of mass.
-
-        Parameters
-        ----------
-        parent : :class:`~nngt.SpatialGraph` or subclass
-            The parent container.
-        height : float
-            Height of the rectangle.
-        width : float
-            Width of the rectangle.
-        pos_com : tuple of floats, optional (default: (0., 0.))
-            Position of the rectangle's center of mass
-
-        Returns
-        -------
-        shape : :class:`~nngt.Shape`
-            Rectangle shape.
-        '''
-        shape = cls(parent)
-        half_diag = np.sqrt(np.square(height/2.) + np.square(width/2.)) / 2.
-        pos_com = np.array(pos_com)
-        points = [  pos_com + [half_diag,half_diag],
-                    pos_com + [half_diag,-half_diag],
-                    pos_com - [half_diag,half_diag],
-                    pos_com - [half_diag,-half_diag] ]
-        shape._convex_hull = sptl.Delaunay(points)
-        shape._com = pos_com
-        shape._area = height * width
-        return shape
-
-    def __init__(self, parent=None):
-        self.parent = weakref.proxy(parent) if parent is not None else None
-        self._area = 0.
-        self._com = (0., 0.)
-        self._convex_hull = None
-
-    @property
-    def area(self):
-        ''' Area of the shape. '''
-        return self._area
-
-    @property
-    def com(self):
-        ''' Center of mass of the shape. '''
-        return self._com
-
-    @property
-    def vertices(self):
-        return self._convex_hull.points
-
-    def set_parent(self, parent):
-        self.parent = weakref.proxy(parent) if parent is not None else None
-
-    def add_subshape(self, subshape, position, unit='mm'):
-        """
-        Add a :class:`~nngt.core.Shape` to the current one.
-
-        Parameters
-        ----------
-        subshape: :class:`~nngt.Shape`
-            Subshape to add.
-        position: tuple of doubles
-            Position of the subshape's center of gravity in space.
-        unit: string (default 'mm')
-            Unit in the metric system among 'um', 'mm', 'cm', 'dm', 'm'
-
-        Returns
-        -------
-        None
-        """
-        pass
-
-    def rnd_distrib(self, nodes=None):
-        #@todo: make it general
-        if self.parent is not None:
-            nodes = self.parent.node_nb()
-        points = self._convex_hull.points
-        min_x, max_x = points[:,0].min(), points[:,0].max()
-        min_y, max_y = points[:,1].min(), points[:,1].max()
-        ra_x = uniform(min_x, max_x, size=nodes)
-        ra_y = uniform(min_y, max_y, size=nodes)
-        return np.vstack((ra_x, ra_y))
-

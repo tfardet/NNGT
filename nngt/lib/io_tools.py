@@ -244,7 +244,7 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
         list sorted in the same order as `edges`.
     pop : :class:`~nngt.NeuralPop`
         Population (``None`` if not present in the file).
-    shape : :class:`~nngt.Shape`
+    shape : :class:`~nngt.geometry.Shape`
         Shape of the graph (``None`` if not present in the file).
     '''
     lst_lines, di_notif, pop, shape = None, None, None, None
@@ -386,7 +386,7 @@ def save_to_file(graph, filename, format="auto", delimiter=" ",
     warning ::
         For now, all formats lead to
         dataloss if your graph is a subclass of :class:`~nngt.SpatialGraph` or
-        :class:`~nngt.Network` (the :class:`~nngt.Shape` and
+        :class:`~nngt.Network` (the :class:`~nngt.geometry.Shape` and
         :class:`~nngt.NeuralPop` attributes will not be saved).
     '''
     format = _get_format(format, filename)
