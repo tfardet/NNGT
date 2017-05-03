@@ -104,6 +104,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     num_group = len(network.population) if network is not None else 1
     # sorting
     sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
+    attr = None
     if network is not None and sort is not None:
         if nonstring_container(sort):
             sorted_neurons = np.zeros(network.nest_gid.max() + 1)
@@ -117,7 +118,8 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                     if str(info["model"]) == "spike_detector":
                         data[0].extend(info["events"]["senders"])
                         data[1].extend(info["events"]["times"])
-            sorted_neurons = _sort_neurons(sort, gids, network, data=data)
+            sorted_neurons, attr = _sort_neurons(
+                sort, gids, network, data=data, return_attr=True)
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_raster, num_detec = 0, 0
@@ -146,7 +148,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             fig_raster = raster_plot(times, sorted_ids, fignum=fig_raster,
                                      color=c, show=False, label=info["label"],
                                      limits=limits, decimate=decim[num_raster],
-                                     sort=sort)
+                                     sort=sort, sort_attribute=attr)
             num_raster += 1
             fignums.append(fig_raster)
         elif "detector" in str(info["model"]):
@@ -196,7 +198,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
 
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 num_bins=1000, color="b", decimate=None, fignum=None,
-                label=None, show=True, sort=None):
+                label=None, show=True, sort=None, sort_attribute=None):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
@@ -318,8 +320,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             ax2.set_ylabel("Rate (Hz)")
             ax2.set_xlabel(xlabel)
             ax2.set_xlim(ax1.get_xlim())
-            if sort is not None:
-                
+            _second_axis(sort, sort_attribute, ax1)
         else:
             ax = fig.axes[0] if fig.axes else fig.add_subplot(111)
             ax.plot(times, senders, c=color, marker="o", linestyle='None',
@@ -331,9 +332,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             else:
                 ax.set_xlim([times[0]-delta_t, times[-1]+delta_t])
             ax.legend(bbox_to_anchor=(1.1, 1.2))
-            if sort is not None:
-                
-
+            _second_axis(sort, sort_attribute, ax)
         fig.suptitle(title)
         if show:
             plt.show()
@@ -385,3 +384,42 @@ def _moving_average (values, window):
     weights = np.repeat(1.0, window)/window
     sma = np.convolve(values, weights, 'same')
     return sma
+
+
+def _second_axis(sort, sort_attribute, ax):
+    if sort is not None:
+        asort = np.argsort(sort_attribute)
+        ax3 = ax.twinx()
+        ax3.grid(False)
+        ax3.set_ylabel(sort)
+        plt.draw()
+        old_ticks = ax.get_yticks()
+        ax3.set_yticks(old_ticks)
+        ax3.set_ylim(ax.get_ylim())
+        labels = ['' for _ in range(len(old_ticks))]
+        idx_max = len(sort_attribute) - 1
+        for i, t in enumerate(old_ticks):
+            if t >= 0:
+                idx = min(int(t), idx_max)
+                labels[i] = _sci_format(sort_attribute[asort[idx]])
+        ax3.set_yticklabels(labels)
+
+
+def _sci_format(n):
+    label = ''
+    if np.abs(n) < 0.01 or np.abs(n) >= 1000:
+        a = '{:.1E}'.format(n)
+        label = '$' + a.split('E')[0].rstrip('0').rstrip('.') + '\\cdot 10^{'
+        exponent = a.split('E')[1].lstrip('0')
+        if exponent[0] == '-':
+            exponent = exponent[0] + exponent[1:].lstrip('0')
+        elif exponent[0] == '+':
+            exponent = exponent[1:].lstrip('0')
+        label += exponent + '}$'
+    elif np.abs(n) >= 100:
+       label = '{:.0f}'.format(n)
+    elif np.abs(n) >= 10:
+       label = '{:.1f}'.format(n)
+    else:
+       label = '{:.2f}'.format(n)
+    return label

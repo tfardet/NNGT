@@ -5,6 +5,7 @@
 
 import nngt
 import itertools
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
@@ -35,30 +36,30 @@ if nngt._config["color_lib"] == "seaborn":
 if not with_seaborn:
     palette = plt.get_cmap(nngt._config["palette"])
     try:
-        plt.rcParams['font.size'] = 12
-        plt.rcParams['font.family'] = 'serif'
-        plt.rcParams['mathtext.fontset'] = 'custom'
-        plt.rcParams['axes.labelsize'] = plt.rcParams['font.size']
-        plt.rcParams['axes.titlesize'] = 1.2*plt.rcParams['font.size']
-        plt.rcParams['legend.fontsize'] = plt.rcParams['font.size']
-        plt.rcParams['xtick.labelsize'] = plt.rcParams['font.size']
-        plt.rcParams['ytick.labelsize'] = plt.rcParams['font.size']
-        plt.rcParams['savefig.dpi'] = 300
-        plt.rcParams['savefig.format'] = 'pdf'
-        plt.rcParams['xtick.major.size'] = 3
-        plt.rcParams['xtick.minor.size'] = 3
-        plt.rcParams['xtick.major.width'] = 1
-        plt.rcParams['xtick.minor.width'] = 1
-        plt.rcParams['ytick.major.size'] = 3
-        plt.rcParams['ytick.minor.size'] = 3
-        plt.rcParams['ytick.major.width'] = 1
-        plt.rcParams['ytick.minor.width'] = 1
-        plt.rcParams['legend.frameon'] = False
-        plt.rcParams['legend.numpoints'] = 1
-        plt.rcParams['axes.linewidth'] = 1
-        plt.rcParams['axes.grid'] = True
-        plt.rcParams['grid.linestyle'] = ':'
-        plt.rcParams['path.simplify'] = True
+        mpl.rcParams['font.size'] = 12
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rc('text', usetex=True)
+        mpl.rcParams['axes.labelsize'] = mpl.rcParams['font.size']
+        mpl.rcParams['axes.titlesize'] = 1.2*mpl.rcParams['font.size']
+        mpl.rcParams['legend.fontsize'] = mpl.rcParams['font.size']
+        mpl.rcParams['xtick.labelsize'] = mpl.rcParams['font.size']
+        mpl.rcParams['ytick.labelsize'] = mpl.rcParams['font.size']
+        mpl.rcParams['savefig.dpi'] = 300
+        mpl.rcParams['savefig.format'] = 'pdf'
+        mpl.rcParams['xtick.major.size'] = 3
+        mpl.rcParams['xtick.minor.size'] = 3
+        mpl.rcParams['xtick.major.width'] = 1
+        mpl.rcParams['xtick.minor.width'] = 1
+        mpl.rcParams['ytick.major.size'] = 3
+        mpl.rcParams['ytick.minor.size'] = 3
+        mpl.rcParams['ytick.major.width'] = 1
+        mpl.rcParams['ytick.minor.width'] = 1
+        mpl.rcParams['legend.frameon'] = False
+        mpl.rcParams['legend.numpoints'] = 1
+        mpl.rcParams['axes.linewidth'] = 1
+        mpl.rcParams['axes.grid'] = True
+        mpl.rcParams['grid.linestyle'] = ':'
+        mpl.rcParams['path.simplify'] = True
     except:
         pass
 

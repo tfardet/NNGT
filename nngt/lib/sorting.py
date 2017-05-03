@@ -9,7 +9,7 @@ import numpy as np
 from .errors import InvalidArgument
 
 
-def _sort_neurons(sort, gids, network, data=None):
+def _sort_neurons(sort, gids, network, data=None, return_attr=False):
     '''
     Sort the neurons according to the `sort` property.
 
@@ -25,6 +25,7 @@ def _sort_neurons(sort, gids, network, data=None):
     min_nest_gid = network.nest_gid.min()
     max_nest_gid = network.nest_gid.max()
     sorting = np.zeros(max_nest_gid + 1)
+    attribute = None
     if isinstance(sort, str):
         sorted_ids = None
         if sort == "firing_rate":
@@ -34,11 +35,14 @@ def _sort_neurons(sort, gids, network, data=None):
                 spikes.resize(max_nest_gid)
             # sort them (neuron with least spikes arrives at min_nest_gid)
             sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
+            # get attribute
+            idx_min = data[0].min()
+            attribute = spikes[idx_min:] / (data[1].max() - data[1].min())
         elif sort.lower() == "b2":
-            b2 = _b2(data)
-            sorted_ids = np.argsort(b2)
+            attribute = _b2(data)
+            sorted_ids = np.argsort(attribute)
             # check for non-spiking neurons
-            num_b2 = b2.shape[0]
+            num_b2 = attribute.shape[0]
             if num_b2 < network.node_nb():
                 spikes = np.bincount(data[0])
                 non_spiking = np.where(spikes[min_nest_gid] == 0)[0]
@@ -47,8 +51,8 @@ def _sort_neurons(sort, gids, network, data=None):
                     sorted_ids[sorted_ids >= n] += 1
                     sorted_ids[num_b2 + i] = n
         else:
-            attr = node_attributes(network, sort)
-            sorted_ids = np.argsort(attr)
+            attribute = node_attributes(network, sort)
+            sorted_ids = np.argsort(attribute)
         num_sorted = 1
         _, sorted_groups = _sort_groups(network.population)
         for group in sorted_groups:
@@ -58,7 +62,10 @@ def _sort_neurons(sort, gids, network, data=None):
             num_sorted += len(group.id_list)
     else:
         sorting[network.nest_gid[sort]] = sort
-    return sorting
+    if return_attr:
+        return sorting, attribute
+    else:
+        return sorting
 
 
 def _sort_groups(pop):
