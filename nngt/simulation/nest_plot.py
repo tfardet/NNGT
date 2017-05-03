@@ -144,8 +144,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
             fig_raster = raster_plot(times, sorted_ids, fignum=fig_raster,
-                                    color=c, show=False, label=info["label"],
-                                    limits=limits, decimate=decim[num_raster])
+                                     color=c, show=False, label=info["label"],
+                                     limits=limits, decimate=decim[num_raster],
+                                     sort=sort)
             num_raster += 1
             fignums.append(fig_raster)
         elif "detector" in str(info["model"]):
@@ -195,7 +196,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
 
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 num_bins=1000, color="b", decimate=None, fignum=None,
-                label=None, show=True):
+                label=None, show=True, sort=None):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
@@ -317,6 +318,8 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             ax2.set_ylabel("Rate (Hz)")
             ax2.set_xlabel(xlabel)
             ax2.set_xlim(ax1.get_xlim())
+            if sort is not None:
+                
         else:
             ax = fig.axes[0] if fig.axes else fig.add_subplot(111)
             ax.plot(times, senders, c=color, marker="o", linestyle='None',
@@ -328,6 +331,8 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             else:
                 ax.set_xlim([times[0]-delta_t, times[-1]+delta_t])
             ax.legend(bbox_to_anchor=(1.1, 1.2))
+            if sort is not None:
+                
 
         fig.suptitle(title)
         if show:

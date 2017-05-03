@@ -369,7 +369,7 @@ def adjacency_matrix(graph, types=True, weights=True):
     return graph.adjacency_matrix(types, weights)
 
 
-def subgraph_centrality(graph, weights=True, normalize=False):
+def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     '''
     Subgraph centrality, accordign to [Estrada2005], for each node in the
     graph.
@@ -384,11 +384,11 @@ def subgraph_centrality(graph, weights=True, normalize=False):
         is returned, if `weights` is a string, then the ponderation is the
         correponding value of the edge attribute (e.g. "distance" will return
         an adjacency matrix where each connection is multiplied by its length).
-    normalize : str, optional (default: False)
+    normalize : str, optional (default: "max_centrality")
         Whether the centrality should be normalized. Accepted normalizations
-        are "eigenmax" and "centralmax"; the first rescales the centralities by
-        the exponential of the largest eigenvalue of the adjacency matrix, the
-        second sets the maximum centrality to one.
+        are "max_eigenvalue" and "max_centrality"; the first rescales the
+        adjacency matrix by the its largest eigenvalue before taking the
+        exponential, the second sets the maximum centrality to one.
 
     Returns
     -------
@@ -400,14 +400,14 @@ def subgraph_centrality(graph, weights=True, normalize=False):
       (2005), `available on ArXiv<arxiv.org/pdf/cond-mat/0504730>`_.
     '''
     adj_mat = graph.adjacency_matrix(types=False, weights=weights)
-    exp_adj = spl.expm(adj_mat)
-    centralities = exp_adj.diagonal()
-    if normalize == "centralmax":
+    centralities = None
+    if normalize == "max_centrality":
+        centralities = spl.expm(adj_mat / adj_mat.max()).diagonal()
         centralities /= centralities.max()
-    elif normalize == "eigenmax":
+    elif normalize == "max_eigenvalue":
         norm, _ = spl.eigs(adj_mat, k=1)
-        centralities /= sp.exp(norm[0])
-    elif normalize:
+        centralities = spl.expm(adj_mat / norm).diagonal()
+    else:
         raise InvalidArgument('`normalize` should be either False, "eigenmax",'
                               ' or "centralmax".')
     return centralities

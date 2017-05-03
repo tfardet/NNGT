@@ -3,6 +3,7 @@
 
 """ Sorting tools """
 
+from nngt.analysis import node_attributes
 import numpy as np
 
 from .errors import InvalidArgument
@@ -26,14 +27,7 @@ def _sort_neurons(sort, gids, network, data=None):
     sorting = np.zeros(max_nest_gid + 1)
     if isinstance(sort, str):
         sorted_ids = None
-        if "degree" in sort:
-            deg_type = sort[:sort.find("-")]
-            degrees = network.get_degrees(deg_type)
-            sorted_ids = np.argsort(degrees)
-        elif sort == "betweenness":
-            betw = network.get_betweenness(btype="node")
-            sorted_ids = np.argsort(betw)
-        elif sort == "firing_rate" and data is not None:
+        if sort == "firing_rate":
             # compute number of spikes per neuron
             spikes = np.bincount(data[0])
             if spikes.shape[0] < max_nest_gid: # one entry per neuron
@@ -53,10 +47,8 @@ def _sort_neurons(sort, gids, network, data=None):
                     sorted_ids[sorted_ids >= n] += 1
                     sorted_ids[num_b2 + i] = n
         else:
-            raise InvalidArgument(
-                'Unknown sorting parameter {}; choose among "in-degree" '   + \
-                'out-degree", "total-degree", "betweenness", "firing_rate"' + \
-                'or "B2".'.format(sort))
+            attr = node_attributes(network, sort)
+            sorted_ids = np.argsort(attr)
         num_sorted = 1
         _, sorted_groups = _sort_groups(network.population)
         for group in sorted_groups:
