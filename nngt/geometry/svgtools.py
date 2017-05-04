@@ -133,23 +133,20 @@ def _make_shape(elt_type, instructions, parent=None, interpolate_curve=50,
         num_data = len(path_data)
         if not path_data.closed:
             raise RuntimeError("Only closed shapes accepted.")
-        j = 0
         start = path_data[0].start
-        pnt_container = shell  # the first path is the outer shell?
-        for k, item in enumerate(path_data):
+        points = shell  # the first path is the outer shell?
+        for j, item in enumerate(path_data):
             if isinstance(item, (CubicBezier, Arc)):
                 for frac in np.linspace(0, 1, interpolate_curve):
-                    pnt_container.append(
+                    points.append(
                         (item.point(frac).real, -item.point(frac).imag))
-                    j += 1
             else:
-                pnt_container.append((item.start.real, -item.start.imag))
-                j += 1
+                points.append((item.start.real, -item.start.imag))
             # if the shell is closed, the rest defines holes
-            if item.end == start and k < len(path_data) - 1:
+            if item.end == start and j < len(path_data) - 1:
                 holes.append([])
-                pnt_container = holes[-1]
-                start = path_data[k+1].start
+                points = holes[-1]
+                start = path_data[j+1].start
         container = Shape(shell, holes=holes)
         shell = np.array(shell)
     elif elt_type == "ellipse":  # build ellipses
