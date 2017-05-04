@@ -24,8 +24,10 @@ except ImportError:
 
 __all__ = ["Shape"]
 
+from . import svgtools
 try:
-    from .svgtools import from_svg
-    __all__.append("from_svg")
-except:
-    pass
+    from . import svgtools
+    from .svgtools import *
+    __all__.extend(svgtools.__all__)
+except Exception as e:
+    print("Could not import svgtools: {}".format(e))

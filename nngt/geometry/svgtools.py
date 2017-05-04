@@ -2,17 +2,28 @@
 #-*- coding:utf-8 -*-
 
 from xml.dom.minidom import parse
-from svg.path import parse_path
+from svg.path import parse_path, CubicBezier, Arc
 from itertools import chain
 
 import shapely
 from shapely.affinity import scale
 from shapely.geometry import Point, Polygon
 
+import numpy as np
+
+from nngt.geometry import Shape
+
 
 '''
 Shape generation from SVG files.
 '''
+
+
+__all__ = [
+    "shapes_from_svg",
+    "culture_from_svg",
+]
+
 
 # predefined svg shapes and their parameters
 _predefined = {
@@ -23,7 +34,8 @@ _predefined = {
 }
 
 
-def shapes_from_svg(filename, return_points=False):
+def shapes_from_svg(filename, parent=None, interpolate_curve=50,
+                    return_points=False):
     '''
     Generate :class:`shapely.geometry.Polygon` objects from an SVG file.
     '''
@@ -39,7 +51,8 @@ def shapes_from_svg(filename, return_points=False):
     shapes = []
     for elt_type, instructions in elt_structs.items():
         for struct in instructions:
-            polygon, points = _make_shapely(elt_type, struct)
+            polygon, points = _make_shape(
+                elt_type, struct, parent=parent, return_points=True)
             shapes.append(polygon)
             elt_points[elt_type].append(points)
 
@@ -48,14 +61,16 @@ def shapes_from_svg(filename, return_points=False):
     return shapes
 
 
-def culture_from_svg(filename):
+def culture_from_svg(filename, parent=None, interpolate_curve=50):
     '''
     Generate a culture from an SVG file.
     
     Valid file needs to contain only filled objects (no holes inside) among:
     rectangles, circles, ellipses, and closed paths (polygons).
     '''
-    shapes, points = shapes_from_svg(filename, return_points=True)
+    shapes, points = shapes_from_svg(
+        filename, parent=parent, interpolate_curve=interpolate_curve,
+        return_points=True)
     idx_main_container = 0
     idx_local = 0
     type_main_container = ''
@@ -67,6 +82,7 @@ def culture_from_svg(filename):
         for i, elt_points in enumerate(elements):
             min_x_tmp = elt_points[:, 0].min()
             if min_x_tmp < min_x:
+                min_x = min_x_tmp
                 idx_main_container = count
                 idx_local = i
                 type_main_container = elt_type
@@ -77,14 +93,14 @@ def culture_from_svg(filename):
     exterior = points[type_main_container].pop(idx_local)
     for shape in shapes:
         assert main_container.contains(shape), "Some shapes are not " +\
-           "contained in the main container."
+            "contained in the main container."
     
     # all remaining shapes are considered as boundaries for the interior
-    interiors = []
+    interiors = [item.coords for item in main_container.interiors]
     for _, elements in points.items():
         for elt_points in elements:
             interiors.append(elt_points)
-    culture = Polygon(exterior, interiors)
+    culture = Shape(exterior, interiors, parent)
     return culture
 
 
@@ -94,56 +110,64 @@ def culture_from_svg(filename):
 
 def _build_struct(svg, container, elt_type, elt_properties):
     for elt in svg.getElementsByTagName(elt_type):
-        struct = {}
         if elt_type == 'path':
-            struct = path.getAttribute('d')
+            #~ for s in elt.getAttribute('d').split('z'):
+                #~ if s:
+                    #~ container.append(s.lstrip() + 'z')
+            container.append(elt.getAttribute('d'))
         else:
+            struct = {}
             for item in elt_properties:
                 struct[item] = float(elt.getAttribute(item))
-        container.append(struct)
+            container.append(struct)
 
 
-def _test_min_x(biggest, min_x, structs, elt_type, elt_properties):
-    for i, struct in enumerate(structs):
-        min_x_tmp = struct[elt_properties[0]]
-        if len(elt_properties) == 2:
-            min_x_tmp -= struct[elt_properties[1]]
-        if min_x_tmp < min_x:
-            min_x = min_x_tmp
-            biggest[0] = elt_type
-            biggest[1] = i
-    return min_x
-
-
-def _make_shapely(elt_type, instructions, return_points=False):
+def _make_shape(elt_type, instructions, parent=None, interpolate_curve=50,
+                return_points=False):
     container = None
-    points = []
-    if elt_type == "path":
+    shell = []  # outer points defining the polygon's outer shell
+    holes = []  # inner points defining holes
+
+    if elt_type == "path":  # build polygons from custom paths
         path_data = parse_path(instructions)
         num_data = len(path_data)
         if not path_data.closed:
-            raise RuntimeError("Only closed shapes accepted")
-        points = np.zeros((num_data, 2))
-        for j, item in enumerate(path_data):
-            points[j, 0] = item.start.real
-            points[j, 1] = -item.start.imag
-        container = Polygon(points)
-    elif elt_type == "ellipse":
+            raise RuntimeError("Only closed shapes accepted.")
+        j = 0
+        start = path_data[0].start
+        pnt_container = shell  # the first path is the outer shell?
+        for k, item in enumerate(path_data):
+            if isinstance(item, (CubicBezier, Arc)):
+                for frac in np.linspace(0, 1, interpolate_curve):
+                    pnt_container.append(
+                        (item.point(frac).real, -item.point(frac).imag))
+                    j += 1
+            else:
+                pnt_container.append((item.start.real, -item.start.imag))
+                j += 1
+            # if the shell is closed, the rest defines holes
+            if item.end == start and k < len(path_data) - 1:
+                holes.append([])
+                pnt_container = holes[-1]
+                start = path_data[k+1].start
+        container = Shape(shell, holes=holes)
+        shell = np.array(shell)
+    elif elt_type == "ellipse":  # build ellipses
         circle = Point((instructions["cx"], -instructions["cy"])).buffer(1)
         rx, ry = instructions["rx"], instructions["ry"]
-        container = scale(circle, rx, ry)
-    elif elt_type == "circle":
-        container = Point((instructions["cx"],
-            -instructions["cy"])).buffer(instructions["r"])
-    elif elt_type == "rect":
+        container = Shape.from_polygon(scale(circle, rx, ry))
+    elif elt_type == "circle":  # build circles
+        container = Shape.from_polygon(Point((instructions["cx"],
+            -instructions["cy"])).buffer(instructions["r"]))
+    elif elt_type == "rect":  # build rectangles
         x, y = instructions["x"], -instructions["y"]
         w, h = instructions["width"], -instructions["height"]
-        points = np.array([(x, y), (x + w, y), (x + w, y + h), (x, y + h)])
-        container = Polygon(points)
+        shell = np.array([(x, y), (x + w, y), (x + w, y + h), (x, y + h)])
+        container = Shape(shell)
     else:
         raise RuntimeError("Unexpected element type: '{}'.".format(elt_type))
     if return_points:
-        if len(points) == 0:
-            points = np.array(container.exterior.coords)
-        return container, points
+        if len(shell) == 0:
+            shell = np.array(container.exterior.coords)
+        return container, shell
     return container
