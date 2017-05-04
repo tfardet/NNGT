@@ -12,15 +12,11 @@ Content
 =======
 """
 
-import importlib
-
-import shapely
-from shapely import speedups
-if speedups.available:
-    speedups.enable()
-
-
 try:
+    import shapely
+    from shapely import speedups
+    if speedups.available:
+        speedups.enable()
     from .shape import Shape
 except ImportError:
     from .backup_shape import Shape
