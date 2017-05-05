@@ -27,7 +27,7 @@ class Shape:
     -------
     add_subshape: void
         @todo
-        Add a :class:`~nngt.Shape` to a preexisting one.
+        Add a :class:`~nngt.geometry.Shape` to a preexisting one.
     """
 
     @classmethod
@@ -48,7 +48,7 @@ class Shape:
 
         Returns
         -------
-        shape : :class:`~nngt.Shape`
+        shape : :class:`~nngt.geometry.Shape`
             Rectangle shape.
         '''
         shape = cls(parent)
@@ -86,7 +86,7 @@ class Shape:
 
         Returns
         -------
-        shape : :class:`~nngt.Shape`
+        shape : :class:`~nngt.geometry.Shape`
             Rectangle shape.
         '''
         shape = cls(parent)
@@ -138,11 +138,11 @@ class Shape:
 
     def add_subshape(self, subshape, position, unit='mm'):
         """
-        Add a :class:`~nngt.core.Shape` to the current one.
+        Add a :class:`~nngt.geometry.Shape` to the current one.
 
         Parameters
         ----------
-        subshape: :class:`~nngt.Shape`
+        subshape: :class:`~nngt.geometry.Shape`
             Subshape to add.
         position: tuple of doubles
             Position of the subshape's center of gravity in space.
@@ -155,7 +155,7 @@ class Shape:
         """
         raise NotImplementedError
 
-    def rnd_distrib(self, nodes=None):
+    def seed_neurons(self, nodes=None):
         #@todo: make it general
         if self.parent is not None:
             nodes = self.parent.node_nb()

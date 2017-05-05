@@ -100,7 +100,7 @@ def culture_from_svg(filename, parent=None, interpolate_curve=50):
     for _, elements in points.items():
         for elt_points in elements:
             interiors.append(elt_points)
-    culture = Shape(exterior, interiors, parent)
+    culture = Shape(exterior, interiors, parent=parent)
     return culture
 
 

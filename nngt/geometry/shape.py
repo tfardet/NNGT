@@ -8,7 +8,7 @@ Shape implementation using the
 
 import shapely
 from shapely.affinity import scale
-from shapely.geometry import MultiPoint, Point, Polygon
+from shapely.geometry import Point, Polygon
 
 import numpy as np
 from numpy.random import uniform
@@ -33,12 +33,25 @@ class Shape(Polygon):
     -------
     add_subshape: void
         @todo
-        Add a :class:`~nngt.Shape` to a preexisting one.
+        Add a :class:`~nngt.geometry.Shape` to a preexisting one.
 
     See also
     --------
     Parent class: :class:`shapely.geometry.Polygon`
     """
+
+    @staticmethod
+    def from_svg(filename, parent=None, interpolate_curve=50):
+        '''
+        Create a shape from an SVG file.
+        '''
+        try:
+            from .svgtools import culture_from_svg
+            return culture_from_svg(
+                filename, parent=parent, interpolate_curve=interpolate_curve)
+        except:
+            raise NotImplementedError("Install svg.path package to use this "
+                                      "feature.")
 
     @classmethod
     def from_polygon(cls, polygon, parent=None):
@@ -69,7 +82,7 @@ class Shape(Polygon):
 
         Returns
         -------
-        shape : :class:`~nngt.Shape`
+        shape : :class:`~nngt.geometry.Shape`
             Rectangle shape.
         '''
         half_w = 0.5 * width
@@ -92,16 +105,14 @@ class Shape(Polygon):
         ----------
         parent : :class:`~nngt.SpatialGraph` or subclass
             The parent container.
-        height : float
-            Height of the rectangle.
-        width : float
-            Width of the rectangle.
+        radius : float
+            Radius of the disk.
         centroid : tuple of floats, optional (default: (0., 0.))
             Position of the rectangle's center of mass
 
         Returns
         -------
-        shape : :class:`~nngt.Shape`
+        shape : :class:`~nngt.geometry.Shape`
             Rectangle shape.
         '''
         centroid = np.array(centroid)
@@ -110,6 +121,33 @@ class Shape(Polygon):
         shape(points, parent=parent)
         shape._geom_type = "Disk"
         shape.radius = radius
+        return shape
+
+    @classmethod
+    def ellipse(cls, parent, radii, centroid=(0.,0.)):
+        '''
+        Generate a disk of given radius and center (`centroid`).
+
+        Parameters
+        ----------
+        parent : :class:`~nngt.SpatialGraph` or subclass
+            The parent container.
+        radii : tuple of floats
+            Couple (rx, ry) containing the radii of the two axes.
+        centroid : tuple of floats, optional (default: (0., 0.))
+            Position of the rectangle's center of mass
+
+        Returns
+        -------
+        shape : :class:`~nngt.geometry.Shape`
+            Rectangle shape.
+        '''
+        centroid = np.array(centroid)
+        rx, ry = radii
+        ellipse = cls.from_polygon(
+            scale(Point(centroid).buffer(1.), rx, ry), parent=parent)
+        shape._geom_type = "Ellipse"
+        shape.radii = radii
         return shape
 
     def __init__(self, shell, holes=None, parent=None):
@@ -135,11 +173,11 @@ class Shape(Polygon):
 
     def add_subshape(self, subshape, position, unit='mm'):
         """
-        Add a :class:`~nngt.core.Shape` to the current one.
+        Add a :class:`~nngt.geometry.Shape` to the current one.
 
         Parameters
         ----------
-        subshape: :class:`~nngt.Shape`
+        subshape: :class:`~nngt.geometry.Shape`
             Subshape to add.
         position: tuple of doubles
             Position of the subshape's center of gravity in space.
@@ -152,7 +190,7 @@ class Shape(Polygon):
         """
         pass
 
-    def rnd_distrib(self, nodes=None):
+    def seed_neurons(self, nodes=None):
         if self.parent is not None:
             nodes = self.parent.node_nb()
         if self.geom_type == "Rectangle":
@@ -166,6 +204,11 @@ class Shape(Polygon):
             theta = uniform(0, 2*np.pi, size=nodes)
             r = uniform(0, self.radius, size=nodes)
             return np.vstack((r*np.cos(theta), r*np.sin(theta)))
+        elif self.geom_type == "Ellipse":
+            theta = uniform(0, 2*np.pi, size=nodes)
+            r = uniform(0, 1, size=nodes)
+            rx, ry = self.radii
+            return np.vstack((rx*r*np.cos(theta), ry*r*np.sin(theta)))
         else:
             points = []
             min_x, min_y, max_x, max_y = self.bounds
@@ -173,7 +216,6 @@ class Shape(Polygon):
             while len(points) < nodes:
                 new_x = uniform(min_x, max_x, nodes-len(points))
                 new_y = uniform(min_y, max_y, nodes-len(points))
-                #~ points = MultiPoint(np.vstack((new_x, new_y)).T)
                 for x, y in zip(new_x, new_y):
                     p.coords = (x, y)
                     if self.contains(p):

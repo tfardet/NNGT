@@ -829,11 +829,11 @@ class SpatialGraph(Graph):
             shape.set_parent(self)
             self._shape = shape
         else:
-            self._shape = nngt.Shape.rectangle(self, 1, 1)
+            self._shape = nngt.geometry.Shape.rectangle(self, 1, 1)
         if positions is not None and positions.shape[1] != self.node_nb():
             raise InvalidArgument("Wrong number of neurons in `positions`.")
         b_rnd_pos = True if not self.node_nb() or positions is None else False
-        self._pos = self._shape.rnd_distrib() if b_rnd_pos else positions
+        self._pos = self._shape.seed_neurons() if b_rnd_pos else positions
         nngt.Connections.distances(self)
 
 
@@ -1180,7 +1180,7 @@ class SpatialNetwork(Network,SpatialGraph):
         positions : :class:`numpy.array`, optional (default: None)
             Positions of the neurons; if not specified and `nodes` != 0, then
             neurons will be reparted at random inside the
-            :class:`~nngt.Shape` object of the instance.
+            :class:`~nngt.geometry.Shape` object of the instance.
         population : class:`~nngt.NeuralPop`, optional (default: None)
         
         Returns
