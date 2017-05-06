@@ -24,7 +24,6 @@ except ImportError:
 
 __all__ = ["Shape"]
 
-from . import svgtools
 try:
     from . import svgtools
     from .svgtools import *
