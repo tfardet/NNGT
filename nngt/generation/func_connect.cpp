@@ -167,9 +167,9 @@ void _gen_edges(
 double _proba(int rule, double scale, double distance)
 {
     if (rule == 0) // linear
-        return 2 * std::max(0., 1. - distance/scale) / scale;
+        return std::max(0., 1. - distance/scale);
     else
-        return std::exp(-distance / scale) / scale;
+        return std::exp(-distance / scale);
 }
 
 void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,

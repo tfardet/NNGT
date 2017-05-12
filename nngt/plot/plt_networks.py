@@ -45,7 +45,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     ----------
     network : :class:`~nngt.Graph` or subclass
         The graph/network to plot.
-    nsize : float, array of floats or string, optional (default: "total-degree")
+    nsize : float, array of float or string, optional (default: "total-degree")
         Size of the nodes; if a number, percentage of the canvas length,
         otherwize a string that correlates the size to a node attribute among
         "in/out/total-degree", "betweenness".
@@ -54,15 +54,18 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         current palette, otherwise a string that correlates the color to a node
         attribute among "in/out/total-degree", "betweenness" or "group".
     nshape : char or array of chars, optional (default: "o")
-        Shape of the nodes (see `Matplotlib markers <http://matplotlib.org/api/markers_api.html?highlight=marker#module-matplotlib.markers>`_).
-    nborder_color : char, array of char, float or array of float, optional (default: "k")
-        Color of the node's border using predefined `Matplotlib colors <http://matplotlib.org/api/colors_api.html?highlight=color#module-matplotlib.colors>`_).
+        Shape of the nodes (see `Matplotlib markers <http://matplotlib.org/api/
+        markers_api.html?highlight=marker#module-matplotlib.markers>`_).
+    nborder_color : char, float or array, optional (default: "k")
+        Color of the node's border using predefined `Matplotlib colors
+        <http://matplotlib.org/api/colors_api.html?highlight=color
+        #module-matplotlib.colors>`_).
         or floats in [0, 1] defining the position in the palette.
     nborder_width : float or array of floats, optional (default: 0.5)
         Width of the border in percent of canvas size.
     esize : float or array of floats, optional (default: 0.5)
         Width of the edges in percent of canvas size.
-    ecolor : char, array of char, float or array of float, optional (default: "k")
+    ecolor : char, float or array, optional (default: "k")
         Edge color.
     spatial : bool, optional (default: True)
         If True, use the neurons' positions to draw them.
@@ -104,7 +107,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
             pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
     elif spatial and network.is_spatial():
-        pos = network.position.T
+        pos = network.position
         pos = network.new_vertex_property("vector<double>", pos)
     else:
         ebetw = network.betweenness_list(as_prop=True)[1]

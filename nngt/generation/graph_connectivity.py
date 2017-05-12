@@ -7,6 +7,7 @@ from copy import deepcopy
 import numpy as np
 
 import nngt
+from nngt.geometry.geom_utils import conversion_magnitude
 from .connect_tools import _set_options
 
 # try to import multithreaded algorithms
@@ -512,7 +513,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
 #------------------------
 
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
-                  density=0.1, edges=-1, avg_deg=-1., weighted=True,
+                  density=0.1, edges=-1, avg_deg=-1., unit='um', weighted=True,
                   directed=True, multigraph=False, name="DR", positions=None,
                   population=None, from_graph=None, **kwargs):
     """
@@ -543,6 +544,9 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         The number of edges between the nodes
     avg_deg : double, optional
         Average degree of the neurons given by `edges` / `nodes`.
+    unit : string (default: 'um')
+        Unit for the length `scale` among 'um' (:math:`\mu m`), 'mm', 'cm',
+        'dm', 'm'.
     weighted : bool, optional (default: True)
         @todo
 			Whether the graph edges have weights.
@@ -554,7 +558,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     name : string, optional (default: "DR")
         Name of the created graph.
     positions : :class:`numpy.ndarray`, optional (default: None)
-        A 2D (2, N) or 3D (3, N) shaped array containing the positions of the
+        A 2D (N, 2) or 3D (N, 3) shaped array containing the positions of the
         neurons in space.
     population : :class:`~nngt.NeuralPop`, optional (default: None)
         Population of neurons defining their biological properties (to create a
@@ -562,39 +566,42 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
     """
+    # check shape
+    if shape is None:
+        h = w = np.sqrt(float(nodes)/neuron_density)
+        shape = nngt.geometry.Shape.rectangle(h, w)
     # set node number and library graph
     graph_dr = from_graph
     if graph_dr is not None:
         nodes = graph_dr.node_nb()
         graph_dr.clear_all_edges()
+        Graph.make_spatial(graph_dr, shape, positions=positions)
     else:
         nodes = population.size if population is not None else nodes
-        graph_dr = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
-    # generate container
-    h = w = np.sqrt(float(nodes)/neuron_density)
-    shape = shape
-    if shape is None:
-        shape = nngt.geometry.Shape.rectangle(graph_dr, h, w)
-    if positions is None:
-        positions = ( graph_dr.positions if graph_dr.is_spatial()
-                      else shape.seed_neurons() )
+        graph_dr = nngt.SpatialGraph(
+            name=name, nodes=nodes, directed=directed, shape=shape,
+            positions=positions, **kwargs)
+    positions = graph_dr.position.T
     # add edges
     ia_edges = None
+    conversion_factor = conversion_magnitude(shape.unit, unit)
+    if unit != shape.unit:
+        positions = np.multiply(conversion_factor, positions)
     if nodes > 1:
         ids = np.arange(0, nodes, dtype=np.uint)
         ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
-                                  rule, shape, positions, directed, multigraph)
+                                  rule, shape, positions, conversion_factor,
+                                  directed, multigraph, **kwargs)
         graph_dr.new_edges(ia_edges)
     # set options (graph has already been made spatial)
-    _set_options(graph_dr, population, shape=shape, positions=positions)
+    _set_options(graph_dr, population, None, None)
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
 
 
-#-----------------------------------------------------------------------------#
-# Polyvalent generator
-#------------------------
-#
+# -------------------- #
+# Polyvalent generator #
+# -------------------- #
 
 _di_generator = {
     "distance_rule": distance_rule,
@@ -605,6 +612,7 @@ _di_generator = {
     "price_scale_free": price_scale_free,
     "random_scale_free": random_scale_free
 }
+
 
 def generate(di_instructions, **kwargs):
     '''
@@ -645,12 +653,14 @@ _di_gen_edges = {
     "random_scale_free": _random_scale_free
 }
 
+
 _di_default = {  "density": 0.1,
                 "edges": -1,
                 "avg_deg": -1,
                 "reciprocity": -1,
                 "directed": True,
                 "multigraph": False }
+
 
 _one_pop_models = ("newman_watts",)
 

@@ -348,7 +348,8 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
                    np.ndarray[size_t, ndim=1] target_ids,
                    density, edges, avg_deg, double scale,
                    str rule, shape, np.ndarray[double, ndim=2] positions,
-                   bool directed, bool multigraph, num_neurons=None, **kwargs):
+                   double conversion_factor, bool directed, bool multigraph,
+                   num_neurons=None, **kwargs):
     '''
     Returns a distance-rule graph
     '''
@@ -372,7 +373,7 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
     # create the edges
     cdef:
         long msd = np.random.randint(0, edge_num + 1)
-        double area = shape.area
+        double area = shape.area * conversion_factor
         size_t cedges = edge_num
         np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edge_num, 2), dtype=DTYPE)

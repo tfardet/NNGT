@@ -2,7 +2,7 @@
 #-*- coding:utf-8 -*-
 
 from xml.dom.minidom import parse
-from svg.path import parse_path, CubicBezier, Arc
+from svg.path import parse_path, CubicBezier, QuadraticBezier, Arc
 from itertools import chain
 
 import shapely
@@ -34,7 +34,7 @@ _predefined = {
 }
 
 
-def shapes_from_svg(filename, parent=None, interpolate_curve=50,
+def shapes_from_svg(filename, interpolate_curve=50, parent=None,
                     return_points=False):
     '''
     Generate :class:`shapely.geometry.Polygon` objects from an SVG file.
@@ -58,15 +58,18 @@ def shapes_from_svg(filename, parent=None, interpolate_curve=50,
 
     if return_points:
         return shapes, elt_points
+
     return shapes
 
 
-def culture_from_svg(filename, parent=None, interpolate_curve=50):
+def culture_from_svg(filename, min_x=-5000., max_x=5000., unit='um',
+                     parent=None, interpolate_curve=50):
     '''
     Generate a culture from an SVG file.
     
-    Valid file needs to contain only filled objects (no holes inside) among:
-    rectangles, circles, ellipses, and closed paths (polygons).
+    Valid file needs to contain only closed objects among:
+    rectangles, circles, ellipses, polygons, and closed curves.
+    The objects do not have to be simply connected.
     '''
     shapes, points = shapes_from_svg(
         filename, parent=parent, interpolate_curve=interpolate_curve,
@@ -75,14 +78,14 @@ def culture_from_svg(filename, parent=None, interpolate_curve=50):
     idx_local = 0
     type_main_container = ''
     count = 0
-    min_x = np.inf
+    min_x_val = np.inf
     
     # the main container must own the smallest x value
     for elt_type, elements in points.items():
         for i, elt_points in enumerate(elements):
             min_x_tmp = elt_points[:, 0].min()
-            if min_x_tmp < min_x:
-                min_x = min_x_tmp
+            if min_x_tmp < min_x_val:
+                min_x_val = min_x_tmp
                 idx_main_container = count
                 idx_local = i
                 type_main_container = elt_type
@@ -100,7 +103,17 @@ def culture_from_svg(filename, parent=None, interpolate_curve=50):
     for _, elements in points.items():
         for elt_points in elements:
             interiors.append(elt_points)
-    culture = Shape(exterior, interiors, parent=parent)
+
+    # scale the shape
+    if None not in (min_x, max_x):
+        exterior = np.array(main_container.exterior.coords)
+        leftmost = np.min(exterior[:, 0])
+        rightmost = np.max(exterior[:, 0])
+        scaling = (max_x - min_x) / (rightmost - leftmost)
+        exterior *= scaling
+        interiors = [np.multiply(l, scaling) for l in interiors]
+
+    culture = Shape(exterior, interiors, unit=unit, parent=parent)
     return culture
 
 
@@ -136,7 +149,7 @@ def _make_shape(elt_type, instructions, parent=None, interpolate_curve=50,
         start = path_data[0].start
         points = shell  # the first path is the outer shell?
         for j, item in enumerate(path_data):
-            if isinstance(item, (CubicBezier, Arc)):
+            if isinstance(item, (Arc, CubicBezier, QuadraticBezier)):
                 for frac in np.linspace(0, 1, interpolate_curve):
                     points.append(
                         (item.point(frac).real, -item.point(frac).imag))
@@ -152,10 +165,10 @@ def _make_shape(elt_type, instructions, parent=None, interpolate_curve=50,
     elif elt_type == "ellipse":  # build ellipses
         circle = Point((instructions["cx"], -instructions["cy"])).buffer(1)
         rx, ry = instructions["rx"], instructions["ry"]
-        container = Shape.from_polygon(scale(circle, rx, ry))
+        container = Shape.from_polygon(scale(circle, rx, ry), min_x=None)
     elif elt_type == "circle":  # build circles
         container = Shape.from_polygon(Point((instructions["cx"],
-            -instructions["cy"])).buffer(instructions["r"]))
+            -instructions["cy"])).buffer(instructions["r"]), min_x=None)
     elif elt_type == "rect":  # build rectangles
         x, y = instructions["x"], -instructions["y"]
         w, h = instructions["width"], -instructions["height"]
@@ -163,8 +176,10 @@ def _make_shape(elt_type, instructions, parent=None, interpolate_curve=50,
         container = Shape(shell)
     else:
         raise RuntimeError("Unexpected element type: '{}'.".format(elt_type))
+
     if return_points:
         if len(shell) == 0:
             shell = np.array(container.exterior.coords)
         return container, shell
+
     return container

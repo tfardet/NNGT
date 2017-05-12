@@ -337,16 +337,17 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
 
 def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
-                   rule, shape, positions, directed, multigraph, **kwargs):
+                   rule, shape, positions, conversion_factor, directed,
+                   multigraph, **kwargs):
     '''
     Returns a distance-rule graph
     '''
     def exp_rule(pos_src, pos_target):
         dist = np.linalg.norm(pos_src-pos_target,axis=0)
-        return np.exp(np.divide(dist,-scale)) / scale
+        return np.exp(np.divide(dist, -scale))
     def lin_rule(pos_src, pos_target):
         dist = np.linalg.norm(pos_src-pos_target,axis=0)
-        return 2 * np.divide(scale-dist,scale).clip(min=0.)
+        return np.divide(scale-dist, scale).clip(min=0.)
     dist_test = exp_rule if rule == "exp" else lin_rule
     # compute the required values
     source_ids = np.array(source_ids).astype(int)
@@ -358,8 +359,8 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
         source_ids, target_ids, edges, directed, multigraph)
     num_neurons = len(set(np.concatenate((source_ids, target_ids))))
     # compute the number of tests required
-    typical_distance = np.sqrt(shape.area)
-    avg_distance = typical_distance * np.sqrt(np.pi / 2.)
+    typical_distance = np.sqrt(shape.area) * conversion_factor
+    avg_distance = typical_distance * 0.5
     typical_proba = (2 * (1. - avg_distance / scale) if rule == "lin"
                     else np.exp(-avg_distance / scale) / scale)
     proba_c = edges / (num_neurons * (num_neurons - 1))
@@ -377,11 +378,12 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
             cdist(positions[:, source_ids].T, positions[:, target_ids].T),
             (num_source*num_target,))
         if rule == "exp":
-            probas = np.exp(-distances / scale) / scale
+            probas = np.exp(-distances / scale)
         else:
             probas = 2 * np.divide(scale-distances, scale).clip(min=0.)
     while num_ecurrent < edges:
-        num_create = int(min((edges-num_ecurrent) / typical_proba + 1, edges))
+        num_create = int(min((edges - num_ecurrent) / typical_proba + 1,
+                             max_create))
         ia_sources = source_ids[randint(0, num_source, num_create)]
         ia_targets = target_ids[randint(0, num_target, num_create)]
         if num_tests >= max_tests:

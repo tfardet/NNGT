@@ -5,6 +5,8 @@
 Backup Shape implementation using scipy.
 '''
 
+import weakref
+
 from nngt.lib import InvalidArgument
 
 
@@ -18,40 +20,38 @@ class Shape:
 
     Attributes
     ----------
-    area: double
+    area : double
         Area of the shape in mm^2.
-    centroid: tuple of doubles
+    centroid : tuple of doubles
         Position of the center of mass of the current shape.
-
-    Methods
-    -------
-    add_subshape: void
-        @todo
-        Add a :class:`~nngt.geometry.Shape` to a preexisting one.
     """
 
     @classmethod
-    def rectangle(cls, parent, height, width, centroid=(0.,0.)):
+    def rectangle(cls, height, width, centroid=(0.,0.), unit='um',
+                  parent=None):
         '''
         Generate a rectangle of given height, width and center of mass.
 
         Parameters
         ----------
-        parent : :class:`~nngt.SpatialGraph` or subclass
-            The parent container.
         height : float
             Height of the rectangle.
         width : float
             Width of the rectangle.
-        pos_com : tuple of floats, optional (default: (0., 0.))
-            Position of the rectangle's center of mass
+        centroid : tuple of floats, optional (default: (0., 0.))
+            Position of the rectangle's center of mass.
+        unit : string (default: 'um')
+            Unit in the metric system among 'um' (:math:`\mu m`), 'mm', 'cm',
+            'dm', 'm'.
+        parent : :class:`~nngt.Graph` or subclass
+            The graph which is associated to this Shape.
 
         Returns
         -------
         shape : :class:`~nngt.geometry.Shape`
             Rectangle shape.
         '''
-        shape = cls(parent)
+        shape = cls(unit=unit, parent=parent)
         half_w = 0.5 * width
         half_h = 0.5 * height
         centroid = np.array(centroid)
@@ -69,27 +69,30 @@ class Shape:
         return shape
 
     @classmethod
-    def disk(cls, parent, radius, centroid=(0.,0.)):
+    def disk(cls, radius, centroid=(0.,0.), unit='um', parent=None):
         '''
         Generate a disk of given radius and center (`centroid`).
 
         Parameters
         ----------
-        parent : :class:`~nngt.SpatialGraph` or subclass
-            The parent container.
         height : float
             Height of the rectangle.
         width : float
             Width of the rectangle.
         centroid : tuple of floats, optional (default: (0., 0.))
-            Position of the rectangle's center of mass
+            Position of the rectangle's center of mass.
+        unit : string (default: 'um')
+            Unit in the metric system among 'um' (:math:`\mu m`), 'mm', 'cm',
+            'dm', 'm'.
+        parent : :class:`~nngt.Graph` or subclass
+            The graph which is associated to this Shape.
 
         Returns
         -------
         shape : :class:`~nngt.geometry.Shape`
             Rectangle shape.
         '''
-        shape = cls(parent)
+        shape = cls(unit=unit, parent=parent)
         centroid = np.array(centroid)
         points = [(centroid + radius*np.cos(theta),
                   centroid + radius*np.sin(theta))
@@ -104,10 +107,11 @@ class Shape:
         shape.radius = radius
         return shape
 
-    def __init__(self, parent=None):
-        self.parent = weakref.proxy(parent) if parent is not None else None
+    def __init__(self, unit='um', parent=None):
+        self._parent = weakref.proxy(parent) if parent is not None else None
         self._area = 0.
         self._com = (0., 0.)
+        self._unit = unit
         self._convex_hull = None
 
     @property
@@ -121,9 +125,16 @@ class Shape:
         return self._com
 
     @property
-    def centroid(self):
-        ''' Centroid of the shape. '''
-        return self._com
+    def parent(self):
+        ''' Return the parent of the :class:`~nngt.geometry.Shape`. '''
+        return self._parent
+
+    @property
+    def unit(self):
+        '''
+        Return the unit for the :class:`~nngt.geometry.Shape` coordinates.
+        '''
+        return self._unit
 
     @property
     def coords(self):
@@ -134,10 +145,10 @@ class Shape:
         return self._geom_type
 
     def set_parent(self, parent):
-        self.parent = weakref.proxy(parent) if parent is not None else None
+        self._parent = weakref.proxy(parent) if parent is not None else None
 
-    def add_subshape(self, subshape, position, unit='mm'):
-        """
+    def add_subshape(self, subshape, position, unit='um'):
+        '''
         Add a :class:`~nngt.geometry.Shape` to the current one.
 
         Parameters
@@ -146,29 +157,48 @@ class Shape:
             Subshape to add.
         position: tuple of doubles
             Position of the subshape's center of gravity in space.
-        unit: string (default 'mm')
+        unit: string (default 'um')
             Unit in the metric system among 'um', 'mm', 'cm', 'dm', 'm'
-
-        Returns
-        -------
-        None
-        """
-        raise NotImplementedError
+        '''
+        raise NotImplementedError("To be implemented.")
 
     def seed_neurons(self, nodes=None):
-        #@todo: make it general
-        if self.parent is not None:
-            nodes = self.parent.node_nb()
+        '''
+        Return the positions of the neurons inside the
+        :class:`~nngt.geometry.Shape`.
+        
+        Parameters
+        ----------
+        unit : string (default: None)
+            Unit in which the positions of the neurons will be returned, among
+            'um', 'mm', 'cm', 'dm', 'm'.
+        neurons : int, optional (default: None)
+            Number of neurons to seed. This argument is considered only if the
+            :class:`~nngt.geometry.Shape` has no `parent`, otherwise, a
+            position is generated for each neuron in `parent`.
+        
+        Returns
+        -------
+        positions : array of double with shape (N, 2)
+        '''
+        positions = None
+        if self._parent is not None:
+            nodes = self._parent.node_nb()
         if self._geom_type == "Rectangle":
             points = self._convex_hull.points
             min_x, max_x = points[:,0].min(), points[:,0].max()
             min_y, max_y = points[:,1].min(), points[:,1].max()
             ra_x = uniform(min_x, max_x, size=nodes)
             ra_y = uniform(min_y, max_y, size=nodes)
-            return np.vstack((ra_x, ra_y))
+            positions = np.vstack((ra_x, ra_y))
         elif self._geom_type == "Disk":
             theta = uniform(0, 2*np.pi, size=nodes)
             r = uniform(0, self.radius, size=nodes)
-            return np.vstack((r*np.cos(theta), r*np.sin(theta)))
+            positions = np.vstack((r*np.cos(theta), r*np.sin(theta)))
         else:
             raise RuntimeError("Unsupported: '{}'.".format(self._geom_type))
+
+        if unit is not None and unit != self._unit:
+            positions *= conversion_magnitude(unit, self._unit)
+
+        return positions
