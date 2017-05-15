@@ -74,69 +74,59 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     dpi : int, optional (default: 75)
         Resolution (dot per inch).
     '''
-    pos,layout = None,None
+    size_inches = (size[0]/float(dpi), size[1]/float(dpi))
+    fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
+    ax = fig.add_subplot(111, frameon=0, aspect=1)
+    ax.set_axis_off()
+    pos, layout = None, None
     n = network.node_nb()
     e = network.edge_nb()
     # compute properties
-    if issubclass(str,nsize.__class__):
+    if isinstance(nsize, str):
         if e:
             nsize = _node_size(network, nsize)
-            nsize.a *= 0.01*size[0]
-    elif issubclass(float, nsize.__class__):
+            nsize *= 0.05*size[0]
+    elif isinstance(nsize, float):
         nsize = np.repeat(nsize, n)
-    if issubclass(str,esize.__class__):
+    if isinstance(esize, str):
         if e:
             esize = _edge_size(network, esize)
-            esize.a *= 0.01*size[0]
-    elif issubclass(float, esize.__class__):
+            esize *= 0.01*size[0]
+    elif isinstance(esize, float):
         esize = np.repeat(esize, e)
         esize = network.new_edge_property("double",esize)
     ncolor = _node_color(network, ncolor)        
-    if issubclass(float, nborder_color.__class__):
+    if isinstance(nborder_color, float):
         nborder_color = np.repeat(nborder_color, n)
-    if issubclass(float, ecolor.__class__):
+    if isinstance(ecolor, float):
         ecolor = np.repeat(ecolor, e)
     # draw
-    pos = np.zeros((n,2))
-    if not e:
-        nsize = 0.02*size[0]
-        esize = 0.01*size[0]
-        if spatial and network.is_spatial():
-            pos = network[POS]
-        else:
-            pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
-            pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
-    elif spatial and network.is_spatial():
+    pos = np.zeros((n, 2))
+    if spatial and network.is_spatial():
         pos = network.position
-        pos = network.new_vertex_property("vector<double>", pos)
     else:
-        ebetw = network.betweenness_list(as_prop=True)[1]
-        pos = gplot.sfdp_layout(network, eweight=ebetw)
-    if not e:
-        size_inches = (size[0]/float(dpi),size[1]/float(dpi))
-        fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
-        ax = fig.add_subplot(111, frameon=0, aspect=1)
-        fig.facecolor = "white"
-        fig.figsize=size
-        ax.set_axis_off()
-        if hasattr(network, "population"):
-            for group in network.population.itervalues():
-                idx = group.id_list
-                ax.scatter(pos[idx,0], pos[idx,1], s=nsize,
-                           color=palette(ncolor[idx[0]]))
-        else:
-            ax.scatter(pos[:,0], pos[:,1], s=nsize)
-        ax.set_xlim([-0.51*size[0],0.51*size[0]])
-        ax.set_ylim([-0.51*size[1],0.51*size[1]])
-        plt.show()
-    elif spatial and network.is_spatial():
-        gplot.graph_draw(network, pos=pos, vertex_color=nborder_color,
-            vertex_fill_color=ncolor, vertex_size=nsize, edge_color=ecolor,
-            edge_pen_width=esize, output_size=size)
+        pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
+        pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
+    if hasattr(network, "population"):
+        for group in network.population.itervalues():
+            idx = group.id_list
+            ax.scatter(pos[idx,0], pos[idx,1], s=nsize, marker=nshape,
+                    c=palette(ncolor[idx[0]]), edgecolors=nborder_color)
     else:
-        gplot.graph_draw(network, pos=pos, vertex_color=nborder_color,
-            vertex_fill_color=ncolor, vertex_size=nsize, edge_color=ecolor,
-            edge_pen_width=esize, output_size=size)
+        ax.scatter(pos[:,0], pos[:,1], s=nsize, marker=nshape,
+                   c=palette(ncolor), edgecolors=nborder_color)
+    _set_ax_lim(ax, pos[:,0], pos[:,1])
+    # use quiver to draw the edges
+    adj_mat = network.adjacency_matrix()
+    edges = adj_mat.nonzero()
+    arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
+    arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
+    ax.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
+              scale_units='xy', angles='xy', scale=1, alpha=0.5)
+    plt.tight_layout()
+    plt.subplots_adjust(
+        hspace=0., wspace=0., left=0., right=1., top=1., bottom=0.)
+    plt.show()
 
 
 #-----------------------------------------------------------------------------#
@@ -144,30 +134,49 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 #------------------------
 #
 
+def _set_ax_lim(ax, xdata, ydata):
+    x_min, x_max = np.min(xdata), np.max(xdata)
+    y_min, y_max = np.min(ydata), np.max(ydata)
+    if x_min > 0:
+        ax.set_xlim(left=0.95*x_min)
+    else:
+        ax.set_xlim(left=1.05*x_min)
+    if y_min > 0:
+        ax.set_ylim(bottom=0.95*y_min)
+    else:
+        ax.set_ylim(bottom=1.05*y_min)
+    if x_max < 0:
+        ax.set_xlim(right=0.95*x_max)
+    else:
+        ax.set_xlim(right=1.05*x_max)
+    if y_max < 0:
+        ax.set_ylim(top=0.95*y_max)
+    else:
+        ax.set_ylim(top=1.05*y_max)
+
 def _node_size(network, nsize):
-    size = network.new_vertex_property("double",1.)
-    w = network.edge_properties['weight'] if network.is_weighted() else None
+    size = np.ones(network.node_nb())
     if "degree" in nsize:
         deg_type = nsize[:nsize.index("-")]
-        size = network.degree_property_map(deg_type, weight=w)
-        if size.a.max() > 15*size.a.min():
-            size.a = np.power(size.a,0.4)
+        size = network.get_degrees(deg_type)
+        if size.max() > 15*size.min():
+            size = np.power(size, 0.4)
     if nsize == "betweenness":
-        size = network.betweenness_list(as_prop=True)[0]
-        if size.a.max() > 15*size.a.min():
-            min_size = size.a[size.a!=0].min()
-            size.a[size.a == 0.] = min_size
-            size.a = np.log(size.a)
-            if size.a.min()<0:
-                size.a -= 1.1*size.a.min()
-    size.a /=  size.a.max()/1.5
+        size = network.betweenness_list("node")
+        if size.max() > 15*size.min():
+            min_size = size[size!=0].min()
+            size[size == 0.] = min_size
+            size = np.log(size)
+            if size.min()<0:
+                size -= 1.1*size.min()
+    size /= size.max()/1.5
     return size
 
 def _edge_size(network, esize):
     size = network.new_edge_property("double",1.)
     if esize == "betweenness":
-        size = network.betweenness_list(as_prop=True)[1]
-        size.a /= size.a.max()
+        size = network.betweenness_list("edge")
+        size /= size.max()
     return size
 
 def _node_color(network, ncolor):
@@ -181,5 +190,4 @@ def _node_color(network, ncolor):
             c = np.linspace(0,1,l)
             for i,group in enumerate(network.population.values()):
                 color[group.id_list] = c[i]
-    color = network.new_vertex_property("double",color)
     return color
