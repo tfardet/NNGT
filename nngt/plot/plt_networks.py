@@ -37,7 +37,7 @@ __all__ = [ "draw_network" ]
 
 def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
-                 spatial=True, size=(600,600), dpi=75):
+                 max_esize=5., spatial=True, size=(600,600), dpi=75):
     '''
     Draw a given graph/network.
 
@@ -67,6 +67,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Width of the edges in percent of canvas size.
     ecolor : char, float or array, optional (default: "k")
         Edge color.
+    max_esize : float, optional (default: 5.)
+        If a custom property is entered as `esize`, this normalizes the edge
+        width between 0. and `max_esize`.
     spatial : bool, optional (default: True)
         If True, use the neurons' positions to draw them.
     size : tuple of ints, optional (default: (600,600))
@@ -85,16 +88,15 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     if isinstance(nsize, str):
         if e:
             nsize = _node_size(network, nsize)
-            nsize *= 0.05*size[0]
+            nsize *= 0.1 * size[0]
     elif isinstance(nsize, float):
         nsize = np.repeat(nsize, n)
     if isinstance(esize, str):
         if e:
             esize = _edge_size(network, esize)
-            esize *= 0.01*size[0]
+            esize *= max_esize * size[0] / 1000.
     elif isinstance(esize, float):
         esize = np.repeat(esize, e)
-        esize = network.new_edge_property("double",esize)
     ncolor = _node_color(network, ncolor)        
     if isinstance(nborder_color, float):
         nborder_color = np.repeat(nborder_color, n)
@@ -108,13 +110,14 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
     if hasattr(network, "population"):
-        for group in network.population.itervalues():
+        for group in network.population.values():
             idx = group.id_list
             ax.scatter(pos[idx,0], pos[idx,1], s=nsize, marker=nshape,
-                    c=palette(ncolor[idx[0]]), edgecolors=nborder_color)
+                       c=palette(ncolor[idx[0]]), edgecolors=nborder_color,
+                       zorder=2)
     else:
         ax.scatter(pos[:,0], pos[:,1], s=nsize, marker=nshape,
-                   c=palette(ncolor), edgecolors=nborder_color)
+                   c=palette(ncolor), edgecolors=nborder_color, zorder=2)
     _set_ax_lim(ax, pos[:,0], pos[:,1])
     # use quiver to draw the edges
     adj_mat = network.adjacency_matrix()
@@ -122,7 +125,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
     arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
     ax.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
-              scale_units='xy', angles='xy', scale=1, alpha=0.5)
+              scale_units='xy', angles='xy', scale=1, alpha=0.5, width=1.5e-3,
+              linewidths=esize, edgecolors=ecolor, zorder=1)
     plt.tight_layout()
     plt.subplots_adjust(
         hspace=0., wspace=0., left=0., right=1., top=1., bottom=0.)
@@ -154,6 +158,7 @@ def _set_ax_lim(ax, xdata, ydata):
     else:
         ax.set_ylim(top=1.05*y_max)
 
+
 def _node_size(network, nsize):
     size = np.ones(network.node_nb())
     if "degree" in nsize:
@@ -169,15 +174,19 @@ def _node_size(network, nsize):
             size = np.log(size)
             if size.min()<0:
                 size -= 1.1*size.min()
-    size /= size.max()/1.5
+    size /= size.max()
     return size
 
+
 def _edge_size(network, esize):
-    size = network.new_edge_property("double",1.)
+    size = np.repeat(1., network.edge_nb())
     if esize == "betweenness":
         size = network.betweenness_list("edge")
-        size /= size.max()
+    if esize == "weight":
+        size = network.get_weights()
+    size /= size.max()
     return size
+
 
 def _node_color(network, ncolor):
     color = None

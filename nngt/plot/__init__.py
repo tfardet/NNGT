@@ -4,9 +4,6 @@
 """
 Functions for plotting graphs and graph properties.
 
-.. note ::
-For now, graph plotting is only supported when using the
-`graph_tool <https://graph-tool.skewed.de>`_ library.
 
 Content
 =======
@@ -39,6 +36,7 @@ _warn.filterwarnings("ignore", module="matplotlib")
 
 from .custom_plt import palette
 from .animations import Animation2d, AnimationNetwork
+from .plt_networks import draw_network
 from .plt_properties import *
 from . import plt_properties as _plt_prop
 
@@ -46,16 +44,8 @@ from . import plt_properties as _plt_prop
 __all__ = [
     "Animation2d",
     "AnimationNetwork",
+    "draw_network",
     "palette",
 ]
+
 __all__.extend(_plt_prop.__all__)
-
-
-if _nngt._config["graph_library"] == 'graph-tool':
-    from .plt_networks import draw_network
-    __all__.append("draw_network")
-else:
-    _warn.warn("Graph drawing is only available with graph_tool at the "
-               "moment. As {} is currently being used, all graph drawing "
-               "functions will be disabled.".format(
-               _nngt._config["graph_library"]))
