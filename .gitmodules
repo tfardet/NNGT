@@ -1,0 +1,3 @@
+[submodule "nngt/geometry"]
+	path = nngt/geometry
+	url = https://github.com/SENeC-Initiative/PyNCulture.git

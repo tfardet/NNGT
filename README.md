@@ -2,7 +2,26 @@
 
 ![NNGT logo](doc/_static/nngt_logo.png)
 
-The Neural Network Growth and Topology (NNGT) module provides tools to grow and study detailed biological networks by interfacing efficient graph libraries with highly distributed activity simulators.
+The Neural Network Growth and Topology (NNGT) module provides tools to grow and
+study detailed biological networks by interfacing efficient graph libraries with
+highly distributed activity simulators.
+
+
+## Cloning the repository
+
+This repository includes the
+[``PyNCultures``](https://github.com/SENeC-Initiative/PyNCulture) package from
+the [SENeC](https://github.com/SENeC-Initiative/) initiative as its
+``geometry`` module, using the
+[``git submodule``](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
+feature.
+Thus, when cloning the repository, you must do:
+
+    git clone https://github.com/Silmathoron/NNGT.git
+    cd NNGT && git submodule init && git submodule update
+
+
+## Features
 
 **Compatibility**
 It currently supports NEST, graph-tool, igraph and networkx.
