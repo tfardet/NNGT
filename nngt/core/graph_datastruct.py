@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Graph data strctures in NNGT """
 
@@ -194,15 +211,16 @@ class NeuralPop(OrderedDict):
             List of strings containing the names of the groups which models
             should be updated.
 
+        Note
+        ----
+        By default, synapses are registered as "static_synapse"s in NEST;
+        because of this, only the ``neuron_model`` attribute is checked by
+        the ``has_models`` function: it will answer ``True`` if all groups
+        have a 'non-None' ``neuron_model`` attribute.
+
         .. warning::
             No check is performed on the validity of the models, which means
             that errors will only be detected when building the graph in NEST.
-
-        .. note::
-            By default, synapses are registered as "static_synapse"s in NEST;
-            because of this, only the ``neuron_model`` attribute is checked by
-            the ``has_models`` function: it will answer ``True`` if all groups
-            have a 'non-None' ``neuron_model`` attribute.
         '''
         if group is None:
             group = self.keys()
@@ -389,14 +407,16 @@ class NeuralGroup:
     :ivar neuron_param: :class:`dict`, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
 
+    Note
+    ----
+    By default, synapses are registered as ``"static_synapse"`` in NEST;
+    because of this, only the ``neuron_model`` attribute is checked by the
+    ``has_model`` function.
+
     .. warning::
         Equality between :class:`~nngt.properties.NeuralGroup`s only compares
         the neuronal and synaptic ``model`` and ``param`` attributes, i.e.
         groups differing only by their ``id_list`` will register as equal.
-    .. note::
-        By default, synapses are registered as ``"static_synapse"`` in NEST;
-        because of this, only the ``neuron_model`` attribute is checked by the
-        ``has_model`` function.
     """
 
     def __init__ (self, id_list=[], ntype=1, model=None, neuron_param=None,

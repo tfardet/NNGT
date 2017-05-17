@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Animation tools """
 
@@ -77,8 +94,9 @@ class _SpikeAnimator:
             # sorting
             if sort_neurons:
                 if network is not None:
+                    data = (self.senders, self.spikes)
                     sorted_neurons = _sort_neurons(
-                        sort_neurons, self.senders, network, self.senders)
+                        sort_neurons, self.senders, network, data=data)
                     self.senders = sorted_neurons[self.senders]
                 else:
                     warnings.warn("Could not sort neurons because no " \
@@ -331,66 +349,6 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
             Optional arguments such as 'make_rate', 'num_xarrows',
             'num_yarrows', 'dotx', 'doty', 'time_dependent', 'recordables',
             'arrow_scale'.
-        
-        Example
-        -------
-        To use the quiver (vector field) plot, with the `"aeif_psc_alpha"`
-        model in NEST, use:
-            
-            # neuron and network parameters
-            di_param = {
-                'V_reset': -55.,
-                'V_peak': 0.0,
-                'V_th': -50.,
-                'I_e': 400.,
-                'g_L': 11.7,
-                'tau_w': 900.,
-                'E_L': -65.,
-                'Delta_T': 2.,
-                'a': 2.8,
-                'b': 36.3,
-                'C_m': 200.,
-                'V_m': -70.,
-                'w': 100.,
-                'tau_syn_ex': 2.
-            }
-            
-            num_neurons = 1000
-            avg_degree = 100
-            weight = 5.
-            delay = 20.
-            
-            # create network
-            pop = nngt.NeuralPop.uniform(num_neurons,
-                neuron_model="aeif_psc_alpha", neuron_param=di_param)
-            
-            net = nngt.generation.fixed_degree(
-                avg_degree, population=pop, weights=weight, delays=delay)
-            gids = net.to_nest()
-            
-            # record
-            mm_param = {
-                'record_from': ['V_m', 'w', "I_syn_ex"],
-                'to_accumulator': True,
-                'interval': resol
-            }
-            (mm, sd), recordables = monitor_nodes(
-                gids, nest_recorder=['multimeter', 'spike_detector'],
-                params=[mm_param, {}])
-
-            # derivatives
-            def dotV(V, w, time_dependent):
-                gL, DT = di_param['g_L'], di_param['Delta_T']
-                Ie = di_param['I_e']
-                leak = gL*(V - di_param['E_L'])
-                spike = gL*DT*np.exp((V - di_param['V_th']) / DT)
-                return leak + spike - w + Ie + np.sum(time_dependent)
-
-            def dotw(V, w, time_dependent):
-                a, EL, tw = di_param['a'], di_param['E_L'], di_param['tau_w']
-                return (a*(V - EL ) - w) / tw
-
-            Animation2d(sd, mm, x='V_m', y='w', vector_field=True,
         '''
         import nest
 
@@ -604,7 +562,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             kwargs['make_rate'] = True
         super(AnimationNetwork, self).__init__(
             spike_detector, sort_neurons=sort_neurons, network=network,
-            make_rate=make_rate, **kwargs)
+            **kwargs)
         
         self.env = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
 
@@ -613,9 +571,9 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             self.fig.dpi_scale_trans.inverted())
         area_px = bbox.width * bbox.height * self.fig.dpi**2
         n_size = max(2, 0.5*np.sqrt(area_px/self.num_neurons))  # neuron size
-        pos = network.position  # positions of the neurons
-        self.x = pos[0]
-        self.y = pos[1]
+        pos = network.get_positions()  # positions of the neurons
+        self.x = pos[:, 0]
+        self.y = pos[:, 1]
         
         # neurons
         self.line_neurons = Line2D(

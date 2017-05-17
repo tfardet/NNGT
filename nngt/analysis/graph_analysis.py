@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Tools for graph analysis using the graph libraries """
 
@@ -30,10 +47,9 @@ __all__ = [
 ]
 
 
-#-----------------------------------------------------------------------------#
-# Set the functions
-#------------------------
-#
+# ----------------- #
+# Set the functions #
+# ----------------- #
 
 adjacency = nngt.analyze_graph["adjacency"]
 assort = nngt.analyze_graph["assortativity"]
@@ -46,10 +62,9 @@ wcc = nngt.analyze_graph["wcc"]
 glib_diameter = nngt.analyze_graph["diameter"]
 
 
-#-----------------------------------------------------------------------------#
-# Distributions
-#------------------------
-#
+# ------------- #
+# Distributions #
+# ------------- #
 
 def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
                    log=False, num_bins=30):
@@ -137,10 +152,9 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins=None,
     return ncounts, nbetw, ecounts, ebetw
 
 
-#-----------------------------------------------------------------------------#
-# Node properties
-#------------------------
-#
+# --------------- #
+# Node properties #
+# --------------- #
 
 def closeness(graph, nodes=None, use_weights=False):
     '''
@@ -178,16 +192,13 @@ def local_clustering(graph, nodes=None):
         return local_clustering_coeff(graph, nodes)
 
 
-#-----------------------------------------------------------------------------#
-# Graph properties
-#------------------------
-#
+# ---------------- #
+# Graph properties #
+# ---------------- #
 
 def assortativity(graph, deg_type="total"):
     '''
     Assortativity of the graph.
-    .. todo ::
-        check how the various libraries functions work.
 
     Parameters
     ----------
@@ -300,10 +311,9 @@ def diameter(graph):
         return glib_diameter(graph)[0]
 
 
-#-----------------------------------------------------------------------------#
-# Spectral properties
-#------------------------
-#
+# ------------------- #
+# Spectral properties #
+# ------------------- #
 
 def spectral_radius(graph, typed=True, weighted=True):
     '''
@@ -374,6 +384,11 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     Subgraph centrality, accordign to [Estrada2005], for each node in the
     graph.
 
+    **[Estrada2005]:** Ernesto Estrada and Juan A. Rodríguez-Velázquez,
+    Subgraph centrality in complex networks, PHYSICAL REVIEW E 71, 056103
+    (2005),
+    `available on ArXiv <http://www.arxiv.org/pdf/cond-mat/0504730>`_.
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -394,10 +409,6 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     -------
     centralities : :class:`numpy.ndarray`
         The subgraph centrality of each node.
-
-    **[Estrada2005]:** Ernesto Estrada and Juan A. Rodríguez-Velázquez,
-      Subgraph centrality in complex networks, PHYSICAL REVIEW E 71, 056103
-      (2005), `available on ArXiv<arxiv.org/pdf/cond-mat/0504730>`_.
     '''
     adj_mat = graph.adjacency_matrix(types=False, weights=weights)
     centralities = None

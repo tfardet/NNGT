@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Graph classes for graph generation and management """
 
@@ -195,7 +212,7 @@ with non symmetric matrix provided.')
             Graph to convert.
         shape : :class:`~nngt.geometry.Shape`, optional
             Shape to associate to the new :class:`~nngt.SpatialGraph`.
-        positions : (2,N) array
+        positions : (N, 2) array
             Positions, in a 2D space, of the N neurons.
         copy : bool, optional (default: ``False``)
             Whether the operation should be made in-place on the object or if a
@@ -444,8 +461,9 @@ with non symmetric matrix provided.')
                     parameters=None, noise_scale=None):
         '''
         Set the synaptic weights.
+
         ..todo ::
-            take elist into account in Connections.weights
+          take elist into account in Connections.weights
         
         Parameters
         ----------
@@ -481,11 +499,11 @@ with non symmetric matrix provided.')
         Set the synaptic/connection types.
 
         .. warning ::
-        The special "type" attribute cannot be modified when using graphs
-        that inherit from the :class:`~nngt.Network` class. This is because
-        for biological networks, neurons make only one kind of synapse,
-        which is determined by the :class:`nngt.NeuralGroup` they
-        belong to.
+          The special "type" attribute cannot be modified when using graphs
+          that inherit from the :class:`~nngt.Network` class. This is because
+          for biological networks, neurons make only one kind of synapse,
+          which is determined by the :class:`nngt.NeuralGroup` they
+          belong to.
 
         Parameters
         ----------
@@ -785,7 +803,7 @@ class SpatialGraph(Graph):
         shape : :class:`~nngt.geometry.Shape`, optional (default: None)
             Shape of the neurons' environment (None leads to a square of
             side 1 cm)
-        positions : :class:`numpy.array`, optional (default: None)
+        positions : :class:`numpy.array` (N, 2), optional (default: None)
             Positions of the neurons; if not specified and `nodes` is not 0,
             then neurons will be reparted at random inside the
             :class:`~nngt.geometry.Shape` object of the instance.
@@ -813,10 +831,6 @@ class SpatialGraph(Graph):
     def shape(self):
         return self._shape
 
-    @property
-    def position(self):
-        return self._pos
-
     #-------------------------------------------------------------------------#
     # Init tool
     
@@ -835,6 +849,22 @@ class SpatialGraph(Graph):
         b_rnd_pos = True if not self.node_nb() or positions is None else False
         self._pos = self._shape.seed_neurons() if b_rnd_pos else positions
         nngt.Connections.distances(self)
+
+    #-------------------------------------------------------------------------#
+    # Getters
+    
+    def get_positions(self, neurons=None):
+        '''
+        Returns the neurons' positions as a (N, 2) array.
+        
+        Parameters
+        ----------
+        neurons : int or array-like, optional (default: all neurons)
+            List of the neurons for which the position should be returned.
+        '''
+        if neurons is not None:
+            return np.array(self._pos[neurons])
+        return np.array(self._pos)
 
 
 #-----------------------------------------------------------------------------#

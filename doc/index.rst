@@ -68,20 +68,11 @@ The docs
 ========
 
 .. toctree::
-   :hidden:
-   
-   self
-
-.. toctree::
    :maxdepth: 2
    :caption: User Documentation
 
-   user/intro
    user/install
-   user/graph-generation
-   user/component-properties
-   user/activity-analysis
-   user/multithreading
+   user/intro
 
 .. toctree::
    :glob:
@@ -98,7 +89,6 @@ The docs
 
    modules/nngt
    modules/analysis
-   modules/core
    modules/generation
    modules/lib
    modules/plot

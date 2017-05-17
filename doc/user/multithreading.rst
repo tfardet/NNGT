@@ -3,8 +3,8 @@ Multithreading
 ==============
 
 .. warning:
-When using ``graph-tool``, read carefully the `Graph-tool caveat`_ section
-before playing with multiple threads!
+  When using ``graph-tool``, read carefully the `Graph-tool caveat`_ section
+  before playing with multiple threads!
 
 
 Principle

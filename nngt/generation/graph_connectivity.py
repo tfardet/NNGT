@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Connectivity generators for nngt.Graph """
 
@@ -11,7 +28,9 @@ from nngt.geometry.geom_utils import conversion_magnitude
 from .connect_tools import _set_options
 
 # try to import multithreaded algorithms
+
 using_mt_algorithms = False
+
 if nngt.get_config("multithreading"):
     try:
         from .cconnect import *
@@ -47,10 +66,9 @@ __all__ = [
 ]
 
 
-#-----------------------------------------------------------------------------
-# Specific degree distributions
-#------------------------
-#
+# ----------------------------- #
+# Specific degree distributions #
+# ----------------------------- #
 
 def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
                  weighted=True, directed=True, multigraph=False, name="FD",
@@ -566,22 +584,24 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
     """
-    # check shape
-    if shape is None:
-        h = w = np.sqrt(float(nodes)/neuron_density)
-        shape = nngt.geometry.Shape.rectangle(h, w)
     # set node number and library graph
     graph_dr = from_graph
     if graph_dr is not None:
         nodes = graph_dr.node_nb()
         graph_dr.clear_all_edges()
-        Graph.make_spatial(graph_dr, shape, positions=positions)
     else:
         nodes = population.size if population is not None else nodes
+    # check shape
+    if shape is None:
+        h = w = np.sqrt(float(nodes)/neuron_density)
+        shape = nngt.geometry.Shape.rectangle(h, w)
+    if graph_dr is None:
         graph_dr = nngt.SpatialGraph(
             name=name, nodes=nodes, directed=directed, shape=shape,
             positions=positions, **kwargs)
-    positions = graph_dr.position.T
+    else:
+        Graph.make_spatial(graph_dr, shape, positions=positions)
+    positions = graph_dr.get_positions().T
     # add edges
     ia_edges = None
     conversion_factor = conversion_magnitude(shape.unit, unit)

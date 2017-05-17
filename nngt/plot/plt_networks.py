@@ -1,11 +1,26 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
-
-""" Tools to plot networks """
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from graph_tool.centrality import betweenness
 import graph_tool.draw as gplot
- 
+
 import gtk
 
 import matplotlib.pyplot as plt
@@ -17,27 +32,36 @@ from ..globals import POS
 
 
 '''
-Plotting objectives
-===================
+Network plotting
+================
 
-Do it myself > simply implement the spring-block minimization.
-Plot using matplotlib.
+Implemented
+-----------
+
+Simple representation for spatial graphs, random distribution if non-spatial.
+Support for edge-size (according to betweenness or synaptic weight).
+
+
+Objectives
+----------
+
+Implement the spring-block minimization.
 
 If edges have varying size, plot only those that are visible (size > min)
 
 '''
 
-__all__ = [ "draw_network" ]
+__all__ = ["draw_network"]
 
 
-#-----------------------------------------------------------------------------#
-# Drawing
-#------------------------
-#
+# ------- #
+# Drawing #
+# ------- #
 
 def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
-                 max_esize=5., spatial=True, size=(600,600), dpi=75):
+                 max_nsize=5., max_esize=2., spatial=True, size=(600,600),
+                 dpi=75):
     '''
     Draw a given graph/network.
 
@@ -46,9 +70,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     network : :class:`~nngt.Graph` or subclass
         The graph/network to plot.
     nsize : float, array of float or string, optional (default: "total-degree")
-        Size of the nodes; if a number, percentage of the canvas length,
-        otherwize a string that correlates the size to a node attribute among
-        "in/out/total-degree", "betweenness".
+        Size of the nodes as a percentage of the canvas length. Otherwise, it
+        can be a string that correlates the size to a node attribute among
+        "in/out/total-degree", or "betweenness".
     ncolor : float, array of floats or string, optional (default: 0.5)
         Color of the nodes; if a float in [0, 1], position of the color in the
         current palette, otherwise a string that correlates the color to a node
@@ -63,8 +87,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         or floats in [0, 1] defining the position in the palette.
     nborder_width : float or array of floats, optional (default: 0.5)
         Width of the border in percent of canvas size.
-    esize : float or array of floats, optional (default: 0.5)
-        Width of the edges in percent of canvas size.
+    esize : float, str, or array of floats, optional (default: 0.5)
+        Width of the edges in percent of canvas length. Available string values
+        are "betweenness" and "weight".
     ecolor : char, float or array, optional (default: "k")
         Edge color.
     max_esize : float, optional (default: 5.)
@@ -88,16 +113,18 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     if isinstance(nsize, str):
         if e:
             nsize = _node_size(network, nsize)
-            nsize *= 0.1 * size[0]
+            nsize *= max_nsize
     elif isinstance(nsize, float):
         nsize = np.repeat(nsize, n)
+    nsize *= 0.01 * size[0]
     if isinstance(esize, str):
         if e:
             esize = _edge_size(network, esize)
-            esize *= max_esize * size[0] / 1000.
+            esize *= max_esize
     elif isinstance(esize, float):
         esize = np.repeat(esize, e)
-    ncolor = _node_color(network, ncolor)        
+    esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
+    ncolor = _node_color(network, ncolor)
     if isinstance(nborder_color, float):
         nborder_color = np.repeat(nborder_color, n)
     if isinstance(ecolor, float):
@@ -105,7 +132,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # draw
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():
-        pos = network.position
+        pos = network.get_positions()
     else:
         pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)

@@ -2,6 +2,8 @@ Side classes
 ============
 
 .. currentmodule:: nngt
-.. autoclass:: Shape
+.. autoclass:: nngt.geometry.Shape
+
 .. currentmodule:: nngt
 .. autoclass:: NeuralPop
+    :noindex:

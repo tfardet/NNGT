@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import nest
 import numpy as np
@@ -12,6 +29,7 @@ import matplotlib.pyplot as plt
 from nngt.globals import WEIGHT, DELAY
 from nngt.lib import InvalidArgument
 from nngt.lib.sorting import _sort_groups
+
 
 __all__ = [
     'make_nest_network',
@@ -195,9 +213,10 @@ def _find_extremal_weights(min_weight, max_weight, neuron_model, di_param={},
     simtime : float, optional (default: 10.)
         Simulation time in ms (default: 10).
     
-    .. note :
-        If the parameters used are not the default ones, they MUST be provided,
-        otherwise the resulting weights will likely be WRONG.
+    Note
+    ----
+    If the parameters used are not the default ones, they MUST be provided,
+    otherwise the resulting weights will likely be WRONG.
     '''
     # define the function for root finding
     def _func_min(weight):
@@ -267,9 +286,10 @@ def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
     log : bool, optional (default: False)
         Whether bins should use a logarithmic scale.
     
-    .. note :
-        If the parameters used are not the default ones, they MUST be provided,
-        otherwise the resulting weights will likely be WRONG.
+    Note
+    ----
+    If the parameters used are not the default ones, they MUST be provided,
+    otherwise the resulting weights will likely be WRONG.
     '''
     min_weight = np.min(weights)
     max_weight = np.max(weights)

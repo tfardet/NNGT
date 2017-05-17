@@ -20,7 +20,7 @@ Regardless of your needs, the following libraries are required:
 * or networkx_
 
 Additionnal dependencies
------------------------
+------------------------
 
 * `matplotlib <http://matplotlib.org/>`_ (optional but will limit the functionalities if not present)
 * `peewee` for database features

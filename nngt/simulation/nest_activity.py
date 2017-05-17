@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Analyze the activity of a network """
 
@@ -54,9 +71,10 @@ class ActivityRecord:
         parameters : dict, optional (default: None)
             Parameters used to compute the phases.
         
-        .. note :
-            The firing rate is computed as num_spikes / total simulation time,
-            the period is the sum of an IBI and a bursting period.
+        Note
+        ----
+        The firing rate is computed as num_spikes / total simulation time,
+        the period is the sum of an IBI and a bursting period.
         '''
         self._data = spike_data
         self._phases = phases.copy()
@@ -84,9 +102,10 @@ class ActivityRecord:
             - "localized" for periods of high activity but where only a small
             fraction of the network is recruited.
         
-        .. note:
-            See `parameters` for details on the conditions used to
-            differenciate these phases.
+        Note
+        ----
+        See `parameters` for details on the conditions used to
+        differenciate these phases.
         '''
         return self._phases
 
@@ -260,9 +279,10 @@ def activity_types(spike_detector, limits, network=None,
                    skip_bursts=0, simplify=False, fignums=[], show=False):
     '''
     Analyze the spiking pattern of a neural network.
-    .. todo ::
-        think about inserting t=0. and t=simtime at the beginning and at the 
-        end of ``times''.
+
+    @todo:
+      think about inserting t=0. and t=simtime at the beginning and at the 
+      end of ``times``.
 
     Parameters
     ----------
@@ -303,11 +323,12 @@ def activity_types(spike_detector, limits, network=None,
         Indices of figures on which the periods can be drawn.
     show : bool, optional (default: False)
         Whether the figures should be displayed.
-    
-    .. note :
-        Effects of `skip_bursts` and `limits[0]` are cumulative: the 
-        `limits[0]` first milliseconds are ignored, then the `skip_bursts`
-        first bursts of the remaining activity are ignored.
+
+    Note
+    ----
+    Effects of `skip_bursts` and `limits[0]` are cumulative: the `limits[0]`
+    first milliseconds are ignored, then the `skip_bursts` first bursts of the
+    remaining activity are ignored.
     
     Returns
     -------
@@ -396,10 +417,11 @@ def analyze_raster(raster=None, limits=None, network=None,
     show : bool, optional (default: False)
         Whether the figures should be displayed.
     
-    .. note :
-        Effects of `skip_bursts` and `limits[0]` are cumulative: the 
-        `limits[0]` first milliseconds are ignored, then the `skip_bursts`
-        first bursts of the remaining activity are ignored.
+    Note
+    ----
+    Effects of `skip_bursts` and `limits[0]` are cumulative: the 
+    `limits[0]` first milliseconds are ignored, then the `skip_bursts`
+    first bursts of the remaining activity are ignored.
 
     Returns
     -------

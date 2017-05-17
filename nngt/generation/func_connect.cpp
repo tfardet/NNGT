@@ -360,8 +360,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
         }
     }
 
-    printf("Total tests: %lu", ntests);
-
     // fill the final edge container
     for (size_t i=0; i<num_edges; i++)
     {

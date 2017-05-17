@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Tools to plot graph properties """
 
@@ -167,7 +184,7 @@ def attribute_distribution(network, attribute, num_bins=50, logx=False,
             #~ lines.append(ax1.scatter(bins, counts, c=colors[i], marker=m[i]))
             #~ legends.append(attribute)
         #~ ax1.legend(lines, legends)
-    ax1.set_xlabel(attribute)
+    ax1.set_xlabel(attribute.replace("_", "\\_"))
     ax1.set_ylabel("Node count")
     _set_scale(ax1, maxbins, min_bins, maxcounts, logx, logy)
     ax1.set_title(
@@ -347,7 +364,8 @@ def node_attributes_distribution(network, attributes, nodes=None, num_bins=50,
         bins = bins[:-1] + 0.5*np.diff(bins)
         axes[i].plot(bins, counts, ls="--", marker="o")
         axes[i].set_title("{}{} distribution for {}".format(
-            attr[0].upper(), attr[1:], network.name), x=0., y=1.05)
+            attr[0].upper(), attr[1:].replace("_", "\\_"), network.name),
+            x=0., y=1.05)
     # adjust space, set title, and show
     _format_and_show(fig, num_plot, values, title, show)
 
@@ -364,6 +382,7 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
         The graph where the `nodes` belong.
     reference_attribute : str or array-like
         Attribute which should serve as reference, among:
+
         * "betweenness"
         * "clustering"
         * "in-degree", "out-degree", "total-degree"
@@ -389,11 +408,13 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     for i, (attr, val) in enumerate(values.items()):
         # reference nodes
         axes[i].plot(val, ref_data, ls="", marker="o")
-        axes[i].set_xlabel(attr[0].upper() + attr[1:])
+        axes[i].set_xlabel(attr[0].upper() + attr[1:].replace("_", "\\_"))
         axes[i].set_ylabel(
-            reference_attribute[0].upper() + reference_attribute[1:])
+            reference_attribute[0].upper() +
+            reference_attribute[1:].replace("_", "\\_"))
         axes[i].set_title("{}{} vs {} for each ".format(
-            attr[0].upper(), attr[1:], reference_attribute, network.name) +\
+            attr[0].upper(), attr[1:].replace("_", "\\_"),
+            reference_attribute.replace("_", "\\_"), network.name) +\
             "node in {}".format(network.name), loc='left', x=0., y=1.05)
     # adjust space, set title, and show
     _format_and_show(fig, 0, values, title, show)
