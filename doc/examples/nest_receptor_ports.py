@@ -29,21 +29,21 @@ Build a network with two populations:
 * excitatory (80%)
 * inhibitory (20%)
 '''
-num_neurons = 100   # number of neurons
-avg_degree = 100    # average number of neighbours
-std_degree = 5      # deviation for the Gaussian graph
+num_neurons = 50   # number of neurons
+avg_degree  = 20   # average number of neighbours
+std_degree  = 3    # deviation for the Gaussian graph
 
 # parameters
-neuron_model = "ht_neuron" # hill-tononi model
-exc_syn = {'receptor_type': 1} # 1 is 'AMPA' in this model
-inh_syn = {'receptor_type': 3} # 3 is 'GABA_A' in this model
+neuron_model = "ht_neuron"      # hill-tononi model
+exc_syn = {'receptor_type': 1}  # 1 is 'AMPA' in this model
+inh_syn = {'receptor_type': 3}  # 3 is 'GABA_A' in this model
 
 pop = nngt.NeuralPop.exc_and_inhib(
     num_neurons, en_model=neuron_model, in_model=neuron_model,
     es_param=exc_syn, is_param=inh_syn)
 
 # create the network and send it to NEST
-w_prop = {"distribution": "gaussian", "avg": 5., "std": 1.}
+w_prop = {"distribution": "gaussian", "avg": 1., "std": .2}
 net = nngt.generation.gaussian_degree(
     avg_degree, std_degree, population=pop, weights=w_prop)
 
@@ -57,7 +57,7 @@ gids = net.to_nest()
 
 # add noise to the excitatory neurons
 excs = list(pop["excitatory"].nest_gids)
-set_noise(excs, 7., 5.)
+set_noise(excs, 10., 2.)
 
 # record
 groups = [key for key in net.population]
@@ -66,8 +66,9 @@ recorder, record = monitor_groups(groups, net)
 '''
 Simulate and plot.
 '''
-nest.Simulate(5000.)
+simtime = 2000.
+nest.Simulate(simtime)
 
 plot_activity(
     recorder, record, network=net, show=True, hist=False,
-    limits=(0,simtime))
+    limits=(0, simtime))
