@@ -75,62 +75,29 @@ Examples
 Simple generation
 -----------------
 
-.. code-block:: python
+.. literalinclude:: ../examples/simple_graphs.py
+   :lines: 31-49
 
-    # random graphs
-    g1 = ng.erdos_renyi(1000, avg_deg=25)
-    g2 = ng.erdos_renyi(1000, avg_deg=25, directed=False) # the same graph but undirected
-    # scale-free with Gaussian weight distribution
-    g3 = nngt.Graph(1000, weight_prop={"distrib":"gaussian", "distrib_prop":{"avg": 60., "std":5.}})
-    ng.random_scale_free(2.2, 2.9, from_graph=g3)
+
+Networks composed of heterogeneous groups
+-----------------------------------------
+
+.. literalinclude:: ../examples/multi_groups_network.py
+   :lines: 29-
+
 
 Use with NEST
 -------------
 
 Generating a network with excitatory and inhibitory neurons:
 
-.. code-block:: python
-
-    # 800 excitatory neurons, 200 inhibitory
-    net = nngt.Network.ei_network(1000, ei_ratio=0.2)
-    # connect the populations
-    prop_er1 = { "density": 0.035 }
-    ng.connect_neural_types(net, 1, -1, "erdos_renyi", prop_er1) # exc -> inhib
-    prop_nw = {
-        "coord_nb": 10,
-        "proba_shortcut": 0.1
-    }
-    ng.connect_neural_types(net, 1, 1, "newman_watts", prop_nw) # exc -> exc
-    prop_rsf = {
-        "in_exp": 2.1,
-        "out_exp": 2.6,
-        "density": 0.2
-    }
-    ng.connect_neural_types(net, -1, 1, "random_scale_free", prop_rsf) # inhib -> exc
-    prop_er2 = { "density": 0.04 }
-    ng.connect_neural_types(net, -1, -1, "erdos_renyi", prop_er2) # inhib -> inhib
-
+.. literalinclude:: ../examples/basic_nest_network.py
+   :lines: 37-64
 
 Send the network to NEST:
 
-.. code-block:: python
-
-    import nest
-    from nngt.simulation import monitor_groups, plot_activity
-
-    # create the network, excite, record
-    gids = net.to_nest()
-    pg = nest.Create("poisson_generator", params={"rate": 100000.})
-    nest.Connect(pg, gids)
-    groups = [key for key in net.population]
-    recorder, record = monitor_groups(groups, net)
-
-    # Simulate
-    simtime = 100.
-    nest.Simulate(simtime)
-    fignums = plot_activity(
-        recorder, record, network=net, show=True, hist=False,
-        limits=(0,simtime))
+.. literalinclude:: ../examples/basic_nest_network.py
+   :lines: 71-
 
 
 Advanced examples
@@ -141,37 +108,9 @@ Receptor ports in NEST
 
 Some models, such as multisynaptic neurons, or advanced models incorporating various neurotransmitters use an additional information, called ``"port"`` to identify the synapse that will be used by the ``nest.Connect`` method.
 These models can also be used with NNGT by telling the :class:`~nngt.core.NeuralGroup` which type of port the neuron should try to bind to.
+
 NB: the port is specified in the **source** neuron and declares which synapse of the **target** neuron is concerned.
 
-.. code-block:: python
 
-    from nngt.simulation import set_noise
-
-    # parameters
-    neuron_model = "ht_neuron" # hill-tononi model
-    exc_syn = {'receptor_type': 1} # 1 is 'AMPA' in this model
-    inh_syn = {'receptor_type': 3} # 3 is 'GABA_A' in this model
-
-    # (create a mixed population, 20% inhibitory by default)
-    pop = nngt.NeuralPop.exc_and_inhib(
-        num_neurons, en_model=neuron_model, in_model=neuron_model,
-        es_param=exc_syn, is_param=inh_syn)
-    # create the network and send it to NEST
-    avg_degree = 100 # average number of neighbours
-    std_degree = 5 # deviation for the Gaussian graph
-    w_prop = {"distribution": "constant", "value": 1.}
-    net = nngt.generation.gaussian_degree(
-        avg_degree, std_degree, population=pop, weights=w_prop)
-    gids = net.to_nest()
-
-    # add noise to the excitatory neurons
-    excs = list(pop["excitatory"].nest_gids)
-    set_noise(excs, 7., 5.)
-
-    # simulate
-    nest.Simulate(5000.)
-
-.. toctree::
-   :maxdepth: 1
-   
-   ../modules/generation
+.. literalinclude:: ../examples/nest_receptor_ports.py
+   :lines: 27-

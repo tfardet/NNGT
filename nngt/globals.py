@@ -306,6 +306,7 @@ def _set_igraph():
             xs, ys = xs.T, ys.T
             data = np.ones(xs.shape)
             if issubclass(weight.__class__, str):
+                #~ print(data.dtype, graph.es[weight])
                 data *= np.array(graph.es[weight])
             else:
                 data *= np.array(weight)

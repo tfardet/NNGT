@@ -28,7 +28,6 @@ Content
 """
 
 from .graph_connectivity import *
-from .connect_tools import _compute_connections
 
 
 __all__ = [

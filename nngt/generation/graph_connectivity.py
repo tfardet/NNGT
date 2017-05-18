@@ -25,7 +25,7 @@ import numpy as np
 
 import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
-from .connect_tools import _set_options
+from nngt.lib.connect_tools import _set_options
 
 # try to import multithreaded algorithms
 
@@ -686,7 +686,7 @@ _one_pop_models = ("newman_watts",)
 
 
 def connect_neural_types(network, source_type, target_type, graph_model,
-                         model_param, weighted=True):
+                         model_param):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
@@ -709,9 +709,6 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     model_param : dict
         Dictionary containing the model parameters (the keys are the keywords
         of the associated generation function --- see above).
-    weighted : bool, optional (default: True)
-        @todo
-        Whether the graph edges have weights.
     '''
     edges, source_ids, target_ids = None, [], []
     di_param = _di_default.copy()
@@ -723,15 +720,9 @@ def connect_neural_types(network, source_type, target_type, graph_model,
             target_ids.extend(group._id_list)
     if source_type == target_type:
         edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
-        network.new_edges(edges)
     else:
         edges = _di_gen_edges[graph_model](source_ids, target_ids, **di_param)
-        network.new_edges(edges)
-    #~ network.set_weights(edges)
-    if weighted:
-        network.set_weights()
-    #~ nngt.Connections.delays(network, elist=edges)
-    nngt.Connections.delays(network)
+    network.new_edges(edges)
     if issubclass(network.__class__, nngt.SpatialGraph):
         nngt.Connections.distances(network)
     network._graph_type += "_neural_type_connect"
@@ -750,9 +741,9 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
         The network to connect.
-    source_groups : tuple of strings
+    source_groups : str or tuple
         Names of the source groups (which contain the pre-synaptic neurons)
-    target_groups : tuple of strings
+    target_groups : str or tuple
         Names of the target groups (which contain the post-synaptic neurons)
     graph_model : string
         The name of the connectivity model (among "erdos_renyi", 
@@ -764,21 +755,20 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     edges, source_ids, target_ids = None, [], []
     di_param = _di_default.copy()
     di_param.update(model_param)
+    if isinstance(source_groups, str):
+        source_groups = [source_groups]
+    if isinstance(target_groups, str):
+        target_groups = [target_groups]
     for name, group in iter(network._population.items()):
         if name in source_groups:
             source_ids.extend(group._id_list)
         elif name in target_groups:
             target_ids.extend(group._id_list)
     if source_groups == target_groups:
-        edges = _di_gen_edges[graph_model](source_ids,source_ids,**di_param)
-        network.new_edges(edges)
+        edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
     else:
         edges = _di_gen_edges[graph_model](source_ids, target_ids, **di_param)
-        network.new_edges(edges)
-    #~ network.set_weights(edges)
-    network.set_weights()
-    #~ nngt.Connections.delays(network, elist=edges)
-    nngt.Connections.delays(network)
+    network.new_edges(edges)
     if issubclass(network.__class__, nngt.SpatialGraph):
        nngt.Connections.distances(network)
     network._graph_type += "_neural_group_connect"

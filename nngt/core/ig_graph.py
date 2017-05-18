@@ -77,7 +77,7 @@ edge in the graph is required")
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
 
-    def new_ea(self, name, value_type, values=None, val=None):
+    def new_property(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -90,9 +90,40 @@ set_attribute to create it.")
         if values is None:
             values = np.repeat(val, self.parent().ecount())
         # store name and value type in the dict
-        super(_IgEProperty,self).__setitem__(name, value_type)
+        super(_IgEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
         self[name] = values
+
+    def set_property(self, name, values, edges=None):
+        '''
+        Set the edge property.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the edge property.
+        values : array
+            Values that should be set.
+        edges : array-like, optional (default: None)
+            Edges for which the value of the property should be set. If `edges`
+            is not None, it must be an array of shape `(len(values), 2)`.
+        '''
+        num_edges = self.parent().ecount()
+        num_e = len(edges) if edges is not None else num_edges
+        if num_e == num_edges:
+            self[name] = values
+        else:
+            if num_e != len(values):
+                raise ValueError("`edges` and `values` must have the same "
+                                 "size; got respectively " + str(num_e) + \
+                                 " and " + str(len(values)) + "entries.")
+            if self._num_values_set[name] == num_edges - num_e:
+                self.parent().es[-num_e:][name] = values
+            else:
+                for e, val in zip(edges, values):
+                    eid = self.parent().get_eid(*e)
+                    self.parent().es[name][eid] = val
+        self._num_values_set[name] = num_edges
 
 
 #-----------------------------------------------------------------------------#
@@ -132,7 +163,8 @@ class _IGraph(BaseGraph):
                 di_node_attr[attr] = np.array(g.vs[:][attr])
             for attr in eattr:
                 di_edge_attr[attr] = np.array(g.es[:][attr])
-            super(_IGraph, self).__init__(n=nodes, vertex_attrs=di_node_attr)
+            super(_IGraph, self).__init__(
+                n=nodes, directed=True, vertex_attrs=di_node_attr)
             lst_edges = nngt.globals.analyze_graph["get_edges"](g)
             self.new_edges(lst_edges, attributes=di_edge_attr)
 
@@ -191,7 +223,7 @@ an array of 2-tuples of ints.")
             node_list.append(first_node_idx+v)
         return node_list
 
-    def new_edge(self, source, target, attributes=None):
+    def new_edge(self, source, target, attributes=None, ignore=False):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -205,27 +237,40 @@ an array of 2-tuples of ints.")
             Dictionary containing optional edge properties. If the graph is
             weighted, defaults to ``{"weight": 1.}``, the unit weight for the
             connection (synaptic strength in NEST).
+        ignore : bool, optional (default: False)
+            If set to True, ignore attempts to add an existing edge, otherwise
+            raises an error.
             
         Returns
         -------
         The new connection.
         '''
         enum = self.ecount()
+        # check that the edge does not already exist
+        eid = self.get_eid(
+            source, target, directed=True, error=False)
         if attributes is None:
             attributes = {}
-        super(_IGraph, self).add_edge(source, target)
-        _set_edge_attr(self, [(source, target)], attributes)
-        for key, val in attributes.items():
-            self.es[enum][key] = val[0]
-        if not self._directed:
-            super(_IGraph, self).add_edge(target, source)
+        if eid != -1:
+            super(_IGraph, self).add_edge(source, target)
+            _set_edge_attr(self, [(source, target)], attributes)
             for key, val in attributes.items():
                 self.es[enum][key] = val[0]
+            if not self._directed:
+                super(_IGraph, self).add_edge(target, source)
+                for key, val in attributes.items():
+                    self.es[enum][key] = val[0]
+        else:
+            if not ignore:
+                raise InvalidArgument("Trying to add existing edge.")
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None):
         '''
         Add a list of edges to the graph.
+        
+        .. warning ::
+            This function currently does not check for duplicate edges!
         
         Parameters
         ----------
@@ -234,10 +279,6 @@ an array of 2-tuples of ints.")
         attributes : dict, optional (default: ``None``)
             Dictionary of the form ``{ "name": [], "values": [],
             "type": [] }``, containing the attributes of the new edges.
-        
-        warning ::
-            For now attributes works only when adding edges for the first time
-            (i.e. adding edges to an empty graph).
             
         @todo: add example, check the edges for self-loops and multiple edges
         
@@ -248,37 +289,24 @@ an array of 2-tuples of ints.")
         if attributes is None:
             attributes = {}
         initial_ecount = self.ecount()
+        edge_list = np.array(edge_list)
         if not self._directed:
-            edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
+            recip_edges = edge_list[:,::-1]
+            # slow but works
+            unique = ~(recip_edges[..., np.newaxis]
+                      == edge_list[..., np.newaxis].T).all(1).any(1)
+            edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in attributes.items():
-                attributes[key] = np.concatenate((val, val))
+                attributes[key] = np.concatenate((val, val[unique]))
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
         _set_edge_attr(self, edge_list, attributes)
-        num_edges = self.ecount()
-        # attributes
-        if self._weighted and "weight" not in attributes:
-            attributes["weight"] = np.repeat(1., num_edges)
-        if attributes:
-            elist0 = None #@todo: make elist supported and remove this
-            # take care of classic attributes
-            if "weight" in attributes:
-                self.set_weights(weight=attributes["weight"], elist=elist0)
-            if "delay" in attributes:
-                self.set_delays(delay=attributes["delay"], elist=elist0)
-            if "distance" in attributes:
-                raise NotImplementedError("distance not implemented yet")
-                #~ self.set_distances(elist=edge_list,
-                                   #~ dlist=attributes["distance"])
-            # take care of potential additional attributes
-            if "names" in attributes:
-                num_attr = len(attributes["names"])
-                for i in range(num_attr):
-                    v = attributes["values"]
-                    if not nonstring_container(v):
-                        v = np.repeat(v, self.ecount())
-                    self._eattr.new_ea(attributes["names"][i],
-                                       attributes["types"][i], values=v)
+        # call parent function to set the attributes
+        self.attr_new_edges(edge_list, attributes=attributes)
+        try:
+            idx = self.es["weight"].index(None)
+        except:
+            idx = -1
         return edge_list
 
     def new_edge_attribute(self, name, value_type, values=None, val=None):

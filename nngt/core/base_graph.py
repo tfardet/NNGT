@@ -27,13 +27,17 @@ class BaseProperty(dict):
     
     def __init__(self, parent):
         self.parent = ref(parent)
+        self._num_values_set = {}
         
     def value_type(self, key=None):
         if key is not None:
             return super(BaseProperty, self).__getitem__(key)
         else:
-            return { k:super(BaseProperty, self).__getitem__(k) for k in self }
-    
+            return {k:super(BaseProperty, self).__getitem__(k) for k in self}
+
+    # redefine dict values/items to use the __getitem__ that will be
+    # overwritten by the child classes
+
     def values(self):
         return [ self[k] for k in self ]
     
@@ -94,12 +98,14 @@ class BaseGraph(nngt._config["graph"]):
          self._nattr.new_na(name, value_type, values, val)
          
     def remove_edge(self, edge):
-        raise NotImplementedError("This function has been removed because it \
-            makes using edge properties too complicated")
+        raise NotImplementedError(
+            "This function has been removed because it makes using edge "
+            "properties too complicated.")
 
     def remove_vertex(self, node, fast=False):
-        raise NotImplementedError("This function has been removed because it \
-            makes using node properties too complicated")
+        raise NotImplementedError(
+            "This function has been removed because it makes using node"
+            "properties too complicated.")
         
     def adjacency_matrix(self, types=True, weights=True):
         '''
@@ -150,14 +156,40 @@ class BaseGraph(nngt._config["graph"]):
     @abstractmethod
     def new_node(self, n=1, ntype=1):
         pass
-    
+
     @abstractmethod
     def new_edge(self, source, target, weight=1.):
         pass
-        
+
     @abstractmethod
-    def new_edges(self, edge_list, eprops=None):
+    def new_edges(self, edge_list, attributes=None):
         pass
+        
+    def attr_new_edges(self, edge_list, attributes=None):
+        if attributes:
+            for k in attributes.keys():
+                if k not in self.attributes() and k in ("weight", "delay"):
+                    self._eattr.new_property(name=k, value_type="double")
+            # take care of classic attributes
+            if "weight" in attributes:
+                self._eattr.set_property(
+                    "weight", attributes["weight"], edges=edge_list)
+            if "delay" in attributes:
+                self._eattr.set_property(
+                    "delay", attributes["delay"], edges=edge_list)
+            if "distance" in attributes:
+                raise NotImplementedError("distance not implemented yet")
+                #~ self.set_distances(elist=edge_list,
+                                   #~ dlist=attributes["distance"])
+            # take care of potential additional attributes
+            if "names" in attributes:
+                num_attr = len(attributes["names"])
+                for i in range(num_attr):
+                    v = attributes["values"]
+                    if not nonstring_container(v):
+                        v = np.repeat(v, self.edge_nb())
+                    self._eattr.new_property(attributes["names"][i],
+                                             attributes["types"][i], values=v)
         
     @abstractmethod
     def node_nb(self):

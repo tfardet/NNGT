@@ -16,7 +16,7 @@ from numpy.random import randint
 
 import nngt
 from nngt.lib import InvalidArgument
-from .connect_tools import *
+from nngt.lib.connect_tools import *
 
 
 __all__ = [
@@ -119,9 +119,6 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
     else:
         _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
             idx, multigraph, directed, msd, omp)
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -166,9 +163,6 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
     else:
         _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
             idx, multigraph, directed, msd, omp)
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
     
 
@@ -234,9 +228,6 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
     
 
@@ -280,9 +271,6 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -338,9 +326,6 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
                                          b_one_pop, multigraph)
         num_test += 1
     ia_edges = _no_self_loops(ia_edges)
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -381,10 +366,6 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
     _cdistance_rule(&ia_edges[0,0], source_ids, target_ids, crule, scale, x, y,
                     area, cnum_neurons, cedges, old_edges, multigraph, msd,
                     omp)
-
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 def price_network():

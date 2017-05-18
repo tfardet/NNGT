@@ -84,7 +84,7 @@ edge in the graph is required")
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
 
-    def new_ea(self, name, value_type, values=None, val=None):
+    def new_property(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -97,9 +97,36 @@ set_attribute to create it.")
         if values is None:
             values = np.repeat(val, self.parent().number_of_edges())
         # store name and value type in the dict
-        super(_NxEProperty,self).__setitem__(name, value_type)
+        super(_NxEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
         self[name] = values
+
+    def set_property(self, name, values, edges=None):
+        '''
+        Set the edge property.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the edge property.
+        values : array
+            Values that should be set.
+        edges : array-like, optional (default: None)
+            Edges for which the value of the property should be set. If `edges`
+            is not None, it must be an array of shape `(len(values), 2)`.
+        '''
+        num_edges = self.parent().ecount()
+        num_e = len(edges) if edges is not None else num_edges
+        if num_e == num_edges:
+            self[name] = values
+        else:
+            if num_e != len(values):
+                raise ValueError("`edges` and `values` must have the same "
+                                 "size; got respectively " + str(num_e) + \
+                                 " and " + str(len(values)) + "entries.")
+            for e, val in zip(edges, values):
+                self.parent().edge[e[0]][e[1]][name] = val
+        self._num_values_set[name] = num_edges
 
 
 #-----------------------------------------------------------------------------#
@@ -223,7 +250,7 @@ edge in the graph.")
         else:
             return tpl_new_nodes
 
-    def new_edge(self, source, target, attributes=None):
+    def new_edge(self, source, target, attributes=None, ignore=False):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -237,34 +264,44 @@ edge in the graph.")
             Dictionary containing optional edge properties. If the graph is
             weighted, defaults to ``{"weight": 1.}``, the unit weight for the
             connection (synaptic strength in NEST).
+        ignore : bool, optional (default: False)
+            If set to True, ignore attempts to add an existing edge, otherwise
+            raises an error.
             
         Returns
         -------
         The new connection.
         '''
-        if attributes is None:
-            attributes = {}
-        _set_edge_attr(self, [(source, target)], attributes)
-        for attr in attributes:
-            if "_corr" in attr:
-                raise NotImplementedError("Correlated attributes are not "
-                                          "available with networkx.")
-        if self._weighted and "weight" not in attributes:
-            attributes["weight"] = 1.
-        self.add_edge(source, target)
-        self[source][target]["eid"] = self.number_of_edges()
-        for key, val in attributes.items:
-            self[source][target][key] = val
-        if not self._directed:
-            self.add_edge(target,source)
+        if self.has_edge(source, target):
+            if attributes is None:
+                attributes = {}
+            _set_edge_attr(self, [(source, target)], attributes)
+            for attr in attributes:
+                if "_corr" in attr:
+                    raise NotImplementedError("Correlated attributes are not "
+                                              "available with networkx.")
+            if self._weighted and "weight" not in attributes:
+                attributes["weight"] = 1.
+            self.add_edge(source, target)
             self[source][target]["eid"] = self.number_of_edges()
             for key, val in attributes.items:
-                self[target][source][key] = val
+                self[source][target][key] = val
+            if not self._directed:
+                self.add_edge(target,source)
+                self[source][target]["eid"] = self.number_of_edges()
+                for key, val in attributes.items:
+                    self[target][source][key] = val
+        else:
+            if not ignore:
+                raise InvalidArgument("Trying to add existing edge.")
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None):
         '''
         Add a list of edges to the graph.
+        
+        .. warning ::
+            This function currently does not check for duplicate edges!
         
         Parameters
         ----------
@@ -275,10 +312,6 @@ edge in the graph.")
             weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
             array the same length as the `edge_list` containing a unit weight
             for each connection (synaptic strength in NEST).
-        
-        warning ::
-            For now attributes works only when adding edges for the first time
-            (i.e. adding edges to an empty graph).
             
         @todo: add example, check the edges for self-loops and multiple edges
         '''
@@ -290,17 +323,15 @@ edge in the graph.")
                 raise NotImplementedError("Correlated attributes are not "
                                           "available with networkx.")
         initial_edges = self.number_of_edges()
-        if not self._directed:
-            elist_tmp = np.zeros((2*len(edge_list), 2), dtype=np.uint)
-            i = 0
-            for e, e_reversed in zip(edge_list, edge_list[:,::-1]):
-                elist_tmp[i:i+2,:] = (e, e_reversed)
-                i += 1
-            edge_list = elist_tmp
-            for key, val in attributes.items():
-                attributes[key] = np.repeat(val, 2)
-        edge_generator = ( e for e in edge_list )
         edge_list = np.array(edge_list)
+        if not self._directed:
+            recip_edges = edge_list[:,::-1]
+            # slow but works
+            unique = ~(recip_edges[..., np.newaxis]
+                      == edge_list[..., np.newaxis].T).all(1).any(1)
+            edge_list = np.concatenate((edge_list, recip_edges[unique]))
+            for key, val in attributes.items():
+                attributes[key] = np.concatenate((val, val[unique]))
         if self._weighted and "weight" not in attributes:
             attributes["weight"] = np.repeat(1., edge_list.shape[0])
         attributes["eid"] = np.arange(
@@ -318,7 +349,7 @@ edge in the graph.")
             datadict.update({key: val[i] for key, val in attributes.items()})
             self.succ[u][v] = datadict
             self.pred[v][u] = datadict
-        return edge_generator
+        return edge_list
 
     def clear_all_edges(self):
         ''' Remove all connections in the graph '''

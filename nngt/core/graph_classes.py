@@ -438,8 +438,8 @@ with non symmetric matrix provided.')
             belong to.
         '''
         if attribute not in self.attributes():
-            self._eattr.new_ea(name=attribute, value_type=value_type,
-                               values=values, val=val)
+            self._eattr.new_property(name=attribute, value_type=value_type,
+                                     values=values, val=val)
         else:
             num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
@@ -448,13 +448,7 @@ with non symmetric matrix provided.')
                 else:
                     raise InvalidArgument("At least one of the `values` and "
                         "`val` arguments should not be ``None``.")
-            if num_edges == self.edge_nb():
-                assert num_edges == len(values), "One value per edge required."
-                self._eattr[attribute] = values
-            else:
-                raise NotImplementedError("Currently, it is only possible to "
-                    "change the attribute of all the edges at the same time, "
-                    "not of only a subset.")
+            self._eattr.set_property(attribute, values, edges=edges)
                 
     
     def set_weights(self, weight=None, elist=None, distribution=None,

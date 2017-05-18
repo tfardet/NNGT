@@ -12,6 +12,7 @@ import nngt.globals
 from nngt.globals import BWEIGHT
 from nngt.lib import InvalidArgument
 from nngt.lib.graph_helpers import _set_edge_attr
+from nngt.lib.connect_tools import _unique_rows
 from .base_graph import BaseGraph, BaseProperty
 
 
@@ -94,20 +95,42 @@ edge in the graph is required")
         else:
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
+        self._num_values_set[name] = len(value)
 
-    def edge_prop(self, name, values, edges=None):
+    def set_property(self, name, values, edges=None):
+        '''
+        Set the edge property.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the edge property.
+        values : array
+            Values that should be set.
+        edges : array-like, optional (default: None)
+            Edges for which the value of the property should be set. If `edges`
+            is not None, it must be an array of shape `(len(values), 2)`.
+        '''
         num_edges = self.parent().num_edges()
-        if edges is None or len(edges) == num_edges:
+        num_e = len(edges) if edges is not None else num_edges
+        if num_e == num_edges:
             self[name] = values
         else:
-            if len(values) == self.parent().edge_nb():
-                for e, val in zip(self.parent().edges(), values):
-                    self.parent().edge_properties[name][e] = val
+            if num_e != len(values):
+                raise ValueError("`edges` and `values` must have the same "
+                                 "size; got respectively " + str(num_e) + \
+                                 " and " + str(len(values)) + "entries.")
+            if self._num_values_set[name] == num_edges - num_e:
+                self.parent().edge_properties[name].a[-num_e:] = values
             else:
-                raise ValueError("A list or a np.array with one entry per \
-edge in `edges` is required")
+                for e, val in zip(edges, values):
+                    gt_e = self.parent().edge(*e)
+                    self.parent().edge_properties[name][gt_e] = val
+        self._num_values_set[name] = num_edges
 
-    def new_ea(self, name, value_type, values=None, val=None):
+    def new_property(self, name, value_type, values=None, val=None):
+        if values is None and val is None:
+            self._num_values_set[name] = self.parent().num_edges()
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -119,9 +142,11 @@ edge in `edges` is required")
                 val = None
         if values is None:
             values = np.repeat(val, self.parent().num_edges())
+        
         if len(values) != self.parent().num_edges():
-            raise ValueError("A list or a np.array with one entry per \
-edge in the graph is required")
+            self._num_values_set[name] = 0
+            raise ValueError("A list or a np.array with one entry per "
+                             "edge in the graph is required")
         # store name and value type in the dict
         super(_GtEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -225,7 +250,7 @@ an array of 2-tuples of ints.")
         else:
             return tuple(node)
 
-    def new_edge(self, source, target, attributes=None):
+    def new_edge(self, source, target, attributes=None, ignore=False):
         '''
         Adding a connection to the graph, with optional properties.
         
@@ -239,6 +264,9 @@ an array of 2-tuples of ints.")
             Dictionary containing optional edge properties. If the graph is
             weighted, defaults to ``{"weight": 1.}``, the unit weight for the
             connection (synaptic strength in NEST).
+        ignore : bool, optional (default: False)
+            If set to True, ignore attempts to add an existing edge, otherwise
+            raises an error.
             
         Returns
         -------
@@ -246,26 +274,37 @@ an array of 2-tuples of ints.")
         '''
         if attributes is None:
             attributes = {}
-        connection = super(_GtGraph, self).add_edge(source, target,
-                                                    add_missing=True)
-        _set_edge_attr(self, [(source, target)], attributes)
-        for key, val in attributes:
-            if key in self.edge_properties:
-                self.edge_properties[key][connection] = val[0]
-            else:
-                raise InvalidArgument("Unknown edge property `" + key + "'.")
-        if not self._directed:
-            c2 = super(_GtGraph, self).add_edge(target, source)
+        # check that the edge does not already exist
+        edge = self.edge(source, target)
+        if edge is None:
+            connection = super(_GtGraph, self).add_edge(source, target,
+                                                        add_missing=True)
+            _set_edge_attr(self, [(source, target)], attributes)
             for key, val in attributes:
                 if key in self.edge_properties:
-                    self.edge_properties[key][c2] = val[0]
+                    self.edge_properties[key][connection] = val[0]
                 else:
-                    raise InvalidArgument("Unknown edge property `"+ key +"'.")
+                    raise InvalidArgument(
+                        "Unknown edge property `" + key + "'.")
+            if not self._directed:
+                c2 = super(_GtGraph, self).add_edge(target, source)
+                for key, val in attributes:
+                    if key in self.edge_properties:
+                        self.edge_properties[key][c2] = val[0]
+                    else:
+                        raise InvalidArgument(
+                            "Unknown edge property `" + key + "'.")
+        else:
+            if not ignore:
+                raise InvalidArgument("Trying to add existing edge.")
         return connection
 
     def new_edges(self, edge_list, attributes=None):
         '''
         Add a list of edges to the graph.
+        
+        .. warning ::
+            This function currently does not check for duplicate edges!
         
         Parameters
         ----------
@@ -276,46 +315,29 @@ an array of 2-tuples of ints.")
             weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
             array the same length as the `edge_list` containing a unit weight
             for each connection (synaptic strength in NEST).
-        
-        warning ::
-            For now attributes works only when adding edges for the first time
-            (i.e. adding edges to an empty graph).
             
         @todo: add example, check the edges for self-loops and multiple edges
         '''
         if attributes is None:
             attributes = {}
         initial_edges = self.num_edges()
-        edge_generator = ( e for e in edge_list )
         if not isinstance(edge_list, np.ndarray):
             edge_list = np.array(edge_list)
-        super(_GtGraph, self).add_edge_list(edge_list)
-        _set_edge_attr(self, edge_list, attributes)
         if not self._directed:
-            edge_list = np.concatenate((edge_list, edge_list[:,::-1]))
+            recip_edges = edge_list[:,::-1]
+            # slow but works
+            unique = ~(recip_edges[..., np.newaxis]
+                      == edge_list[..., np.newaxis].T).all(1).any(1)
+            edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in attributes.items():
-                attributes[key] = np.concatenate((val, val))
-        if attributes:
-            elist0 = None #@todo: make elist supported and remove this
-            # take care of classic attributes
-            if "weight" in attributes:
-                self.set_weights(weight=attributes["weight"], elist=elist0)
-            if "delay" in attributes:
-                self.set_delays(delay=attributes["delay"], elist=elist0)
-            if "distance" in attributes:
-                raise NotImplementedError("distance not implemented yet")
-                #~ self.set_distances(elist=edge_list,
-                                   #~ dlist=attributes["distance"])
-            # take care of potential additional attributes
-            if "names" in attributes:
-                num_attr = len(attributes["names"])
-                for i in range(num_attr):
-                    v = attributes["values"]
-                    if not nonstring_container(v):
-                        v = np.repeat(v, self.ecount())
-                    self._eattr.new_ea(attributes["names"][i],
-                                       attributes["types"][i], values=v)
-        return edge_generator
+                attributes[key] = np.concatenate((val, val[unique]))
+        # create the edges
+        super(_GtGraph, self).add_edge_list(edge_list)
+        # prepare the default values for weight and delays if necessary
+        _set_edge_attr(self, edge_list, attributes)
+        # call parent function to set the attributes
+        self.attr_new_edges(edge_list, attributes=attributes)
+        return edge_list
     
     def clear_all_edges(self):
         super(_GtGraph, self).clear_edges()

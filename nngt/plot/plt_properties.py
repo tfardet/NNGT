@@ -73,7 +73,7 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins=50,
     fig, lst_axes = plt.figure(fignum), None
     # create new axes or get them from existing ones
     if axis_num is None:
-        fig, lst_axes = _set_new_plot(fignum)
+        fig, lst_axes = _set_new_plot(fig.number)
         axis_num = 0
     else:
         lst_axes = fig.get_axes()
@@ -87,9 +87,8 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins=50,
         if norm:
             counts = counts / float(np.sum(counts))
         maxcounts, maxbins, minbins = counts.max(), bins.max(), bins.min()
-        line = ax1.scatter(bins, counts)
         s_legend = deg_type[0].upper() + deg_type[1:] + " degree"
-        ax1.legend((s_legend,))
+        line = ax1.scatter(bins, counts, label=s_legend)
     else:
         if colors is None:
             colors = palette(np.linspace(0.,0.5, len(deg_type)))
@@ -105,17 +104,16 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins=50,
             maxcounts = max(maxcounts, maxcounts_tmp)
             maxbins = max(maxbins, maxbins_tmp)
             minbins = min(minbins, minbins_tmp)
+            legend = s_type[0].upper() + s_type[1:] + " degree"
             lines.append(ax1.plot(
-                bins, counts, ls="--", c=colors[i], marker=m[i]))
-            legends.append(s_type[0].upper() + s_type[1:] + " degree")
-        ax1.legend(
-            lines, legends)
+                bins, counts, ls="--", c=colors[i], marker=m[i], label=legend))
     ax1.set_xlabel("Degree")
     ax1.set_ylabel("Node count")
     ax1.set_title(
         "Degree distribution for {}".format(network.name), x=0., y=1.05,
         loc='left')
     _set_scale(ax1, maxbins, minbins, maxcounts, logx, logy)
+    plt.legend()
     if show:
         plt.show()
 

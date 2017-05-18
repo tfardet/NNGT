@@ -68,7 +68,7 @@ class NeuralPop(OrderedDict):
         return cls(parent=graph, graph=graph, group_prop=args)
     
     @classmethod
-    def from_groups(cls, groups, names=None, parent=None):
+    def from_groups(cls, groups, names=None, parent=None, with_models=True):
         '''
         Make a NeuralPop object from a (list of) :class:`~nngt.NeuralGroup`
         object(s).
@@ -83,9 +83,9 @@ class NeuralPop(OrderedDict):
             neurons.extend(g.id_list)
         neurons = list(set(neurons))
         size = len(neurons)
-        pop = cls(size, parent=parent)
+        pop = cls(size, parent=parent, with_models=with_models)
         for name, g in zip(names, groups):
-            pop.add_group(name, g)
+            pop[name] = g
         return pop
 
     @classmethod
@@ -198,6 +198,41 @@ class NeuralPop(OrderedDict):
     #-------------------------------------------------------------------------#
     # Methods
 
+    def create_group(self, name, neurons, ntype=1, neuron_model=None,
+                     neuron_param=None, syn_model=default_synapse,
+                     syn_param=None):
+        '''
+        Create a new groupe from given properties.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the group.
+        neurons : array-like
+            List of the neurons indices.
+        ntype : int, optional (default: 1)
+            Type of the neurons : 1 for excitatory, -1 for inhibitory.
+        neuron_model : str, optional (default: None)
+            Name of a neuron model in NEST.
+        neuron_param : dict, optional (default: None)
+            Parameters for `neuron_model` in the NEST simulator. If None,
+            default parameters will be used.
+        syn_model : str, optional (default: "static_synapse")
+            Name of a synapse model in NEST.
+        syn_param : dict, optional (default: None)
+            Parameters for `syn_model` in the NEST simulator. If None,
+            default parameters will be used.
+        '''
+        neuron_param = {} if neuron_param is None else neuron_param.copy()
+        syn_param = {} if syn_param is None else syn_param.copy()
+        # create a group
+        if isinstance(neurons, int):
+            group_size = neurons
+            neurons = list(range(self._max_id, self._max_id + group_size))
+        group = NeuralGroup(neurons, ntype, neuron_model, neuron_param,
+                            syn_model, syn_param)
+        self[name] = group
+
     def set_model(self, model, group=None):
         '''
         Set the groups' models.
@@ -235,12 +270,13 @@ class NeuralPop(OrderedDict):
                         raise ValueError(
                             "Model type {} is not valid; choose among 'neuron'"
                             " or 'synapse'.".format(key))
-            else:
-                raise
         except:
-            raise InvalidArgument(
-                "Invalid model dict or group; see docstring.")
+            if model is not None:
+                raise InvalidArgument(
+                    "Invalid model dict or group; see docstring.")
         b_has_models = True
+        if model is None:
+            b_has_models = False
         for group in iter(self.values()):
             b_has_model *= group.has_model
         self._has_models = b_has_models
@@ -279,41 +315,6 @@ class NeuralPop(OrderedDict):
         except:
             raise InvalidArgument(
                 "Invalid param dict or group; see docstring.")
-
-    def create_group(self, name, neurons, ntype=1, neuron_model=None,
-                     neuron_param=None, syn_model=default_synapse,
-                     syn_param=None):
-        '''
-        Create a new groupe from given properties.
-        
-        Parameters
-        ----------
-        name : str
-            Name of the group.
-        neurons : array-like
-            List of the neurons indices.
-        ntype : int, optional (default: 1)
-            Type of the neurons : 1 for excitatory, -1 for inhibitory.
-        neuron_model : str, optional (default: None)
-            Name of a neuron model in NEST.
-        neuron_param : dict, optional (default: None)
-            Parameters for `neuron_model` in the NEST simulator. If None,
-            default parameters will be used.
-        syn_model : str, optional (default: "static_synapse")
-            Name of a synapse model in NEST.
-        syn_param : dict, optional (default: None)
-            Parameters for `syn_model` in the NEST simulator. If None,
-            default parameters will be used.
-        '''
-        neuron_param = {} if neuron_param is None else neuron_param.copy()
-        syn_param = {} if syn_param is None else syn_param.copy()
-        # create a group
-        if isinstance(neurons, int):
-            group_size = neurons
-            neurons = list(range(self._max_id, self._max_id + group_size))
-        group = NeuralGroup(neurons, ntype, neuron_model, neuron_param,
-                            syn_model, syn_param)
-        self[name] = group
 
     def get_param(self, groups=None, neurons=None, element="neuron"):
         '''
@@ -419,13 +420,16 @@ class NeuralGroup:
         groups differing only by their ``id_list`` will register as equal.
     """
 
-    def __init__ (self, id_list=[], ntype=1, model=None, neuron_param=None,
+    def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None,
                   syn_model=None, syn_param=None):
         neuron_param = {} if neuron_param is None else neuron_param.copy()
         syn_param = {} if syn_param is None else syn_param.copy()
         self._has_model = False if model is None else True
         self._neuron_model = model
-        self._id_list = list(id_list)
+        if nodes is None:
+            self._id_list = []
+        else:
+            self._id_list = list(nodes)
         self._nest_gids = None
         if self._has_model:
             self.neuron_param = neuron_param
@@ -667,8 +671,7 @@ class Connections:
         '''
         parameters["btype"] = parameters.get("btype", "edge")
         parameters["use_weights"] = parameters.get("use_weights", False)
-        #~ elist = np.array(elist) if elist is not None else elist
-        elist = None
+        elist = np.array(elist) if elist is not None else elist
         if wlist is not None:
             assert isinstance(wlist, np.ndarray), "numpy.ndarray required in "\
                                                   "Connections.weights"
@@ -683,7 +686,7 @@ there are {} edges while {} values where provided'''.format(
                                         **parameters)
         # add to the graph container
         bwlist = (np.max(wlist) - wlist if np.any(wlist)
-                  else np.repeat(0, len(wlist)))
+                  else np.repeat(0., len(wlist)))
         if graph is not None:
             graph.set_edge_attribute(
                 WEIGHT, value_type="double", values=wlist, edges=elist)

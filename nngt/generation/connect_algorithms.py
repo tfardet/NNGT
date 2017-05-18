@@ -11,7 +11,7 @@ from numpy.random import randint
 
 import nngt
 from nngt.lib import InvalidArgument
-from .connect_tools import *
+from nngt.lib.connect_tools import *
 
 
 __all__ = [
@@ -30,36 +30,6 @@ __all__ = [
 
 MAXTESTS = 1000 # ensure that generation will finish
 EPS = 0.00001
-
-
-#-----------------------------------------------------------------------------#
-# Simple tools
-#------------------------
-#
-
-def _unique_rows(arr):
-    b = np.ascontiguousarray(arr).view(np.dtype((np.void,
-        arr.dtype.itemsize * arr.shape[1])))
-    return np.unique(b).view(arr.dtype).reshape(-1,arr.shape[1]).astype(int)
-
-def _no_self_loops(array):
-    return array[array[:,0] != array[:,1],:].astype(int)
-
-def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph):
-    '''
-    Filter the edges: remove self loops and multiple connections if the graph
-    is not a multigraph.
-    '''
-    if b_one_pop:
-        ia_edges_tmp = _no_self_loops(ia_edges_tmp)
-    num_added = ia_edges_tmp.shape[0]
-    ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
-    num_ecurrent += num_added
-    if not multigraph:
-        ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent,:])
-        num_ecurrent = ia_edges_tmp.shape[0]
-        ia_edges[:num_ecurrent,:] = ia_edges_tmp
-    return ia_edges, num_ecurrent
 
 
 #-----------------------------------------------------------------------------#
@@ -106,9 +76,6 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
                 variables_i = list(set(variables_i))
             ecurrent = len(variables_i)
         ia_edges[i*degree:(i+1)*degree, int(not idx)] = variables_i
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -157,9 +124,6 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
             ecurrent = len(variables_i)
         ia_edges[num_etotal:num_etotal+ecurrent, int(not idx)] = variables_i
         num_etotal += ecurrent
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
     
 
@@ -225,9 +189,6 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
     
 
@@ -271,9 +232,6 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -330,9 +288,6 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
                                          b_one_pop, multigraph)
         num_test += 1
     ia_edges = _no_self_loops(ia_edges)
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
     return ia_edges
 
 
@@ -400,10 +355,6 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     if num_ecurrent > edges:
         np.random.shuffle(ia_edges)
         ia_edges = ia_edges[:edges, :]
-
-    if not directed:
-        ia_edges = np.concatenate((ia_edges, ia_edges[:,::-1]))
-        ia_edges = _unique_rows(ia_edges)
 
     return ia_edges
 

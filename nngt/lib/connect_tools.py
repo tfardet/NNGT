@@ -15,7 +15,10 @@ from nngt.lib import InvalidArgument
 __all__ = [
     "_check_num_edges",
     "_compute_connections",
+    "_filter",
+    "_no_self_loops",
     "_set_options",
+    "_unique_rows",
 ]
 
 
@@ -68,3 +71,40 @@ def _check_num_edges(source_ids, target_ids, num_edges, directed, multigraph):
         if (not directed and b_nd) or (directed and b_d):
             raise InvalidArgument("Required number of edges is too high")
     return has_only_one_population
+
+
+# ------------------------- #
+# Edge checks and filtering #
+# ------------------------- #
+
+def _unique_rows(arr):
+    '''
+    Keep only unique edges
+    '''
+    b = np.ascontiguousarray(arr).view(np.dtype((np.void,
+        arr.dtype.itemsize * arr.shape[1])))
+    return np.unique(b).view(arr.dtype).reshape(-1,arr.shape[1]).astype(int)
+
+
+def _no_self_loops(array):
+    '''
+    Remove self-loops
+    '''
+    return array[array[:,0] != array[:,1],:].astype(int)
+
+
+def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph):
+    '''
+    Filter the edges: remove self loops and multiple connections if the graph
+    is not a multigraph.
+    '''
+    if b_one_pop:
+        ia_edges_tmp = _no_self_loops(ia_edges_tmp)
+    num_added = ia_edges_tmp.shape[0]
+    ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
+    num_ecurrent += num_added
+    if not multigraph:
+        ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent,:])
+        num_ecurrent = ia_edges_tmp.shape[0]
+        ia_edges[:num_ecurrent,:] = ia_edges_tmp
+    return ia_edges, num_ecurrent
