@@ -16,7 +16,7 @@ import numpy as np
 
 import nngt
 from nngt.analysis import *
-from nngt.generation import _compute_connections
+from nngt.lib.connect_tools import _compute_connections
 
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
