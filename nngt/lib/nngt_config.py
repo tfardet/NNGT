@@ -93,6 +93,7 @@ def set_config(config, value=None):
     if new_multithreading != old_multithreading:
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
     if "omp" in new_config and nngt._config["graph_library"] == "graph-tool":
+        omp_nest = new_config["omp"]
         if nngt._config['with_nest']:
             import nest
             omp_nest = nest.GetKernelStatus("local_num_threads")

@@ -7,7 +7,7 @@ study detailed biological networks by interfacing efficient graph libraries with
 highly distributed activity simulators.
 
 
-## Cloning the repository
+## Cloning/updating the repository
 
 This repository includes the
 [``PyNCultures``](https://github.com/SENeC-Initiative/PyNCulture) package from
@@ -19,6 +19,11 @@ Thus, when cloning the repository, you must do:
 
     git clone https://github.com/Silmathoron/NNGT.git
     cd NNGT && git submodule init && git submodule update
+
+To update your local repository, do:
+
+    git pull
+    git submodule update --remote --merge
 
 
 ## Features
