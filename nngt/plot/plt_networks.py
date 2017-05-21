@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .custom_plt import palette, format_exponent
-from ..globals import POS 
+from nngt.lib import POS 
 
 
 

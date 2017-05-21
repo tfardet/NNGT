@@ -32,7 +32,6 @@ from nngt.lib import InvalidArgument
 from nngt.analysis.activity_analysis import _b2_from_data, _fr_from_data
 
 
-
 __all__ = [
     "ActivityRecord",
     "activity_types",

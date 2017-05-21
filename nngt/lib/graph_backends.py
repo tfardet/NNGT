@@ -1,0 +1,263 @@
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+""" Tools to interact with the graph libraries backends """
+
+import sys
+
+import numpy as np
+import scipy.sparse as ssp
+
+import nngt
+from .reloading import reload_module
+from .errors import not_implemented
+
+
+# ------------------- #
+# Graph library usage #
+# ------------------- #
+
+analyze_graph = {
+    'adjacency': not_implemented,
+    'assortativity': not_implemented,
+    'betweenness': not_implemented,
+    'clustering': not_implemented,
+    'diameter': not_implemented,
+    'ebetweenness': not_implemented,
+    'get_edges': not_implemented,
+    'nbetweenness': not_implemented,
+    'reciprocity': not_implemented,
+    'scc': not_implemented,
+    'wcc': not_implemented,
+}
+
+
+# use library function
+
+def use_library(library, reloading=True):
+    '''
+    Allows the user to switch to a specific graph library.
+    
+    .. warning:
+        If :class:`~nngt.Graph` objects have already been created, they will no
+        longer be compatible with NNGT methods.
+
+    Parameters
+    ----------
+    library : string
+        Name of a graph library among 'graph_tool', 'igraph', 'networkx'.
+    reload_moduleing : bool, optional (default: True)
+        Whether the graph objects should be reload_moduleed (this should always
+        be set to True except when NNGT is first initiated!)
+    '''
+    if library == "graph-tool":
+        _set_graph_tool()
+    elif library == "igraph":
+        _set_igraph()
+    elif library == "networkx":
+        _set_networkx()
+    else:
+        raise ValueError("Invalid graph library requested.")
+    if reloading:
+        reload_module(sys.modules["nngt"].core.base_graph)
+        reload_module(sys.modules["nngt"].core.gt_graph)
+        reload_module(sys.modules["nngt"].core.ig_graph)
+        reload_module(sys.modules["nngt"].core.nx_graph)
+        reload_module(sys.modules["nngt"].core)
+        reload_module(sys.modules["nngt"].analysis)
+        reload_module(sys.modules["nngt"].generation)
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
+        if nngt._config['with_plot']:
+            reload_module(sys.modules["nngt"].plot)
+        if nngt._config['with_nest']:
+            reload_module(sys.modules["nngt"].simulation)
+        reload_module(sys.modules["nngt"].lib)
+        reload_module(sys.modules["nngt"].core.graph_classes)
+        from nngt.core.graph_classes import (Graph, SpatialGraph, Network,
+                                             SpatialNetwork)
+        sys.modules["nngt"].Graph = Graph
+        sys.modules["nngt"].SpatialGraph = SpatialGraph
+        sys.modules["nngt"].Network = Network
+        sys.modules["nngt"].SpatialNetwork = SpatialNetwork
+
+
+# ----------------- #
+# Loading functions #
+# ----------------- #
+
+def _set_graph_tool():
+    '''
+    Set graph-tool as graph library, store relevant items in config and 
+    analyze graph dictionaries.
+    '''
+    import graph_tool as glib
+    from graph_tool import Graph as GraphLib
+    nngt._config["graph_library"] = "graph-tool"
+    nngt._config["library"] = glib
+    nngt._config["graph"] = GraphLib
+    # analysis functions
+    from graph_tool.spectral import adjacency as _adj
+    from graph_tool.centrality import betweenness, closeness
+    from graph_tool.correlations import assortativity as assort
+    from graph_tool.topology import (edge_reciprocity,
+                                    label_components, pseudo_diameter)
+    from graph_tool.clustering import global_clustering, local_clustering
+    def global_clustering_coeff(g):
+        return global_clustering(g)[0]
+    def local_clustering_coeff(g, nodes=None):
+        lc = local_clustering(g).a
+        if nodes is None:
+            return lc
+        return lc[nodes]
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = graph.edge_properties[weight]
+        else:
+            weights=None
+        c = closeness(graph, weight=weights)
+        if nodes is None:
+            return c.a
+        return c.a[nodes]
+    # defining the adjacency function
+    def adj_mat(graph, weight=None):
+        if weight is not None:
+            weight = graph.edge_properties[weight]
+        return _adj(graph, weight).T
+    def get_edges(graph):
+        return graph.edges()
+    # store the functions
+    nngt.analyze_graph["assortativity"] = assort
+    nngt.analyze_graph["betweenness"] = betweenness
+    nngt.analyze_graph["closeness"] = _closeness
+    nngt.analyze_graph["clustering"] = global_clustering_coeff
+    nngt.analyze_graph["local_clustering"] = local_clustering_coeff
+    nngt.analyze_graph["scc"] = label_components
+    nngt.analyze_graph["wcc"] = label_components
+    nngt.analyze_graph["diameter"] = pseudo_diameter
+    nngt.analyze_graph["reciprocity"] = edge_reciprocity
+    nngt.analyze_graph["adjacency"] = adj_mat
+    nngt.analyze_graph["get_edges"] = get_edges
+
+
+def _set_igraph():
+    '''
+    Set igraph as graph library, store relevant items in config and 
+    analyze graph dictionaries.
+    '''
+    import igraph as glib
+    from igraph import Graph as GraphLib
+    nngt._config["graph_library"] = "igraph"
+    nngt._config["library"] = glib
+    nngt._config["graph"] = GraphLib
+    # define
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = weight
+        else:
+            weights=None
+        return graph.closeness(nodes, mode="out", weights=weights)
+    # defining the adjacency function
+    def adj_mat(graph, weight=None):
+        n = graph.node_nb()
+        if graph.edge_nb():
+            xs, ys = map(np.array, zip(*graph.get_edgelist()))
+            xs, ys = xs.T, ys.T
+            data = np.ones(xs.shape)
+            if issubclass(weight.__class__, str):
+                #~ print(data.dtype, graph.es[weight])
+                data *= np.array(graph.es[weight])
+            else:
+                data *= np.array(weight)
+            coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
+            return coo_adj.tocsr()
+        else:
+            return ssp.csr_matrix((n,n))
+    def get_edges(graph):
+        return graph.get_edgelist()
+    # store functions
+    nngt.analyze_graph["assortativity"] = not_implemented
+    nngt.analyze_graph["nbetweenness"] = not_implemented
+    nngt.analyze_graph["ebetweenness"] = not_implemented
+    nngt.analyze_graph["clustering"] = not_implemented
+    nngt.analyze_graph["closeness"] = _closeness
+    nngt.analyze_graph["local_clustering"] = not_implemented
+    nngt.analyze_graph["scc"] = not_implemented
+    nngt.analyze_graph["wcc"] = not_implemented
+    nngt.analyze_graph["diameter"] = not_implemented
+    nngt.analyze_graph["reciprocity"] = not_implemented
+    nngt.analyze_graph["adjacency"] = adj_mat
+    nngt.analyze_graph["get_edges"] = get_edges
+
+
+def _set_networkx():
+    import networkx as glib
+    from networkx import DiGraph as GraphLib
+    nngt._config["graph_library"] = "networkx"
+    nngt._config["library"] = glib
+    nngt._config["graph"] = GraphLib
+    # analysis functions
+    from networkx.algorithms import ( diameter, 
+        strongly_connected_components, weakly_connected_components,
+        degree_assortativity_coefficient )
+    def _closeness(graph, nodes, weights):
+        if weights is True and graph.is_weighted():
+            weights = graph.edge_properties[weight]
+        else:
+            weights=None
+        if nodes is None:
+            return glib.closeness_centrality(graph, distance=weights)
+        else:
+            c = [glib.closeness_centrality(graph, u=n, distance=weights)
+                 for n in nodes]
+            return c
+    def overall_reciprocity(g):
+        num_edges = g.number_of_edges()
+        num_recip = (num_edges - g.to_undirected().number_of_edges()) * 2
+        if n_all_edge == 0:
+            raise ArgumentError("Not defined for empty graphs")
+        else:
+            return num_recip/float(num_edges)
+    nx_version = glib.__version__
+    try:
+        from networkx.algorithms import overall_reciprocity
+    except ImportError:
+        def overall_reciprocity(*args, **kwargs):
+            return NotImplementedError("Not implemented for networkx " +
+                                       str(nx_version) + "; try installing "
+                                       "the latest version.")
+    def local_clustering(g, nodes=None):
+        return np.array(glib.clustering(g, nodes).values())
+    # defining the adjacency function
+    from networkx import to_scipy_sparse_matrix
+    def adj_mat(graph, weight=None):
+        return to_scipy_sparse_matrix(graph, weight=weight)
+    def get_edges(graph):
+        return graph.edges_iter(data=False)
+    # store functions
+    nngt.analyze_graph["assortativity"] = degree_assortativity_coefficient
+    nngt.analyze_graph["diameter"] = diameter
+    nngt.analyze_graph["closeness"] = _closeness
+    nngt.analyze_graph["clustering"] = glib.average_clustering
+    nngt.analyze_graph["local_clustering"] = local_clustering
+    nngt.analyze_graph["reciprocity"] = overall_reciprocity
+    nngt.analyze_graph["scc"] = strongly_connected_components
+    nngt.analyze_graph["wcc"] = diameter
+    nngt.analyze_graph["adjacency"] = adj_mat
+    nngt.analyze_graph["get_edges"] = get_edges

@@ -29,10 +29,9 @@ import scipy.sparse as ssp
 import nngt
 import nngt.analysis as na
 from nngt.lib import (InvalidArgument, as_string, save_to_file, load_from_file,
-                      nonstring_container)
+                      nonstring_container, default_neuron, default_synapse,
+                      POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
-from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
-                          DIST, TYPE)
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
@@ -484,7 +483,7 @@ with non symmetric matrix provided.')
             distribution = self._w["distribution"]
         if parameters is None:
             parameters = self._w
-        nngt.Connections.weights(
+        nngt.core.Connections.weights(
             self, elist=elist, wlist=weight, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
 
@@ -531,7 +530,7 @@ with non symmetric matrix provided.')
                 nodes.sort()
                 for node in nodes[::-1]:
                     del inhib_nodes[node]
-        return nngt.Connections.types(self, inhib_nodes, fraction)
+        return nngt.core.Connections.types(self, inhib_nodes, fraction)
         
     def set_delays(self, delay=None, elist=None, distribution=None,
                    parameters=None, noise_scale=None):
@@ -576,7 +575,7 @@ with non symmetric matrix provided.')
                     raise AttributeError(
                         "Invalid `parameters` value: cannot be None if default"
                         " delays were not set at graph creation.")
-        return nngt.Connections.delays(
+        return nngt.core.Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
         
@@ -842,7 +841,7 @@ class SpatialGraph(Graph):
             raise InvalidArgument("Wrong number of neurons in `positions`.")
         b_rnd_pos = True if not self.node_nb() or positions is None else False
         self._pos = self._shape.seed_neurons() if b_rnd_pos else positions
-        nngt.Connections.distances(self)
+        nngt.core.Connections.distances(self)
 
     #-------------------------------------------------------------------------#
     # Getters

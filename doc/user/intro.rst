@@ -25,6 +25,15 @@ Examples are given in the following sections:
    activity-analysis
    multithreading
 
+.. note ::
+  This library provides many tools which will (or not) be loaded on startup
+  depending on the python packages available on your computer.
+  The default behaviour of those tools is set in the `~/.nngt/nngt.conf` file.
+  Moreover, to see all potential messages related to the import of those tools,
+  you can use the logging function of NNGT, either by setting the `log_level`
+  value to `DEBUG`, or by setting `log_to_file` to True, and having a look
+  at the log file in `~/.nngt/log/`.
+
 
 Description
 ===========

@@ -30,11 +30,10 @@ import nngt
 from .gt_graph import _GtGraph
 from .ig_graph import _IGraph
 from .nx_graph import _NxGraph
-from .graph_datastruct import Connections, NeuralGroup
+from .graph_datastruct import Connections
 
 
-
-di_graphlib = {
+_graphlib = {
     "graph-tool": _GtGraph,
     "igraph": _IGraph,
     "networkx": _NxGraph,
@@ -43,12 +42,10 @@ di_graphlib = {
 
 
 #: Graph object (reference to one of the main libraries' wrapper
-GraphObject = di_graphlib[nngt._config["graph_library"]]
-#~ GraphObject = None
+GraphObject = _graphlib[nngt._config["graph_library"]]
 
 
 __all__ = [
     "Connections",
-    "GraphObject",
-    "NeuralGroup",
+    "GraphObject"
 ]

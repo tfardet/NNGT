@@ -1,16 +1,53 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Generating the weights of the graph object's connections """
 
 import numpy as np
 import scipy.sparse as ssp
 
+import nngt
 
-#-----------------------------------------------------------------------------#
-# Return the right distribution
-#------------------------
-#
+
+# ----------- #
+# Random seed #
+# ----------- #
+
+def seed(seed=None):
+    '''
+    Seed the random generator used by NNGT (i.e. the numpy `RandomState`: for
+    details, see :class:`numpy.random.RandomState`).
+
+    Parameters
+    ----------
+    seed : int or array_like, optional
+        Seed for `RandomState`.
+        Must be convertible to 32 bit unsigned integers.
+    '''
+    np.random.seed(seed)
+    nngt._config["seed"] = seed
+
+
+# ----------------------------- #
+# Return the right distribution #
+# ----------------------------- #
 
 def _generate_random(number, instructions):
     name = instructions[0]
@@ -31,10 +68,9 @@ def _eprop_distribution(graph, distrib_type, matrix=False, elist=None, **kw):
         return ra_values
 
 
-#-----------------------------------------------------------------------------#
-# Generating the matrix
-#------------------------
-#
+# --------------------- #
+# Generating the matrix #
+# --------------------- #
 
 def _make_matrix(graph, ecount, values, elist=None):
     mat_distrib = None
@@ -49,10 +85,9 @@ def _make_matrix(graph, ecount, values, elist=None):
     return mat_distrib
 
 
-#-----------------------------------------------------------------------------#
-# Distribution generators
-#------------------------
-#
+# ----------------------- #
+# Distribution generators #
+# ----------------------- #
 
 def delta_distrib(graph=None, elist=None, num=None, value=1., **kwargs):
     '''

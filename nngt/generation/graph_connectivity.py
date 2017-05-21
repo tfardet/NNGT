@@ -21,6 +21,8 @@
 """ Connectivity generators for nngt.Graph """
 
 from copy import deepcopy
+import logging
+
 import numpy as np
 
 import nngt
@@ -32,10 +34,12 @@ from nngt.lib.connect_tools import _set_options
 using_mt_algorithms = False
 
 if nngt.get_config("multithreading"):
+    logger = logging.getLogger(__name__)
     try:
         from .cconnect import *
         from .connect_algorithms import price_network
         using_mt_algorithms = True
+        logger.debug("Using multithreaded algorithms compiled on install.")
     except Exception as e:
         try:
             import cython
@@ -43,11 +47,12 @@ if nngt.get_config("multithreading"):
             from .cconnect import *
             from .connect_algorithms import price_network
             using_mt_algorithms = True
-            print(
-                str(e) + "\nMultithreaded algorithms compiled on-the-run.")
+            logger.debug(
+                str(e) + "\n\tMultithreaded algorithms compiled on-the-run.")
         except Exception as e2:
-            print(str(e) + "\n" + str(e2) + "\n" +
-                  "Cython import failed, using non-multithreaded algorithms.")
+            logger.debug(
+                str(e) + "\n\t" + str(e2) + "\n\t" +
+                "Cython import failed, using non-multithreaded algorithms.")
 if not using_mt_algorithms:
     from .connect_algorithms import *
 

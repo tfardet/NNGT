@@ -27,6 +27,7 @@ from .errors import *
 from .io_tools import *
 from .rng_tools import *
 from .test_functions import *
+from .constants import *
 
 
 __all__ = [

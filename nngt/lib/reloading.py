@@ -18,15 +18,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" Errors for the NGT module """
+""" Modules reloading for python 2.7 to 3.6 """
+
+import sys
 
 
-class InvalidArgument(ValueError):
-
-    ''' Error raised when an argument is invalid. '''
-
-    pass
-
-
-def not_implemented(*args, **kwargs):
-    return NotImplementedError("Not implemented yet.")
+reload_module = None
+if sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
+    import imp
+    reload_module = imp.reload
+elif sys.hexversion >= 0x03040000:
+    import importlib
+    reload_module = importlib.reload
+else:
+    reload_module = reload

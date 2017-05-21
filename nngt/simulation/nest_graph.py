@@ -26,8 +26,7 @@ from scipy.signal import argrelmax, argrelmin
 
 import matplotlib.pyplot as plt
 
-from nngt.globals import WEIGHT, DELAY
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, WEIGHT, DELAY
 from nngt.lib.sorting import _sort_groups
 
 

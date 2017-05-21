@@ -28,9 +28,8 @@ from numpy.random import randint, uniform
 import scipy.sparse as ssp
 import scipy.spatial as sptl
 
-from nngt.globals import (default_neuron, default_synapse, POS, WEIGHT, DELAY,
-                          DIST, TYPE, BWEIGHT)
-from nngt.lib import InvalidArgument, nonstring_container
+from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
+                      default_synapse, POS, WEIGHT, DELAY, DIST, TYPE, BWEIGHT)
 from nngt.lib.rng_tools import _eprop_distribution
 
 

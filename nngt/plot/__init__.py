@@ -30,8 +30,8 @@ import matplotlib as _mpl
 
 import nngt as _nngt
 
-if _nngt._config["backend"] is not None:
-    _mpl.use(_nngt._config["backend"])
+if _nngt._config["mpl_backend"] is not None:
+    _mpl.use(_nngt._config["mpl_backend"])
 else:
     sav_backend = _mpl.get_backend()
     backends = [ 'GTK3Agg', 'Qt4Agg', 'Qt5Agg' ]

@@ -36,19 +36,22 @@ Available subpackages
 
 core
 	Contains the main network classes.
-	These are loaded in nngt at import so specifying :class:`nngt.core` is not necessary
+	Classes and methods for users are loaded at the main module (`nngt`) level
+    when the library is imported, so :class:`nngt.core` should not be used.
 generation
-	Functions to generate specific networks
+	Functions to generate specific networks.
+geometry
+	Tools to work on metric graphs (see
+    `PyNCulture <https://github.com/SENeC-Initiative/PyNCulture>`_).
+io
+	Tools for input/output operations.
 lib
 	Basic functions used by several sub-packages.
-io
-	@todo: Tools for input/output operations
-nest
-	NEST integration tools
-growth
-	@todo: Growing networks tools
+simulation
+	Tools to provide complex network generation with NEST and help analyze the
+    influence of the network structure on neuronal activity.
 plot
-	plot data or graphs (@todo) using matplotlib and graph_tool
+	plot data or graphs using matplotlib and graph_tool.
 
 
 Utilities
@@ -64,11 +67,11 @@ version
 Units
 =====
 
-Functions related to spatial embedding of networks are using milimeters
-(mm) as default unit; other units from the metric system can also be
+Functions related to spatial embedding of networks are using micrometers
+(um) as default unit; other units from the metric system can also be
 provided:
 
-- `um` for micrometers
+- `mm` for milimeters
 - `cm` centimeters
 - `dm` for decimeters
 - `m` for meters
@@ -83,24 +86,47 @@ import shutil as _shutil
 import sys as _sys
 
 
+version = '0.6.a'
+''' :obj:`str`, current NNGT version '''
+
+
 # ----------------------- #
 # Requirements and config #
 # ----------------------- #
 
 # Python > 2.6
-assert _sys.hexversion > 0x02060000, 'NNGT requires Python > 2.6'
+if _sys.hexversion < 0x02070000:
+    _logger.critical('NNGT requires Python 2.7 or higher.')
+    raise ImportError('NNGT requires Python 2.7 or higher.')
 
-# _configuration
+# configuration
+from .lib.nngt_config import get_config, set_config, _load_config, _convert
+
 _lib_folder = _os.path.expanduser('~') + '/.nngt'
-_path_config = _os.path.expanduser('~') + '/.nngt/nngt.conf'
-_nngt_root = _os.path.dirname(_os.path.realpath(__file__))
-if not _os.path.isdir(_lib_folder):
+_new_config = _os.path.expanduser('~') + '/.nngt/nngt.conf'
+_default_config = _os.path.dirname(_os.path.realpath(__file__)) + \
+                  '/nngt.conf.default'
+if not _os.path.isdir(_lib_folder):   # check folder exists
     _os.mkdir(_lib_folder)
-if not _os.path.isfile(_path_config):
-    _shutil.copy(_nngt_root + '/nngt.conf.default', _path_config)
+if not _os.path.isfile(_new_config):  # check file exists
+    _shutil.copy(_default_config, _new_config)
+else:                                 # check it is up-to-date
+    with open(_new_config, 'r') as fconfig:
+        options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
+        config_version = ""
+        for opt in options:
+            sep = opt.find("=")
+            opt_name = opt[:sep].strip()
+            opt_val = _convert(opt[sep+1:].strip())
+            if opt_name == "version":
+                config_version = opt_val
+        if config_version != version:
+            _shutil.copy(_default_config, _new_config)
+            _logger.warning("Updating the configuration file, your previous "
+                            "settings have be overwritten.")
 
-from .globals import (analyze_graph, _config, use_library, version, set_config,
-                      get_config, seed)
+
+_config = _load_config(_new_config)
 
 # multithreading
 _config["omp"] = int(_os.environ.get("OMP", 1))
@@ -108,17 +134,47 @@ if _config["omp"] > 1:
     _config["multithreading"] = True
 
 
+# --------------------- #
+# Loading graph library #
+#---------------------- #
+
+from .lib.graph_backends import use_library, analyze_graph
+
+_libs = [ 'graph-tool', 'igraph', 'networkx' ]
+
+try:
+    use_library(_config['graph_library'], False)
+except ImportError:
+    idx = _libs.index(_config['graph_library'])
+    del _libs[idx]
+    keep_trying = True
+    while _libs and keep_trying:
+        try:
+            use_library(_libs[-1], False)
+            keep_trying = False
+        except ImportError:
+            _libs.pop()
+
+if not _libs:
+    raise ImportError("This module needs one of the following graph libraries "
+                      "to work:  `graph_tool`, `igraph`, or `networkx`.")
+
+
 # ------- #
 # Modules #
 # ------- #
 
-# importing core directly
-from .core import *
-from .core.graph_datastruct import NeuralPop, GroupProperty, Connections
+# import some tools into main namespace
+
+from .core.graph_datastruct import NeuralPop, NeuralGroup, GroupProperty
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .generation.graph_connectivity import generate
+from .lib.logger import logger as _logger
+from .lib.rng_tools import seed
+
 
 # import modules
+
 from . import analysis
 from . import core
 from . import generation
@@ -148,34 +204,67 @@ __all__ = [
     "version"
 ]
 
+
 # test if plot module is supported
+
 try:
     from . import plot
     _config['with_plot'] = True
     __all__.append('plot')
 except ImportError as e:
-    ImportWarning("Error, plot module will not be loaded...", e)
+    _logger.debug("Error, plot module will not be loaded: " + str(e))
     _config['with_plot'] = False
 
+
 # look for nest
+
 if _config['load_nest']:
     try:
         _sys.argv.append('--quiet')
         import nest
         from . import simulation
-        _config['with_nest'] = True
+        _config['with_nest'] = nest.version()
         __all__.append("simulation")
     except ImportError as e:
-        ImportWarning("NEST not found; nngt.simulation not loaded...", e)
+        _logger.debug("NEST not found; nngt.simulation not loaded: " + str(e))
         _config["with_nest"] = False
-    
+
+
 # load database module if required
-if _config["set_logging"]:
-    if _config["to_file"]:
-        if not _os.path.isdir(_config["log_folder"]):
-            _os.mkdir(_config["log_folder"])
+
+if _config["use_database"]:
+    if _config["db_to_file"]:
+        if not _os.path.isdir(_config["db_folder"]):
+            _os.mkdir(_config["db_folder"])
     try:
         from .database import db
         __all__.append('db')
     except ImportError as e:
-        ImportWarning("Could not load database module", e)
+        _logger.debug("Could not load database module: " + str(e))
+
+
+# ------------------------ #
+# Print config information #
+# ------------------------ #
+
+_log_info = '''
+    -----------
+    NNGT loaded
+    -----------
+Graph library:  {gl}
+Multithreading: {thread} ({omp} thread{s})
+Plotting:       {plot}
+NEST support:   {nest}
+Database:       {db}
+    -----------
+'''.format(
+    gl=_config["graph_library"],
+    thread=_config["multithreading"],
+    plot=_config["with_plot"],
+    nest=_config["with_nest"],
+    db=_config["use_database"],
+    omp=_config["omp"],
+    s="s" if _config["omp"] > 1 else ""
+)
+
+_logger.info(_log_info)

@@ -6,6 +6,7 @@
 import platform as pfm
 from collections import namedtuple
 
+
 try:
     import psutil
 except ImportError:

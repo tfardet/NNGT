@@ -2,6 +2,8 @@
 # NNGT configuration file #
 #-------------------------#
 
+version = 0.6.a
+
 #-------------------------
 ## default graph library -----------------------------------------------------
 #-------------------------
@@ -25,7 +27,7 @@ load_nest = True
 # Uncomment and choose among your available backends.
 # See http://matplotlib.org/faq/usage_faq.html#what-is-a-backend for details
 
-#backend = Qt5Agg
+#mpl_backend = Qt5Agg
 
 # color library either matplotlib or seaborn
 color_lib = matplotlib
@@ -35,18 +37,33 @@ palette = Set1
 
 
 #-----------------------------
-## Settings for data logging -------------------------------------------------
+## Settings for database    -------------------------------------------------
 #-----------------------------
 
-set_logging = False
+use_database = False
 
 # use a database (if False, results will be stored in CSV files)
-to_file = False
-#log_folder = ~/.nngt/database
+db_to_file = False
+#db_folder = ~/.nngt/database
 
 # database url or temporary database used if use_database = False
 # example of real database url: db_url = mysql://user:password@host:port/my_db
 db_url = mysql:///nngt_db
+
+
+#-----------------------------
+## Settings for data logging -------------------------------------------------
+#-----------------------------
+
+# which messages are printed? (see logging module levels:
+# https://docs.python.org/2/library/logging.html#levels)
+# set to WARNING or above to remove the messages on import
+log_level = INFO
+
+# write log to file?
+log_to_file = False
+# if True, write to default folder '~/.nngt/log'
+#log_folder = ~/.nngt/log
 
 
 #----------------------------

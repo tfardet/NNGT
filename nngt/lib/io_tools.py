@@ -37,6 +37,7 @@ def _get_format(format, filename):
             format = 'neighbour'
     return format
 
+
 def _neighbour_list(graph, delimiter, secondary, attributes):
     '''
     Generate a string containing the neighbour list of the graph as well as a
@@ -56,6 +57,7 @@ def _neighbour_list(graph, delimiter, secondary, attributes):
     str_neighbours = "\n".join(lst_neighbours)
     return str_neighbours
 
+
 def _edge_list(graph, delimiter, secondary, attributes):
     ''' Generate a string containing the edge list and their properties. '''
     edges = graph.edges_array
@@ -69,14 +71,18 @@ def _edge_list(graph, delimiter, secondary, attributes):
     str_edges = "\n".join(lst_edges)
     return str_edges
 
+
 def _dot(graph, attributes, **kwargs):
     pass
+
 
 def _gml(graph, attributes, **kwargs):
     pass
 
+
 def _xml(graph, attributes, **kwargs):
     pass
+
 
 def _gt(graph, attributes, **kwargs):
     pass
@@ -98,6 +104,7 @@ def _format_notif(notif_name, notif_val):
     else:
         return notif_val    
 
+
 def _get_notif(lines, notifier):
     di_notif = { "attributes": [], "attr_types": [], "name": "LoadedGraph"}
     for line in lines:
@@ -110,6 +117,7 @@ def _get_notif(lines, notifier):
             break
     return di_notif
 
+
 def _to_list(string):
     delimiters = (';', ',', ' ', '\t')
     count = -np.Inf
@@ -120,6 +128,7 @@ def _to_list(string):
             count = current
             chosen = delimiters[i]
     return string.split(chosen)
+
 
 def _gen_convert(attributes, attr_types):
     '''
@@ -140,6 +149,7 @@ def _gen_convert(attributes, attr_types):
             raise TypeError("Invalid attribute type.")
     return di_convert
 
+
 def _get_edges_neighbour(line, attributes, delimiter, secondary, edges,
                          di_attributes, di_convert):
     '''
@@ -156,7 +166,8 @@ def _get_edges_neighbour(line, attributes, delimiter, secondary, edges,
             attr_val = stub.split(secondary)[1:]
             for name,val in zip(attributes, attr_val):
                 di_attributes[name].append(di_convert[name](val))
-                
+
+
 def _get_edges_elist(line, attributes, delimiter, secondary, edges,
                      di_attributes, di_convert):
     '''
@@ -182,7 +193,7 @@ di_get_edges = {
 }
 
 di_format = {
-    "neighbour":_neighbour_list,
+    "neighbour": _neighbour_list,
     "edge_list": _edge_list
 }
 
@@ -316,16 +327,16 @@ def as_string(graph, format="neighbour", delimiter=" ", secondary=";",
 
     Returns
     -------
-        str_graph : string
-            The full graph representation as a string.
+    str_graph : string
+        The full graph representation as a string.
     '''
     # checks
     if delimiter == secondary:
-        raise InvalidArgument("`delimiter` and `secondary` strings must be \
-different.")
+        raise InvalidArgument("`delimiter` and `secondary` strings must be "
+                              "different.")
     if notifier == delimiter or notifier == secondary:
-        raise InvalidArgument("`notifier` string should differ from \
-`delimiter` and `secondary`.")
+        raise InvalidArgument("`notifier` string should differ from "
+                              "`delimiter` and `secondary`.")
     # data
     if attributes is None:
         attributes = [ a for a in graph.attributes() if a != "bweight" ]
@@ -342,6 +353,7 @@ different.")
         return str_graph, di_notifiers
     else:
         return str_graph
+
 
 def save_to_file(graph, filename, format="auto", delimiter=" ",
                  secondary=";", attributes=None, notifier="@"):

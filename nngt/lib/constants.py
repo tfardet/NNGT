@@ -18,15 +18,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" Errors for the NGT module """
+""" Constant values for NNGT """
 
 
-class InvalidArgument(ValueError):
+__all__ = [
+    "default_neuron",
+    "default_synapse",
+    "POS",
+    "BWEIGHT",
+    "DIST",
+    "WEIGHT",
+    "DELAY",
+    "TYPE",
+]
 
-    ''' Error raised when an argument is invalid. '''
 
-    pass
+# ----- #
+# Names #
+# ----- #
+
+POS = "position"
+DIST = "distance"
+WEIGHT = "weight"
+BWEIGHT = "bweight"
+DELAY = "delay"
+TYPE = "type"
 
 
-def not_implemented(*args, **kwargs):
-    return NotImplementedError("Not implemented yet.")
+# ------------ #
+# Basic values #
+# ------------ #
+
+default_neuron = "aeif_cond_alpha"
+''' :class:`string`, the default NEST neuron model '''
+default_synapse = "static_synapse"
+''' :class:`string`, the default NEST synaptic model '''
+default_delay = 1.
+''' :class:`double`, the default synaptic delay in NEST '''
