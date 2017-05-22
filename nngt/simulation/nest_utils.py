@@ -192,7 +192,9 @@ def randomize_neural_states(network, instructions, groups=None,
 
     Example
     -------
-    python::
+
+    .. code-block:: python
+
         instructions = {
             "V_m": ("uniform", -80., -60.),
             "w": ("normal", 50., 5.)

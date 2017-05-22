@@ -94,13 +94,14 @@ class ActivityRecord:
     @property
     def phases(self):
         '''
-        Returns the phases detected:
-            - "bursting" for periods of high activity where a large fraction
-            of the network is recruited.
-            - "quiescent" for periods of low activity
-            - "mixed" for firing rate in between "quiescent" and "bursting".
-            - "localized" for periods of high activity but where only a small
-            fraction of the network is recruited.
+        Return the phases detected:
+        
+        - "bursting" for periods of high activity where a large fraction
+          of the network is recruited.
+        - "quiescent" for periods of low activity
+        - "mixed" for firing rate in between "quiescent" and "bursting".
+        - "localized" for periods of high activity but where only a small
+          fraction of the network is recruited.
         
         Note
         ----
@@ -114,12 +115,13 @@ class ActivityRecord:
         '''
         Returns the properties of the activity.
         Contains the following entries:
-            - "firing_rate": average value in Hz for 1 neuron in the network.
-            - "bursting": True if there were bursts of activity detected.
-            - "burst_duration", "IBI", "ISI", and "period" in ms, if
-              "bursting" is True.
-            - "SpB" (Spikes per Burst): average number of spikes per neuron
-              during a burst.
+
+        - "firing_rate": average value in Hz for 1 neuron in the network.
+        - "bursting": True if there were bursts of activity detected.
+        - "burst_duration", "IBI", "ISI", and "period" in ms, if
+          "bursting" is True.
+        - "SpB" (Spikes per Burst): average number of spikes per neuron
+          during a burst.
         '''
         return self._properties
 
@@ -132,8 +134,9 @@ class ActivityRecord:
 def get_spikes(recorder=None, spike_times=None, senders=None):
     '''
     Return a 2D sparse matrix, where:
-        - each row i contains the spikes of neuron i
-        - each column j contains the times of the jth spike for all neurons
+
+    - each row i contains the spikes of neuron i
+    - each column j contains the times of the jth spike for all neurons
 
     Parameters
     ----------
@@ -148,13 +151,13 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
 
     Example
     -------
-    >> get_spikes()
+    >>> get_spikes()
 
-    >> get_spikes(recorder)
+    >>> get_spikes(recorder)
 
-    >> times = [1.5, 2.68, 125.6]
-    >> neuron_ids = [12, 0, 65]
-    >> get_spikes(spike_times=times, senders=neuron_ids)
+    >>> times = [1.5, 2.68, 125.6]
+    >>> neuron_ids = [12, 0, 65]
+    >>> get_spikes(spike_times=times, senders=neuron_ids)
 
     Note
     ----
