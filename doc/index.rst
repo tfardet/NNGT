@@ -90,6 +90,7 @@ The docs
    modules/nngt
    modules/analysis
    modules/generation
+   modules/geometry
    modules/lib
    modules/plot
    modules/simulation

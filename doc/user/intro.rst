@@ -38,6 +38,9 @@ Examples are given in the following sections:
 Description
 ===========
 
+The graph objects
+-----------------
+
 Neural networks are described by four graph classes which inherit from the main
 class of the chosen graph library (:class:`graph_tool.Graph`,
 :class:`igraph.Graph` or :class:`networkx.DiGraph`):
@@ -57,16 +60,20 @@ weight, which is always positive)
 
 .. warning ::
   This object should never be directly modified through the initial library's
-  methods but always using those of the previously listed classes. If for
-  some reason you should directly use the methods from the graph library on
-  the graph, make sure they do not modify its structure; any modification
-  performed from a method other than those of the :class:`~nngt.Graph`
-  subclasses will lead to undefined behaviour.
+  methods but always using those of NNGT. If, for some reason, you should
+  directly use the methods from the graph library on the object, make sure they
+  do not modify its structure; any modification performed from a method other
+  than those of :class:`~nngt.Graph` subclasses will lead to undefined
+  behaviour!
+
+
+Additional properties
+---------------------
 
 Nodes/neurons are defined by a unique index which can be used to access their
 properties and those of the connections between them.
 
-In addition to ``graph``, the containers can have other attributes, such as:
+The graph objects can have other attributes, such as:
 
 - ``shape`` for :class:`~nngt.SpatialGraph` and :class:`~nngt.SpatialNetwork`,
   which describes the spatial delimitations of the neurons' environment (e.g.
@@ -85,8 +92,9 @@ Several classical graphs are efficiently implemented and the generation
 procedures are detailed in the documentation.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    
+   graph-generation
    ../modules/nngt
 
 

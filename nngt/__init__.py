@@ -100,6 +100,30 @@ if _sys.hexversion < 0x02070000:
     raise ImportError('NNGT requires Python 2.7 or higher.')
 
 # configuration
+_config = {
+    'color_lib': 'matplotlib',
+    'db_folder': "~/.nngt/database",
+    'db_to_file': False,
+    'db_url': "mysql:///nngt_db",
+    'graph': object,
+    'graph_library': "",
+    'library': None,
+    'load_nest': False,
+    'log_folder': "~/.nngt/log",
+    'log_level': 10,
+    'log_to_file': False,
+    'mpl_backend': None,
+    'multithreading': False,
+    'omp': 1,
+    'palette': 'Set1',
+    'seed': None,
+    'use_database': False,
+    'set_omp_graph_tool': False,
+    'with_nest': False,
+    'with_plot': False,
+}
+
+from .lib.logger import logger as _logger
 from .lib.nngt_config import get_config, set_config, _load_config, _convert
 
 _lib_folder = _os.path.expanduser('~') + '/.nngt'
@@ -126,7 +150,7 @@ else:                                 # check it is up-to-date
                             "settings have be overwritten.")
 
 
-_config = _load_config(_new_config)
+_load_config(_new_config)
 
 # multithreading
 _config["omp"] = int(_os.environ.get("OMP", 1))
@@ -169,7 +193,6 @@ if not _libs:
 from .core.graph_datastruct import NeuralPop, NeuralGroup, GroupProperty
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .generation.graph_connectivity import generate
-from .lib.logger import logger as _logger
 from .lib.rng_tools import seed
 
 

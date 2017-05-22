@@ -15,9 +15,10 @@ For more details regarding the main classes, see:
    :hidden:
    :glob:
 
+   analysis
    core
    generation
-   simulation
-   plot
-   analysis
+   geometry
    lib
+   plot
+   simulation

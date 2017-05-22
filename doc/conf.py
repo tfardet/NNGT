@@ -420,11 +420,12 @@ napoleon_use_rtype = False
 imported_members = True
 
 intersphinx_mapping = {
-    'python': ('http://docs.python.org/2.7/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
-    'matplotlib': ('http://matplotlib.sourceforge.net', None),
-    'ipython': ('http://ipython.org/ipython-doc/stable/', None),
     'graph_tool': ('http://graph-tool.skewed.de/static/doc/', None),
+    'ipython': ('http://ipython.org/ipython-doc/stable/', None),
+    'matplotlib': ('http://matplotlib.org/', None),
     'networkx': ('https://networkx.readthedocs.io/en/stable/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy', None),
+    'python': ('https://docs.python.org/3/', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
+    'shapely': ('http://toblerity.org/shapely/manual.html', None),
 }
