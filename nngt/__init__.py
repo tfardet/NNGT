@@ -123,18 +123,22 @@ _config = {
     'with_plot': False,
 }
 
-from .lib.logger import logger as _logger
-from .lib.nngt_config import get_config, set_config, _load_config, _convert
-
 _lib_folder = _os.path.expanduser('~') + '/.nngt'
 _new_config = _os.path.expanduser('~') + '/.nngt/nngt.conf'
 _default_config = _os.path.dirname(_os.path.realpath(__file__)) + \
                   '/nngt.conf.default'
-if not _os.path.isdir(_lib_folder):   # check folder exists
+
+# check that library config folder exists
+if not _os.path.isdir(_lib_folder):
     _os.mkdir(_lib_folder)
-if not _os.path.isfile(_new_config):  # check file exists
+
+from .lib.nngt_config import get_config, set_config, _load_config, _convert
+from .lib.logger import logger as _logger
+
+# check that config file exists
+if not _os.path.isfile(_new_config):  # if it does not, create it
     _shutil.copy(_default_config, _new_config)
-else:                                 # check it is up-to-date
+else:                                 # if it does check it is up-to-date
     with open(_new_config, 'r') as fconfig:
         options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
         config_version = ""
