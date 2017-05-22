@@ -29,7 +29,8 @@ import sphinx_bootstrap_theme
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 sys.path.insert(0, os.path.abspath('../src/'))
-sys.path.append(os.path.abspath('.'))
+current_directory = os.path.abspath('.')
+sys.path.append(current_directory)
 
 '''
 if on rtd, the graph libraries are not available so they need to be mocked
@@ -81,7 +82,19 @@ if on_rtd:
     for mod in mock_objects_modules:
         sys.modules[mod] = mock_object
 
+
+# -- Setup nngt.rst then start --------------------------------------------
+
+from autosum import gen_autosum
+
+source = current_directory + "/modules/nngt.rst.in"
+target = current_directory + "/modules/nngt.rst"
+module = "nngt"
+
+gen_autosum(source, target, module)
+
 from nngt import version as nngt_version
+
 
 # -- General configuration ------------------------------------------------
 

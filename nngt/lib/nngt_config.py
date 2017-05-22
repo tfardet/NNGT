@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 # ----------------- #
 
 def get_config(key=None):
+    ''' Get the NNGT configuration as a dictionary. '''
     if key is None:
         return {key: val for key, val in nngt._config.items()}
     else:
