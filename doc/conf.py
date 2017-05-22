@@ -45,7 +45,7 @@ if on_rtd:
 
         def __call__(self, *args, **kwargs):
             pass
-        
+
         def __getattr__(self, name):
             return self
 
@@ -62,19 +62,20 @@ if on_rtd:
         @property
         def __bases__(self):
             return (object,)
-    
+
     mocked_modules = [
         "graph_tool", "igraph", "networkx", "matplotlib", "matplotlib.cm",
         "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
+        "svg.path", "shapely.geometry"
     ]
-    
+
     mock_objects_modules = [
         "graph_tool.spectral", "graph_tool.generation", "graph_tool.util",
         "graph_tool.stats", "graph_tool.centrality", "graph_tool.correlations",
         "graph_tool.topology", "graph_tool.draw", "graph_tool.clustering",
-        "nest", "shapely", "shapely.geometry", "shapely.affinity"
+        "nest", "shapely", "shapely.affinity", "dxfgrabber"
     ]
-    
+
     for mod in mocked_modules:
         sys.modules[mod] = Mock()
     for mod in mock_objects_modules:
