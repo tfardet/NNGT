@@ -106,6 +106,10 @@ def set_config(config, value=None):
                            "consistent throughout the code. Current NEST "
                            "config states omp = " + str(omp_nest) + ", hence "
                            "`graph_tool` configuration was not changed.")
+    # update matplotlib
+    if nngt._config['use_tex']:
+        import matplotlib
+        matplotlib.rc('text', usetex=True)
     # log changes
     _configure_logger(nngt._logger)
     conf_info = config_info.format(

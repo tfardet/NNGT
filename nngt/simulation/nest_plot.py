@@ -160,6 +160,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     for rec, var in zip(lst_rec, record):
         info = nest.GetStatus([rec])[0]
         if str(info["model"]) == "spike_detector":
+            print(info["model"], lst_rec, num_raster)
             c = colors[num_raster]
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]

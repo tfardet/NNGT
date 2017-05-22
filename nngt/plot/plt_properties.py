@@ -22,9 +22,10 @@
 
 import numpy as np
 
-from .custom_plt import palette, format_exponent
+import nngt
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.analysis import degree_distrib, betweenness_distrib, node_attributes
+from .custom_plt import palette, format_exponent
 
 
 __all__ = [
@@ -92,7 +93,6 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins=50,
     else:
         if colors is None:
             colors = palette(np.linspace(0.,0.5, len(deg_type)))
-            print(palette, colors)
         m = ["o", "s", "D"]
         lines, legends = [], []
         for i,s_type in enumerate(deg_type):
@@ -184,7 +184,8 @@ def attribute_distribution(network, attribute, num_bins=50, logx=False,
             #~ lines.append(ax1.scatter(bins, counts, c=colors[i], marker=m[i]))
             #~ legends.append(attribute)
         #~ ax1.legend(lines, legends)
-    ax1.set_xlabel(attribute.replace("_", "\\_"))
+    if nngt._config['use_tex']:
+        ax1.set_xlabel(attribute.replace("_", "\\_"))
     ax1.set_ylabel("Node count")
     _set_scale(ax1, maxbins, min_bins, maxcounts, logx, logy)
     ax1.set_title(
@@ -365,8 +366,11 @@ def node_attributes_distribution(network, attributes, nodes=None, num_bins=50,
         counts, bins = np.histogram(val, num_bins[i])
         bins = bins[:-1] + 0.5*np.diff(bins)
         axes[i].plot(bins, counts, ls="--", marker="o")
+        end_attr = attr[1:]
+        if nngt._config["use_tex"]:
+            end_attr = end_attr.replace("_", "\\_")
         axes[i].set_title("{}{} distribution for {}".format(
-            attr[0].upper(), attr[1:].replace("_", "\\_"), network.name),
+            attr[0].upper(), end_attr, network.name),
             x=0., y=1.05)
     # adjust space, set title, and show
     _format_and_show(fig, num_plot, values, title, show)
@@ -409,16 +413,21 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     values = node_attributes(network, other_attributes, nodes=nodes)
     fig, axes = _set_new_plot(fignum=fig.number, names=other_attributes)
     for i, (attr, val) in enumerate(values.items()):
+        end_attr = attr[1:]
+        end_ref_attr = reference_attribute[1:]
+        if nngt._config["use_tex"]:
+            end_attr = end_attr.replace("_", "\\_")
+            end_ref_attr = end_ref_attr.replace("_", "\\_")
         # reference nodes
         axes[i].plot(val, ref_data, ls="", marker="o")
-        axes[i].set_xlabel(attr[0].upper() + attr[1:].replace("_", "\\_"))
-        axes[i].set_ylabel(
-            reference_attribute[0].upper() +
-            reference_attribute[1:].replace("_", "\\_"))
-        axes[i].set_title("{}{} vs {} for each ".format(
-            attr[0].upper(), attr[1:].replace("_", "\\_"),
-            reference_attribute.replace("_", "\\_"), network.name) +\
-            "node in {}".format(network.name), loc='left', x=0., y=1.05)
+        axes[i].set_xlabel(attr[0].upper() + end_attr)
+        axes[i].set_ylabel(reference_attribute[0].upper() + end_ref_attr)
+        axes[i].set_title(
+            "{}{} vs {} for each ".format(
+                attr[0].upper(), end_attr, reference_attribute[0] + \
+                end_ref_attr, network.name) + \
+            "node in {}".format(network.name),
+            loc='left', x=0., y=1.05)
     # adjust space, set title, and show
     _format_and_show(fig, 0, values, title, show)
 

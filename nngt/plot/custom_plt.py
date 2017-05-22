@@ -46,7 +46,8 @@ if not with_seaborn:
             return pal(numbers)
         mpl.rcParams['font.size'] = 12
         mpl.rcParams['font.family'] = 'serif'
-        mpl.rc('text', usetex=True)
+        if nngt._config['use_tex']:
+            mpl.rc('text', usetex=True)
         mpl.rcParams['axes.labelsize'] = mpl.rcParams['font.size']
         mpl.rcParams['axes.titlesize'] = 1.2*mpl.rcParams['font.size']
         mpl.rcParams['legend.fontsize'] = mpl.rcParams['font.size']

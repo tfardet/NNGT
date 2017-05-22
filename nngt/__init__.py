@@ -121,6 +121,7 @@ _config = {
     'palette': 'Set1',
     'seed': None,
     'use_database': False,
+    'use_tex': False,
     'set_omp_graph_tool': False,
     'with_nest': False,
     'with_plot': False,

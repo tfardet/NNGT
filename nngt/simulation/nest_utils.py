@@ -310,7 +310,7 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
 def _monitor(gids, nest_recorder, params):
     new_record = []
     recorders = []
-    for i,rec in enumerate(nest_recorder):
+    for i, rec in enumerate(nest_recorder):
         # multi/volt/conductancemeter
         if "meter" in rec:
             device = None
@@ -336,4 +336,5 @@ def _monitor(gids, nest_recorder, params):
         else:
             raise InvalidArgument('Invalid recorder item in `nest_recorder`: '
                                   '{} is unknown.'.format(nest_recorder))
+    print(nest_recorder, recorders)
     return tuple(recorders), new_record
