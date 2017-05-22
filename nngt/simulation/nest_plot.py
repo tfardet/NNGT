@@ -139,6 +139,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 sort, gids, network, data=data, return_attr=True)
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
+    print(palette, colors)
     num_raster, num_detec = 0, 0
     fig_raster, fig_detec = None, None
     fignums = []

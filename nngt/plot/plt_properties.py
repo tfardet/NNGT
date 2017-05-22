@@ -92,6 +92,7 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins=50,
     else:
         if colors is None:
             colors = palette(np.linspace(0.,0.5, len(deg_type)))
+            print(palette, colors)
         m = ["o", "s", "D"]
         lines, legends = [], []
         for i,s_type in enumerate(deg_type):

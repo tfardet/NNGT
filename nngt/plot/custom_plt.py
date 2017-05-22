@@ -41,7 +41,9 @@ if nngt._config["color_lib"] == "seaborn":
 
 if not with_seaborn:
     try:
-        palette = cm.get_cmap(nngt._config["palette"])
+        def palette(numbers):
+            pal = cm.get_cmap(nngt._config["palette"])
+            return pal(numbers)
         mpl.rcParams['font.size'] = 12
         mpl.rcParams['font.family'] = 'serif'
         mpl.rc('text', usetex=True)
