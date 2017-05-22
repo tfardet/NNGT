@@ -20,13 +20,14 @@
 
 """ Analyze the activity of a network """
 
-import weakref
 from collections import namedtuple
 from copy import deepcopy
+import weakref
 
+import matplotlib.pyplot as plt
 import nest
 import numpy as np
-import matplotlib.pyplot as plt
+import scipy.sparse as ssp
 
 from nngt.lib import InvalidArgument
 from nngt.analysis.activity_analysis import _b2_from_data, _fr_from_data
@@ -166,7 +167,6 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
     CSR matrix containing the spikes sorted by neuron (rows) and time
     (columns).
     '''
-    import nest
     # get spikes
     if recorder is not None:
         data = nest.GetStatus(recorder[0])[0]["events"]
