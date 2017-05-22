@@ -656,7 +656,7 @@ def generate(di_instructions, **kwargs):
     
     See also
     --------
-    Generator functions are detailed in :mod:`~nngt.generation`.
+    :mod:`~nngt.generation`
     '''
     graph_type = di_instructions["graph_type"]
     instructions = deepcopy(di_instructions)
