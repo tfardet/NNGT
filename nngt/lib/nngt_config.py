@@ -24,6 +24,7 @@ import sys
 import logging
 
 import nngt
+from .logger import _configure_logger, _init_logger
 from .reloading import reload_module
 
 
@@ -105,7 +106,7 @@ def set_config(config, value=None):
                            "config states omp = " + str(omp_nest) + ", hence "
                            "`graph_tool` configuration was not changed.")
     # log changes
-    logger.setLevel(nngt._config["log_level"])
+    _configure_logger(nngt._logger)
     conf_info = config_info.format(
         gl=nngt._config["graph_library"],
         thread=nngt._config["multithreading"],
@@ -151,6 +152,8 @@ def _load_config(path_config):
             sep = opt.find("=")
             opt_name = opt[:sep].strip()
             nngt._config[opt_name] = _convert(opt[sep+1:].strip())
+    _init_logger(nngt._logger)
+    
 
 
 config_info = '''
