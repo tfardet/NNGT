@@ -9,7 +9,8 @@ For more details regarding the main classes, see:
    nngt/side-classes
 
 .. automodule:: nngt
-   :no-undoc-members:
+   :noindex:
+   :no-members:
 
 .. toctree::
    :hidden:

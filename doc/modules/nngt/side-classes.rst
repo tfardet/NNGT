@@ -1,8 +1,8 @@
 Side classes
 ============
 
-.. currentmodule:: nngt
-.. autoclass:: nngt.geometry.Shape
+.. currentmodule:: nngt.geometry
+.. autoclass:: Shape
 
 .. currentmodule:: nngt
 .. autoclass:: NeuralPop

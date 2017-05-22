@@ -34,24 +34,26 @@ Provides algorithms for
 Available subpackages
 =====================
 
+analysis
+  Tools to study graph topology and neuronal activity.
 core
-	Contains the main network classes.
-	Classes and methods for users are loaded at the main module (`nngt`) level
-    when the library is imported, so :class:`nngt.core` should not be used.
+  Contains the main network classes.
+  classes and methods for users are loaded at the main module (`nngt`) level
+  when the library is imported, so :class:`nngt.core` should not be used.
 generation
-	Functions to generate specific networks.
+  Functions to generate specific networks.
 geometry
-	Tools to work on metric graphs (see
-    `PyNCulture <https://github.com/SENeC-Initiative/PyNCulture>`_).
+  Tools to work on metric graphs (see
+  `PyNCulture <https://github.com/SENeC-Initiative/PyNCulture>`_).
 io
-	Tools for input/output operations.
+  Tools for input/output operations.
 lib
-	Basic functions used by several sub-packages.
+  Basic functions used by several sub-packages.
 simulation
-	Tools to provide complex network generation with NEST and help analyze the
-    influence of the network structure on neuronal activity.
+  Tools to provide complex network generation with NEST and help analyze the
+  influence of the network structure on neuronal activity.
 plot
-	plot data or graphs using matplotlib and graph_tool.
+  plot data or graphs using matplotlib and graph_tool.
 
 
 Utilities
