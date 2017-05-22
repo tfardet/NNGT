@@ -3,16 +3,20 @@
 
 """ Matplotlib customization """
 
-import nngt
 import itertools
+import logging
+
 import matplotlib as mpl
-import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
+import nngt
 
 
-#
-#---
-# Customize PyPlot
-#------------------------
+logger = logging.getLogger(__name__)
+
+# ---------------- #
+# Customize PyPlot #
+# ---------------- #
 
 with_seaborn = False
 palette = None
@@ -30,12 +34,14 @@ if nngt._config["color_lib"] == "seaborn":
             else:
                 return sns.color_palette(nngt._config["palette"], len(c))
         palette = sns_palette
-    except ImportError:
-        pass
-        
+    except ImportError as e:
+        logger.warning(
+            "`seaborn` requested but could not set it: {}.".format(e))
+
+
 if not with_seaborn:
-    palette = plt.get_cmap(nngt._config["palette"])
     try:
+        palette = cm.ScalarMappable(cmap=nngt._config["palette"])
         mpl.rcParams['font.size'] = 12
         mpl.rcParams['font.family'] = 'serif'
         mpl.rc('text', usetex=True)
@@ -60,11 +66,13 @@ if not with_seaborn:
         mpl.rcParams['axes.grid'] = True
         mpl.rcParams['grid.linestyle'] = ':'
         mpl.rcParams['path.simplify'] = True
-    except:
-        pass
+    except Exception as e:
+        logger.warning(
+            "Error configuring `matplotlib`: {}.".format(e))
 
 
 def format_exponent(ax, axis='y', pos=(1.,0.), valign="top", halign="right"):
+    import matplotlib.pyplot as plt
     # Change the ticklabel format to scientific format
     ax.ticklabel_format(axis=axis, style='sci', scilimits=(-3, 2))
     # Get the appropriate axis

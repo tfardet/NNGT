@@ -26,7 +26,6 @@ import weakref
 import numpy as np
 
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import matplotlib.animation as anim
 
@@ -72,6 +71,7 @@ class _SpikeAnimator:
         Calling class is supposed to have defined `self.times`, `self.start`,
         `self.duration`, `self.trace`, and `self.timewindow`.
         '''
+        import matplotlib.pyplot as plt
         import nest
         
         # organization
@@ -350,6 +350,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
             'num_yarrows', 'dotx', 'doty', 'time_dependent', 'recordables',
             'arrow_scale'.
         '''
+        import matplotlib.pyplot as plt
         import nest
 
         x = "times" if x == "time" else x
@@ -538,6 +539,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         **kwargs : dict, optional (default: {})
             Optional arguments such as 'make_rate'.
         '''
+        import matplotlib.pyplot as plt
         import nest
 
         self.network = weakref.ref(network)
