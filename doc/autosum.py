@@ -42,7 +42,6 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
                 keep *= inspect.isclass(m)
             else:
                 keep *= inspect.isfunction(m) + inspect.isclass(m)
-            print(module, dtype, member, keep)
             if keep:
                 if autotype == "summary":
                     str_autosum += '    ' + module + '.' + member + '\n'
