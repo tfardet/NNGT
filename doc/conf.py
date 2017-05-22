@@ -62,24 +62,23 @@ if on_rtd:
         @property
         def __bases__(self):
             return (object,)
-
-    sys.modules["graph_tool"] = Mock()
-    sys.modules["igraph"] = Mock()
-    sys.modules["networkx"] = Mock()
-    sys.modules["graph_tool.spectral"] = mock_object
-    sys.modules["graph_tool.generation"] = mock_object
-    sys.modules["graph_tool.util"] = mock_object
-    sys.modules["graph_tool.stats"] = mock_object
-    sys.modules["graph_tool.centrality"] = mock_object
-    sys.modules["graph_tool.correlations"] = mock_object
-    sys.modules["graph_tool.topology"] = mock_object
-    sys.modules["graph_tool.draw"] = mock_object
-    sys.modules["graph_tool.clustering"] = mock_object
-    sys.modules["matplotlib"] = Mock()
-    sys.modules["matplotlib.lines"] = Mock()
-    sys.modules["matplotlib.pyplot"] = Mock()
-    sys.modules["matplotlib.animation"] = Mock()
-    sys.modules["nest"] = mock_object
+    
+    mocked_modules = [
+        "graph_tool", "igraph", "networkx", "matplotlib", "matplotlib.cm",
+        "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
+    ]
+    
+    mock_objects_modules = [
+        "graph_tool.spectral", "graph_tool.generation", "graph_tool.util",
+        "graph_tool.stats", "graph_tool.centrality", "graph_tool.correlations",
+        "graph_tool.topology", "graph_tool.draw", "graph_tool.clustering",
+        "nest", "shapely", "shapely.geometry", "shapely.affinity"
+    ]
+    
+    for mod in mocked_modules:
+        sys.modules[mod] = Mock()
+    for mod in mock_objects_modules:
+        sys.modules[mod] = mock_object
 
 from nngt import version as nngt_version
 
