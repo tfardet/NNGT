@@ -29,35 +29,26 @@ sys.argv.append('--quiet')
 import nngt
 
 
-#
-#---
-# Dependencies
-#---------------------
+# -------------- #
+# Import modules #
+# -------------- #
 
-depends = ['nest', 'nngt.core']
-
+from . import nest_activity as _na
+from . import nest_graph as _ng
+from . import nest_utils as _nu
+from .nest_activity import *
 from .nest_graph import *
 from .nest_utils import *
-from .nest_activity import *
-
-nngt.__all__.append('simulation')
 
 
-#
-#---
-# Declare functions
-#---------------------
+# ----------------- #
+# Declare functions #
+# ----------------- #
 
-__all__ = [
-    'activity_types',
-	'get_nest_network',
-	'make_nest_network',
-    'monitor_groups',
-    'monitor_nodes',
-    'set_noise',
-    'set_poisson_input',
-    'set_step_currents',
-]
+__all__ = []
+__all__.extend(_na.__all__)
+__all__.extend(_ng.__all__)
+__all__.extend(_nu.__all__)
 
 # test import of simulation plotting tools
 
