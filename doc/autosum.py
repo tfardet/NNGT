@@ -24,15 +24,31 @@ import importlib
 import inspect
 
 
-def gen_autosum(source, target, module):
+def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
+    # load module and get content
     mod = importlib.import_module(module)
     mod_dir = dir(mod)
+    # set ignored classes
+    ignore = [] if ignore is None else ignore
+    # list classes and functions
     str_autosum = ''
     for member in mod_dir:
-        if not member.startswith('_'):
+        if not member.startswith('_') and not member in ignore:
             m = getattr(mod, member)
-            if inspect.isclass(m) or inspect.isfunction(m):
-                str_autosum += '   ' + module + '.' + member + '\n'
+            keep = 1
+            if dtype == "func":
+                keep *= inspect.isfunction(m)
+            elif dtype == "class":
+                keep *= inspect.isclass(m)
+            else:
+                keep *= inspect.isfunction(m) + inspect.isclass(m)
+            print(module, dtype, member, keep)
+            if keep:
+                if autotype == "summary":
+                    str_autosum += '    ' + module + '.' + member + '\n'
+                else:
+                    str_autosum += '.. ' + autotype + ':: ' + member + '\n'
+    # write to file
     with open(source, "r") as rst_input:
         with open(target, "w") as main_rst:
             for line in rst_input:

@@ -1,9 +1,10 @@
 Side classes
 ============
 
+.. currentmodule:: nngt
+@autosum@
+
 .. currentmodule:: nngt.geometry
 .. autoclass:: Shape
-
-.. currentmodule:: nngt
-.. autoclass:: NeuralPop
     :noindex:
+

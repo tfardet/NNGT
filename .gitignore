@@ -1,6 +1,8 @@
 *.pyc
 doc/.build/
 doc/modules/nngt.rst
+doc/modules/nngt/main-functions.rst
+doc/modules/nngt/side-classes.rst
 nngt/testing/Ref/*
 */__pycache__
 .coverage

@@ -87,11 +87,23 @@ if on_rtd:
 
 from autosum import gen_autosum
 
+# nngt (main)
 source = current_directory + "/modules/nngt.rst.in"
 target = current_directory + "/modules/nngt.rst"
 module = "nngt"
+gen_autosum(source, target, module, 'summary')
 
-gen_autosum(source, target, module)
+# nngt (functions)
+source = current_directory + "/modules/nngt/main-functions.rst.in"
+target = current_directory + "/modules/nngt/main-functions.rst"
+gen_autosum(source, target, module, 'autofunction', dtype="func")
+
+# nngt (side classes)
+source = current_directory + "/modules/nngt/side-classes.rst.in"
+target = current_directory + "/modules/nngt/side-classes.rst"
+ignore = ("Graph", "Network", "SpatialGraph", "SpatialNetwork")
+gen_autosum(
+    source, target, module, 'autoclass', dtype="class", ignore=ignore)
 
 from nngt import version as nngt_version
 
