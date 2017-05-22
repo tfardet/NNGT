@@ -336,5 +336,4 @@ def _monitor(gids, nest_recorder, params):
         else:
             raise InvalidArgument('Invalid recorder item in `nest_recorder`: '
                                   '{} is unknown.'.format(nest_recorder))
-    print(nest_recorder, recorders)
     return tuple(recorders), new_record
