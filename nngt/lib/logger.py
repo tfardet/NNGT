@@ -27,12 +27,6 @@ import logging
 import nngt
 
 
-# create logger
-
-logger = logging.getLogger('nngt')
-logger.setLevel(logging.DEBUG)
-
-
 # check that log folder exists, otherwise create it
 
 nngt._config["log_folder"] = os.path.expanduser(nngt._config["log_folder"])
@@ -42,23 +36,39 @@ if not os.path.isdir(nngt._config["log_folder"]):
 
 # configure logger
 
-logFileFormatter = logging.Formatter(
-    '[%(levelname)s @ %(name)s] %(asctime)s:\n\t%(message)s')
-logConsoleFormatter = logging.Formatter(
-    '[%(levelname)s @ %(name)s]: %(message)s')
-consoleHandler = logging.StreamHandler()
-consoleHandler.setFormatter(logConsoleFormatter)
-consoleHandler.setLevel(nngt._config["log_level"])
-logger.addHandler(consoleHandler)
+def _init_logger(logger):
+    logger.setLevel(logging.DEBUG)
+    logConsoleFormatter = logging.Formatter(
+        '[%(levelname)s @ %(name)s]: %(message)s')
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(logConsoleFormatter)
+    consoleHandler.setLevel(nngt._config["log_level"])
+    logger.addHandler(consoleHandler)
+    if nngt._config["log_to_file"]:
+        _log_to_file(logger, create_writer=True)
+
+def _configure_logger(logger):
+    logger.setLevel(logging.DEBUG)
+    is_writing_to_file = False
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.setLevel(nngt._config["log_level"])
+        elif isinstance(handler, logging.FileHandler):
+            is_writing_to_file = True
+    if nngt._config["log_to_file"]:
+        _log_to_file(logger, not is_writing_to_file)
 
 
 # initialize file log
 
-if nngt._config["log_to_file"]:
-    today = date.today()
-    fileName = "/nngt_{}-{}-{}".format(today.month, today.day, today.year)
-    fileHandler = logging.FileHandler(
-        "{}/{}.log".format(nngt._config["log_folder"], fileName))
-    fileHandler.setFormatter(logFileFormatter)
-    fileHandler.setLevel(logging.DEBUG)
-    logger.addHandler(fileHandler)
+def _log_to_file(logger, create_writer):
+    if create_writer:
+        logFileFormatter = logging.Formatter(
+            '[%(levelname)s @ %(name)s] %(asctime)s:\n\t%(message)s')
+        today = date.today()
+        fileName = "/nngt_{}-{}-{}".format(today.month, today.day, today.year)
+        fileHandler = logging.FileHandler(
+            "{}/{}.log".format(nngt._config["log_folder"], fileName))
+        fileHandler.setFormatter(logFileFormatter)
+        fileHandler.setLevel(logging.DEBUG)
+        logger.addHandler(fileHandler)

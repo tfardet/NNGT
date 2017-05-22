@@ -6,18 +6,27 @@ For more details regarding the main classes, see:
 
 .. toctree::
    nngt/graph-classes
+   nngt/main-functions
    nngt/side-classes
 
 .. automodule:: nngt
-   :no-undoc-members:
+   :noindex:
+   :no-members:
+
+.. currentmodule:: nngt
+
+.. autosummary::
+
+@autosum@
 
 .. toctree::
    :hidden:
    :glob:
 
+   analysis
    core
    generation
-   simulation
-   plot
-   analysis
+   geometry
    lib
+   plot
+   simulation

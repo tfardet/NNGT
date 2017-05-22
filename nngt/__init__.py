@@ -34,24 +34,26 @@ Provides algorithms for
 Available subpackages
 =====================
 
+analysis
+  Tools to study graph topology and neuronal activity.
 core
-	Contains the main network classes.
-	Classes and methods for users are loaded at the main module (`nngt`) level
-    when the library is imported, so :class:`nngt.core` should not be used.
+  Contains the main network classes.
+  classes and methods for users are loaded at the main module (`nngt`) level
+  when the library is imported, so :class:`nngt.core` should not be used.
 generation
-	Functions to generate specific networks.
+  Functions to generate specific networks.
 geometry
-	Tools to work on metric graphs (see
-    `PyNCulture <https://github.com/SENeC-Initiative/PyNCulture>`_).
+  Tools to work on metric graphs (see
+  `PyNCulture <https://github.com/SENeC-Initiative/PyNCulture>`_).
 io
-	Tools for input/output operations.
+  Tools for input/output operations.
 lib
-	Basic functions used by several sub-packages.
+  Basic functions used by several sub-packages.
 simulation
-	Tools to provide complex network generation with NEST and help analyze the
-    influence of the network structure on neuronal activity.
+  Tools to provide complex network generation with NEST and help analyze the
+  influence of the network structure on neuronal activity.
 plot
-	plot data or graphs using matplotlib and graph_tool.
+  plot data or graphs using matplotlib and graph_tool.
 
 
 Utilities
@@ -84,6 +86,7 @@ Main classes and functions
 import os as _os
 import shutil as _shutil
 import sys as _sys
+import logging
 
 
 version = '0.6.a'
@@ -100,17 +103,51 @@ if _sys.hexversion < 0x02070000:
     raise ImportError('NNGT requires Python 2.7 or higher.')
 
 # configuration
-from .lib.nngt_config import get_config, set_config, _load_config, _convert
+_config = {
+    'color_lib': 'matplotlib',
+    'db_folder': "~/.nngt/database",
+    'db_to_file': False,
+    'db_url': "mysql:///nngt_db",
+    'graph': object,
+    'graph_library': "",
+    'library': None,
+    'load_nest': False,
+    'log_folder': "~/.nngt/log",
+    'log_level': 10,
+    'log_to_file': False,
+    'mpl_backend': None,
+    'multithreading': False,
+    'omp': 1,
+    'palette': 'Set1',
+    'seed': None,
+    'use_database': False,
+    'set_omp_graph_tool': False,
+    'with_nest': False,
+    'with_plot': False,
+}
 
 _lib_folder = _os.path.expanduser('~') + '/.nngt'
 _new_config = _os.path.expanduser('~') + '/.nngt/nngt.conf'
 _default_config = _os.path.dirname(_os.path.realpath(__file__)) + \
                   '/nngt.conf.default'
-if not _os.path.isdir(_lib_folder):   # check folder exists
+
+# check that library config folder exists
+if not _os.path.isdir(_lib_folder):
     _os.mkdir(_lib_folder)
-if not _os.path.isfile(_new_config):  # check file exists
+
+# IMPORTANT: first create logger
+from .lib.logger import _configure_logger
+
+_logger = logging.getLogger(__name__)
+_configure_logger(_logger)
+
+# IMPORTANT: afterwards, import config
+from .lib.nngt_config import get_config, set_config, _load_config, _convert
+
+# check that config file exists
+if not _os.path.isfile(_new_config):  # if it does not, create it
     _shutil.copy(_default_config, _new_config)
-else:                                 # check it is up-to-date
+else:                                 # if it does check it is up-to-date
     with open(_new_config, 'r') as fconfig:
         options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
         config_version = ""
@@ -126,7 +163,7 @@ else:                                 # check it is up-to-date
                             "settings have be overwritten.")
 
 
-_config = _load_config(_new_config)
+_load_config(_new_config)
 
 # multithreading
 _config["omp"] = int(_os.environ.get("OMP", 1))
@@ -169,7 +206,6 @@ if not _libs:
 from .core.graph_datastruct import NeuralPop, NeuralGroup, GroupProperty
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .generation.graph_connectivity import generate
-from .lib.logger import logger as _logger
 from .lib.rng_tools import seed
 
 

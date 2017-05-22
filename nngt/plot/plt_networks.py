@@ -18,12 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from graph_tool.centrality import betweenness
-import graph_tool.draw as gplot
-
-import gtk
-
-import matplotlib.pyplot as plt
 import numpy as np
 
 from .custom_plt import palette, format_exponent
@@ -102,6 +96,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     dpi : int, optional (default: 75)
         Resolution (dot per inch).
     '''
+    import matplotlib.pyplot as plt
     size_inches = (size[0]/float(dpi), size[1]/float(dpi))
     fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
     ax = fig.add_subplot(111, frameon=0, aspect=1)

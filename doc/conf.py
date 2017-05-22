@@ -29,7 +29,8 @@ import sphinx_bootstrap_theme
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 sys.path.insert(0, os.path.abspath('../src/'))
-sys.path.append(os.path.abspath('.'))
+current_directory = os.path.abspath('.')
+sys.path.append(current_directory)
 
 '''
 if on rtd, the graph libraries are not available so they need to be mocked
@@ -45,7 +46,7 @@ if on_rtd:
 
         def __call__(self, *args, **kwargs):
             pass
-        
+
         def __getattr__(self, name):
             return self
 
@@ -63,25 +64,49 @@ if on_rtd:
         def __bases__(self):
             return (object,)
 
-    sys.modules["graph_tool"] = Mock()
-    sys.modules["igraph"] = Mock()
-    sys.modules["networkx"] = Mock()
-    sys.modules["graph_tool.spectral"] = mock_object
-    sys.modules["graph_tool.generation"] = mock_object
-    sys.modules["graph_tool.util"] = mock_object
-    sys.modules["graph_tool.stats"] = mock_object
-    sys.modules["graph_tool.centrality"] = mock_object
-    sys.modules["graph_tool.correlations"] = mock_object
-    sys.modules["graph_tool.topology"] = mock_object
-    sys.modules["graph_tool.draw"] = mock_object
-    sys.modules["graph_tool.clustering"] = mock_object
-    sys.modules["matplotlib"] = Mock()
-    sys.modules["matplotlib.lines"] = Mock()
-    sys.modules["matplotlib.pyplot"] = Mock()
-    sys.modules["matplotlib.animation"] = Mock()
-    sys.modules["nest"] = mock_object
+    mocked_modules = [
+        "graph_tool", "igraph", "networkx", "matplotlib", "matplotlib.cm",
+        "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
+        "svg", "svg.path"
+    ]
+
+    mock_objects_modules = [
+        "graph_tool.spectral", "graph_tool.generation", "graph_tool.util",
+        "graph_tool.stats", "graph_tool.centrality", "graph_tool.correlations",
+        "graph_tool.topology", "graph_tool.draw", "graph_tool.clustering",
+        "nest", "shapely", "shapely.affinity", "shapely.geometry", "dxfgrabber"
+    ]
+
+    for mod in mocked_modules:
+        sys.modules[mod] = Mock()
+    for mod in mock_objects_modules:
+        sys.modules[mod] = mock_object
+
+
+# -- Setup nngt.rst then start --------------------------------------------
+
+from autosum import gen_autosum
+
+# nngt (main)
+source = current_directory + "/modules/nngt.rst.in"
+target = current_directory + "/modules/nngt.rst"
+module = "nngt"
+gen_autosum(source, target, module, 'summary')
+
+# nngt (functions)
+source = current_directory + "/modules/nngt/main-functions.rst.in"
+target = current_directory + "/modules/nngt/main-functions.rst"
+gen_autosum(source, target, module, 'autofunction', dtype="func")
+
+# nngt (side classes)
+source = current_directory + "/modules/nngt/side-classes.rst.in"
+target = current_directory + "/modules/nngt/side-classes.rst"
+ignore = ("Graph", "Network", "SpatialGraph", "SpatialNetwork")
+gen_autosum(
+    source, target, module, 'autoclass', dtype="class", ignore=ignore)
 
 from nngt import version as nngt_version
+
 
 # -- General configuration ------------------------------------------------
 
@@ -420,11 +445,12 @@ napoleon_use_rtype = False
 imported_members = True
 
 intersphinx_mapping = {
-    'python': ('http://docs.python.org/2.7/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
-    'matplotlib': ('http://matplotlib.sourceforge.net', None),
-    'ipython': ('http://ipython.org/ipython-doc/stable/', None),
     'graph_tool': ('http://graph-tool.skewed.de/static/doc/', None),
+    'ipython': ('http://ipython.org/ipython-doc/stable/', None),
+    'matplotlib': ('http://matplotlib.org/', None),
     'networkx': ('https://networkx.readthedocs.io/en/stable/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy', None),
+    'python': ('https://docs.python.org/3/', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
+    'shapely': ('http://toblerity.org/shapely/manual.html', None),
 }

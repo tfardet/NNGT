@@ -20,7 +20,6 @@
 
 """ Tools to plot graph properties """
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from .custom_plt import palette, format_exponent
@@ -70,6 +69,7 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins=50,
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
     '''
+    import matplotlib.pyplot as plt
     fig, lst_axes = plt.figure(fignum), None
     # create new axes or get them from existing ones
     if axis_num is None:
@@ -143,6 +143,7 @@ def attribute_distribution(network, attribute, num_bins=50, logx=False,
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
     '''
+    import matplotlib.pyplot as plt
     fig, lst_axes = plt.figure(fignum), None
     # create new axes or get them from existing ones
     if axis_num is None:
@@ -221,6 +222,7 @@ def betweenness_distribution(network, btype="both", use_weights=True,
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
     '''
+    import matplotlib.pyplot as plt
     if btype not in ("node", "edge", "both"):
         raise InvalidArgument('`btype` must be one of the following: '
                               '"node", "edge", "both".')
@@ -316,6 +318,7 @@ def node_attributes_distribution(network, attributes, nodes=None, num_bins=50,
         it is used for all attributes, otherwize a list containing one int per
         attribute in `attributes` is required.
     '''
+    import matplotlib.pyplot as plt
     if not nonstring_container(attributes):
         attributes = [attributes]
     else:
@@ -393,6 +396,7 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     nodes : list, optional (default: all nodes)
         Nodes for which the attributes should be returned.
     '''
+    import matplotlib.pyplot as plt
     if not nonstring_container(other_attributes):
         other_attributes = [other_attributes]
     fig = plt.figure()
@@ -448,6 +452,7 @@ def compare_population_attributes(network, attributes, nodes=None,
         it is used for all attributes, otherwize a list containing one int per
         attribute in `attributes` is required.
     '''
+    import matplotlib.pyplot as plt
     if not nonstring_container(attributes):
         attributes = [attributes]
     else:
@@ -550,6 +555,7 @@ def compare_population_attributes(network, attributes, nodes=None,
 # ----------------- #
 
 def _set_new_plot(fignum=None, num_new_plots=1, names=None, sharex=None):
+    import matplotlib.pyplot as plt
     # get the figure and compute the new number of rows and cols
     fig = plt.figure(num=fignum)
     num_axes = len(fig.axes) + num_new_plots
@@ -593,6 +599,7 @@ def _set_scale(ax1, maxbins, minbins, maxcounts, logx, logy):
 
 
 def _format_and_show(fig, num_plot, values, title, show):
+    import matplotlib.pyplot as plt
     num_cols = max(int(np.ceil(np.sqrt(num_plot + len(values)))), 1)
     ratio = (num_plot + len(values)) / float(num_cols)
     num_rows = int(ratio)

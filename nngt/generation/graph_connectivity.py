@@ -654,8 +654,9 @@ def generate(di_instructions, **kwargs):
         `di_instructions` should also contain at least all non-optional
         arguments of the generator function.
     
-    .. seealso:
-        Generator functions are detailed in :mod:`~nngt.generation`.
+    See also
+    --------
+    :mod:`~nngt.generation`
     '''
     graph_type = di_instructions["graph_type"]
     instructions = deepcopy(di_instructions)

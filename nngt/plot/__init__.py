@@ -26,28 +26,12 @@ Content
 =======
 """
 
-import matplotlib as _mpl
-
-import nngt as _nngt
-
-if _nngt._config["mpl_backend"] is not None:
-    _mpl.use(_nngt._config["mpl_backend"])
-else:
-    sav_backend = _mpl.get_backend()
-    backends = [ 'GTK3Agg', 'Qt4Agg', 'Qt5Agg' ]
-    keep_trying = True
-    while backends and keep_trying:
-        try:
-            backend = backends.pop()
-            _mpl.use(backend)
-            keep_trying = False
-        except:
-            _mpl.use(sav_backend)
-
-
 import warnings as _warn
 _warn.filterwarnings("ignore", module="matplotlib")
 
+import matplotlib as _mpl
+
+import nngt as _nngt
 
 # module import
 
@@ -64,5 +48,22 @@ __all__ = [
     "draw_network",
     "palette",
 ]
+
+
+if _nngt._config["mpl_backend"] is not None:
+    _mpl.use(_nngt._config["mpl_backend"])
+else:
+    sav_backend = _mpl.get_backend()
+    backends = ['GTK3Agg', 'Qt4Agg', 'Qt5Agg', 'TkAgg']
+    keep_trying = True
+    while backends and keep_trying:
+        try:
+            backend = backends.pop()
+            _mpl.use(backend)
+            import matplotlib.pyplot as plt
+            keep_trying = False
+        except:
+            _mpl.use(sav_backend)
+
 
 __all__.extend(_plt_prop.__all__)

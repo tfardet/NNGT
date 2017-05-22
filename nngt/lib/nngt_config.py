@@ -24,6 +24,7 @@ import sys
 import logging
 
 import nngt
+from .logger import _configure_logger, _init_logger
 from .reloading import reload_module
 
 
@@ -35,6 +36,7 @@ logger = logging.getLogger(__name__)
 # ----------------- #
 
 def get_config(key=None):
+    ''' Get the NNGT configuration as a dictionary. '''
     if key is None:
         return {key: val for key, val in nngt._config.items()}
     else:
@@ -105,7 +107,7 @@ def set_config(config, value=None):
                            "config states omp = " + str(omp_nest) + ", hence "
                            "`graph_tool` configuration was not changed.")
     # log changes
-    logger.setLevel(nngt._config["log_level"])
+    _configure_logger(nngt._logger)
     conf_info = config_info.format(
         gl=nngt._config["graph_library"],
         thread=nngt._config["multithreading"],
@@ -145,35 +147,14 @@ def _convert(value):
 
 def _load_config(path_config):
     ''' Load `~/.nngt.conf` and parse it, return the settings '''
-    config = {
-        'color_lib': 'matplotlib',
-        'db_folder': "~/.nngt/database",
-        'db_to_file': False,
-        'db_url': "mysql:///nngt_db",
-        'graph': object,
-        'graph_library': "",
-        'library': None,
-        'load_nest': False,
-        'log_folder': "~/.nngt/log",
-        'log_level': logging.INFO,
-        'log_to_file': False,
-        'mpl_backend': None,
-        'multithreading': False,
-        'omp': 1,
-        'palette': 'Set1',
-        'seed': None,
-        'use_database': False,
-        'set_omp_graph_tool': False,
-        'with_nest': False,
-        'with_plot': False,
-    }
     with open(path_config, 'r') as fconfig:
         options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
         for opt in options:
             sep = opt.find("=")
             opt_name = opt[:sep].strip()
-            config[opt_name] = _convert(opt[sep+1:].strip())
-    return config
+            nngt._config[opt_name] = _convert(opt[sep+1:].strip())
+    _init_logger(nngt._logger)
+    
 
 
 config_info = '''
