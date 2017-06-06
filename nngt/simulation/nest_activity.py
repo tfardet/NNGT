@@ -216,22 +216,8 @@ def get_b2(network, spike_detector=None, data=None, nodes=None):
     b2 : array-like
         B2 coefficient for each neuron in `nodes`.
     '''
-    if data is None:
-        data = [[], []]
-    if nodes is None:
-        nodes = network.nest_gid
-    else:
-        nodes = network.nest_gid[nodes]
-    if not len(data[0]):
-        if spike_detector is None:
-            spike_detector = nest.GetNodes(
-                (0,), properties={'model': 'spike_detector'})[0]
-        events = nest.GetStatus(spike_detector, "events")
-        for ev_dict in events:
-            data[0].extend(ev_dict["senders"])
-            data[1].extend(ev_dict["times"])
-    data[0] = np.array(data[0])
-    data[1] = np.array(data[1])
+    data, nodes = _set_data_nodes(network, data, nodes)
+    data = _set_spike_data(data, spike_detector)
     return _b2_from_data(nodes, data)
 
 
@@ -257,23 +243,52 @@ def get_firing_rate(network, spike_detector=None, data=None, nodes=None):
     fr : array-like
         Firing rate for each neuron in `nodes`.
     '''
-    if data is None:
-        data = [[], []]
-    if nodes is None:
-        nodes = network.nest_gid
-    else:
-        nodes = network.nest_gid[nodes]
-    if not len(data[0]):
-        if spike_detector is None:
-            spike_detector = nest.GetNodes(
-                (0,), properties={'model': 'spike_detector'})[0]
-        events = nest.GetStatus(spike_detector, "events")
-        for ev_dict in events:
-            data[0].extend(ev_dict["senders"])
-            data[1].extend(ev_dict["times"])
-    data[0] = np.array(data[0])
-    data[1] = np.array(data[1])
+    data, nodes = _set_data_nodes(network, data, nodes)
+    data = _set_spike_data(data, spike_detector)
     return _fr_from_data(nodes, data)
+
+
+def get_recording(network, record, recorder=None, data=None, nodes=None):
+    '''
+    Return the average firing rate for the neurons.
+
+    Parameters
+    ----------
+    network : :class:`nngt.Network`
+        Network for which the activity was simulated.
+    record : str or list
+        Name of the record(s) to obtain.
+    recorder : tuple of ints, optional (default: all multimeters)
+        GID of the "spike_detector" objects recording the network activity.
+    data : array-like of shape (2, N), optional (default: None)
+        Array containing the record data (first line must contain the NEST GID
+        of the neuron that fired, second line must contain the associated spike
+        time).
+    nodes : array-like, optional (default: all nodes)
+        NNGT ids of the nodes for which the B2 should be computed.
+
+    Returns
+    -------
+    values : dict of arrays
+        Dictionary containing, for each `record`, a (2, M) array with the
+        recorded values on the 1st row and the associated times on the 2nd.
+    '''
+    _, nodes = _set_data_nodes(network, None, nodes)
+    if not nonstring_container(record):
+        record = [record]
+    values = {rec: [] for rec in record}
+    #~ if not len(data[0]):
+        #~ if recorder is None:
+            #~ recorder = nest.GetNodes(
+                #~ (0,), properties={'model': 'multimeter'})[0]
+        #~ events = nest.GetStatus(recorder, "events")
+        #~ targets = nest.GetStatus(recorder, "events")
+        #~ for ev_dict in events:
+            #~ data[0].extend(ev_dict["senders"])
+            #~ data[1].extend(ev_dict["times"])
+    #~ data[0] = np.array(data[0])
+    #~ data[1] = np.array(data[1])
+    #~ return _fr_from_data(nodes, data)
 
 
 def activity_types(spike_detector, limits, network=None,
@@ -457,6 +472,10 @@ def analyze_raster(raster=None, limits=None, network=None,
             _plot_phases(phases, [fig.number])
     return ActivityRecord(data, phases, properties, kwargs)
 
+
+# ----- #
+# Tools #
+# ----- #
 
 def _get_data(source):
     '''
@@ -681,3 +700,27 @@ def _plot_phases(phases, fignums):
                     ax.axvspan(span[0], span[1], facecolor=color,
                                alpha=0.2)
     plt.show()
+
+
+def _set_data_nodes(network, data, nodes):
+    if data is None:
+        data = [[], []]
+    if nodes is None:
+        nodes = network.nest_gid
+    else:
+        nodes = network.nest_gid[nodes]
+    return data, nodes
+
+
+def _:
+    if not len(data[0]):
+        if spike_detector is None:
+            spike_detector = nest.GetNodes(
+                (0,), properties={'model': 'spike_detector'})[0]
+        events = nest.GetStatus(spike_detector, "events")
+        for ev_dict in events:
+            data[0].extend(ev_dict["senders"])
+            data[1].extend(ev_dict["times"])
+    data[0] = np.array(data[0])
+    data[1] = np.array(data[1])
+    return data
