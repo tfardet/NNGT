@@ -305,7 +305,7 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
     if params is None:
         params = [{}]
     elif isinstance(params, dict):
-        params = [param]
+        params = [params]
     return _monitor(gids, nest_recorder, params)
 
 

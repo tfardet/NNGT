@@ -1071,11 +1071,11 @@ class Network(Graph):
         ids : int or tuple
             Ids in the network. Same type as the requested `gids` type.
         '''
-        if isinstance(gids, int):
-            return self._id_from_nest_gid[gids]
-        else:
+        if nonstring_container(gids):
             return np.array([self._id_from_nest_gid[gid] for gid in gids],
                             dtype=int)
+        else:
+            return self._id_from_nest_gid[gids]
 
     def to_nest(self, use_weights=True):
         '''

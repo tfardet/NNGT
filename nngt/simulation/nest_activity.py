@@ -29,7 +29,7 @@ import nest
 import numpy as np
 import scipy.sparse as ssp
 
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, nonstring_container
 from nngt.analysis.activity_analysis import _b2_from_data, _fr_from_data
 
 
@@ -39,6 +39,7 @@ __all__ = [
     "analyze_raster",
     "get_b2",
     "get_firing_rate",
+    "get_recording",
     "get_spikes",
 ]
 
@@ -248,7 +249,7 @@ def get_firing_rate(network, spike_detector=None, data=None, nodes=None):
     return _fr_from_data(nodes, data)
 
 
-def get_recording(network, record, recorder=None, data=None, nodes=None):
+def get_recording(network, record, recorder=None, nodes=None):
     '''
     Return the average firing rate for the neurons.
 
@@ -260,35 +261,56 @@ def get_recording(network, record, recorder=None, data=None, nodes=None):
         Name of the record(s) to obtain.
     recorder : tuple of ints, optional (default: all multimeters)
         GID of the "spike_detector" objects recording the network activity.
-    data : array-like of shape (2, N), optional (default: None)
-        Array containing the record data (first line must contain the NEST GID
-        of the neuron that fired, second line must contain the associated spike
-        time).
     nodes : array-like, optional (default: all nodes)
-        NNGT ids of the nodes for which the B2 should be computed.
+        NNGT ids of the nodes for which the recording should be returned.
 
     Returns
     -------
-    values : dict of arrays
-        Dictionary containing, for each `record`, a (2, M) array with the
-        recorded values on the 1st row and the associated times on the 2nd.
+    values : dict of dict of arrays
+        Dictionary containing, for each `record`, an M array with the
+        recorded values for n-th neuron is stored under entry `n` (integer).
+        A `times` entry is also added; it should be the same size for all
+        records, otherwise an error will be raised.
+
+    Examples
+    --------
+    After the creation of a :class:`~nngt.Network` called ``net``, use the
+    following code: ::
+
+        import nest
+
+        rec, _ = monitor_nodes(
+            net.nest_gid, "multimeter", {"record_from": ["V_m"]}, net)
+        nest.Simulate(100.)
+        recording = nngt.simulation.get_recording(net, "V_m")
+
+        # access the membrane potential of first neuron + the times
+        V_m   = recording["V_m"][0]
+        times = recording["times"]
     '''
-    _, nodes = _set_data_nodes(network, None, nodes)
+    if nodes is None:
+        nodes = [network.id_from_nest_gid(n) for n in network.nest_gid]
+    gids = [network.nest_gid[n] for n in nodes]
     if not nonstring_container(record):
         record = [record]
-    values = {rec: [] for rec in record}
-    #~ if not len(data[0]):
-        #~ if recorder is None:
-            #~ recorder = nest.GetNodes(
-                #~ (0,), properties={'model': 'multimeter'})[0]
-        #~ events = nest.GetStatus(recorder, "events")
-        #~ targets = nest.GetStatus(recorder, "events")
-        #~ for ev_dict in events:
-            #~ data[0].extend(ev_dict["senders"])
-            #~ data[1].extend(ev_dict["times"])
-    #~ data[0] = np.array(data[0])
-    #~ data[1] = np.array(data[1])
-    #~ return _fr_from_data(nodes, data)
+    values = {rec: {} for rec in record}
+    if recorder is None:
+        recorder = nest.GetNodes(
+            (0,), properties={'model': 'multimeter'})
+    times = None
+    for rec in recorder:
+        events = nest.GetStatus(rec, "events")[0]
+        senders = events["senders"]
+        if times is not None:
+            assert times == events["times"], "Different times between the " +\
+                                             "recorders; check the params."
+        times = events["times"]
+        values["times"] = times[senders == senders[0]]
+        for rec_name in record:
+            for idx, gid in zip(nodes, gids):
+                ids = senders == senders[gid]
+                values[rec_name][idx] = events[rec_name][ids]
+    return values
 
 
 def activity_types(spike_detector, limits, network=None,
@@ -712,7 +734,7 @@ def _set_data_nodes(network, data, nodes):
     return data, nodes
 
 
-def _:
+def _set_spike_data(data, spike_detector):
     if not len(data[0]):
         if spike_detector is None:
             spike_detector = nest.GetNodes(
