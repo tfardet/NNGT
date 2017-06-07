@@ -163,8 +163,8 @@ def set_step_currents(gids, times, currents):
         The NEST gid of the noise_generator.
     '''
     if len(times) != len(currents):
-        raise InvalidArgument('Length of `times` and `currents` must be the \
-same')
+        raise InvalidArgument('Length of `times` and `currents` must be the '
+                              'same')
     params = { "amplitude_times": times, "amplitude_values":currents }
     scg = nest.Create("step_current_generator", 1, params)
     nest.Connect(scg, gids)
@@ -248,7 +248,7 @@ def monitor_groups(group_names, network, nest_recorder=None, params=None):
     recorders : tuple
         Tuple of the recorders' gids
     recordables : tuple
-        Typle of the recordables' names.
+        Tuple of the recordables' names.
     '''
     if nest_recorder is None:
         nest_recorder = ["spike_detector"]
@@ -296,7 +296,7 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
     recorders : tuple
         Tuple of the recorders' gids
     recordables : tuple
-        Typle of the recordables' names.
+        Tuple of the recordables' names.
     '''
     if nest_recorder is None:
         nest_recorder = ["spike_detector"]
@@ -312,7 +312,7 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
 def _monitor(gids, nest_recorder, params):
     new_record = []
     recorders = []
-    for i,rec in enumerate(nest_recorder):
+    for i, rec in enumerate(nest_recorder):
         # multi/volt/conductancemeter
         if "meter" in rec:
             device = None

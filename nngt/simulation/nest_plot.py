@@ -137,6 +137,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                         data[1].extend(info["events"]["times"])
             sorted_neurons, attr = _sort_neurons(
                 sort, gids, network, data=data, return_attr=True)
+    elif not nonstring_container(sort) and sort is not None:
+        raise InvalidArgument("`network` must be provided to use string-type "
+                              "sort.")
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_raster, num_detec = 0, 0

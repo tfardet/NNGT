@@ -47,6 +47,7 @@ def _init_logger(logger):
     if nngt._config["log_to_file"]:
         _log_to_file(logger, create_writer=True)
 
+
 def _configure_logger(logger):
     logger.setLevel(logging.DEBUG)
     is_writing_to_file = False

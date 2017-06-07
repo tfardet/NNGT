@@ -29,6 +29,9 @@ load_nest = True
 
 #mpl_backend = Qt5Agg
 
+# use TeX rendering for axis labels
+use_tex = False
+
 # color library either matplotlib or seaborn
 color_lib = matplotlib
 

@@ -19,7 +19,10 @@ logger = logging.getLogger(__name__)
 # ---------------- #
 
 with_seaborn = False
-palette = None
+
+def palette(numbers):
+    pal = cm.get_cmap(nngt._config["palette"])
+    return pal(numbers)
 
 if nngt._config["color_lib"] == "seaborn":
     try:
@@ -41,10 +44,10 @@ if nngt._config["color_lib"] == "seaborn":
 
 if not with_seaborn:
     try:
-        palette = cm.ScalarMappable(cmap=nngt._config["palette"])
         mpl.rcParams['font.size'] = 12
         mpl.rcParams['font.family'] = 'serif'
-        mpl.rc('text', usetex=True)
+        if nngt._config['use_tex']:
+            mpl.rc('text', usetex=True)
         mpl.rcParams['axes.labelsize'] = mpl.rcParams['font.size']
         mpl.rcParams['axes.titlesize'] = 1.2*mpl.rcParams['font.size']
         mpl.rcParams['legend.fontsize'] = mpl.rcParams['font.size']

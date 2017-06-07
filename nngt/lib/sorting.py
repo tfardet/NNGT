@@ -53,8 +53,8 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             # sort them (neuron with least spikes arrives at min_nest_gid)
             sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
             # get attribute
-            idx_min = data[0].min()
-            attribute = spikes[idx_min:] / (data[1].max() - data[1].min())
+            idx_min = np.min(data[0])
+            attribute = spikes[idx_min:] / (np.min(data[1]) - np.min(data[1]))
         elif sort.lower() == "b2":
             attribute = _b2(data)
             sorted_ids = np.argsort(attribute)
