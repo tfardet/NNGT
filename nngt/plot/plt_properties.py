@@ -409,6 +409,8 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     ref_data = reference_attribute
     if isinstance(reference_attribute, str):
         ref_data = node_attributes(network, reference_attribute, nodes=nodes)
+    else:
+        reference_attribute = "user defined attribute"
     # plot the remaining attributes
     values = node_attributes(network, other_attributes, nodes=nodes)
     fig, axes = _set_new_plot(fignum=fig.number, names=other_attributes)

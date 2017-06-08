@@ -122,10 +122,18 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     # sorting
     sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
     attr = None
-    if network is not None and sort is not None:
+    if sort is not None:
+        assert network is not None, "`network` is required for sorting."
         if nonstring_container(sort):
-            sorted_neurons = np.zeros(network.nest_gid.max() + 1)
-            sorted_neurons[network.nest_gid[sort]] = sort
+            # sort the attribute if it is a double array
+            if not np.issubdtype(sort[0], int):
+                attr = np.argsort(sort)
+            else:
+                # otherwise it is directly the NNGT node indices
+                attr = sort
+            sorted_neurons = _sort_neurons(attr, gids, network)
+            attr = sort
+            sort = "user defined sort"
         else:
             data = None
             if sort.lower() in ("firing_rate", "b2"):  # get senders
@@ -137,9 +145,6 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                         data[1].extend(info["events"]["times"])
             sorted_neurons, attr = _sort_neurons(
                 sort, gids, network, data=data, return_attr=True)
-    elif not nonstring_container(sort) and sort is not None:
-        raise InvalidArgument("`network` must be provided to use string-type "
-                              "sort.")
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_raster, num_detec = 0, 0

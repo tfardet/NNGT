@@ -93,6 +93,7 @@ class XmlHandler:
 class MetaAbcCompat(ABCMeta, type):
     pass
 
+
 @add_metaclass(MetaAbcCompat)
 class TestBasis(unittest.TestCase):
 

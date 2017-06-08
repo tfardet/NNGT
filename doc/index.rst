@@ -74,13 +74,13 @@ The docs
    user/install
    user/intro
 
-.. toctree::
-   :glob:
-   :maxdepth: 2
-   :caption: Developer space
+.. ~ .. toctree::
+.. ~    :glob:
+.. ~    :maxdepth: 2
+.. ~    :caption: Developer space
 
-   developer/detailed-structure
-   developer/graph-attributes
+.. ~    developer/detailed-structure
+.. ~    developer/graph-attributes
 
 .. toctree::
    :glob:

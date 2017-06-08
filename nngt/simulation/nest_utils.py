@@ -192,7 +192,9 @@ def randomize_neural_states(network, instructions, groups=None,
 
     Example
     -------
-    python::
+
+    .. code-block:: python
+
         instructions = {
             "V_m": ("uniform", -80., -60.),
             "w": ("normal", 50., 5.)
@@ -303,7 +305,7 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
     if params is None:
         params = [{}]
     elif isinstance(params, dict):
-        params = [param]
+        params = [params]
     return _monitor(gids, nest_recorder, params)
 
 

@@ -54,7 +54,7 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
             # get attribute
             idx_min = np.min(data[0])
-            attribute = spikes[idx_min:] / (np.min(data[1]) - np.min(data[1]))
+            attribute = spikes[idx_min:] / (np.max(data[1]) - np.min(data[1]))
         elif sort.lower() == "b2":
             attribute = _b2(data)
             sorted_ids = np.argsort(attribute)
@@ -78,11 +78,11 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             sorting[gids] = num_sorted + order
             num_sorted += len(group.id_list)
     else:
-        sorting[network.nest_gid[sort]] = sort
+        sorting[network.nest_gid] = np.argsort(sort)
     if return_attr:
-        return sorting, attribute
+        return sorting.astype(int), attribute
     else:
-        return sorting
+        return sorting.astype(int)
 
 
 def _sort_groups(pop):

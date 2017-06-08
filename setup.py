@@ -61,18 +61,19 @@ else:
 #
 
 setup(
-        name='nngt',
+        name = 'nngt',
         version = '0.5',
         description = 'Package to study growth and activity of neural networks',
-        package_dir={'': '.'},
+        package_dir = {'': '.'},
         packages = find_packages('.'),
 
         # Include the non python files:
-        package_data = { '': ['*.txt', '*.rst', '*.md', '*.default'] },
+        package_data = {'': ['*.txt', '*.rst', '*.md', '*.default']},
 
         # Requirements
-        install_requires = [ 'numpy', 'scipy>=0.11', 'matplotlib' ],
+        install_requires = ['numpy', 'scipy>=0.11'],
         extras_require = {
+            'matplotlib': 'matplotlib',
             'PySide': ['PySide'],
             'PDF':  ["ReportLab>=1.2", "RXP"],
             'reST': ["docutils>=0.3"],
