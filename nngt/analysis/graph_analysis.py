@@ -20,18 +20,20 @@
 
 """ Tools for graph analysis using the graph libraries """
 
-import scipy as sp
+import numpy as np
 import scipy.sparse.linalg as spl
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container
 from .activity_analysis import _b2_from_data, _fr_from_data
+from .bayesian_blocks import bayesian_blocks
 
 
 __all__ = [
     "adjacency_matrix",
     "assortativity",
     "betweenness_distrib",
+    "binning",
 	"closeness",
 	"clustering",
     "degree_distrib",
@@ -67,7 +69,7 @@ glib_diameter = nngt.analyze_graph["diameter"]
 # ------------- #
 
 def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
-                   log=False, num_bins=30):
+                   log=False, num_bins='auto'):
     '''
     Degree distribution of a graph.
 
@@ -92,18 +94,16 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
     deg : :class:`numpy.array`
         bins
     '''
-    ia_node_deg = graph.get_degrees(deg_type, node_list, use_weights)
-    ra_bins = sp.linspace(ia_node_deg.min(), ia_node_deg.max(), num_bins)
-    if log:
-        ra_bins = sp.logspace(sp.log10(sp.maximum(ia_node_deg.min(),1)),
-                              sp.log10(ia_node_deg.max()), num_bins)
-    counts, deg = sp.histogram(ia_node_deg, ra_bins)
-    ia_indices = sp.argwhere(counts)
-    return counts[ia_indices], deg[ia_indices]
+    degrees = graph.get_degrees(deg_type, node_list, use_weights)
+    bins = binning(degrees, bins=num_bins, log=log)
+    return np.histogram(degrees, bins)
+    #~ nonzero = np.argwhere(counts)
+    #~ nonzero_bins = list(nonzero) + [nonzero[-1] + 1]
+    #~ return counts[nonzero], deg[nonzero_bins]
 
 
-def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins=None,
-                        num_ebins=None, log=False):
+def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='auto',
+                        num_ebins='auto', log=False):
     '''
     Betweenness distribution of a graph.
 
@@ -134,21 +134,10 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins=None,
     ia_nbetw, ia_ebetw = graph.get_betweenness(use_weights)
     if nodes is not None:
         ia_nbetw = ia_nbetw[nodes]
-    if num_nbins is None:
-        num_nbins = max(10, int(len(ia_nbetw) / 50))
-    if num_ebins is None:
-        num_ebins = max(10, int(len(ia_ebetw) / 50))
-    ra_nbins = sp.linspace(ia_nbetw.min(), ia_nbetw.max(), num_nbins)
-    ra_ebins = sp.linspace(ia_ebetw.min(), ia_ebetw.max(), num_ebins)
-    if log:
-        ra_nbins = sp.logspace(sp.log10(sp.maximum(ia_nbetw.min(),10**-8)),
-                               sp.log10(ia_nbetw.max()), num_nbins)
-        ra_ebins = sp.logspace(sp.log10(sp.maximum(ia_ebetw.min(),10**-8)),
-                               sp.log10(ia_ebetw.max()), num_ebins)
-    ncounts, nbetw = sp.histogram(ia_nbetw, ra_nbins)
-    ecounts, ebetw = sp.histogram(ia_ebetw, ra_ebins)
-    nbetw = nbetw[:-1] + 0.5*sp.diff(nbetw)
-    ebetw = ebetw[:-1] + 0.5*sp.diff(ebetw)
+    ra_nbins = binning(ia_nbetw, bins=num_nbins, log=log)
+    ra_ebins = binning(ia_ebetw, bins=num_ebins, log=log)
+    ncounts, nbetw = np.histogram(ia_nbetw, ra_nbins)
+    ecounts, ebetw = np.histogram(ia_ebetw, ra_ebins)
     return ncounts, nbetw, ecounts, ebetw
 
 
@@ -338,7 +327,7 @@ def spectral_radius(graph, typed=True, weighted=True):
         weights = graph.eproperties["type"].copy()
     if weighted and "weight" in graph.eproperties.keys():
         if weights is not None:
-            weights = sp.multiply(weights,
+            weights = np.multiply(weights,
                                   graph.eproperties["weight"])
         else:
             weights = graph.eproperties["weight"].copy()
@@ -349,7 +338,7 @@ def spectral_radius(graph, typed=True, weighted=True):
     except spl.eigen.arpack.ArpackNoConvergence as err:
         eigenval = err.eigenvalues
     if len(eigenval):
-        return sp.amax(sp.absolute(eigenval))
+        return np.amax(np.absolute(eigenval))
     else:
         raise spl.eigen.arpack.ArpackNoConvergence()
 
@@ -555,6 +544,42 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
             keep *= keep_tmp
     nodes = nodes.intersection_update(np.array(nodes)[keep])
     return nodes
+
+
+# ----- #
+# Tools #
+# ----- #
+
+def binning(x, bins='auto', log=False):
+    """
+    Binning function providing automatic binning using Bayesian blocks in
+    addition to standard linear and logarithmic uniform bins.
+
+    Parameters
+    ----------
+    x : array-like
+        Array of data to be histogrammed
+    bins : int or list or 'auto', optional (default: 'auto')
+        If `bins` is 'auto', in use bayesian blocks for dynamic bin widths; if
+        it is an int, the interval will be separated into 
+    log : bool, optional (default: False)
+        Whether the bins should be evenly spaced on a logarithmic scale.
+    """
+    x = np.asarray(x)
+    new_bins = None
+
+    if bins == 'auto':
+        return bayesian_blocks(x)
+    elif nonstring_container(bins):
+        return bins
+    elif isinstance(bins, int):
+        if log:
+            return np.logspace(np.log10(np.maximum(x.min(), 1e-10)),
+                               np.log10(x.max()), bins)
+        else:
+            return np.linspace(x.min(), x.max(), bins)
+    else:
+        raise ValueError("unrecognized bin code: '" + str(bins) + "'.")
 
 
 def _get_attribute(network, attribute, nodes=None, data=None):

@@ -244,6 +244,7 @@ __all__ = [
 
 # test if plot module is supported
 
+from . import plot
 try:
     from . import plot
     _config['with_plot'] = True

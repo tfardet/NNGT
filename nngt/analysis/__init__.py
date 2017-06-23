@@ -25,6 +25,7 @@ Content
 
 from . import graph_analysis as _ga
 from .graph_analysis import *
+from .bayesian_blocks import bayesian_blocks
 
 
-__all__ = _ga.__all__
+__all__ = ['bayesian_blocks'] + _ga.__all__

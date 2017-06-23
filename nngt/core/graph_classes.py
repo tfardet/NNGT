@@ -915,7 +915,7 @@ class Network(Graph):
             neuron_param = {}
         if syn_param is None:
             syn_param = {}
-        pop = nngt.NeuralPop.uniform_population(
+        pop = nngt.NeuralPop.uniform(
             size, None, neuron_model, neuron_param, syn_model, syn_param)
         net = cls(population=pop)
         return net
