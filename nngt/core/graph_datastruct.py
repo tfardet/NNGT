@@ -421,6 +421,29 @@ class NeuralGroup:
 
     def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None,
                   syn_model=None, syn_param=None):
+        '''
+        Create a group of neurons (empty group is default, but it is not a
+        valid object for most use cases).
+
+        Parameters
+        ----------
+        nodes : array-like, optional (default: [])
+            NNGT indices of the neurons in the network.
+        ntype : int, optional (default: 1)
+            Type of the neurons (1 for excitatory, -1 for inhibitory).
+        model : str, optional (default: None)
+            NEST model for the neuron.
+        neuron_param : dict, optional (default: model defaults)
+            Dictionary containing the parameters associated to the NEST model.
+        syn_model : str, optional (default: "static_synapse")
+            NEST model for the incoming synapses.
+        syn_param : dict, optional (default: model defaults)
+            Dictionary containing the parameters associated to the NEST model.
+
+        Returns
+        -------
+        A new :class:`~nngt.core.NeuralGroup` instance.
+        '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
         syn_param = {} if syn_param is None else syn_param.copy()
         self._has_model = False if model is None else True

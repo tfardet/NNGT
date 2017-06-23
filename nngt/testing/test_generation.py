@@ -51,11 +51,10 @@ def _fixed_deg_exp(graph, instruct):
     n, d, e, a_deg, directed, weighted = _get_connections(instruct)
     deg_type = instruct["degree_type"]
     deg_types = [ 'in', 'out' ]
-    counts, bins = degree_distrib(graph, deg_type)
-    max_count = counts.max()
-    fixed_degree = bins[np.where(counts-max_count == 0)][0]
-    # check that they are indeed all in the fixed_degree
-    assert(n == max_count)
+    degrees = graph.get_degrees(deg_type)
+    fixed_degree = degrees[0]
+    # check that they are indeed all the same
+    assert np.array_equal(degrees, np.full(len(degrees), fixed_degree))
     # compute free_degree properties
     avg_free_degree, std_free_degree = fixed_degree, 0
     if deg_type != 'total':
