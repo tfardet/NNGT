@@ -67,7 +67,7 @@ if on_rtd:
     mocked_modules = [
         "graph_tool", "igraph", "networkx", "matplotlib", "matplotlib.cm",
         "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
-        "svg", "svg.path"
+        "matplotlib.patches", "svg", "svg.path"
     ]
 
     mock_objects_modules = [

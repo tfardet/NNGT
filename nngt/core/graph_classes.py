@@ -200,7 +200,7 @@ with non symmetric matrix provided.')
         return graph
 
     @staticmethod
-    def make_spatial(graph, shape, positions=None, copy=False):
+    def make_spatial(graph, shape=None, positions=None, copy=False):
         '''
         Turn a :class:`~nngt.Graph` object into a :class:`~nngt.SpatialGraph`,
         or a :class:`~nngt.Network` into a :class:`~nngt.SpatialNetwork`.
@@ -209,7 +209,7 @@ with non symmetric matrix provided.')
         ----------
         graph : :class:`~nngt.Graph` or :class:`~nngt.SpatialGraph`
             Graph to convert.
-        shape : :class:`~nngt.geometry.Shape`, optional
+        shape : :class:`~nngt.geometry.Shape`, optional (default: None)
             Shape to associate to the new :class:`~nngt.SpatialGraph`.
         positions : (N, 2) array
             Positions, in a 2D space, of the N neurons.
@@ -222,6 +222,9 @@ with non symmetric matrix provided.')
         In-place operation that directly converts the original graph if `copy`
         is ``False``, else returns the copied :class:`~nngt.Graph` turned into
         a :class:`~nngt.SpatialGraph`.
+        The `shape` argument can be skipped if `positions` are given; in that
+        case, the neurons will be embedded in a rectangle that contains them
+        all.
         '''
         if copy:
             graph = graph.copy()
@@ -800,6 +803,8 @@ class SpatialGraph(Graph):
             Positions of the neurons; if not specified and `nodes` is not 0,
             then neurons will be reparted at random inside the
             :class:`~nngt.geometry.Shape` object of the instance.
+        **kwargs : keyword arguments for :class:`~nngt.Graph` or
+            :class:`~nngt.geometry.Shape` if no shape was given.
         
         Returns
         -------
@@ -832,13 +837,39 @@ class SpatialGraph(Graph):
         Create the positions of the neurons from the graph `shape` attribute
         and computes the connections distances.
         '''
+        if positions is not None and positions.shape[0] != self.node_nb():
+            raise InvalidArgument("Wrong number of neurons in `positions`.")
         if shape is not None:
             shape.set_parent(self)
             self._shape = shape
         else:
-            self._shape = nngt.geometry.Shape.rectangle(self, 1, 1)
-        if positions is not None and positions.shape[1] != self.node_nb():
-            raise InvalidArgument("Wrong number of neurons in `positions`.")
+            if positions is None:
+                if 'height' in kwargs and 'width' in kwargs:
+                    self._shape = nngt.geometry.Shape.rectangle(
+                        kwargs['height'], kwargs['width'], parent=self)
+                elif 'radius' in kwargs:
+                    self._shape = nngt.geometry.Shape.disk(
+                        kwargs['radius'], parent=self)
+                elif 'radii' in kwargs:
+                    self._shape = nngt.geometry.Shape.ellipse(
+                        kwargs['radii'], parent=self)
+                elif 'polygon' in kwargs:
+                    self._shape = nngt.geometry.Shape.from_polygon(
+                        kwargs['polygon'], min_x=kwargs.get('min_x', -5000.),
+                        max_x=kwargs.get('max_x', 5000.),
+                        unit=kwargs.get('unit', 'um'), parent=self)
+                else:
+                    raise RuntimeError('SpatialGraph needs a `shape` or '
+                                       'keywords arguments to build one, or '
+                                       'at least `positions` so it can create '
+                                       'a square containing them')
+            else:
+                minx, maxx = np.min(positions[:, 0]), np.max(positions[:, 0])
+                miny, maxy = np.min(positions[:, 1]), np.max(positions[:, 1])
+                height, width = 1.01*(maxy - miny), 1.01*(maxx - minx)
+                centroid = (0.5*(maxx + minx), 0.5*(maxy + miny))
+                self._shape = nngt.geometry.Shape.rectangle(
+                    height, width, centroid=centroid, parent=self)
         b_rnd_pos = True if not self.node_nb() or positions is None else False
         self._pos = self._shape.seed_neurons() if b_rnd_pos else positions
         nngt.core.Connections.distances(self)
@@ -883,6 +914,74 @@ class Network(Graph):
     def num_networks(cls):
         ''' Returns the number of alive instances. '''
         return cls.__num_networks
+
+    @classmethod
+    def from_gids(cls, gids, get_connections=True, get_params=False,
+                  neuron_model=default_neuron, neuron_param=None,
+                  syn_model=default_synapse, syn_param=None):
+        '''
+        Generate a network from gids.
+
+        Warning
+        -------
+        Unless `get_connections` and `get_params` is True, or if your
+        population is homogeneous and you provide the required information, the
+        information contained by the network and its `population` attribute
+        will be erroneous!
+        To prevent conflicts the :func:`~nngt.Network.to_nest` function is not
+        available. If you know what you are doing, you should be able to find a
+        workaround...
+        
+        Parameters
+        ----------
+        gids : array-like
+            Ids of the neurons in NEST or simply user specified ids.
+        get_params : bool, optional (default: True)
+            Whether the parameters should be obtained from NEST (can be very
+            slow).
+        neuron_model : string, optional (default: None)
+            Name of the NEST neural model to use when simulating the activity.
+        neuron_param : dict, optional (default: {})
+            Dictionary containing the neural parameters; the default value will
+            make NEST use the default parameters of the model.
+        syn_model : string, optional (default: 'static_synapse')
+            NEST synaptic model to use when simulating the activity.
+        syn_param : dict, optional (default: {})
+            Dictionary containing the synaptic parameters; the default value
+            will make NEST use the default parameters of the model.
+        
+        Returns
+        -------
+        net : :class:`~nngt.Network` or subclass
+            Uniform network of disconnected neurons.
+        '''
+        from nngt.lib.errors import not_implemented
+        if neuron_param is None:
+            neuron_param = {}
+        if syn_param is None:
+            syn_param = {}
+        # create the population
+        size = len(gids)
+        nodes = [i for i in range(size)]
+        group = nngt.NeuralGroup(
+            nodes, ntype=1, model=neuron_model, neuron_param=neuron_param,
+            syn_model=syn_model, syn_param=syn_param)
+        pop = nngt.NeuralPop.from_groups([group])
+        # create the network
+        net = cls(population=pop)
+        net.nest_gid = np.array(gids)
+        net._id_from_nest_gid = {gid: i for i, gid in enumerate(gids)}
+        net.to_nest = not_implemented
+        if get_connections:
+            from nngt.simulation import get_nest_adjacency
+            converter = {gid: i for i, gid in enumerate(gids)}
+            mat = get_nest_adjacency(converter)
+            edges = np.array(mat.nonzero()).T
+            w = mat.data
+            net.new_edges(edges, {'weight': w})
+        if get_params:
+            raise NotImplementedError('`get_params` not implemented yet.')
+        return net
 
     @classmethod
     def uniform_network(cls, size, neuron_model=default_neuron,
@@ -1167,7 +1266,7 @@ class Network(Graph):
 #------------------------
 #
 
-class SpatialNetwork(Network,SpatialGraph):
+class SpatialNetwork(Network, SpatialGraph):
     
     """
     Class that inherits from :class:`~nngt.Network` and :class:`SpatialGraph`
@@ -1180,6 +1279,38 @@ class SpatialNetwork(Network,SpatialGraph):
 
     __num_networks = 0
     __max_id = 0
+
+    @classmethod
+    def from_gids(cls, gids, shape=None, positions=None, **kwargs):
+        '''
+        Generate a spatial network from gids.
+
+        
+        Parameters
+        ----------
+        gids : array-like
+            Ids of the neurons in NEST or simply user specified ids.
+        shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+            Shape of the neurons' environment (None leads to a square of side
+            1 cm)
+        positions : :class:`numpy.array`, optional (default: None)
+            Positions of the neurons; if not specified and `nodes` != 0, then
+            neurons will be reparted at random inside the
+            :class:`~nngt.geometry.Shape` object of the instance.
+        **kwargs
+
+        See also
+        -------
+        :func:`~nngt.Network.from_gids`
+        
+        Returns
+        -------
+        net : :class:`~nngt.SpatialNetwork` or subclass
+            Uniform network of disconnected neurons.
+        '''
+        net = Network.from_gids(gids, **kwargs)
+        cls.make_spatial(net, shape=shape, positions=positions)
+        return net
 
     #-------------------------------------------------------------------------#
     # Constructor, destructor, and attributes
@@ -1205,6 +1336,7 @@ class SpatialNetwork(Network,SpatialGraph):
             neurons will be reparted at random inside the
             :class:`~nngt.geometry.Shape` object of the instance.
         population : class:`~nngt.NeuralPop`, optional (default: None)
+            Population from which the network will be built.
         
         Returns
         -------

@@ -20,7 +20,7 @@
 
 """ Sorting tools """
 
-from nngt.analysis import node_attributes
+from nngt.analysis import node_attributes, get_b2
 import numpy as np
 
 from .errors import InvalidArgument
@@ -32,6 +32,16 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
 
     If `sort` is "firing_rate" or "B2", then data must contain the `senders`
     and `times` list given by a NEST ``spike_recorder``.
+
+    Parameters
+    ----------
+    sort : str or array
+        Sorting method or indices
+    gids : array-like
+        NEST gids
+    network : the network
+    data : numpy.array of shape (N, 2)
+        Senders on column 1, times on column 2.
 
     Returns
     -------
@@ -47,21 +57,22 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
         sorted_ids = None
         if sort == "firing_rate":
             # compute number of spikes per neuron
-            spikes = np.bincount(data[0])
+            spikes = np.bincount(data[:, 0].astype(int))
             if spikes.shape[0] < max_nest_gid: # one entry per neuron
                 spikes.resize(max_nest_gid)
             # sort them (neuron with least spikes arrives at min_nest_gid)
             sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
             # get attribute
-            idx_min = np.min(data[0])
-            attribute = spikes[idx_min:] / (np.max(data[1]) - np.min(data[1]))
+            idx_min = np.min(data[:, 0])
+            attribute = spikes[idx_min:] \
+                        / (np.max(data[:, 1]) - np.min(data[:, 1]))
         elif sort.lower() == "b2":
-            attribute = _b2(data)
+            attribute = get_b2(network, data=data, nodes=gids)
             sorted_ids = np.argsort(attribute)
             # check for non-spiking neurons
             num_b2 = attribute.shape[0]
             if num_b2 < network.node_nb():
-                spikes = np.bincount(data[0])
+                spikes = np.bincount(data[:, 0])
                 non_spiking = np.where(spikes[min_nest_gid] == 0)[0]
                 sorted_ids.resize(network.node_nb())
                 for i, n in enumerate(non_spiking):
@@ -96,22 +107,3 @@ def _sort_groups(pop):
     sizes = [len(g.id_list) for g in groups]
     order = np.argsort(sizes)[::-1]
     return [names[i] for i in order], [groups[i] for i in order]
-
-
-def _b2(data):
-    ''' Compute the b2 coefficient for the neurons. '''
-    senders = data[0]
-    times = np.array(data[1])
-    gid_start = np.min(senders)
-    num_active = np.max(senders) - gid_start + 1
-    b2 = np.zeros(num_active)
-    for i in range(num_active):
-        ids = np.where(senders == gid_start + i)[0]
-        dt1 = np.diff(times[ids])
-        dt2 = dt1[1:] + dt1[:-1]
-        avg_isi = np.mean(dt1)
-        if avg_isi != 0.:
-            b2[i] = (2*np.var(dt1) - np.var(dt2)) / (2*avg_isi**2)
-        else:
-            b2[i] = np.inf
-    return b2

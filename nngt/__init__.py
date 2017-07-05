@@ -232,6 +232,7 @@ __all__ = [
     "GroupProperty",
     "lib",
     "Network",
+    "NeuralGroup",
     "NeuralPop",
     "seed",
     "set_config",

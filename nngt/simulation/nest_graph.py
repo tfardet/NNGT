@@ -32,7 +32,7 @@ from nngt.lib.sorting import _sort_groups
 
 __all__ = [
     'make_nest_network',
-    'get_nest_network',
+    'get_nest_adjacency',
     'reproducible_weights'
 ]
 
@@ -128,7 +128,7 @@ def make_nest_network(network, use_weights=True):
     return tuple(ia_nest_gids)
 
 
-def get_nest_network(id_converter=None):
+def get_nest_adjacency(id_converter=None):
     '''
     Get the adjacency matrix describing a NEST network.
 
@@ -146,7 +146,7 @@ def get_nest_network(id_converter=None):
     n = len(gids)
     mat_adj = ssp.lil_matrix((n,n))
     if id_converter is None:
-        id_converter = { idx:i for i,idx in enumerate(gids) }
+        id_converter = {idx: i for i, idx in enumerate(gids)}
 
     for i in range(n):
         src = id_converter[gids[i]]

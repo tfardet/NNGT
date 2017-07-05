@@ -143,6 +143,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                     if str(info["model"]) == "spike_detector":
                         data[0].extend(info["events"]["senders"])
                         data[1].extend(info["events"]["times"])
+                data = np.array(data).T
             sorted_neurons, attr = _sort_neurons(
                 sort, gids, network, data=data, return_attr=True)
     # spikes plotting

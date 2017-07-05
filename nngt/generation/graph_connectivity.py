@@ -152,9 +152,9 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
 
 
 def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
-                 weighted=True, directed=True, multigraph=False, name="GD",
-                 shape=None, positions=None, population=None, from_graph=None,
-                 **kwargs):
+                    weighted=True, directed=True, multigraph=False, name="GD",
+                    shape=None, positions=None, population=None,
+                    from_graph=None, **kwargs):
     """
     Generate a random graph with constant in- or out-degree.
     @todo: adapt it for undirected graphs!
@@ -230,7 +230,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 #------------------------
 #
 
-def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
+def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
                 weighted=True, directed=True, multigraph=False, name="ER",
                 shape=None, positions=None, population=None, from_graph=None,
                 **kwargs):
@@ -240,10 +240,11 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
 
     Parameters
     ----------
+    density : double, optional (default: -1.)
+        Structural density given by `edges / nodes`:math:`^2`. It is also the
+        probability for each possible edge in the graph to exist.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
-    density : double, optional (default: 0.1)
-        Structural density given by `edges / nodes`:math:`^2`.
     edges : int (optional)
         The number of edges between the nodes
     avg_deg : double, optional
@@ -680,7 +681,7 @@ _di_gen_edges = {
 }
 
 
-_di_default = {  "density": 0.1,
+_di_default = {  "density": -1.,
                 "edges": -1,
                 "avg_deg": -1,
                 "reciprocity": -1,

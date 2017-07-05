@@ -74,10 +74,11 @@ class NeuralPop(OrderedDict):
         '''
         if not nonstring_container(groups):
             groups = [groups]
+        gsize = len(groups)
         neurons = []
-        name = [i for i in range(len(groups))] if names is None else names
-        assert len(names) == len(groups), "`names` and `groups` must have " +\
-                                          "the same size."
+        names = [str(i) for i in range(gsize)] if names is None else names
+        assert len(names) == gsize, "`names` and `groups` must have " +\
+                                   "the same size."
         for g in groups:
             neurons.extend(g.id_list)
         neurons = list(set(neurons))
@@ -605,8 +606,8 @@ class Connections:
             pos = graph._pos if hasattr(graph, "_pos") else pos
             # compute the new distances
             if graph.edge_nb():
-                ra_x = pos[0, elist[:,0]] - pos[0, elist[:,1]]
-                ra_y = pos[1, elist[:,0]] - pos[1, elist[:,1]]
+                ra_x = pos[elist[:,0], 0] - pos[elist[:,1], 0]
+                ra_y = pos[elist[:,0], 1] - pos[elist[:,1], 1]
                 ra_dist = np.sqrt( np.square(ra_x) + np.square(ra_y) )
                 #~ ra_dist = np.tile( , 2)
                 # update graph distances

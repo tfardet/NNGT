@@ -25,7 +25,7 @@ import scipy.sparse.linalg as spl
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container
-from .activity_analysis import _b2_from_data, _fr_from_data
+from .activity_analysis import get_b2, get_firing_rate
 from .bayesian_blocks import bayesian_blocks
 
 
@@ -417,7 +417,7 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
 # Get all node properties #
 # ----------------------- #
 
-def node_attributes(network, attributes, nodes=None):
+def node_attributes(network, attributes, nodes=None, data=None):
     '''
     Return node `attributes` for a set of `nodes`.
     
@@ -433,6 +433,9 @@ def node_attributes(network, attributes, nodes=None):
         * "subgraph_centrality"
     nodes : list, optional (default: all nodes)
         Nodes for which the attributes should be returned.
+    data : :class:`numpy.array` of shape (N, 2), optional (default: None)
+        Potential data on the spike events; if not None, it must contain the
+        sender ids on the first column and the spike times on the second.
     
     Returns
     -------
@@ -443,10 +446,10 @@ def node_attributes(network, attributes, nodes=None):
     if nonstring_container(attributes):
         values = {}
         for attr in attributes:
-            values[attr] = _get_attribute(network, attr, nodes)
+            values[attr] = _get_attribute(network, attr, nodes, data)
         return values
     else:
-        return _get_attribute(network, attributes, nodes)
+        return _get_attribute(network, attributes, nodes, data)
 
     
 def find_nodes(network, attributes, equal=None, upper_bound=None,
@@ -583,15 +586,11 @@ def binning(x, bins='auto', log=False):
 
 
 def _get_attribute(network, attribute, nodes=None, data=None):
+    '''
+    If data is not None, must be an np.array of shape (N, 2).
+    '''
     if attribute.lower() == "b2":
-        if data is None:
-            from nngt.simulation import get_b2
-            return get_b2(network, nodes=nodes)
-        else:
-            if nodes is None:
-                raise InvalidArgument(
-                    "`nodes` entry is required when using `data`.")
-            return _b2_from_data(nodes, data)
+        return get_b2(network, nodes=nodes, data=data)
     elif attribute == "betweenness":
         betw = network.get_betweenness("node")
         if nodes is not None:
@@ -605,14 +604,7 @@ def _get_attribute(network, attribute, nodes=None, data=None):
         dtype = attribute[:attribute.index("-")]
         return network.get_degrees(dtype, node_list=nodes)
     if attribute == "firing_rate":
-        if data is None:
-            from nngt.simulation import get_firing_rate
-            return get_firing_rate(network, nodes=nodes)
-        else:
-            if nodes is None:
-                raise InvalidArgument(
-                    "`nodes` entry is required when using `data`.")
-            return _fr_from_data(nodes, data)
+        return get_firing_rate(network, nodes, data)
     elif attribute == "subgraph_centrality":
         sc = subgraph_centrality(network)
         if nodes is not None:

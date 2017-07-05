@@ -24,8 +24,10 @@ Content
 """
 
 from . import graph_analysis as _ga
+from . import activity_analysis as _aa
 from .graph_analysis import *
 from .bayesian_blocks import bayesian_blocks
+from .activity_analysis import *
 
 
-__all__ = ['bayesian_blocks'] + _ga.__all__
+__all__ = ['bayesian_blocks'] + _ga.__all__ + _aa.__all__

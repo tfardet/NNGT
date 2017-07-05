@@ -29,4 +29,4 @@ class InvalidArgument(ValueError):
 
 
 def not_implemented(*args, **kwargs):
-    return NotImplementedError("Not implemented yet.")
+    return NotImplementedError("Not implemented.")
