@@ -93,9 +93,9 @@ if on_rtd:
     ]
 
     for mod in mocked_modules:
-        sys.modules.update((mod, Mock()))
+        sys.modules[mod] = Mock()
     for mod in mock_objects_modules:
-        sys.modules.update((mod, mock_object))
+        sys.modules[mod] = mock_object
 
 
 # -- Setup all autosum then start --------------------------------------------
