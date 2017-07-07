@@ -82,7 +82,7 @@ if on_rtd:
     mocked_modules = [
         "graph_tool", "igraph", "networkx", "matplotlib", "matplotlib.cm",
         "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
-        "matplotlib.patches", "svg", "svg.path"
+        "matplotlib.patches", "matplotlib.path", "svg", "svg.path"
     ]
 
     mock_objects_modules = [
@@ -93,9 +93,9 @@ if on_rtd:
     ]
 
     for mod in mocked_modules:
-        sys.modules[mod] = Mock()
+        sys.modules.update((mod, Mock())
     for mod in mock_objects_modules:
-        sys.modules[mod] = mock_object
+        sys.modules.update((mod, mock_object))
 
 
 # -- Setup all autosum then start --------------------------------------------
