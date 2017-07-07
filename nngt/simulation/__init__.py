@@ -19,8 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Content
-=======
+Main functions to send :class:`Network` instances to NEST, as well as helper
+functions to excite or record the network activity.
 """
 
 import sys as _sys

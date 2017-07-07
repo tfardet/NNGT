@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ IO tools for NNGT """
 
@@ -10,17 +27,221 @@ import nngt
 from nngt.lib import InvalidArgument
 
 
-__all__ = [
-    "as_string",
-    "load_from_file",
-    "save_to_file"
-]
+# -- #
+# IO #
+# -- #
+
+def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
+                   attributes=[], notifier="@", ignore="#"):
+    '''
+    Import a saved graph as a (set of) :class:`~scipy.sparse.csr_matrix` from
+    a file.
+    @todo: implement population and shape loading, implement gml, dot, xml, gt
+
+    Parameters
+    ----------
+    filename: str
+        The path to the file.
+    format : str, optional (default: "neighbour")
+        The format used to save the graph. Supported formats are: "neighbour"
+        (neighbour list, default if format cannot be deduced automatically),
+        "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
+        one edge per line, represented by a ``source target``-pair), "gml"
+        (gml format, default if `filename` ends with '.gml'), "graphml"
+        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
+        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
+        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
+        detected if `filename` ends with '.gt').
+    delimiter : str, optional (default " ")
+        Delimiter used to separate inputs in the case of custom formats (namely
+        "neighbour" and "edge_list")
+    secondary : str, optional (default: ";")
+        Secondary delimiter used to separate attributes in the case of custom
+        formats.
+    attributes : list, optional (default: [])
+        List of names for the attributes present in the file. If a `notifier`
+        is present in the file, names will be deduced from it; otherwise the
+        attributes will be numbered.
+    notifier : str, optional (default: "@")
+        Symbol specifying the following as meaningfull information. Relevant
+        information are formatted ``@info_name=info_value``, where
+        ``info_name`` is in ("attributes", "directed", "name", "size") and
+        associated ``info_value``s are of type (``list``, ``bool``, ``str``,
+        ``int``).
+        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
+        which must be followed by the relevant notifiers among ``@shape``,
+        ``@population``, and ``@graph``.
+    ignore : str, optional (default: "#")
+        Ignore lines starting with the `ignore` string.
+
+    Returns
+    -------
+    edges : list of 2-tuple
+        Edges of the graph.
+    di_attributes : dict
+        Dictionary containing the attribute name as key and its value as a
+        list sorted in the same order as `edges`.
+    pop : :class:`~nngt.NeuralPop`
+        Population (``None`` if not present in the file).
+    shape : :class:`~nngt.geometry.Shape`
+        Shape of the graph (``None`` if not present in the file).
+    '''
+    lst_lines, di_notif, pop, shape = None, None, None, None
+    format = _get_format(format, filename)
+    with open(filename, "r") as filegraph:
+        lst_lines = [ line.strip() for line in filegraph.readlines() ]
+    # notifier lines
+    di_notif = _get_notif(lst_lines, notifier)
+    # data
+    lst_lines = lst_lines[::-1][:-len(di_notif)]
+    while not lst_lines[-1] or lst_lines[-1].startswith(ignore):
+        lst_lines.pop()
+    # make edges and attributes
+    edges = []
+    di_attributes = { name: [] for name in di_notif["attributes"] }
+    di_convert = _gen_convert(di_notif["attributes"], di_notif["attr_types"])
+    line = None
+    while lst_lines:
+        line = lst_lines.pop()
+        if line and not line.startswith(notifier):
+            di_get_edges[format]( line, di_notif["attributes"], delimiter,
+                                  secondary, edges, di_attributes, di_convert )
+        else:
+            break
+    return di_notif, edges, di_attributes, pop, shape
 
 
-#-----------------------------------------------------------------------------#
-# Saving tools
-#------------------------
-#
+def save_to_file(graph, filename, format="auto", delimiter=" ",
+                 secondary=";", attributes=None, notifier="@"):
+    '''
+    Save a graph to file.
+    @todo: implement population and shape saving, implement gml, dot, xml, gt
+
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Graph to save.
+    filename: str
+        The path to the file.
+    format : str, optional (default: "auto")
+        The format used to save the graph. Supported formats are: "neighbour"
+        (neighbour list, default if format cannot be deduced automatically),
+        "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
+        one edge per line, represented by a ``source target``-pair), "gml"
+        (gml format, default if `filename` ends with '.gml'), "graphml"
+        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
+        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
+        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
+        detected if `filename` ends with '.gt').
+    delimiter : str, optional (default " ")
+        Delimiter used to separate inputs in the case of custom formats (namely
+        "neighbour" and "edge_list")
+    secondary : str, optional (default: ";")
+        Secondary delimiter used to separate attributes in the case of custom
+        formats.
+    attributes : list, optional (default: ``None``)
+        List of names for the edge attributes present in the graph that will be
+        saved to disk; by default (``None``), all attributes will be saved.
+    notifier : str, optional (default: "@")
+        Symbol specifying the following as meaningfull information. Relevant
+        information are formatted ``@info_name=info_value``, with
+        ``info_name`` in ("attributes", "attr_types", "directed", "name",
+        "size").
+        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
+        which are followed by the relevant notifiers among ``@shape``,
+        ``@population``, and ``@graph`` to separate the sections.
+
+    warning ::
+        For now, all formats lead to
+        dataloss if your graph is a subclass of :class:`~nngt.SpatialGraph` or
+        :class:`~nngt.Network` (the :class:`~nngt.geometry.Shape` and
+        :class:`~nngt.NeuralPop` attributes will not be saved).
+    '''
+    format = _get_format(format, filename)
+    str_graph, di_notif = as_string(graph, delimiter=delimiter, format=format,
+                          secondary=secondary, attributes=attributes,
+                          notifier=notifier,  return_info=True)
+    with open(filename, "w") as f_graph:
+        for key,val in iter(di_notif.items()):
+            f_graph.write("{}{}={}\n".format(notifier, key,val))
+        f_graph.write("\n")
+        f_graph.write(str_graph)
+
+
+# --------------------- #
+# String representation #
+# --------------------- #
+
+def _as_string(graph, format="neighbour", delimiter=" ", secondary=";",
+              attributes=None, notifier="@", return_info=False):
+    '''
+    Full string representation of the graph.
+
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Graph to save.
+    format : str, optional (default: "auto")
+        The format used to save the graph. Supported formats are: "neighbour"
+        (neighbour list, default if format cannot be deduced automatically),
+        "ssp" (:mod:`scipy.sparse`), "edge_list" (list of all the edges in the 
+        graph, one edge per line, represented by a ``source target``-pair), 
+        "gml" (gml format, default if `filename` ends with '.gml'), "graphml"
+        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
+        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
+        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
+        detected if `filename` ends with '.gt').
+    delimiter : str, optional (default " ")
+        Delimiter used to separate inputs in the case of custom formats (namely
+        "neighbour" and "edge_list")
+    secondary : str, optional (default: ";")
+        Secondary delimiter used to separate attributes in the case of custom
+        formats.
+    attributes : list, optional (default: ``None``)
+        List of names for the edge attributes present in the graph that will be
+        saved to disk; by default (``None``), all attributes will be saved.
+    notifier : str, optional (default: "@")
+        Symbol specifying the following as meaningfull information. Relevant
+        information are formatted ``@info_name=info_value``, with
+        ``info_name`` in ("attributes", "attr_types", "directed", "name",
+        "size").
+        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
+        which are followed by the relevant notifiers among ``@shape``,
+        ``@population``, and ``@graph`` to separate the sections.
+
+    Returns
+    -------
+    str_graph : string
+        The full graph representation as a string.
+    '''
+    # checks
+    if delimiter == secondary:
+        raise InvalidArgument("`delimiter` and `secondary` strings must be "
+                              "different.")
+    if notifier == delimiter or notifier == secondary:
+        raise InvalidArgument("`notifier` string should differ from "
+                              "`delimiter` and `secondary`.")
+    # data
+    if attributes is None:
+        attributes = [ a for a in graph.attributes() if a != "bweight" ]
+    di_notifiers = {
+        "directed": graph._directed,
+        "attributes": attributes,
+        "attr_types": [graph.get_attribute_type(attr) for attr in attributes],
+        "name": graph.get_name(),
+        "size": graph.node_nb()
+    }
+    str_graph = di_format[format](graph, delimiter=delimiter,
+                                  secondary=secondary, attributes=attributes)
+    if return_info:
+        return str_graph, di_notifiers
+    else:
+        return str_graph
+
+
+# ------------ #
+# Saving tools #
+# ------------ #
 
 def _get_format(format, filename):
     if format == "auto":
@@ -88,10 +309,9 @@ def _gt(graph, attributes, **kwargs):
     pass
 
 
-#-----------------------------------------------------------------------------#
-# Loading tools
-#------------------------
-#
+# ------------- #
+# Loading tools #
+# ------------- #
 
 def _format_notif(notif_name, notif_val):
     if notif_name in ("attributes", "attr_types"):
@@ -180,12 +400,11 @@ def _get_edges_elist(line, attributes, delimiter, secondary, edges,
     if len(data) > 2:
         for name,val in zip(attributes, data[2:]):
             di_attributes[name].append(di_convert[name](val))
-    
 
-#-----------------------------------------------------------------------------#
-# Formatting
-#------------------------
-#
+
+# ---------- #
+# Formatting #
+# ---------- #
 
 di_get_edges = {
     "neighbour": _get_edges_neighbour,
@@ -197,217 +416,3 @@ di_format = {
     "edge_list": _edge_list
 }
 
-
-#-----------------------------------------------------------------------------#
-# Import
-#------------------------
-#
-
-def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
-                   attributes=[], notifier="@", ignore="#"):
-    '''
-    Import a saved graph as a (set of) :class:`~scipy.sparse.csr_matrix` from
-    a file.
-    @todo: implement population and shape loading, implement gml, dot, xml, gt
-
-    Parameters
-    ----------
-    filename: str
-        The path to the file.
-    format : str, optional (default: "neighbour")
-        The format used to save the graph. Supported formats are: "neighbour"
-        (neighbour list, default if format cannot be deduced automatically),
-        "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
-        one edge per line, represented by a ``source target``-pair), "gml"
-        (gml format, default if `filename` ends with '.gml'), "graphml"
-        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
-        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
-        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
-        detected if `filename` ends with '.gt').
-    delimiter : str, optional (default " ")
-        Delimiter used to separate inputs in the case of custom formats (namely
-        "neighbour" and "edge_list")
-    secondary : str, optional (default: ";")
-        Secondary delimiter used to separate attributes in the case of custom
-        formats.
-    attributes : list, optional (default: [])
-        List of names for the attributes present in the file. If a `notifier`
-        is present in the file, names will be deduced from it; otherwise the
-        attributes will be numbered.
-    notifier : str, optional (default: "@")
-        Symbol specifying the following as meaningfull information. Relevant
-        information are formatted ``@info_name=info_value``, where
-        ``info_name`` is in ("attributes", "directed", "name", "size") and
-        associated ``info_value``s are of type (``list``, ``bool``, ``str``,
-        ``int``).
-        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
-        which must be followed by the relevant notifiers among ``@shape``,
-        ``@population``, and ``@graph``.
-    ignore : str, optional (default: "#")
-        Ignore lines starting with the `ignore` string.
-
-    Returns
-    -------
-    edges : list of 2-tuple
-        Edges of the graph.
-    di_attributes : dict
-        Dictionary containing the attribute name as key and its value as a
-        list sorted in the same order as `edges`.
-    pop : :class:`~nngt.NeuralPop`
-        Population (``None`` if not present in the file).
-    shape : :class:`~nngt.geometry.Shape`
-        Shape of the graph (``None`` if not present in the file).
-    '''
-    lst_lines, di_notif, pop, shape = None, None, None, None
-    format = _get_format(format, filename)
-    with open(filename, "r") as filegraph:
-        lst_lines = [ line.strip() for line in filegraph.readlines() ]
-    # notifier lines
-    di_notif = _get_notif(lst_lines, notifier)
-    # data
-    lst_lines = lst_lines[::-1][:-len(di_notif)]
-    while not lst_lines[-1] or lst_lines[-1].startswith(ignore):
-        lst_lines.pop()
-    # make edges and attributes
-    edges = []
-    di_attributes = { name: [] for name in di_notif["attributes"] }
-    di_convert = _gen_convert(di_notif["attributes"], di_notif["attr_types"])
-    line = None
-    while lst_lines:
-        line = lst_lines.pop()
-        if line and not line.startswith(notifier):
-            di_get_edges[format]( line, di_notif["attributes"], delimiter,
-                                  secondary, edges, di_attributes, di_convert )
-        else:
-            break
-    return di_notif, edges, di_attributes, pop, shape
-
-
-#-----------------------------------------------------------------------------#
-# Save graph
-#------------------------
-#
-
-def as_string(graph, format="neighbour", delimiter=" ", secondary=";",
-              attributes=None, notifier="@", return_info=False):
-    '''
-    Full string representation of the graph.
-
-    Parameters
-    ----------
-    graph : :class:`~nngt.Graph` or subclass
-        Graph to save.
-    format : str, optional (default: "auto")
-        The format used to save the graph. Supported formats are: "neighbour"
-        (neighbour list, default if format cannot be deduced automatically),
-        "ssp" (:mod:`scipy.sparse`), "edge_list" (list of all the edges in the 
-        graph, one edge per line, represented by a ``source target``-pair), 
-        "gml" (gml format, default if `filename` ends with '.gml'), "graphml"
-        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
-        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
-        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
-        detected if `filename` ends with '.gt').
-    delimiter : str, optional (default " ")
-        Delimiter used to separate inputs in the case of custom formats (namely
-        "neighbour" and "edge_list")
-    secondary : str, optional (default: ";")
-        Secondary delimiter used to separate attributes in the case of custom
-        formats.
-    attributes : list, optional (default: ``None``)
-        List of names for the edge attributes present in the graph that will be
-        saved to disk; by default (``None``), all attributes will be saved.
-    notifier : str, optional (default: "@")
-        Symbol specifying the following as meaningfull information. Relevant
-        information are formatted ``@info_name=info_value``, with
-        ``info_name`` in ("attributes", "attr_types", "directed", "name",
-        "size").
-        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
-        which are followed by the relevant notifiers among ``@shape``,
-        ``@population``, and ``@graph`` to separate the sections.
-
-    Returns
-    -------
-    str_graph : string
-        The full graph representation as a string.
-    '''
-    # checks
-    if delimiter == secondary:
-        raise InvalidArgument("`delimiter` and `secondary` strings must be "
-                              "different.")
-    if notifier == delimiter or notifier == secondary:
-        raise InvalidArgument("`notifier` string should differ from "
-                              "`delimiter` and `secondary`.")
-    # data
-    if attributes is None:
-        attributes = [ a for a in graph.attributes() if a != "bweight" ]
-    di_notifiers = {
-        "directed": graph._directed,
-        "attributes": attributes,
-        "attr_types": [graph.get_attribute_type(attr) for attr in attributes],
-        "name": graph.get_name(),
-        "size": graph.node_nb()
-    }
-    str_graph = di_format[format](graph, delimiter=delimiter,
-                                  secondary=secondary, attributes=attributes)
-    if return_info:
-        return str_graph, di_notifiers
-    else:
-        return str_graph
-
-
-def save_to_file(graph, filename, format="auto", delimiter=" ",
-                 secondary=";", attributes=None, notifier="@"):
-    '''
-    Save a graph to file.
-    @todo: implement population and shape saving, implement gml, dot, xml, gt
-
-    Parameters
-    ----------
-    graph : :class:`~nngt.Graph` or subclass
-        Graph to save.
-    filename: str
-        The path to the file.
-    format : str, optional (default: "auto")
-        The format used to save the graph. Supported formats are: "neighbour"
-        (neighbour list, default if format cannot be deduced automatically),
-        "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
-        one edge per line, represented by a ``source target``-pair), "gml"
-        (gml format, default if `filename` ends with '.gml'), "graphml"
-        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
-        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
-        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
-        detected if `filename` ends with '.gt').
-    delimiter : str, optional (default " ")
-        Delimiter used to separate inputs in the case of custom formats (namely
-        "neighbour" and "edge_list")
-    secondary : str, optional (default: ";")
-        Secondary delimiter used to separate attributes in the case of custom
-        formats.
-    attributes : list, optional (default: ``None``)
-        List of names for the edge attributes present in the graph that will be
-        saved to disk; by default (``None``), all attributes will be saved.
-    notifier : str, optional (default: "@")
-        Symbol specifying the following as meaningfull information. Relevant
-        information are formatted ``@info_name=info_value``, with
-        ``info_name`` in ("attributes", "attr_types", "directed", "name",
-        "size").
-        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
-        which are followed by the relevant notifiers among ``@shape``,
-        ``@population``, and ``@graph`` to separate the sections.
-
-    warning ::
-        For now, all formats lead to
-        dataloss if your graph is a subclass of :class:`~nngt.SpatialGraph` or
-        :class:`~nngt.Network` (the :class:`~nngt.geometry.Shape` and
-        :class:`~nngt.NeuralPop` attributes will not be saved).
-    '''
-    format = _get_format(format, filename)
-    str_graph, di_notif = as_string(graph, delimiter=delimiter, format=format,
-                          secondary=secondary, attributes=attributes,
-                          notifier=notifier,  return_info=True)
-    with open(filename, "w") as f_graph:
-        for key,val in iter(di_notif.items()):
-            f_graph.write("{}{}={}\n".format(notifier, key,val))
-        f_graph.write("\n")
-        f_graph.write(str_graph)
-    

@@ -28,10 +28,11 @@ import scipy.sparse as ssp
 
 import nngt
 import nngt.analysis as na
-from nngt.lib import (InvalidArgument, as_string, save_to_file, load_from_file,
-                      nonstring_container, default_neuron, default_synapse,
-                      POS, WEIGHT, DELAY, DIST, TYPE)
+from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
+                      default_synapse, POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
+from nngt.lib.io_tools import _as_string
+from nngt import save_to_file, load_from_file
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
@@ -39,16 +40,18 @@ if nngt._config['with_nest']:
 __all__ = ['Graph', 'SpatialGraph', 'Network', 'SpatialNetwork']
 
 
-#-----------------------------------------------------------------------------#
-# Graph
-#------------------------
-#
+# ----- #
+# Graph #
+# ----- #
 
 class Graph(nngt.core.GraphObject):
     
     """
-    The basic class that contains a :class:`graph_tool.Graph` and some
-    of is properties or methods to easily access them.
+    The basic graph class, which inherits from a library class such as
+    :class:`gt.Graph`, :class:`networkx.DiGraph`, or `igraph.Graph`.
+
+    The objects provides several functions to easily access some basic
+    properties.
     """
 
     #-------------------------------------------------------------------------#
@@ -111,14 +114,16 @@ class Graph(nngt.core.GraphObject):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
                 if not (matrix.T != matrix).nnz == 0:
-                    raise InvalidArgument('Incompatible directed=False option \
-with non symmetric matrix provided.')
+                    raise InvalidArgument('Incompatible `directed=False` '
+                                          'option provided for non symmetric '
+                                          'matrix.')
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
                 if not (matrix.T == matrix).all():
-                    raise InvalidArgument('Incompatible directed=False option \
-with non symmetric matrix provided.')
+                    raise InvalidArgument('Incompatible `directed=False` '
+                                          'option provided for non symmetric '
+                                          'matrix.')
         edges = np.array(matrix.nonzero()).T
         graph = cls(nodes, name=graph_name.replace("Z", str(cls.__num_graphs)),
                     weighted=weighted, directed=directed)
@@ -307,15 +312,17 @@ with non symmetric matrix provided.')
         self.__id = self.__class__.__max_id
         self._name = name
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
-        # take care of the weights and delays
-        # @todo: use those of the from_graph
-        if weighted:
-            self._w = _edge_prop("weights", kwargs)
-        if "delays" in kwargs:
-            self._d = _edge_prop("delays", kwargs)
         # Init the core.GraphObject
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
+        # take care of the weights and delays
+        # @todo: use those of the from_graph
+        if weighted:
+            self.new_edge_attribute('weight', 'double')
+            self._w = _edge_prop("weights", kwargs)
+        if "delays" in kwargs:
+            self.new_edge_attribute('delay', 'double')
+            self._d = _edge_prop("delays", kwargs)
         # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -340,7 +347,7 @@ with non symmetric matrix provided.')
         Return the full string description of the object as would be stored
         inside a file when saving the graph.
         '''
-        return as_string(self)
+        return _as_string(self)
 
     @property
     def graph_id(self):
@@ -398,7 +405,7 @@ with non symmetric matrix provided.')
                              #~ from_graph=core.GraphObject(self._graph,prune=True) )
         #~ self.clear_filters()
         #~ return inhib_graph
-#~ 
+
     #~ def excitatory_subgraph(self):
         #~ '''
         #~ Create a :class:`~nngt.Graph` instance which graph contains only the
@@ -427,6 +434,46 @@ with non symmetric matrix provided.')
         else:
             self._name = "Graph_" + str(self.__id)
 
+    def new_edge_attribute(self, name, value_type, values=None, val=None):
+        '''
+        Create a new attribute for the edges.
+
+        .. versionadded:: 0.7
+
+        Parameters
+        ----------
+        name : str
+            The name of the new attribute.
+        value_type : str
+            Type of the attribute, among 'int', 'double', 'string'
+        values : array, optional (default: None)
+            Values with which the edge attribute should be initialized.
+            (must have one entry per node in the graph)
+        val : int, float or str , optional (default: None)
+            Identical value for all edges.
+        '''
+        self._eattr.new_attribute(name, value_type, values=values, val=val)
+
+    def new_node_attribute(self, name, value_type, values=None, val=None):
+        '''
+        Create a new attribute for the nodes.
+
+        .. versionadded:: 0.7
+
+        Parameters
+        ----------
+        name : str
+            The name of the new attribute.
+        value_type : str
+            Type of the attribute, among 'int', 'double', 'string'
+        values : array, optional (default: None)
+            Values with which the node attribute should be initialized.
+            (must have one entry per node in the graph)
+        val : int, float or str , optional (default: None)
+            Identical value for all nodes.
+        '''
+        self._nattr.new_attribute(name, value_type, values=values, val=val)
+
     def set_edge_attribute(self, attribute, values=None, val=None,
                            value_type=None, edges=None):
         '''
@@ -438,10 +485,27 @@ with non symmetric matrix provided.')
             for biological networks, neurons make only one kind of synapse,
             which is determined by the :class:`nngt.NeuralGroup` they
             belong to.
+
+        Parameters
+        ----------
+        attribute : str
+            The name of the attribute.
+        value_type : str
+            Type of the attribute, among 'int', 'double', 'string'
+        values : array, optional (default: None)
+            Values with which the edge attribute should be initialized.
+            (must have one entry per node in the graph)
+        val : int, float or str , optional (default: None)
+            Identical value for all edges.
+        value_type : str, optional (default: None)
+            Type of the attribute, among 'int', 'double', 'string'. Only used
+            if the attribute does not exist and must be created.
+        edges : list of edges or array of shape (E, 2), optional (default: all)
+            Edges whose attributes should be set. Others will remain unchanged.
         '''
         if attribute not in self.attributes():
-            self._eattr.new_property(name=attribute, value_type=value_type,
-                                     values=values, val=val)
+            self.new_edge_attribute(name=attribute, value_type=value_type,
+                                    values=values, val=val)
         else:
             num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
@@ -581,7 +645,6 @@ with non symmetric matrix provided.')
         return nngt.core.Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
-        
 
     #-------------------------------------------------------------------------#
     # Getters
@@ -662,12 +725,12 @@ with non symmetric matrix provided.')
     #~ def get_properties(self, a_properties):
         #~ '''
         #~ Return a dictionary containing the desired properties
-#~ 
+
         #~ Parameters
         #~ ----------
         #~ a_properties : sequence
             #~ List or tuple of strings of the property names.
-#~ 
+
         #~ Returns
         #~ -------
         #~ di_result : dict
@@ -756,11 +819,9 @@ with non symmetric matrix provided.')
         return True if issubclass(self.__class__, Network) else False
 
 
-
-#-----------------------------------------------------------------------------#
-# SpatialGraph
-#------------------------
-#
+# ------------ #
+# SpatialGraph #
+# ------------ #
 
 class SpatialGraph(Graph):
     
@@ -891,10 +952,9 @@ class SpatialGraph(Graph):
         return np.array(self._pos)
 
 
-#-----------------------------------------------------------------------------#
-# Network
-#------------------------
-#
+# ------- #
+# Network #
+# ------- #
 
 class Network(Graph):
     
@@ -1260,11 +1320,9 @@ class Network(Graph):
         return self._population[group_name].properties()
 
 
-
-#-----------------------------------------------------------------------------#
-# SpatialNetwork
-#------------------------
-#
+# -------------- #
+# SpatialNetwork #
+# -------------- #
 
 class SpatialNetwork(Network, SpatialGraph):
     

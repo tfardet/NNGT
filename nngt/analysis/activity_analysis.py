@@ -24,7 +24,7 @@ import numpy as np
 import scipy.signal as sps
 import scipy.sparse as ssp
 
-from nngt.lib import nonstring_container
+from nngt.lib import nonstring_container, find_idx_nearest
 
 
 __all__ = [
@@ -105,7 +105,7 @@ def total_firing_rate(network=None, spike_detector=None, data=None,
                       kernel_center=0., kernel_std=30., resolution=None,
                       cut_gaussian=5.):
     '''
-    Computes the firing rate from the spike times.
+    Computes the total firing rate of the network from the spike times.
     Firing rate is obtained as the convolution of the spikes with a Gaussian
     kernel characterized by a standard deviation and a temporal shift.
 
@@ -242,43 +242,6 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
 # ----- #
 # Tools #
 # ----- #
-
-
-def find_idx_nearest(array, values):
-    '''
-    Find the indices of the nearest elements of `values` in a sorted `array`.
-
-    .. warning::
-        Both ``array`` and ``values`` should be `numpy.array` objects and
-        `array` MUST be sorted in increasing order.
-
-    Parameters
-    ----------
-    array : reference list or np.ndarray
-    values : double, list or array of values to find in `array`
-
-    Returns
-    -------
-    idx : int or array representing the index of the closest value in `array`
-    '''
-    idx = np.searchsorted(array, values, side="left") # get the interval
-    # return the index of the closest
-    if isinstance(values, float) or isinstance(values, int):
-        if idx == len(array):
-            return idx-1
-        else:
-            idx -= (np.abs(values-array[idx-1]) < np.abs(values-array[idx]))
-            return idx
-    else:
-        # find where it is idx_max+1
-        overflow = (idx == len(array))
-        idx[overflow] -= 1
-        # for the others, find the nearest
-        tmp = idx[~overflow]
-        idx[~overflow] = tmp - (np.abs(values[~overflow] - array[tmp-1])
-                                < np.abs(values[~overflow] - array[tmp]))
-        return idx
-
 
 def _b2_from_data(ids, data):
     b2 = np.zeros(len(ids))

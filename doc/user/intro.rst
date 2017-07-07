@@ -15,7 +15,8 @@ build various networks from efficient and verified algorithms.
 Moreover, it also acts as an interface between those graph libraries and the
 `NEST simulator`_.
 
-Examples are given in the following sections:
+For users that are in a hurry, you can go directly to the Tutorial_ section.
+Specific examples are also detailed in the following sections:
 
 .. toctree::
    :maxdepth: 1
@@ -28,10 +29,11 @@ Examples are given in the following sections:
 .. note ::
   This library provides many tools which will (or not) be loaded on startup
   depending on the python packages available on your computer.
-  The default behaviour of those tools is set in the `~/.nngt/nngt.conf` file.
+  The default behaviour of those tools is set in the `~/.nngt/nngt.conf` file
+  (see Configuration_).
   Moreover, to see all potential messages related to the import of those tools,
   you can use the logging function of NNGT, either by setting the `log_level`
-  value to `DEBUG`, or by setting `log_to_file` to True, and having a look
+  value to `INFO`, or by setting `log_to_file` to True, and having a look
   at the log file in `~/.nngt/log/`.
 
 
@@ -42,7 +44,7 @@ The graph objects
 -----------------
 
 Neural networks are described by four graph classes which inherit from the main
-class of the chosen graph library (:class:`graph_tool.Graph`,
+class of the chosen graph library (:class:`gt.Graph`,
 :class:`igraph.Graph` or :class:`networkx.DiGraph`):
 
 - :class:`~nngt.Graph`: base for simple topological graphs with no spatial
@@ -102,3 +104,6 @@ procedures are detailed in the documentation.
 .. _igraph: http://igraph.org/
 .. _`NEST simulator`: http://www.nest-simulator.org/
 .. _networkx: https://networkx.github.io/
+
+.. _Configuration: install#configuration
+.. _Tutorial: tutorial

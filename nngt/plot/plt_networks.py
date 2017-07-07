@@ -56,7 +56,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
                  max_nsize=5., max_esize=2., threshold=0.5,
                  decimate=None, spatial=True, size=(600,600), xlims=None,
-                 ylims=None, dpi=75, axis=None, show=True, **kwargs):
+                 ylims=None, dpi=75, axis=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 

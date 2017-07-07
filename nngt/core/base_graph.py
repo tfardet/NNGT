@@ -108,9 +108,6 @@ class BaseGraph(nngt._config["graph"]):
     @property
     def eproperties(self):
         return self._eattr
-    
-    def new_node_attribute(self, name, value_type, values=None, val=None):
-         self._nattr.new_na(name, value_type, values, val)
          
     def remove_edge(self, edge):
         raise NotImplementedError(
@@ -184,7 +181,7 @@ class BaseGraph(nngt._config["graph"]):
         if attributes:
             for k in attributes.keys():
                 if k not in self.attributes() and k in ("weight", "delay"):
-                    self._eattr.new_property(name=k, value_type="double")
+                    self._eattr.new_attribute(name=k, value_type="double")
             # take care of classic attributes
             if "weight" in attributes:
                 self._eattr.set_property(
@@ -203,8 +200,8 @@ class BaseGraph(nngt._config["graph"]):
                     v = attributes["values"]
                     if not nonstring_container(v):
                         v = np.repeat(v, self.edge_nb())
-                    self._eattr.new_property(attributes["names"][i],
-                                             attributes["types"][i], values=v)
+                    self._eattr.new_attribute(attributes["names"][i],
+                                              attributes["types"][i], values=v)
         
     @abstractmethod
     def node_nb(self):

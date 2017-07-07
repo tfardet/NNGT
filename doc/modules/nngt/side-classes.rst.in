@@ -3,8 +3,3 @@ Side classes
 
 .. currentmodule:: nngt
 @autosum@
-
-.. currentmodule:: nngt.geometry
-.. autoclass:: Shape
-    :noindex:
-

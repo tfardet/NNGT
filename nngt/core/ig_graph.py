@@ -57,7 +57,7 @@ node in the graph is required")
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
 
-    def new_na(self, name, value_type, values=None, val=None):
+    def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -93,7 +93,7 @@ edge in the graph is required")
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
 
-    def new_property(self, name, value_type, values=None, val=None):
+    def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -232,12 +232,11 @@ an array of 2-tuples of ints.")
         -------
         The node or an iterator over the nodes created.
         '''
-        node_list = []
         first_node_idx = self.vcount()
-        for v in range(n):
-            node = self.add_vertex(type=ntype)
-            node_list.append(first_node_idx+v)
-        return node_list
+        super(_IGraph, self).add_vertices(n)
+        nodes = list(range(first_node_idx, first_node_idx + n))
+        self.vs[nodes[0]:nodes[-1] + 1]['type'] = ntype
+        return nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
@@ -261,25 +260,9 @@ an array of 2-tuples of ints.")
         -------
         The new connection.
         '''
-        enum = self.ecount()
-        # check that the edge does not already exist
-        eid = self.get_eid(
-            source, target, directed=True, error=False)
-        if attributes is None:
-            attributes = {}
-        if eid != -1:
-            super(_IGraph, self).add_edge(source, target)
-            _set_edge_attr(self, [(source, target)], attributes)
-            for key, val in attributes.items():
-                self.es[enum][key] = val[0]
-            if not self._directed:
-                super(_IGraph, self).add_edge(target, source)
-                for key, val in attributes.items():
-                    self.es[enum][key] = val[0]
-        else:
-            if not ignore:
-                raise InvalidArgument("Trying to add existing edge.")
-        return (source, target)
+        if attributes is not None:
+            attributes = {k: [v] for k, v in attributes.items()}
+        self.new_edges(((source, target),), attributes)
 
     def new_edges(self, edge_list, attributes=None):
         '''
@@ -324,36 +307,6 @@ an array of 2-tuples of ints.")
         except:
             idx = -1
         return edge_list
-
-    def new_edge_attribute(self, name, value_type, values=None, val=None):
-        num_edges = self.ecount()
-        if values is None:
-            if val is not None:
-                values = np.repeat(val, num_edges)
-            else:
-                if "vec" in value_type:
-                    values = [ [] for _ in range(num_edges) ]
-                else:
-                    values = np.repeat(self.di_value[value_type], num_edges)
-        elif len(values) != num_edges:
-            raise InvalidArgument("'values' list must contain one element per \
-edge in the graph.")
-        self.es[name] = values
-    
-    def new_node_attribute(self, name, value_type, values=None, val=None):
-        num_nodes = self.vcount()
-        if values is None:
-            if val is not None:
-                values = np.repeat(val,num_nodes)
-            else:
-                if vector in value_type:
-                    values = [ [] for _ in range(num_nodes) ]
-                else:
-                    values = np.repeat(self.di_value[value_type], num_nodes)
-        elif len(values) != num_nodes:
-            raise InvalidArgument("'values' list must contain one element per \
-node in the graph.")
-        self.vs[name] = values
 
     def remove_edge(self, edge):
         raise NotImplementedError("This function has been removed because it \

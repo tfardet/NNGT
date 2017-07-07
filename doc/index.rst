@@ -73,6 +73,7 @@ The docs
 
    user/install
    user/intro
+   user/tutorial
 
 .. ~ .. toctree::
 .. ~    :glob:

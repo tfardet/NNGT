@@ -393,7 +393,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
                      from_graph=None, **kwargs):
     """
     @todo
-        make the algorithm.
+    make the algorithm.
         
     Generate a Price graph model (Barabasi-Albert if undirected).
 
@@ -573,7 +573,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         'dm', 'm'.
     weighted : bool, optional (default: True)
         @todo
-			Whether the graph edges have weights.
+        Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)

@@ -1,9 +1,22 @@
-*.pyc
+# doc
 doc/.build/
+
+# generated rst
+doc/modules/examples
+doc/modules/analysis.rst
+doc/modules/generation.rst
+doc/modules/geometry.rst
+doc/modules/lib.rst
 doc/modules/nngt.rst
+doc/modules/plot.rst
+doc/modules/simulation.rst
 doc/modules/nngt/main-functions.rst
 doc/modules/nngt/side-classes.rst
+
 nngt/testing/Ref/*
+
+# python stuff
+*.pyc
 */__pycache__
 .coverage
 *.pyxbldc

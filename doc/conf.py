@@ -21,19 +21,34 @@
 """ NNGT documentation build configuration file. """
 
 import sys
-import os
+import os, errno
 import shlex
 import re
+import fnmatch
 
 import sphinx_bootstrap_theme
 
+
+# Paths
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-sys.path.insert(0, os.path.abspath('../src/'))
 current_directory = os.path.abspath('.')
 sys.path.append(current_directory)
 
+# Simlink to geometry.examples
+src = os.path.abspath('../nngt/geometry/examples')
+tgt = os.path.abspath('modules/examples/')
+
+try:
+    os.remove(tgt)               # remove existing simlink
+except OSError as e:
+    if e.errno != errno.ENOENT:  # errno.ENOENT = no such file or directory
+        raise                    # raise if a different error occurred
+
+os.symlink(src, tgt)
+
+
 '''
-if on rtd, the graph libraries are not available so they need to be mocked
+If on rtd, the graph libraries are not available so they need to be mocked
 '''
         
 if on_rtd:
@@ -83,27 +98,45 @@ if on_rtd:
         sys.modules[mod] = mock_object
 
 
-# -- Setup nngt.rst then start --------------------------------------------
+# -- Setup all autosum then start --------------------------------------------
 
 from autosum import gen_autosum
 
-# nngt (main)
-source = current_directory + "/modules/nngt.rst.in"
-target = current_directory + "/modules/nngt.rst"
-module = "nngt"
-gen_autosum(source, target, module, 'summary')
+# find all *.in files
 
-# nngt (functions)
+inputs = []
+for root, dirnames, filenames in os.walk('.'):
+    for filename in fnmatch.filter(filenames, '*.in'):
+        if filename not in ('main-functions.rst.in', 'side-classes.rst.in'):
+            inputs.append(os.path.join(root, filename))
+
+# list of classes to ignore for each module
+ignore = {
+    'nngt.core': ("Graph", "Network", "SpatialGraph", "SpatialNetwork",
+                  "NeuralPop", "NeuralGroup"),
+}
+
+for f in inputs:
+    target = f[:-3]  # remove '.in'
+    # find the module (what will come after nngt, it is the name of the file)
+    last_dot = target.rfind('.')
+    last_slash = target.rfind('/')
+    module = target[last_slash + 1:last_dot]
+    if module != 'nngt':
+        module = 'nngt.' + module
+    gen_autosum(f, target, module, 'summary', ignore=ignore.get(module, None))
+
+# Add nngt (functions)
 source = current_directory + "/modules/nngt/main-functions.rst.in"
 target = current_directory + "/modules/nngt/main-functions.rst"
-gen_autosum(source, target, module, 'autofunction', dtype="func")
+gen_autosum(source, target, 'nngt', 'autofunction', dtype="func")
 
 # nngt (side classes)
 source = current_directory + "/modules/nngt/side-classes.rst.in"
 target = current_directory + "/modules/nngt/side-classes.rst"
-ignore = ("Graph", "Network", "SpatialGraph", "SpatialNetwork")
-gen_autosum(
-    source, target, module, 'autoclass', dtype="class", ignore=ignore)
+gen_autosum(source, target, 'nngt', 'autoclass', dtype="class",
+            ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
+
 
 from nngt import version as nngt_version
 
@@ -248,7 +281,7 @@ html_theme_options = {
 
     # Fix navigation bar to top of page?
     # Values: "true" (default) or "false"
-    'navbar_fixed_top': "true",
+    'navbar_fixed_top': "false",
 
     # Location of link to source.
     # Options are "nav" (default), "footer" or anything else to exclude.
@@ -287,6 +320,9 @@ html_favicon = 'images/nngt_ico.png'
 # Set differently depending on the location?
 
 html_static_path = ['_static']
+
+# Add permalinks to headers
+html_add_permalinks = True
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -445,12 +481,12 @@ napoleon_use_rtype = False
 imported_members = True
 
 intersphinx_mapping = {
-    'graph_tool': ('http://graph-tool.skewed.de/static/doc/', None),
+    'gt': ('http://graph-tool.skewed.de/static/doc/', None),
     'ipython': ('http://ipython.org/ipython-doc/stable/', None),
     'matplotlib': ('http://matplotlib.org/', None),
     'networkx': ('https://networkx.readthedocs.io/en/stable/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy', None),
     'python': ('https://docs.python.org/3/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
-    'shapely': ('http://toblerity.org/shapely/manual.html', None),
+    'shapely': ('http://toblerity.org/shapely/', None),
 }

@@ -163,7 +163,8 @@ def closeness(graph, nodes=None, use_weights=False):
 
 def local_clustering(graph, nodes=None):
     '''
-    Local clustering coefficient of the nodes, defined as
+    Local clustering coefficient of the nodes.
+    Defined as
 
     .. math::
         c_i = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
@@ -226,7 +227,8 @@ def reciprocity(graph):
 
 def clustering(graph):
     '''
-    Global clustering coefficient of the graph, defined as
+    Global clustering coefficient of the graph.
+    Defined as:
 
     .. math::
         c = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
@@ -245,9 +247,9 @@ def num_iedges(graph):
 
 def num_scc(graph, listing=False):
     '''
-    Returns the number of strongly connected components, i.e. ensembles where
-    all nodes inside the ensemble can reach any other node in the ensemble
-    using the directed edges.
+    Returns the number of strongly connected components (SCCs).
+    SCC are ensembles where all contained nodes can reach any other node in
+    the ensemble using the directed edges.
 
     See also
     --------
@@ -269,8 +271,8 @@ def num_scc(graph, listing=False):
 
 def num_wcc(graph, listing=False):
     '''
-    Connected components if the directivity of the edges is ignored (i.e. all
-    edges are considered as bidirectional).
+    Connected components if the directivity of the edges is ignored.
+    (i.e. all edges are considered bidirectional).
 
     See also
     --------
@@ -291,7 +293,11 @@ def num_wcc(graph, listing=False):
 
 
 def diameter(graph):
-    ''' Pseudo-diameter of the graph @todo: weighted diameter'''
+    '''
+    Pseudo-diameter of the graph
+
+    @todo: weighted diameter
+    '''
     if nngt._config["graph_library"] == "igraph":
         return graph.diameter()
     elif nngt._config["graph_library"] == "networkx":

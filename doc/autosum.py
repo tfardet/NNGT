@@ -46,7 +46,7 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
                 if autotype == "summary":
                     str_autosum += '    ' + module + '.' + member + '\n'
                 else:
-                    str_autosum += '.. ' + autotype + ':: ' + member + '\n'
+                    str_autosum += '\n.. ' + autotype + ':: ' + member + '\n'
     # write to file
     with open(source, "r") as rst_input:
         with open(target, "w") as main_rst:

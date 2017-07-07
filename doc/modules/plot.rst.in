@@ -1,0 +1,21 @@
+===========
+Plot module
+===========
+
+Functions for plotting graphs and graph properties.
+
+
+Content
+=======
+
+.. autosummary::
+
+@autosum@
+
+
+Details
+=======
+
+.. automodule:: nngt.plot
+    :show-inheritance:
+    :inherited-members:

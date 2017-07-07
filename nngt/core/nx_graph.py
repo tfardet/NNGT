@@ -60,7 +60,7 @@ node in the graph is required")
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
 
-    def new_na(self, name, value_type, values=None, val=None):
+    def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -100,7 +100,7 @@ edge in the graph is required")
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
 
-    def new_property(self, name, value_type, values=None, val=None):
+    def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -211,38 +211,6 @@ an array of 2-tuples of ints.")
         2-tuple. '''
         return np.array(self.edges())
     
-    def new_node_attribute(self, name, value_type, values=None, val=None):
-        num_nodes = self.node_nb()
-        if values is None:
-            if val is not None:
-                values = np.repeat(val,num_nodes)
-            else:
-                if vector in value_type:
-                    values = [ [] for _ in range(num_nodes) ]
-                else:
-                    values = np.repeat(self.di_value[value_type], num_nodes)
-        elif len(values) != num_nodes:
-            raise InvalidArgument("'values' list must contain one element per \
-node in the graph.")
-        for n, val in enumerate(values):
-            self.node[n][name] = val
-
-    def new_edge_attribute(self, name, value_type, values=None, val=None):
-        num_edges = self.edge_nb()
-        if values is None:
-            if val is not None:
-                values = np.repeat(val, num_edges)
-            else:
-                if "vec" in value_type:
-                    values = [ [] for _ in range(num_edges) ]
-                else:
-                    values = np.repeat(self.di_value[value_type], num_edges)
-        elif len(values) != num_edges:
-            raise InvalidArgument("'values' list must contain one element per \
-edge in the graph.")
-        for e, val in zip(self.edges(), values):
-            self.edge[e[0]][e[1]][name] = val
-    
     def new_node(self, n=1, ntype=1):
         '''
         Adding a node to the graph, with optional properties.
@@ -260,7 +228,7 @@ edge in the graph.")
         '''
         tpl_new_nodes = tuple(range(len(self),len(self)+n))
         for v in tpl_new_nodes:
-            self.add_node(v)
+            super(_NxGraph, self).add_node(v)
         if len(tpl_new_nodes) == 1:
             return tpl_new_nodes[0]
         else:
@@ -289,6 +257,9 @@ edge in the graph.")
         The new connection.
         '''
         if self.has_edge(source, target):
+            if not ignore:
+                raise InvalidArgument("Trying to add existing edge.")
+        else:
             if attributes is None:
                 attributes = {}
             _set_edge_attr(self, [(source, target)], attributes)
@@ -300,16 +271,13 @@ edge in the graph.")
                 attributes["weight"] = 1.
             self.add_edge(source, target)
             self[source][target]["eid"] = self.number_of_edges()
-            for key, val in attributes.items:
+            for key, val in attributes.items():
                 self[source][target][key] = val
             if not self._directed:
                 self.add_edge(target,source)
                 self[source][target]["eid"] = self.number_of_edges()
-                for key, val in attributes.items:
+                for key, val in attributes.items():
                     self[target][source][key] = val
-        else:
-            if not ignore:
-                raise InvalidArgument("Trying to add existing edge.")
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None):

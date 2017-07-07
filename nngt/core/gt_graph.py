@@ -58,7 +58,7 @@ node in the graph is required")
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
 
-    def new_na(self, name, value_type, values=None, val=None):
+    def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -71,8 +71,8 @@ set_attribute to create it.")
         if values is None:
             values = np.repeat(val, self.parent().num_edges())
         if len(values) != self.parent().num_vertices():
-            raise ValueError("A list or a np.array with one entry per \
-edge in the graph is required")
+            raise ValueError("A list or a np.array with one entry per "
+                             "edge in the graph is required")
         # store name and value type in the dict
         super(_GtNProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -145,7 +145,7 @@ set_attribute to create it.")
                     self.parent().edge_properties[name][gt_e] = val
         self._num_values_set[name] = num_edges
 
-    def new_property(self, name, value_type, values=None, val=None):
+    def new_attribute(self, name, value_type, values=None, val=None):
         if values is None and val is None:
             self._num_values_set[name] = self.parent().num_edges()
         if val is None:
@@ -167,7 +167,7 @@ set_attribute to create it.")
         # store name and value type in the dict
         super(_GtEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
-        eprop = self.parent().new_edge_property(value_type, values)
+        eprop = self.parent().new_edge_property(value_type, vals=values)
         self.parent().edge_properties[name] = eprop
 
 
@@ -179,7 +179,7 @@ set_attribute to create it.")
 class _GtGraph(BaseGraph):
     
     '''
-    Subclass of :class:`graph_tool.Graph` that (with 
+    Subclass of :class:`gt.Graph` that (with 
     :class:`~nngt.core._SnapGraph`) unifies the methods to work with either
     `graph-tool` or `SNAP`.
     '''
@@ -194,15 +194,13 @@ class _GtGraph(BaseGraph):
                  prune=False, vorder=None, **kwargs):
         '''
         @todo: document that
-        see :class:`graph_tool.Graph`'s constructor '''
+        see :class:`gt.Graph`'s constructor '''
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
         self._directed = directed
         self._weighted = weighted
         super(_GtGraph, self).__init__(g=g, directed=True, prune=prune,
                                        vorder=vorder)
-        #~ if weighted:
-            #~ self.new_edge_attribute("weight", "double")
         if g is None:
             super(_GtGraph, self).add_vertex(nodes)
         else:
@@ -261,7 +259,7 @@ an array of 2-tuples of ints.")
         -------
         The node or an iterator over the nodes created.
         '''
-        node = self.add_vertex(n)
+        node = super(_GtGraph, self).add_vertex(n)
         if n == 1:
             return node
         else:
@@ -297,7 +295,7 @@ an array of 2-tuples of ints.")
             connection = super(_GtGraph, self).add_edge(source, target,
                                                         add_missing=True)
             _set_edge_attr(self, [(source, target)], attributes)
-            for key, val in attributes:
+            for key, val in attributes.items():
                 if key in self.edge_properties:
                     self.edge_properties[key][connection] = val[0]
                 else:

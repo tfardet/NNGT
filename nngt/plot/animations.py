@@ -44,7 +44,7 @@ class _SpikeAnimator:
     Generic class to plot raster plot and firing-rate in time for a given
     network.
 
-    .. warning:
+    .. warning::
         This class is not supposed to be instantiated directly, but only
         through Animation2d or AnimationNetwork.
     '''
@@ -232,10 +232,8 @@ class _SpikeAnimator:
     
     def _make_ticks(self, timewindow):
         target_num_ticks = np.ceil(self.duration / timewindow * 5)
-        print(target_num_ticks, timewindow, self.duration)
         target_step = self.duration / target_num_ticks
         idx_step = np.abs(self.steps-target_step).argmin()
-        print(idx_step, self.steps[idx_step], target_step)
         step = self.steps[idx_step]
         num_steps = int(self.duration / step) + 2
         self.xticks = [self.start + i*step for i in range(num_steps)]
@@ -268,7 +266,6 @@ class _SpikeAnimator:
                     self.pause_after = True    # stop at next iteration
                     self.event_source.start()  # restart temporarily
                 if kb_event.key == 'F':
-                    print(self.increment * 2)
                     self.increment *= 2
                 elif kb_event.key == 'B':
                     self.increment = max(1, int(self.increment / 2))
@@ -539,8 +536,8 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
 class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
     
     '''
-    Class to plot the raster plot, firing-rate, and average trajectory in
-    a 2D phase-space for a network activity.
+    Class to plot the raster plot, firing-rate, and space-embedded spiking
+    activity (neurons on the graph representation flash when spiking) in time.
     '''
 
     def __init__(self, source, network, resolution=1, start=0.,
