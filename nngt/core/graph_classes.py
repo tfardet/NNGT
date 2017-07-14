@@ -137,7 +137,7 @@ class Graph(nngt.core.GraphObject):
         return graph
     
     @staticmethod
-    def from_file(filename, format="auto", delimiter=" ", secondary=";",
+    def from_file(filename, fmt="auto", separator=" ", secondary=";",
                  attributes=None, notifier="@", ignore="#", from_string=False):
         '''
         Import a saved graph from a file.
@@ -147,7 +147,7 @@ class Graph(nngt.core.GraphObject):
         ----------
         filename: str
             The path to the file.
-        format : str, optional (default: "neighbour")
+        fmt : str, optional (default: "neighbour")
             The format used to save the graph. Supported formats are:
             "neighbour" (neighbour list, default if format cannot be deduced
             automatically), "ssp" (scipy.sparse), "edge_list" (list of all the
@@ -158,11 +158,11 @@ class Graph(nngt.core.GraphObject):
             `filename` ends with '.dot'), "gt" (only when using
             `graph_tool`<http://graph-tool.skewed.de/>_ as library, detected
             if `filename` ends with '.gt').
-        delimiter : str, optional (default " ")
-            Delimiter used to separate inputs in the case of custom formats 
+        separator : str, optional (default " ")
+            separator used to separate inputs in the case of custom formats
             (namely "neighbour" and "edge_list")
         secondary : str, optional (default: ";")
-            Secondary delimiter used to separate attributes in the case of
+            Secondary separator used to separate attributes in the case of
             custom formats.
         attributes : list, optional (default: [])
             List of names for the attributes present in the file. If a
@@ -187,21 +187,24 @@ class Graph(nngt.core.GraphObject):
         '''
         if attributes is None:
             attributes = []
-        info, edges, attr, pop, shape = load_from_file(filename=filename,
-                    format=format, delimiter=delimiter, secondary=secondary,
-                    attributes=attributes, notifier=notifier)
-        graph = Graph( nodes=info["size"], name=info["name"],
-                       directed=info["directed"] )
-        di_attr = {}
-        if info["attributes"]: # their are attributes to add to the graph
-            di_attr["names"] = info["attributes"]
-            di_attr["types"] = info["attr_types"]
-            di_attr["values"] = [ attr[name] for name in info["attributes"] ]
-        graph.new_edges(edges, di_attr)
+        info, edges, attr, pop, shape, pos = load_from_file(
+            filename=filename, fmt=fmt, separator=separator,
+            secondary=secondary, attributes=attributes, notifier=notifier)
+        # create the graph
+        graph = Graph(nodes=info["size"], name=info["name"],
+                      directed=info["directed"])
+        lst_attr, dtpes, lst_values = [], [], []
+        if info["attributes"]:  # their are attributes to add to the graph
+            lst_attr = info["attributes"]
+            dtpes = info["attr_types"]
+            lst_values = [attr[name] for name in info["attributes"]]
+        graph.new_edges(edges)
+        for attr, dtype, values in zip(lst_attr, dtpes, lst_values):
+            graph.new_edge_attribute(attr, dtype, values=values)
         if pop is not None:
             Network.make_network(graph, pop)
-        if shape is not None:
-            SpatialGraph.make_spatial(graph, shape)
+        if pos is not None or shape is not None:
+            SpatialGraph.make_spatial(graph, shape=shape, positions=pos)
         return graph
 
     @staticmethod
@@ -381,7 +384,7 @@ class Graph(nngt.core.GraphObject):
             Network.make_network(gc_instance, deepcopy(self.population))
         return gc_instance
 
-    def to_file(self, filename, format="auto", delimiter=" ", secondary=";",
+    def to_file(self, filename, fmt="auto", separator=" ", secondary=";",
                 attributes=None, notifier="@"):
         '''
         Save graph to file; options detailed below.
@@ -389,7 +392,7 @@ class Graph(nngt.core.GraphObject):
         .. seealso::
             :py:func:`nngt.lib.save_to_file` function for options.
         '''
-        save_to_file(self, filename, format=format, delimiter=delimiter,
+        save_to_file(self, filename, fmt=fmt, separator=separator,
                      secondary=secondary, attributes=attributes,
                      notifier=notifier)
 
@@ -514,7 +517,7 @@ class Graph(nngt.core.GraphObject):
                 else:
                     raise InvalidArgument("At least one of the `values` and "
                         "`val` arguments should not be ``None``.")
-            self._eattr.set_property(attribute, values, edges=edges)
+            self._eattr.set_attribute(attribute, values, edges=edges)
                 
     
     def set_weights(self, weight=None, elist=None, distribution=None,
@@ -655,7 +658,7 @@ class Graph(nngt.core.GraphObject):
         return self._nattr
     
     @property
-    def edge_attribute(self):
+    def edge_attributes(self):
         ''' Access edge attributes '''
         return self._eattr
 
@@ -978,7 +981,7 @@ class Network(Graph):
     @classmethod
     def from_gids(cls, gids, get_connections=True, get_params=False,
                   neuron_model=default_neuron, neuron_param=None,
-                  syn_model=default_synapse, syn_param=None):
+                  syn_model=default_synapse, syn_param=None, **kwargs):
         '''
         Generate a network from gids.
 
@@ -1028,7 +1031,7 @@ class Network(Graph):
             syn_model=syn_model, syn_param=syn_param)
         pop = nngt.NeuralPop.from_groups([group])
         # create the network
-        net = cls(population=pop)
+        net = cls(population=pop, **kwargs)
         net.nest_gid = np.array(gids)
         net._id_from_nest_gid = {gid: i for i, gid in enumerate(gids)}
         net.to_nest = not_implemented
@@ -1046,7 +1049,7 @@ class Network(Graph):
     @classmethod
     def uniform_network(cls, size, neuron_model=default_neuron,
                         neuron_param=None, syn_model=default_synapse,
-                        syn_param=None):
+                        syn_param=None, **kwargs):
         '''
         Generate a network containing only one type of neurons.
         
@@ -1076,14 +1079,14 @@ class Network(Graph):
             syn_param = {}
         pop = nngt.NeuralPop.uniform(
             size, None, neuron_model, neuron_param, syn_model, syn_param)
-        net = cls(population=pop)
+        net = cls(population=pop, **kwargs)
         return net
 
     @classmethod
     def ei_network(cls, size, ei_ratio=0.2, en_model=default_neuron,
             en_param=None, es_model=default_synapse, es_param=None,
             in_model=default_neuron, in_param=None, is_model=default_synapse,
-            is_param=None):
+            is_param=None, **kwargs):
         '''
         Generate a network containing a population of two neural groups:
         inhibitory and excitatory neurons.
@@ -1127,7 +1130,7 @@ class Network(Graph):
         pop = nngt.NeuralPop.exc_and_inhib(
             size, ei_ratio, None, en_model, en_param, es_model, es_param,
             in_model, in_param, is_model, is_param)
-        net = cls(population=pop)
+        net = cls(population=pop, **kwargs)
         return net
 
     #-------------------------------------------------------------------------#
@@ -1213,7 +1216,7 @@ class Network(Graph):
     def nest_gid(self, gids):
         self._nest_gid = gids
         for group in self.population.values():
-            group._nest_gids = gids[group.id_list]
+            group._nest_gids = gids[group.ids]
 
     def id_from_nest_gid(self, gids):
         '''
@@ -1337,38 +1340,6 @@ class SpatialNetwork(Network, SpatialGraph):
 
     __num_networks = 0
     __max_id = 0
-
-    @classmethod
-    def from_gids(cls, gids, shape=None, positions=None, **kwargs):
-        '''
-        Generate a spatial network from gids.
-
-        
-        Parameters
-        ----------
-        gids : array-like
-            Ids of the neurons in NEST or simply user specified ids.
-        shape : :class:`~nngt.geometry.Shape`, optional (default: None)
-            Shape of the neurons' environment (None leads to a square of side
-            1 cm)
-        positions : :class:`numpy.array`, optional (default: None)
-            Positions of the neurons; if not specified and `nodes` != 0, then
-            neurons will be reparted at random inside the
-            :class:`~nngt.geometry.Shape` object of the instance.
-        **kwargs
-
-        See also
-        -------
-        :func:`~nngt.Network.from_gids`
-        
-        Returns
-        -------
-        net : :class:`~nngt.SpatialNetwork` or subclass
-            Uniform network of disconnected neurons.
-        '''
-        net = Network.from_gids(gids, **kwargs)
-        cls.make_spatial(net, shape=shape, positions=positions)
-        return net
 
     #-------------------------------------------------------------------------#
     # Constructor, destructor, and attributes

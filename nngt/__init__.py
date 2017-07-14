@@ -80,7 +80,7 @@ import sys as _sys
 import logging
 
 
-version = '0.6.a'
+version = '0.7'
 ''' :obj:`str`, current NNGT version '''
 
 
@@ -240,7 +240,6 @@ __all__ = [
 
 # test if plot module is supported
 
-from . import plot
 try:
     from . import plot
     _config['with_plot'] = True

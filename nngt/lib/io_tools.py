@@ -20,29 +20,38 @@
 
 """ IO tools for NNGT """
 
+from sys import maxint
+import logging
+
 import numpy as np
 import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument
+from ..geometry import Shape, _shapely_support
+
+
+logger = logging.getLogger(__name__)
 
 
 # -- #
 # IO #
 # -- #
 
-def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
+def load_from_file(filename, fmt="neighbour", separator=" ", secondary=";",
                    attributes=[], notifier="@", ignore="#"):
     '''
-    Import a saved graph as a (set of) :class:`~scipy.sparse.csr_matrix` from
-    a file.
-    @todo: implement population and shape loading, implement gml, dot, xml, gt
+    Load the main properties (edges, attributes...) from a file.
+
+    .. warning::
+        To import a graph directly from a file, use the
+        :func:`~nngt.Graph.from_file` classmethod.
 
     Parameters
     ----------
     filename: str
         The path to the file.
-    format : str, optional (default: "neighbour")
+    fmt : str, optional (default: "neighbour")
         The format used to save the graph. Supported formats are: "neighbour"
         (neighbour list, default if format cannot be deduced automatically),
         "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
@@ -52,11 +61,11 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
         "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
         when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
         detected if `filename` ends with '.gt').
-    delimiter : str, optional (default " ")
-        Delimiter used to separate inputs in the case of custom formats (namely
+    separator : str, optional (default " ")
+        separator used to separate inputs in the case of custom formats (namely
         "neighbour" and "edge_list")
     secondary : str, optional (default: ";")
-        Secondary delimiter used to separate attributes in the case of custom
+        Secondary separator used to separate attributes in the case of custom
         formats.
     attributes : list, optional (default: [])
         List of names for the attributes present in the file. If a `notifier`
@@ -76,7 +85,7 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
 
     Returns
     -------
-    edges : list of 2-tuple
+    edges : list of 2-tuples
         Edges of the graph.
     di_attributes : dict
         Dictionary containing the attribute name as key and its value as a
@@ -85,9 +94,11 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
         Population (``None`` if not present in the file).
     shape : :class:`~nngt.geometry.Shape`
         Shape of the graph (``None`` if not present in the file).
+    positions : array-like of shape (N, d)
+        The positions of the neurons (``None`` if not present in the file).
     '''
-    lst_lines, di_notif, pop, shape = None, None, None, None
-    format = _get_format(format, filename)
+    lst_lines, di_notif, pop, shape, positions = None, None, None, None, None
+    fmt = _get_format(fmt, filename)
     with open(filename, "r") as filegraph:
         lst_lines = [ line.strip() for line in filegraph.readlines() ]
     # notifier lines
@@ -98,20 +109,38 @@ def load_from_file(filename, format="neighbour", delimiter=" ", secondary=";",
         lst_lines.pop()
     # make edges and attributes
     edges = []
-    di_attributes = { name: [] for name in di_notif["attributes"] }
+    di_attributes = {name: [] for name in di_notif["attributes"]}
     di_convert = _gen_convert(di_notif["attributes"], di_notif["attr_types"])
     line = None
     while lst_lines:
         line = lst_lines.pop()
         if line and not line.startswith(notifier):
-            di_get_edges[format]( line, di_notif["attributes"], delimiter,
-                                  secondary, edges, di_attributes, di_convert )
+            di_get_edges[fmt](line, di_notif["attributes"], separator,
+                              secondary, edges, di_attributes, di_convert)
         else:
             break
-    return di_notif, edges, di_attributes, pop, shape
+    # check whether a shape is present
+    if 'shape' in di_notif:
+        if _shapely_support:
+            min_x, max_x = float(di_notif['min_x']), float(di_notif['max_x'])
+            unit = di_notif['unit']
+            shape = Shape.from_wtk(
+                di_notif['shape'], min_x=min_x, max_x=max_x, unit=unit)
+        else:
+            logger.warning('A Shape object was present in the file but could '
+                           'not be loaded because Shapely is not installed.')
+    if 'x' in di_notif:
+        x = np.fromstring(di_notif['x'], sep=separator)
+        y = np.fromstring(di_notif['y'], sep=separator)
+        if 'z' in di_notif:
+            z = np.fromstring(di_notif['z'], sep=separator)
+            positions = np.array((x, y, z)).T
+        else:
+            positions = np.array((x, y)).T
+    return di_notif, edges, di_attributes, pop, shape, positions
 
 
-def save_to_file(graph, filename, format="auto", delimiter=" ",
+def save_to_file(graph, filename, fmt="auto", separator=" ",
                  secondary=";", attributes=None, notifier="@"):
     '''
     Save a graph to file.
@@ -123,7 +152,7 @@ def save_to_file(graph, filename, format="auto", delimiter=" ",
         Graph to save.
     filename: str
         The path to the file.
-    format : str, optional (default: "auto")
+    fmt : str, optional (default: "auto")
         The format used to save the graph. Supported formats are: "neighbour"
         (neighbour list, default if format cannot be deduced automatically),
         "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
@@ -133,11 +162,11 @@ def save_to_file(graph, filename, format="auto", delimiter=" ",
         "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
         when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
         detected if `filename` ends with '.gt').
-    delimiter : str, optional (default " ")
-        Delimiter used to separate inputs in the case of custom formats (namely
+    separator : str, optional (default " ")
+        separator used to separate inputs in the case of custom formats (namely
         "neighbour" and "edge_list")
     secondary : str, optional (default: ";")
-        Secondary delimiter used to separate attributes in the case of custom
+        Secondary separator used to separate attributes in the case of custom
         formats.
     attributes : list, optional (default: ``None``)
         List of names for the edge attributes present in the graph that will be
@@ -151,19 +180,22 @@ def save_to_file(graph, filename, format="auto", delimiter=" ",
         which are followed by the relevant notifiers among ``@shape``,
         ``@population``, and ``@graph`` to separate the sections.
 
-    warning ::
+    .. warning ::
         For now, all formats lead to
         dataloss if your graph is a subclass of :class:`~nngt.SpatialGraph` or
         :class:`~nngt.Network` (the :class:`~nngt.geometry.Shape` and
         :class:`~nngt.NeuralPop` attributes will not be saved).
+
+    .. note ::
+        Positions are saved as bytes by :func:`numpy.nparray.tostring`
     '''
-    format = _get_format(format, filename)
-    str_graph, di_notif = as_string(graph, delimiter=delimiter, format=format,
+    fmt = _get_format(fmt, filename)
+    str_graph, di_notif = _as_string(graph, separator=separator, fmt=fmt,
                           secondary=secondary, attributes=attributes,
                           notifier=notifier,  return_info=True)
     with open(filename, "w") as f_graph:
-        for key,val in iter(di_notif.items()):
-            f_graph.write("{}{}={}\n".format(notifier, key,val))
+        for key, val in iter(di_notif.items()):
+            f_graph.write("{}{}={}\n".format(notifier, key, val))
         f_graph.write("\n")
         f_graph.write(str_graph)
 
@@ -172,16 +204,20 @@ def save_to_file(graph, filename, format="auto", delimiter=" ",
 # String representation #
 # --------------------- #
 
-def _as_string(graph, format="neighbour", delimiter=" ", secondary=";",
+def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
               attributes=None, notifier="@", return_info=False):
     '''
     Full string representation of the graph.
+
+    .. versionchanged:: 0.7
+        Added support to write position and Shape when saving
+        :class:`~nngt.SpatialGraph`. Note that saving Shape requires shapely.
 
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
         Graph to save.
-    format : str, optional (default: "auto")
+    fmt : str, optional (default: "auto")
         The format used to save the graph. Supported formats are: "neighbour"
         (neighbour list, default if format cannot be deduced automatically),
         "ssp" (:mod:`scipy.sparse`), "edge_list" (list of all the edges in the 
@@ -191,11 +227,11 @@ def _as_string(graph, format="neighbour", delimiter=" ", secondary=";",
         "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
         when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
         detected if `filename` ends with '.gt').
-    delimiter : str, optional (default " ")
-        Delimiter used to separate inputs in the case of custom formats (namely
+    separator : str, optional (default " ")
+        separator used to separate inputs in the case of custom formats (namely
         "neighbour" and "edge_list")
     secondary : str, optional (default: ";")
-        Secondary delimiter used to separate attributes in the case of custom
+        Secondary separator used to separate attributes in the case of custom
         formats.
     attributes : list, optional (default: ``None``)
         List of names for the edge attributes present in the graph that will be
@@ -206,8 +242,9 @@ def _as_string(graph, format="neighbour", delimiter=" ", secondary=";",
         ``info_name`` in ("attributes", "attr_types", "directed", "name",
         "size").
         Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
-        which are followed by the relevant notifiers among ``@shape``,
-        ``@population``, and ``@graph`` to separate the sections.
+        which are followed by the relevant notifiers among ``@shape``, ``@x``,
+        ``@y``, ``@z``, ``@population``, and ``@graph`` to separate the
+        sections.
 
     Returns
     -------
@@ -215,26 +252,45 @@ def _as_string(graph, format="neighbour", delimiter=" ", secondary=";",
         The full graph representation as a string.
     '''
     # checks
-    if delimiter == secondary:
-        raise InvalidArgument("`delimiter` and `secondary` strings must be "
+    if separator == secondary:
+        raise InvalidArgument("`separator` and `secondary` strings must be "
                               "different.")
-    if notifier == delimiter or notifier == secondary:
+    if notifier == separator or notifier == secondary:
         raise InvalidArgument("`notifier` string should differ from "
-                              "`delimiter` and `secondary`.")
+                              "`separator` and `secondary`.")
     # data
     if attributes is None:
         attributes = [ a for a in graph.attributes() if a != "bweight" ]
-    di_notifiers = {
+    additional_notif = {
         "directed": graph._directed,
         "attributes": attributes,
         "attr_types": [graph.get_attribute_type(attr) for attr in attributes],
         "name": graph.get_name(),
         "size": graph.node_nb()
     }
-    str_graph = di_format[format](graph, delimiter=delimiter,
-                                  secondary=secondary, attributes=attributes)
+    # save positions for SpatialGraph (and shape if Shapely is available)
+    if graph.is_spatial():
+        if _shapely_support:
+            additional_notif['shape'] = graph.shape.wkt
+            additional_notif['unit'] = graph.shape.unit
+            min_x, min_y, max_x, max_y = graph.shape.bounds
+            additional_notif['min_x'] = min_x
+            additional_notif['max_x'] = max_x
+        else:
+            logger.warning('The `shape` attribute of the graph could not be '
+                           'saved to file because Shapely is not installed.')
+        pos = graph.get_positions()
+        additional_notif['x'] = np.array2string(
+            pos[:, 0], max_line_width=maxint, separator=separator)[1:-1]
+        additional_notif['y'] = np.array2string(
+            pos[:, 1], max_line_width=maxint, separator=separator)[1:-1]
+        if pos.shape[1] == 3:
+            additional_notif['z'] = np.array2string(
+                pos[:, 2], max_line_width=maxint, separator=separator)[1:-1]
+    str_graph = di_format[fmt](graph, separator=separator,
+                               secondary=secondary, attributes=attributes)
     if return_info:
-        return str_graph, di_notifiers
+        return str_graph, additional_notif
     else:
         return str_graph
 
@@ -243,43 +299,43 @@ def _as_string(graph, format="neighbour", delimiter=" ", secondary=";",
 # Saving tools #
 # ------------ #
 
-def _get_format(format, filename):
-    if format == "auto":
+def _get_format(fmt, filename):
+    if fmt == "auto":
         if filename.endswith('.gml'):
-            format = 'gml'
+            fmt = 'gml'
         if filename.endswith('.graphml') or filename.endswith('.xml'):
-            format = 'graphml'
+            fmt = 'graphml'
         elif filename.endswith('.dot'):
-            format = 'dot'
+            fmt = 'dot'
         elif ( filename.endswith('gt') and
                nngt._config["graph_library"] == "graph_tool" ):
-            format = 'gt'
+            fmt = 'gt'
         else:
-            format = 'neighbour'
-    return format
+            fmt = 'neighbour'
+    return fmt
 
 
-def _neighbour_list(graph, delimiter, secondary, attributes):
+def _neighbour_list(graph, separator, secondary, attributes):
     '''
     Generate a string containing the neighbour list of the graph as well as a
     dict containing the notifiers as key and the associated values.
     @todo: speed this up!
     '''
-    lst_neighbours = list( graph.adjacency_matrix().tolil().rows)
+    lst_neighbours = list(graph.adjacency_matrix().tolil().rows)
     for v1 in range(graph.node_nb()):
-        for i,v2 in enumerate(lst_neighbours[v1]):
+        for i, v2 in enumerate(lst_neighbours[v1]):
             str_edge = str(v2)
             for attr in attributes:
-                str_edge += "{}{}".format( secondary,
-                                           graph.attributes((v1,v2), attr))
+                str_edge += "{}{}".format(
+                    secondary, graph.attributes((v1,v2), attr))
             lst_neighbours[v1][i] = str_edge
-        lst_neighbours[v1] = "{}{}{}".format( v1, delimiter, delimiter.join(
-                                              lst_neighbours[v1]) )
+        lst_neighbours[v1] = "{}{}{}".format(
+            v1, separator, separator.join(lst_neighbours[v1]))
     str_neighbours = "\n".join(lst_neighbours)
     return str_neighbours
 
 
-def _edge_list(graph, delimiter, secondary, attributes):
+def _edge_list(graph, separator, secondary, attributes):
     ''' Generate a string containing the edge list and their properties. '''
     edges = graph.edges_array
     lst_edges = []
@@ -287,7 +343,7 @@ def _edge_list(graph, delimiter, secondary, attributes):
         str_edge = "{}{}{}".format(e[0], secondary, e[1])
         edge = tuple(e)
         for attr in attributes:
-            str_edge += "{}{}".format(delimiter, graph.attributes(edge, attr))
+            str_edge += "{}{}".format(separator, graph.attributes(edge, attr))
         lst_edges.append(str_edge)
     str_edges = "\n".join(lst_edges)
     return str_edges
@@ -339,14 +395,14 @@ def _get_notif(lines, notifier):
 
 
 def _to_list(string):
-    delimiters = (';', ',', ' ', '\t')
+    separators = (';', ',', ' ', '\t')
     count = -np.Inf
     chosen = -1
-    for i, delim in enumerate(delimiters):
+    for i, delim in enumerate(separators):
         current = string.count(delim)
         if count < current:
             count = current
-            chosen = delimiters[i]
+            chosen = separators[i]
     return string.split(chosen)
 
 
@@ -370,31 +426,33 @@ def _gen_convert(attributes, attr_types):
     return di_convert
 
 
-def _get_edges_neighbour(line, attributes, delimiter, secondary, edges,
+def _get_edges_neighbour(line, attributes, separator, secondary, edges,
                          di_attributes, di_convert):
     '''
     Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
     format.
     '''
-    source = int(line[0])
-    len_first_delim = line.find(delimiter)+1
+    len_first_delim = line.find(separator)
+    source = int(line[:len_first_delim])
+    len_first_delim += 1
     if len_first_delim:
-        neighbours = line[len_first_delim:].split(delimiter)
+        neighbours = line[len_first_delim:].split(separator)
         for stub in neighbours:
-            target = int(stub[0])
+            content = stub.split(secondary)
+            target = int(content[0])
             edges.append((source, target))
-            attr_val = stub.split(secondary)[1:]
-            for name,val in zip(attributes, attr_val):
+            attr_val = content[1:] if len(content) > 1 else []
+            for name, val in zip(attributes, attr_val):
                 di_attributes[name].append(di_convert[name](val))
 
 
-def _get_edges_elist(line, attributes, delimiter, secondary, edges,
+def _get_edges_elist(line, attributes, separator, secondary, edges,
                      di_attributes, di_convert):
     '''
     Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
     format.
     '''
-    data = line.split(delimiter)
+    data = line.split(separator)
     source, target = int(data[0]), int(data[1])
     edges.append((source, target))
     if len(data) > 2:

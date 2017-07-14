@@ -120,10 +120,10 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
         num_sorted = 1
         _, sorted_groups = _sort_groups(network.population)
         for group in sorted_groups:
-            gids = network.nest_gid[group.id_list]
-            order = np.argsort(sorted_ids[group.id_list])
+            gids = network.nest_gid[group.ids]
+            order = np.argsort(sorted_ids[group.ids])
             sorting[gids] = num_sorted + order
-            num_sorted += len(group.id_list)
+            num_sorted += len(group.ids)
     else:
         sorting[network.nest_gid] = np.argsort(sort)
     if return_attr:
@@ -140,6 +140,6 @@ def _sort_groups(pop):
     for name, group in iter(pop.items()):
         names.append(name)
         groups.append(group)
-    sizes = [len(g.id_list) for g in groups]
+    sizes = [len(g.ids) for g in groups]
     order = np.argsort(sizes)[::-1]
     return [names[i] for i in order], [groups[i] for i in order]

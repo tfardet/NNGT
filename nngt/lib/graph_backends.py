@@ -81,7 +81,6 @@ def use_library(library, reloading=True):
         reload_module(sys.modules["nngt"].core.ig_graph)
         reload_module(sys.modules["nngt"].core.nx_graph)
         reload_module(sys.modules["nngt"].core)
-        reload_module(sys.modules["nngt"].analysis)
         reload_module(sys.modules["nngt"].generation)
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
         if nngt._config['with_plot']:
@@ -90,6 +89,7 @@ def use_library(library, reloading=True):
             reload_module(sys.modules["nngt"].simulation)
         reload_module(sys.modules["nngt"].lib)
         reload_module(sys.modules["nngt"].core.graph_classes)
+        reload_module(sys.modules["nngt"].analysis)
         from nngt.core.graph_classes import (Graph, SpatialGraph, Network,
                                              SpatialNetwork)
         sys.modules["nngt"].Graph = Graph
@@ -137,7 +137,7 @@ def _set_graph_tool():
         return c.a[nodes]
     # defining the adjacency function
     def adj_mat(graph, weight=None):
-        if weight is not None:
+        if weight not in (None, False):
             weight = graph.edge_properties[weight]
         return _adj(graph, weight).T
     def get_edges(graph):
@@ -181,7 +181,6 @@ def _set_igraph():
             xs, ys = xs.T, ys.T
             data = np.ones(xs.shape)
             if issubclass(weight.__class__, str):
-                #~ print(data.dtype, graph.es[weight])
                 data *= np.array(graph.es[weight])
             else:
                 data *= np.array(weight)
@@ -254,7 +253,7 @@ def _set_networkx():
     nngt.analyze_graph["assortativity"] = degree_assortativity_coefficient
     nngt.analyze_graph["diameter"] = diameter
     nngt.analyze_graph["closeness"] = _closeness
-    nngt.analyze_graph["clustering"] = glib.average_clustering
+    nngt.analyze_graph["clustering"] = glib.transitivity
     nngt.analyze_graph["local_clustering"] = local_clustering
     nngt.analyze_graph["reciprocity"] = overall_reciprocity
     nngt.analyze_graph["scc"] = strongly_connected_components

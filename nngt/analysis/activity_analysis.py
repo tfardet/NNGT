@@ -109,6 +109,8 @@ def total_firing_rate(network=None, spike_detector=None, data=None,
     Firing rate is obtained as the convolution of the spikes with a Gaussian
     kernel characterized by a standard deviation and a temporal shift.
 
+    .. versionadded:: 0.7
+
     Parameters
     ----------
     network : :class:`nngt.Network`, optional (default: None)

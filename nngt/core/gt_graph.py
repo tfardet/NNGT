@@ -26,7 +26,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt.lib import InvalidArgument, BWEIGHT
+from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
 from nngt.lib.graph_helpers import _set_edge_attr
 from nngt.lib.connect_tools import _unique_rows
 
@@ -44,7 +44,12 @@ class _GtNProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __getitem__(self, name):
-        return np.array(self.parent().vertex_properties[name].a)
+        if super(_GtNProperty, self).__getitem__(name) in ('string', 'object'):
+            return np.array(
+                [v for v in self.parent().vertex_properties[name]],
+                dtype=object)
+        else:
+            return np.array(self.parent().vertex_properties[name].a)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -52,32 +57,70 @@ class _GtNProperty(BaseProperty):
             if len(value) == size:
                 self.parent().vertex_properties[name].a = np.array(value)
             else:
-                raise ValueError("A list or a np.array with one entry per \
-node in the graph is required")
+                raise ValueError("A list or a np.array with one entry per "
+                                 "node in the graph is required")
         else:
-            raise InvalidArgument("Attribute does not exist yet, use \
-set_attribute to create it.")
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
+        dtype = object
         if val is None:
             if value_type == "int":
                 val = int(0)
+                dtype = int
             elif value_type == "double":
                 val = 0.
+                dtype = float
             elif value_type == "string":
                 val = ""
             else:
                 val = None
+                value_type = "object"
         if values is None:
-            values = np.repeat(val, self.parent().num_edges())
+            values = np.full(self.parent().num_vertices(), val, dtype=dtype)
         if len(values) != self.parent().num_vertices():
             raise ValueError("A list or a np.array with one entry per "
-                             "edge in the graph is required")
+                             "node in the graph is required")
         # store name and value type in the dict
         super(_GtNProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
-        nprop = self.parent().new_node_property(value_type, values)
-        self.parent().node_properties[name] = nprop
+        nprop = self.parent().new_vertex_property(value_type, vals=values)
+        self.parent().vertex_properties[name] = nprop
+        self._num_values_set[name] = len(values)
+
+    def set_attribute(self, name, values, nodes=None):
+        '''
+        Set the node attribute.
+
+        Parameters
+        ----------
+        name : str
+            Name of the node attribute.
+        values : array, size N
+            Values that should be set.
+        nodes : array-like, optional (default: all nodes)
+            Nodes for which the value of the property should be set. If `nodes`
+            is not None, it must be an array of size N.
+        '''
+        num_nodes = self.parent().num_vertices()
+        num_n = len(nodes) if nodes is not None else num_nodes
+        if num_n == num_nodes:
+            self[name] = values
+        else:
+            if num_n != len(values):
+                raise ValueError("`nodes` and `nodes` must have the same "
+                                 "size; got respectively " + str(num_n) + \
+                                 " and " + str(len(values)) + "entries.")
+            non_obj = (super(_GtNProperty, self).__getitem__(name)
+                       not in ('string', 'object'))
+            if self._num_values_set[name] == num_nodes - num_n and non_obj:
+                self.parent().vertex_properties[name].a[-num_n:] = values
+            else:
+                for n, val in zip(nodes, values):
+                    self.parent().vertex_properties[name][n] = val
+        self._num_values_set[name] = num_nodes
+
 
 class _GtEProperty(BaseProperty):
 
@@ -114,10 +157,10 @@ edge in the graph is required")
 set_attribute to create it.")
         self._num_values_set[name] = len(value)
 
-    def set_property(self, name, values, edges=None):
+    def set_attribute(self, name, values, edges=None):
         '''
         Set the edge property.
-        
+
         Parameters
         ----------
         name : str
@@ -169,6 +212,7 @@ set_attribute to create it.")
         # store the real values in the attribute
         eprop = self.parent().new_edge_property(value_type, vals=values)
         self.parent().edge_properties[name] = eprop
+        self._num_values_set[name] = len(values)
 
 
 #-----------------------------------------------------------------------------#
@@ -232,8 +276,8 @@ class _GtGraph(BaseGraph):
             idx = [self.edge_index[e] for e in edge]
             return idx
         else:
-            raise AttributeError("`edge` must be either a 2-tuple of ints or\
-an array of 2-tuples of ints.")
+            raise AttributeError("`edge` must be either a 2-tuple of ints or "
+                                 "an array of 2-tuples of ints.")
     
     @property
     def edges_array(self):
@@ -244,26 +288,38 @@ an array of 2-tuples of ints.")
         return np.array(
             [(int(e.source()), int(e.target())) for e in self.edges()])
     
-    def new_node(self, n=1, ntype=1):
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
         Adding a node to the graph, with optional properties.
-        
+
         Parameters
         ----------
         n : int, optional (default: 1)
             Number of nodes to add.
         ntype : int, optional (default: 1)
             Type of neuron (1 for excitatory, -1 for inhibitory)
-            
+        attributes : dict, optional (default: None)
+            Dictionary containing the attributes of the nodes.
+        value_types : dict, optional (default: None)
+            Dict of the `attributes` types, necessary only if the `attributes`
+            do not exist yet.
+
         Returns
         -------
-        The node or an iterator over the nodes created.
+        The node or a tuple of the nodes created.
         '''
         node = super(_GtGraph, self).add_vertex(n)
+        node = [node] if n == 1 else tuple(node)
+        if attributes is not None:
+            for k, v in attributes.items():
+                if k not in self._nattr:
+                    self._nattr.new_attribute(k, value_types[k], val=v)
+                else:
+                    v = v if nonstring_container(v) else [v]
+                    self._nattr.set_attribute(k, v, nodes=node)
         if n == 1:
-            return node
-        else:
-            return tuple(node)
+            return node[0]
+        return node
 
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
@@ -342,7 +398,7 @@ an array of 2-tuples of ints.")
             recip_edges = edge_list[:,::-1]
             # slow but works
             unique = ~(recip_edges[..., np.newaxis]
-                      == edge_list[..., np.newaxis].T).all(1).any(1)
+                       == edge_list[..., np.newaxis].T).all(1).any(1)
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val[unique]))

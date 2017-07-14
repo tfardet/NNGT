@@ -42,10 +42,10 @@ __all__ = [
 # Plotting distributions #
 # ---------------------- #
 
-def degree_distribution(network, deg_type="total", nodes=None, num_bins='auto',
-                        use_weights=False, logx=False, logy=False, axis=None,
-                        axis_num=None, colors=None, norm=False, show=True,
-                        **kwargs):
+def degree_distribution(network, deg_type="total", nodes=None,
+                        num_bins='doane', use_weights=False, logx=False,
+                        logy=False, axis=None, axis_num=None, colors=None,
+                        norm=False, show=False, **kwargs):
     '''
     Plotting the degree distribution of a graph.
     
@@ -77,10 +77,14 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins='auto',
     import matplotlib.pyplot as plt
     if axis is None:
         axis = plt.gca()
+    # save ylims and xlims
+    xlims = axis.get_xlim()
+    if not axis.has_data():
+        xlims = (network.edge_nb(), 0)  # make sure first limit is data-driven
+    ylims = axis.get_ylim()
     axis.axis('tight')
-    alpha = kwargs.get("alpha", -1.)
-    if "alpha" in kwargs:
-        del kwargs["alpha"]
+    if "alpha" not in kwargs:
+        kwargs["alpha"] = 1 if isinstance(deg_type, str) else 0.5
     # get degrees
     maxcounts, maxbins, minbins = 0, 0, np.inf
     if isinstance(deg_type, str):
@@ -89,10 +93,9 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins='auto',
         if norm:
             counts = counts / float(np.sum(counts))
         maxcounts, maxbins, minbins = counts.max(), bins.max(), bins.min()
-        s_legend = deg_type[0].upper() + deg_type[1:] + " degree"
-        if "label" in kwargs:
-            del kwargs["label"]
-        axis.bar(bins[:-1], counts, np.diff(bins), label=s_legend, **kwargs)
+        if "label" not in kwargs:
+            kwargs["label"] = deg_type[0].upper() + deg_type[1:] + " degree"
+        axis.bar(bins[:-1], counts, np.diff(bins), **kwargs)
     else:
         if colors is None:
             colors = palette(np.linspace(0.,0.5, len(deg_type)))
@@ -108,18 +111,20 @@ def degree_distribution(network, deg_type="total", nodes=None, num_bins='auto',
             maxcounts = max(maxcounts, maxcounts_tmp)
             maxbins = max(maxbins, maxbins_tmp)
             minbins = min(minbins, minbins_tmp)
-            legend = s_type[0].upper() + s_type[1:] + " degree"
-            if "label" in kwargs:
-                del kwargs["label"]
-            alpha = 0.5 if alpha == -1 else alpha
+            if "label" not in kwargs:
+                kwargs["label"] = s_type[0].upper() + s_type[1:] + " degree"
             axis.bar(
-                bins[:-1], counts, np.diff(bins), color=colors[i], alpha=alpha,
-                label=legend, **kwargs)
+                bins[:-1], counts, np.diff(bins), color=colors[i], **kwargs)
     axis.set_xlabel("Degree")
     axis.set_ylabel("Node count")
+    title_start = (deg_type[0].upper() + deg_type[1:] + '-d'
+                   if isinstance(deg_type, str) else 'D')
     axis.set_title(
-        "Degree distribution for {}".format(network.name), x=0., y=1.05,
-        loc='left')
+        "{}egree distribution for {}".format(title_start, network.name), x=0.,
+        y=1.05, loc='left')
+    # restore ylims and xlims and adapt if necessary
+    axis.set_xlim(xlims)
+    axis.set_ylim(ylims)
     _set_scale(axis, maxbins, minbins, maxcounts, logx, logy)
     plt.legend()
     if show:
@@ -633,6 +638,50 @@ def _set_scale(ax1, maxbins, minbins, maxcounts, logx, logy):
     if logy:
         ax1.set_yscale("log")
         ax1.set_ylim([0.8, 1.5*maxcounts])
+
+
+def _set_ax_lims(ax, maxx, minx, maxy, miny, logx=False, logy=False):
+    if ax.has_data():
+        xlims = ax.get_xlim()
+        ylims = ax.get_ylim()
+        if not logx:
+            Dx = maxx - minx
+            minx = minx - 0.01*Dx
+            maxx = maxx + 0.01*Dx
+            Dy = maxy - miny
+            miny = miny - 0.01*Dy
+            maxy = maxy + 0.01*Dy
+        else:
+            minx /= 1.5
+            maxx *= 1.5
+        if minx > xlims[0]:
+            minx = xlims[0]
+        if maxx < xlims[1]:
+            maxx = xlims[1]
+        if miny > ylims[0]:
+            miny = ylims[0]
+        if maxy < ylims[1]:
+            maxy = ylims[1]
+    _set_xlim(ax, maxx, minx, logx)
+    _set_ylim(ax, maxy, miny, logy)
+
+
+def _set_xlim(ax, maxx, minx, log):
+    if log:
+        ax.set_xscale("log")
+        ax.set_xlim([max(minx, 1e-10)/1.5, 1.5*maxx])
+    else:
+        Dx = maxx - minx
+        ax.set_xlim([minx - 0.01*Dx, maxx + 0.01*Dx])
+
+
+def _set_ylim(ax, maxy, miny, log):
+    if log:
+        ax.set_yscale("log")
+        ax.set_ylim([max(miny, 1e-10)/1.5, 1.5*maxy])
+    else:
+        Dy = maxy - miny
+        ax.set_ylim([miny - 0.01*Dy, maxy + 0.01*Dy])
 
 
 def _format_and_show(fig, num_plot, values, title, show):

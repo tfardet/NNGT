@@ -26,7 +26,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt.lib import InvalidArgument, BWEIGHT
+from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
 from nngt.lib.graph_helpers import _set_edge_attr
 from .base_graph import BaseGraph, BaseProperty
 
@@ -46,19 +46,23 @@ class _NxNProperty(BaseProperty):
     def __getitem__(self, name):
         lst = [self.parent().node[i][name]
                for i in range(self.parent().node_nb())]
-        return np.array(lst)
+        if super(_NxNProperty, self).__getitem__(name) in ('string', 'object'):
+            return np.array(lst, dtype=object)
+        else:
+            return np.array(lst)
 
     def __setitem__(self, name, value):
+        size = self.parent().number_of_nodes()
         if name in self:
             if len(value) == size:
-                for i in range(self.parent().number_of_nodes()):
+                for i in range(size):
                     self.parent().node[i][name] = value[i]
             else:
-                raise ValueError("A list or a np.array with one entry per \
-node in the graph is required")
+                raise ValueError("A list or a np.array with one entry per "
+                                 "node in the graph is required")
         else:
-            raise InvalidArgument("Attribute does not exist yet, use \
-set_attribute to create it.")
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
@@ -70,13 +74,44 @@ set_attribute to create it.")
                 val = ""
             else:
                 val = None
+                value_type = "object"
         if values is None:
-            values = np.repeat(val, self.parent().number_of_nodes())
+            values = [val for _ in range(self.parent().number_of_nodes())]
         # store name and value type in the dict
-        super(_NxNProperty,self).__setitem__(name, value_type)
+        super(_NxNProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
         self[name] = values
+        self._num_values_set[name] = len(values)
+
+    def set_attribute(self, name, values, nodes=None):
+        '''
+        Set the node attribute.
         
+        Parameters
+        ----------
+        name : str
+            Name of the node attribute.
+        values : array, size N
+            Values that should be set.
+        nodes : array-like, optional (default: all nodes)
+            Nodes for which the value of the property should be set. If `nodes`
+            is not None, it must be an array of size N.
+        '''
+        num_nodes = self.parent().number_of_nodes()
+        num_n = len(nodes) if nodes is not None else num_nodes
+        if num_n == num_nodes:
+            self[name] = values
+        else:
+            if num_n != len(values):
+                raise ValueError("`nodes` and `nodes` must have the same "
+                                 "size; got respectively " + str(num_n) + \
+                                 " and " + str(len(values)) + "entries.")
+            else:
+                for n, val in zip(nodes, values):
+                    self.parent().node[n][name] = val
+        self._num_values_set[name] = num_nodes
+
+
 class _NxEProperty(BaseProperty):
 
     ''' Class for generic interactions with edge properties (networkx)  '''
@@ -110,14 +145,16 @@ set_attribute to create it.")
                 val = ""
             else:
                 val = None
+                value_type = "object"
         if values is None:
-            values = np.repeat(val, self.parent().number_of_edges())
+            values = [val for _ in range(self.parent().number_of_edges())]
         # store name and value type in the dict
         super(_NxEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
         self[name] = values
+        self._num_values_set[name] = len(values)
 
-    def set_property(self, name, values, edges=None):
+    def set_attribute(self, name, values, edges=None):
         '''
         Set the edge property.
         
@@ -131,7 +168,7 @@ set_attribute to create it.")
             Edges for which the value of the property should be set. If `edges`
             is not None, it must be an array of shape `(len(values), 2)`.
         '''
-        num_edges = self.parent().ecount()
+        num_edges = self.parent().number_of_edges()
         num_e = len(edges) if edges is not None else num_edges
         if num_e == num_edges:
             self[name] = values
@@ -211,7 +248,7 @@ an array of 2-tuples of ints.")
         2-tuple. '''
         return np.array(self.edges())
     
-    def new_node(self, n=1, ntype=1):
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
         Adding a node to the graph, with optional properties.
         
@@ -226,13 +263,23 @@ an array of 2-tuples of ints.")
         -------
         The node or an iterator over the nodes created.
         '''
-        tpl_new_nodes = tuple(range(len(self),len(self)+n))
+        tpl_new_nodes = tuple(range(len(self), len(self)+n))
         for v in tpl_new_nodes:
             super(_NxGraph, self).add_node(v)
+        if attributes is not None:
+            for k, v in attributes.items():
+                if k not in self._nattr:
+                    self._nattr.new_attribute(k, value_types[k], val=v)
+                else:
+                    v = v if nonstring_container(v) else [v]
+                    self._nattr.set_attribute(k, v, nodes=tpl_new_nodes)
+        else:
+            filler = [None for _ in tpl_new_nodes]
+            for k in self._nattr:
+                self._nattr.set_attribute(k, filler, nodes=tpl_new_nodes)
         if len(tpl_new_nodes) == 1:
             return tpl_new_nodes[0]
-        else:
-            return tpl_new_nodes
+        return tpl_new_nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''

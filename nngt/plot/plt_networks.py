@@ -143,7 +143,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
     if hasattr(network, "population"):
         for group in network.population.values():
-            idx = group.id_list
+            idx = group.ids
             if nonstring_container(ncolor):
                 c = palette(ncolor[idx[0]])
             # scatter required because of different markersize
@@ -151,14 +151,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                          c=c, edgecolors=nborder_color, zorder=2)
     else:
         if not isinstance(c, str):
-            print(ncolor)
             c = palette(ncolor)
         axis.scatter(pos[:,0], pos[:,1], s=nsize, marker=nshape,
                      c=c, edgecolors=nborder_color, zorder=2)
     _set_ax_lim(axis, pos[:,0], pos[:,1], xlims, ylims)
     # use quiver to draw the edges
     if e:
-        adj_mat = network.adjacency_matrix()
+        adj_mat = network.adjacency_matrix(weights=None)
         edges = np.array(adj_mat.nonzero())
         if nonstring_container(esize):
             edges = edges[:, esize > 0]
@@ -239,5 +238,5 @@ def _node_color(network, ncolor):
             l = len(network.population)
             c = np.linspace(0,1,l)
             for i,group in enumerate(network.population.values()):
-                color[group.id_list] = c[i]
+                color[group.ids] = c[i]
     return color

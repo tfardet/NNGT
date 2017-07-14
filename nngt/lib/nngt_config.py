@@ -86,8 +86,8 @@ def set_config(config, value=None):
     if "omp" in new_config:
         has_mt = new_config.get("multithreading", old_multithreading)
         if new_config["omp"] > 1 and not has_mt:
-             print("Warning: 'multithreading' is set to False but 'omp' is "
-                   "greater than one.")
+             logger.warning("'multithreading' is set to False but 'omp' is "
+                            "greater than one.")
     # update
     nngt._config.update(new_config)
     # apply multithreading parameters
@@ -129,6 +129,7 @@ def set_config(config, value=None):
 # ----- #
 
 def _convert(value):
+    value = str(value)
     if value.isdigit():
         return int(value)
     elif value.lower() == "true":

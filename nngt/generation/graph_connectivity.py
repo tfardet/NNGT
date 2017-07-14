@@ -537,7 +537,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
 #------------------------
 
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
-                  density=0.1, edges=-1, avg_deg=-1., unit='um', weighted=True,
+                  density=-1., edges=-1, avg_deg=-1., unit='um', weighted=True,
                   directed=True, multigraph=False, name="DR", positions=None,
                   population=None, from_graph=None, **kwargs):
     """
@@ -722,9 +722,9 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     di_param.update(model_param)
     for group in iter(network._population.values()):
         if group.neuron_type == source_type:
-            source_ids.extend(group._id_list)
+            source_ids.extend(group.ids)
         elif group.neuron_type == target_type:
-            target_ids.extend(group._id_list)
+            target_ids.extend(group.ids)
     if source_type == target_type:
         edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
     else:
@@ -768,9 +768,9 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         target_groups = [target_groups]
     for name, group in iter(network._population.items()):
         if name in source_groups:
-            source_ids.extend(group._id_list)
+            source_ids.extend(group.ids)
         elif name in target_groups:
-            target_ids.extend(group._id_list)
+            target_ids.extend(group.ids)
     if source_groups == target_groups:
         edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
     else:

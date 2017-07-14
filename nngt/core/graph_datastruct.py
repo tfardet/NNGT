@@ -21,6 +21,7 @@
 """ Graph data strctures in NNGT """
 
 from collections import OrderedDict
+import logging
 import weakref
 
 import numpy as np
@@ -38,6 +39,8 @@ __all__ = [
     'NeuralPop',
 ]
 
+
+logger = logging.getLogger(__name__)
 
 
 #-----------------------------------------------------------------------------#
@@ -71,6 +74,26 @@ class NeuralPop(OrderedDict):
         '''
         Make a NeuralPop object from a (list of) :class:`~nngt.NeuralGroup`
         object(s).
+
+        Parameters
+        ----------
+        groups : list of :class:`~nngt.NeuralGroup` objects
+            Groups that will be used to form the population.
+        names : list of str, optional (default: None)
+            Names that can be used as keys to retreive a specific group. If not
+            provided, keys will be the position of the group in `groups`,
+            stored as a string. In this case, the first group in a population
+            named `pop` will be retreived by either `pop[0]` or `pop['0']`.
+        parent : :class:`~nngt.Graph`, optional (default: None)
+            Parent if the population is created from an exiting graph.
+
+        Note
+        ----
+        If the population is not generated from an existing
+        :class:`~nngt.Graph` and the groups do not contain explicit ids, then
+        the ids will be generated upon population creation: the first group, of
+        size N0, will be associated the indices 0 to N0 - 1, the second group
+        (size N1), will get N0 to N0 + N1 - 1, etc.
         '''
         if not nonstring_container(groups):
             groups = [groups]
@@ -79,11 +102,17 @@ class NeuralPop(OrderedDict):
         names = [str(i) for i in range(gsize)] if names is None else names
         assert len(names) == gsize, "`names` and `groups` must have " +\
                                    "the same size."
+        current_size = 0
         for g in groups:
-            neurons.extend(g.id_list)
+            # generate the neuron ids if necessary
+            ids = g.ids
+            if len(ids) == 0:
+                ids = list(range(current_size, current_size + g.size))
+                g.ids = ids
+            current_size += len(ids)
+            neurons.extend(ids)
         neurons = list(set(neurons))
-        size = len(neurons)
-        pop = cls(size, parent=parent, with_models=with_models)
+        pop = cls(current_size, parent=parent, with_models=with_models)
         for name, g in zip(names, groups):
             pop[name] = g
         return pop
@@ -101,9 +130,10 @@ class NeuralPop(OrderedDict):
 
     @classmethod
     def exc_and_inhib(cls, size, iratio=0.2, parent=None,
-            en_model=default_neuron, en_param={}, es_model=default_synapse,
-            es_param={}, in_model=default_neuron, in_param={},
-            is_model=default_synapse, is_param={}):
+                      en_model=default_neuron, en_param=None,
+                      es_model=default_synapse, es_param=None,
+                      in_model=default_neuron, in_param=None,
+                      is_model=default_synapse, is_param=None):
         '''
         Make a NeuralPop with a given ratio of inhibitory and excitatory
         neurons.
@@ -121,7 +151,7 @@ class NeuralPop(OrderedDict):
         ''' Copy an existing NeuralPop '''
         new_pop = cls.__init__(pop.has_models)
         for name, group in pop.items():
-             new_pop.create_group(name, group.id_list, group.model,
+             new_pop.create_group(name, group.ids, group.model,
                                group.neuron_param)
         return new_pop
 
@@ -174,10 +204,10 @@ class NeuralPop(OrderedDict):
         else:
             OrderedDict.__setitem__(self, key, value)
         # update _max_id
-        if len(value.id_list) > 0:
-            self._max_id = max(self._max_id, *value.id_list) + 1
+        if len(value.ids) > 0:
+            self._max_id = max(self._max_id, *value.ids) + 1
         # update the group node property
-        self._neuron_group[value.id_list] = key
+        self._neuron_group[value.ids] = key
         if None in list(self._neuron_group):
             self._is_valid = False
         else:
@@ -370,9 +400,9 @@ class NeuralPop(OrderedDict):
             keys = tuple(self.keys())
             return [keys.index(self._neuron_group[n]) for n in neurons]
 
-    def add_to_group(self, group_name, id_list):
-        self[group_name].id_list.extend(id_list)
-        self._neuron_group[id_list] = group_name
+    def add_to_group(self, group_name, ids):
+        self[group_name].ids += list(ids)
+        self._neuron_group[ids] = group_name
         if None in list(self._neuron_group):
             self._is_valid = False
         else:
@@ -385,7 +415,7 @@ class NeuralPop(OrderedDict):
                 "is not `None`; to disable this, use `set_models(None)` "
                 "method on this NeuralPop instance.")
         elif group.has_model and not self._has_models:
-            warnings.warn(
+            logger.warning(
                 "This NeuralPop is not set to take models into account; use "
                 "the `set_models` method to change its behaviour.")
 
@@ -399,7 +429,7 @@ class NeuralGroup:
     """
     Class defining groups of neurons.
 
-    :ivar id_list: :obj:`list` of :obj:`int`
+    :ivar ids: :obj:`list` of :obj:`int`
         the ids of the neurons in this group.
     :ivar neuron_type: :class:`int`
         the default is ``1`` for excitatory neurons; ``-1`` is for interneurons
@@ -417,7 +447,7 @@ class NeuralGroup:
     .. warning::
         Equality between :class:`~nngt.properties.NeuralGroup`s only compares
         the neuronal and synaptic ``model`` and ``param`` attributes, i.e.
-        groups differing only by their ``id_list`` will register as equal.
+        groups differing only by their ``ids`` will register as equal.
     """
 
     def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None,
@@ -428,8 +458,9 @@ class NeuralGroup:
 
         Parameters
         ----------
-        nodes : array-like, optional (default: [])
-            NNGT indices of the neurons in the network.
+        nodes : int or array-like, optional (default: None)
+            Desired size of the group or, a posteriori, NNGT indices of the
+            neurons in an existing graph.
         ntype : int, optional (default: 1)
             Type of the neurons (1 for excitatory, -1 for inhibitory).
         model : str, optional (default: None)
@@ -450,9 +481,16 @@ class NeuralGroup:
         self._has_model = False if model is None else True
         self._neuron_model = model
         if nodes is None:
-            self._id_list = []
+            self._desired_size = None
+            self._ids = []
+        elif nonstring_container(nodes):
+            self._desired_size = None
+            self._ids = list(nodes)
+        elif isinstance(nodes, int):
+            self._desired_size = nodes
+            self._ids = []
         else:
-            self._id_list = list(nodes)
+            raise InvalidArgument('`nodes` must be either array-like or int.')
         self._nest_gids = None
         if self._has_model:
             self.neuron_param = neuron_param
@@ -471,6 +509,9 @@ class NeuralGroup:
         else:
             return False
 
+    def __len__(self):
+        return self.size
+
     @property
     def neuron_model(self):
         return self._neuron_model
@@ -481,8 +522,23 @@ class NeuralGroup:
         self._has_model = False if value is None else True
 
     @property
-    def id_list(self):
-        return self._id_list
+    def size(self):
+        if self._desired_size is not None:
+            return self._desired_size
+        return len(self._ids)
+
+    @property
+    def ids(self):
+        return self._ids
+
+    @ids.setter
+    def ids(self, value):
+        if self._desired_size is not None:
+            logger.warning('The length of the `ids` passed is not the'
+                           'same as the initial size that was declared.'
+                           'Setting `ids` anyway, but check your code!')
+        self._ids = value
+        self._desired_size = None
 
     @property
     def nest_gids(self):

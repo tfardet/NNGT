@@ -38,7 +38,7 @@ from .plt_networks import draw_network
 # Animation classes #
 # ----------------- #
 
-class _SpikeAnimator:
+class _SpikeAnimator(anim.TimedAnimation):
     
     '''
     Generic class to plot raster plot and firing-rate in time for a given

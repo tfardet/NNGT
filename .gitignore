@@ -1,5 +1,7 @@
 # doc
 doc/.build/
+doc/examples/sp_graph
+doc/examples/.ipynb_checkpoints/
 
 # generated rst
 doc/modules/examples
