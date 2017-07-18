@@ -20,7 +20,10 @@
 
 """ IO tools for NNGT """
 
-from sys import maxint
+try:
+    from sys import maxint
+except ImportError:
+    from sys import maxsize as maxint
 import logging
 
 import numpy as np
