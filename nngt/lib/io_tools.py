@@ -20,10 +20,6 @@
 
 """ IO tools for NNGT """
 
-try:
-    from sys import maxint
-except ImportError:
-    from sys import maxsize as maxint
 import logging
 
 import numpy as np
@@ -283,13 +279,14 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
             logger.warning('The `shape` attribute of the graph could not be '
                            'saved to file because Shapely is not installed.')
         pos = graph.get_positions()
+        np.set_printoptions(threshold='nan')
         additional_notif['x'] = np.array2string(
-            pos[:, 0], max_line_width=maxint, separator=separator)[1:-1]
+            pos[:, 0], max_line_width='nan', separator=separator)[1:-1]
         additional_notif['y'] = np.array2string(
-            pos[:, 1], max_line_width=maxint, separator=separator)[1:-1]
+            pos[:, 1], max_line_width='nan', separator=separator)[1:-1]
         if pos.shape[1] == 3:
             additional_notif['z'] = np.array2string(
-                pos[:, 2], max_line_width=maxint, separator=separator)[1:-1]
+                pos[:, 2], max_line_width='nan', separator=separator)[1:-1]
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)
     if return_info:

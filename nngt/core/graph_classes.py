@@ -883,9 +883,10 @@ class SpatialGraph(Graph):
         self._init_spatial_properties(shape, positions, **kwargs)
         
     def __del__(self):
-        if self._shape is not None:
-            self._shape._parent = None
-        self._shape = None
+        if hasattr(self, '_shape'):
+            if self._shape is not None:
+                self._shape._parent = None
+            self._shape = None
         super(SpatialGraph, self).__del__()
         self.__class__.__num_graphs -= 1
 
