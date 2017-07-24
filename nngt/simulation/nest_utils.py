@@ -105,7 +105,8 @@ def set_poisson_input(gids, rate):
     return poisson_input
 
 
-def set_minis(network, base_rate, weight_fraction=0.05, nodes=None, gids=None):
+def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
+              syn_model="static_synapse", syn_params=None):
     '''
     Mimick spontaneous release of neurotransmitters, called spontaneous PSCs or
     "minis".
@@ -115,20 +116,43 @@ def set_minis(network, base_rate, weight_fraction=0.05, nodes=None, gids=None):
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
 
+    .. versionmodified:: 0.7
+        Added `nodes`, `syn_model` and `syn_param`.
+
     Parameters
     ----------
     network : :class:`~nngt.Network` object
         Network on which the minis should be simulated.
     base_rate : float
         Rate for the Poisson process on one synapse (:math:`\\lambda`).
-    weight_fraction : float, optional (default: 0.05)
+    weight_fraction : float, optional (default: 0.4)
         Fraction of a spike-triggered PSC that will be released by a mini.
-    gids : array-like container ids, optional (default = all neurons)
-        Neurons that should be subjected to minis.
+    nodes : array-like, optional (default: all nodes)
+        NNGT ids of the neurons that should be subjected to minis.
+    gids : array-like container ids, optional (default: all neurons)
+        NEST gids of the neurons that should be subjected to minis.
+    syn_model : str, optional (default: 'static_synapse')
+        NEST model for the synapse.
+    syn_params : dict, optional (default: None)
+        Parameters of the synapse.
+
+    Note
+    ----
+    `nodes` and `gids` are uncompatible, only one one the two arguments can
+    be used in any given call to `set_minis`.
+
+    When using this function, make sure that the synapses you use are the
+    same as the synapses the neurons are receiving, otherwise the weights will
+    not be correctly tuned. This is especially true when using STDP.
     '''
     assert (weight_fraction >= 0. and weight_fraction <= 1.), \
            "`weight_fraction` must be between 0 and 1."
     assert network.nest_gid is not None, "Create the NEST network first."
+    if syn_params is None:
+        syn_params = {}
+    else:
+        assert "weight" not in syn_params, \
+               "Forbidden 'weight' entry in `syn_params`."
     degrees = network.get_degrees("in")
     # mean returns a np.matrix, getA1 converts to 1D array
     weights = np.transpose(network.adjacency_matrix().mean(1)).getA1()

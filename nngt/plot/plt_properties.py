@@ -501,8 +501,8 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
         axes[i].set_ylabel(reference_attribute[0].upper() + end_ref_attr)
         axes[i].set_title(
             "{}{} vs {} for each ".format(
-                attr[0].upper(), end_attr, reference_attribute[0] + \
-                end_ref_attr, network.name) + \
+                reference_attribute[0].upper(), end_ref_attr, attr[0] + \
+                end_attr, network.name) + \
             "node in {}".format(network.name),
             loc='left', x=0., y=1.05)
     # adjust space, set title, and show

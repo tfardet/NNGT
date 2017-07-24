@@ -20,6 +20,8 @@
 
 """ Tools for activity analysis from data """
 
+import logging
+
 import numpy as np
 import scipy.signal as sps
 import scipy.sparse as ssp
@@ -33,6 +35,9 @@ __all__ = [
     "get_spikes",
     "total_firing_rate",
 ]
+
+
+logger = logging.getLogger(__name__)
 
 
 # ----------------------- #
@@ -246,16 +251,19 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
 # ----- #
 
 def _b2_from_data(ids, data):
-    b2 = np.zeros(len(ids))
-    for i, neuron in enumerate(ids):
-        ids = np.where(data[0] == neuron)[0]
-        dt1 = np.diff(data[1][ids])
-        dt2 = dt1[1:] + dt1[:-1]
-        avg_isi = np.mean(dt1)
-        if avg_isi != 0.:
-            b2[i] = (2*np.var(dt1) - np.var(dt2)) / (2*avg_isi**2)
-        else:
-            b2[i] = np.inf
+    b2 = np.full(len(ids), np.NaN)
+    if len(data[:, 0]) > 0:
+        for i, neuron in enumerate(ids):
+            ids = np.where(data[:, 0] == neuron)[0]
+            dt1 = np.diff(data[ids, 1])
+            dt2 = dt1[1:] + dt1[:-1]
+            avg_isi = np.mean(dt1)
+            if avg_isi != 0.:
+                b2[i] = (2*np.var(dt1) - np.var(dt2)) / (2*avg_isi**2)
+            else:
+                b2[i] = np.inf
+    else:
+        logger.warning('No spikes in the data.')
     return b2
 
 
@@ -282,6 +290,7 @@ def _set_spike_data(data, spike_detector):
     '''
     Data must be [[], []]
     '''
+    import nest
     if not len(data[0]):
         if spike_detector is None:
             spike_detector = nest.GetNodes(

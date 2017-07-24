@@ -29,11 +29,12 @@
 import logging
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import ColorConverter
 import numpy as np
 import nest
 
 import nngt
-from nngt.plot import palette
+from nngt.plot import palette, markers
 from nngt.plot.plt_properties import _set_new_plot, _set_ax_lims
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.sorting import _sort_groups, _sort_neurons
@@ -170,17 +171,21 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         raise AttributeError(
             "`decimate` must be either an int or a list of `int`.")
 
-    # plot
+    # set labels
     if label is None:
-        lst_labels = [None for _ in range(len(gid_recorder))]
+        lst_labels = [None for _ in range(len(lst_rec))]
     else:
         if isinstance(label, str):
             lst_labels = [label]
+        else:
+            lst_labels = label
         if len(label) != len(lst_rec):
             logger.warning('Incorrect length for `label`: expecting {} but '
                            'got {}.\n'
                            'Ignoring.'.format(len(lst_rec), len(label)))
-            lst_labels = [None for _ in range(len(gid_recorder))]
+            lst_labels = [None for _ in range(len(lst_rec))]
+
+    # plot
     for rec, var, lbl in zip(lst_rec, record, lst_labels):
         info = nest.GetStatus([rec])[0]
         fnum = fignums[info["model"]] if info["model"] in fignums else None
@@ -193,7 +198,8 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             sorted_ids = sorted_neurons[senders]
             l = raster_plot(times, sorted_ids, color=c, show=False,
                             limits=limits, sort=sort, fignum=fnum,
-                            decimate=decim[num_raster], sort_attribute=attr)
+                            decimate=decim[num_raster], sort_attribute=attr,
+                            network=network)
             num_raster += 1
             if l:
                 fig_raster = l[0].figure.number
@@ -261,7 +267,8 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
 
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 num_bins=1000, color="b", decimate=None, fignum=None,
-                label=None, show=True, sort=None, sort_attribute=None):
+                label=None, show=True, sort=None, sort_attribute=None,
+                network=None):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
@@ -389,9 +396,23 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             _second_axis(sort, sort_attribute, ax1)
         else:
             ax = fig.axes[0] if fig.axes else fig.add_subplot(111)
-            lines.extend(ax.plot(
-                times, senders, c=color, marker="o", linestyle='None',
-                mec="k", mew=0.5, ms=4, **kwargs))
+            if network is not None:
+                for m, (k, v) in zip(markers, network.population.items()):
+                    keep = np.where(
+                        np.in1d(senders, network.nest_gid[v.ids]))[0]
+                    if len(keep):
+                        if label is None:
+                            kwargs['label'] = k
+                        lines.extend(ax.plot(
+                            times[keep], senders[keep], c=color, marker=m,
+                            ls='None', mec='k', mew=0.5, ms=4, **kwargs))
+                        if 'inh' in k:
+                            c_rgba = ColorConverter().to_rgba(color, alpha=0.5)
+                            lines[-1].set_markerfacecolor(c_rgba)
+            else:
+                lines.extend(ax.plot(
+                    times, senders, c=color, marker="o", linestyle='None',
+                    mec="k", mew=0.5, ms=4, **kwargs))
             ax.set_ylabel(ylabel)
             ax.set_xlabel(xlabel)
             if limits is not None:
@@ -405,6 +426,8 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         fig.suptitle(title)
         if show:
             plt.show()
+    else:
+        logger.warning("No activity was detected during the simulation.")
     return lines
 
 

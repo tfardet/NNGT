@@ -8,6 +8,7 @@ import logging
 
 import matplotlib as mpl
 import matplotlib.cm as cm
+from matplotlib.markers import MarkerStyle as MS
 
 import nngt
 
@@ -23,6 +24,9 @@ with_seaborn = False
 def palette(numbers):
     pal = cm.get_cmap(nngt._config["palette"])
     return pal(numbers)
+
+# markers list
+markers = itertools.cycle([m for m in MS().filled_markers if m != '.'])
 
 if nngt._config["color_lib"] == "seaborn":
     try:

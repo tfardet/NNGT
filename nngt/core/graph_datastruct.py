@@ -118,8 +118,8 @@ class NeuralPop(OrderedDict):
         return pop
 
     @classmethod
-    def uniform(cls, size, parent=None, neuron_model=default_neuron,
-                neuron_param=None, syn_model=default_synapse, syn_param=None):
+    def uniform(cls, size, neuron_model=default_neuron, neuron_param=None,
+                syn_model=default_synapse, syn_param=None, parent=None):
         ''' Make a NeuralPop of identical neurons '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
         syn_param = {} if syn_param is None else syn_param.copy()
@@ -129,11 +129,10 @@ class NeuralPop(OrderedDict):
         return pop
 
     @classmethod
-    def exc_and_inhib(cls, size, iratio=0.2, parent=None,
-                      en_model=default_neuron, en_param=None,
-                      es_model=default_synapse, es_param=None,
+    def exc_and_inhib(cls, size, iratio=0.2, en_model=default_neuron,
+                      en_param=None, es_model=default_synapse, es_param=None,
                       in_model=default_neuron, in_param=None,
-                      is_model=default_synapse, is_param=None):
+                      is_model=default_synapse, is_param=None, parent=None):
         '''
         Make a NeuralPop with a given ratio of inhibitory and excitatory
         neurons.
