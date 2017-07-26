@@ -19,11 +19,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Functions for plotting graphs and graph properties.
+This modules provides the following features:
 
-
-Content
-=======
+* plotting the distribution of some attribute over the graph
+* basic graph plotting
+* animation of some recorded activity
 """
 
 import warnings as _warn
@@ -35,7 +35,7 @@ import nngt as _nngt
 
 # module import
 
-from .custom_plt import palette
+from .custom_plt import palette, markers
 from .animations import Animation2d, AnimationNetwork
 from .plt_networks import draw_network
 from .plt_properties import *
@@ -47,6 +47,7 @@ __all__ = [
     "AnimationNetwork",
     "draw_network",
     "palette",
+    "markers",
 ]
 
 

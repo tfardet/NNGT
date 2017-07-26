@@ -30,29 +30,31 @@ from matplotlib.lines import Line2D
 import matplotlib.animation as anim
 
 from nngt.lib.sorting import _sort_neurons
+from nngt.analysis import total_firing_rate
+from .plt_networks import draw_network
 
 
 # ----------------- #
 # Animation classes #
 # ----------------- #
 
-class _SpikeAnimator:
+class _SpikeAnimator(anim.TimedAnimation):
     
     '''
     Generic class to plot raster plot and firing-rate in time for a given
     network.
 
-    .. warning:
+    .. warning::
         This class is not supposed to be instantiated directly, but only
         through Animation2d or AnimationNetwork.
     '''
     
     steps = [
-        1, 5, 10, 20, 25, 50, 100, 200, 250,
-        500, 1000, 2000, 2500, 5000, 10000
+        1, 5, 10, 20, 25, 50, 100, 200, 250, 500,
+        1000, 2000, 2500, 5000, 10000, 25000, 50000, 75000, 100000, 250000
     ]
 
-    def __init__(self, spike_detector=None, sort_neurons=False,
+    def __init__(self, source, sort_neurons=None,
                  network=None, grid=(2, 4), pos_raster=(0, 2),
                  span_raster=(1, 2), pos_rate=(1, 2),
                  span_rate=(1, 2), make_rate=True, **kwargs):
@@ -61,10 +63,9 @@ class _SpikeAnimator:
         
         Parameters
         ----------
-        spike_detector : tuple
-            NEST gid of the ``spike_detector``(s) which recorded the network.
-        times : array-like, optional (default: None)
-            List of times to run the animation.
+        source : NEST gid tuple or str
+            NEST gid of the `spike_detector`(s) which recorded the network or
+            path to a file containing the recorded spikes.
 
         Note
         ----
@@ -73,30 +74,32 @@ class _SpikeAnimator:
         '''
         import matplotlib.pyplot as plt
         import nest
+        from nngt.simulation.nest_activity import _get_data
         
         # organization
         self.grid = grid
         self.has_rate = make_rate
 
         # get data
-        data_s = nest.GetStatus(spike_detector)[0]["events"]
-        spikes = np.where(data_s["times"] >= self.times[0])[0]
+        data_s = _get_data(source)
+        spikes = np.where(data_s[:, 1] >= self.times[0])[0]
 
         if np.any(spikes):
             idx_start = spikes[0]
-            self.spikes = data_s["times"][idx_start:]
-            self.senders = data_s["senders"][idx_start:]
+            self.spikes = data_s[:, 1][idx_start:]
+            self.senders = data_s[:, 0][idx_start:].astype(int)
+            self._ymax = np.max(self.senders)
+            self._ymin = np.min(self.senders)
 
             if network is None:
-                self.num_neurons = np.max(self.senders) - np.min(self.senders)
+                self.num_neurons = int(self._ymax - self._ymin)
             else:
                 self.num_neurons = network.node_nb()
             # sorting
-            if sort_neurons:
+            if sort_neurons is not None:
                 if network is not None:
-                    data = (self.senders, self.spikes)
                     sorted_neurons = _sort_neurons(
-                        sort_neurons, self.senders, network, data=data)
+                        sort_neurons, self.senders, network, data=data_s)
                     self.senders = sorted_neurons[self.senders]
                 else:
                     warnings.warn("Could not sort neurons because no " \
@@ -107,20 +110,17 @@ class _SpikeAnimator:
 
             # generate the spike-rate
             if make_rate:
-                self.firing_rate = np.zeros(len(self.times))
-                for i, t in enumerate(self.times):
-                    gauss = np.exp(-np.square((t - self.spikes) / self.trace))
-                    self.firing_rate[i] += np.sum(gauss)
-                self.firing_rate *= 1000. / (self.trace * np.sqrt(np.pi) \
-                                             * self.num_neurons)
+                self.firing_rate, _ = total_firing_rate(
+                    network, data=data_s, resolution=self.times)
         else:
             raise RuntimeError("No spikes between {} and {}.".format(
-                start, self.times[-1]))
+                self.start, self.times[-1]))
 
         # figure/canvas: pause/resume and step by step interactions
         self.fig = plt.figure(
             figsize=kwargs.get("figsize", (8, 6)), dpi=kwargs.get("dpi", 75))
         self.pause = False
+        self.pause_after = False
         self.event = None
         self.increment = 1
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
@@ -150,7 +150,7 @@ class _SpikeAnimator:
         if self.timewindow != self.duration:
             kw_args['xlim'] = (self.start,
                 min(self.simtime, self.timewindow + self.start))
-        ylim = (0, self.num_neurons)
+        ylim = (self._ymin, self._ymax)
         self.lines_raster = [self.line_spks_, self.line_spks_a]
         self.set_axis(self.spks, xlabel='Time (ms)', ylabel='Neuron',
             lines=self.lines_raster, ylim=ylim, set_xticks=True, **kw_args)
@@ -244,19 +244,40 @@ class _SpikeAnimator:
 
     def on_click(self, event):
         if event.button == '2':
-            self.pause ^= True
+            if self.pause:
+                self.pause = False
+                self.event_source.start()
+            else:
+                self.pause = True
+                self.event_source.stop()
 
     def on_keyboard_press(self, kb_event):
         if kb_event.key == ' ':
-            self.pause ^= True
-        elif kb_event.key == 'F':
-            self.increment *= 2
-        elif kb_event.key == 'B':
-            self.increment = max(1, int(self.increment / 2))
+            if self.pause:
+                self.pause = False
+                self.event_source.start()
+            else:
+                self.pause = True
+                self.event_source.stop()
+        else:
+            if kb_event.key in ('B', 'F', 'N', 'P'):
+                if self.pause:
+                    self.pause = False
+                    self.pause_after = True    # stop at next iteration
+                    self.event_source.start()  # restart temporarily
+                if kb_event.key == 'F':
+                    self.increment *= 2
+                elif kb_event.key == 'B':
+                    self.increment = max(1, int(self.increment / 2))
         self.event = kb_event
 
     def on_keyboard_release(self, kb_event):
-        self.event = None
+        if kb_event.key in (' ', 'B', 'F', 'N', 'P'):
+            if self.pause_after:
+                self.pause = True
+                self.pause_after = False
+                self.event_source.stop()  # pause again
+            self.event = None
 
     def save_movie(self, filename, fps=30, video_encoder='html5', codec=None,
                    bitrate=-1, interval=None, num_frames=None, metadata=None):
@@ -314,15 +335,15 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
     a 2D phase-space for a network activity.
     '''
 
-    def __init__(self, spike_detector, multimeter, start=0., timewindow=None,
-                 trace=5., x='time', y='V_m', sort_neurons=False,
+    def __init__(self, source, multimeter, start=0., timewindow=None,
+                 trace=5., x='time', y='V_m', sort_neurons=None,
                  network=None, interval=50, vector_field=False, **kwargs):
         '''
         Generate a SubplotAnimation instance to plot a network activity.
         
         Parameters
         ----------
-        spike_detector : tuple
+        source : tuple
             NEST gid of the ``spike_detector``(s) which recorded the network.
         multimeter : tuple
             NEST gid of the ``multimeter``(s) which recorded the network.
@@ -345,6 +366,12 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
             last parameter is a list of doubles associated to recordables
             from the neuron model (see example for details). These recordables
             must be declared in a `time_dependent` parameter.
+        sort_neurons : str or list, optional (default: None)
+            Sort neurons using a topological property ("in-degree",
+            "out-degree", "total-degree" or "betweenness"), an activity-related
+            property ("firing_rate", 'B2') or a user-defined list of sorted
+            neuron ids. Sorting is performed by increasing value of the
+            `sort_neurons` property from bottom to top inside each group.
         **kwargs : dict, optional (default: {})
             Optional arguments such as 'make_rate', 'num_xarrows',
             'num_yarrows', 'dotx', 'doty', 'time_dependent', 'recordables',
@@ -380,7 +407,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         if 'make_rate' not in kwargs:
             kwargs['make_rate'] = True
         super(Animation2d, self).__init__(
-            spike_detector, sort_neurons=sort_neurons, network=network,
+            source, sort_neurons=sort_neurons, network=network,
             **kwargs)
 
         # Data and axis for phase-space
@@ -429,23 +456,23 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         imax = len(self.x) - 1
         while i < imax - self.increment:
             if not self.pause:
-                i += self.increment
-            elif self.event is not None:
-                if self.event.key in ('right', 'n'):
-                    i += self.increment
-                elif self.event.key in ('left', 'p'):
-                    i -= self.increment
-                if self.event.key in ('n', 'p'):
+                if self.event is not None:
+                    if self.event.key == 'N':
+                        i += self.increment
+                    elif self.event.key == 'P':
+                        i -= self.increment
                     self.event = None
+                else:
+                    i += self.increment
             yield i
 
     def _draw(self, framedata):
         i = framedata
 
         head = i - 1
-        head_slice = ((self.times > self.times[i] - self.trace)
+        head_slice = ((self.times > (self.times[i] - self.trace))
                       & (self.times < self.times[i]))
-        spike_slice = ((self.spikes > self.times[i] - self.trace)
+        spike_slice = ((self.spikes > (self.times[i] - self.trace))
                        & (self.spikes <= self.times[i]))
         spike_cum = self.spikes < self.times[i]
         
@@ -509,21 +536,20 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
 class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
     
     '''
-    Class to plot the raster plot, firing-rate, and average trajectory in
-    a 2D phase-space for a network activity.
+    Class to plot the raster plot, firing-rate, and space-embedded spiking
+    activity (neurons on the graph representation flash when spiking) in time.
     '''
 
-    def __init__(self, spike_detector, network, resolution=1, start=0.,
-                 timewindow=None, trace=5., show_spikes=True,
-                 sort_neurons=False, interval=50, repeat=True, **kwargs):
+    def __init__(self, source, network, resolution=1, start=0.,
+                 timewindow=None, trace=5., show_spikes=False,
+                 sort_neurons=None, decimate_connections=False,
+                 interval=50, repeat=True, active_size=None, **kwargs):
         '''
         Generate a SubplotAnimation instance to plot a network activity.
-        
+
         Parameters
         ----------
-        multimeter : tuple
-            NEST gid of the ``multimeter``(s) which recorded the network.
-        spike_detector : tuple
+        source : tuple
             NEST gid of the ``spike_detector``(s) which recorded the network.
         network : :class:`~nngt.SpatialNetwork`
             Network embedded in space to plot the actvity of the neurons in
@@ -536,14 +562,23 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             Interval of time (ms) over which the data is overlayed in red.
         show_spikes : bool, optional (default: True)
             Whether a spike trajectory should be displayed on the network.
+        sort_neurons : str or list, optional (default: None)
+            Sort neurons using a topological property ("in-degree",
+            "out-degree", "total-degree" or "betweenness"), an activity-related
+            property ("firing_rate", 'B2') or a user-defined list of sorted
+            neuron ids. Sorting is performed by increasing value of the
+            `sort_neurons` property from bottom to top inside each group.
         **kwargs : dict, optional (default: {})
-            Optional arguments such as 'make_rate'.
+            Optional arguments such as 'make_rate', or all arguments for the
+            :func:`nngt.plot.draw_network`.
         '''
         import matplotlib.pyplot as plt
         import nest
+        from nngt.simulation.nest_activity import _get_data
 
         self.network = weakref.ref(network)
-        self.simtime = nest.GetStatus(spike_detector)[0]["events"]['times'][-1]
+
+        self.simtime = _get_data(source)[-1, 1]
         self.times = np.arange(start, self.simtime + resolution, resolution)
 
         self.num_frames = len(self.times)
@@ -557,13 +592,14 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             self.timewindow = min(timewindow, self.duration)
 
         # init _SpikeAnimator parent class (create figure and right axes)
-        self.decim_conn = kwargs.get('decimate_connections', 1)
+        #~ self.decim_conn = 1 if decimate is not None else decimate
+        self.kwargs = kwargs
         cs = kwargs.get('chunksize', 10000)
         mpl.rcParams['agg.path.chunksize'] = cs
         if 'make_rate' not in kwargs:
             kwargs['make_rate'] = True
         super(AnimationNetwork, self).__init__(
-            spike_detector, sort_neurons=sort_neurons, network=network,
+            source, sort_neurons=sort_neurons, network=network,
             **kwargs)
         
         self.env = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
@@ -573,15 +609,17 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             self.fig.dpi_scale_trans.inverted())
         area_px = bbox.width * bbox.height * self.fig.dpi**2
         n_size = max(2, 0.5*np.sqrt(area_px/self.num_neurons))  # neuron size
+        if active_size is None:
+            active_size = n_size + 2
         pos = network.get_positions()  # positions of the neurons
         self.x = pos[:, 0]
         self.y = pos[:, 1]
-        
+
         # neurons
         self.line_neurons = Line2D(
             [], [], ls='None', marker='o', color='black', ms=n_size, mew=0)
         self.line_neurons_a = Line2D(
-            [], [], ls='None', marker='o', color='red', ms=n_size+1, mew=0)
+            [], [], ls='None', marker='o', color='red', ms=active_size, mew=0)
         self.lines_env = [self.line_neurons, self.line_neurons_a]
         xlim = (_min_axis(self.x.min()), _max_axis(self.x.max()))
         self.set_axis(self.env, xlabel='Network', ylabel='',
@@ -600,7 +638,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         self.env.grid(None)
 
         plt.tight_layout()
-        
+
         anim.FuncAnimation.__init__(
             self, self.fig, self._draw, self._gen_data, repeat=repeat,
             interval=interval, blit=True)
@@ -613,14 +651,13 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         imax = len(self.times) - 1
         while i < imax - self.increment:
             if not self.pause:
-                i += self.increment
-            elif self.event is not None:
-                if self.event.key in ('right', 'n'):
+                if self.event is not None:
+                    if self.event.key == 'N':
+                        i += self.increment
+                    elif self.event.key == 'P':
+                        i -= self.increment
+                else:
                     i += self.increment
-                elif self.event.key in ('left', 'p'):
-                    i -= self.increment
-                if self.event.key in ('n', 'p'):
-                    self.event = None
             yield i
 
     def _draw(self, framedata):
@@ -694,21 +731,24 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         for l in lines:
             l.set_data([], [])
         # initialize the neurons and connections between neurons
-        self.line_neurons.set_data(self.x, self.y)
-        num_edges = self.network().edge_nb()
-        self.x_conn = np.zeros(3*num_edges)
-        self.y_conn = np.zeros(3*num_edges)
-        adj_mat = self.network().adjacency_matrix()
-        edges = adj_mat.nonzero()
-        self.x_conn[::3] = self.x[edges[0]]   # x position of source nodes
-        self.x_conn[1::3] = self.x[edges[1]]  # x position of target nodes
-        self.x_conn[2::3] = np.NaN            # NaN to separate
-        self.y_conn[::3] = self.y[edges[0]]   # y position of source nodes
-        self.y_conn[1::3] = self.y[edges[1]]  # y position of target nodes
-        self.y_conn[2::3] = np.NaN            # NaN to separate
-        self.env.plot(
-            self.x_conn[::self.decim_conn], self.y_conn[::self.decim_conn],
-            color='k', alpha=0.3, lw=1)
+        draw_network(self.network(), ncolor='k', axis=self.env, show=False,
+                     tight=False, **self.kwargs)
+        self.line_neurons = self.env.lines[0]
+        #~ self.line_neurons.set_data(self.x, self.y)
+        #~ num_edges = self.network().edge_nb()
+        #~ self.x_conn = np.zeros(3*num_edges)
+        #~ self.y_conn = np.zeros(3*num_edges)
+        #~ adj_mat = self.network().adjacency_matrix()
+        #~ edges = adj_mat.nonzero()
+        #~ self.x_conn[::3] = self.x[edges[0]]   # x position of source nodes
+        #~ self.x_conn[1::3] = self.x[edges[1]]  # x position of target nodes
+        #~ self.x_conn[2::3] = np.NaN            # NaN to separate
+        #~ self.y_conn[::3] = self.y[edges[0]]   # y position of source nodes
+        #~ self.y_conn[1::3] = self.y[edges[1]]  # y position of target nodes
+        #~ self.y_conn[2::3] = np.NaN            # NaN to separate
+        #~ self.env.plot(
+            #~ self.x_conn[::self.decim_conn], self.y_conn[::self.decim_conn],
+            #~ color='k', alpha=0.3, lw=1)
 
 
 # ----- #

@@ -4,5 +4,16 @@ Geometry module
 
 This module is a direct copy of the SENeC package
 `PyNCulture <https://github.com/SENeC-Initiative/PyNCulture>`_.
+Therefore, in the examples below, you will have to import ``nngt`` instead of
+``PyNCulture`` and replace ``pnc`` by ``nngt.geometry``.
+
+
+Overview
+========
+
+.. autosummary::
+
+@autosum@
+
 
 .. automodule:: nngt.geometry

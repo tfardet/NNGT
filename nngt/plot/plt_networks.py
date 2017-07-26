@@ -21,7 +21,7 @@
 import numpy as np
 
 from .custom_plt import palette, format_exponent
-from nngt.lib import POS 
+from nngt.lib import POS, nonstring_container
 
 
 
@@ -54,8 +54,9 @@ __all__ = ["draw_network"]
 
 def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
-                 max_nsize=5., max_esize=2., spatial=True, size=(600,600),
-                 dpi=75):
+                 max_nsize=5., max_esize=2., threshold=0.5,
+                 decimate=None, spatial=True, size=(600,600), xlims=None,
+                 ylims=None, dpi=75, axis=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -89,6 +90,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     max_esize : float, optional (default: 5.)
         If a custom property is entered as `esize`, this normalizes the edge
         width between 0. and `max_esize`.
+    decimate : int, optional (default: keep all connections)
+        Plot only one connection every `decimate`.
     spatial : bool, optional (default: True)
         If True, use the neurons' positions to draw them.
     size : tuple of ints, optional (default: (600,600))
@@ -98,17 +101,21 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     '''
     import matplotlib.pyplot as plt
     size_inches = (size[0]/float(dpi), size[1]/float(dpi))
-    fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
-    ax = fig.add_subplot(111, frameon=0, aspect=1)
-    ax.set_axis_off()
+    if axis is None:
+        fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
+        axis = fig.add_subplot(111, frameon=0, aspect=1)
+    axis.set_axis_off()
     pos, layout = None, None
     n = network.node_nb()
     e = network.edge_nb()
     # compute properties
+    decimate = 1 if decimate is None else decimate
     if isinstance(nsize, str):
         if e:
             nsize = _node_size(network, nsize)
             nsize *= max_nsize
+        else:
+            nsize = np.ones(n)
     elif isinstance(nsize, float):
         nsize = np.repeat(nsize, n)
     nsize *= 0.01 * size[0]
@@ -116,10 +123,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         if e:
             esize = _edge_size(network, esize)
             esize *= max_esize
+            esize[esize < threshold] = 0.
     elif isinstance(esize, float):
         esize = np.repeat(esize, e)
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
     ncolor = _node_color(network, ncolor)
+    c = ncolor
+    # remove the edges
     if isinstance(nborder_color, float):
         nborder_color = np.repeat(nborder_color, n)
     if isinstance(ecolor, float):
@@ -133,26 +143,40 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
     if hasattr(network, "population"):
         for group in network.population.values():
-            idx = group.id_list
-            ax.scatter(pos[idx,0], pos[idx,1], s=nsize, marker=nshape,
-                       c=palette(ncolor[idx[0]]), edgecolors=nborder_color,
-                       zorder=2)
+            idx = group.ids
+            if nonstring_container(ncolor):
+                c = palette(ncolor[idx[0]])
+            # scatter required because of different markersize
+            axis.scatter(pos[idx,0], pos[idx,1], s=nsize, marker=nshape,
+                         c=c, edgecolors=nborder_color, zorder=2)
     else:
-        ax.scatter(pos[:,0], pos[:,1], s=nsize, marker=nshape,
-                   c=palette(ncolor), edgecolors=nborder_color, zorder=2)
-    _set_ax_lim(ax, pos[:,0], pos[:,1])
+        if not isinstance(c, str):
+            c = palette(ncolor)
+        axis.scatter(pos[:,0], pos[:,1], s=nsize, marker=nshape,
+                     c=c, edgecolors=nborder_color, zorder=2)
+    _set_ax_lim(axis, pos[:,0], pos[:,1], xlims, ylims)
     # use quiver to draw the edges
-    adj_mat = network.adjacency_matrix()
-    edges = adj_mat.nonzero()
-    arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
-    arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
-    ax.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
-              scale_units='xy', angles='xy', scale=1, alpha=0.5, width=1.5e-3,
-              linewidths=esize, edgecolors=ecolor, zorder=1)
-    plt.tight_layout()
-    plt.subplots_adjust(
-        hspace=0., wspace=0., left=0., right=1., top=1., bottom=0.)
-    plt.show()
+    if e:
+        adj_mat = network.adjacency_matrix(weights=None)
+        edges = np.array(adj_mat.nonzero())
+        if nonstring_container(esize):
+            edges = edges[:, esize > 0]
+            esize = esize[esize > 0]
+        if decimate > 1:
+            edges = edges[:, ::decimate]
+            if nonstring_container(esize):
+                esize = esize[::decimate]
+        arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
+        arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
+        axis.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
+                  scale_units='xy', angles='xy', scale=1, alpha=0.5,
+                  width=1.5e-3, linewidths=esize, edgecolors=ecolor, zorder=1)
+    if kwargs.get('tight', True):
+        plt.tight_layout()
+        plt.subplots_adjust(
+            hspace=0., wspace=0., left=0., right=1., top=1., bottom=0.)
+    if show:
+        plt.show()
 
 
 #-----------------------------------------------------------------------------#
@@ -160,25 +184,19 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 #------------------------
 #
 
-def _set_ax_lim(ax, xdata, ydata):
-    x_min, x_max = np.min(xdata), np.max(xdata)
-    y_min, y_max = np.min(ydata), np.max(ydata)
-    if x_min > 0:
-        ax.set_xlim(left=0.95*x_min)
+def _set_ax_lim(ax, xdata, ydata, xlims, ylims):
+    if xlims is not None:
+        ax.set_xlim(*xlims)
     else:
-        ax.set_xlim(left=1.05*x_min)
-    if y_min > 0:
-        ax.set_ylim(bottom=0.95*y_min)
+        x_min, x_max = np.min(xdata), np.max(xdata)
+        width = x_max - x_min
+        ax.set_xlim(x_min - 0.05*width, x_max + 0.05*width)
+    if ylims is not None:
+        ax.set_ylim(*ylims)
     else:
-        ax.set_ylim(bottom=1.05*y_min)
-    if x_max < 0:
-        ax.set_xlim(right=0.95*x_max)
-    else:
-        ax.set_xlim(right=1.05*x_max)
-    if y_max < 0:
-        ax.set_ylim(top=0.95*y_max)
-    else:
-        ax.set_ylim(top=1.05*y_max)
+        y_min, y_max = np.min(ydata), np.max(ydata)
+        height = y_max - y_min
+        ax.set_ylim(y_min - 0.05*height, y_max + 0.05*height)
 
 
 def _node_size(network, nsize):
@@ -211,7 +229,7 @@ def _edge_size(network, esize):
 
 
 def _node_color(network, ncolor):
-    color = None
+    color = ncolor
     if issubclass(float, ncolor.__class__):
         color = np.repeat(ncolor, n)
     elif ncolor == "group":
@@ -220,5 +238,5 @@ def _node_color(network, ncolor):
             l = len(network.population)
             c = np.linspace(0,1,l)
             for i,group in enumerate(network.population.values()):
-                color[group.id_list] = c[i]
+                color[group.ids] = c[i]
     return color

@@ -1,9 +1,24 @@
-*.pyc
+# doc
 doc/.build/
+doc/examples/sp_graph
+doc/examples/.ipynb_checkpoints/
+
+# generated rst
+doc/modules/examples
+doc/modules/analysis.rst
+doc/modules/generation.rst
+doc/modules/geometry.rst
+doc/modules/lib.rst
 doc/modules/nngt.rst
+doc/modules/plot.rst
+doc/modules/simulation.rst
 doc/modules/nngt/main-functions.rst
 doc/modules/nngt/side-classes.rst
+
 nngt/testing/Ref/*
+
+# python stuff
+*.pyc
 */__pycache__
 .coverage
 *.pyxbldc

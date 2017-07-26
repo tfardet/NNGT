@@ -152,9 +152,9 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
 
 
 def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
-                 weighted=True, directed=True, multigraph=False, name="GD",
-                 shape=None, positions=None, population=None, from_graph=None,
-                 **kwargs):
+                    weighted=True, directed=True, multigraph=False, name="GD",
+                    shape=None, positions=None, population=None,
+                    from_graph=None, **kwargs):
     """
     Generate a random graph with constant in- or out-degree.
     @todo: adapt it for undirected graphs!
@@ -230,7 +230,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 #------------------------
 #
 
-def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
+def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
                 weighted=True, directed=True, multigraph=False, name="ER",
                 shape=None, positions=None, population=None, from_graph=None,
                 **kwargs):
@@ -240,10 +240,11 @@ def erdos_renyi(nodes=0, density=0.1, edges=-1, avg_deg=-1., reciprocity=-1.,
 
     Parameters
     ----------
+    density : double, optional (default: -1.)
+        Structural density given by `edges / nodes`:math:`^2`. It is also the
+        probability for each possible edge in the graph to exist.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
-    density : double, optional (default: 0.1)
-        Structural density given by `edges / nodes`:math:`^2`.
     edges : int (optional)
         The number of edges between the nodes
     avg_deg : double, optional
@@ -392,7 +393,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
                      from_graph=None, **kwargs):
     """
     @todo
-        make the algorithm.
+    make the algorithm.
         
     Generate a Price graph model (Barabasi-Albert if undirected).
 
@@ -536,7 +537,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
 #------------------------
 
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
-                  density=0.1, edges=-1, avg_deg=-1., unit='um', weighted=True,
+                  density=-1., edges=-1, avg_deg=-1., unit='um', weighted=True,
                   directed=True, multigraph=False, name="DR", positions=None,
                   population=None, from_graph=None, **kwargs):
     """
@@ -572,7 +573,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         'dm', 'm'.
     weighted : bool, optional (default: True)
         @todo
-			Whether the graph edges have weights.
+        Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -680,7 +681,7 @@ _di_gen_edges = {
 }
 
 
-_di_default = {  "density": 0.1,
+_di_default = {  "density": -1.,
                 "edges": -1,
                 "avg_deg": -1,
                 "reciprocity": -1,
@@ -721,9 +722,9 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     di_param.update(model_param)
     for group in iter(network._population.values()):
         if group.neuron_type == source_type:
-            source_ids.extend(group._id_list)
+            source_ids.extend(group.ids)
         elif group.neuron_type == target_type:
-            target_ids.extend(group._id_list)
+            target_ids.extend(group.ids)
     if source_type == target_type:
         edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
     else:
@@ -767,9 +768,9 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         target_groups = [target_groups]
     for name, group in iter(network._population.items()):
         if name in source_groups:
-            source_ids.extend(group._id_list)
+            source_ids.extend(group.ids)
         elif name in target_groups:
-            target_ids.extend(group._id_list)
+            target_ids.extend(group.ids)
     if source_groups == target_groups:
         edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
     else:

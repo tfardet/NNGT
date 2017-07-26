@@ -33,6 +33,9 @@ def _set_options(graph, population, shape, positions):
 
 def _compute_connections(num_source, num_target, density, edges, avg_deg,
                          directed, reciprocity=-1):
+    assert not np.allclose((density, edges, avg_deg), -1.), "At leat one " +\
+        "of the following entries must be specified: 'density', 'edges', " +\
+        "'avg_deg'."
     pre_recip_edges = 0
     if avg_deg > 0:
         pre_recip_edges = int(avg_deg * num_source)

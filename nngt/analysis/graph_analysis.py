@@ -25,7 +25,7 @@ import scipy.sparse.linalg as spl
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container
-from .activity_analysis import _b2_from_data, _fr_from_data
+from .activity_analysis import get_b2, get_firing_rate
 from .bayesian_blocks import bayesian_blocks
 
 
@@ -46,22 +46,8 @@ __all__ = [
 	"reciprocity",
 	"spectral_radius",
     "subgraph_centrality",
+    "transitivity"
 ]
-
-
-# ----------------- #
-# Set the functions #
-# ----------------- #
-
-adjacency = nngt.analyze_graph["adjacency"]
-assort = nngt.analyze_graph["assortativity"]
-edge_reciprocity = nngt.analyze_graph["reciprocity"]
-_closeness = nngt.analyze_graph["closeness"]
-global_clustering = nngt.analyze_graph["clustering"]
-local_clustering_coeff = nngt.analyze_graph["local_clustering"]
-scc = nngt.analyze_graph["scc"]
-wcc = nngt.analyze_graph["wcc"]
-glib_diameter = nngt.analyze_graph["diameter"]
 
 
 # ------------- #
@@ -69,9 +55,13 @@ glib_diameter = nngt.analyze_graph["diameter"]
 # ------------- #
 
 def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
-                   log=False, num_bins='auto'):
+                   log=False, num_bins='bayes'):
     '''
     Degree distribution of a graph.
+
+    .. versionchanged:: 0.7
+
+    Inclusion of automatic binning.
 
     Parameters
     ----------
@@ -86,6 +76,14 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
         are positive).
     log : bool, optional (default: False)
         use log-spaced bins.
+    num_bins : int, list or str, optional (default: 'bayes')
+        Any of the automatic methodes from :func:`numpy.histogram`, or 'bayes'
+        will provide automatic bin optimization. Otherwise, an int for the
+        number of bins can be provided, or the direct bins list.
+
+    See also
+    --------
+    :func:`numpy.histogram`, :func:`~nngt.analysis.binning`
 
     Returns
     -------
@@ -95,17 +93,19 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
         bins
     '''
     degrees = graph.get_degrees(deg_type, node_list, use_weights)
-    bins = binning(degrees, bins=num_bins, log=log)
-    return np.histogram(degrees, bins)
-    #~ nonzero = np.argwhere(counts)
-    #~ nonzero_bins = list(nonzero) + [nonzero[-1] + 1]
-    #~ return counts[nonzero], deg[nonzero_bins]
+    if num_bins == 'bayes' or isinstance(num_bins, int):
+        num_bins = binning(degrees, bins=num_bins, log=log)
+    return np.histogram(degrees, num_bins)
 
 
-def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='auto',
-                        num_ebins='auto', log=False):
+def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='bayes',
+                        num_ebins='bayes', log=False):
     '''
     Betweenness distribution of a graph.
+
+    .. versionchanged:: 0.7
+
+    Inclusion of automatic binning.
 
     Parameters
     ----------
@@ -119,6 +119,10 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='auto',
         attribute).
     log : bool, optional (default: False)
         use log-spaced bins.
+    num_bins : int, list or str, optional (default: 'bayes')
+        Any of the automatic methodes from :func:`numpy.histogram`, or 'bayes'
+        will provide automatic bin optimization. Otherwise, an int for the
+        number of bins can be provided, or the direct bins list.
 
     Returns
     -------
@@ -134,7 +138,15 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='auto',
     ia_nbetw, ia_ebetw = graph.get_betweenness(use_weights)
     if nodes is not None:
         ia_nbetw = ia_nbetw[nodes]
-    ra_nbins = binning(ia_nbetw, bins=num_nbins, log=log)
+    ra_nbins, ra_ebins = None, None
+    if num_ebins == 'bayes' or log:
+        ra_ebins = binning(ia_ebetw, bins=num_ebins, log=log)
+    else:
+        ra_ebins = num_ebins
+    if num_nbins == 'bayes' or log:
+        ra_nbins = binning(ia_nbetw, bins=num_nbins, log=log)
+    else:
+        ra_nbins = num_nbins
     ra_ebins = binning(ia_ebetw, bins=num_ebins, log=log)
     ncounts, nbetw = np.histogram(ia_nbetw, ra_nbins)
     ecounts, ebetw = np.histogram(ia_ebetw, ra_ebins)
@@ -158,12 +170,13 @@ def closeness(graph, nodes=None, use_weights=False):
     use_weights : bool, optional (default: False)
         Whether weighted closeness should be used.
     '''
-    return _closeness(graph, nodes, use_weights)
+    return nngt.analyze_graph["closeness"](graph, nodes, use_weights)
 
 
 def local_clustering(graph, nodes=None):
     '''
-    Local clustering coefficient of the nodes, defined as
+    Local clustering coefficient of the nodes.
+    Defined as
 
     .. math::
         c_i = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
@@ -178,7 +191,7 @@ def local_clustering(graph, nodes=None):
     if nngt._config["graph_library"] == "igraph":
         return graph.transitivity_local_undirected(nodes)
     else:
-        return local_clustering_coeff(graph, nodes)
+        return nngt.analyze_graph["local_clustering"](graph, nodes)
 
 
 # ---------------- #
@@ -203,9 +216,9 @@ def assortativity(graph, deg_type="total"):
     if nngt._config["graph_library"] == "igraph":
         return graph.assortativity_degree(graph._directed)
     elif nngt._config["graph_library"] == "graph_tool":
-        return assort(graph,"total")[0]
+        return nngt.analyze_graph["assortativity"](graph, "total")[0]
     else:
-        return assort(graph)
+        return nngt.analyze_graph["assortativity"](graph)
 
 
 def reciprocity(graph):
@@ -221,12 +234,13 @@ def reciprocity(graph):
     if nngt._config["graph_library"] == "igraph":
         return graph.reciprocity()
     else:
-        return edge_reciprocity(graph)
+        return nngt.analyze_graph["reciprocity"](graph)
 
 
 def clustering(graph):
     '''
-    Global clustering coefficient of the graph, defined as
+    Global clustering coefficient of the graph.
+    Defined as:
 
     .. math::
         c = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
@@ -234,7 +248,14 @@ def clustering(graph):
     if nngt._config["graph_library"] == "igraph":
         return graph.transitivity_undirected()
     else:
-        return global_clustering(graph)
+        return nngt.analyze_graph["clustering"](graph)
+
+
+def transitivity(graph):
+    '''
+    Same as :func:`nngt.analysis.clustering` (for networkx users)
+    '''
+    return clustering(graph)
 
 
 def num_iedges(graph):
@@ -245,9 +266,9 @@ def num_iedges(graph):
 
 def num_scc(graph, listing=False):
     '''
-    Returns the number of strongly connected components, i.e. ensembles where
-    all nodes inside the ensemble can reach any other node in the ensemble
-    using the directed edges.
+    Returns the number of strongly connected components (SCCs).
+    SCC are ensembles where all contained nodes can reach any other node in
+    the ensemble using the directed edges.
 
     See also
     --------
@@ -255,12 +276,12 @@ def num_scc(graph, listing=False):
     '''
     lst_histo = None
     if nngt._config["graph_library"] == "graph_tool":
-        vprop_comp, lst_histo = scc(graph,directed=True)
+        vprop_comp, lst_histo = nngt.analyze_graph["scc"](graph,directed=True)
     elif nngt._config["graph_library"] == "igraph":
         lst_histo = graph.clusters()
-        lst_histo = [ cluster for cluster in lst_histo ]
+        lst_histo = [cluster for cluster in lst_histo]
     else:
-        lst_histo = [ comp for comp in scc(graph) ]
+        lst_histo = [comp for comp in nngt.analyze_graph["scc"](graph)]
     if listing:
         return len(lst_histo), lst_histo
     else:
@@ -269,8 +290,8 @@ def num_scc(graph, listing=False):
 
 def num_wcc(graph, listing=False):
     '''
-    Connected components if the directivity of the edges is ignored (i.e. all
-    edges are considered as bidirectional).
+    Connected components if the directivity of the edges is ignored.
+    (i.e. all edges are considered bidirectional).
 
     See also
     --------
@@ -278,12 +299,12 @@ def num_wcc(graph, listing=False):
     '''
     lst_histo = None
     if nngt._config["graph_library"] == "graph_tool":
-        vprop_comp, lst_histo = wcc(graph,directed=False)
+        _, lst_histo = nngt.analyze_graph["wcc"](graph, directed=False)
     elif nngt._config["graph_library"] == "igraph":
         lst_histo = graphclusters("WEAK")
-        lst_histo = [ cluster for cluster in lst_histo ]
+        lst_histo = [cluster for cluster in lst_histo]
     else:
-        lst_histo = [ comp for comp in wcc(graph) ]
+        lst_histo = [comp for comp in nngt.analyze_graph["wcc"](graph)]
     if listing:
         return len(lst_histo), lst_histo
     else:
@@ -291,13 +312,17 @@ def num_wcc(graph, listing=False):
 
 
 def diameter(graph):
-    ''' Pseudo-diameter of the graph @todo: weighted diameter'''
+    '''
+    Pseudo-diameter of the graph
+
+    @todo: weighted diameter
+    '''
     if nngt._config["graph_library"] == "igraph":
         return graph.diameter()
     elif nngt._config["graph_library"] == "networkx":
-        return glib_diameter(graph)
+        return nngt.analyze_graph["diameter"](graph)
     else:
-        return glib_diameter(graph)[0]
+        return nngt.analyze_graph["diameter"](graph)[0]
 
 
 # ------------------- #
@@ -331,7 +356,7 @@ def spectral_radius(graph, typed=True, weighted=True):
                                   graph.eproperties["weight"])
         else:
             weights = graph.eproperties["weight"].copy()
-    mat_adj = adjacency(graph,weights)
+    mat_adj = nngt.analyze_graph["adjacency"](graph,weights)
     eigenval = [0]
     try:
         eigenval = spl.eigs(mat_adj,return_eigenvectors=False)
@@ -417,7 +442,7 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
 # Get all node properties #
 # ----------------------- #
 
-def node_attributes(network, attributes, nodes=None):
+def node_attributes(network, attributes, nodes=None, data=None):
     '''
     Return node `attributes` for a set of `nodes`.
     
@@ -433,6 +458,9 @@ def node_attributes(network, attributes, nodes=None):
         * "subgraph_centrality"
     nodes : list, optional (default: all nodes)
         Nodes for which the attributes should be returned.
+    data : :class:`numpy.array` of shape (N, 2), optional (default: None)
+        Potential data on the spike events; if not None, it must contain the
+        sender ids on the first column and the spike times on the second.
     
     Returns
     -------
@@ -443,10 +471,10 @@ def node_attributes(network, attributes, nodes=None):
     if nonstring_container(attributes):
         values = {}
         for attr in attributes:
-            values[attr] = _get_attribute(network, attr, nodes)
+            values[attr] = _get_attribute(network, attr, nodes, data)
         return values
     else:
-        return _get_attribute(network, attributes, nodes)
+        return _get_attribute(network, attributes, nodes, data)
 
     
 def find_nodes(network, attributes, equal=None, upper_bound=None,
@@ -550,17 +578,19 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
 # Tools #
 # ----- #
 
-def binning(x, bins='auto', log=False):
+def binning(x, bins='bayes', log=False):
     """
     Binning function providing automatic binning using Bayesian blocks in
     addition to standard linear and logarithmic uniform bins.
+
+    .. versionadded:: 0.7
 
     Parameters
     ----------
     x : array-like
         Array of data to be histogrammed
-    bins : int or list or 'auto', optional (default: 'auto')
-        If `bins` is 'auto', in use bayesian blocks for dynamic bin widths; if
+    bins : int, list or 'auto', optional (default: 'bayes')
+        If `bins` is 'bayes', in use bayesian blocks for dynamic bin widths; if
         it is an int, the interval will be separated into 
     log : bool, optional (default: False)
         Whether the bins should be evenly spaced on a logarithmic scale.
@@ -568,7 +598,7 @@ def binning(x, bins='auto', log=False):
     x = np.asarray(x)
     new_bins = None
 
-    if bins == 'auto':
+    if bins == 'bayes':
         return bayesian_blocks(x)
     elif nonstring_container(bins):
         return bins
@@ -583,15 +613,11 @@ def binning(x, bins='auto', log=False):
 
 
 def _get_attribute(network, attribute, nodes=None, data=None):
+    '''
+    If data is not None, must be an np.array of shape (N, 2).
+    '''
     if attribute.lower() == "b2":
-        if data is None:
-            from nngt.simulation import get_b2
-            return get_b2(network, nodes=nodes)
-        else:
-            if nodes is None:
-                raise InvalidArgument(
-                    "`nodes` entry is required when using `data`.")
-            return _b2_from_data(nodes, data)
+        return get_b2(network, nodes=nodes, data=data)
     elif attribute == "betweenness":
         betw = network.get_betweenness("node")
         if nodes is not None:
@@ -605,14 +631,7 @@ def _get_attribute(network, attribute, nodes=None, data=None):
         dtype = attribute[:attribute.index("-")]
         return network.get_degrees(dtype, node_list=nodes)
     if attribute == "firing_rate":
-        if data is None:
-            from nngt.simulation import get_firing_rate
-            return get_firing_rate(network, nodes=nodes)
-        else:
-            if nodes is None:
-                raise InvalidArgument(
-                    "`nodes` entry is required when using `data`.")
-            return _fr_from_data(nodes, data)
+        return get_firing_rate(network, nodes, data)
     elif attribute == "subgraph_centrality":
         sc = subgraph_centrality(network)
         if nodes is not None:

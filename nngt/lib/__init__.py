@@ -19,27 +19,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Content
-=======
+Various tools for random number generation, array searching and type testing.
 """
 
-from .errors import *
-from .io_tools import *
-from .rng_tools import *
-from .test_functions import *
 from .constants import *
+from .errors import *
+from .rng_tools import *
+from .sorting import find_idx_nearest
+from .test_functions import *
 
 
 __all__ = [
-    "as_string",
     "delta_distrib",
+    "find_idx_nearest",
     "gaussian_distrib",
     "InvalidArgument",
     "lin_correlated_distrib",
-    "load_from_file",
     "log_correlated_distrib",
     "lognormal_distrib",
     "nonstring_container",
-    "save_to_file",
     "uniform_distrib",
 ]

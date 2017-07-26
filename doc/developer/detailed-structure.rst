@@ -14,7 +14,7 @@ Rationale for the structure
 The basis: a graph
 ------------------
 
-The core object is :class:`nngt.core.GraphObject` that inherits from either :class:`graph_tool.Graph` or :class:`snap.TNEANet` and :class:`Shape` that encodes the spatial structure of the neurons' environment.
+The core object is :class:`nngt.core.GraphObject` that inherits from either :class:`gt.Graph` or :class:`snap.TNEANet` and :class:`Shape` that encodes the spatial structure of the neurons' environment.
 The purpose of :class:`GraphObject` is simple: implementing a library independant object with a unique set of functions to interact with graphs.
 
 .. warning ::

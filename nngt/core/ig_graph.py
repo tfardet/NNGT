@@ -44,20 +44,24 @@ class _IgNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
-        return np.array(self.parent()().vs[name])
+        if super(_IgNProperty, self).__getitem__(name) in ('string', 'object'):
+            return np.array(np.array(self.parent().vs[name]), dtype=object)
+        else:
+            return np.array(self.parent().vs[name])
 
     def __setitem__(self, name, value):
+        size = self.parent().vcount()
         if name in self:
             if len(value) == size:
-                self.parent()().vs[name] = value
+                self.parent().vs[name] = value
             else:
-                raise ValueError("A list or a np.array with one entry per \
-node in the graph is required")
+                raise ValueError("A list or a np.array with one entry per "
+                                 "node in the graph is required")
         else:
-            raise InvalidArgument("Attribute does not exist yet, use \
-set_attribute to create it.")
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
 
-    def new_na(self, name, value_type, values=None, val=None):
+    def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -67,12 +71,45 @@ set_attribute to create it.")
                 val = ""
             else:
                 val = None
+                value_type = "object"
         if values is None:
-            values = np.repeat(val, self.parent()().vcount())
+            values = [val for _ in range(self.parent().vcount())]
         # store name and value type in the dict
         super(_IgNProperty,self).__setitem__(name, value_type)
         # store the real values in the attribute
         self[name] = values
+        self._num_values_set[name] = len(values)
+
+    def set_attribute(self, name, values, nodes=None):
+        '''
+        Set the node attribute.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the node attribute.
+        values : array, size N
+            Values that should be set.
+        nodes : array-like, optional (default: all nodes)
+            Nodes for which the value of the property should be set. If `nodes`
+            is not None, it must be an array of size N.
+        '''
+        num_nodes = self.parent().vcount()
+        num_n = len(nodes) if nodes is not None else num_nodes
+        if num_n == num_nodes:
+            self[name] = values
+        else:
+            if num_n != len(values):
+                raise ValueError("`nodes` and `nodes` must have the same "
+                                 "size; got respectively " + str(num_n) + \
+                                 " and " + str(len(values)) + "entries.")
+            if self._num_values_set[name] == num_nodes - num_n:
+                self.parent().vs[-num_n:][name] = values
+            else:
+                for n, val in zip(nodes, values):
+                    self.parent().vs[n][name] = val
+        self._num_values_set[name] = num_nodes
+
 
 class _IgEProperty(BaseProperty):
 
@@ -93,7 +130,7 @@ edge in the graph is required")
             raise InvalidArgument("Attribute does not exist yet, use \
 set_attribute to create it.")
 
-    def new_property(self, name, value_type, values=None, val=None):
+    def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -103,14 +140,16 @@ set_attribute to create it.")
                 val = ""
             else:
                 val = None
+                value_type = 'object'
         if values is None:
             values = np.repeat(val, self.parent().ecount())
         # store name and value type in the dict
         super(_IgEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
         self[name] = values
+        self._num_values_set[name] = len(values)
 
-    def set_property(self, name, values, edges=None):
+    def set_attribute(self, name, values, edges=None):
         '''
         Set the edge property.
         
@@ -138,7 +177,7 @@ set_attribute to create it.")
             else:
                 for e, val in zip(edges, values):
                     eid = self.parent().get_eid(*e)
-                    self.parent().es[name][eid] = val
+                    self.parent().es[eid][name] = val
         self._num_values_set[name] = num_edges
 
 
@@ -217,7 +256,7 @@ an array of 2-tuples of ints.")
         2-tuple. '''
         return np.array([(e.source, e.target) for e in self.es])
     
-    def new_node(self, n=1, ntype=1):
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
         Adding a node to the graph, with optional properties.
         
@@ -232,12 +271,20 @@ an array of 2-tuples of ints.")
         -------
         The node or an iterator over the nodes created.
         '''
-        node_list = []
         first_node_idx = self.vcount()
-        for v in range(n):
-            node = self.add_vertex(type=ntype)
-            node_list.append(first_node_idx+v)
-        return node_list
+        super(_IGraph, self).add_vertices(n)
+        nodes = list(range(first_node_idx, first_node_idx + n))
+        if attributes is not None:
+            for k, v in attributes.items():
+                if k not in self._nattr:
+                    self._nattr.new_attribute(k, value_types[k], val=v)
+                else:
+                    v = v if nonstring_container(v) else [v]
+                    self._nattr.set_attribute(k, v, nodes=nodes)
+        self.vs[nodes[0]:nodes[-1] + 1]['type'] = ntype
+        if n == 1:
+            return nodes[0]
+        return nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
@@ -261,25 +308,9 @@ an array of 2-tuples of ints.")
         -------
         The new connection.
         '''
-        enum = self.ecount()
-        # check that the edge does not already exist
-        eid = self.get_eid(
-            source, target, directed=True, error=False)
-        if attributes is None:
-            attributes = {}
-        if eid != -1:
-            super(_IGraph, self).add_edge(source, target)
-            _set_edge_attr(self, [(source, target)], attributes)
-            for key, val in attributes.items():
-                self.es[enum][key] = val[0]
-            if not self._directed:
-                super(_IGraph, self).add_edge(target, source)
-                for key, val in attributes.items():
-                    self.es[enum][key] = val[0]
-        else:
-            if not ignore:
-                raise InvalidArgument("Trying to add existing edge.")
-        return (source, target)
+        if attributes is not None:
+            attributes = {k: [v] for k, v in attributes.items()}
+        self.new_edges(((source, target),), attributes)
 
     def new_edges(self, edge_list, attributes=None):
         '''
@@ -324,36 +355,6 @@ an array of 2-tuples of ints.")
         except:
             idx = -1
         return edge_list
-
-    def new_edge_attribute(self, name, value_type, values=None, val=None):
-        num_edges = self.ecount()
-        if values is None:
-            if val is not None:
-                values = np.repeat(val, num_edges)
-            else:
-                if "vec" in value_type:
-                    values = [ [] for _ in range(num_edges) ]
-                else:
-                    values = np.repeat(self.di_value[value_type], num_edges)
-        elif len(values) != num_edges:
-            raise InvalidArgument("'values' list must contain one element per \
-edge in the graph.")
-        self.es[name] = values
-    
-    def new_node_attribute(self, name, value_type, values=None, val=None):
-        num_nodes = self.vcount()
-        if values is None:
-            if val is not None:
-                values = np.repeat(val,num_nodes)
-            else:
-                if vector in value_type:
-                    values = [ [] for _ in range(num_nodes) ]
-                else:
-                    values = np.repeat(self.di_value[value_type], num_nodes)
-        elif len(values) != num_nodes:
-            raise InvalidArgument("'values' list must contain one element per \
-node in the graph.")
-        self.vs[name] = values
 
     def remove_edge(self, edge):
         raise NotImplementedError("This function has been removed because it \

@@ -111,30 +111,9 @@ Configuration
 =============
 
 The configuration file is created in ``~/.nngt/nngt.conf`` after you first run
-``import nngt`` in `python`. Here is the default file: ::
+``import nngt`` in `python`. Here is the default file:
 
-    ###########################
-    # NNGT configuration file #
-    ###########################
-
-    ## default graph library
-    # (choose among "graph-tool", "igraph", "networkx")
-    graph_library = graph-tool
-
-    ## Matplotlib backend
-    # Uncomment and choose among your available backends (http://matplotlib.org/faq/usage_faq.html#what-is-a-backend)
-    #backend = Qt5Agg
-
-    ## settings for data logging
-    set_logging = False
-
-    # use a database (if False, results will be stored in CSV files)
-    to_file = False
-    #log_folder = ~/.nngt/database
-
-    # database url or temporary database used if use_database = False
-    # example of real database url: db_url = mysql://user:password@host:port/my_db
-    db_url = mysql:///nngt_db
+.. literalinclude:: ../../nngt/nngt.conf.default
 
 It can be necessary to modify this file to use the desired graph library, but
 mostly to correct problems with GTK and matplotlib (if the `plot` module

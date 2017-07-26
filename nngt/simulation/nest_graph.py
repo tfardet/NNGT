@@ -32,7 +32,7 @@ from nngt.lib.sorting import _sort_groups
 
 __all__ = [
     'make_nest_network',
-    'get_nest_network',
+    'get_nest_adjacency',
     'reproducible_weights'
 ]
 
@@ -72,9 +72,9 @@ def make_nest_network(network, use_weights=True):
     _, groups = _sort_groups(network.population)
 
     for group in groups:
-        group_size = len(group.id_list)
+        group_size = len(group.ids)
         if group_size:
-            ia_nngt_ids[current_size:current_size + group_size] = group.id_list
+            ia_nngt_ids[current_size:current_size + group_size] = group.ids
             # clean up neuron_param dict
             defaults = nest.GetDefaults(group.neuron_model)
             n_param = {key: val for key, val in group.neuron_param.items()
@@ -101,10 +101,10 @@ def make_nest_network(network, use_weights=True):
     cspec = 'one_to_one'
     for group in network.population.values():
         # get the nodes ids and switch the sources back to their real values
-        if len(group.id_list) > 0:
-            min_idx = np.min(group.id_list)
-            src_ids = csr_weights[group.id_list, :].nonzero()[0] + min_idx
-            trgt_ids = csr_weights[group.id_list, :].nonzero()[1]
+        if len(group.ids) > 0:
+            min_idx = np.min(group.ids)
+            src_ids = csr_weights[group.ids, :].nonzero()[0] + min_idx
+            trgt_ids = csr_weights[group.ids, :].nonzero()[1]
             # switch to nest gids
             src_ids = network.nest_gid[src_ids]
             trgt_ids = network.nest_gid[trgt_ids]
@@ -118,17 +118,17 @@ def make_nest_network(network, use_weights=True):
             # prepare weights
             syn_sign = group.neuron_type
             if use_weights:
-                syn_param[WEIGHT] = syn_sign*csr_weights[group.id_list, :].data
+                syn_param[WEIGHT] = syn_sign*csr_weights[group.ids, :].data
             else:
                 syn_param[WEIGHT] = np.repeat(syn_sign, len(src_ids))
-            syn_param[DELAY] = csr_delays[group.id_list, :].data
+            syn_param[DELAY] = csr_delays[group.ids, :].data
             nest.Connect(
                 src_ids, trgt_ids, syn_spec=syn_param, conn_spec=cspec)
 
     return tuple(ia_nest_gids)
 
 
-def get_nest_network(id_converter=None):
+def get_nest_adjacency(id_converter=None):
     '''
     Get the adjacency matrix describing a NEST network.
 
@@ -146,7 +146,7 @@ def get_nest_network(id_converter=None):
     n = len(gids)
     mat_adj = ssp.lil_matrix((n,n))
     if id_converter is None:
-        id_converter = { idx:i for i,idx in enumerate(gids) }
+        id_converter = {idx: i for i, idx in enumerate(gids)}
 
     for i in range(n):
         src = id_converter[gids[i]]

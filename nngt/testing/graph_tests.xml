@@ -53,8 +53,8 @@
         
         <graph name="p2p-Gnutella04.txt">
             <load_options>
-                <string name="format">edge_list</string>
-                <string name="delimiter">\t</string>
+                <string name="fmt">edge_list</string>
+                <string name="separator">\t</string>
             </load_options>
             <int name="nodes">10879</int>
             <int name="edges">39994</int>

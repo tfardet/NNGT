@@ -19,27 +19,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-====
 NNGT
 ====
 
-Neural Networks Growth and Topology analyzing tool.
+Package aimed at facilitating the analysis of Neural Networks Growth and
+Topology.
 
-Provides algorithms for
-	1. growing networks
-	2. analyzing their activity
-	3. studying the graph theoretical properties of those networks
+The library mainly provides algorithms for
+
+1. generating networks
+2. analyzing their activity
+3. studying the graph theoretical properties of those networks
 
 
-Available subpackages
-=====================
+Available modules
+-----------------
 
 analysis
   Tools to study graph topology and neuronal activity.
 core
-  Contains the main network classes.
-  classes and methods for users are loaded at the main module (`nngt`) level
-  when the library is imported, so :class:`nngt.core` should not be used.
+  Where the main classes are coded; however, most useful classes and methods
+  for users are loaded at the main level (`nngt`) when the library is imported,
+  so `nngt.core` should generally not be used.
 generation
   Functions to generate specific networks.
 geometry
@@ -48,7 +49,7 @@ geometry
 io
   Tools for input/output operations.
 lib
-  Basic functions used by several sub-packages.
+  Basic functions used by several most other modules.
 simulation
   Tools to provide complex network generation with NEST and help analyze the
   influence of the network structure on neuronal activity.
@@ -56,18 +57,8 @@ plot
   plot data or graphs using matplotlib and graph_tool.
 
 
-Utilities
----------
-get_config
-	Show library _configuration
-set_config
-	Set library _configuration (graph library, multithreading...)
-version
-	NNGT version string
-
-
 Units
-=====
+-----
 
 Functions related to spatial embedding of networks are using micrometers
 (um) as default unit; other units from the metric system can also be
@@ -89,7 +80,7 @@ import sys as _sys
 import logging
 
 
-version = '0.6.a'
+version = '0.7'
 ''' :obj:`str`, current NNGT version '''
 
 
@@ -204,10 +195,12 @@ if not _libs:
 
 # import some tools into main namespace
 
+from .lib.io_tools import load_from_file, save_to_file
+from .lib.rng_tools import seed
+
 from .core.graph_datastruct import NeuralPop, NeuralGroup, GroupProperty
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
 from .generation.graph_connectivity import generate
-from .lib.rng_tools import seed
 
 
 # import modules
@@ -231,8 +224,11 @@ __all__ = [
     "Graph",
     "GroupProperty",
     "lib",
+    "load_from_file",
     "Network",
+    "NeuralGroup",
     "NeuralPop",
+    "save_to_file",
     "seed",
     "set_config",
     "SpatialGraph",
@@ -244,7 +240,6 @@ __all__ = [
 
 # test if plot module is supported
 
-from . import plot
 try:
     from . import plot
     _config['with_plot'] = True

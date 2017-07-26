@@ -9,4 +9,15 @@ Module to interact easily with the NEST simulator. It allows to:
 * monitor the activity of the network (taking neural groups into account)
 * plot the activity while separating the behaviours of predefined neural groups
 
+
+Content
+=======
+
+.. autosummary::
+
+@autosum@
+
+Details
+=======
+
 .. automodule:: nngt.simulation

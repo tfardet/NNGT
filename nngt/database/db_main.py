@@ -14,8 +14,7 @@ from nngt.lib.db_tools import psutil
 from .db_generation import *
 
 
-__all__ = [ 'db' ]
-
+__all__ = ['db']
 
 
 class NNGTdb:
@@ -146,7 +145,7 @@ class NNGTdb:
         neuron : :class:`~nngt.database.Neuron`
             New neuron entry.
         '''
-        nngt_id = group.id_list[0]
+        nngt_id = group.ids[0]
         gid = network.nest_gid[nngt_id]
         # get the dictionary
         neuron_prop = nest.GetStatus((gid,))[0]
@@ -174,8 +173,8 @@ class NNGTdb:
             New synapse entry.
         '''
         syn_model = group_pre.syn_model
-        source_gids = tuple(network.nest_gid[group_pre.id_list])
-        target_gids = tuple(network.nest_gid[group_post.id_list])
+        source_gids = tuple(network.nest_gid[group_pre.ids])
+        target_gids = tuple(network.nest_gid[group_post.ids])
         connections = nest.GetConnections(synapse_model=syn_model,
                                         source=source_gids, target=target_gids)
         # get the dictionary
@@ -227,7 +226,7 @@ class NNGTdb:
         pop, size = [], []
         for name, group in iter(network.population.items()):
             pop.append(name)
-            size.append(len(group.id_list))
+            size.append(len(group.ids))
         self.current_simulation = {
             'start_time': datetime.now(),
             'simulated_time': nest.GetKernelStatus('time'),

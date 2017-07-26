@@ -1,0 +1,25 @@
+==========
+Lib module
+==========
+
+Tools for the other modules.
+
+.. warning::
+    These tools have been designed primarily for internal use throughout the
+    library and often work only in very specific situations (e.g.
+    :func:`find_idx_nearest` works only on sorted arrays), so make sure you
+    read their doc carefully before using them.
+
+
+Content
+=======
+
+.. autosummary::
+
+@autosum@
+
+
+Details
+=======
+
+.. automodule:: nngt.lib

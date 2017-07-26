@@ -199,6 +199,8 @@ def bayesian_blocks(t, x=None, sigma=None, fitness='events', **kwargs):
     This is a flexible implementation of the Bayesian Blocks algorithm
     described in Scargle 2012 [1]_
 
+    .. versionadded:: 0.7
+
     Parameters
     ----------
     t : array_like

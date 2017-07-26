@@ -18,40 +18,46 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-Main functions to send :class:`Network` instances to NEST, as well as helper
-functions to excite or record the network activity.
-"""
+''' Spatial graphs generation and methods '''
 
-import sys as _sys
-_sys.argv.append('--quiet')
+import time
 
-import nngt as _nngt
+import numpy as np
+
+import nngt
+from nngt.geometry import Shape
+
+
+# -------------------------- #
+# Generate the spatial graph #
+# -------------------------- #
+
+ell = Shape.ellipse(radii=(3000., 5000.))
+
+num_nodes = 1000
+g = nngt.generation.gaussian_degree(100., 5., nodes=num_nodes, shape=ell)
 
 
 # -------------- #
-# Import modules #
+# Saving/loading #
 # -------------- #
 
-from . import nest_activity as _na
-from . import nest_graph as _ng
-from . import nest_utils as _nu
-from .nest_activity import *
-from .nest_graph import *
-from .nest_utils import *
+start = time.time()
+g.to_file('sp_graph')
+print('Saving in {} s.'.format(time.time() - start))
+
+start = time.time()
+g2 = nngt.Graph.from_file('sp_graph')
+print('Loading in {} s.'.format(time.time() - start))
+
+print('Both networks have same area: {}.'.format(
+      np.isclose(g2.shape.area, ell.area)))
+print('They also have the same boundaries: {}.'.format(
+      np.all(np.isclose(g2.shape.bounds, ell.bounds))))
 
 
-# ----------------- #
-# Declare functions #
-# ----------------- #
+# ---- #
+# Plot #
+# ---- #
 
-__all__ = []
-__all__.extend(_na.__all__)
-__all__.extend(_ng.__all__)
-__all__.extend(_nu.__all__)
-
-# test import of simulation plotting tools
-
-if _nngt._config['with_plot']:
-    from .nest_plot import plot_activity, raster_plot
-    __all__.extend(("plot_activity", "raster_plot"))
+nngt.plot.draw_network(g2, decimate=100, show=True)

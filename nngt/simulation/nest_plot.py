@@ -26,30 +26,36 @@
 
 """ Utility functions to plot NEST simulated activity """
 
+import logging
+
 import matplotlib.pyplot as plt
+from matplotlib.colors import ColorConverter
 import numpy as np
 import nest
 
-from nngt.plot import palette
-from nngt.plot.plt_properties import _set_new_plot
+import nngt
+from nngt.plot import palette, markers
+from nngt.plot.plt_properties import _set_new_plot, _set_ax_lims
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.sorting import _sort_groups, _sort_neurons
 
 
-#-----------------------------------------------------------------------------#
-# Plotting the activity
-#------------------------
-#
+logger = logging.getLogger(__name__)
+
+
+# --------------------- #
+# Plotting the activity #
+# --------------------- #
 
 def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
-                  show=True, limits=None, hist=True, title=None, fignum=None,
-                  label=None, sort=None, normalize=1., decimate=None):
+                  show=False, limits=None, hist=True, title=None, label=None,
+                  sort=None, average=False, normalize=1., decimate=None):
     '''
     Plot the monitored activity.
     
     Parameters
     ----------
-    gid_recorder : tuple or list, optional (default: None)
+    gid_recorder : tuple or list of tuples, optional (default: None)
         The gids of the recording devices. If None, then all existing
         "spike_detector"s are used.
     record : tuple or list, optional (default: None)
@@ -59,7 +65,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         Network which activity will be monitored.
     gids : tuple, optional (default: None)
         NEST gids of the neurons which should be monitored.
-    show : bool, optional (default: True)
+    show : bool, optional (default: False)
         Whether to show the plot right away or to wait for the next plt.show().
     hist : bool, optional (default: True)
         Whether to display the histogram when plotting spikes rasters.
@@ -70,16 +76,19 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         Title of the plot.
     fignum : int, optional (default: None)
         Plot the activity on an existing figure (from ``figure.number``).
-    label : str, optional (default: None)
-        Add a label to the plot.
+    label : str or list, optional (default: None)
+        Add labels to the plot (one per recorder).
     sort : str or list, optional (default: None)
         Sort neurons using a topological property ("in-degree", "out-degree",
         "total-degree" or "betweenness"), an activity-related property
         ("firing_rate") or a user-defined list of sorted neuron ids.
         Sorting is performed by increasing value of the `sort` property from
         bottom to top inside each group.
-    normalize : float, optional (default: None)
-        Normalize the recorded results by a given float.
+    normalize : float or list, optional (default: None)
+        Normalize the recorded results by a given float. If a list is provided,
+        there should be one entry per voltmeter or multimeter in the recorders.
+        If the recording was done through `monitor_groups`, the population can
+        be passed to normalize the data by the nuber of nodes in each group.
     decimate : int or list of ints, optional (default: None)
         Represent only a fraction of the spiking neurons; only one neuron in
         `decimate` will be represented (e.g. setting `decimate` to 5 will lead
@@ -93,18 +102,17 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
 
     Returns
     -------
-    fignums : list
-        List of the figure numbers.
+    lines : list of lists of :class:`matplotlib.lines.Line2D`
+        Lines containing the data that was plotted, grouped by figure.
     '''
-    lst_rec = []
+    lst_rec, lst_labels, lines, labels = [], [], {}, {}
+    num_fig = np.max(plt.get_fignums()) if plt.get_fignums() else 0
     # normalize recorders and recordables
     if gid_recorder is not None:
-        if len(record) != gid_recorder and nonstring_container(record[0]):
+        if len(record) != len(gid_recorder):
             raise InvalidArgument('`record` must either be the same for all '
                                   'recorders, or contain one entry per '
                                   'recorder in `gid_recorder`')
-        elif len(record) > 0 and not nonstring_container(record[0]):
-            record = [record for _ in range(len(gid_recorder))]
         for rec in gid_recorder:
             if isinstance(gid_recorder[0], tuple):
                 lst_rec.append(rec[0])
@@ -143,13 +151,13 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                     if str(info["model"]) == "spike_detector":
                         data[0].extend(info["events"]["senders"])
                         data[1].extend(info["events"]["times"])
+                data = np.array(data).T
             sorted_neurons, attr = _sort_neurons(
                 sort, gids, network, data=data, return_attr=True)
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
-    num_raster, num_detec = 0, 0
-    fig_raster, fig_detec = None, None
-    fignums = []
+    num_raster, num_detec, num_meter = 0, 0, 0
+    fignums = {}
     decim = []
     if decimate is None:
         decim = [None for _ in range(num_group)]
@@ -163,67 +171,104 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         raise AttributeError(
             "`decimate` must be either an int or a list of `int`.")
 
+    # set labels
+    if label is None:
+        lst_labels = [None for _ in range(len(lst_rec))]
+    else:
+        if isinstance(label, str):
+            lst_labels = [label]
+        else:
+            lst_labels = label
+        if len(label) != len(lst_rec):
+            logger.warning('Incorrect length for `label`: expecting {} but '
+                           'got {}.\n'
+                           'Ignoring.'.format(len(lst_rec), len(label)))
+            lst_labels = [None for _ in range(len(lst_rec))]
+
     # plot
-    for rec, var in zip(lst_rec, record):
+    for rec, var, lbl in zip(lst_rec, record, lst_labels):
         info = nest.GetStatus([rec])[0]
+        fnum = fignums[info["model"]] if info["model"] in fignums else None
+        if info["model"] not in labels:
+            labels[info["model"]] = []
+            lines[info["model"]] = []
         if str(info["model"]) == "spike_detector":
             c = colors[num_raster]
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
-            fig_raster = raster_plot(times, sorted_ids, fignum=fig_raster,
-                                     color=c, show=False, label=info["label"],
-                                     limits=limits, decimate=decim[num_raster],
-                                     sort=sort, sort_attribute=attr)
+            l = raster_plot(times, sorted_ids, color=c, show=False,
+                            limits=limits, sort=sort, fignum=fnum,
+                            decimate=decim[num_raster], sort_attribute=attr,
+                            network=network)
             num_raster += 1
-            fignums.append(fig_raster)
+            if l:
+                fig_raster = l[0].figure.number
+                fignums['spike_detector'] = fig_raster
+                labels["spike_detector"].append(lbl)
+                lines["spike_detector"].extend(l)
         elif "detector" in str(info["model"]):
             c = colors[num_detec]
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
-            fig_detec = raster_plot(times, sorted_ids, fignum=fig_detec,
-                                    color=c, show=False, hist=hist,
-                                    label=info["label"], limits=limits)
-            num_detec += 1
-            fignums.append(fig_detect)
+            l = raster_plot(times, sorted_ids, fignum=fnum, color=c,
+                            show=False, hist=hist, limits=limits)
+            if l:
+                fig_detect = l[0].figure.number
+                num_detec += 1
+                fignums[info["model"]] = fig_detect
+                labels[info["model"]].append(lbl)
+                lines[info["model"]].extend(l)
         else:
             da_time = info["events"]["times"]
-            fig = plt.figure(fignum)
-            if isinstance(var,list) or isinstance(var,tuple):
+            fig = plt.figure(fnum)
+            fignums[info["model"]] = fig.number
+            lines_tmp, labels_tmp = [], []
+            if nonstring_container(var):
                 axes = fig.axes
                 if not axes:
                     axes = _set_new_plot(fig.number, names=var)[1]
+                labels_tmp = [lbl for _ in range(len(var))]
                 for subvar in var:
                     for ax in axes:
                         if ax.name == subvar:
                             da_subvar = info["events"][subvar]
-                            ax.plot(da_time, da_subvar/normalize, label=label)
+                            if isinstance(normalize, nngt.NeuralPop):
+                                da_subvar /= normalize[num_meter].size
+                            elif nonstring_container(normalize):
+                                da_subvar /= normalize[num_meter]
+                            elif normalize is not None:
+                                da_subvar /= normalize
+                            lines_tmp.extend(
+                                ax.plot(da_time, da_subvar))
                             ax.set_ylabel(subvar)
                             ax.set_xlabel("time")
                             if limits is not None:
                                 ax.set_xlim(limits[0], limits[1])
-                            if label is not None:
-                                ax.legend()
             else:
                 ax = fig.add_subplot(111)
                 da_var = info["events"][var]
-                ax.plot(da_time, da_var/normalize, label=label)
+                lines_tmp.extend(ax.plot(da_time, da_var/normalize))
+                labels_tmp.append(lbl)
                 ax.set_ylabel(var)
                 ax.set_xlabel("time")
-                if label is not None:
-                    ax.legend()
-            fignums.append(fig.number)
-    if title is not None:
-        for n in fignums:
-            fig = plt.figure(n)
+            labels[info["model"]].extend(labels_tmp)
+            lines[info["model"]].extend(lines_tmp)
+            num_meter += 1
+    for recorder in fignums:
+        fig = plt.figure(fignums[recorder])
+        if title is not None:
             fig.suptitle(title)
+        if label is not None:
+            fig.legend(lines[recorder], labels[recorder])
     if show:
         plt.show()
-    return list(set(fignums))
+    return lines
 
 
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 num_bins=1000, color="b", decimate=None, fignum=None,
-                label=None, show=True, sort=None, sort_attribute=None):
+                label=None, show=True, sort=None, sort_attribute=None,
+                network=None):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
@@ -258,10 +303,12 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
     
     Returns
     -------
-    fig.number : int
-        Id of the :class:`matplotlib.Figure` on which the raster is plotted.
+    lines : list of :class:`matplotlib.lines.Line2D`
+        Lines containing the data that was plotted.
     """
     num_neurons = len(np.unique(senders))
+    lines = []
+    kwargs = {} if label is None else {'label': label}
 
     # decimate if necessary
     if decimate is not None:
@@ -284,8 +331,9 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             else:
                 ax1 = fig.add_axes([0.1, 0.3, 0.85, 0.6])
                 ax2 = fig.add_axes([0.1, 0.08, 0.85, 0.17], sharex=ax1)
-            ax1.plot(times, senders, c=color, marker="o", linestyle='None',
-                mec="k", mew=0.5, ms=4, label=label)
+            lines.extend(ax1.plot(
+                times, senders, c=color, marker="o", linestyle='None',
+                mec="k", mew=0.5, ms=4, **kwargs))
             ax1_lines = ax1.lines
             if len(ax1_lines) > 1:
                 t_max = max(ax1_lines[0].get_xdata().max(),times[-1])
@@ -293,7 +341,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             ax1.set_ylabel(ylabel)
             if limits is not None:
                 ax1.set_xlim(*limits)
-            ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
+            #~ ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
 
             bin_width = ( np.amax(times) - np.amin(times) ) / float(num_bins)
             t_bins = np.linspace(np.amin(times), np.amax(times), num_bins)
@@ -348,20 +396,39 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             _second_axis(sort, sort_attribute, ax1)
         else:
             ax = fig.axes[0] if fig.axes else fig.add_subplot(111)
-            ax.plot(times, senders, c=color, marker="o", linestyle='None',
-                mec="k", mew=0.5, ms=4, label=label)
+            if network is not None:
+                for m, (k, v) in zip(markers, network.population.items()):
+                    keep = np.where(
+                        np.in1d(senders, network.nest_gid[v.ids]))[0]
+                    if len(keep):
+                        if label is None:
+                            kwargs['label'] = k
+                        lines.extend(ax.plot(
+                            times[keep], senders[keep], c=color, marker=m,
+                            ls='None', mec='k', mew=0.5, ms=4, **kwargs))
+                        if 'inh' in k:
+                            c_rgba = ColorConverter().to_rgba(color, alpha=0.5)
+                            lines[-1].set_markerfacecolor(c_rgba)
+            else:
+                lines.extend(ax.plot(
+                    times, senders, c=color, marker="o", linestyle='None',
+                    mec="k", mew=0.5, ms=4, **kwargs))
             ax.set_ylabel(ylabel)
             ax.set_xlabel(xlabel)
             if limits is not None:
                 ax.set_xlim(limits)
             else:
-                ax.set_xlim([times[0]-delta_t, times[-1]+delta_t])
-            ax.legend(bbox_to_anchor=(1.1, 1.2))
+                _set_ax_lims(ax, np.max(times), np.min(times), np.max(senders),
+                             np.min(senders))
+            if label is not None:
+                ax.legend(bbox_to_anchor=(1.1, 1.2))
             _second_axis(sort, sort_attribute, ax)
         fig.suptitle(title)
         if show:
             plt.show()
-        return fig.number
+    else:
+        logger.warning("No activity was detected during the simulation.")
+    return lines
 
 
 #-----------------------------------------------------------------------------

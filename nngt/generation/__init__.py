@@ -19,12 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Functions that generates the underlying connectivity of graphs, as well
-as the synaptic properties (weight/strength and delay).
-
-Content
+Details
 =======
-
 """
 
 from .graph_connectivity import *

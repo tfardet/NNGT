@@ -28,10 +28,11 @@ import scipy.sparse as ssp
 
 import nngt
 import nngt.analysis as na
-from nngt.lib import (InvalidArgument, as_string, save_to_file, load_from_file,
-                      nonstring_container, default_neuron, default_synapse,
-                      POS, WEIGHT, DELAY, DIST, TYPE)
+from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
+                      default_synapse, POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
+from nngt.lib.io_tools import _as_string
+from nngt import save_to_file, load_from_file
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
@@ -39,16 +40,18 @@ if nngt._config['with_nest']:
 __all__ = ['Graph', 'SpatialGraph', 'Network', 'SpatialNetwork']
 
 
-#-----------------------------------------------------------------------------#
-# Graph
-#------------------------
-#
+# ----- #
+# Graph #
+# ----- #
 
 class Graph(nngt.core.GraphObject):
     
     """
-    The basic class that contains a :class:`graph_tool.Graph` and some
-    of is properties or methods to easily access them.
+    The basic graph class, which inherits from a library class such as
+    :class:`gt.Graph`, :class:`networkx.DiGraph`, or `igraph.Graph`.
+
+    The objects provides several functions to easily access some basic
+    properties.
     """
 
     #-------------------------------------------------------------------------#
@@ -111,14 +114,16 @@ class Graph(nngt.core.GraphObject):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
                 if not (matrix.T != matrix).nnz == 0:
-                    raise InvalidArgument('Incompatible directed=False option \
-with non symmetric matrix provided.')
+                    raise InvalidArgument('Incompatible `directed=False` '
+                                          'option provided for non symmetric '
+                                          'matrix.')
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
                 if not (matrix.T == matrix).all():
-                    raise InvalidArgument('Incompatible directed=False option \
-with non symmetric matrix provided.')
+                    raise InvalidArgument('Incompatible `directed=False` '
+                                          'option provided for non symmetric '
+                                          'matrix.')
         edges = np.array(matrix.nonzero()).T
         graph = cls(nodes, name=graph_name.replace("Z", str(cls.__num_graphs)),
                     weighted=weighted, directed=directed)
@@ -132,7 +137,7 @@ with non symmetric matrix provided.')
         return graph
     
     @staticmethod
-    def from_file(filename, format="auto", delimiter=" ", secondary=";",
+    def from_file(filename, fmt="auto", separator=" ", secondary=";",
                  attributes=None, notifier="@", ignore="#", from_string=False):
         '''
         Import a saved graph from a file.
@@ -142,7 +147,7 @@ with non symmetric matrix provided.')
         ----------
         filename: str
             The path to the file.
-        format : str, optional (default: "neighbour")
+        fmt : str, optional (default: "neighbour")
             The format used to save the graph. Supported formats are:
             "neighbour" (neighbour list, default if format cannot be deduced
             automatically), "ssp" (scipy.sparse), "edge_list" (list of all the
@@ -153,11 +158,11 @@ with non symmetric matrix provided.')
             `filename` ends with '.dot'), "gt" (only when using
             `graph_tool`<http://graph-tool.skewed.de/>_ as library, detected
             if `filename` ends with '.gt').
-        delimiter : str, optional (default " ")
-            Delimiter used to separate inputs in the case of custom formats 
+        separator : str, optional (default " ")
+            separator used to separate inputs in the case of custom formats
             (namely "neighbour" and "edge_list")
         secondary : str, optional (default: ";")
-            Secondary delimiter used to separate attributes in the case of
+            Secondary separator used to separate attributes in the case of
             custom formats.
         attributes : list, optional (default: [])
             List of names for the attributes present in the file. If a
@@ -182,25 +187,28 @@ with non symmetric matrix provided.')
         '''
         if attributes is None:
             attributes = []
-        info, edges, attr, pop, shape = load_from_file(filename=filename,
-                    format=format, delimiter=delimiter, secondary=secondary,
-                    attributes=attributes, notifier=notifier)
-        graph = Graph( nodes=info["size"], name=info["name"],
-                       directed=info["directed"] )
-        di_attr = {}
-        if info["attributes"]: # their are attributes to add to the graph
-            di_attr["names"] = info["attributes"]
-            di_attr["types"] = info["attr_types"]
-            di_attr["values"] = [ attr[name] for name in info["attributes"] ]
-        graph.new_edges(edges, di_attr)
+        info, edges, attr, pop, shape, pos = load_from_file(
+            filename=filename, fmt=fmt, separator=separator,
+            secondary=secondary, attributes=attributes, notifier=notifier)
+        # create the graph
+        graph = Graph(nodes=info["size"], name=info["name"],
+                      directed=info["directed"])
+        lst_attr, dtpes, lst_values = [], [], []
+        if info["attributes"]:  # their are attributes to add to the graph
+            lst_attr = info["attributes"]
+            dtpes = info["attr_types"]
+            lst_values = [attr[name] for name in info["attributes"]]
+        graph.new_edges(edges)
+        for attr, dtype, values in zip(lst_attr, dtpes, lst_values):
+            graph.new_edge_attribute(attr, dtype, values=values)
         if pop is not None:
             Network.make_network(graph, pop)
-        if shape is not None:
-            SpatialGraph.make_spatial(graph, shape)
+        if pos is not None or shape is not None:
+            SpatialGraph.make_spatial(graph, shape=shape, positions=pos)
         return graph
 
     @staticmethod
-    def make_spatial(graph, shape, positions=None, copy=False):
+    def make_spatial(graph, shape=None, positions=None, copy=False):
         '''
         Turn a :class:`~nngt.Graph` object into a :class:`~nngt.SpatialGraph`,
         or a :class:`~nngt.Network` into a :class:`~nngt.SpatialNetwork`.
@@ -209,7 +217,7 @@ with non symmetric matrix provided.')
         ----------
         graph : :class:`~nngt.Graph` or :class:`~nngt.SpatialGraph`
             Graph to convert.
-        shape : :class:`~nngt.geometry.Shape`, optional
+        shape : :class:`~nngt.geometry.Shape`, optional (default: None)
             Shape to associate to the new :class:`~nngt.SpatialGraph`.
         positions : (N, 2) array
             Positions, in a 2D space, of the N neurons.
@@ -222,6 +230,9 @@ with non symmetric matrix provided.')
         In-place operation that directly converts the original graph if `copy`
         is ``False``, else returns the copied :class:`~nngt.Graph` turned into
         a :class:`~nngt.SpatialGraph`.
+        The `shape` argument can be skipped if `positions` are given; in that
+        case, the neurons will be embedded in a rectangle that contains them
+        all.
         '''
         if copy:
             graph = graph.copy()
@@ -304,15 +315,17 @@ with non symmetric matrix provided.')
         self.__id = self.__class__.__max_id
         self._name = name
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
-        # take care of the weights and delays
-        # @todo: use those of the from_graph
-        if weighted:
-            self._w = _edge_prop("weights", kwargs)
-        if "delays" in kwargs:
-            self._d = _edge_prop("delays", kwargs)
         # Init the core.GraphObject
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
+        # take care of the weights and delays
+        # @todo: use those of the from_graph
+        if weighted:
+            self.new_edge_attribute('weight', 'double')
+            self._w = _edge_prop("weights", kwargs)
+        if "delays" in kwargs:
+            self.new_edge_attribute('delay', 'double')
+            self._d = _edge_prop("delays", kwargs)
         # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -337,7 +350,7 @@ with non symmetric matrix provided.')
         Return the full string description of the object as would be stored
         inside a file when saving the graph.
         '''
-        return as_string(self)
+        return _as_string(self)
 
     @property
     def graph_id(self):
@@ -371,7 +384,7 @@ with non symmetric matrix provided.')
             Network.make_network(gc_instance, deepcopy(self.population))
         return gc_instance
 
-    def to_file(self, filename, format="auto", delimiter=" ", secondary=";",
+    def to_file(self, filename, fmt="auto", separator=" ", secondary=";",
                 attributes=None, notifier="@"):
         '''
         Save graph to file; options detailed below.
@@ -379,7 +392,7 @@ with non symmetric matrix provided.')
         .. seealso::
             :py:func:`nngt.lib.save_to_file` function for options.
         '''
-        save_to_file(self, filename, format=format, delimiter=delimiter,
+        save_to_file(self, filename, fmt=fmt, separator=separator,
                      secondary=secondary, attributes=attributes,
                      notifier=notifier)
 
@@ -395,7 +408,7 @@ with non symmetric matrix provided.')
                              #~ from_graph=core.GraphObject(self._graph,prune=True) )
         #~ self.clear_filters()
         #~ return inhib_graph
-#~ 
+
     #~ def excitatory_subgraph(self):
         #~ '''
         #~ Create a :class:`~nngt.Graph` instance which graph contains only the
@@ -424,6 +437,46 @@ with non symmetric matrix provided.')
         else:
             self._name = "Graph_" + str(self.__id)
 
+    def new_edge_attribute(self, name, value_type, values=None, val=None):
+        '''
+        Create a new attribute for the edges.
+
+        .. versionadded:: 0.7
+
+        Parameters
+        ----------
+        name : str
+            The name of the new attribute.
+        value_type : str
+            Type of the attribute, among 'int', 'double', 'string'
+        values : array, optional (default: None)
+            Values with which the edge attribute should be initialized.
+            (must have one entry per node in the graph)
+        val : int, float or str , optional (default: None)
+            Identical value for all edges.
+        '''
+        self._eattr.new_attribute(name, value_type, values=values, val=val)
+
+    def new_node_attribute(self, name, value_type, values=None, val=None):
+        '''
+        Create a new attribute for the nodes.
+
+        .. versionadded:: 0.7
+
+        Parameters
+        ----------
+        name : str
+            The name of the new attribute.
+        value_type : str
+            Type of the attribute, among 'int', 'double', 'string'
+        values : array, optional (default: None)
+            Values with which the node attribute should be initialized.
+            (must have one entry per node in the graph)
+        val : int, float or str , optional (default: None)
+            Identical value for all nodes.
+        '''
+        self._nattr.new_attribute(name, value_type, values=values, val=val)
+
     def set_edge_attribute(self, attribute, values=None, val=None,
                            value_type=None, edges=None):
         '''
@@ -435,10 +488,27 @@ with non symmetric matrix provided.')
             for biological networks, neurons make only one kind of synapse,
             which is determined by the :class:`nngt.NeuralGroup` they
             belong to.
+
+        Parameters
+        ----------
+        attribute : str
+            The name of the attribute.
+        value_type : str
+            Type of the attribute, among 'int', 'double', 'string'
+        values : array, optional (default: None)
+            Values with which the edge attribute should be initialized.
+            (must have one entry per node in the graph)
+        val : int, float or str , optional (default: None)
+            Identical value for all edges.
+        value_type : str, optional (default: None)
+            Type of the attribute, among 'int', 'double', 'string'. Only used
+            if the attribute does not exist and must be created.
+        edges : list of edges or array of shape (E, 2), optional (default: all)
+            Edges whose attributes should be set. Others will remain unchanged.
         '''
         if attribute not in self.attributes():
-            self._eattr.new_property(name=attribute, value_type=value_type,
-                                     values=values, val=val)
+            self.new_edge_attribute(name=attribute, value_type=value_type,
+                                    values=values, val=val)
         else:
             num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
@@ -447,7 +517,7 @@ with non symmetric matrix provided.')
                 else:
                     raise InvalidArgument("At least one of the `values` and "
                         "`val` arguments should not be ``None``.")
-            self._eattr.set_property(attribute, values, edges=edges)
+            self._eattr.set_attribute(attribute, values, edges=edges)
                 
     
     def set_weights(self, weight=None, elist=None, distribution=None,
@@ -578,7 +648,6 @@ with non symmetric matrix provided.')
         return nngt.core.Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
-        
 
     #-------------------------------------------------------------------------#
     # Getters
@@ -589,7 +658,7 @@ with non symmetric matrix provided.')
         return self._nattr
     
     @property
-    def edge_attribute(self):
+    def edge_attributes(self):
         ''' Access edge attributes '''
         return self._eattr
 
@@ -659,12 +728,12 @@ with non symmetric matrix provided.')
     #~ def get_properties(self, a_properties):
         #~ '''
         #~ Return a dictionary containing the desired properties
-#~ 
+
         #~ Parameters
         #~ ----------
         #~ a_properties : sequence
             #~ List or tuple of strings of the property names.
-#~ 
+
         #~ Returns
         #~ -------
         #~ di_result : dict
@@ -753,11 +822,9 @@ with non symmetric matrix provided.')
         return True if issubclass(self.__class__, Network) else False
 
 
-
-#-----------------------------------------------------------------------------#
-# SpatialGraph
-#------------------------
-#
+# ------------ #
+# SpatialGraph #
+# ------------ #
 
 class SpatialGraph(Graph):
     
@@ -800,6 +867,8 @@ class SpatialGraph(Graph):
             Positions of the neurons; if not specified and `nodes` is not 0,
             then neurons will be reparted at random inside the
             :class:`~nngt.geometry.Shape` object of the instance.
+        **kwargs : keyword arguments for :class:`~nngt.Graph` or
+            :class:`~nngt.geometry.Shape` if no shape was given.
         
         Returns
         -------
@@ -814,9 +883,10 @@ class SpatialGraph(Graph):
         self._init_spatial_properties(shape, positions, **kwargs)
         
     def __del__(self):
-        if self._shape is not None:
-            self._shape._parent = None
-        self._shape = None
+        if hasattr(self, '_shape'):
+            if self._shape is not None:
+                self._shape._parent = None
+            self._shape = None
         super(SpatialGraph, self).__del__()
         self.__class__.__num_graphs -= 1
 
@@ -832,13 +902,39 @@ class SpatialGraph(Graph):
         Create the positions of the neurons from the graph `shape` attribute
         and computes the connections distances.
         '''
+        if positions is not None and positions.shape[0] != self.node_nb():
+            raise InvalidArgument("Wrong number of neurons in `positions`.")
         if shape is not None:
             shape.set_parent(self)
             self._shape = shape
         else:
-            self._shape = nngt.geometry.Shape.rectangle(self, 1, 1)
-        if positions is not None and positions.shape[1] != self.node_nb():
-            raise InvalidArgument("Wrong number of neurons in `positions`.")
+            if positions is None:
+                if 'height' in kwargs and 'width' in kwargs:
+                    self._shape = nngt.geometry.Shape.rectangle(
+                        kwargs['height'], kwargs['width'], parent=self)
+                elif 'radius' in kwargs:
+                    self._shape = nngt.geometry.Shape.disk(
+                        kwargs['radius'], parent=self)
+                elif 'radii' in kwargs:
+                    self._shape = nngt.geometry.Shape.ellipse(
+                        kwargs['radii'], parent=self)
+                elif 'polygon' in kwargs:
+                    self._shape = nngt.geometry.Shape.from_polygon(
+                        kwargs['polygon'], min_x=kwargs.get('min_x', -5000.),
+                        max_x=kwargs.get('max_x', 5000.),
+                        unit=kwargs.get('unit', 'um'), parent=self)
+                else:
+                    raise RuntimeError('SpatialGraph needs a `shape` or '
+                                       'keywords arguments to build one, or '
+                                       'at least `positions` so it can create '
+                                       'a square containing them')
+            else:
+                minx, maxx = np.min(positions[:, 0]), np.max(positions[:, 0])
+                miny, maxy = np.min(positions[:, 1]), np.max(positions[:, 1])
+                height, width = 1.01*(maxy - miny), 1.01*(maxx - minx)
+                centroid = (0.5*(maxx + minx), 0.5*(maxy + miny))
+                self._shape = nngt.geometry.Shape.rectangle(
+                    height, width, centroid=centroid, parent=self)
         b_rnd_pos = True if not self.node_nb() or positions is None else False
         self._pos = self._shape.seed_neurons() if b_rnd_pos else positions
         nngt.core.Connections.distances(self)
@@ -860,10 +956,9 @@ class SpatialGraph(Graph):
         return np.array(self._pos)
 
 
-#-----------------------------------------------------------------------------#
-# Network
-#------------------------
-#
+# ------- #
+# Network #
+# ------- #
 
 class Network(Graph):
     
@@ -885,9 +980,77 @@ class Network(Graph):
         return cls.__num_networks
 
     @classmethod
+    def from_gids(cls, gids, get_connections=True, get_params=False,
+                  neuron_model=default_neuron, neuron_param=None,
+                  syn_model=default_synapse, syn_param=None, **kwargs):
+        '''
+        Generate a network from gids.
+
+        Warning
+        -------
+        Unless `get_connections` and `get_params` is True, or if your
+        population is homogeneous and you provide the required information, the
+        information contained by the network and its `population` attribute
+        will be erroneous!
+        To prevent conflicts the :func:`~nngt.Network.to_nest` function is not
+        available. If you know what you are doing, you should be able to find a
+        workaround...
+        
+        Parameters
+        ----------
+        gids : array-like
+            Ids of the neurons in NEST or simply user specified ids.
+        get_params : bool, optional (default: True)
+            Whether the parameters should be obtained from NEST (can be very
+            slow).
+        neuron_model : string, optional (default: None)
+            Name of the NEST neural model to use when simulating the activity.
+        neuron_param : dict, optional (default: {})
+            Dictionary containing the neural parameters; the default value will
+            make NEST use the default parameters of the model.
+        syn_model : string, optional (default: 'static_synapse')
+            NEST synaptic model to use when simulating the activity.
+        syn_param : dict, optional (default: {})
+            Dictionary containing the synaptic parameters; the default value
+            will make NEST use the default parameters of the model.
+        
+        Returns
+        -------
+        net : :class:`~nngt.Network` or subclass
+            Uniform network of disconnected neurons.
+        '''
+        from nngt.lib.errors import not_implemented
+        if neuron_param is None:
+            neuron_param = {}
+        if syn_param is None:
+            syn_param = {}
+        # create the population
+        size = len(gids)
+        nodes = [i for i in range(size)]
+        group = nngt.NeuralGroup(
+            nodes, ntype=1, model=neuron_model, neuron_param=neuron_param,
+            syn_model=syn_model, syn_param=syn_param)
+        pop = nngt.NeuralPop.from_groups([group])
+        # create the network
+        net = cls(population=pop, **kwargs)
+        net.nest_gid = np.array(gids)
+        net._id_from_nest_gid = {gid: i for i, gid in enumerate(gids)}
+        net.to_nest = not_implemented
+        if get_connections:
+            from nngt.simulation import get_nest_adjacency
+            converter = {gid: i for i, gid in enumerate(gids)}
+            mat = get_nest_adjacency(converter)
+            edges = np.array(mat.nonzero()).T
+            w = mat.data
+            net.new_edges(edges, {'weight': w})
+        if get_params:
+            raise NotImplementedError('`get_params` not implemented yet.')
+        return net
+
+    @classmethod
     def uniform_network(cls, size, neuron_model=default_neuron,
                         neuron_param=None, syn_model=default_synapse,
-                        syn_param=None):
+                        syn_param=None, **kwargs):
         '''
         Generate a network containing only one type of neurons.
         
@@ -917,14 +1080,14 @@ class Network(Graph):
             syn_param = {}
         pop = nngt.NeuralPop.uniform(
             size, None, neuron_model, neuron_param, syn_model, syn_param)
-        net = cls(population=pop)
+        net = cls(population=pop, **kwargs)
         return net
 
     @classmethod
     def ei_network(cls, size, ei_ratio=0.2, en_model=default_neuron,
             en_param=None, es_model=default_synapse, es_param=None,
             in_model=default_neuron, in_param=None, is_model=default_synapse,
-            is_param=None):
+            is_param=None, **kwargs):
         '''
         Generate a network containing a population of two neural groups:
         inhibitory and excitatory neurons.
@@ -968,7 +1131,7 @@ class Network(Graph):
         pop = nngt.NeuralPop.exc_and_inhib(
             size, ei_ratio, None, en_model, en_param, es_model, es_param,
             in_model, in_param, is_model, is_param)
-        net = cls(population=pop)
+        net = cls(population=pop, **kwargs)
         return net
 
     #-------------------------------------------------------------------------#
@@ -1054,7 +1217,7 @@ class Network(Graph):
     def nest_gid(self, gids):
         self._nest_gid = gids
         for group in self.population.values():
-            group._nest_gids = gids[group.id_list]
+            group._nest_gids = gids[group.ids]
 
     def id_from_nest_gid(self, gids):
         '''
@@ -1161,13 +1324,11 @@ class Network(Graph):
         return self._population[group_name].properties()
 
 
+# -------------- #
+# SpatialNetwork #
+# -------------- #
 
-#-----------------------------------------------------------------------------#
-# SpatialNetwork
-#------------------------
-#
-
-class SpatialNetwork(Network,SpatialGraph):
+class SpatialNetwork(Network, SpatialGraph):
     
     """
     Class that inherits from :class:`~nngt.Network` and :class:`SpatialGraph`
@@ -1205,6 +1366,7 @@ class SpatialNetwork(Network,SpatialGraph):
             neurons will be reparted at random inside the
             :class:`~nngt.geometry.Shape` object of the instance.
         population : class:`~nngt.NeuralPop`, optional (default: None)
+            Population from which the network will be built.
         
         Returns
         -------

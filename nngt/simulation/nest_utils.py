@@ -26,6 +26,11 @@
 
 """ Utility functions to monitor NEST simulated activity """
 
+try:
+    from io import BytesIO
+except ImportError:
+    from BytesIO import BytesIO
+
 import nest
 import numpy as np
 import matplotlib
@@ -40,6 +45,7 @@ __all__ = [
     'monitor_groups',
     'monitor_nodes',
     'randomize_neural_states',
+    'save_spikes',
     'set_minis',
     'set_noise',
     'set_poisson_input',
@@ -99,7 +105,8 @@ def set_poisson_input(gids, rate):
     return poisson_input
 
 
-def set_minis(network, base_rate, weight_fraction=0.05, gids=None):
+def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
+              syn_model="static_synapse", syn_params=None):
     '''
     Mimick spontaneous release of neurotransmitters, called spontaneous PSCs or
     "minis".
@@ -109,20 +116,43 @@ def set_minis(network, base_rate, weight_fraction=0.05, gids=None):
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
 
+    .. versionmodified:: 0.7
+        Added `nodes`, `syn_model` and `syn_param`.
+
     Parameters
     ----------
     network : :class:`~nngt.Network` object
         Network on which the minis should be simulated.
     base_rate : float
         Rate for the Poisson process on one synapse (:math:`\\lambda`).
-    weight_fraction : float, optional (default: 0.05)
+    weight_fraction : float, optional (default: 0.4)
         Fraction of a spike-triggered PSC that will be released by a mini.
-    gids : array-like container of NEST gids, optional (default = all neurons)
-        Neurons that should be subjected to minis.
+    nodes : array-like, optional (default: all nodes)
+        NNGT ids of the neurons that should be subjected to minis.
+    gids : array-like container ids, optional (default: all neurons)
+        NEST gids of the neurons that should be subjected to minis.
+    syn_model : str, optional (default: 'static_synapse')
+        NEST model for the synapse.
+    syn_params : dict, optional (default: None)
+        Parameters of the synapse.
+
+    Note
+    ----
+    `nodes` and `gids` are uncompatible, only one one the two arguments can
+    be used in any given call to `set_minis`.
+
+    When using this function, make sure that the synapses you use are the
+    same as the synapses the neurons are receiving, otherwise the weights will
+    not be correctly tuned. This is especially true when using STDP.
     '''
     assert (weight_fraction >= 0. and weight_fraction <= 1.), \
            "`weight_fraction` must be between 0 and 1."
     assert network.nest_gid is not None, "Create the NEST network first."
+    if syn_params is None:
+        syn_params = {}
+    else:
+        assert "weight" not in syn_params, \
+               "Forbidden 'weight' entry in `syn_params`."
     degrees = network.get_degrees("in")
     # mean returns a np.matrix, getA1 converts to 1D array
     weights = np.transpose(network.adjacency_matrix().mean(1)).getA1()
@@ -131,13 +161,17 @@ def set_minis(network, base_rate, weight_fraction=0.05, gids=None):
     pgs = nest.Create("poisson_generator", len(deg_set))
     for d, pg in zip(deg_set, pgs):
         nest.SetStatus([pg], {"rate": d*base_rate})
-    if gids is None:
+    if gids is not None and nodes is not None:
+        raise InvalidArgument('Only one of `nodes` and `gids` can be set.')
+    elif nodes is None and gids is None:
+        nodes = range(0, network.node_nb())
         gids = network.nest_gid
-    else:
-        raise NotImplementedError(
-            "Choosing only specific nodes is not yet implemented.")
-    for i in range(len(gids)):
-        gid, d, w = [gids[i]], degrees[i], weights[i]*weight_fraction
+    elif gids is not None:
+        nodes = [network.id_from_nest_gid(gid) for gid in gids]
+    elif nodes is not None:
+        gids = network.nest_gid[nodes]
+    for i, n in enumerate(nodes):
+        gid, d, w = (gids[i],), degrees[n], weights[n]*weight_fraction
         pg = [pgs[map_deg_pg[d]]]
         nest.Connect(pg, gid, syn_spec={"weight": w})
 
@@ -221,10 +255,9 @@ def randomize_neural_states(network, instructions, groups=None,
         nest.SetStatus(gids, key, state)
 
 
-#-----------------------------------------------------------------------------#
-# Monitoring the activity
-#------------------------
-#
+# ----------------------- #
+# Monitoring the activity #
+# ----------------------- #
 
 def monitor_groups(group_names, network, nest_recorder=None, params=None):
     '''
@@ -339,3 +372,68 @@ def _monitor(gids, nest_recorder, params):
             raise InvalidArgument('Invalid recorder item in `nest_recorder`: '
                                   '{} is unknown.'.format(nest_recorder))
     return tuple(recorders), new_record
+
+
+# ------------------- #
+# Saving the activity #
+# ------------------- #
+
+def save_spikes(filename, recorder=None, network=None, **kwargs):
+    '''
+    Plot the monitored activity.
+
+    .. versionadded:: 0.7
+    
+    Parameters
+    ----------
+    filename : str
+        Path to the file where the activity should be saved.
+    recorder : tuple or list of tuples, optional (default: None)
+        The NEST gids of the recording devices. If None, then all existing
+        "spike_detector"s are used.
+    network : :class:`~nngt.Network` or subclass, optional (default: None)
+        Network which activity will be monitored.
+    **kwargs : see :func:`numpy.savetxt`
+    '''
+    lst_rec = []
+    delim = kwargs.get('delimiter', ' ')
+    if 'fmt' not in kwargs:
+        kwargs['fmt'] = '%d{}%.6f'.format(delim)
+    if 'header' not in kwargs:
+        kwargs['header'] = 'Neuron{}Time'.format(delim)
+    # normalize recorders and recordables
+    if recorder is not None:
+        for rec in recorder:
+            if isinstance(recorder[0], tuple):
+                lst_rec.append(rec[0])
+            else:
+                lst_rec.append(rec)
+            assert (nest.GetStatus([lst_rec[-1]], 'model')[0]
+                    == 'spike_detector'), 'Only spike_detectors are supported.'
+    else:
+        lst_rec = nest.GetNodes(
+            (0,), properties={'model': 'spike_detector'})[0]
+
+    if network is not None and network.is_spatial():
+        kwargs['header'] += '{}X{}Y'.format(delim, delim)
+        if delim in kwargs['fmt']:
+            kwargs['fmt'] += '{}%.6f{}%.6f'.format(delim, delim)
+    with open(filename, "wb") as f:
+        for rec in lst_rec:
+            data = nest.GetStatus([rec], "events")[0]
+            if network is not None and network.is_spatial():
+                gids = np.unique(data['senders'])
+                gid_to_id = np.zeros(gids[-1] + 1, dtype=int)
+                for gid in gids:
+                    gid_to_id[gid] = network.id_from_nest_gid(gid)
+                pos = network.get_positions()
+                ids = gid_to_id[data['senders']]
+                data = np.array(
+                    (data['senders'], data['times'], pos[ids, 0],
+                     pos[ids, 1])).T
+            else:
+                data = np.array((data['senders'], data['times'])).T
+            s = BytesIO()
+            np.savetxt(s, data, **kwargs)
+            f.write(s.getvalue())
+            
