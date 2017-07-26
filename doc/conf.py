@@ -55,7 +55,7 @@ if on_rtd:
     import mock
     mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
 
-    class Mock(list):
+    class Mock(object):
 
         def __init__(self, *args, **kwargs):
             super(Mock, self).__init__()
@@ -71,6 +71,15 @@ if on_rtd:
 
         def __setitem__(self, name, value):
             pass
+
+        def __iter__(self):
+            return self
+
+        def next(self):
+            raise StopIteration
+
+        def __next__(self):
+            self.next()
 
         @property
         def __name__(self):
