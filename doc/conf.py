@@ -56,11 +56,12 @@ if on_rtd:
     mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
 
     class Mock(object):
+
         def __init__(self, *args, **kwargs):
-            pass
+            super(Mock, self).__init__()
 
         def __call__(self, *args, **kwargs):
-            pass
+            return self
 
         def __getattr__(self, name):
             return self
@@ -70,6 +71,15 @@ if on_rtd:
 
         def __setitem__(self, name, value):
             pass
+
+        def __iter__(self):
+            return self
+
+        def next(self):
+            raise StopIteration
+
+        def __next__(self):
+            self.next()
 
         @property
         def __name__(self):
@@ -82,7 +92,8 @@ if on_rtd:
     mocked_modules = [
         "graph_tool", "igraph", "networkx", "matplotlib", "matplotlib.cm",
         "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
-        "matplotlib.patches", "matplotlib.path", "svg", "svg.path"
+        "matplotlib.patches", "matplotlib.path", "matplotlib.markers",
+        "matplotlib.colors", "svg", "svg.path"
     ]
 
     mock_objects_modules = [
