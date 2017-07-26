@@ -92,15 +92,15 @@ if on_rtd:
     mocked_modules = [
         "graph_tool", "igraph", "networkx", "matplotlib", "matplotlib.cm",
         "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
-        "matplotlib.patches", "matplotlib.path", "svg", "svg.path"
+        "matplotlib.patches", "matplotlib.path", "matplotlib.markers", "svg",
+        "svg.path"
     ]
 
     mock_objects_modules = [
         "graph_tool.spectral", "graph_tool.generation", "graph_tool.util",
         "graph_tool.stats", "graph_tool.centrality", "graph_tool.correlations",
         "graph_tool.topology", "graph_tool.draw", "graph_tool.clustering",
-        "nest", "shapely", "shapely.affinity", "shapely.geometry",
-        "matplotlib.markers", "dxfgrabber"
+        "nest", "shapely", "shapely.affinity", "shapely.geometry", "dxfgrabber"
     ]
 
     for mod in mocked_modules:
