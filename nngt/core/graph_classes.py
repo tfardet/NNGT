@@ -653,13 +653,21 @@ class Graph(nngt.core.GraphObject):
     # Getters
     
     @property
-    def node_attributes(self):
-        ''' Access node attributes '''
+    def nodes_attributes(self):
+        '''
+        Access node attributes
+
+        .. versionadded:: 0.7
+        '''
         return self._nattr
     
     @property
-    def edge_attributes(self):
-        ''' Access edge attributes '''
+    def edges_attributes(self):
+        '''
+        Access edge attributes
+
+        .. versionadded:: 0.7
+        '''
         return self._eattr
 
     def attributes(self, edge=None, name=None):
@@ -1269,11 +1277,11 @@ class Network(Graph):
                 if "delay" not in self.attributes():
                     self.set_delays()
             else:
-                raise AttributeError("NeuralPop is not valid (not all \
-                neurons are associated to a group).")
+                raise AttributeError("NeuralPop is not valid (not all neurons "
+                                     "are associated to a group).")
         else:
-            raise AttributeError("Expected NeuralPop but received \
-                    {}".format(pop.__class__.__name__))
+            raise AttributeError("Expected NeuralPop but received "
+                                 "{}".format(pop.__class__.__name__))
 
     #-------------------------------------------------------------------------#
     # Setter

@@ -83,7 +83,7 @@ Networks composed of heterogeneous groups
 -----------------------------------------
 
 .. literalinclude:: ../examples/multi_groups_network.py
-   :lines: 29-
+   :lines: 30-64
 
 
 Use with NEST

@@ -439,14 +439,10 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
               if from_graph is None else from_graph.node_nb() )
     #~ c = c if c is not None else 0 if directed else 1
 
-    g = price_network(nodes,m,c,gamma,directed,seed_graph)
-    graph_obj_price = nngt.GraphObject.to_graph_object(g)
-    if from_graph is not None:
-        from_graph.graph = graph_obj_price
+    g = price_network(nodes, m, c, gamma, directed, seed_graph)
+    graph_obj_price = nngt.Graph.from_library(g)
 
     graph_price = nngt.Graph.from_library(g)
-    #~ graph_price = (nngt.Graph(name=name, libgraph=graph_obj_price, **kwargs)
-                   #~ if from_graph is None else from_graph)
     
     _set_options(graph_price, population, shape, positions)
     graph_price._graph_type = "price_scale_free"

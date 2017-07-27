@@ -116,7 +116,7 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
 
-    .. versionmodified:: 0.7
+    .. versionchanged:: 0.7
         Added `nodes`, `syn_model` and `syn_param`.
 
     Parameters
