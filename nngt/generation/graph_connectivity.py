@@ -29,7 +29,7 @@ import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
 from nngt.lib.connect_tools import _set_options
 
-# try to import multithreaded algorithms
+# try to import multithreaded or mpi algorithms
 
 using_mt_algorithms = False
 
@@ -40,6 +40,7 @@ if nngt.get_config("multithreading"):
         from .connect_algorithms import price_network
         using_mt_algorithms = True
         logger.debug("Using multithreaded algorithms compiled on install.")
+        nngt.set_config('multithreading', True)
     except Exception as e:
         try:
             import cython
@@ -48,13 +49,17 @@ if nngt.get_config("multithreading"):
             from .connect_algorithms import price_network
             using_mt_algorithms = True
             logger.debug(
-                str(e) + "\n\tMultithreaded algorithms compiled on-the-run.")
+                str(e) + "\n\tCompiled multithreaded algorithms on-the-run.")
+            nngt.set_config('multithreading', True)
         except Exception as e2:
-            logger.debug(
+            logger.warning(
                 str(e) + "\n\t" + str(e2) + "\n\t" +
                 "Cython import failed, using non-multithreaded algorithms.")
 if not using_mt_algorithms:
     from .connect_algorithms import *
+if nngt.get_config("mpi"):
+    from .mpi_connect import _distance_rule  # overwrite only _distance_rule
+    nngt.set_config('mpi', True)
 
 
 

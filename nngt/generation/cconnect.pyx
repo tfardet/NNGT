@@ -359,10 +359,10 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
     # for each node, check the neighbours that are in an area where
     # connections can be made: +/- scale for lin, +/- 5*scale for exp
     lim = scale if rule == 'lin' else 5*scale
-    for i in ids:
-        keep  = np.where(np.abs(positions[0] - positions[0, i]) < lim)[0]
-        keep *= np.where(np.abs(positions[1] - positions[1, i]) < lim)[0]
-        targets.push_back(ids[keep].tolist())
+    for i in source_ids:
+        keep  = (np.abs(positions[0, target_ids] - positions[0, i]) < lim)
+        keep *= (np.abs(positions[1, target_ids] - positions[1, i]) < lim)
+        targets.push_back(target_ids[keep].tolist())
     # create the edges
     cdef:
         long msd = np.random.randint(0, edge_num + 1)

@@ -106,6 +106,7 @@ _config = {
     'log_folder': "~/.nngt/log",
     'log_level': 10,
     'log_to_file': False,
+    'mpi': False,
     'mpl_backend': None,
     'multithreading': False,
     'omp': 1,
