@@ -603,12 +603,12 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
             positions=positions, **kwargs)
     else:
         Graph.make_spatial(graph_dr, shape, positions=positions)
-    positions = graph_dr.get_positions().T
+    positions = np.array(graph_dr.get_positions().T, dtype=np.float32)
     # add edges
     ia_edges = None
     conversion_factor = conversion_magnitude(shape.unit, unit)
     if unit != shape.unit:
-        positions = np.multiply(conversion_factor, positions)
+        positions = np.multiply(conversion_factor, positions, dtype=np.float32)
     if nodes > 1:
         ids = np.arange(0, nodes, dtype=np.uint)
         ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
