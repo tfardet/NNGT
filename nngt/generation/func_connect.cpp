@@ -176,7 +176,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
   size_t num_edges, const std::vector< std::vector<size_t> >& existing_edges,
   bool multigraph, long msd, unsigned int omp)
 {
-    ures v;
     float inv_scale = 1. / scale;
     // Initialize secondary seeds and RNGs
     std::vector<long> seeds(omp);
@@ -243,7 +242,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
 
         #pragma omp parallel num_threads(omp)
         {
-            ures v2;
             float distance, proba;
             size_t src, tgt, local_tests, nln;
             std::vector<size_t> local_tgts;
@@ -270,7 +268,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                     tgt = local_tgts[rnd_target(generator_)];
                     distance = sqrt((x[tgt] - x[src])*(x[tgt] - x[src]) +
                                     (y[tgt] - y[src])*(y[tgt] - y[src]));
-                    proba = _proba(rule_type, inv_scale, distance, v2);
+                    proba = _proba(rule_type, inv_scale, distance);
                     if (proba >= rnd_uniform(generator_))
                     {
                         elocal[0].push_back(src);

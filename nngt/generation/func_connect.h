@@ -19,7 +19,6 @@ namespace generation {
  */
 
 typedef std::tuple<size_t, size_t> edge_t;
-typedef union { long i; double f; } ures;
 
 struct key_hash : public std::unary_function<edge_t, std::size_t>
 {
@@ -189,7 +188,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
 //~ };
 
 
-static inline float _proba(int rule, float inv_scale, float distance, ures v)
+static inline float _proba(int rule, float inv_scale, float distance)
 {
     if (rule == 0)  // linear
     {
