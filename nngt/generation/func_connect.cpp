@@ -203,11 +203,11 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     edges_tmp[0] = std::vector<size_t>(target_enum);
     edges_tmp[1] = std::vector<size_t>(target_enum);
 
-    size_t num_tests = num_edges;
-    if (current_enum != 0)
+    size_t num_tests = target_enum;
+    if (initial_enum != 0)
     {
         num_tests *=
-            1. - existing_edges.size() / (num_neurons * (num_neurons - 1));
+            1. - initial_enum / (num_neurons * (num_neurons - 1));
     }
 
     // set the number of tests associated to each node proportionnaly to its
@@ -293,7 +293,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     }
 
     // fill the final edge container
-    for (size_t i=0; i<num_edges; i++)
+    for (size_t i=0; i<target_enum; i++)
     {
         ia_edges[2*i] = edges_tmp[0][i + initial_enum];
         ia_edges[2*i + 1] = edges_tmp[1][i + initial_enum];

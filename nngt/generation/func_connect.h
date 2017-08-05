@@ -39,7 +39,6 @@ struct key_equal : public std::binary_function<edge_t, edge_t, bool>
 };
 
 typedef std::unordered_map<edge_t, size_t, key_hash, key_equal> map_t;
-typedef std::unordered_map<edge_t, float, key_hash, key_equal> map_proba;
 
 
 /*
