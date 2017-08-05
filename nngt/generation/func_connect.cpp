@@ -286,7 +286,12 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
 
                 for (size_t j=0; j<local_tests; j++)
                 {
-                    tgt = local_tgts[rnd_target(generator_)];
+                    size_t rnd = rnd_target(generator_);
+                    tgt = local_tgts[rnd];
+                    if (src >= source_nodes.size() || tgt >= source_nodes.size())
+                    {
+                        printf("before: src %lu, tgt %lu, rnd %lu VS nln %lu\n", src, tgt, rnd, nln);
+                    }
                     distance = std::sqrt((x[tgt] - x[src])*(x[tgt] - x[src]) +
                                          (y[tgt] - y[src])*(y[tgt] - y[src]));
                     proba = _proba(rule_type, inv_scale, distance);
@@ -294,7 +299,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                     {
                         if (src >= source_nodes.size() || tgt >= source_nodes.size())
                         {
-                            printf("src %lu, tgt %lu, i %lu\n", src, tgt, i);
+                            printf("src %lu, tgt %lu, rnd %lu VS nln %lu\n", src, tgt, rnd, nln);
                         }
                         elocal[0].push_back(src);
                         elocal[1].push_back(tgt);
