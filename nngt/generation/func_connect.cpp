@@ -282,7 +282,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 src = source_nodes[i];
                 local_tgts = target_nodes[i];
                 nln = local_tgts.size();  // number of local neighbours
-                std::uniform_int_distribution<size_t> rnd_target(0, nln);
+                std::uniform_int_distribution<size_t> rnd_target(0, nln - 1);
 
                 for (size_t j=0; j<local_tests; j++)
                 {
