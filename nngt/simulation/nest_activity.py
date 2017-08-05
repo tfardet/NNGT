@@ -24,7 +24,6 @@ from collections import namedtuple
 from copy import deepcopy
 import weakref
 
-import matplotlib.pyplot as plt
 import nest
 import numpy as np
 
@@ -366,6 +365,7 @@ def analyze_raster(raster=None, limits=None, network=None,
     properties = _compute_properties(data.T, phases, fr, skip_bursts)
     # plot if required
     if show:
+        import matplotlib.pyplot as plt
         if fignums:
             _plot_phases(phases, fignums)
         else:
@@ -607,6 +607,7 @@ def _compute_properties(data, phases, fr, skip_bursts):
 
 
 def _plot_phases(phases, fignums):
+    import matplotlib.pyplot as plt
     colors = ('r', 'orange', 'g', 'b')
     names = ('bursting', 'mixed', 'localized', 'quiescent')
     for fignum in fignums:

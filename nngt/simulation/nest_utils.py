@@ -33,8 +33,6 @@ except ImportError:
 
 import nest
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
 
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.rng_tools import _generate_random
