@@ -221,22 +221,23 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     std::vector< std::vector<size_t> > edges_tmp(2, std::vector<size_t>());
     if (!existing_edges.empty())
     {
-        edges_tmp.push_back(existing_edges[0]);
-        edges_tmp.push_back(existing_edges[1]);
+        edges_tmp[0].insert(edges_tmp[0].end(),
+                            existing_edges[0].begin(), existing_edges[0].end());
+        edges_tmp[1].insert(edges_tmp[1].end(),
+                            existing_edges[1].begin(), existing_edges[1].end());
     }
     map_t hash_map;
     
-    // unordered map to translate rule into int
-    std::unordered_map<std::string, int> r_to_int = {{"lin", 0}, {"exp", 1}};
-    int rule_type = r_to_int[rule];
+    // rule into int
+    int rule_type = (rule == "lin" ? 0 : 1);
 
     size_t initial_enum = existing_edges.empty() ?
         0 : existing_edges[0].size();               // initial number of edges
     size_t current_enum = initial_enum;             // current number of edges
     size_t target_enum = current_enum + num_edges;  // target number of edges
     
-    edges_tmp[0] = std::vector<size_t>(target_enum);
-    edges_tmp[1] = std::vector<size_t>(target_enum);
+    edges_tmp[0].reserve(target_enum);
+    edges_tmp[1].reserve(target_enum);
 
     // set the number of tests associated to each node proportionnaly to its
     // number of neighbours
@@ -286,11 +287,15 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 for (size_t j=0; j<local_tests; j++)
                 {
                     tgt = local_tgts[rnd_target(generator_)];
-                    distance = sqrt((x[tgt] - x[src])*(x[tgt] - x[src]) +
-                                    (y[tgt] - y[src])*(y[tgt] - y[src]));
+                    distance = std::sqrt((x[tgt] - x[src])*(x[tgt] - x[src]) +
+                                         (y[tgt] - y[src])*(y[tgt] - y[src]));
                     proba = _proba(rule_type, inv_scale, distance);
                     if (proba >= rnd_uniform(generator_))
                     {
+                        if (src >= source_nodes.size() || tgt >= source_nodes.size())
+                        {
+                            printf("src %lu, tgt %lu, i %lu\n", src, tgt, i);
+                        }
                         elocal[0].push_back(src);
                         elocal[1].push_back(tgt);
                     }
