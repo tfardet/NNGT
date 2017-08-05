@@ -41,8 +41,7 @@ extensions = Extension(
     sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
     extra_compile_args = [
         "-O2", "-std=c++11", "-fopenmp", "-ftree-vectorize", "-msse",
-        "-Wno-cpp", "-ffast-math", "-ftree-vectorizer-verbose=2",
-        "-Wno-unused-function"
+        "-Wno-cpp", "-ffast-math", "-Wno-unused-function"
     ],
     language="c++",
     include_dirs=[dirname, numpy.get_include()],
