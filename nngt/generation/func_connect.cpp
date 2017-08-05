@@ -72,6 +72,41 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
 }
 
 
+//~ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
+//~ {
+    //~ size_t total_unique = hash_map.size();
+    //~ size_t num_edges = a[0].size();
+    //~ size_t s, t;
+
+    //~ for (size_t i = total_unique; i < num_edges; i++)
+    //~ {
+        //~ s = a[0][i];
+        //~ t = a[1][i];
+        //~ // check if this number is already in the map
+        //~ if (hash_map.find(s) == hash_map.end())
+        //~ {
+            //~ // it's not in there yet so add it and set the count to 1
+            //~ std::unordered_map<size_t, int> newmap;
+            //~ newmap[t] = 1;
+            //~ hash_map.insert({s, newmap});
+            //~ a[0][total_unique] = s;
+            //~ a[1][total_unique] = t;
+            //~ total_unique += 1;
+        //~ }
+        //~ else if (hash_map[s].find(t) == hash_map[s].end())
+        //~ {
+            //~ // it's not in there yet so add it and set the count to 1
+            //~ hash_map[s].insert({t, 1});
+            //~ a[0][total_unique] = s;
+            //~ a[1][total_unique] = t;
+            //~ total_unique += 1;
+        //~ }
+    //~ }
+
+    //~ return total_unique;
+//~ }
+
+
 std::vector<size_t> _gen_edge_complement(
   std::mt19937& generator, const std::vector<size_t>& nodes, size_t other_end,
   size_t degree, const std::vector< std::vector<size_t> >* existing_edges,
@@ -203,13 +238,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     edges_tmp[0] = std::vector<size_t>(target_enum);
     edges_tmp[1] = std::vector<size_t>(target_enum);
 
-    size_t num_tests = target_enum;
-    if (initial_enum != 0)
-    {
-        num_tests *=
-            1. - initial_enum / (num_neurons * (num_neurons - 1));
-    }
-
     // set the number of tests associated to each node proportionnaly to its
     // number of neighbours
     std::vector<size_t> vec_ntests(source_nodes.size());
@@ -230,8 +258,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                                     "or `neuron_density`.");
     }
 
-    size_t ntests = 0;
-
     // create the edges
     #pragma omp parallel num_threads(num_omp)
     {
@@ -246,8 +272,9 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             #pragma omp for nowait schedule(static)
             for (size_t i=0; i<target_nodes.size(); i++)
             {
-                local_tests = target_nodes[i].size() * (num_tests - ntests)
-                              * norm + 1;  // always at least one
+                local_tests = target_nodes[i].size()
+                              * (target_enum - current_enum) * norm;
+                local_tests = std::max(local_tests, 1lu);
                 elocal[0].reserve(local_tests);
                 elocal[1].reserve(local_tests);
                 // initialize source; set target generator
@@ -274,6 +301,9 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             {
                 edges_tmp[0].insert(edges_tmp[0].end(),
                                     elocal[0].begin(), elocal[0].end());
+            }
+            #pragma omp critical
+            {
                 edges_tmp[1].insert(edges_tmp[1].end(),
                                     elocal[1].begin(), elocal[1].end());
             }
@@ -283,6 +313,8 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 current_enum = multigraph
                                ? target_enum
                                : _unique_2d(edges_tmp, hash_map);
+                edges_tmp[0].resize(current_enum);
+                edges_tmp[1].resize(current_enum);
             }
 
             elocal[0].clear();
