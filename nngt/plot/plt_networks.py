@@ -119,13 +119,12 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     elif isinstance(nsize, float):
         nsize = np.repeat(nsize, n)
     nsize *= 0.01 * size[0]
-    if isinstance(esize, str):
-        if e:
-            esize = _edge_size(network, esize)
-            esize *= max_esize
-            esize[esize < threshold] = 0.
-    elif isinstance(esize, float):
-        esize = np.repeat(esize, e)
+    if isinstance(esize, str) and e:
+        esize = _edge_size(network, esize)
+        esize *= max_esize
+        esize[esize < threshold] = 0.
+    #~ elif isinstance(esize, float):
+        #~ esize = np.repeat(esize, e)
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
     ncolor = _node_color(network, ncolor)
     c = ncolor

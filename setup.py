@@ -40,7 +40,7 @@ extensions = Extension(
     "nngt.generation.cconnect", # name of extension
     sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
     extra_compile_args = [
-        "-O2", "-std=c++11", "-fopenmp", "-ftree-vectorize", "-msse",
+        "-O2", "-g", "-std=c++11", "-fopenmp", "-ftree-vectorize", "-msse",
         "-Wno-cpp", "-ffast-math", "-Wno-unused-function"
     ],
     language="c++",

@@ -9,7 +9,8 @@ def make_ext(modname, pyxfilename):
         name = modname,
         sources = [pyxfilename, "func_connect.cpp"],
         extra_compile_args = [
-            "-std=c++11", "-fopenmp", "-Wno-cpp", "-g", "-Wno-unused-function"
+            "-O2", "-ggdb", "-std=c++11", "-fopenmp", "-ftree-vectorize", "-msse",
+            "-Wno-cpp", "-ffast-math", "-Wno-unused-function"
         ],
         language = "c++",
         include_dirs = [dirname, numpy.get_include()]
