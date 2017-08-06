@@ -319,9 +319,9 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     num_ecurrent = 0
 
     # for each node, check the neighbours that are in an area where
-    # connections can be made: +/- scale for lin, +/- 5*scale for exp.
+    # connections can be made: +/- scale for lin, +/- 10*scale for exp.
     targets = []
-    lim = scale if rule == 'lin' else 5*scale
+    lim = scale if rule == 'lin' else 10*scale
     for s in source_ids:
         keep  = (np.abs(positions[0, target_ids] - positions[0, s]) < lim)
         keep *= (np.abs(positions[1, target_ids] - positions[1, s]) < lim)

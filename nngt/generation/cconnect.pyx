@@ -357,8 +357,8 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
     #~ b_one_pop = _check_num_edges(
         #~ source_ids, target_ids, edges, directed, multigraph)
     # for each node, check the neighbours that are in an area where
-    # connections can be made: +/- scale for lin, +/- 5*scale for exp
-    lim = scale if rule == 'lin' else 5*scale
+    # connections can be made: +/- scale for lin, +/- 10*scale for exp
+    lim = scale if rule == 'lin' else 10*scale
     for i in source_ids:
         keep  = (np.abs(positions[0, target_ids] - positions[0, i]) < lim)
         keep *= (np.abs(positions[1, target_ids] - positions[1, i]) < lim)
