@@ -102,7 +102,7 @@ def set_poisson_input(gids, rate):
 
 
 def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
-              syn_spec=None, weight_normalization=1.):
+              weight_normalization=1.):
     '''
     Mimick spontaneous release of neurotransmitters, called spontaneous PSCs or
     "minis".
@@ -113,7 +113,7 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
 
     .. versionchanged:: 0.8
-        Added `nodes`, `syn_spec` instead of `syn_model` and `syn_params`.
+        Added `nodes`, removed `syn_model` and `syn_params`.
         Added `weight_normalization` to avoid issues with plastic synapses.
 
     Parameters
@@ -128,29 +128,21 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
         NNGT ids of the neurons that should be subjected to minis.
     gids : array-like container ids, optional (default: all neurons)
         NEST gids of the neurons that should be subjected to minis.
-    syn_model : str, optional (default: 'static_synapse')
-        NEST model for the synapse.
-    syn_params : dict, optional (default: None)
-        Parameters of the synapse.
+    weight_normalization : float, optional (default: 1.)
+        Normalize the weight.
 
     Note
     ----
     `nodes` and `gids` are uncompatible, only one one the two arguments can
     be used in any given call to `set_minis`.
 
-    When using this function, make sure that either a) the synapses you use are
-    the same as the synapses the neurons are receiving, or b) you compensated
-    the weight using `weight_normalization`; otherwise the weights will not
-    be correctly tuned. This is especially true when using plastic synapses.
+    When using this function, you must compensate the weight using
+    `weight_normalization` when working with quantal or plastic synapses;
+    otherwise the weights will not be correctly tuned.
     '''
     assert (weight_fraction >= 0. and weight_fraction <= 1.), \
            "`weight_fraction` must be between 0 and 1."
     assert network.nest_gid is not None, "Create the NEST network first."
-    if syn_spec is None:
-        syn_spec = {}
-    else:
-        assert "weight" not in syn_spec, \
-               "Forbidden 'weight' entry in `syn_param`."
     degrees = network.get_degrees("in")
     weighted_deg = network.get_degrees("in", use_weights=True)
     deg_set = set(degrees)
@@ -171,10 +163,7 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
         gid, d = (gids[i],), degrees[n]
         w = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
         pg = [pgs[map_deg_pg[d]]]
-        pn = nest.Create('parrot_neuron')
-        nest.Connect(pg, pn)
-        syn_spec.update({'weight': w})
-        nest.Connect(pn, gid, syn_spec=syn_spec)
+        nest.Connect(pg, gid, syn_spec={'weight': w})
 
 
 def set_step_currents(gids, times, currents):
