@@ -763,6 +763,15 @@ there are {} edges while {} values where provided'''.format(
         else:
             wlist = _eprop_distribution(graph, distribution, elist=elist,
                                         **parameters)
+        # for normalize by the inhibitory weight factor
+        if graph is not None and graph.is_network():
+            if not np.isclose(graph._iwf, 1.):
+                adj = graph.adjacency_matrix()
+                edges = np.transpose((adj < 0).nonzero())
+                keep = (edges[..., np.newaxis]
+                        == elist[..., np.newaxis].T).all(1).any(1)
+                wlist[keep] *= graph._iwf
+            
         # add to the graph container
         bwlist = (np.max(wlist) - wlist if np.any(wlist)
                   else np.repeat(0., len(wlist)))

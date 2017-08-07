@@ -557,6 +557,7 @@ class Graph(nngt.core.GraphObject):
         if distribution is None:
             distribution = self._w["distribution"]
         if parameters is None:
+            if self.is_network():
             parameters = self._w
         nngt.core.Connections.weights(
             self, elist=elist, wlist=weight, distribution=distribution,
@@ -1151,7 +1152,8 @@ class Network(Graph):
     # Constructor, destructor and attributes
     
     def __init__(self, name="Network", weighted=True, directed=True,
-                 from_graph=None, population=None, **kwargs):
+                 from_graph=None, population=None, inh_weight_factor=1.,
+                 **kwargs):
         '''
         Initializes :class:`~nngt.Network` instance.
 
@@ -1171,6 +1173,10 @@ class Network(Graph):
             An object containing the neural groups and their properties:
             model(s) to use in NEST to simulate the neurons as well as their
             parameters.
+        inh_weight_factor : float, optional (default: 1.)
+            Factor to apply to inhibitory synapses, to compensate for example
+            the strength difference due to timescales between excitatory and
+            inhibitory synapses.
         
         Returns
         -------
@@ -1189,6 +1195,7 @@ class Network(Graph):
             del kwargs["nodes"]
         if "delays" not in kwargs:  # set default delay to 1.
             kwargs["delays"] = 1.
+        self._iwf = inh_weight_factor
         super(Network, self).__init__(nodes=nodes, name=name,
                                       weighted=weighted, directed=directed,
                                       from_graph=from_graph, **kwargs)
