@@ -557,7 +557,6 @@ class Graph(nngt.core.GraphObject):
         if distribution is None:
             distribution = self._w["distribution"]
         if parameters is None:
-            if self.is_network():
             parameters = self._w
         nngt.core.Connections.weights(
             self, elist=elist, wlist=weight, distribution=distribution,
