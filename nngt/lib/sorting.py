@@ -118,8 +118,7 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             attribute = node_attributes(network, sort)
             sorted_ids = np.argsort(attribute)
         num_sorted = 1
-        _, sorted_groups = _sort_groups(network.population)
-        for group in sorted_groups:
+        for group in network.population.values():
             gids = network.nest_gid[group.ids]
             order = np.argsort(np.argsort(np.argsort(sorted_ids)[group.ids]))
             sorting[gids] = num_sorted + order
@@ -137,7 +136,7 @@ def _sort_groups(pop):
     Sort the groups of a NeuralPop by decreasing size.
     '''
     names, groups = [], []
-    for name, group in iter(pop.items()):
+    for name, group in pop.items():
         names.append(name)
         groups.append(group)
     sizes = [len(g.ids) for g in groups]

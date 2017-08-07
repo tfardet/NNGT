@@ -59,7 +59,6 @@ __all__ = [
 def set_noise(gids, mean, std):
     '''
     Submit neurons to a current white noise.
-    @todo: check how NEST handles the :math:`\\sqrt{t}` in the standard dev.
     
     Parameters
     ----------
@@ -103,7 +102,7 @@ def set_poisson_input(gids, rate):
 
 
 def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
-              syn_model="static_synapse", syn_params=None):
+              syn_spec=None, weight_normalization=1.):
     '''
     Mimick spontaneous release of neurotransmitters, called spontaneous PSCs or
     "minis".
@@ -113,8 +112,9 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
 
-    .. versionchanged:: 0.7
-        Added `nodes`, `syn_model` and `syn_param`.
+    .. versionchanged:: 0.8
+        Added `nodes`, `syn_spec` instead of `syn_model` and `syn_params`.
+        Added `weight_normalization` to avoid issues with plastic synapses.
 
     Parameters
     ----------
@@ -138,21 +138,21 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
     `nodes` and `gids` are uncompatible, only one one the two arguments can
     be used in any given call to `set_minis`.
 
-    When using this function, make sure that the synapses you use are the
-    same as the synapses the neurons are receiving, otherwise the weights will
-    not be correctly tuned. This is especially true when using STDP.
+    When using this function, make sure that either a) the synapses you use are
+    the same as the synapses the neurons are receiving, or b) you compensated
+    the weight using `weight_normalization`; otherwise the weights will not
+    be correctly tuned. This is especially true when using plastic synapses.
     '''
     assert (weight_fraction >= 0. and weight_fraction <= 1.), \
            "`weight_fraction` must be between 0 and 1."
     assert network.nest_gid is not None, "Create the NEST network first."
-    if syn_params is None:
-        syn_params = {}
+    if syn_spec is None:
+        syn_spec = {}
     else:
-        assert "weight" not in syn_params, \
-               "Forbidden 'weight' entry in `syn_params`."
+        assert "weight" not in syn_spec, \
+               "Forbidden 'weight' entry in `syn_param`."
     degrees = network.get_degrees("in")
-    # mean returns a np.matrix, getA1 converts to 1D array
-    weights = np.transpose(network.adjacency_matrix().mean(1)).getA1()
+    weighted_deg = network.get_degrees("in", use_weights=True)
     deg_set = set(degrees)
     map_deg_pg = {d: i for i, d in enumerate(deg_set)}
     pgs = nest.Create("poisson_generator", len(deg_set))
@@ -168,9 +168,13 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
     elif nodes is not None:
         gids = network.nest_gid[nodes]
     for i, n in enumerate(nodes):
-        gid, d, w = (gids[i],), degrees[n], weights[n]*weight_fraction
+        gid, d = (gids[i],), degrees[n]
+        w = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
         pg = [pgs[map_deg_pg[d]]]
-        nest.Connect(pg, gid, syn_spec={"weight": w})
+        pn = nest.Create('parrot_neuron')
+        nest.Connect(pg, pn)
+        syn_spec.update({'weight': w})
+        nest.Connect(pn, gid, syn_spec=syn_spec)
 
 
 def set_step_currents(gids, times, currents):
@@ -202,10 +206,13 @@ def set_step_currents(gids, times, currents):
     return scg
 
 
-def randomize_neural_states(network, instructions, groups=None,
+def randomize_neural_states(network, instructions, groups=None, ids=None,
                             make_nest=False):
     '''
     Randomize the neural states according to the instructions.
+
+    .. versionchanged:: 0.8
+        Added `ids` argument.
 
     Parameters
     ----------
@@ -217,6 +224,8 @@ def randomize_neural_states(network, instructions, groups=None,
     groups : list of :class:`~nngt.NeuralGroup`, optional (default: None)
         If provided, only the neurons belonging to these groups will have their
         properties randomized.
+    ids : array-like, optional (default: all neurons)
+        NNGT ids of the neurons that will have their status randomized. 
     make_nest : bool, optional (default: False)
         If ``True`` and network has not been converted to NEST, automatically
         generate the network, else raises an exception.
@@ -238,16 +247,16 @@ def randomize_neural_states(network, instructions, groups=None,
         else:
             raise AttributeError(
                 '`network` has not been sent to NEST yet.')
-    num_neurons = 0
     gids = []
-    if groups is not None:
+    if ids is not None and groups is not None:
+        raise InvalidArgument('`ids` and `groups` cannot be set together.')
+    elif groups is not None:
         for group in groups:
             gids.extend(group.nest_gids)
         gids = list(set(gids))
-        num_neurons = len(gids)
     else:
-        gids = list(network._nest_gid)
-        num_neurons = network.node_nb()
+        gids.extend(network.nest_gid if ids is None else network.nest_gid[ids])
+    num_neurons = len(gids)
     for key, val in instructions.items():
         state = _generate_random(num_neurons, val)
         nest.SetStatus(gids, key, state)
@@ -290,12 +299,7 @@ def monitor_groups(group_names, network, nest_recorder=None, params=None):
     elif isinstance(params, dict):
         params = [param]
     recorders, recordables = [], []
-    # sort and monitor
-    nodes_gids = []
-    sorted_names, sorted_groups =_sort_groups(network.population)
-    sort_input = np.argsort([sorted_names.index(name) for name in group_names])
-    sorted_input = [group_names[i] for i in sort_input]
-    for name in sorted_input:
+    for name in group_names:
         gids = tuple(network.population[name].nest_gids)
         recdr, recdbls = _monitor(gids, nest_recorder, params)
         recorders.extend(recdr)

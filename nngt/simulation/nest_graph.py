@@ -66,10 +66,7 @@ def make_nest_network(network, use_weights=True):
     ia_nngt_nest = np.zeros(num_neurons, dtype=int)
     current_size = 0
 
-    # sort groups by size
-    _, groups = _sort_groups(network.population)
-
-    for group in groups:
+    for group in network.population.values():
         group_size = len(group.ids)
         if group_size:
             ia_nngt_ids[current_size:current_size + group_size] = group.ids

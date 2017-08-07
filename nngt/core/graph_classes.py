@@ -539,6 +539,11 @@ class Graph(nngt.core.GraphObject):
             "gaussian", "lognormal", "lin_corr", "log_corr").
         parameters : dict, optional (default: {})
             Dictionary containing the properties of the weight distribution.
+            Properties are as follow for the distributions
+               - 'constant': 'value'
+               - 'uniform': 'lower', 'upper'
+               - 'gaussian': 'avg', 'std'
+               - 'lognormal': 'position', 'scale'
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
