@@ -125,10 +125,16 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     # get gids and groups
     gids = network.nest_gid if (gids is None and network is not None) else gids
     if gids is None:
-        gids = nest.GetStatus(lst_rec)[0]["events"]["senders"]
+        gids = []
+        for rec in lst_rec:
+            gids.extend(nest.GetStatus([rec])[0]["events"]["senders"])
+        gids = np.unique(gids)
     num_group = len(network.population) if network is not None else 1
     # sorting
-    sorted_neurons = np.arange(np.max(gids)+1).astype(int) - np.min(gids) + 1
+    sorted_neurons = np.array([])
+    if len(gids):
+        sorted_neurons = np.arange(
+            np.max(gids) + 1).astype(int) - np.min(gids) + 1
     attr = None
     if sort is not None:
         assert network is not None, "`network` is required for sorting."

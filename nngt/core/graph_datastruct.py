@@ -500,11 +500,11 @@ class NeuralGroup:
 
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
-            same_nmodel = ( self.neuron_model == other.neuron_model *
-                            self.neuron_param == other.neuron_param )
-            same_smodel = ( self.syn_model == other.syn_model *
-                            self.syn_param == other.syn_param )
-            return same_nmodel * same_smodel
+            same_nmodel = (self.neuron_model == other.neuron_model
+                           * self.neuron_param == other.neuron_param)
+            same_smodel = (self.syn_model == other.syn_model
+                           * self.syn_param == other.syn_param)
+            return same_nmodel*same_smodel
         else:
             return False
 
@@ -532,10 +532,11 @@ class NeuralGroup:
 
     @ids.setter
     def ids(self, value):
-        if self._desired_size is not None:
-            logger.warning('The length of the `ids` passed is not the'
-                           'same as the initial size that was declared.'
-                           'Setting `ids` anyway, but check your code!')
+        if self._desired_size != len(value):
+            logger.warning('The length of the `ids` passed is not the same as '
+                           'the initial size that was declared: {} before '
+                           'vs {} now. Setting `ids` anyway, but check your '
+                           'code!'.format(self._desired_size, len(value)))
         self._ids = value
         self._desired_size = None
 

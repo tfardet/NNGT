@@ -82,12 +82,19 @@ def set_config(config, value=None):
             raise KeyError("Unknown configuration property: {}".format(key))
         if key == "log_level":
             new_config[key] = _convert(new_config[key])
-    # check multithreading status and number of threads 
+    # check multithreading status and number of threads
+    mt = "multithreading"
     if "omp" in new_config:
-        has_mt = new_config.get("multithreading", old_multithreading)
-        if new_config["omp"] > 1 and not has_mt:
-             logger.warning("'multithreading' is set to False but 'omp' is "
-                            "greater than one.")
+        has_mt = new_config.get(mt, old_multithreading)
+        if new_config["omp"] > 1:
+            if mt in new_config and not new_config[mt]:
+                logger.warning("Updating to 'multithreading' == False with "
+                               "'omp' greater than one.")
+            elif mt not in new_config and not old_multithreading:
+                new_config["multithreading"] = True
+                logger.warning("'multithreading' was set to False but new "
+                               "'omp' is greater than one. Updating "
+                               "'multithreading' to True.")
     # update
     nngt._config.update(new_config)
     # apply multithreading parameters

@@ -75,9 +75,8 @@ def set_noise(gids, mean, std):
     noise : tuple
         The NEST gid of the noise_generator.
     '''
-    noise = nest.Create("noise_generator")
-    nest.SetStatus(noise, {"mean": mean, "std": std })
-    nest.Connect(noise,gids)
+    noise = nest.Create("noise_generator", params={"mean": mean, "std": std })
+    nest.Connect(noise, gids)
     return noise
 
 
@@ -238,15 +237,16 @@ def randomize_neural_states(network, instructions, groups=None,
             network.to_nest()
         else:
             raise AttributeError(
-                '`network` has not been converted to NEST yet.')
+                '`network` has not been sent to NEST yet.')
     num_neurons = 0
-    gids = list(network._nest_gid)
+    gids = []
     if groups is not None:
         for group in groups:
             gids.extend(group.nest_gids)
         gids = list(set(gids))
         num_neurons = len(gids)
     else:
+        gids = list(network._nest_gid)
         num_neurons = network.node_nb()
     for key, val in instructions.items():
         state = _generate_random(num_neurons, val)
@@ -419,19 +419,20 @@ def save_spikes(filename, recorder=None, network=None, **kwargs):
     with open(filename, "wb") as f:
         for rec in lst_rec:
             data = nest.GetStatus([rec], "events")[0]
-            if network is not None and network.is_spatial():
-                gids = np.unique(data['senders'])
-                gid_to_id = np.zeros(gids[-1] + 1, dtype=int)
-                for gid in gids:
-                    gid_to_id[gid] = network.id_from_nest_gid(gid)
-                pos = network.get_positions()
-                ids = gid_to_id[data['senders']]
-                data = np.array(
-                    (data['senders'], data['times'], pos[ids, 0],
-                     pos[ids, 1])).T
-            else:
-                data = np.array((data['senders'], data['times'])).T
-            s = BytesIO()
-            np.savetxt(s, data, **kwargs)
-            f.write(s.getvalue())
+            if len(data['senders']):
+                if network is not None and network.is_spatial():
+                    gids = np.unique(data['senders'])
+                    gid_to_id = np.zeros(gids[-1] + 1, dtype=int)
+                    for gid in gids:
+                        gid_to_id[gid] = network.id_from_nest_gid(gid)
+                    pos = network.get_positions()
+                    ids = gid_to_id[data['senders']]
+                    data = np.array(
+                        (data['senders'], data['times'], pos[ids, 0],
+                         pos[ids, 1])).T
+                else:
+                    data = np.array((data['senders'], data['times'])).T
+                s = BytesIO()
+                np.savetxt(s, data, **kwargs)
+                f.write(s.getvalue())
             
