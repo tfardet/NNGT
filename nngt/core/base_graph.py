@@ -139,13 +139,14 @@ class BaseGraph(nngt._config["graph"]):
             The adjacency matrix of the graph.
         '''
         weights = "weight" if weights is True else weights
-        types = "type" if types is True else False
         mat = nngt.analyze_graph["adjacency"](self, weights)
-        if types in self.attributes() and weights in (True, "weight"):
-            mtype = adjacency(self, weight="type")
-            return mat * mtype
-        else:
-            return mat
+        if types and 'type' in self.nodes_attributes:
+            edges = mat.nonzero()
+            keep = self.nodes_attributes['type'][edges[0]] < 0
+            mat[edges[0][keep], edges[1][keep]] *= -1.
+        elif types and 'type' in self.edges_attributes:
+            raise NotImplementedError()
+        return mat
     
     #-------------------------------------------------------------------------#
     # Properties and methods to implement

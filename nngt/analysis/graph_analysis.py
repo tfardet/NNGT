@@ -390,7 +390,7 @@ def adjacency_matrix(graph, types=True, weights=True):
     -------
     a :class:`~scipy.sparse.csr_matrix`.
     '''
-    return graph.adjacency_matrix(types, weights)
+    return graph.adjacency_matrix(types=types, weights=weights)
 
 
 def subgraph_centrality(graph, weights=True, normalize="max_centrality"):

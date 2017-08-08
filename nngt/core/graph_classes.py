@@ -326,6 +326,8 @@ class Graph(nngt.core.GraphObject):
         if "delays" in kwargs:
             self.new_edge_attribute('delay', 'double')
             self._d = _edge_prop("delays", kwargs)
+        if 'inh_weight_factor' in kwargs:
+            self._iwf = kwargs['inh_weight_factor']
         # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -1194,11 +1196,11 @@ class Network(Graph):
             del kwargs["nodes"]
         if "delays" not in kwargs:  # set default delay to 1.
             kwargs["delays"] = 1.
-        self._iwf = inh_weight_factor
-        super(Network, self).__init__(nodes=nodes, name=name,
-                                      weighted=weighted, directed=directed,
-                                      from_graph=from_graph, **kwargs)
-        self._init_bioproperties(population)
+        super(Network, self).__init__(
+            nodes=nodes, name=name, weighted=weighted, directed=directed,
+            from_graph=from_graph, inh_weight_factor=inh_weight_factor,
+            **kwargs)
+        self._init_bioproperties(population, inh_weight_factor)
     
     def __del__(self):
         super(Network, self).__del__()
@@ -1287,6 +1289,11 @@ class Network(Graph):
                 # create the delay attribute if necessary
                 if "delay" not in self.attributes():
                     self.set_delays()
+                # set the type attributes for neurons
+                types = np.ones(self.node_nb())
+                for group in population.values():
+                    types[group.ids] *= group.neuron_type
+                self.new_node_attribute('type', 'int', values=types)
             else:
                 raise AttributeError("NeuralPop is not valid (not all neurons "
                                      "are associated to a group).")

@@ -766,10 +766,8 @@ there are {} edges while {} values where provided'''.format(
         # for normalize by the inhibitory weight factor
         if graph is not None and graph.is_network():
             if not np.isclose(graph._iwf, 1.):
-                adj = graph.adjacency_matrix()
-                edges = np.transpose((adj < 0).nonzero())
-                keep = (edges[..., np.newaxis]
-                        == elist[..., np.newaxis].T).all(1).any(1)
+                adj = graph.adjacency_matrix(types=True, weights=False)
+                keep = (adj[elist[:, 0], elist[:, 1]] < 0).A1
                 wlist[keep] *= graph._iwf
             
         # add to the graph container

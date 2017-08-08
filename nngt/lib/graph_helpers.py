@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
+import numpy as np
+
 from .rng_tools import _eprop_distribution
 
 """ Helper functions for graph classes """
@@ -30,6 +32,11 @@ def _set_edge_attr(graph, elist, attributes):
         params = {k: v for (k, v) in graph._w.items() if k != "distribution"}
         attributes["weight"] = _eprop_distribution(graph, distrib, elist=elist,
                                                    **params)
+        if graph is not None and graph.is_network():
+            if not np.isclose(graph._iwf, 1.):
+                adj = graph.adjacency_matrix(types=True, weights=False)
+                keep = (adj[elist[:, 0], elist[:, 1]] < 0).A1
+                attributes["weight"][keep] *= graph._iwf
     if hasattr(graph, "_d") and "delay" not in attributes:
         distrib = graph._d["distribution"]
         params = {k: v for (k, v) in graph._d.items() if k != "distribution"}

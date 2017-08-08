@@ -139,7 +139,8 @@ def _set_graph_tool():
     def adj_mat(graph, weight=None):
         if weight not in (None, False):
             weight = graph.edge_properties[weight]
-        return _adj(graph, weight).T
+            return _adj(graph, weight).T
+        return _adj(graph).T
     def get_edges(graph):
         return graph.edges()
     # store the functions

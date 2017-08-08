@@ -90,8 +90,8 @@ def make_nest_network(network, use_weights=True):
     }
 
     # get all properties as scipy.sparse.csr matrices
-    csr_weights = network.adjacency_matrix(False, True)
-    csr_delays = network.adjacency_matrix(False, DELAY)
+    csr_weights = network.adjacency_matrix(types=False, weights=True)
+    csr_delays = network.adjacency_matrix(types=False, weights=DELAY)
 
     cspec = 'one_to_one'
     for group in network.population.values():
