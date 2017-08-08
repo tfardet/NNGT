@@ -34,9 +34,9 @@ def _set_edge_attr(graph, elist, attributes):
                                                    **params)
         if graph is not None and graph.is_network():
             if not np.isclose(graph._iwf, 1.):
-                adj = graph.adjacency_matrix(types=True, weights=False)
-                keep = (adj[elist[:, 0], elist[:, 1]] < 0).A1
+                keep = graph.nodes_attributes['type'][elist[:, 0]] < 0
                 attributes["weight"][keep] *= graph._iwf
+                print('iwf applied')
     if hasattr(graph, "_d") and "delay" not in attributes:
         distrib = graph._d["distribution"]
         params = {k: v for (k, v) in graph._d.items() if k != "distribution"}

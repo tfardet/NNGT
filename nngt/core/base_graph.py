@@ -142,8 +142,9 @@ class BaseGraph(nngt._config["graph"]):
         mat = nngt.analyze_graph["adjacency"](self, weights)
         if types and 'type' in self.nodes_attributes:
             edges = mat.nonzero()
-            keep = self.nodes_attributes['type'][edges[0]] < 0
-            mat[edges[0][keep], edges[1][keep]] *= -1.
+            if len(edges[0]):
+                keep = self.nodes_attributes['type'][edges[0]] < 0
+                mat[edges[0][keep], edges[1][keep]] *= -1.
         elif types and 'type' in self.edges_attributes:
             raise NotImplementedError()
         return mat
