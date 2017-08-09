@@ -381,9 +381,9 @@ an array of 2-tuples of ints.")
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         deg_type = 'all' if deg_type == 'total' else deg_type
         if use_weights:
-            return np.array(self.strength(node_list,mode=deg_type))
+            return np.array(self.strength(node_list, mode=deg_type, weights='weight'))
         else:
-            return np.array(self.degree(node_list,mode=deg_type))
+            return np.array(self.degree(node_list, mode=deg_type))
 
     def betweenness_list(self, btype="both", use_weights=False, norm=True,
                          **kwargs):

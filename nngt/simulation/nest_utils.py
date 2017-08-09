@@ -162,6 +162,7 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
     for i, n in enumerate(nodes):
         gid, d = (gids[i],), degrees[n]
         w = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
+        print(d*base_rate, d, w, weighted_deg[n], weight_fraction, weight_normalization)
         pg = [pgs[map_deg_pg[d]]]
         nest.Connect(pg, gid, syn_spec={'weight': w})
 
