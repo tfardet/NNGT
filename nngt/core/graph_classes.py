@@ -1200,7 +1200,7 @@ class Network(Graph):
             nodes=nodes, name=name, weighted=weighted, directed=directed,
             from_graph=from_graph, inh_weight_factor=inh_weight_factor,
             **kwargs)
-        self._init_bioproperties(population, inh_weight_factor)
+        self._init_bioproperties(population)
     
     def __del__(self):
         super(Network, self).__del__()

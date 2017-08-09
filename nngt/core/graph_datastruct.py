@@ -769,7 +769,6 @@ there are {} edges while {} values where provided'''.format(
                 adj = graph.adjacency_matrix(types=True, weights=False)
                 keep = (adj[elist[:, 0], elist[:, 1]] < 0).A1
                 wlist[keep] *= graph._iwf
-                print('iwf applied')
             
         # add to the graph container
         bwlist = (np.max(wlist) - wlist if np.any(wlist)

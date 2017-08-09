@@ -273,8 +273,8 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     b_one_pop = _check_num_edges(
         source_ids, target_ids, num_edges, directed, multigraph)
     if not b_one_pop:
-        raise InvalidArgument("This graph model can only be used if source \
-                              and target populations are the same")
+        raise InvalidArgument("This graph model can only be used if source "
+                              "and target populations are the same.")
     # generate the initial circular graph
     ia_edges = np.zeros((num_edges,2),dtype=int)
     ia_edges[:circular_edges,:] = _circular_graph(node_ids, coord_nb)
@@ -291,19 +291,22 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     return ia_edges
 
 
-def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
-                   rule, shape, positions, conversion_factor, directed,
-                   multigraph, **kwargs):
+def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
+                   scale=-1, rule="exp", shape=None, positions=None,
+                   directed=True, multigraph=False, **kwargs):
     '''
     Returns a distance-rule graph
     '''
     def exp_rule(pos_src, pos_target):
-        dist = np.linalg.norm(pos_src-pos_target,axis=0)
+        dist = np.linalg.norm(pos_src-pos_target, axis=0)
         return np.exp(np.divide(dist, -scale))
+
     def lin_rule(pos_src, pos_target):
-        dist = np.linalg.norm(pos_src-pos_target,axis=0)
+        dist = np.linalg.norm(pos_src-pos_target, axis=0)
         return np.divide(scale-dist, scale).clip(min=0.)
+
     dist_test = exp_rule if rule == "exp" else lin_rule
+
     # compute the required values
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
@@ -315,7 +318,7 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     num_neurons = len(set(np.concatenate((source_ids, target_ids))))
 
     # create the edges
-    ia_edges = np.zeros((max_create, 2), dtype=int)
+    ia_edges = np.zeros((edges, 2), dtype=int)
     num_ecurrent = 0
 
     # for each node, check the neighbours that are in an area where

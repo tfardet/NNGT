@@ -4,6 +4,8 @@
 import numpy as np
 
 from .rng_tools import _eprop_distribution
+from .test_functions import nonstring_container
+
 
 """ Helper functions for graph classes """
 
@@ -18,7 +20,7 @@ def _edge_prop(name, arg_dict):
         elif isinstance(prop, dict):
             final_prop = prop
         else:
-            raise InvalidArgument("`weights` must be either a dict or"
+            raise InvalidArgument("Edge property must be either a dict or"
                                   " a number.")
     else:
         final_prop = {"distribution": "constant"}
@@ -32,13 +34,21 @@ def _set_edge_attr(graph, elist, attributes):
         params = {k: v for (k, v) in graph._w.items() if k != "distribution"}
         attributes["weight"] = _eprop_distribution(graph, distrib, elist=elist,
                                                    **params)
-        if graph is not None and graph.is_network():
-            if not np.isclose(graph._iwf, 1.):
-                keep = graph.nodes_attributes['type'][elist[:, 0]] < 0
-                attributes["weight"][keep] *= graph._iwf
-                print('iwf applied')
+    if graph._weighted and not nonstring_container(attributes['weight']):
+        prop = _edge_prop('weight', attributes)
+        params = {k: v for (k, v) in prop.items() if k != "distribution"}
+        attributes["weight"] = _eprop_distribution(
+            graph, prop["distribution"], elist=elist, **params)
+    if graph.is_network() and not np.isclose(graph._iwf, 1.):
+            keep = graph.nodes_attributes['type'][elist[:, 0]] < 0
+            attributes["weight"][keep] *= graph._iwf
     if hasattr(graph, "_d") and "delay" not in attributes:
         distrib = graph._d["distribution"]
         params = {k: v for (k, v) in graph._d.items() if k != "distribution"}
         attributes["delay"] = _eprop_distribution(graph, distrib, elist=elist,
                                                   **params)
+    elif not nonstring_container(attributes.get('delay', [])):  # for 1 line
+        prop = _edge_prop('delay', attributes)
+        params = {k: v for (k, v) in prop.items() if k != "distribution"}
+        attributes["delay"] = _eprop_distribution(
+            graph, prop["distribution"], elist=elist, **params)

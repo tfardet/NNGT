@@ -63,7 +63,7 @@ else:
 
 setup(
         name = 'nngt',
-        version = '0.7.1',
+        version = '0.8a',
         description = 'Package to study growth and activity of neural networks',
         package_dir = {'': '.'},
         packages = find_packages('.'),

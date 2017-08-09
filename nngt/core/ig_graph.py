@@ -324,8 +324,8 @@ an array of 2-tuples of ints.")
         edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
             List of the edges that should be added as tuples (source, target)
         attributes : dict, optional (default: ``None``)
-            Dictionary of the form ``{ "name": [], "values": [],
-            "type": [] }``, containing the attributes of the new edges.
+            Dictionary of the form ``{"name": [], "values": [],
+            "type": []}``, containing the attributes of the new edges.
             
         @todo: add example, check the edges for self-loops and multiple edges
         

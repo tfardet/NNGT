@@ -130,9 +130,9 @@ void _gen_edges(
 void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
   const std::vector<std::vector<size_t>>& target_nodes,
   const std::string& rule, float scale, const std::vector<float>& x,
-  const std::vector<float>& y, float area, size_t num_neurons,
-  size_t num_edges, const std::vector< std::vector<size_t> >& existing_edges,
-  bool multigraph, long msd, unsigned int omp);
+  const std::vector<float>& y, size_t num_neurons, size_t num_edges,
+  const std::vector< std::vector<size_t> >& existing_edges, bool multigraph,
+  long msd, unsigned int omp);
 
 
 //~ static float exp_adjust[256] = {
