@@ -144,7 +144,8 @@ class BaseGraph(nngt._config["graph"]):
             edges = mat.nonzero()
             if len(edges[0]):
                 keep = self.nodes_attributes['type'][edges[0]] < 0
-                mat[edges[0][keep], edges[1][keep]] *= -1.
+                if np.any(keep):
+                    mat[edges[0][keep], edges[1][keep]] *= -1.
         elif types and 'type' in self.edges_attributes:
             raise NotImplementedError()
         return mat
