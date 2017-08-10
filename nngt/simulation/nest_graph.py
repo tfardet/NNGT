@@ -98,10 +98,10 @@ def make_nest_network(network, use_weights=True):
     for src_name in pop:
         src_group = pop[src_name]
         syn_sign = src_group.neuron_type
+        # local connectivity matrix and offset to correct neuron id
+        local_csr = csr_weights[src_group.ids, :]
+        min_sidx = np.min(src_group.ids)
         if len(src_group.ids) > 0 and pop.syn_spec is not None:
-            # local connectivity matrix and offset to correct neuron id
-            local_csr = csr_weights[src_group.ids, :]
-            min_sidx = np.min(src_group.ids)
             # check whether custom synapses should be used
             for tgt_name in pop.keys():
                 tgt_group = pop[tgt_name]
