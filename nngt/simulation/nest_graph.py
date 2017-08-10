@@ -131,22 +131,16 @@ def make_nest_network(network, use_weights=True):
         elif len(src_group.ids) > 0:
             # get NEST gids of sources and targets for each edge
             src_ids = network.nest_gid[local_csr.nonzero()[0] + min_sidx]
-            targets = network.nest_gid[local_csr.nonzero()[1]]
-            # prepare the synaptic parameters
-            syn_param = {"model": src_group.syn_model}
-            for key, val in src_group.syn_param.items():
-                if key != "receptor_port":
-                    syn_param[key] = np.repeat(val, len(src_ids))
-                else:
-                    syn_param[key] = val
+            tgt_ids = network.nest_gid[local_csr.nonzero()[1]]
             # prepare weights
+            syn_param = {
+                WEIGHT: np.repeat(syn_sign, len(src_ids)).astype(float)
+            }
             if use_weights:
-                syn_param[WEIGHT] = syn_sign*csr_weights[src_group.ids, :].data
-            else:
-                syn_param[WEIGHT] = np.repeat(syn_sign, len(src_ids))
+                syn_param[WEIGHT] *= csr_weights[src_group.ids, :].data
             syn_param[DELAY] = csr_delays[src_group.ids, :].data
             
-            nest.Connect(src_ids, targets, syn_spec=syn_param, conn_spec=cspec)
+            nest.Connect(src_ids, tgt_ids, syn_spec=syn_param, conn_spec=cspec)
 
     return tuple(ia_nest_gids)
 
@@ -265,12 +259,13 @@ def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec):
     try:
         return syn_spec[(src_type, tgt_type)].copy()
     except KeyError:
-        return {}
+        # return the default parameters or an empty dict
+        return {k: v for k, v in syn_spec.items() if not isinstance(k, tuple)}
 
 
 def _value_psp(weight, neuron_model, di_param, timestep, simtime):
     nest.ResetKernel()
-    nest.SetKernelStatus({"resolution":timestep})
+    nest.SetKernelStatus({"resolution": timestep})
     # create neuron and recorder
     neuron = nest.Create(neuron_model, params=di_param)
     V_rest = nest.GetStatus(neuron)[0]["E_L"]
@@ -278,8 +273,8 @@ def _value_psp(weight, neuron_model, di_param, timestep, simtime):
     vm = nest.Create("voltmeter", params={"interval": timestep})
     nest.Connect(vm, neuron)
     # send the initial spike
-    sg = nest.Create("spike_generator", params={'spike_times':[timestep],
-                                                'spike_weights':weight})
+    sg = nest.Create("spike_generator", params={'spike_times': [timestep],
+                                                'spike_weights': weight})
     nest.Connect(sg, neuron)
     nest.Simulate(simtime)
     # get the max and its time
@@ -342,23 +337,23 @@ def _get_psp_list(bins, neuron_model, di_param, timestep, simtime):
     weights.
     '''
     nest.ResetKernel()
-    nest.SetKernelStatus({"resolution":timestep})
+    nest.SetKernelStatus({"resolution": timestep})
     # create neuron and recorder
     neuron = nest.Create(neuron_model, params=di_param)
     vm = nest.Create("voltmeter", params={"interval": timestep})
     nest.Connect(vm, neuron)
     # send the spikes
-    times = [ timestep+n*simtime for n in range(len(bins)) ]
-    sg = nest.Create("spike_generator", params={'spike_times':times,
-                                                'spike_weights':bins})
+    times = [timestep + n*simtime for n in range(len(bins))]
+    sg = nest.Create("spike_generator", params={'spike_times': times,
+                                                'spike_weights': bins})
     nest.Connect(sg, neuron)
     nest.Simulate((len(bins)+1)*simtime)
     # get the max and its time
     dvm = nest.GetStatus(vm)[0]
     da_voltage = dvm["events"]["V_m"]
     da_times = dvm["events"]["times"]
-    da_max_psp = da_voltage[ argrelmax(da_voltage) ]
-    da_min_psp = da_voltage[ argrelmin(da_voltage) ]
+    da_max_psp = da_voltage[argrelmax(da_voltage)]
+    da_min_psp = da_voltage[argrelmin(da_voltage)]
     da_max_psp -= da_min_psp
     if len(bins) != len(da_max_psp):
         raise InvalidArgument("simtime too short: all PSP maxima are not in "

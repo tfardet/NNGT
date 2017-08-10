@@ -40,7 +40,6 @@ __all__ = [
     'NeuralPop',
 ]
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -543,8 +542,7 @@ class NeuralGroup:
         that groups differing only by their ``ids`` will register as equal.
     """
 
-    def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None,
-                  syn_model=None, syn_param=None):
+    def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None):
         '''
         Create a group of neurons (empty group is default, but it is not a
         valid object for most use cases).
@@ -970,22 +968,25 @@ def _check_syn_spec(syn_spec, group_names, groups):
     types = list(set(g.neuron_type for g in groups))
     mt_type = len(types) > 1
     # check that only allowed entries are present
-    group_keys = []
+    edge_keys = []
     for k in syn_spec.keys():
-        group_keys.extend(k)
-    group_keys = set(group_keys)
+        if isinstance(k, tuple):
+            group_keys.extend(k)
+    edge_keys = set(edge_keys)
     allkeys = group_names + types
-    assert group_keys.issubset(allkeys), \
-        '`syn_spec` contains entries other than {}.'.format(allkeys)
+    assert edge_keys.issubset(allkeys), \
+        '`syn_spec` edge entries can only be made from {}.'.format(allkeys)
     # warn if connections might be missing
-    nspec = len(syn_spec)
-    if mt_type and nspec < gsize**2 and not alltypes:
+    nspec = len(edge_keys)
+    has_default = len(syn_spec) > nspec
+    if mt_type and nspec < gsize**2 and not alltypes and not has_default:
         logger.warning(
-            'There is not one synaptic specifier per inter-group '
-            'connection in `syn_spec`. Expected {} or 4 entries but '
-            'got {}. It might be right, but make sure all cases are '
+            'There is not one synaptic specifier per inter-group'
+            'connection in `syn_spec` and no default model was provided. '
+            'Therefore, {} or 4 entries were expected but only {} were '
+            'provided. It might be right, but make sure all cases are '
             'covered. Missing connections will be set as "static_'
             'synapse".'.format(gsize**2, nspec))
-    for prop in syn_spec.values():
-        assert 'weight' not in prop, '`weight` cannot be set here.'
-        assert 'delay' not in prop, '`delay` cannot be set here.'
+    for key in edge_keys:
+        assert 'weight' not in syn_spec[key], '`weight` cannot be set here.'
+        assert 'delay' not in syn_spec[key], '`delay` cannot be set here.'
