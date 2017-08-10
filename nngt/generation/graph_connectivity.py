@@ -719,7 +719,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     for group in iter(network._population.values()):
         if group.neuron_type == source_type:
             source_ids.extend(group.ids)
-        elif group.neuron_type == target_type:
+        if group.neuron_type == target_type:
             target_ids.extend(group.ids)
     if source_type == target_type:
         edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
@@ -765,7 +765,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     for name, group in iter(network._population.items()):
         if name in source_groups:
             source_ids.extend(group.ids)
-        elif name in target_groups:
+        if name in target_groups:
             target_ids.extend(group.ids)
     if source_groups == target_groups:
         edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)

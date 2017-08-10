@@ -80,7 +80,7 @@ import sys as _sys
 import logging
 
 
-version = '0.7'
+version = '0.7.1'
 ''' :obj:`str`, current NNGT version '''
 
 
