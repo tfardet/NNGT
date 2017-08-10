@@ -799,7 +799,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         source_groups = [source_groups]
     if isinstance(target_groups, str):
         target_groups = [target_groups]
-    for name, group in iter(network._population.items()):
+    for name, group in network.population.items():
         if name in source_groups:
             source_ids.extend(group.ids)
         if name in target_groups:

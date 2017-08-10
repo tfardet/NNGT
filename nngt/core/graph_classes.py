@@ -21,23 +21,25 @@
 """ Graph classes for graph generation and management """
 
 from copy import deepcopy
-import warnings
+import logging
 
 import numpy as np
 import scipy.sparse as ssp
 
 import nngt
+from nngt import save_to_file, load_from_file
 import nngt.analysis as na
 from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
                       default_synapse, POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string
-from nngt import save_to_file, load_from_file
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
 
 __all__ = ['Graph', 'SpatialGraph', 'Network', 'SpatialNetwork']
+
+logger = logging.getLogger(__name__)
 
 
 # ----- #
@@ -272,11 +274,13 @@ class Graph(nngt.core.GraphObject):
             graph.__class__ = SpatialNetwork
         else:
             graph.__class__ = Network
-        # set default delays
-        if "delays" not in kwargs:  # set default delay to 1.
+        # set delays to 1. or to provided value if they are not already set
+        if "delays" not in kwargs and not hasattr(graph, '_d'):
             graph._d = {"distribution": "constant", "value": 1.}
-        else:
+        elif "delays" in kwargs and not hasattr(graph, '_d'):
             graph._d = kwargs["delays"]
+        elif "delays" in kwargs:
+            logger.warning('Graph already had delays set, ignoring new ones.')
         graph._init_bioproperties(neural_pop)
         if copy:
             return graph
@@ -1099,53 +1103,56 @@ class Network(Graph):
         return net
 
     @classmethod
-    def ei_network(cls, size, ei_ratio=0.2, en_model=default_neuron,
-            en_param=None, es_model=default_synapse, es_param=None,
-            in_model=default_neuron, in_param=None, is_model=default_synapse,
-            is_param=None, **kwargs):
+    def ei_network(cls, size, iratio=0.2, en_model=default_neuron,
+            en_param=None, in_model=default_neuron, in_param=None,
+            syn_spec=None, **kwargs):
         '''
         Generate a network containing a population of two neural groups:
         inhibitory and excitatory neurons.
+
+        .. versionchanged:: 0.8
+            Removed `es_{model, param}` and `is_{model, param}` in favour of
+            `syn_spec` parameter.
+            Renamed `ei_ratio` to `iratio` to match
+            :func:`~nngt.NeuralPop.exc_and_inhib`.
         
         Parameters
         ----------
         size : int
             Number of neurons in the network.
-        ei_ratio : double, optional (default: 0.2)
+        i_ratio : double, optional (default: 0.2)
             Ratio of inhibitory neurons: :math:`\\frac{N_i}{N_e+N_i}`.
         en_model : string, optional (default: 'aeif_cond_alpha')
            Nest model for the excitatory neuron.
         en_param : dict, optional (default: {})
             Dictionary of parameters for the the excitatory neuron.
-        es_model : string, optional (default: 'static_synapse')
-            NEST model for the excitatory synapse.
-        es_param : dict, optional (default: {})
-            Dictionary containing the excitatory synaptic parameters.
         in_model : string, optional (default: 'aeif_cond_alpha')
            Nest model for the inhibitory neuron.
         in_param : dict, optional (default: {})
             Dictionary of parameters for the the inhibitory neuron.
-        is_model : string, optional (default: 'static_synapse')
-            NEST model for the inhibitory synapse.
-        is_param : dict, optional (default: {})
-            Dictionary containing the inhibitory synaptic parameters.
+        syn_spec : dict, optional (default: static synapse)
+            Dictionary containg a directed edge between groups as key and the
+            associated synaptic parameters for the post-synaptic neurons (i.e.
+            those of the second group) as value. If provided, all connections
+            between groups will be set according to the values contained in
+            `syn_spec`. Valid keys are:
+                - `('excitatory', 'excitatory')`
+                - `('excitatory', 'inhibitory')`
+                - `('inhibitory', 'excitatory')`
+                - `('inhibitory', 'inhibitory')`
         
         Returns
         -------
         net : :class:`~nngt.Network` or subclass
             Network of disconnected excitatory and inhibitory neurons.
+
+        See also
+        --------
+        :func:`~nngt.NeuralPop.exc_and_inhib`
         '''
-        if en_param is None:
-            en_param = {}
-        if es_param is None:
-            es_param = {}
-        if in_param is None:
-            in_param = {}
-        if is_param is None:
-            is_param = {}
         pop = nngt.NeuralPop.exc_and_inhib(
-            size, ei_ratio, None, en_model, en_param, es_model, es_param,
-            in_model, in_param, is_model, is_param)
+            size, iratio, None, en_model, en_param, in_model, in_param,
+            syn_spec=syn_spec)
         net = cls(population=pop, **kwargs)
         return net
 
@@ -1282,6 +1289,8 @@ class Network(Graph):
         self._population = None
         self._nest_gid = None
         self._id_from_nest_gid = None
+        if not hasattr(self, '_iwf'):
+            self._iwf = 1.
         if issubclass(population.__class__, nngt.NeuralPop):
             if population.is_valid:
                 self._population = population

@@ -23,6 +23,7 @@
 from collections import OrderedDict
 import logging
 import weakref
+from copy import deepcopy
 
 import numpy as np
 from numpy.random import randint, uniform
@@ -70,10 +71,14 @@ class NeuralPop(OrderedDict):
         return cls(parent=graph, graph=graph, group_prop=args)
     
     @classmethod
-    def from_groups(cls, groups, names=None, parent=None, with_models=True):
+    def from_groups(cls, groups, names=None, syn_spec=None, parent=None,
+                    with_models=True):
         '''
         Make a NeuralPop object from a (list of) :class:`~nngt.NeuralGroup`
         object(s).
+
+        .. versionchanged:: 0.8
+            Added `syn_spec` parameter.
 
         Parameters
         ----------
@@ -86,6 +91,29 @@ class NeuralPop(OrderedDict):
             named `pop` will be retreived by either `pop[0]` or `pop['0']`.
         parent : :class:`~nngt.Graph`, optional (default: None)
             Parent if the population is created from an exiting graph.
+        syn_spec : dict, optional (default: static synapse)
+            Dictionary containg a directed edge between groups as key and the
+            associated synaptic parameters for the post-synaptic neurons (i.e.
+            those of the second group) as value. If provided, all connections
+            between groups will be set according to the values contained in
+            `syn_spec`.
+        with_model : bool, optional (default: True)
+            Whether the groups require models (set to False to use populations
+            for graph theoretical purposes, without NEST interaction)
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            # we created groups `g1`, `g2`, and `g3`
+            prop = {
+                ('g1', 'g2'): {'model': 'tsodyks2_synapse', 'tau_fac': 50.},
+                ('g1', g3'): {'weight': 100.},
+                ...
+            }
+            pop = NeuronalPop.from_groups(
+                [g1, g2, g3], names=['g1', 'g2', 'g3'], syn_spec=prop)
 
         Note
         ----
@@ -101,7 +129,10 @@ class NeuralPop(OrderedDict):
         neurons = []
         names = [str(i) for i in range(gsize)] if names is None else names
         assert len(names) == gsize, "`names` and `groups` must have " +\
-                                   "the same size."
+                                    "the same size."
+        if syn_spec is not None:
+            _check_syn_spec(syn_spec, names, groups)
+
         current_size = 0
         for g in groups:
             # generate the neuron ids if necessary
@@ -115,6 +146,7 @@ class NeuralPop(OrderedDict):
         pop = cls(current_size, parent=parent, with_models=with_models)
         for name, g in zip(names, groups):
             pop[name] = g
+        pop._syn_spec = deepcopy(syn_spec)
         return pop
 
     @classmethod
@@ -122,54 +154,101 @@ class NeuralPop(OrderedDict):
                 syn_model=default_synapse, syn_param=None, parent=None):
         ''' Make a NeuralPop of identical neurons '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
-        syn_param = {} if syn_param is None else syn_param.copy()
+        if syn_param is not None:
+            assert 'weight' not in syn_param, '`weight` cannot be set here.'
+            assert 'delay' not in syn_param, '`delay` cannot be set here.'
+            syn_param = syn_param.copy()
+        else:
+            syn_param = {}
         pop = cls(size, parent)
-        pop.create_group("default", range(size), 1, neuron_model, neuron_param,
-           syn_model, syn_param)
+        pop.create_group("default", range(size), 1, neuron_model, neuron_param)
+        pop._syn_spec = {'model': syn_model}
+        pop._syn_spec.update(syn_param)
         return pop
 
     @classmethod
     def exc_and_inhib(cls, size, iratio=0.2, en_model=default_neuron,
-                      en_param=None, es_model=default_synapse, es_param=None,
-                      in_model=default_neuron, in_param=None,
-                      is_model=default_synapse, is_param=None, parent=None):
+                      en_param=None, in_model=default_neuron, in_param=None,
+                      syn_spec=None, parent=None):
         '''
         Make a NeuralPop with a given ratio of inhibitory and excitatory
         neurons.
+
+        .. versionchanged:: 0.8
+            Added `syn_spec` parameter.
+
+        Parameters
+        ----------
+        size : int
+            Number of neurons contained by the population.
+        iratio : float, optional (default: 0.2)
+            Fraction of the neurons that will be inhibitory.
+        en_model : str, optional (default: default_neuron)
+            Name of the NEST model that will be used to describe excitatory
+            neurons.
+        en_param : dict, optional (default: default NEST parameters)
+            Parameters of the excitatory neuron model.
+        in_model : str, optional (default: default_neuron)
+            Name of the NEST model that will be used to describe inhibitory
+            neurons.
+        in_param : dict, optional (default: default NEST parameters)
+            Parameters of the inhibitory neuron model.
+        syn_spec : dict, optional (default: static synapse)
+            Dictionary containg a directed edge between groups as key and the
+            associated synaptic parameters for the post-synaptic neurons (i.e.
+            those of the second group) as value. If provided, all connections
+            between groups will be set according to the values contained in
+            `syn_spec`. Valid keys are:
+                - `('excitatory', 'excitatory')`
+                - `('excitatory', 'inhibitory')`
+                - `('inhibitory', 'excitatory')`
+                - `('inhibitory', 'inhibitory')`
+        parent : :class:`~nngt.Network`, optional (default: None)
+            Network associated to this population.
+
+        See also
+        --------
+        :func:`nest.Connect` for a description of the dict that can be passed
+        as values for the `syn_spec` parameter.
         '''
         num_exc_neurons = int(size*(1-iratio))
         pop = cls(size, parent)
-        pop.create_group("excitatory", range(num_exc_neurons), 1, en_model,
-                         en_param, es_model, es_param)
-        pop.create_group("inhibitory", range(num_exc_neurons, size), -1,
-                         in_model, in_param, is_model, es_param)
+        gExc = pop.create_group(
+            "excitatory", range(num_exc_neurons), 1, en_model, en_param)
+        gInh = pop.create_group(
+            "inhibitory", range(num_exc_neurons, size), -1, in_model, in_param)
+        if syn_spec is not None:
+            _check_syn_spec(
+                syn_spec, ["excitatory", "inhibitory"], pop.values())
+        pop._syn_spec = deepcopy(syn_spec)
         return pop
 
     @classmethod
     def copy(cls, pop):
         ''' Copy an existing NeuralPop '''
-        new_pop = cls.__init__(pop.has_models)
+        new_pop = cls.__init__(parent=pop.parent, with_models=pop.has_models)
         for name, group in pop.items():
-             new_pop.create_group(name, group.ids, group.model,
-                               group.neuron_param)
+            new_pop.create_group(
+                name, group.ids, group.model, group.neuron_param)
+            new_pop._syn_spec = pop.syn_spec
         return new_pop
 
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
 
-    def __init__(self, size, parent=None, with_models=True, **kwargs):
+    def __init__(self, size=0, parent=None, with_models=True, **kwargs):
         '''
         Initialize NeuralPop instance
 
         Parameters
         ----------
-        size : int
+        size : int, optional (default: 0)
             Number of neurons that the population will contain.
         parent : :class:`~nngt.Network`, optional (default: None)
             Network associated to this population.
         with_models : :class:`bool`
             whether the population's groups contain models to use in NEST
-        **kwargs : :class:`dict`
+        **kwargs : :obj:`dict`
 
         Returns
         -------
@@ -177,24 +256,25 @@ class NeuralPop(OrderedDict):
         '''
         self._is_valid = False
         self._size = size if parent is None else parent.node_nb()
+        self._parent = None if parent is None else weakref.ref(parent)
         # array of strings containing the name of the group where each neuron
         # belongs
         self._neuron_group = np.empty(self._size, dtype=object)
         self._max_id = 0  # highest id among the existing neurons + 1
         super(NeuralPop, self).__init__()
-        if "graph" in kwargs.keys():
-            dic = _make_groups(kwargs["graph"], kwargs["group_prop"])
+        if parent is not None and 'group_pop' in kwargs:
+            dic = _make_groups(parent, kwargs["group_prop"])
             self._is_valid = True
             self.update(dic)
         self._has_models = with_models
-    
+
     def __getitem__(self, key):
         if isinstance(key, int):
             new_key = tuple(self.keys())[key]
             return OrderedDict.__getitem__(self, new_key)
         else:
             return OrderedDict.__getitem__(self, key)
-    
+
     def __setitem__(self, key, value):
         self._validity_check(key, value)
         if isinstance(key, int):
@@ -217,6 +297,23 @@ class NeuralPop(OrderedDict):
         return self._size
 
     @property
+    def parent(self):
+        return None if self._parent is None else self._parent()
+
+    @property
+    def syn_spec(self):
+        '''
+        The properties of the synaptic connections between groups.
+
+        .. versionadded:: 0.8
+        '''
+        return deepcopy(self._syn_spec)
+
+    @syn_spec.setter
+    def syn_spec(self, syn_spec):
+        raise NotImplementedError('`syn_spec` is not settable yet.')
+
+    @property
     def has_models(self):
         return self._has_models
 
@@ -228,10 +325,12 @@ class NeuralPop(OrderedDict):
     # Methods
 
     def create_group(self, name, neurons, ntype=1, neuron_model=None,
-                     neuron_param=None, syn_model=default_synapse,
-                     syn_param=None):
+                     neuron_param=None):
         '''
         Create a new groupe from given properties.
+
+        .. versionchanged:: 0.8
+            Removed `syn_model` and `syn_param`.
         
         Parameters
         ----------
@@ -245,11 +344,6 @@ class NeuralPop(OrderedDict):
             Name of a neuron model in NEST.
         neuron_param : dict, optional (default: None)
             Parameters for `neuron_model` in the NEST simulator. If None,
-            default parameters will be used.
-        syn_model : str, optional (default: "static_synapse")
-            Name of a synapse model in NEST.
-        syn_param : dict, optional (default: None)
-            Parameters for `syn_model` in the NEST simulator. If None,
             default parameters will be used.
         '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
@@ -445,8 +539,8 @@ class NeuralGroup:
 
     .. warning::
         Equality between :class:`~nngt.properties.NeuralGroup`s only compares
-        the neuronal and synaptic ``model`` and ``param`` attributes, i.e.
-        groups differing only by their ``ids`` will register as equal.
+        the  size and neuronal ``model`` and ``param`` attributes. This means
+        that groups differing only by their ``ids`` will register as equal.
     """
 
     def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None,
@@ -454,6 +548,9 @@ class NeuralGroup:
         '''
         Create a group of neurons (empty group is default, but it is not a
         valid object for most use cases).
+
+        .. versionchanged:: 0.8
+            Removed `syn_model` and `syn_param`.
 
         Parameters
         ----------
@@ -466,17 +563,12 @@ class NeuralGroup:
             NEST model for the neuron.
         neuron_param : dict, optional (default: model defaults)
             Dictionary containing the parameters associated to the NEST model.
-        syn_model : str, optional (default: "static_synapse")
-            NEST model for the incoming synapses.
-        syn_param : dict, optional (default: model defaults)
-            Dictionary containing the parameters associated to the NEST model.
 
         Returns
         -------
         A new :class:`~nngt.core.NeuralGroup` instance.
         '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
-        syn_param = {} if syn_param is None else syn_param.copy()
         self._has_model = False if model is None else True
         self._neuron_model = model
         if nodes is None:
@@ -494,17 +586,13 @@ class NeuralGroup:
         if self._has_model:
             self.neuron_param = neuron_param
             self.neuron_type = ntype
-            self.syn_model = (syn_model if syn_model is not None
-                              else "static_synapse")
-            self.syn_param = syn_param
 
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
+            same_size = self.size == other.size
             same_nmodel = (self.neuron_model == other.neuron_model
                            * self.neuron_param == other.neuron_param)
-            same_smodel = (self.syn_model == other.syn_model
-                           * self.syn_param == other.syn_param)
-            return same_nmodel*same_smodel
+            return same_size*same_nmodel
         else:
             return False
 
@@ -550,11 +638,11 @@ class NeuralGroup:
 
     @property
     def properties(self):
-        dic = { "neuron_type": self.neuron_type,
-                "neuron_model": self._neuron_model,
-                "neuron_param": self.neuron_param,
-                "syn_model": self.syn_model,
-                "syn_param": self.syn_param }
+        dic = {
+            "neuron_type": self.neuron_type,
+            "neuron_model": self._neuron_model,
+            "neuron_param": deepcopy(self.neuron_param)
+        }
         return dic
 
 
@@ -867,3 +955,37 @@ there are {} edges while {} values where provided'''.format(
                         t_list[idx_edges] *= -1.
             graph.set_edge_attribute("type", value_type="double", values=t_list)
             return t_list
+
+
+# ----- #
+# Tools #
+# ----- #
+
+def _check_syn_spec(syn_spec, group_names, groups):
+    gsize = len(groups)
+    # test if all types syn_spec are contained
+    alltypes = set(((1, 1), (1, -1), (-1, 1), (-1, -1))).issubset(
+        syn_spec.keys())
+    # is there more than 1 type?
+    types = list(set(g.neuron_type for g in groups))
+    mt_type = len(types) > 1
+    # check that only allowed entries are present
+    group_keys = []
+    for k in syn_spec.keys():
+        group_keys.extend(k)
+    group_keys = set(group_keys)
+    allkeys = group_names + types
+    assert group_keys.issubset(allkeys), \
+        '`syn_spec` contains entries other than {}.'.format(allkeys)
+    # warn if connections might be missing
+    nspec = len(syn_spec)
+    if mt_type and nspec < gsize**2 and not alltypes:
+        logger.warning(
+            'There is not one synaptic specifier per inter-group '
+            'connection in `syn_spec`. Expected {} or 4 entries but '
+            'got {}. It might be right, but make sure all cases are '
+            'covered. Missing connections will be set as "static_'
+            'synapse".'.format(gsize**2, nspec))
+    for prop in syn_spec.values():
+        assert 'weight' not in prop, '`weight` cannot be set here.'
+        assert 'delay' not in prop, '`delay` cannot be set here.'

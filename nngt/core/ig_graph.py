@@ -350,10 +350,10 @@ an array of 2-tuples of ints.")
         _set_edge_attr(self, edge_list, attributes)
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
-        try:
-            idx = self.es["weight"].index(None)
-        except:
-            idx = -1
+        #~ try:
+            #~ idx = self.es["weight"].index(None)
+        #~ except:
+            #~ idx = -1
         return edge_list
 
     def remove_edge(self, edge):

@@ -23,12 +23,12 @@ __all__ = [
 
 
 def _set_options(graph, population, shape, positions):
-    if issubclass(graph.__class__, nngt.Network):
-        Connections.delays(graph)
-    elif population is not None:
-        nngt.Network.make_network(graph, population)
+    #~ if issubclass(graph.__class__, nngt.Network):
+        #~ Connections.delays(graph)
+    if population is not None:
+        nngt.Graph.make_network(graph, population)
     if shape is not None:
-        nngt.SpatialGraph.make_spatial(graph, shape, positions)
+        nngt.Graph.make_spatial(graph, shape, positions)
 
 
 def _compute_connections(num_source, num_target, density, edges, avg_deg,

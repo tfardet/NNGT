@@ -94,31 +94,59 @@ def make_nest_network(network, use_weights=True):
     csr_delays = network.adjacency_matrix(types=False, weights=DELAY)
 
     cspec = 'one_to_one'
-    for group in network.population.values():
-        # get the nodes ids and switch the sources back to their real values
-        if len(group.ids) > 0:
-            min_idx = np.min(group.ids)
-            src_ids = csr_weights[group.ids, :].nonzero()[0] + min_idx
-            trgt_ids = csr_weights[group.ids, :].nonzero()[1]
-            # switch to nest gids
-            src_ids = network.nest_gid[src_ids]
-            trgt_ids = network.nest_gid[trgt_ids]
+    pop = network.population
+    for src_name in pop:
+        src_group = pop[src_name]
+        syn_sign = src_group.neuron_type
+        if len(src_group.ids) > 0 and pop.syn_spec is not None:
+            # local connectivity matrix and offset to correct neuron id
+            local_csr = csr_weights[src_group.ids, :]
+            min_sidx = np.min(src_group.ids)
+            # check whether custom synapses should be used
+            for tgt_name in pop.keys():
+                tgt_group = pop[tgt_name]
+                # get list of targets for each
+                src_ids  = local_csr[:, tgt_group.ids].nonzero()[0]
+                src_ids += min_sidx
+                min_tidx = np.min(tgt_group.ids)
+                tgt_ids  = local_csr[:, tgt_group.ids].nonzero()[1]
+                tgt_ids += min_tidx
+                if len(tgt_ids) and len(src_ids):
+                    # get the synaptic parameters
+                    syn_param = _get_syn_param(
+                        src_name, src_group, tgt_name, tgt_group, pop.syn_spec)
+                    for key, val in syn_param.items():
+                        if key not in ("receptor_port", "model"):
+                            syn_param[key] = np.repeat(val, len(src_ids))
+                    # using A1 to get data from matrix
+                    if use_weights:
+                        syn_param[WEIGHT] = syn_sign *\
+                            csr_weights[src_ids, tgt_ids].A1
+                    else:
+                        syn_param[WEIGHT] = np.repeat(syn_sign, len(tgt_ids))
+                    syn_param[DELAY] = csr_delays[src_ids, tgt_ids].A1
+                    nest.Connect(
+                        network.nest_gid[src_ids], network.nest_gid[tgt_ids],
+                        syn_spec=syn_param, conn_spec=cspec)
+        elif len(src_group.ids) > 0:
+            # get NEST gids of sources and targets for each edge
+            src_ids = network.nest_gid[local_csr.nonzero()[0] + min_sidx]
+            targets = network.nest_gid[local_csr.nonzero()[1]]
             # prepare the synaptic parameters
-            syn_param = {"model": group.syn_model}
-            for key, val in group.syn_param.items():
+            syn_param = {"model": src_group.syn_model}
+            for key, val in src_group.syn_param.items():
                 if key != "receptor_port":
                     syn_param[key] = np.repeat(val, len(src_ids))
                 else:
                     syn_param[key] = val
             # prepare weights
-            syn_sign = group.neuron_type
             if use_weights:
-                syn_param[WEIGHT] = syn_sign*csr_weights[group.ids, :].data
+                syn_param[WEIGHT] = syn_sign*csr_weights[src_group.ids, :].data
             else:
                 syn_param[WEIGHT] = np.repeat(syn_sign, len(src_ids))
-            syn_param[DELAY] = csr_delays[group.ids, :].data
-            nest.Connect(
-                src_ids, trgt_ids, syn_spec=syn_param, conn_spec=cspec)
+            syn_param[DELAY] = csr_delays[src_group.ids, :].data
+            
+            nest.Connect(src_ids, targets, syn_spec=syn_param, conn_spec=cspec)
 
     return tuple(ia_nest_gids)
 
@@ -152,108 +180,11 @@ def get_nest_adjacency(id_converter=None):
             mat_adj.data[src].append(dic[WEIGHT])
 
     return mat_adj
-    
 
-#-----------------------------------------------------------------------------#
-# Weights
-#------------------------
-#
 
-def _value_psp(weight, neuron_model, di_param, timestep, simtime):
-    nest.ResetKernel()
-    nest.SetKernelStatus({"resolution":timestep})
-    # create neuron and recorder
-    neuron = nest.Create(neuron_model, params=di_param)
-    V_rest = nest.GetStatus(neuron)[0]["E_L"]
-    nest.SetStatus(neuron, {"V_m": V_rest})
-    vm = nest.Create("voltmeter", params={"interval": timestep})
-    nest.Connect(vm, neuron)
-    # send the initial spike
-    sg = nest.Create("spike_generator", params={'spike_times':[timestep],
-                                                'spike_weights':weight})
-    nest.Connect(sg, neuron)
-    nest.Simulate(simtime)
-    # get the max and its time
-    dvm = nest.GetStatus(vm)[0]
-    da_voltage = dvm["events"]["V_m"]
-    idx = np.argmax(da_voltage)
-    if idx == len(da_voltage - 1):
-        raise InvalidArgument("simtime too short: PSP maximum is out of range")
-    else:
-        val = da_voltage[idx] - V_rest
-        return val
-        
-def _find_extremal_weights(min_weight, max_weight, neuron_model, di_param={},
-                           precision=0.1, timestep=0.01, simtime=10.):
-    '''
-    Find the values of the connection weights that will give PSP responses of
-    `min_weight` and `max_weight` in mV.
-    
-    Parameters
-    ----------
-    min_weight : float
-        Minimal weight.
-    max_weight : float
-        Maximal weight.
-    neuron_model : string
-        Name of the model used.
-    di_param : dict, optional (default: {})
-        Parameters of the model, default parameters if not supplied.
-    precision : float, optional (default : -1.)
-        Precision with which the result should be obtained. If the value is
-        equal to or smaller than zero, it will default to 0.1% of the value.
-    timestep : float, optional (default: 0.01)
-        Timestep of the simulation in ms.
-    simtime : float, optional (default: 10.)
-        Simulation time in ms (default: 10).
-    
-    Note
-    ----
-    If the parameters used are not the default ones, they MUST be provided,
-    otherwise the resulting weights will likely be WRONG.
-    '''
-    # define the function for root finding
-    def _func_min(weight):
-        val = _value_psp(weight, neuron_model, di_param, timestep, simtime)
-        return val - min_weight
-    def _func_max(weight):
-        val = _value_psp(weight, neuron_model, di_param, timestep, simtime)
-        return val - max_weight
-    # @todo: find highest and lowest value that result in spike emission
-    # get root
-    min_w = root(_func_min, min_weight, tol=0.1*min_weight/100.).x[0]
-    max_w = root(_func_max, max_weight, tol=0.1*max_weight/100.).x[0]
-    return min_w, max_w
-
-def _get_psp_list(bins, neuron_model, di_param, timestep, simtime):
-    '''
-    Return the list of effective weights from a list of NEST connection
-    weights.
-    '''
-    nest.ResetKernel()
-    nest.SetKernelStatus({"resolution":timestep})
-    # create neuron and recorder
-    neuron = nest.Create(neuron_model, params=di_param)
-    vm = nest.Create("voltmeter", params={"interval": timestep})
-    nest.Connect(vm, neuron)
-    # send the spikes
-    times = [ timestep+n*simtime for n in range(len(bins)) ]
-    sg = nest.Create("spike_generator", params={'spike_times':times,
-                                                'spike_weights':bins})
-    nest.Connect(sg, neuron)
-    nest.Simulate((len(bins)+1)*simtime)
-    # get the max and its time
-    dvm = nest.GetStatus(vm)[0]
-    da_voltage = dvm["events"]["V_m"]
-    da_times = dvm["events"]["times"]
-    da_max_psp = da_voltage[ argrelmax(da_voltage) ]
-    da_min_psp = da_voltage[ argrelmin(da_voltage) ]
-    da_max_psp -= da_min_psp
-    if len(bins) != len(da_max_psp):
-        raise InvalidArgument("simtime too short: all PSP maxima are not in \
-range")
-    else:
-        return da_max_psp
+# ------- #
+# Weights #
+# ------- #
 
 def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
                          simtime=50., num_bins=1000, log=False):
@@ -300,4 +231,137 @@ def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
     idx_binning = np.digitize(weights, binned_weights)
     return bins[ idx_binning ]
 
+
+# ----- #
+# Tools #
+# ----- #
+
+def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec):
+    '''
+    Return the most specific synaptic properties in `syn_spec` with respect to
+    connections between `src_group` and `tgt_group`.
+    '''
+    group_keys = []
+    for k in syn_spec.keys():
+        group_keys.extend(k)
+    group_keys = set(group_keys)
+    if src_name in group_keys and tgt_name in group_keys:
+        try:
+            return syn_spec[(src_name, tgt_name)].copy()
+        except KeyError:
+            pass
+    src_type = src_group.neuron_type
+    if tgt_name in group_keys:
+        try:
+            return syn_spec[(src_type, tgt_name)].copy()
+        except KeyError:
+            pass
+    tgt_type = tgt_group.neuron_type
+    if src_name in group_keys:
+        try:
+            return syn_spec[(src_name, tgt_type)].copy()
+        except KeyError:
+            pass
+    try:
+        return syn_spec[(src_type, tgt_type)].copy()
+    except KeyError:
+        return {}
+
+
+def _value_psp(weight, neuron_model, di_param, timestep, simtime):
+    nest.ResetKernel()
+    nest.SetKernelStatus({"resolution":timestep})
+    # create neuron and recorder
+    neuron = nest.Create(neuron_model, params=di_param)
+    V_rest = nest.GetStatus(neuron)[0]["E_L"]
+    nest.SetStatus(neuron, {"V_m": V_rest})
+    vm = nest.Create("voltmeter", params={"interval": timestep})
+    nest.Connect(vm, neuron)
+    # send the initial spike
+    sg = nest.Create("spike_generator", params={'spike_times':[timestep],
+                                                'spike_weights':weight})
+    nest.Connect(sg, neuron)
+    nest.Simulate(simtime)
+    # get the max and its time
+    dvm = nest.GetStatus(vm)[0]
+    da_voltage = dvm["events"]["V_m"]
+    idx = np.argmax(da_voltage)
+    if idx == len(da_voltage - 1):
+        raise InvalidArgument("simtime too short: PSP maximum is out of range")
+    else:
+        val = da_voltage[idx] - V_rest
+        return val
+
+
+def _find_extremal_weights(min_weight, max_weight, neuron_model, di_param={},
+                           precision=0.1, timestep=0.01, simtime=10.):
+    '''
+    Find the values of the connection weights that will give PSP responses of
+    `min_weight` and `max_weight` in mV.
     
+    Parameters
+    ----------
+    min_weight : float
+        Minimal weight.
+    max_weight : float
+        Maximal weight.
+    neuron_model : string
+        Name of the model used.
+    di_param : dict, optional (default: {})
+        Parameters of the model, default parameters if not supplied.
+    precision : float, optional (default : -1.)
+        Precision with which the result should be obtained. If the value is
+        equal to or smaller than zero, it will default to 0.1% of the value.
+    timestep : float, optional (default: 0.01)
+        Timestep of the simulation in ms.
+    simtime : float, optional (default: 10.)
+        Simulation time in ms (default: 10).
+    
+    Note
+    ----
+    If the parameters used are not the default ones, they MUST be provided,
+    otherwise the resulting weights will likely be WRONG.
+    '''
+    # define the function for root finding
+    def _func_min(weight):
+        val = _value_psp(weight, neuron_model, di_param, timestep, simtime)
+        return val - min_weight
+    def _func_max(weight):
+        val = _value_psp(weight, neuron_model, di_param, timestep, simtime)
+        return val - max_weight
+    # @todo: find highest and lowest value that result in spike emission
+    # get root
+    min_w = root(_func_min, min_weight, tol=0.1*min_weight/100.).x[0]
+    max_w = root(_func_max, max_weight, tol=0.1*max_weight/100.).x[0]
+    return min_w, max_w
+
+
+def _get_psp_list(bins, neuron_model, di_param, timestep, simtime):
+    '''
+    Return the list of effective weights from a list of NEST connection
+    weights.
+    '''
+    nest.ResetKernel()
+    nest.SetKernelStatus({"resolution":timestep})
+    # create neuron and recorder
+    neuron = nest.Create(neuron_model, params=di_param)
+    vm = nest.Create("voltmeter", params={"interval": timestep})
+    nest.Connect(vm, neuron)
+    # send the spikes
+    times = [ timestep+n*simtime for n in range(len(bins)) ]
+    sg = nest.Create("spike_generator", params={'spike_times':times,
+                                                'spike_weights':bins})
+    nest.Connect(sg, neuron)
+    nest.Simulate((len(bins)+1)*simtime)
+    # get the max and its time
+    dvm = nest.GetStatus(vm)[0]
+    da_voltage = dvm["events"]["V_m"]
+    da_times = dvm["events"]["times"]
+    da_max_psp = da_voltage[ argrelmax(da_voltage) ]
+    da_min_psp = da_voltage[ argrelmin(da_voltage) ]
+    da_max_psp -= da_min_psp
+    if len(bins) != len(da_max_psp):
+        raise InvalidArgument("simtime too short: all PSP maxima are not in "
+                              "range.")
+    else:
+        return da_max_psp

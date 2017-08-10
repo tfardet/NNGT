@@ -29,6 +29,7 @@ def _edge_prop(name, arg_dict):
 
 def _set_edge_attr(graph, elist, attributes):
     ''' Fill the `attributes` dictionnary '''
+    # check the weights
     if graph._weighted and "weight" not in attributes:
         distrib = graph._w["distribution"]
         params = {k: v for (k, v) in graph._w.items() if k != "distribution"}
@@ -39,10 +40,14 @@ def _set_edge_attr(graph, elist, attributes):
         params = {k: v for (k, v) in prop.items() if k != "distribution"}
         attributes["weight"] = _eprop_distribution(
             graph, prop["distribution"], elist=elist, **params)
+
+    # if dealing with network, check inhibitory weight factor
     if graph.is_network() and not np.isclose(graph._iwf, 1.):
             keep = graph.nodes_attributes['type'][elist[:, 0]] < 0
             attributes["weight"][keep] *= graph._iwf
-    if hasattr(graph, "_d") and "delay" not in attributes:
+
+    # also check delays
+    if graph.is_network() and "delay" not in attributes:
         distrib = graph._d["distribution"]
         params = {k: v for (k, v) in graph._d.items() if k != "distribution"}
         attributes["delay"] = _eprop_distribution(graph, distrib, elist=elist,
