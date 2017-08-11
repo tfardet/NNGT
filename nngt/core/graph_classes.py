@@ -1268,7 +1268,7 @@ class Network(Graph):
         else:
             return self._id_from_nest_gid[gids]
 
-    def to_nest(self, use_weights=True):
+    def to_nest(self, send_only=None, use_weights=True):
         '''
         Send the network to NEST.
         
@@ -1277,7 +1277,8 @@ class Network(Graph):
         '''
         from nngt.simulation import make_nest_network
         if nngt._config['with_nest']:
-            return make_nest_network(self, use_weights)
+            return make_nest_network(
+                self, send_only=send_only, use_weights=use_weights)
         else:
             raise RuntimeError("NEST is not present.")
 

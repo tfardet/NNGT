@@ -40,15 +40,22 @@ __all__ = [
 #------------------------
 #
 
-def make_nest_network(network, use_weights=True):
+def make_nest_network(network, send_only=None, use_weights=True):
     '''
     Create a new network which will be filled with neurons and
     connector objects to reproduce the topology from the initial network.
+
+    .. versionchanged:: 0.8
+        Added `send_only` parameter.
 
     Parameters
     ----------
     network: :class:`nngt.Network` or :class:`nngt.SpatialNetwork`
         the network we want to reproduce in NEST.
+    send_only : int, str, or list of str, optional (default: None)
+        Restrict the nodes that are created in NEST to either inhibitory or
+        excitatory neurons `send_only` :math:`\in \{ 1, -1\}` to a group or a
+        list of groups.
     use_weights : bool, optional (default: True)
         Whether to use the network weights or default ones (value: 10.).
 
@@ -58,15 +65,25 @@ def make_nest_network(network, use_weights=True):
         GIDs of the neurons in the network.
     '''
     gids = []
+    pop = network.population
+
+    send = list(network.population.keys())
+    if send_only in (-1, 1):
+        send = [g for g in send if pop[g].neuron_type == send_only]
+    elif isinstance(send_only, str):
+        send = [pop[send_only]]
+    elif nonstring_container(send_only):
+        send = [g for g in send_only]
 
     # link NEST Gids to nngt.Network ids as neurons are created
     num_neurons = network.node_nb()
-    ia_nngt_ids = np.zeros(num_neurons, dtype=int)
-    ia_nest_gids = np.zeros(num_neurons, dtype=int)
-    ia_nngt_nest = np.zeros(num_neurons, dtype=int)
+    ia_nngt_ids = np.full(num_neurons, -1, dtype=int)
+    ia_nest_gids = np.full(num_neurons, -1, dtype=int)
+    ia_nngt_nest = np.full(num_neurons, -1, dtype=int)
     current_size = 0
 
-    for group in network.population.values():
+    for name in send:
+        group = pop[name]
         group_size = len(group.ids)
         if group_size:
             ia_nngt_ids[current_size:current_size + group_size] = group.ids
@@ -94,8 +111,7 @@ def make_nest_network(network, use_weights=True):
     csr_delays = network.adjacency_matrix(types=False, weights=DELAY)
 
     cspec = 'one_to_one'
-    pop = network.population
-    for src_name in pop:
+    for src_name in send:
         src_group = pop[src_name]
         syn_sign = src_group.neuron_type
         # local connectivity matrix and offset to correct neuron id
@@ -103,7 +119,7 @@ def make_nest_network(network, use_weights=True):
         min_sidx = np.min(src_group.ids)
         if len(src_group.ids) > 0 and pop.syn_spec is not None:
             # check whether custom synapses should be used
-            for tgt_name in pop.keys():
+            for tgt_name in send:
                 tgt_group = pop[tgt_name]
                 # get list of targets for each
                 src_ids  = local_csr[:, tgt_group.ids].nonzero()[0]
@@ -142,7 +158,7 @@ def make_nest_network(network, use_weights=True):
             
             nest.Connect(src_ids, tgt_ids, syn_spec=syn_param, conn_spec=cspec)
 
-    return tuple(ia_nest_gids)
+    return tuple(ia_nest_gids[:current_size])
 
 
 def get_nest_adjacency(id_converter=None):
