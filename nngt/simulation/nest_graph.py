@@ -24,7 +24,7 @@ import scipy.sparse as ssp
 from scipy.optimize import root
 from scipy.signal import argrelmax, argrelmin
 
-from nngt.lib import InvalidArgument, WEIGHT, DELAY
+from nngt.lib import InvalidArgument, nonstring_container, WEIGHT, DELAY
 from nngt.lib.sorting import _sort_groups
 
 

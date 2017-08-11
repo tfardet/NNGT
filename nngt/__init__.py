@@ -254,11 +254,18 @@ except ImportError as e:
 
 if _config['load_nest']:
     try:
+        # silence nest
         _sys.argv.append('--quiet')
         import nest
         from . import simulation
         _config['with_nest'] = nest.version()
         __all__.append("simulation")
+        # remove quiet from sys.argv
+        try:
+            idx = _sys.argv.index('--quiet')
+            del _sys.argv[idx]
+        except ValueError:
+            pass
     except ImportError as e:
         _logger.debug("NEST not found; nngt.simulation not loaded: " + str(e))
         _config["with_nest"] = False
