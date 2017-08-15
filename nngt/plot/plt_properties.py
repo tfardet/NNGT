@@ -169,7 +169,7 @@ def attribute_distribution(network, attribute, num_bins='auto', logx=False,
     # get attribute
     maxcounts, maxbins, minbins = 0, 0, np.inf
     if isinstance(attribute, str):
-        values = network.attributes(name=attribute)
+        values = network.get_edge_attributes(name=attribute)
         counts, bins = _hist(
             values, num_bins, norm, logx, attribute, axis, **kwargs)
         maxcounts, maxbins, minbins = counts.max(), bins.max(), bins.min()

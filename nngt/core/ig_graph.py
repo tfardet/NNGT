@@ -27,7 +27,6 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT
-from nngt.lib.graph_helpers import _set_edge_attr
 from .base_graph import BaseGraph, BaseProperty
 
 
@@ -116,6 +115,22 @@ class _IgEProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (igraph)  '''
 
     def __getitem__(self, name):
+        if isinstance(name, slice):
+            eprop = {}
+            for k in self.keys():
+                eprop[k] = np.array(self.parent().es[k])[name]
+            return eprop
+        elif nonstring_container(name):
+            eprop = {}
+            if nonstring_container(name[0]):
+                eids = [self.parent().get_eid(*e) for e in name]
+                for k in self.keys():
+                    eprop[k] = np.array(self.parent().es[k])[eids]
+            else:
+                eid = self.parent().get_eid(*name)
+                for k in self.keys():
+                    eprop[k] = self.parent().es[k][eid]
+            return eprop
         return np.array(self.parent().es[name])
 
     def __setitem__(self, name, value):
@@ -347,7 +362,6 @@ an array of 2-tuples of ints.")
                 attributes[key] = np.concatenate((val, val[unique]))
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
-        _set_edge_attr(self, edge_list, attributes)
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
         #~ try:

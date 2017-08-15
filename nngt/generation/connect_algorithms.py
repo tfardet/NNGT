@@ -293,7 +293,7 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
 def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
                    scale=-1, rule="exp", shape=None, positions=None,
-                   directed=True, multigraph=False, **kwargs):
+                   directed=True, multigraph=False, distance=None, **kwargs):
     '''
     Returns a distance-rule graph
     '''
@@ -306,6 +306,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         return np.divide(scale-dist, scale).clip(min=0.)
 
     dist_test = exp_rule if rule == "exp" else lin_rule
+    distance = [] if distance is None else distance
 
     # compute the required values
     source_ids = np.array(source_ids).astype(int)

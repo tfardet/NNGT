@@ -24,10 +24,10 @@ import sys
 
 
 reload_module = None
-if sys.hexversion >= 0x03000000 and sys.hexversion < 0x03040000:
+if 0x03000000 <= sys.hexversion < 0x03040000:
     import imp
     reload_module = imp.reload
-elif sys.hexversion >= 0x03040000:
+elif 0x03040000 <= sys.hexversion:
     import importlib
     reload_module = importlib.reload
 else:

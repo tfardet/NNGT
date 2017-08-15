@@ -64,8 +64,8 @@ def use_library(library, reloading=True):
     library : string
         Name of a graph library among 'graph_tool', 'igraph', 'networkx'.
     reload_moduleing : bool, optional (default: True)
-        Whether the graph objects should be reload_moduleed (this should always
-        be set to True except when NNGT is first initiated!)
+        Whether the graph objects should be `reload_module`d (this should
+        always be set to True except when NNGT is first initiated!)
     '''
     if library == "graph-tool":
         _set_graph_tool()

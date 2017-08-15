@@ -326,10 +326,10 @@ class Graph(nngt.core.GraphObject):
         # @todo: use those of the from_graph
         if weighted:
             self.new_edge_attribute('weight', 'double')
-            self._w = _edge_prop("weights", kwargs)
+            self._w = _edge_prop(kwargs.get("weights", None))
         if "delays" in kwargs:
             self.new_edge_attribute('delay', 'double')
-            self._d = _edge_prop("delays", kwargs)
+            self._d = _edge_prop(kwargs.get("delays", None))
         if 'inh_weight_factor' in kwargs:
             self._iwf = kwargs['inh_weight_factor']
         # update the counters
@@ -512,7 +512,7 @@ class Graph(nngt.core.GraphObject):
         edges : list of edges or array of shape (E, 2), optional (default: all)
             Edges whose attributes should be set. Others will remain unchanged.
         '''
-        if attribute not in self.attributes():
+        if attribute not in self.edges_attributes:
             self.new_edge_attribute(name=attribute, value_type=value_type,
                                     values=values, val=val)
         else:
@@ -681,13 +681,15 @@ class Graph(nngt.core.GraphObject):
         '''
         return self._eattr
 
-    def attributes(self, edge=None, name=None):
+    def get_edge_attributes(self, edges=None, name=None):
         '''
         Attributes of the graph's edges.
 
+        .. versionadded: 0.8
+
         Parameters
         ----------
-        edge : tuple, optional (default: ``None``)
+        edge : tuple or list of tuples, optional (default: ``None``)
             Edge whose attribute should be displayed.
         name : str, optional (default: ``None``)
             Name of the desired attribute.
@@ -699,14 +701,17 @@ class Graph(nngt.core.GraphObject):
         attributes of the edge (or the value of attribute `name` if it is not
         ``None``).
         '''
-        if name is None and edge is None:
-            return self._eattr.keys()
+        if name is not None and edges is not None:
+            if isinstance(edges, slice):
+                return self._eattr[name][edges]
+            else:
+                return self._eattr[edges][name]
         elif name is None:
-            return self._eattr[edge]
-        elif edge is None:
+            return self._eattr[edges]
+        elif edges is None:
             return self._eattr[name]
         else:
-            return self._eattr[edge][name]
+            return self._eattr.keys()
     
     def get_attribute_type(self, attribute_name):
         ''' Return the type of an attribute '''
@@ -729,7 +734,7 @@ class Graph(nngt.core.GraphObject):
 
     def is_weighted(self):
         ''' Whether the edges have weights '''
-        return "weight" in self.attributes()
+        return "weight" in self.edges_attributes
 
     def is_directed(self):
         ''' Whether the graph is directed or not '''
@@ -921,6 +926,7 @@ class SpatialGraph(Graph):
         Create the positions of the neurons from the graph `shape` attribute
         and computes the connections distances.
         '''
+        self.new_edge_attribute('distance', 'double')
         if positions is not None and positions.shape[0] != self.node_nb():
             raise InvalidArgument("Wrong number of neurons in `positions`.")
         if shape is not None:
@@ -1047,8 +1053,7 @@ class Network(Graph):
         size = len(gids)
         nodes = [i for i in range(size)]
         group = nngt.NeuralGroup(
-            nodes, ntype=1, model=neuron_model, neuron_param=neuron_param,
-            syn_model=syn_model, syn_param=syn_param)
+            nodes, ntype=1, model=neuron_model, neuron_param=neuron_param)
         pop = nngt.NeuralPop.from_groups([group])
         # create the network
         net = cls(population=pop, **kwargs)
@@ -1297,7 +1302,7 @@ class Network(Graph):
                 self._population = population
                 nodes = population.size
                 # create the delay attribute if necessary
-                if "delay" not in self.attributes():
+                if "delay" not in self.edges_attributes:
                     self.set_delays()
                 # set the type attributes for neurons
                 types = np.ones(self.node_nb())

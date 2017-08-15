@@ -591,6 +591,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
     """
+    distance = []
     # set node number and library graph
     graph_dr = from_graph
     if graph_dr is not None:
@@ -620,8 +621,9 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         ids = np.arange(0, nodes, dtype=np.uint)
         ia_edges = _distance_rule(
             ids, ids, density, edges, avg_deg, scale, rule, shape, positions,
-            directed, multigraph, **kwargs)
-        graph_dr.new_edges(ia_edges)
+            directed, multigraph, distance=distance, **kwargs)
+        attr = {'distance': distance}
+        graph_dr.new_edges(ia_edges, attributes=attr)
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
 
@@ -732,27 +734,28 @@ def connect_neural_types(network, source_type, target_type, graph_model,
 
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)
+    distance = []
 
     if source_type == target_type:
         elist = _di_gen_edges[graph_model](
             source_ids, source_ids, density=density, edges=edges,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, **kwargs)
+            multigraph=multigraph, distances=distances, **kwargs)
     else:
         elist = _di_gen_edges[graph_model](
             source_ids, target_ids, density=density, edges=edges,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, **kwargs)
+            multigraph=multigraph, distance=distance, **kwargs)
 
     attr = {}
     if 'weights' in kwargs:
         attr['weight'] = kwargs['weights']
     if 'delays' in kwargs:
         attr['delay'] = kwargs['delays']
+    if network.is_spatial():
+        attr['distance'] = distance
     network.new_edges(elist, attributes=attr)
 
-    if network.is_spatial():
-        nngt.core.Connections.distances(network)
     if not network._graph_type.endswith('_neural_type_connect'):
         network._graph_type += "_neural_type_connect"
 
@@ -807,26 +810,27 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
 
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)
+    distance = []
 
     if source_groups == target_groups:
         elist = _di_gen_edges[graph_model](
             source_ids, source_ids, density=density, edges=edges,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, **kwargs)
+            multigraph=multigraph, distances=distances, **kwargs)
     else:
         elist = _di_gen_edges[graph_model](
             source_ids, target_ids, density=density, edges=edges,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, **kwargs)
+            multigraph=multigraph, distance=distance, **kwargs)
 
     attr = {}
     if 'weights' in kwargs:
         attr['weight'] = kwargs['weights']
     if 'delays' in kwargs:
         attr['delay'] = kwargs['delays']
+    if network.is_spatial():
+        attr['distance'] = distance
     network.new_edges(elist, attributes=attr)
 
-    if network.is_spatial():
-       nngt.core.Connections.distances(network)
     if not network._graph_type.endswith('_neural_group_connect'):
         network._graph_type += "_neural_group_connect"

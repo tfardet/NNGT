@@ -259,7 +259,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
                               "`separator` and `secondary`.")
     # data
     if attributes is None:
-        attributes = [ a for a in graph.attributes() if a != "bweight" ]
+        attributes = [a for a in graph.edges_attributes if a != "bweight"]
     additional_notif = {
         "directed": graph._directed,
         "attributes": attributes,
@@ -327,7 +327,7 @@ def _neighbour_list(graph, separator, secondary, attributes):
             str_edge = str(v2)
             for attr in attributes:
                 str_edge += "{}{}".format(
-                    secondary, graph.attributes((v1,v2), attr))
+                    secondary, graph.get_edge_attributes((v1,v2), attr))
             lst_neighbours[v1][i] = str_edge
         lst_neighbours[v1] = "{}{}{}".format(
             v1, separator, separator.join(lst_neighbours[v1]))
@@ -343,7 +343,8 @@ def _edge_list(graph, separator, secondary, attributes):
         str_edge = "{}{}{}".format(e[0], secondary, e[1])
         edge = tuple(e)
         for attr in attributes:
-            str_edge += "{}{}".format(separator, graph.attributes(edge, attr))
+            str_edge += "{}{}".format(separator,
+                                      graph.get_edge_attributes(edge, attr))
         lst_edges.append(str_edge)
     str_edges = "\n".join(lst_edges)
     return str_edges

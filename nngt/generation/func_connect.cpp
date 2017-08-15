@@ -75,6 +75,35 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
 }
 
 
+size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map,
+                  std::vector<float>& dist, const std::vector<float>& dist_tmp)
+{
+    size_t total_unique = hash_map.size();
+    size_t num_edges = a[0].size();
+    size_t s, t, initial_enum(total_unique);
+    edge_t edge;
+
+    for (size_t i = total_unique; i < num_edges; i++)
+    {
+        s = a[0][i];
+        t = a[1][i];
+        edge = edge_t(s, t);
+        // check if this number is already in the map
+        if (hash_map.find(edge) == hash_map.end())
+        {
+            // it's not in there yet so add it and set the count to 1
+            hash_map.insert({edge, 1});
+            a[0][total_unique] = s;
+            a[1][total_unique] = t;
+            dist.push_back(dist_tmp[i-initial_enum]);
+            total_unique += 1;
+        }
+    }
+
+    return total_unique;
+}
+
+
 //~ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
 //~ {
     //~ size_t total_unique = hash_map.size();
@@ -210,8 +239,8 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
   const std::vector<std::vector<size_t>>& target_nodes,
   const std::string& rule, float scale, const std::vector<float>& x,
   const std::vector<float>& y, size_t num_neurons, size_t num_edges,
-  const std::vector< std::vector<size_t> >& existing_edges, bool multigraph,
-  long msd, unsigned int num_omp)
+  const std::vector< std::vector<size_t> >& existing_edges,
+  std::vector<float>& dist, bool multigraph, long msd, unsigned int num_omp)
 {
     float inv_scale = 1. / scale;
     // Initialize secondary seeds and RNGs
@@ -226,8 +255,9 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     size_t initial_enum = existing_edges.empty() ?
         0 : existing_edges[0].size();               // initial number of edges
     size_t current_enum = initial_enum;             // current number of edges
-    size_t ecount_fill = 0;             // current number of edges
+    size_t ecount_fill = 0;                         // tmp number of edges
     size_t target_enum = current_enum + num_edges;  // target number of edges
+    dist.reserve(num_edges);
 
     // set the number of tests associated to each node proportionnaly to its
     // number of neighbours
@@ -263,6 +293,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                                                        std::vector<size_t>());
         std::vector< std::vector<size_t> > elocal_tmp(2,
                                                       std::vector<size_t>());
+        std::vector< float > local_dist, dist_tmp;
 
         // initialize the hash map and the local edges with the existing edges
         // the static schedule is CAPITAL: each thread must always handle
@@ -326,6 +357,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                     {
                         elocal_tmp[0].push_back(src);
                         elocal_tmp[1].push_back(tgt);
+                        dist_tmp.push_back(distance);
                     }
                 }
             }
@@ -336,7 +368,8 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                                   elocal_tmp[1].begin(), elocal_tmp[1].end());
             num_elocal = multigraph
                          ? local_edges[0].size()
-                         : _unique_2d(local_edges, hash_map);
+                         : _unique_2d(local_edges, hash_map, local_dist,
+                                      dist_tmp);
 
             local_edges[0].resize(num_elocal);
             local_edges[1].resize(num_elocal);
@@ -374,12 +407,21 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
         // each thread successively adds its local edges
         #pragma omp critical
         {
-            //~ printf("in critical %lu, %lu\n", ecount_fill, target_enum);
+            //~ printf("in critical %lu, %lu, %lu\n", ecount_fill, target_enum, num_edges);
             size_t i = 0;
             #pragma omp flush(ecount_fill)
+            if (ecount_fill + num_elocal <= target_enum)
+            {
+                dist.insert(dist.begin() + ecount_fill, local_dist.begin(),
+                            local_dist.end());
+            }
+            else
+            {
+                dist.insert(dist.begin() + ecount_fill, local_dist.begin(),
+                            local_dist.begin() + target_enum - ecount_fill);
+            }
             while (i < num_elocal && ecount_fill < target_enum)
             {
-                
                 ia_edges[2*ecount_fill]     = local_edges[0][i];
                 ia_edges[2*ecount_fill + 1] = local_edges[1][i];
                 ecount_fill += 1;

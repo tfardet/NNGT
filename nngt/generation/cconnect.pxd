@@ -25,5 +25,5 @@ cdef extern from "func_connect.h" namespace "generation":
       const vector[ vector[size_t] ]& target_nodes, const string& rule,
       float scale, const vector[float]& x, const vector[float]& y,
       size_t num_neurons, size_t num_edges,
-      const vector[ vector[size_t] ]& existing_edges, bool multigraph,
-      long msd, unsigned int omp) except +
+      const vector[ vector[size_t] ]& existing_edges, vector[float]& dist,
+      bool multigraph, long msd, unsigned int omp) except +

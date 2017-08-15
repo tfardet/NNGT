@@ -52,7 +52,8 @@ typedef std::unordered_map<edge_t, size_t, key_hash, key_equal> map_t;
  *
  * \return num_unique - Number of unique entries.
  */
-size_t _unique_1d(std::vector<int>& a);
+size_t _unique_1d(std::vector<int>& a,
+                  std::unordered_map<size_t, size_t>& hash_map);
 
 
 /*
@@ -65,7 +66,12 @@ size_t _unique_1d(std::vector<int>& a);
  *
  * \return num_unique - Number of unique entries.
  */
-size_t _unique_2d(std::vector< std::vector<int> >& a);
+size_t _unique_2d(std::vector< std::vector<int> >& a, map_t& hash_map);
+
+
+size_t _unique_2d(std::vector< std::vector<int> >& a, map_t& hash_map,
+                  std::vector<float>& dist,
+                  const std::vector<float>& dist_tmp);
 
 
 /*
@@ -131,8 +137,8 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
   const std::vector<std::vector<size_t>>& target_nodes,
   const std::string& rule, float scale, const std::vector<float>& x,
   const std::vector<float>& y, size_t num_neurons, size_t num_edges,
-  const std::vector< std::vector<size_t> >& existing_edges, bool multigraph,
-  long msd, unsigned int omp);
+  const std::vector< std::vector<size_t> >& existing_edges,
+  std::vector<float>& dist, bool multigraph, long msd, unsigned int omp);
 
 
 //~ static float exp_adjust[256] = {

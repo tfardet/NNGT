@@ -130,19 +130,22 @@ class _GtEProperty(BaseProperty):
         '''
         Return the attributes of an edge or a list of edges.
         '''
-        if isinstance(name, str):
-            return np.array(self.parent().edge_properties[name].a)
-        elif hasattr(name[0], '__iter__'):
-            di_eattr = {}
-            for key in self.keys():
-                di_eattr[key] = np.array(
-                    [self.parent().edge_properties[key][e] for e in name])
-            return di_eattr
-        else:
-            di_eattr = {}
-            for key in self.keys():
-                di_eattr[key] = self.parent().edge_properties[key][name]
-            return di_eattr
+        if isinstance(name, slice):
+            eprop = {}
+            for k in self.keys():
+                eprop[k] = self.parent().edge_properties[k].a[name]
+            return eprop
+        elif nonstring_container(name):
+            eprop = {}
+            if nonstring_container(name[0]):
+                eids = [self.parent().edge_index[e] for e in name]
+                for k in self.keys():
+                    eprop[k] = self.parent().edge_properties[k].a[eids]
+            else:
+                for k in self.keys():
+                    eprop[k] = self.parent().edge_properties[k][eid]
+            return eprop
+        return self.parent().edge_properties[name].a
 
     def __setitem__(self, name, value):
         if name in self:
@@ -404,8 +407,6 @@ class _GtGraph(BaseGraph):
                 attributes[key] = np.concatenate((val, val[unique]))
         # create the edges
         super(_GtGraph, self).add_edge_list(edge_list)
-        # prepare the default values for weight and delays if necessary
-        _set_edge_attr(self, edge_list, attributes)
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
         return edge_list
