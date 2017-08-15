@@ -377,7 +377,7 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
                     cnum_neurons, cedges, old_edges, dist, multigraph, msd,
                     omp)
     distance.extend(dist)
-    assert not np.any(distance < 0.), "Negative distance detected."
+    assert np.all(np.greater(distance, 0.)), "Negative distance detected."
     return ia_edges
 
 
