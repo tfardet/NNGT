@@ -143,9 +143,9 @@ class _GtEProperty(BaseProperty):
                     eprop[k] = self.parent().edge_properties[k].a[eids]
             else:
                 for k in self.keys():
-                    eprop[k] = self.parent().edge_properties[k][eid]
+                    eprop[k] = self.parent().edge_properties[k][name]
             return eprop
-        return self.parent().edge_properties[name].a
+        return np.array(self.parent().edge_properties[name].a)
 
     def __setitem__(self, name, value):
         if name in self:

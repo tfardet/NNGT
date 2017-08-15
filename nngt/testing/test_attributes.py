@@ -96,6 +96,7 @@ class TestAttributes(TestBasis):
         Check that delay distribution generated in NNGT, then in NEST, is
         conform to what was instructed.
         '''
+        # get the informations from the weights
         di_distrib = instructions["weights"]
         distrib = di_distrib["distribution"]
         delays = graph.set_delays(distribution=distrib, parameters=di_distrib)

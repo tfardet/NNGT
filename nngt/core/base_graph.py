@@ -193,9 +193,9 @@ class BaseGraph(nngt._config["graph"]):
             self._eattr.set_attribute(
                 "distance", values, edges=edge_list)
         # then weights
-        if "weight" in attributes:
+        if self.is_weighted() or "weight" in attributes:
             values = _set_edge_attr(
-                self, edge_list, 'weight', attributes["weight"],
+                self, edge_list, 'weight', attributes.get("weight", None),
                 last_edges=True)
             self._eattr.set_attribute(
                 "weight", values, edges=edge_list)

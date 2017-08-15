@@ -167,12 +167,12 @@ def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
     if slope is not None and (lower, upper) != (None, None):
         raise InvalidArgument('`slope` and `lower`/`upper` parameters are not '
                               'compatible, please choose one or the other.')
-    elif lower is not None or upper is not None and None in (lower, upper):
+    elif (lower is not None or upper is not None) and None in (lower, upper):
         raise InvalidArgument('Both `lower` and `upper` should be set if one '
                               'of the two is used.')
     ecount = _compute_num_prop(elist, graph)
-    noise = ( 1. if noise_scale is None
-                 else np.abs(np.random.normal(1, noise_scale, ecount)) )
+    noise = (1. if noise_scale is None
+             else np.abs(np.random.normal(1, noise_scale, ecount)))
     data = None
     if correl_attribute == "betweenness":
         data = graph.get_betweenness(kwargs["btype"], kwargs["use_weights"])

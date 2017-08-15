@@ -638,7 +638,7 @@ class Graph(nngt.core.GraphObject):
         if isinstance(delay, float):
             size = self.edge_nb() if elist is None else len(elist)
             delay = np.repeat(delay, size)
-        elif not hasattr(delay, "__len__") and delay is not None:
+        elif not nonstring_container(delay) and delay is not None:
             raise AttributeError("Invalid `delay` value: must be either "
                                  "float, array-like or None")
         if delay is None:
@@ -811,8 +811,8 @@ class Graph(nngt.core.GraphObject):
         return self.betweenness_list(btype=btype, use_weights=use_weights)
 
     def get_edge_types(self):
-        if TYPE in self.edge_properties.keys():
-            return self.edge_properties[TYPE].a
+        if TYPE in self._eattr.keys():
+            return self.get_edge_attributes(name=TYPE)
         else:
             return repeat(1, self.edge_nb())
     
@@ -820,14 +820,14 @@ class Graph(nngt.core.GraphObject):
         ''' Returns the weighted adjacency matrix as a
         :class:`scipy.sparse.lil_matrix`.
         '''
-        return self.eproperties["weight"]
+        return self._eattr["weight"]
     
     def get_delays(self):
         ''' Returns the delay adjacency matrix as a
         :class:`scipy.sparse.lil_matrix` if delays are present; else raises
         an error.
         '''
-        return self.eproperties["delay"]
+        return self._eattr["delay"]
 
     def is_spatial(self):
         '''
