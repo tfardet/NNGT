@@ -25,7 +25,7 @@ from tools_testing import foreach_graph
 #------------------------
 #
 
-class TestIO_Analysis(TestBasis):
+class Test_Analysis(TestBasis):
     
     '''
     Class testing the functions of the :mod:`~nngt.analysis` and
@@ -67,7 +67,7 @@ class TestIO_Analysis(TestBasis):
 #------------------------
 #
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestIO_Analysis)
+suite = unittest.TestLoader().loadTestsFromTestCase(Test_Analysis)
 
 if __name__ == "__main__":
     unittest.main()

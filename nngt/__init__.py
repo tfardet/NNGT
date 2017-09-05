@@ -129,10 +129,10 @@ if not _os.path.isdir(_lib_folder):
     _os.mkdir(_lib_folder)
 
 # IMPORTANT: first create logger
-from .lib.logger import _configure_logger
+from .lib.logger import _init_logger
 
 _logger = logging.getLogger(__name__)
-_configure_logger(_logger)
+_init_logger(_logger)
 
 # IMPORTANT: afterwards, import config
 from .lib.nngt_config import get_config, set_config, _load_config, _convert

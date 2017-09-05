@@ -44,8 +44,6 @@ def _init_logger(logger):
     consoleHandler.setFormatter(logConsoleFormatter)
     consoleHandler.setLevel(nngt._config["log_level"])
     logger.addHandler(consoleHandler)
-    if nngt._config["log_to_file"]:
-        _log_to_file(logger, create_writer=True)
 
 
 def _configure_logger(logger):

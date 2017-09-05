@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # IO #
 # -- #
 
-def load_from_file(filename, fmt="neighbour", separator=" ", secondary=";",
+def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                    attributes=[], notifier="@", ignore="#"):
     '''
     Load the main properties (edges, attributes...) from a file.
@@ -143,6 +143,11 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
                  secondary=";", attributes=None, notifier="@"):
     '''
     Save a graph to file.
+
+    .. versionchanged:: 0.7
+        Added support to write position and Shape when saving
+        :class:`~nngt.SpatialGraph`. Note that saving Shape requires shapely.
+
     @todo: implement population and shape saving, implement gml, dot, xml, gt
 
     Parameters
@@ -279,16 +284,23 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
             logger.warning('The `shape` attribute of the graph could not be '
                            'saved to file because Shapely is not installed.')
         pos = graph.get_positions()
-        np.set_printoptions(threshold='nan')
+        # temporarily disable numpy cut threshold to save string
+        old_threshold = np.get_printoptions()['threshold']
+        #~ np.set_printoptions(threshold='nan')
+        np.set_printoptions(threshold=np.NaN)
         additional_notif['x'] = np.array2string(
-            pos[:, 0], max_line_width='nan', separator=separator)[1:-1]
+            pos[:, 0], max_line_width=np.NaN, separator=separator)[1:-1]
         additional_notif['y'] = np.array2string(
-            pos[:, 1], max_line_width='nan', separator=separator)[1:-1]
+            pos[:, 1], max_line_width=np.NaN, separator=separator)[1:-1]
         if pos.shape[1] == 3:
             additional_notif['z'] = np.array2string(
-                pos[:, 2], max_line_width='nan', separator=separator)[1:-1]
+                pos[:, 2], max_line_width=np.NaN, separator=separator)[1:-1]
+        # set numpy cut threshold back on
+        np.set_printoptions(threshold=old_threshold)
+
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)
+
     if return_info:
         return str_graph, additional_notif
     else:
@@ -303,15 +315,20 @@ def _get_format(fmt, filename):
     if fmt == "auto":
         if filename.endswith('.gml'):
             fmt = 'gml'
-        if filename.endswith('.graphml') or filename.endswith('.xml'):
+        elif filename.endswith('.graphml') or filename.endswith('.xml'):
             fmt = 'graphml'
         elif filename.endswith('.dot'):
             fmt = 'dot'
-        elif ( filename.endswith('gt') and
-               nngt._config["graph_library"] == "graph_tool" ):
+        elif (filename.endswith('.gt') and
+              nngt._config["graph_library"] == "graph_tool"):
             fmt = 'gt'
-        else:
+        elif filename.endswith('.nn'):
             fmt = 'neighbour'
+        elif filename.endswith('.el'):
+            fmt = 'edge_list'
+        else:
+            raise InvalidArgument('Could not determine format from filename '
+                                  'please specify `fmt`.')
     return fmt
 
 
@@ -322,12 +339,13 @@ def _neighbour_list(graph, separator, secondary, attributes):
     @todo: speed this up!
     '''
     lst_neighbours = list(graph.adjacency_matrix().tolil().rows)
+    attributes = graph._eattr
     for v1 in range(graph.node_nb()):
         for i, v2 in enumerate(lst_neighbours[v1]):
             str_edge = str(v2)
             for attr in attributes:
-                str_edge += "{}{}".format(
-                    secondary, graph.get_edge_attributes((v1,v2), attr))
+                str_edge += "{}{}".format(secondary,
+                                          attributes[(v1, v2)][attr])
             lst_neighbours[v1][i] = str_edge
         lst_neighbours[v1] = "{}{}{}".format(
             v1, separator, separator.join(lst_neighbours[v1]))
@@ -338,13 +356,17 @@ def _neighbour_list(graph, separator, secondary, attributes):
 def _edge_list(graph, separator, secondary, attributes):
     ''' Generate a string containing the edge list and their properties. '''
     edges = graph.edges_array
+    attributes = {k: v for k, v in graph.edges_attributes.items()}
+    end_strings = [secondary for _ in range(len(attributes) - 1)]
+    end_strings.append('')
     lst_edges = []
-    for e in edges:
-        str_edge = "{}{}{}".format(e[0], secondary, e[1])
+    for i, e in enumerate(edges):
+        str_edge = "{}{}{}".format(e[0], separator, e[1])
         edge = tuple(e)
-        for attr in attributes:
-            str_edge += "{}{}".format(separator,
-                                      graph.get_edge_attributes(edge, attr))
+        if attributes:
+            str_edge += separator
+        for end, attr in zip(end_strings, attributes):
+            str_edge += "{}{}".format(attributes[attr][i], end)
         lst_edges.append(str_edge)
     str_edges = "\n".join(lst_edges)
     return str_edges
@@ -456,8 +478,9 @@ def _get_edges_elist(line, attributes, separator, secondary, edges,
     data = line.split(separator)
     source, target = int(data[0]), int(data[1])
     edges.append((source, target))
-    if len(data) > 2:
-        for name,val in zip(attributes, data[2:]):
+    if len(data) == 3:
+        attr_data = data[2].split(secondary)
+        for name, val in zip(attributes, attr_data):
             di_attributes[name].append(di_convert[name](val))
 
 

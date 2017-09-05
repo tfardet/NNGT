@@ -140,7 +140,8 @@ class Graph(nngt.core.GraphObject):
     
     @staticmethod
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
-                 attributes=None, notifier="@", ignore="#", from_string=False):
+                  attributes=None, notifier="@", ignore="#",
+                  from_string=False):
         '''
         Import a saved graph from a file.
         @todo: implement population and shape loading, implement gml, dot, xml, gt
