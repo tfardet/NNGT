@@ -108,12 +108,13 @@ _config = {
     'log_to_file': False,
     'mpi': False,
     'mpl_backend': None,
+    'msd': None,
     'multithreading': False,
     'omp': 1,
     'palette': 'Set1',
-    'seed': None,
     'use_database': False,
     'use_tex': False,
+    'seeds': None,
     'set_omp_graph_tool': False,
     'with_nest': False,
     'with_plot': False,
@@ -154,7 +155,6 @@ else:                                 # if it does check it is up-to-date
             _shutil.copy(_default_config, _new_config)
             _logger.warning("Updating the configuration file, your previous "
                             "settings have be overwritten.")
-
 
 _load_config(_new_config)
 
@@ -289,15 +289,14 @@ if _config["use_database"]:
 # ------------------------ #
 
 _log_info = '''
-    -----------
-    NNGT loaded
-    -----------
+# ----------- #
+# NNGT loaded #
+# ----------- #
 Graph library:  {gl}
 Multithreading: {thread} ({omp} thread{s})
 Plotting:       {plot}
 NEST support:   {nest}
 Database:       {db}
-    -----------
 '''.format(
     gl=_config["graph_library"],
     thread=_config["multithreading"],

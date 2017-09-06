@@ -31,19 +31,39 @@ from nngt.lib import InvalidArgument
 # Random seed #
 # ----------- #
 
-def seed(seed=None):
+def seed(msd=None, seeds=None):
     '''
     Seed the random generator used by NNGT (i.e. the numpy `RandomState`: for
     details, see :class:`numpy.random.RandomState`).
 
+    ..versionchanged:: 0.8
+        Renamed `seed` to `msd`, added `seeds` for multithreading.
+
     Parameters
     ----------
-    seed : int or array_like, optional
-        Seed for `RandomState`.
-        Must be convertible to 32 bit unsigned integers.
+    msd : int, optional
+        Master seed for numpy `RandomState`.
+        Must be convertible to 32-bit unsigned integers.
+    seeds : array of ints, optional
+        Seeds for  for `RandomState`.
+        Must be convertible to 32-bit unsigned integers.
     '''
-    np.random.seed(seed)
-    nngt._config["seed"] = seed
+    np.random.seed(msd)
+    nngt.set_config('msd', msd)
+    if seeds is not None:
+        with_mt = nngt.get_config('multithreading')
+        with_mpi = nngt.get_config('mpi')
+        err = 'Expected {} seeds.'
+        if with_mpi:
+            from mpi4py import MPI
+            comm = MPI.COMM_WORLD
+            size = comm.Get_size()
+            assert size == len(seeds), err.format(size)
+            nngt.set_config('seeds', seeds)
+        elif with_mt:
+            num_omp = nngt.get_config('omp')
+            assert num_omp == len(seeds), err.format(num_omp)
+            nngt.set_config('seeds', seeds)
 
 
 # ----------------------------- #

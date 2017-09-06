@@ -37,7 +37,8 @@ if not os.path.isdir(nngt._config["log_folder"]):
 # configure logger
 
 def _init_logger(logger):
-    logger.setLevel(logging.DEBUG)
+    logger.handlers = []  # necessary for ipython
+    logger.setLevel(logging.INFO)
     logConsoleFormatter = logging.Formatter(
         '[%(levelname)s @ %(name)s]: %(message)s')
     consoleHandler = logging.StreamHandler()
@@ -47,7 +48,7 @@ def _init_logger(logger):
 
 
 def _configure_logger(logger):
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     is_writing_to_file = False
     for handler in logger.handlers:
         if isinstance(handler, logging.StreamHandler):

@@ -20,6 +20,7 @@
 
 """ Tools to interact with the graph libraries backends """
 
+import logging
 import sys
 
 import numpy as np
@@ -28,6 +29,9 @@ import scipy.sparse as ssp
 import nngt
 from .reloading import reload_module
 from .errors import not_implemented
+
+
+logger = logging.getLogger(__name__)
 
 
 # ------------------- #
@@ -67,12 +71,22 @@ def use_library(library, reloading=True):
         Whether the graph objects should be `reload_module`d (this should
         always be set to True except when NNGT is first initiated!)
     '''
+    success = False
     if library == "graph-tool":
-        _set_graph_tool()
+        try:
+            success = _set_graph_tool()
+        except:
+            pass
     elif library == "igraph":
-        _set_igraph()
+        try:
+            success = _set_igraph()
+        except:
+            pass
     elif library == "networkx":
-        _set_networkx()
+        try:
+            success = _set_networkx()
+        except:
+            pass
     else:
         raise ValueError("Invalid graph library requested.")
     if reloading:
@@ -96,6 +110,10 @@ def use_library(library, reloading=True):
         sys.modules["nngt"].SpatialGraph = SpatialGraph
         sys.modules["nngt"].Network = Network
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
+    if success:
+        logger.info("Successfuly updated to " + library + ".")
+    else:
+        logger.warning("Error, could not switch to " + library + ".")
 
 
 # ----------------- #
@@ -155,6 +173,7 @@ def _set_graph_tool():
     nngt.analyze_graph["reciprocity"] = edge_reciprocity
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
+    return True
 
 
 def _set_igraph():
@@ -204,6 +223,7 @@ def _set_igraph():
     nngt.analyze_graph["reciprocity"] = not_implemented
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
+    return True
 
 
 def _set_networkx():
@@ -261,3 +281,4 @@ def _set_networkx():
     nngt.analyze_graph["wcc"] = diameter
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
+    return True

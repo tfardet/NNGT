@@ -139,11 +139,11 @@ class _IgEProperty(BaseProperty):
             if len(value) == size:
                 self.parent().es[name] = value
             else:
-                raise ValueError("A list or a np.array with one entry per \
-edge in the graph is required")
+                raise ValueError("A list or a np.array with one entry per "
+                                 "edge in the graph is required")
         else:
-            raise InvalidArgument("Attribute does not exist yet, use \
-set_attribute to create it.")
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
@@ -364,10 +364,6 @@ an array of 2-tuples of ints.")
         super(_IGraph, self).add_edges(edge_list)
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
-        #~ try:
-            #~ idx = self.es["weight"].index(None)
-        #~ except:
-            #~ idx = -1
         return edge_list
 
     def remove_edge(self, edge):

@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """ Generation tools for NNGT """
 
@@ -297,33 +314,21 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     '''
     Returns a distance-rule graph
     '''
-    def exp_rule(pos_src, pos_target):
-        dist = np.linalg.norm(pos_src-pos_target, axis=0)
-        return np.exp(np.divide(dist, -scale))
-
-    def lin_rule(pos_src, pos_target):
-        dist = np.linalg.norm(pos_src-pos_target, axis=0)
-        return np.divide(scale-dist, scale).clip(min=0.)
-
-    dist_test = exp_rule if rule == "exp" else lin_rule
     distance = [] if distance is None else distance
-
     # compute the required values
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
-    edges, _ = _compute_connections(num_source, num_target,
-                             density, edges, avg_deg, directed, reciprocity=-1)
+    num_edges, _ = _compute_connections(
+        num_source, num_target, density, edges, avg_deg, directed,
+        reciprocity=-1)
     b_one_pop = _check_num_edges(
-        source_ids, target_ids, edges, directed, multigraph)
+        source_ids, target_ids, num_edges, directed, multigraph)
     num_neurons = len(set(np.concatenate((source_ids, target_ids))))
-
-    # create the edges
-    ia_edges = np.zeros((edges, 2), dtype=int)
-    num_ecurrent = 0
 
     # for each node, check the neighbours that are in an area where
     # connections can be made: +/- scale for lin, +/- 10*scale for exp.
+    # Get the sources and associated targets for each MPI process
     targets = []
     lim = scale if rule == 'lin' else 10*scale
     for s in source_ids:
@@ -338,37 +343,51 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     for tgt_list in targets:
         tot_neighbours += len(tgt_list)
 
-    assert tot_neighbours > target_enum, \
+    assert tot_neighbours > num_edges, \
         "Scale is too small: there are not enough close neighbours to " +\
         "create the required number of connections. Increase `scale` " +\
         "or `neuron_density`."
+
     norm = 1. / tot_neighbours
 
-    while num_ecurrent < edges:
-        num_create = int(min((edges - num_ecurrent) / typical_proba + 1,
-                             max_create))
-        ia_sources = source_ids[randint(0, num_source, num_create)]
-        ia_targets = target_ids[randint(0, num_target, num_create)]
-        if num_tests >= max_tests:
-            test = probas[ia_sources*num_target + ia_targets]
-        else:
-            test = dist_test(positions[:,ia_sources], positions[:, ia_targets])
-        test = np.greater(test, np.random.uniform(size=num_create))
-        ia_edges_tmp = np.array([ia_sources[test], ia_targets[test]]).T
+    # try to create edges until num_edges is attained
+    ia_edges = np.zeros((num_edges, 2), dtype=int)
+
+    num_ecurrent = 0
+    while num_ecurrent < num_edges:
+        trials = []
+        for tgt_list in targets:
+            trials.append(
+                int(len(tgt_list)*(num_edges - num_ecurrent)*norm) + 1)
+        edges_tmp = [[], []]
+        dist = []
+        for s, tgts, num_try in zip(source_ids, targets, trials):
+            # try to create edges
+            t = np.random.randint(0, len(tgts), num_try)
+            test = dist_rule(rule, positions[:, s], positions[:, tgts[t]],
+                             scale, dist=dist)
+            test = np.greater(test, np.random.uniform(size=num_try))
+            edges_tmp[0].extend(np.full(num_try, s)[test])
+            edges_tmp[1].extend(tgts[t][test])
+
+        # assess the current number of edges
+        edges_tmp = np.array(edges_tmp).T
+        # if we're at the end, we'll make too many edges, so we keep only
+        # the necessary fraction that we pick randomly
+        if num_edges - num_ecurrent < len(edges_tmp):
+            np.random.shuffle(edges_tmp)
+            edges_tmp = edges_tmp[:num_edges - num_ecurrent]
         ia_edges, num_ecurrent = _filter(
-            ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph)
-
-    ia_edges = ia_edges[:num_ecurrent, :]
-
-    if num_ecurrent > edges:
-        np.random.shuffle(ia_edges)
-        ia_edges = ia_edges[:edges, :]
+            ia_edges, edges_tmp, num_ecurrent, b_one_pop, multigraph,
+            distance=distance, dist_tmp=dist)
 
     return ia_edges
+
 
 def price_network():
     #@todo: do it for other libraries
     pass
+
 
 if nngt._config["graph_library"] == "graph-tool":
     from graph_tool.generation import price_network
