@@ -260,7 +260,8 @@ class _NxGraph(BaseGraph):
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
-        return np.array([*self.edges()])[self._eattr["eid"].astype(int)]
+        unordered = np.array([e for e in self.edges_iter()])
+        return unordered[self._eattr["eid"].astype(int)]
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
