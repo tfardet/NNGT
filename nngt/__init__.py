@@ -173,14 +173,14 @@ from .lib.graph_backends import use_library, analyze_graph
 _libs = [ 'graph-tool', 'igraph', 'networkx' ]
 
 try:
-    use_library(_config['graph_library'], False)
+    use_library(_config['graph_library'], False, silent=True)
 except ImportError:
     idx = _libs.index(_config['graph_library'])
     del _libs[idx]
     keep_trying = True
     while _libs and keep_trying:
         try:
-            use_library(_libs[-1], False)
+            use_library(_libs[-1], False, silent=True)
             keep_trying = False
         except ImportError:
             _libs.pop()

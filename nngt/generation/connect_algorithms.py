@@ -389,5 +389,6 @@ def price_network():
     pass
 
 
-if nngt._config["graph_library"] == "graph-tool":
+if nngt.get_config("graph_library") == "graph-tool":
+    print(nngt.get_config("graph_library"))
     from graph_tool.generation import price_network

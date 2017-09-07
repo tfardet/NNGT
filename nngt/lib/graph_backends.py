@@ -55,7 +55,7 @@ analyze_graph = {
 
 # use library function
 
-def use_library(library, reloading=True):
+def use_library(library, reloading=True, silent=False):
     '''
     Allows the user to switch to a specific graph library.
     
@@ -95,8 +95,8 @@ def use_library(library, reloading=True):
         reload_module(sys.modules["nngt"].core.ig_graph)
         reload_module(sys.modules["nngt"].core.nx_graph)
         reload_module(sys.modules["nngt"].core)
-        reload_module(sys.modules["nngt"].generation)
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
+        reload_module(sys.modules["nngt"].generation)
         if nngt._config['with_plot']:
             reload_module(sys.modules["nngt"].plot)
         if nngt._config['with_nest']:
@@ -111,7 +111,10 @@ def use_library(library, reloading=True):
         sys.modules["nngt"].Network = Network
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
     if success:
-        logger.info("Successfuly updated to " + library + ".")
+        if silent:
+            logger.debug("Successfuly updated to " + library + ".")
+        else:
+            logger.info("Successfuly updated to " + library + ".")
     else:
         logger.warning("Error, could not switch to " + library + ".")
 
