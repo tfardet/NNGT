@@ -76,18 +76,18 @@ def use_library(library, reloading=True, silent=False):
     if library == "graph-tool":
         try:
             success = _set_graph_tool()
-        except Exception as error:
-            pass
+        except Exception as e:
+            error = e
     elif library == "igraph":
         try:
             success = _set_igraph()
-        except Exception as error:
-            pass
+        except Exception as e:
+            error = e
     elif library == "networkx":
         try:
             success = _set_networkx()
-        except Exception as error:
-            pass
+        except Exception as e:
+            error = e
     else:
         raise ValueError("Invalid graph library requested.")
     if reloading:
