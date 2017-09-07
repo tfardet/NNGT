@@ -170,7 +170,7 @@ if _config["omp"] > 1:
 
 from .lib.graph_backends import use_library, analyze_graph
 
-_libs = [ 'graph-tool', 'igraph', 'networkx' ]
+_libs = ['graph-tool', 'igraph', 'networkx']
 
 try:
     use_library(_config['graph_library'], False, silent=True)

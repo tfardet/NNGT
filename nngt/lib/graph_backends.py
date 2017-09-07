@@ -72,20 +72,21 @@ def use_library(library, reloading=True, silent=False):
         always be set to True except when NNGT is first initiated!)
     '''
     success = False
+    error = None
     if library == "graph-tool":
         try:
             success = _set_graph_tool()
-        except:
+        except Exception as error:
             pass
     elif library == "igraph":
         try:
             success = _set_igraph()
-        except:
+        except Exception as error:
             pass
     elif library == "networkx":
         try:
             success = _set_networkx()
-        except:
+        except Exception as error:
             pass
     else:
         raise ValueError("Invalid graph library requested.")
@@ -95,8 +96,8 @@ def use_library(library, reloading=True, silent=False):
         reload_module(sys.modules["nngt"].core.ig_graph)
         reload_module(sys.modules["nngt"].core.nx_graph)
         reload_module(sys.modules["nngt"].core)
-        reload_module(sys.modules["nngt"].generation.graph_connectivity)
         reload_module(sys.modules["nngt"].generation)
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
         if nngt._config['with_plot']:
             reload_module(sys.modules["nngt"].plot)
         if nngt._config['with_nest']:
@@ -117,6 +118,8 @@ def use_library(library, reloading=True, silent=False):
             logger.info("Successfuly updated to " + library + ".")
     else:
         logger.warning("Error, could not switch to " + library + ".")
+        if error is not None:
+            raise error
 
 
 # ----------------- #
