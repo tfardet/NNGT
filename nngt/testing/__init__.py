@@ -49,12 +49,11 @@ import nngt
 
 
 
-#-----------------------------------------------------------------------------#
-# Get the tests
-#------------------------
-#
+# ------------- #
+# Get the tests #
+# ------------- #
 
-# get the arguments
+# get the arguments for the graph library
 graph_library = environ.get("GL", None)
 if graph_library == "gt":
     nngt.use_library("graph-tool")
@@ -69,8 +68,12 @@ elif graph_library == "nx":
     assert nngt.get_config('graph_library') == "networkx", \
            "Loading networkx failed..."
 
+
+# get the arguments for MPI/OpenMP
 omp = int(environ.get("OMP", 1))
-nngt.set_config({"omp": omp})
+mpi = bool(environ.get("MPI", False))
+nngt.set_config({"omp": omp, "mpi": mpi})
+
 
 # get the tests
 current_dir = dirname(abspath(__file__))
@@ -81,10 +84,9 @@ testfiles = [fname[:-3] for fname in dir_files if (fname.startswith("test_")
 tests = [importlib.import_module(name) for name in testfiles]
 
 
-#-----------------------------------------------------------------------------#
-# Run if main
-#------------------------
-#
+# ----------- #
+# Run if main #
+# ----------- #
 
 if __name__ == "__main__":
     for test in tests:
