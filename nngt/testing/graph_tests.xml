@@ -30,9 +30,9 @@
             <name>rsf_2.9_2.1</name>
             <name>rsf_2.2_recip</name>
             <name>newman_watts</name>
+-->
             <name>linear_distance_rule</name>
             <name>exponential_distance_rule</name>
--->
         </graph_list>
 	</test>
 
@@ -191,6 +191,7 @@
                 <float name="scale">0.2</float>
                 <string name="rule">lin</string>
                 <int name="avg_deg">100</int>
+                <float name="neuron_density">1000.</float>
             </generate_options>
         </graph>
 
@@ -201,6 +202,7 @@
                 <float name="scale">0.04</float>
                 <string name="rule">exp</string>
                 <int name="avg_deg">100</int>
+                <float name="neuron_density">1000.</float>
             </generate_options>
         </graph>
 

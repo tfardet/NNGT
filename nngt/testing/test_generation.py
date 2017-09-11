@@ -33,7 +33,7 @@ def _get_connections(instruct):
     density = instruct.get("density", -1)
     edges = instruct.get("edges", -1)
     average_degree = instruct.get("avg_deg", -1)
-    reciprocity = instruct.get("weighted", -1)
+    reciprocity = instruct.get("reciprocity", -1)
     directed = instruct.get("directed", True)
     #~ weighted = instruct.get("weighted", True))
     return nodes, density, edges, average_degree, directed, reciprocity
@@ -123,10 +123,9 @@ def _distance_rule_exp(graph, instruct):
     pass
 
 
-#-----------------------------------------------------------------------------#
-# Test class
-#------------------------
-#
+# ---------- #
+# Test class #
+# ---------- #
 
 class TestGeneration(TestBasis):
     
@@ -179,10 +178,9 @@ class TestGeneration(TestBasis):
             ".format(graph.name, ref_result, computed_result))
 
 
-#-----------------------------------------------------------------------------#
-# Test suite
-#------------------------
-#
+# ---------- #
+# Test suite #
+# ---------- #
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestGeneration)
 

@@ -9,12 +9,13 @@
 
 import xml.etree.ElementTree as xmlet
 import unittest
+
 import nngt
 
-#-----------------------------------------------------------------------------#
-# Xml tools
-#------------------------
-#   
+
+# --------- #
+# Xml tools #
+# --------- #   
 
 def _bool_from_string(string):
     return True if (string.lower() == "true") else False
@@ -53,10 +54,9 @@ def _xml_to_dict(xml_elt, di_types):
     return di_result
 
 
-#-----------------------------------------------------------------------------#
-# Decorator: repeat test for each graph
-#------------------------
-#
+# ------------------------------------- #
+# Decorator: repeat test for each graph #
+# ------------------------------------- #
 
 def foreach_graph(func):
     '''
