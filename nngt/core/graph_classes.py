@@ -514,6 +514,8 @@ class Graph(nngt.core.GraphObject):
             Edges whose attributes should be set. Others will remain unchanged.
         '''
         if attribute not in self.edges_attributes:
+            assert value_type is not None, "`value_type` is necessary for " +\
+                                           "new attributes."
             self.new_edge_attribute(name=attribute, value_type=value_type,
                                     values=values, val=val)
         else:

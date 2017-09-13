@@ -20,7 +20,7 @@
 
 """ Generation tools for NNGT """
 
-import warnings
+import logging
 import numpy as np
 import scipy.sparse as ssp
 from scipy.spatial.distance import cdist
@@ -44,6 +44,8 @@ __all__ = [
     "_unique_rows",
     "price_network",
 ]
+
+logger = logging.getLogger(__name__)
 
 MAXTESTS = 1000 # ensure that generation will finish
 EPS = 0.00001
@@ -334,6 +336,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     for s in source_ids:
         keep  = (np.abs(positions[0, target_ids] - positions[0, s]) < lim)
         keep *= (np.abs(positions[1, target_ids] - positions[1, s]) < lim)
+        if b_one_pop:
+            keep[s] = 0
         targets.append(target_ids[keep])
 
     # the number of trials should be done depending on the number of
@@ -358,16 +362,19 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         trials = []
         for tgt_list in targets:
             trials.append(
-                int(len(tgt_list)*(num_edges - num_ecurrent)*norm) + 1)
+                max(int(len(tgt_list)*(num_edges - num_ecurrent)*norm), 1))
         edges_tmp = [[], []]
         dist = []
+        kept = 0
         for s, tgts, num_try in zip(source_ids, targets, trials):
             # try to create edges
+            dist_tmp = []
             t = np.random.randint(0, len(tgts), num_try)
             test = dist_rule(rule, positions[:, s], positions[:, tgts[t]],
-                             scale, dist=dist)
+                             scale, dist=dist_tmp)
             test = np.greater(test, np.random.uniform(size=num_try))
-            edges_tmp[0].extend(np.full(num_try, s)[test])
+            dist.extend(np.array(dist_tmp)[test])
+            edges_tmp[0].extend(np.full(np.sum(test), s))
             edges_tmp[1].extend(tgts[t][test])
 
         # assess the current number of edges

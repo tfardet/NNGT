@@ -88,12 +88,12 @@ class TestGraphClasses(TestBasis):
             ".format(graph.name, ref_result, computed_result))
 
 
-#-----------------------------------------------------------------------------#
-# Test suite
-#------------------------
-#
+# ---------- #
+# Test suite #
+# ---------- #
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestGraphClasses)
+if not nngt.get_config('mpi'):
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestGraphClasses)
 
 if __name__ == "__main__":
     unittest.main()

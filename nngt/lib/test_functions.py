@@ -26,9 +26,33 @@ try:
 except:
     from collections import Container as _container
 
+import nngt
+
 
 def valid_gen_arguments(func):
     def wrapper(*args, **kwargs):
+        return func(*args,**kwargs)
+    return wrapper
+
+
+def mpi_checker(func):
+    '''
+    Decorator used to check for mpi and make sure only rank zero is used
+    to store and generate the graph if the mpi algorithms are activated.
+    '''
+    def wrapper(*args, **kwargs):
+        if nngt.get_config('mpi'):
+            try:
+                from mpi4py import MPI
+                comm = MPI.COMM_WORLD
+                rank = comm.Get_rank()
+                if rank == 0:
+                    return func(*args,**kwargs)
+                else:
+                    func(*args,**kwargs)
+                    return None
+            except ImportError:
+                pass
         return func(*args,**kwargs)
     return wrapper
 

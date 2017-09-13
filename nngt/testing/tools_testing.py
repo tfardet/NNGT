@@ -11,6 +11,7 @@ import xml.etree.ElementTree as xmlet
 import unittest
 
 import nngt
+from nngt.lib.test_functions import mpi_checker
 
 
 # --------- #

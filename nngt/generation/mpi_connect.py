@@ -90,6 +90,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     for s in source_ids[rank::size]:
         keep  = (np.abs(positions[0, target_ids] - positions[0, s]) < lim)
         keep *= (np.abs(positions[1, target_ids] - positions[1, s]) < lim)
+        if b_one_pop:
+            keep[s] = 0
         sources.append(s)
         targets.append(target_ids[keep])
 
@@ -100,19 +102,25 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     for tgt_list in targets:
         tot_neighbours += len(tgt_list)
 
-    tot_neighbours = comm.scatter(tot_neighbours, root=0)
+    comm.Barrier()
+
+    tot_neighbours = comm.gather(tot_neighbours, root=0)
+    final_tot = None
     if rank == 0:
-        tot_neighbours = np.sum(tot_neighbours)
-        assert tot_neighbours > num_edges, \
+        print(type(tot_neighbours))
+        final_tot = np.sum(tot_neighbours)
+        assert final_tot > num_edges, \
             "Scale is too small: there are not enough close neighbours to " +\
             "create the required number of connections. Increase `scale` " +\
             "or `neuron_density`."
-    tot_neighbours = comm.bcast(tot_neighbours, root=0)
-    norm = 1. / tot_neighbours
+    final_tot = comm.bcast(final_tot, root=0)
+    norm = 1. / final_tot
+
+    comm.Barrier()
 
     # try to create edges until num_edges is attained
     if rank == 0:
-        ia_edges = np.zeros((max_create, 2), dtype=int)
+        ia_edges = np.zeros((num_edges, 2), dtype=int)
     else:
         ia_edges = None
     num_ecurrent = 0
@@ -132,13 +140,17 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             test = np.greater(test, np.random.uniform(size=num_try))
             edges_tmp[0].extend(np.full(num_try, s)[test])
             edges_tmp[1].extend(tgts[t][test])
-            dist_local.extend(dist_tmp[test])
+            dist_local.extend(np.array(dist_tmp)[test])
+
+        comm.Barrier()
 
         # gather the result in root and assess the current number of edges
         edges_tmp  = comm.gather(edges_tmp, root=0)
         dist_local = comm.gather(dist_local, root=0)
+
         if rank == 0:
             ia_edges_tmp = np.concatenate(edges_tmp, axis=1).T
+            dist_local = np.concatenate(dist_local)
             # if we're at the end, we'll make too many edges, so we keep only
             # the necessary fraction that we pick randomly
             if num_edges - num_ecurrent < len(ia_edges_tmp):
@@ -152,6 +164,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     # make sure everyone gets same seed back
     if rank == 0:
         new_seed = np.random.randint(0, num_edges + 1)
+    else:
+        new_seed = None
     new_seed = comm.bcast(new_seed, root=0)
     np.random.seed(new_seed)
 

@@ -28,6 +28,7 @@ import numpy as np
 import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
 from nngt.lib.connect_tools import _set_options
+from nngt.lib.test_functions import mpi_checker
 
 # try to import multithreaded or mpi algorithms
 
@@ -532,10 +533,9 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
     return graph_nw
 
 
-#
-#---
-# Distance-based models
-#------------------------
+# --------------------- #
+# Distance-based models #
+# --------------------- #
 
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
                   density=-1., edges=-1, avg_deg=-1., unit='um', weighted=True,
@@ -592,6 +592,8 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         Initial graph whose nodes are to be connected.
     """
     distance = []
+    # convert neuronal density in (mu m)^2
+    neuron_density *= conversion_magnitude(unit, 'mm')**2
     # set node number and library graph
     graph_dr = from_graph
     if graph_dr is not None:
@@ -601,7 +603,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         nodes = population.size if population is not None else nodes
     # check shape
     if shape is None:
-        h = w = np.sqrt(float(nodes)/neuron_density)
+        h = w = np.sqrt(float(nodes) / neuron_density)
         shape = nngt.geometry.Shape.rectangle(h, w)
     if graph_dr is None:
         graph_dr = nngt.SpatialGraph(
@@ -624,6 +626,8 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
             directed, multigraph, distance=distance, **kwargs)
         attr = {'distance': distance}
         graph_dr.new_edges(ia_edges, attributes=attr)
+        distances = graph_dr.get_edge_attributes(name='distance')
+
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
 

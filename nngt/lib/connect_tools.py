@@ -135,7 +135,7 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
 
 
 def dist_rule(rule, pos_src, pos_targets, scale, dist=None):
-    ''' EDR test from one source to several targets '''
+    ''' DR test from one source to several targets '''
     src_pos = np.array([pos_src]).T
     dist_tmp = np.linalg.norm(src_pos - pos_targets, axis=0)
     if dist is not None:
@@ -143,6 +143,6 @@ def dist_rule(rule, pos_src, pos_targets, scale, dist=None):
     if rule == 'exp':
         return np.exp(np.divide(dist_tmp, -scale))
     elif rule == 'lin':
-        return np.divide(scale - dist, scale).clip(min=0.)
+        return np.divide(scale - dist_tmp, scale).clip(min=0.)
     else:
         raise InvalidArgument('Unknown rule "' + rule + '".')

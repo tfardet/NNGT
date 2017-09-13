@@ -13,6 +13,7 @@ Test the main methods of the :mod:`~nngt.generation` module.
 
 import unittest
 import numpy as np
+import scipy.signal as sps
 
 import nngt
 from nngt.analysis import *
@@ -21,7 +22,6 @@ from nngt.lib.connect_tools import _compute_connections
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
-nngt.set_config({"multithreading": False})
 
 #-----------------------------------------------------------------------------#
 # Test tools
@@ -116,11 +116,54 @@ def _newman_watts_exp(graph, instruct):
 
 
 def _distance_rule_theo(instruct):
-    pass
+    # convention for distance rule:
+    # - distribution is from 0 to 7*scale for exp, 0 to scale for lin
+    # - bin size is 0.02*scale for exp, 0.005 for lin
+    avg_deg = instruct["avg_deg"]
+    res = [avg_deg]
+    spatial_density = instruct["neuron_density"]
+    scale = instruct["scale"]
+    rule = instruct["rule"]
+    dist_distrib = None
+    distances = None
+    if rule == 'exp':
+        distances = np.arange(0.02*scale, 7*scale, 0.02*scale)
+        def dist_distrib(d, space_dens, scale):
+            fact = 2*np.pi*space_dens
+            #~ max_val = fact*scale/np.e
+            #~ norm = fact*scale**2
+            return fact*d*np.exp(-d/scale)
+    else:  # linear
+        distances = np.arange(0.005*scale, scale, 0.005*scale)
+        def dist_distrib(d, space_dens, scale):
+            fact = 2*np.pi*space_dens
+            #~ max_val = fact*scale/4.
+            #~ norm = fact*scale**2 / 6.
+            return fact*d*np.clip(scale-d, 0., np.inf) / scale
+    distrib = dist_distrib(distances, spatial_density, scale)
+    res.extend(distrib / distrib.sum())
+    return res
 
 
 def _distance_rule_exp(graph, instruct):
-    pass
+    # convention for distance rule:
+    # - distribution is from 0 to 7*scale for exp, 0 to scale for lin
+    # - bin size is 0.02*scale for exp, 0.005 for lin
+    scale = instruct["scale"]
+    rule = instruct["rule"]
+    degrees = graph.get_degrees('out', use_weights=False)
+    res = [np.average(degrees)]
+    distances = graph.get_edge_attributes(name='distance')
+    bins = None
+    if rule == 'exp':
+        bins = np.linspace(0, 7*scale, 350)
+    else:
+        bins = np.linspace(0, scale, 200)
+    hist, _ = np.histogram(distances, bins)
+    kernel = sps.gaussian(20, 3)
+    hist = sps.convolve(hist, kernel, mode='same')
+    res.extend(hist / hist.sum())
+    return res
 
 
 # ---------- #
@@ -151,7 +194,7 @@ class TestGeneration(TestBasis):
         "distance_rule": _distance_rule_exp,
     }
 
-    tolerance = 0.05
+    tolerance = 0.08
     
     @property
     def test_name(self):
@@ -172,17 +215,35 @@ class TestGeneration(TestBasis):
         graph_type = instructions["graph_type"]
         ref_result = self.theo_prop[graph_type](instructions)
         computed_result = self.exp_prop[graph_type](graph, instructions)
-        self.assertTrue(np.allclose(
-            ref_result, computed_result, self.tolerance),
-            "Test for graph {} failed:\nref = {} vs exp {}\
-            ".format(graph.name, ref_result, computed_result))
+        if graph_type == 'distance_rule':
+            # average degree
+            self.assertTrue(
+                ref_result[0] == computed_result[0],
+                "Avg. deg. for graph {} failed:\nref = {} vs exp {}\
+                ".format(graph.name, ref_result[0], computed_result[0]))
+            # average error on distance distribution
+            sqd = np.square(np.subtract(ref_result[1:], computed_result[1:]))
+            avg_sqd = sqd / np.square(computed_result[1:])
+            err = np.sqrt(avg_sqd).mean()
+            tolerance = (self.tolerance if instructions['rule'] == 'lin'
+                         else 0.25)
+            print(err, tolerance)
+            self.assertTrue(err <= tolerance,
+                "Distance distribution for graph {} failed:\nerr = {} > {}\
+                ".format(graph.name, err, tolerance))
+        else:
+            self.assertTrue(np.allclose(
+                ref_result, computed_result, self.tolerance),
+                "Test for graph {} failed:\nref = {} vs exp {}\
+                ".format(graph.name, ref_result, computed_result))
 
 
 # ---------- #
 # Test suite #
 # ---------- #
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestGeneration)
+if not nngt.get_config('mpi'):
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestGeneration)
 
 if __name__ == "__main__":
     unittest.main()

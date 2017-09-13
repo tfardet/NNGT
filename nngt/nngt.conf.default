@@ -74,9 +74,10 @@ log_to_file = False
 #----------------------------
 
 # C++ algorithms using OpenMP are compiled and imported using Cython if True,
-# otherwise regular numpy/scipy algorithms are used (equivalent for one thread)
+# otherwise regular numpy/scipy algorithms are used.
+# Multithreaded algorithms should be prefered if available.
 
-multithreading = False
+multithreading = True
 
 # If using MPI, current MT or normal functions will be used except for the
 # distance_rule algorithm, which will be overloaded by its MPI version.

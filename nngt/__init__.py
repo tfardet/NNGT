@@ -108,7 +108,7 @@ _config = {
     'log_to_file': False,
     'mpi': False,
     'mpl_backend': None,
-    'msd': None,
+    'msd': 0,
     'multithreading': False,
     'omp': 1,
     'palette': 'Set1',

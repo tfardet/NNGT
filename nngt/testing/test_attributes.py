@@ -76,6 +76,32 @@ class TestAttributes(TestBasis):
         return graph, di_instructions
 
     @foreach_graph
+    def test_user_defined(self, graph, instructions, **kwargs):
+        '''
+        When generating graphs with weights, check that the expected properties
+        are indeed obtained.
+        '''
+        ref_result = np.random.uniform(0, 5, graph.edge_nb())
+        graph.set_edge_attribute("ud", values=ref_result, value_type="double")
+        computed_result = graph.get_edge_attributes(name="ud")
+        self.assertTrue(np.allclose(ref_result, computed_result),
+            '''Error on graph {}: unequal 'ud' attribute for tolerance {}.
+            '''.format(graph.name, self.tolerance))
+
+    @foreach_graph
+    def test_user_defined2(self, graph, instructions, **kwargs):
+        '''
+        When generating graphs with weights, check that the expected properties
+        are indeed obtained.
+        '''
+        ref_result = np.full(graph.edge_nb(), 4.)
+        graph.set_edge_attribute("ud2", val=4., value_type="double")
+        computed_result = graph.get_edge_attributes(name="ud2")
+        self.assertTrue(np.allclose(ref_result, computed_result),
+            '''Error on graph {}: unequal 'ud2' attribute for tolerance {}.
+            '''.format(graph.name, self.tolerance))
+
+    @foreach_graph
     def test_weights(self, graph, instructions, **kwargs):
         '''
         When generating graphs with weights, check that the expected properties
@@ -112,13 +138,12 @@ class TestAttributes(TestBasis):
             #~ gids = make_nest_network(graph)
 
 
-#-----------------------------------------------------------------------------#
-# Test suite
-#------------------------
-#
+# ---------- #
+# Test suite #
+# ---------- #
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestAttributes)
+if not nngt.get_config('mpi'):
+     suite = unittest.TestLoader().loadTestsFromTestCase(TestAttributes)
 
 if __name__ == "__main__":
-    nngt.use_library("networkx")
     unittest.main()
