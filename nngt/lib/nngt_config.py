@@ -26,6 +26,7 @@ import logging
 import nngt
 from .logger import _configure_logger, _init_logger
 from .reloading import reload_module
+from .test_functions import mpi_checker
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ def get_config(key=None):
         return res
 
 
-def set_config(config, value=None):
+def set_config(config, value=None, silent=False):
     '''
     Set NNGT's configuration.
 
@@ -121,6 +122,9 @@ def set_config(config, value=None):
     if not nngt._config['multithreading']:
         nngt._config['omp'] = 1
         nngt._config['seeds'] = None
+    # reload for mpi
+    if new_config.get('mpi', old_mpi) != old_mpi:
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
     # set graph-tool config
     if "omp" in new_config and nngt._config["graph_library"] == "graph-tool":
         omp_nest = new_config["omp"]
@@ -147,9 +151,11 @@ def set_config(config, value=None):
         nest   = nngt._config["with_nest"],
         db     = nngt._config["use_database"],
         omp    = nngt._config["omp"],
-        s      = "s" if nngt._config["omp"] > 1 else ""
+        s      = "s" if nngt._config["omp"] > 1 else "",
+        mpi    = True if nngt._config["mpi"] else False
     )
-    logger.info(conf_info)
+    if not silent:
+        _log_conf_changed(conf_info)
 
 
 # ----- #
@@ -187,6 +193,11 @@ def _load_config(path_config):
             opt_name = opt[:sep].strip()
             nngt._config[opt_name] = _convert(opt[sep+1:].strip())
     _init_logger(nngt._logger)
+
+
+@mpi_checker
+def _log_conf_changed(conf_info):
+    logger.info(conf_info)
     
 
 
@@ -199,4 +210,5 @@ Multithreading: {thread} ({omp} thread{s})
 Plotting:       {plot}
 NEST support:   {nest}
 Database:       {db}
+MPI:            {mpi}
 '''

@@ -69,6 +69,7 @@ class TestAttributes(TestBasis):
     def test_name(self):
         return "test_attributes"
 
+    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     def gen_graph(self, graph_name):
         di_instructions = self.parser.get_graph_options(graph_name)
         graph = nngt.generate(di_instructions)
@@ -143,7 +144,7 @@ class TestAttributes(TestBasis):
 # ---------- #
 
 if not nngt.get_config('mpi'):
-     suite = unittest.TestLoader().loadTestsFromTestCase(TestAttributes)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestAttributes)
 
-if __name__ == "__main__":
-    unittest.main()
+    if __name__ == "__main__":
+        unittest.main()

@@ -41,19 +41,16 @@ def mpi_checker(func):
     to store and generate the graph if the mpi algorithms are activated.
     '''
     def wrapper(*args, **kwargs):
-        if nngt.get_config('mpi'):
-            try:
-                from mpi4py import MPI
-                comm = MPI.COMM_WORLD
-                rank = comm.Get_rank()
-                if rank == 0:
-                    return func(*args,**kwargs)
-                else:
-                    func(*args,**kwargs)
-                    return None
-            except ImportError:
-                pass
-        return func(*args,**kwargs)
+        try:
+            from mpi4py import MPI
+            comm = MPI.COMM_WORLD
+            rank = comm.Get_rank()
+            if rank == 0:
+                return func(*args,**kwargs)
+            else:
+                return None
+        except ImportError:
+            return func(*args,**kwargs)
     return wrapper
 
 

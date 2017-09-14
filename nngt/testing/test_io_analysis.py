@@ -71,5 +71,5 @@ class Test_Analysis(TestBasis):
 if not nngt.get_config('mpi'):
     suite = unittest.TestLoader().loadTestsFromTestCase(Test_Analysis)
 
-if __name__ == "__main__":
-    unittest.main()
+    if __name__ == "__main__":
+        unittest.main()

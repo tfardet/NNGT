@@ -144,7 +144,8 @@ class Graph(nngt.core.GraphObject):
                   from_string=False):
         '''
         Import a saved graph from a file.
-        @todo: implement population and shape loading, implement gml, dot, xml, gt
+        @todo: implement population and shape loading, implement gml, dot, xml,
+        gt
 
         Parameters
         ----------

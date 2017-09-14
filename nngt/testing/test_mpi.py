@@ -1,11 +1,24 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
-
-# test_generation.py
-
-# This file is part of the NNGT module
-# Distributed as a free software, in the hope that it will be useful, under the
-# terms of the GNU General Public License.
+#
+# test_mpi.py
+#
+# This file is part of the NNGT project to generate and analyze
+# neuronal networks and their activity.
+# Copyright (C) 2015-2017  Tanguy Fardet
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
 Test the main methods of the :mod:`~nngt.generation` module.
@@ -35,22 +48,6 @@ from tools_testing import foreach_graph
 # Test MPI #
 # -------- #
 
-def _get_connections(instruct):
-    nodes = instruct["nodes"]
-    density = instruct.get("density", -1)
-    edges = instruct.get("edges", -1)
-    average_degree = instruct.get("avg_deg", -1)
-    reciprocity = instruct.get("reciprocity", -1)
-    directed = instruct.get("directed", True)
-    #~ weighted = instruct.get("weighted", True))
-    return nodes, density, edges, average_degree, directed, reciprocity
-
-
-
-# ---------- #
-# Test class #
-# ---------- #
-
 class TestMPI(TestBasis):
     
     '''
@@ -65,18 +62,18 @@ class TestMPI(TestBasis):
         "distance_rule": _distance_rule_exp,
     }
 
-    tolerance = 0.01
+    tolerance = 0.08
     
     @property
     def test_name(self):
         return "test_mpi"
 
     def gen_graph(self, graph_name):
+        di_instructions = self.parser.get_graph_options(graph_name)
+        graph = nngt.generate(di_instructions)
         if rank == 0:
-            di_instructions = self.parser.get_graph_options(graph_name)
-            graph = nngt.generate(di_instructions)
             graph.set_name(graph_name)
-            return graph, di_instructions
+        return graph, di_instructions
 
     @foreach_graph
     @unittest.skipIf(not nngt.get_config('mpi'), "Not using MPI.")
@@ -89,17 +86,30 @@ class TestMPI(TestBasis):
             graph_type = instructions["graph_type"]
             ref_result = self.theo_prop[graph_type](instructions)
             computed_result = self.exp_prop[graph_type](graph, instructions)
-            self.assertTrue(np.allclose(
-                ref_result, computed_result, self.tolerance),
-                "Test for graph {} failed:\nref = {} vs exp {}\
-                ".format(graph.name, ref_result, computed_result))
+            if graph_type == 'distance_rule':
+                # average degree
+                self.assertTrue(
+                    ref_result[0] == computed_result[0],
+                    "Avg. deg. for graph {} failed:\nref = {} vs exp {}\
+                    ".format(graph.name, ref_result[0], computed_result[0]))
+                # average error on distance distribution
+                sqd = np.square(
+                    np.subtract(ref_result[1:], computed_result[1:]))
+                avg_sqd = sqd / np.square(computed_result[1:])
+                err = np.sqrt(avg_sqd).mean()
+                tolerance = (self.tolerance if instructions['rule'] == 'lin'
+                             else 0.25)
+                self.assertTrue(err <= tolerance,
+                    "Distance distribution for graph {} failed:\nerr = {} > {}\
+                    ".format(graph.name, err, tolerance))
 
 
 # ---------- #
 # Test suite #
 # ---------- #
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestMPI)
+if nngt.get_config('mpi'):
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestMPI)
 
 if __name__ == "__main__":
     unittest.main()

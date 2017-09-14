@@ -71,6 +71,9 @@ def foreach_graph(func):
             if nx and "corr" in graph_name:
                 print("Skipping correlated attributes with networkx")
             else:
-                g, di = self.gen_graph(graph_name)
-                func(self, g, instructions=di, **kwargs)
+                generated = self.gen_graph(graph_name)
+                # check for None when using MPI
+                if generated is not None:
+                    g, di = generated
+                    func(self, g, instructions=di, **kwargs)
     return wrapper

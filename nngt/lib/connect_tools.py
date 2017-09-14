@@ -5,6 +5,7 @@
 
 import numpy as np
 import scipy.sparse as ssp
+from scipy.spatial.distance import cdist
 from numpy.random import randint
 
 import nngt
@@ -136,8 +137,8 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
 
 def dist_rule(rule, pos_src, pos_targets, scale, dist=None):
     ''' DR test from one source to several targets '''
-    src_pos = np.array([pos_src]).T
-    dist_tmp = np.linalg.norm(src_pos - pos_targets, axis=0)
+    src_pos = np.array([pos_src])
+    dist_tmp = np.squeeze(cdist(src_pos, pos_targets.T), axis=0)
     if dist is not None:
         dist.extend(dist_tmp)
     if rule == 'exp':

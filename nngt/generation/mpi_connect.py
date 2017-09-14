@@ -32,7 +32,6 @@ import nngt
 from nngt.lib import InvalidArgument
 from nngt.lib.connect_tools import *
 
-
 __all__ = [
     "_distance_rule",
     "_erdos_renyi",
@@ -97,26 +96,24 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
 
     # the number of trials should be done depending on the number of
     # neighbours that each node has, so compute this number
-    tot_neighbours = 0
+    local_neighbours = 0
 
     for tgt_list in targets:
-        tot_neighbours += len(tgt_list)
+        local_neighbours += len(tgt_list)
 
     comm.Barrier()
 
-    tot_neighbours = comm.gather(tot_neighbours, root=0)
-    final_tot = None
+    tot_neighbours = comm.gather(local_neighbours, root=0)
     if rank == 0:
-        print(type(tot_neighbours))
         final_tot = np.sum(tot_neighbours)
         assert final_tot > num_edges, \
             "Scale is too small: there are not enough close neighbours to " +\
             "create the required number of connections. Increase `scale` " +\
             "or `neuron_density`."
+    else:
+        final_tot = None
     final_tot = comm.bcast(final_tot, root=0)
     norm = 1. / final_tot
-
-    comm.Barrier()
 
     # try to create edges until num_edges is attained
     if rank == 0:
@@ -138,7 +135,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             test = dist_rule(rule, positions[:, s], positions[:, tgts[t]],
                              scale, dist=dist_tmp)
             test = np.greater(test, np.random.uniform(size=num_try))
-            edges_tmp[0].extend(np.full(num_try, s)[test])
+            edges_tmp[0].extend(np.repeat(s, num_try)[test])
             edges_tmp[1].extend(tgts[t][test])
             dist_local.extend(np.array(dist_tmp)[test])
 
@@ -169,4 +166,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     new_seed = comm.bcast(new_seed, root=0)
     np.random.seed(new_seed)
 
-    return ia_edges
+    if rank == 0:
+        return ia_edges
+    else:
+        return None

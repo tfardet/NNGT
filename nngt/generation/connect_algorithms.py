@@ -374,7 +374,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
                              scale, dist=dist_tmp)
             test = np.greater(test, np.random.uniform(size=num_try))
             dist.extend(np.array(dist_tmp)[test])
-            edges_tmp[0].extend(np.full(np.sum(test), s))
+            edges_tmp[0].extend(np.repeat(s, num_try)[test])
             edges_tmp[1].extend(tgts[t][test])
 
         # assess the current number of edges
@@ -397,5 +397,4 @@ def price_network():
 
 
 if nngt.get_config("graph_library") == "graph-tool":
-    print(nngt.get_config("graph_library"))
     from graph_tool.generation import price_network

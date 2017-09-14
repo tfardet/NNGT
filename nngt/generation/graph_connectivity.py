@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 #
+# graph_connectivity.py
+#
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
@@ -41,7 +43,7 @@ if nngt.get_config("multithreading"):
         from .connect_algorithms import price_network
         using_mt_algorithms = True
         logger.debug("Using multithreaded algorithms compiled on install.")
-        nngt.set_config('multithreading', True)
+        nngt.set_config('multithreading', True, silent=True)
     except Exception as e:
         try:
             import cython
@@ -51,7 +53,7 @@ if nngt.get_config("multithreading"):
             using_mt_algorithms = True
             logger.debug(
                 str(e) + "\n\tCompiled multithreaded algorithms on-the-run.")
-            nngt.set_config('multithreading', True)
+            nngt.set_config('multithreading', True, silent=True)
         except Exception as e2:
             logger.warning(
                 str(e) + "\n\t" + str(e2) + "\n\t" +
@@ -59,8 +61,12 @@ if nngt.get_config("multithreading"):
 if not using_mt_algorithms:
     from .connect_algorithms import *
 if nngt.get_config("mpi"):
-    from .mpi_connect import _distance_rule  # overwrite only _distance_rule
-    nngt.set_config('mpi', True)
+    try:
+        from .mpi_connect import _distance_rule  # overwrite _distance_rule
+        nngt.set_config('mpi', True, silent=True)
+    except ImportError as e:
+        nngt.set_config('mpi', False, silent=True)
+        raise e
 
 
 
@@ -625,8 +631,10 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
             ids, ids, density, edges, avg_deg, scale, rule, shape, positions,
             directed, multigraph, distance=distance, **kwargs)
         attr = {'distance': distance}
-        graph_dr.new_edges(ia_edges, attributes=attr)
-        distances = graph_dr.get_edge_attributes(name='distance')
+        # check for None if MPI
+        if ia_edges is not None:
+            graph_dr.new_edges(ia_edges, attributes=attr)
+            distances = graph_dr.get_edge_attributes(name='distance')
 
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr

@@ -200,6 +200,7 @@ class TestGeneration(TestBasis):
     def test_name(self):
         return "test_generation"
 
+    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     def gen_graph(self, graph_name):
         di_instructions = self.parser.get_graph_options(graph_name)
         graph = nngt.generate(di_instructions)
@@ -227,7 +228,6 @@ class TestGeneration(TestBasis):
             err = np.sqrt(avg_sqd).mean()
             tolerance = (self.tolerance if instructions['rule'] == 'lin'
                          else 0.25)
-            print(err, tolerance)
             self.assertTrue(err <= tolerance,
                 "Distance distribution for graph {} failed:\nerr = {} > {}\
                 ".format(graph.name, err, tolerance))
@@ -245,5 +245,5 @@ class TestGeneration(TestBasis):
 if not nngt.get_config('mpi'):
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGeneration)
 
-if __name__ == "__main__":
-    unittest.main()
+    if __name__ == "__main__":
+        unittest.main()

@@ -136,7 +136,8 @@ _logger = logging.getLogger(__name__)
 _init_logger(_logger)
 
 # IMPORTANT: afterwards, import config
-from .lib.nngt_config import get_config, set_config, _load_config, _convert
+from .lib.nngt_config import (get_config, set_config, _load_config, _convert,
+                              _log_conf_changed)
 
 # check that config file exists
 if not _os.path.isfile(_new_config):  # if it does not, create it
@@ -307,4 +308,4 @@ Database:       {db}
     s="s" if _config["omp"] > 1 else ""
 )
 
-_logger.info(_log_info)
+_log_conf_changed(_log_info)

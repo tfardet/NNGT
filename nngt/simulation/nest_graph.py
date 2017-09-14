@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 #
+# nest_graph.py
+#
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
@@ -26,6 +28,7 @@ from scipy.signal import argrelmax, argrelmin
 
 from nngt.lib import InvalidArgument, nonstring_container, WEIGHT, DELAY
 from nngt.lib.sorting import _sort_groups
+from nngt.lib.test_functions import mpi_checker
 
 
 __all__ = [
@@ -35,11 +38,11 @@ __all__ = [
 ]
 
 
-#-----------------------------------------------------------------------------#
-# Topology
-#------------------------
-#
+# -------- #
+# Topology #
+# -------- #
 
+@mpi_checker
 def make_nest_network(network, send_only=None, use_weights=True):
     '''
     Create a new network which will be filled with neurons and
