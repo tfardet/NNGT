@@ -288,7 +288,7 @@ class _GtGraph(BaseGraph):
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        edges = self.get_edges()
+        edges = super(_GtGraph, self).get_edges()
         order = np.argsort(edges[:, 2])
         return edges[order, :2]
     

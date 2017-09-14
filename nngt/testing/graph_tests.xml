@@ -17,12 +17,10 @@
 
     <test name="test_generation">
 		<graph_list>
-<!--
             <name>fixed_indegree</name>
             <name>fixed_outdegree</name>
             <name>gaussian_indegree</name>
             <name>gaussian_outdegree</name>
--->
 <!--
             <name>erdos_sparse</name>
             <name>erdos_dense</name>

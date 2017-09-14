@@ -68,5 +68,6 @@ install: sudo pipv install -e ".[$GL]"
 script:
     - coverage run -m nose2.__main__ -F
     - export OMP=4 && coverage run -m nose2.__main__ -F
+    - export MPI=1 && coverage run -m nose2.__main__ -F
 
 after_success: coveralls
