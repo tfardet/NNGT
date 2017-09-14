@@ -44,7 +44,7 @@ before_install:
     - sudo apt-get autoremove
 
     # requirements for building + installing scipy
-    - sudo apt-get install -y build-essential gcc-4.9 autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev
+    - sudo apt-get install -y build-essential gcc-4.9 autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi
     # Install pip and other libraries
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python get-pip.py
