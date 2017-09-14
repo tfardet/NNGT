@@ -144,8 +144,10 @@ def set_config(config, value=None, silent=False):
         matplotlib.rc('text', usetex=True)
     # log changes
     _configure_logger(nngt._logger)
+    glib = (nngt._config["library"] if nngt._config["library"] is not None
+            else nngt)
     conf_info = config_info.format(
-        gl     = nngt._config["graph_library"],
+        gl     = nngt._config["graph_library"] + " " + glib.__version__[:5],
         thread = nngt._config["multithreading"],
         plot   = nngt._config["with_plot"],
         nest   = nngt._config["with_nest"],

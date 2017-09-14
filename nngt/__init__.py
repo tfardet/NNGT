@@ -80,7 +80,7 @@ import sys as _sys
 import logging
 
 
-version = '0.8a'
+__version__ = '0.8a'
 ''' :obj:`str`, current NNGT version '''
 
 
@@ -152,7 +152,7 @@ else:                                 # if it does check it is up-to-date
             opt_val = _convert(opt[sep+1:].strip())
             if opt_name == "version":
                 config_version = opt_val
-        if config_version != version:
+        if config_version != __version__:
             _shutil.copy(_default_config, _new_config)
             _logger.warning("Updating the configuration file, your previous "
                             "settings have be overwritten.")
@@ -236,7 +236,7 @@ __all__ = [
     "SpatialGraph",
     "SpatialNetwork",
     "use_library",
-    "version"
+    "__version__"
 ]
 
 
@@ -289,6 +289,9 @@ if _config["use_database"]:
 # Print config information #
 # ------------------------ #
 
+_glib_version = (_config["library"].__version__[:5]
+                 if _config["library"] is not None else __version__)
+
 _log_info = '''
 # ----------- #
 # NNGT loaded #
@@ -299,7 +302,7 @@ Plotting:       {plot}
 NEST support:   {nest}
 Database:       {db}
 '''.format(
-    gl=_config["graph_library"],
+    gl=_config["graph_library"] + ' ' + _glib_version,
     thread=_config["multithreading"],
     plot=_config["with_plot"],
     nest=_config["with_nest"],
