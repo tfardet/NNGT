@@ -35,7 +35,7 @@ before_install:
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - if [[ "$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/xenial xenial universe\n" >> /etc/apt/sources.list'; fi
     - if [[ "$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/xenial xenial universe\n" >> /etc/apt/sources.list'; fi
-    - if [[ "$GL" == "gt" ]]; then apt-key adv --keyserver pgp.skewed.de --recv-key 612DEFB798507F25; fi
+    - if [[ "$GL" == "gt" ]]; then gpg --keyserver 'http://pgp.skewed.de:11371/pks/lookup?op=get&search=0x612DEFB798507F25' --recv-key 98507f25 && gpg -a --export 98507F25 | sudo apt-key add -; fi
     # update package repository status (-qq is more quiet)
     - sudo rm -rf /var/lib/apt/lists/*
     - ls /etc/apt/sources.list.d/
