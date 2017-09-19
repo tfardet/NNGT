@@ -33,6 +33,7 @@ from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
                       default_synapse, POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string
+from nngt.lib.logger import _log_message
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
@@ -282,7 +283,8 @@ class Graph(nngt.core.GraphObject):
         elif "delays" in kwargs and not hasattr(graph, '_d'):
             graph._d = kwargs["delays"]
         elif "delays" in kwargs:
-            logger.warning('Graph already had delays set, ignoring new ones.')
+            _log_message(logger, "WARNING",
+                         'Graph already had delays set, ignoring new ones.')
         graph._init_bioproperties(neural_pop)
         if copy:
             return graph

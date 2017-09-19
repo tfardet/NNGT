@@ -27,6 +27,7 @@ import scipy.signal as sps
 import scipy.sparse as ssp
 
 from nngt.lib import nonstring_container, find_idx_nearest
+from nngt.lib.logger import _log_message
 
 
 __all__ = [
@@ -263,7 +264,7 @@ def _b2_from_data(ids, data):
             else:
                 b2[i] = np.inf
     else:
-        logger.warning('No spikes in the data.')
+        _log_message(logger, "WARNING", 'No spikes in the data.')
     return b2
 
 

@@ -29,6 +29,7 @@ import scipy.sparse as ssp
 import nngt
 from .reloading import reload_module
 from .errors import not_implemented
+from .logger import _log_message
 
 
 logger = logging.getLogger(__name__)
@@ -113,11 +114,14 @@ def use_library(library, reloading=True, silent=False):
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
     if success:
         if silent:
-            logger.debug("Successfuly updated to " + library + ".")
+            _log_message(logger, "DEBUG",
+                         "Successfuly updated to " + library + ".")
         else:
-            logger.info("Successfuly updated to " + library + ".")
+            _log_message(logger, "INFO",
+                         "Successfuly updated to " + library + ".")
     else:
-        logger.warning("Error, could not switch to " + library + ".")
+        _log_message(logger, "WARNING",
+                     "Error, could not switch to " + library + ".")
         if error is not None:
             raise error
 

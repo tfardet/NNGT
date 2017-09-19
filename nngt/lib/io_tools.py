@@ -126,8 +126,9 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             shape = Shape.from_wtk(
                 di_notif['shape'], min_x=min_x, max_x=max_x, unit=unit)
         else:
-            logger.warning('A Shape object was present in the file but could '
-                           'not be loaded because Shapely is not installed.')
+            _log_message(logger, "WARNING",
+                         'A Shape object was present in the file but could '
+                         'not be loaded because Shapely is not installed.')
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
         y = np.fromstring(di_notif['y'], sep=separator)
@@ -281,8 +282,9 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
             additional_notif['min_x'] = min_x
             additional_notif['max_x'] = max_x
         else:
-            logger.warning('The `shape` attribute of the graph could not be '
-                           'saved to file because Shapely is not installed.')
+            _log_message(logger, "WARNING",
+                         'The `shape` attribute of the graph could not be '
+                         'saved to file because Shapely is not installed.')
         pos = graph.get_positions()
         # temporarily disable numpy cut threshold to save string
         old_threshold = np.get_printoptions()['threshold']

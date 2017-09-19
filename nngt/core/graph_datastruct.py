@@ -33,6 +33,7 @@ import scipy.spatial as sptl
 from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
                       default_synapse, POS, WEIGHT, DELAY, DIST, TYPE, BWEIGHT)
 from nngt.lib.rng_tools import _eprop_distribution
+from nngt.lib.logger import _log_message
 
 
 __all__ = [
@@ -507,9 +508,10 @@ class NeuralPop(OrderedDict):
                 "is not `None`; to disable this, use `set_models(None)` "
                 "method on this NeuralPop instance.")
         elif group.has_model and not self._has_models:
-            logger.warning(
-                "This NeuralPop is not set to take models into account; use "
-                "the `set_models` method to change its behaviour.")
+            _log_message(logger, "WARNING",
+                         "This NeuralPop is not set to take models into "
+                         "account; use the `set_models` method to change its "
+                         "behaviour.")
 
 
 # ----------------------------- #
@@ -619,10 +621,11 @@ class NeuralGroup:
     @ids.setter
     def ids(self, value):
         if self._desired_size != len(value):
-            logger.warning('The length of the `ids` passed is not the same as '
-                           'the initial size that was declared: {} before '
-                           'vs {} now. Setting `ids` anyway, but check your '
-                           'code!'.format(self._desired_size, len(value)))
+            _log_message(logger, "WARNING",
+                         'The length of the `ids` passed is not the same as '
+                         'the initial size that was declared: {} before '
+                         'vs {} now. Setting `ids` anyway, but check your '
+                         'code!'.format(self._desired_size, len(value)))
         self._ids = value
         self._desired_size = None
 
@@ -980,7 +983,8 @@ def _check_syn_spec(syn_spec, group_names, groups):
     nspec = len(edge_keys)
     has_default = len(syn_spec) > nspec
     if mt_type and nspec < gsize**2 and not alltypes and not has_default:
-        logger.warning(
+        _log_message(
+            logger, "WARNING",
             'There is not one synaptic specifier per inter-group'
             'connection in `syn_spec` and no default model was provided. '
             'Therefore, {} or 4 entries were expected but only {} were '

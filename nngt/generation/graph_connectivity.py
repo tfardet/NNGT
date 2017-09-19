@@ -42,7 +42,8 @@ if nngt.get_config("multithreading"):
         from .cconnect import *
         from .connect_algorithms import price_network
         using_mt_algorithms = True
-        logger.debug("Using multithreaded algorithms compiled on install.")
+        _log_message(logger, "DEBUG",
+                     "Using multithreaded algorithms compiled on install.")
         nngt.set_config('multithreading', True, silent=True)
     except Exception as e:
         try:
@@ -51,12 +52,12 @@ if nngt.get_config("multithreading"):
             from .cconnect import *
             from .connect_algorithms import price_network
             using_mt_algorithms = True
-            logger.debug(
-                str(e) + "\n\tCompiled multithreaded algorithms on-the-run.")
+            _log_message(logger, "DEBUG", str(e) + "\n\tCompiled "
+                         "multithreaded algorithms on-the-run.")
             nngt.set_config('multithreading', True, silent=True)
         except Exception as e2:
-            logger.warning(
-                str(e) + "\n\t" + str(e2) + "\n\t" +
+            _log_message(
+                logger, "WARNING", str(e) + "\n\t" + str(e2) + "\n\t"
                 "Cython import failed, using non-multithreaded algorithms.")
 if not using_mt_algorithms:
     from .connect_algorithms import *

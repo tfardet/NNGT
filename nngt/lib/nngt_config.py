@@ -90,19 +90,22 @@ def set_config(config, value=None, silent=False):
         has_mt = new_config.get(mt, old_mt)
         if new_config["omp"] > 1:
             if mt in new_config and not new_config[mt]:
-                logger.warning("Updating to 'multithreading' == False with "
-                               "'omp' greater than one.")
+                _log_message(logger, "WARNING",
+                             "Updating to 'multithreading' == False with "
+                             "'omp' greater than one.")
             elif mt not in new_config and not old_mt:
                 new_config[mt] = True
-                logger.warning("'multithreading' was set to False but new "
-                               "'omp' is greater than one. Updating "
-                               "'multithreading' to True.")
+                _log_message(logger, "WARNING",
+                             "'multithreading' was set to False but new "
+                             "'omp' is greater than one. Updating "
+                             "'multithreading' to True.")
     if 'mpi' in new_config:
         if old_mt:
             new_config[mt] = False
-            logger.warning('"mpi" set to True but previous configuration was '
-                           'using OpenMP; setting "multithreading" to False '
-                           'to switch to mpi algorithms.')
+            _log_message(logger, "WARNING",
+                         '"mpi" set to True but previous configuration was '
+                         'using OpenMP; setting "multithreading" to False '
+                         'to switch to mpi algorithms.')
     if new_config.get('mpi', False) and new_config.get(mt, False):
         raise InvalidArgument('Cannot set both "mpi" and "multithreading" to '
                               'True simultaneously, choose one or the other.')
@@ -134,10 +137,11 @@ def set_config(config, value=None, silent=False):
         if omp_nest == new_config["omp"]:
             nngt._config["library"].openmp_set_num_threads(nngt._config["omp"])
         else:
-            logger.warning("Using NEST and graph_tool, OpenMP number must be "
-                           "consistent throughout the code. Current NEST "
-                           "config states omp = " + str(omp_nest) + ", hence "
-                           "`graph_tool` configuration was not changed.")
+            _log_message(logger, "WARNING",
+                         "Using NEST and graph_tool, OpenMP number must be "
+                         "consistent throughout the code. Current NEST "
+                         "config states omp = " + str(omp_nest) + ", hence "
+                         "`graph_tool` configuration was not changed.")
     # update matplotlib
     if nngt._config['use_tex']:
         import matplotlib

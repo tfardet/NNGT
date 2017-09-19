@@ -38,6 +38,7 @@ from nngt.plot import palette, markers
 from nngt.plot.plt_properties import _set_new_plot, _set_ax_lims
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.sorting import _sort_groups, _sort_neurons
+from nngt.lib.logger import _log_message
 
 
 logger = logging.getLogger(__name__)
@@ -186,9 +187,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         else:
             lst_labels = label
         if len(label) != len(lst_rec):
-            logger.warning('Incorrect length for `label`: expecting {} but '
-                           'got {}.\n'
-                           'Ignoring.'.format(len(lst_rec), len(label)))
+            _log_message(logger, "WARNING",
+                         'Incorrect length for `label`: expecting {} but got '
+                         '{}.\nIgnoring.'.format(len(lst_rec), len(label)))
             lst_labels = [None for _ in range(len(lst_rec))]
 
     # plot
@@ -433,7 +434,8 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         if show:
             plt.show()
     else:
-        logger.warning("No activity was detected during the simulation.")
+        _log_message(logger, "WARNING",
+                     "No activity was detected during the simulation.")
     return lines
 
 
