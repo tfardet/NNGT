@@ -27,6 +27,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument
+from nngt.lib.logger import _log_message
 from ..geometry import Shape, _shapely_support
 
 

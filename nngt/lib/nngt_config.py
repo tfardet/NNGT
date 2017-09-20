@@ -24,7 +24,7 @@ import sys
 import logging
 
 import nngt
-from .logger import _configure_logger, _init_logger
+from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
 from .test_functions import mpi_checker
 

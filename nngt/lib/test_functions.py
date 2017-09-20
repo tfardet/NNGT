@@ -35,22 +35,38 @@ def valid_gen_arguments(func):
     return wrapper
 
 
+def on_master_process():
+    '''
+    Check whether the current code is executing on the master process (rank 0)
+    if MPI is used.
+
+    Returns
+    -------
+    True if rank is 0, if mpi4py is not present or if MPI is not used,
+    otherwise False.
+    '''
+    try:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        if rank == 0:
+            return True
+        else:
+            return False
+    except ImportError:
+        return True
+
+
 def mpi_checker(func):
     '''
     Decorator used to check for mpi and make sure only rank zero is used
     to store and generate the graph if the mpi algorithms are activated.
     '''
     def wrapper(*args, **kwargs):
-        try:
-            from mpi4py import MPI
-            comm = MPI.COMM_WORLD
-            rank = comm.Get_rank()
-            if rank == 0:
-                return func(*args,**kwargs)
-            else:
-                return None
-        except ImportError:
+        if on_master_process():
             return func(*args,**kwargs)
+        else:
+            return None
     return wrapper
 
 

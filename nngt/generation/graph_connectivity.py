@@ -30,6 +30,7 @@ import numpy as np
 import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
 from nngt.lib.connect_tools import _set_options
+from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import mpi_checker
 
 # try to import multithreaded or mpi algorithms

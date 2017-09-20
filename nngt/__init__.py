@@ -200,6 +200,7 @@ if not _libs:
 
 from .lib.io_tools import load_from_file, save_to_file
 from .lib.rng_tools import seed
+from .lib.test_functions import on_master_process
 
 from .core.graph_datastruct import NeuralPop, NeuralGroup, GroupProperty
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
@@ -231,6 +232,7 @@ __all__ = [
     "Network",
     "NeuralGroup",
     "NeuralPop",
+    "on_master_process",
     "save_to_file",
     "seed",
     "set_config",
