@@ -110,7 +110,6 @@ _config = {
     'use_database': False,
     'use_tex': False,
     'seeds': None,
-    'set_omp_graph_tool': False,
     'with_nest': False,
     'with_plot': False,
 }
