@@ -4,13 +4,13 @@ language: generic
 sudo: required
 dist: trusty
 compiler: gcc
-# add toolchains for newer, C++14 supporting gcc-6
+# add toolchains for newer, C++11 supporting gcc-5
 addons:
 apt:
   sources:
     - ubuntu-toolchain-r-test
   packages:
-    - g++-6 gcc-6 libstdc++-6-dev
+    - g++-5 gcc-5 libstdc++-5-dev
 
 matrix:
     include:

@@ -411,7 +411,7 @@ class _NxGraph(BaseGraph):
             di_deg = self.in_degree(node_list, weight=weight)
         else:
             di_deg = self.out_degree(node_list, weight=weight)
-        return np.array([d[0] for d in di_deg])
+        return np.array([d[1] for d in di_deg])
 
     def betweenness_list(self, btype="both", use_weights=False, **kwargs):
         nx = nngt._config["library"]
