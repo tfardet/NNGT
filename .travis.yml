@@ -3,6 +3,14 @@ language: generic
 #For Ubuntu Trusty (14.04 LTS)
 sudo: required
 dist: trusty
+compiler: gcc
+# add toolchains for newer, C++14 supporting gcc-6
+addons:
+apt:
+  sources:
+    - ubuntu-toolchain-r-test
+  packages:
+    - g++-6 gcc-6 libstdc++-6-dev
 
 matrix:
     include:
@@ -25,14 +33,6 @@ cache:
     - pip
 
 before_install:
-
-    # get repository for clang-3.6 stuff (including clang-format-3.6)
-    #~ - sudo sh -c 'echo -n "deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.6 main\n" >> /etc/apt/sources.list'
-    #~ - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
-    - sudo sh -c 'echo -n "deb http://llvm-apt.ecranbleu.org/apt/trusty/ llvm-toolchain-trusty main\n" >> /etc/apt/sources.list'
-    - wget -O - http://llvm-apt.ecranbleu.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
-    # add ppa for gcc>4.9
-    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - if [[ "$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'; fi
     - if [[ "$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/trusty trusty universe\n" >> /etc/apt/sources.list'; fi
     - if [[ "$GL" == "gt" ]]; then gpg --keyserver 'http://pgp.skewed.de:11371/pks/lookup?op=get&search=0x612DEFB798507F25' --recv-key 98507f25 && gpg -a --export 98507F25 | sudo apt-key add -; fi
@@ -42,9 +42,8 @@ before_install:
     - sudo apt-get update -qq
     # remove any obsolete libraries
     - sudo apt-get autoremove
-
     # requirements for building + installing scipy
-    - sudo apt-get install -y build-essential gcc-4.9 autoconf automake libtool libltdl7-dev libreadline6-dev libncurses5-dev libgsl0-dev python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev
+    - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev
     # Install pip and other libraries
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python get-pip.py
