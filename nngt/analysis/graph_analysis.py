@@ -198,7 +198,7 @@ def local_clustering(graph, nodes=None):
 # Graph properties #
 # ---------------- #
 
-def assortativity(graph, deg_type="total"):
+def assortativity(graph, deg_type="in"):
     '''
     Assortativity of the graph.
 
@@ -206,7 +206,7 @@ def assortativity(graph, deg_type="total"):
     ----------
     graph : :class:`~nngt.Graph` or subclass
         Network to analyze.
-    deg_type : string, optional (default: 'total')
+    deg_type : string, optional (default: 'in')
         Type of degree to take into account (among 'in', 'out' or 'total').
 
     Returns
@@ -214,11 +214,17 @@ def assortativity(graph, deg_type="total"):
     a float quantifying the graph assortativity.
     '''
     if nngt._config["graph_library"] == "igraph":
-        return graph.assortativity_degree(graph._directed)
-    elif nngt._config["graph_library"] == "graph_tool":
-        return nngt.analyze_graph["assortativity"](graph, "total")[0]
+        deg_list = graph.get_degrees(deg_type=deg_type)
+        return graph.assortativity(deg_list, directed=graph.is_directed())
+        #~ return graph.assortativity(deg_type, directed=graph.is_directed())
+    elif nngt._config["graph_library"] == "graph-tool":
+        return nngt.analyze_graph["assortativity"](graph, deg_type)[0]
     else:
-        return nngt.analyze_graph["assortativity"](graph)
+        if deg_type == 'total':
+            raise InvalidArgument("Cannot use total degree assortativity with "
+                                  "`networkx`.")
+        return nngt.analyze_graph["assortativity"](graph, x=deg_type,
+                                                   y=deg_type)
 
 
 def reciprocity(graph):
@@ -275,8 +281,8 @@ def num_scc(graph, listing=False):
     num_wcc
     '''
     lst_histo = None
-    if nngt._config["graph_library"] == "graph_tool":
-        vprop_comp, lst_histo = nngt.analyze_graph["scc"](graph,directed=True)
+    if nngt._config["graph_library"] == "graph-tool":
+        vprop_comp, lst_histo = nngt.analyze_graph["scc"](graph, directed=True)
     elif nngt._config["graph_library"] == "igraph":
         lst_histo = graph.clusters()
         lst_histo = [cluster for cluster in lst_histo]
@@ -298,7 +304,7 @@ def num_wcc(graph, listing=False):
     num_scc
     '''
     lst_histo = None
-    if nngt._config["graph_library"] == "graph_tool":
+    if nngt._config["graph_library"] == "graph-tool":
         _, lst_histo = nngt.analyze_graph["wcc"](graph, directed=False)
     elif nngt._config["graph_library"] == "igraph":
         lst_histo = graphclusters("WEAK")

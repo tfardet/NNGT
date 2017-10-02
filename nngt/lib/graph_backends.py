@@ -121,7 +121,8 @@ def use_library(library, reloading=True, silent=False):
                          "Successfuly updated to " + library + ".")
     else:
         _log_message(logger, "WARNING",
-                     "Error, could not switch to " + library + ".")
+                     "Error, could not switch to " + library + ": "
+                     "{}.".format(error))
         if error is not None:
             raise error
 
@@ -143,7 +144,7 @@ def _set_graph_tool():
     # analysis functions
     from graph_tool.spectral import adjacency as _adj
     from graph_tool.centrality import betweenness, closeness
-    from graph_tool.correlations import assortativity as assort
+    from graph_tool.correlations import scalar_assortativity as assort
     from graph_tool.topology import (edge_reciprocity,
                                     label_components, pseudo_diameter)
     from graph_tool.clustering import global_clustering, local_clustering
@@ -238,6 +239,9 @@ def _set_igraph():
 
 def _set_networkx():
     import networkx as glib
+    if glib.__version__[0] < '2':
+        raise ImportError("`networkx {} is ".format(glib.__version__) +\
+                          "installed while version 2+ is required.")
     from networkx import DiGraph as GraphLib
     nngt._config["graph_library"] = "networkx"
     nngt._config["library"] = glib

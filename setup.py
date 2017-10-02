@@ -92,7 +92,7 @@ setup(
             'PySide': ['PySide'],
             'PDF':  ["ReportLab>=1.2", "RXP"],
             'reST': ["docutils>=0.3"],
-            'nx': ['networkx'],
+            'nx': ['networkx>=2.0'],
             'ig': ['python-igraph']
         },
         entry_points = {

@@ -19,7 +19,7 @@ Regardless of your needs, the following libraries are required:
 * `scipy <http://www.scipy.org/scipylib/index.html>`_
 * graph_tool_
 * or igraph_
-* or networkx_
+* or networkx_ (> 2.0)
 
 
 Additionnal dependencies

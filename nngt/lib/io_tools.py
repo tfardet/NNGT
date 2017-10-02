@@ -323,7 +323,7 @@ def _get_format(fmt, filename):
         elif filename.endswith('.dot'):
             fmt = 'dot'
         elif (filename.endswith('.gt') and
-              nngt._config["graph_library"] == "graph_tool"):
+              nngt._config["graph_library"] == "graph-tool"):
             fmt = 'gt'
         elif filename.endswith('.nn'):
             fmt = 'neighbour'

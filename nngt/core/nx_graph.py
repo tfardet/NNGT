@@ -126,8 +126,7 @@ class _NxEProperty(BaseProperty):
             else:
                 edges = [name]
         if isinstance(name, str):
-            return np.array(
-                [d[2] for d in self.parent().edges_iter(data=name)])
+            return np.array([d[2] for d in self.parent().edges(data=name)])
         else:
             eprop = {k: [] for k in self.keys()}
             for edge in edges:
@@ -141,7 +140,7 @@ class _NxEProperty(BaseProperty):
             size = self.parent().number_of_edges()
             if len(value) == size:
                 for i, e in enumerate(self.parent().edges()):
-                    self.parent().edge[e[0]][e[1]][name] = value[i]
+                    self.parent().edges[e[0], e[1]][name] = value[i]
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "edge in the graph is required")
@@ -260,7 +259,7 @@ class _NxGraph(BaseGraph):
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
-        unordered = np.array([e for e in self.edges_iter()])
+        unordered = np.array([e for e in self.edges()])
         return unordered[self._eattr["eid"].astype(int)]
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
@@ -412,27 +411,26 @@ class _NxGraph(BaseGraph):
             di_deg = self.in_degree(node_list, weight=weight)
         else:
             di_deg = self.out_degree(node_list, weight=weight)
-        return np.array(tuple(di_deg.values()))
+        return np.array([d[0] for d in di_deg])
 
     def betweenness_list(self, btype="both", use_weights=False, **kwargs):
+        nx = nngt._config["library"]
         di_nbetw, di_ebetw = None, None
         w = BWEIGHT if use_weights else None
         if btype in ("both", "node"):
-            di_nbetw = nngt._config["library"].betweenness_centrality(self,
-                                                                weight=BWEIGHT)
+            di_nbetw = nx.betweenness_centrality(self, weight=BWEIGHT)
         if btype in ("both", "edge"):
-            di_ebetw = nngt._config["library"].edge_betweenness_centrality(self,
-                                                                weight=BWEIGHT)
+            di_ebetw = nx.edge_betweenness_centrality(self, weight=BWEIGHT)
         else:
-            di_nbetw = nngt._config["library"].betweenness_centrality(self)
-            di_ebetw = nngt._config["library"].edge_betweenness_centrality(self)
+            di_nbetw = nx.betweenness_centrality(self)
+            di_ebetw = nx.edge_betweenness_centrality(self)
         if btype == "node":
             return np.array(tuple(di_nbetw.values()))
         elif btype == "edge":
             return np.array(tuple(di_ebetw.values()))
         else:
-            return ( np.array(tuple(di_nbetw.values())),
-                     np.array(tuple(di_ebetw.values())) )
+            return (np.array(tuple(di_nbetw.values())),
+                    np.array(tuple(di_ebetw.values())))
 
     def neighbours(self, node, mode="all"):
         '''

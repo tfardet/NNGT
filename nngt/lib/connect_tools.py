@@ -99,7 +99,7 @@ def _no_self_loops(array):
     '''
     Remove self-loops
     '''
-    return array[array[:,0] != array[:,1],:].astype(int)
+    return array[array[:,0] != array[:,1], :].astype(int)
 
 
 def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
