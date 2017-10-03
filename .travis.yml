@@ -4,38 +4,32 @@ language: generic
 sudo: required
 dist: trusty
 compiler: gcc
-# add toolchains for newer, C++11 supporting gcc-5
+# add toolchains for newer, C++11 supporting gcc-6
 addons:
-apt:
-  sources:
+  apt:
+    sources:
     - ubuntu-toolchain-r-test
-  packages:
-    - g++-5 gcc-5 libstdc++-5-dev
+    packages:
+    - gcc-6
+    - g++-6
+
+env:
+    - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
 
 matrix:
     include:
-    - os: linux
-        addons:
-            apt:
-                sources:
-                    - ubuntu-toolchain-r-test
-                packages:
-                    - gcc-6
-                    - g++-6
-        env:
-            - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-            - python: "2.7"
-              env: GL="gt" PYVERSION="2.7"
-            - python: "2.7"
-              env: GL="ig" PYVERSION="2.7"
-            - python: "2.7"
-              env: GL="nx" PYVERSION="2.7"
-            - python: "3.5"
-              env: GL="gt" PYVERSION="3.x"
-            - python: "3.5"
-              env: GL="ig" PYVERSION="3.5"
-            - python: "3.5"
-              env: GL="nx" PYVERSION="3.x"
+        - python: "2.7"
+          env: GL="gt" PYVERSION="2.7"
+        - python: "2.7"
+          env: GL="ig" PYVERSION="2.7"
+        - python: "2.7"
+          env: GL="nx" PYVERSION="2.7"
+        - python: "3.5"
+          env: GL="gt" PYVERSION="3.x"
+        - python: "3.5"
+          env: GL="ig" PYVERSION="3.5"
+        - python: "3.5"
+          env: GL="nx" PYVERSION="3.x"
     fast_finish: true
 
 cache:
