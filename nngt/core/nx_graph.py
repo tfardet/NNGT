@@ -386,7 +386,8 @@ class _NxGraph(BaseGraph):
 
     def clear_all_edges(self):
         ''' Remove all connections in the graph '''
-        self.remove_edges_from(self.edges())
+        ebunch = (e for e in self.edges())
+        self.remove_edges_from(ebunch)
         self._eattr.clear()
 
     def set_node_property(self):
