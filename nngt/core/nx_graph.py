@@ -195,10 +195,9 @@ class _NxEProperty(BaseProperty):
         self._num_values_set[name] = num_edges
 
 
-#-----------------------------------------------------------------------------#
-# Graph
-#------------------------
-#
+# ----- #
+# Graph #
+# ----- #
 
 class _NxGraph(BaseGraph):
 
@@ -362,7 +361,6 @@ class _NxGraph(BaseGraph):
         '''
         if attributes is None:
             attributes = {}
-        _set_edge_attr(self, edge_list, attributes)
         for attr in attributes:
             if "_corr" in attr:
                 raise NotImplementedError("Correlated attributes are not "
@@ -380,6 +378,8 @@ class _NxGraph(BaseGraph):
         # add edge id attribute to get edges in creation order
         attributes["eid"] = np.arange(
             initial_edges, initial_edges + len(edge_list)).astype(int)
+        # create the edges
+        super(_NxGraph, self).add_edges_from(edge_list)
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
         return edge_list

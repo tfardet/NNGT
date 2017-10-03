@@ -62,12 +62,6 @@ class Graph(nngt.core.GraphObject):
 
     __num_graphs = 0
     __max_id = 0
-    #~ __di_property_func = {
-            #~ "reciprocity": reciprocity, "clustering": clustering,
-            #~ "assortativity": assortativity, "diameter": diameter,
-            #~ "scc": num_scc, "wcc": num_wcc, "radius": spectral_radius, 
-            #~ "num_iedges": num_iedges }
-    #~ __properties = __di_property_func.keys()
     
     @classmethod
     def num_graphs(cls):

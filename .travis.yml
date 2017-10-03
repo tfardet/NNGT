@@ -14,18 +14,28 @@ apt:
 
 matrix:
     include:
-        - python: "2.7"
-          env: GL="gt" PYVERSION="2.7"
-        - python: "2.7"
-          env: GL="ig" PYVERSION="2.7"
-        - python: "2.7"
-          env: GL="nx" PYVERSION="2.7"
-        - python: "3.5"
-          env: GL="gt" PYVERSION="3.x"
-        - python: "3.5"
-          env: GL="ig" PYVERSION="3.5"
-        - python: "3.5"
-          env: GL="nx" PYVERSION="3.x"
+    - os: linux
+        addons:
+            apt:
+                sources:
+                    - ubuntu-toolchain-r-test
+                packages:
+                    - gcc-6
+                    - g++-6
+        env:
+            - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+            - python: "2.7"
+              env: GL="gt" PYVERSION="2.7"
+            - python: "2.7"
+              env: GL="ig" PYVERSION="2.7"
+            - python: "2.7"
+              env: GL="nx" PYVERSION="2.7"
+            - python: "3.5"
+              env: GL="gt" PYVERSION="3.x"
+            - python: "3.5"
+              env: GL="ig" PYVERSION="3.5"
+            - python: "3.5"
+              env: GL="nx" PYVERSION="3.x"
     fast_finish: true
 
 cache:

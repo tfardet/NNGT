@@ -115,10 +115,10 @@ def use_library(library, reloading=True, silent=False):
     if success:
         if silent:
             _log_message(logger, "DEBUG",
-                         "Successfuly updated to " + library + ".")
+                         "Successfuly switched to " + library + ".")
         else:
             _log_message(logger, "INFO",
-                         "Successfuly updated to " + library + ".")
+                         "Successfuly switched to " + library + ".")
     else:
         _log_message(logger, "WARNING",
                      "Error, could not switch to " + library + ": "
@@ -283,7 +283,7 @@ def _set_networkx():
     def adj_mat(graph, weight=None):
         return to_scipy_sparse_matrix(graph, weight=weight)
     def get_edges(graph):
-        return graph.edges_iter(data=False)
+        return graph.edges(data=False)
     # store functions
     nngt.analyze_graph["assortativity"] = degree_assortativity_coefficient
     nngt.analyze_graph["diameter"] = diameter
