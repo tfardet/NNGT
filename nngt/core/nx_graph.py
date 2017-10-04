@@ -376,8 +376,10 @@ class _NxGraph(BaseGraph):
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val[unique]))
         # add edge id attribute to get edges in creation order
-        attributes["eid"] = np.arange(
-            initial_edges, initial_edges + len(edge_list)).astype(int)
+        attributes["names"] = ["eid"]
+        attributes["types"] = ["int"]
+        attributes["values"] = [np.arange(
+            initial_edges, initial_edges + len(edge_list)).astype(int)]
         # create the edges
         super(_NxGraph, self).add_edges_from(edge_list)
         # call parent function to set the attributes
@@ -386,7 +388,7 @@ class _NxGraph(BaseGraph):
 
     def clear_all_edges(self):
         ''' Remove all connections in the graph '''
-        ebunch = (e for e in self.edges())
+        ebunch = [e for e in self.edges()]
         self.remove_edges_from(ebunch)
         self._eattr.clear()
 

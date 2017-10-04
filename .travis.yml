@@ -3,8 +3,8 @@ language: generic
 #For Ubuntu Trusty (14.04 LTS)
 sudo: required
 dist: trusty
-compiler: gcc
-# add toolchains for newer, C++11 supporting gcc-6
+
+# add toolchains for newer, C++14 supporting gcc-6
 addons:
   apt:
     sources:

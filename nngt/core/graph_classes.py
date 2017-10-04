@@ -104,20 +104,18 @@ class Graph(nngt.core.GraphObject):
         '''
         shape = matrix.shape
         graph_name = "FromYMatrix_Z"
-        if shape[0] != shape[1]:
-            raise InvalidArgument('A square matrix is required')
-        nodes = shape[0]
+        nodes = max(shape[0], shape[1])
         if issubclass(matrix.__class__, ssp.spmatrix):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
-                if not (matrix.T != matrix).nnz == 0:
+                if shape[0] != shape[1] or not (matrix.T != matrix).nnz == 0:
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
-                if not (matrix.T == matrix).all():
+                if shape[0] != shape[1] or not (matrix.T == matrix).all():
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
@@ -127,9 +125,9 @@ class Graph(nngt.core.GraphObject):
         weights = None
         if weighted:
             if issubclass(matrix.__class__, ssp.spmatrix):
-                weights = np.array(matrix[edges[:,0],edges[:,1]])[0]
+                weights = np.array(matrix[edges[:, 0],edges[:, 1]])[0]
             else:
-                weights = matrix[edges[:,0], edges[:,1]]
+                weights = matrix[edges[:, 0], edges[:, 1]]
         graph.new_edges(edges, {"weight": weights})
         return graph
     
