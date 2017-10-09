@@ -636,7 +636,6 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         # check for None if MPI
         if ia_edges is not None:
             graph_dr.new_edges(ia_edges, attributes=attr)
-            distances = graph_dr.get_edge_attributes(name='distance')
 
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr

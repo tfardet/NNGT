@@ -136,6 +136,7 @@ class _IgEProperty(BaseProperty):
     def __setitem__(self, name, value):
         if name in self:
             size = self.parent().edge_nb()
+            print(size, len(value))
             if len(value) == size:
                 self.parent().es[name] = value
             else:
@@ -362,6 +363,7 @@ an array of 2-tuples of ints.")
                 attributes[key] = np.concatenate((val, val[unique]))
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
+        print(self.edge_nb(), self.ecount())
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
         return edge_list

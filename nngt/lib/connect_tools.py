@@ -99,34 +99,69 @@ def _no_self_loops(array):
     '''
     Remove self-loops
     '''
-    return array[array[:,0] != array[:,1], :].astype(int)
+    return array[array[:, 0] != array[:, 1], :].astype(int)
 
 
-def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
-            distance=None, dist_tmp=None):
+#~ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
+            #~ distance=None, dist_tmp=None):
+    #~ '''
+    #~ Filter the edges: remove self loops and multiple connections if the graph
+    #~ is not a multigraph.
+    #~ '''
+    #~ if b_one_pop:
+        #~ ia_edges_tmp = _no_self_loops(ia_edges_tmp)
+    #~ num_added = ia_edges_tmp.shape[0]
+    #~ ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
+    #~ old_ecurrent  = num_ecurrent
+    #~ num_ecurrent += num_added
+    #~ if not multigraph:
+        #~ ia_edges_tmp = None
+        #~ if distance is not None:
+            #~ # get indices to keep only remaining distances
+            #~ ia_edges_tmp, idx = _unique_rows(
+                #~ ia_edges[:num_ecurrent,:], return_index=True)
+            #~ valid_idx = np.array(idx[old_ecurrent:num_ecurrent] - old_ecurrent,
+                                 #~ dtype=int)
+            #~ distance.extend(np.array(dist_tmp)[valid_idx])
+        #~ else:
+            #~ ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent,:])
+        #~ num_ecurrent = ia_edges_tmp.shape[0]
+        #~ ia_edges[:num_ecurrent,:] = ia_edges_tmp
+    #~ return ia_edges, num_ecurrent
+
+
+def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
+            multigraph, distance=None, dist_tmp=None):
     '''
     Filter the edges: remove self loops and multiple connections if the graph
     is not a multigraph.
     '''
     if b_one_pop:
         ia_edges_tmp = _no_self_loops(ia_edges_tmp)
-    num_added = ia_edges_tmp.shape[0]
-    ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
-    old_ecurrent  = num_ecurrent
-    num_ecurrent += num_added
+
     if not multigraph:
-        ia_edges_tmp = None
+        num_ecurrent = len(edges_hash)
         if distance is not None:
-            # get indices to keep only remaining distances
-            ia_edges_tmp, idx = _unique_rows(
-                ia_edges[:num_ecurrent,:], return_index=True)
-            valid_idx = np.array(idx[old_ecurrent:num_ecurrent] - old_ecurrent,
-                                 dtype=int)
-            distance.extend(np.array(dist_tmp)[valid_idx])
+            for e, d in zip(ia_edges_tmp, dist_tmp):
+                tpl_e = tuple(e)
+                if tpl_e not in edges_hash:
+                    ia_edges[num_ecurrent, :] = e
+                    distance.append(d)
+                    edges_hash[tpl_e] = None
+                    num_ecurrent += 1
         else:
-            ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent,:])
-        num_ecurrent = ia_edges_tmp.shape[0]
-        ia_edges[:num_ecurrent,:] = ia_edges_tmp
+            for e in ia_edges_tmp:
+                tpl_e = tuple(e)
+                if tpl_e not in edges_hash:
+                    ia_edges[num_ecurrent, :] = e
+                    edges_hash[tpl_e] = None
+                    num_ecurrent += 1
+    else:
+        num_added = len(ia_edges_tmp)
+        ia_edges[num_ecurrent:num_ecurrent + num_added, :] = ia_edges_tmp
+        num_ecurrent += num_added
+        if distance is not None:
+            distance.extend(dist_tmp)
     return ia_edges, num_ecurrent
 
 
@@ -137,8 +172,10 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
 
 def dist_rule(rule, pos_src, pos_targets, scale, dist=None):
     ''' DR test from one source to several targets '''
-    src_pos = np.array([pos_src])
-    dist_tmp = np.squeeze(cdist(src_pos, pos_targets.T), axis=0)
+    vect = pos_targets - pos_src
+    origin = np.array([(0., 0.)])
+    # todo correct this
+    dist_tmp = np.squeeze(cdist(vect.T, origin), axis=1)
     if dist is not None:
         dist.extend(dist_tmp)
     if rule == 'exp':

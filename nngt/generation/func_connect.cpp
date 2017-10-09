@@ -282,6 +282,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 local_tests = std::max(local_tests, 1lu);
                 elocal_tmp[0].reserve(local_tests);
                 elocal_tmp[1].reserve(local_tests);
+                dist_tmp.reserve(local_tests);
                 // initialize source; set target generator
                 src = source_nodes[i];
                 local_tgts = target_nodes[i];

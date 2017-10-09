@@ -213,7 +213,7 @@ def _set_igraph():
             data = np.ones(xs.shape)
             if issubclass(weight.__class__, str):
                 data *= np.array(graph.es[weight])
-            else:
+            elif weight is not None:
                 data *= np.array(weight)
             coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
             return coo_adj.tocsr()
