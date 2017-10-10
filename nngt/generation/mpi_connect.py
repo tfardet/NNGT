@@ -134,7 +134,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         local_sources = np.repeat(sources, trials)
         local_targets = np.zeros(total_trials, dtype=int)
         current_pos = 0
-        for i, (tgts, num_try) in enumerate(zip(targets, trials)):
+        for tgts, num_try in zip(targets, trials):
             t = np.random.randint(0, len(tgts), num_try)
             local_targets[current_pos:current_pos + num_try] = tgts[t]
             current_pos += num_try
@@ -144,20 +144,6 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         edges_tmp[0].extend(local_sources[test])
         edges_tmp[1].extend(local_targets[test])
         dist_local = np.array(dist_local)[test]
-
-        if rank == 0:
-            import matplotlib.pyplot as plt
-            #~ fig, (ax, ax2) = plt.subplots(2)
-            fig, ax = plt.subplots()
-            di = np.bincount(local_targets)
-            do = np.bincount(local_sources)
-            di = di[np.where(di)[0]]
-            do = do[np.where(do)[0]]
-            #~ do = np.divide(do, 2)
-            ax.hist(di, int(di.max()), normed=False, facecolor='green', alpha=0.5)
-            #~ ax2.hist(do, do.max(), normed=False, facecolor='b', alpha=0.5)
-            ax.hist(do, int(do.max()), normed=False, facecolor='b', alpha=0.5)
-            plt.show()
 
         comm.Barrier()
 
@@ -185,6 +171,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             ia_edges, num_ecurrent = _filter(
                 ia_edges, edges_tmp, num_ecurrent, edges_hash, b_one_pop,
                 multigraph, distance=distance, dist_tmp=dist_local)
+
         num_ecurrent = comm.bcast(num_ecurrent, root=0)
 
         comm.Barrier()

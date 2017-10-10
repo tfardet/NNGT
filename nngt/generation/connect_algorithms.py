@@ -34,7 +34,6 @@ from nngt.lib.connect_tools import *
 __all__ = [
     "_distance_rule",
     "_erdos_renyi",
-    "_filter",
     "_fixed_degree",
     "_gaussian_degree",
     "_newman_watts",
@@ -160,6 +159,7 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
     
     ia_edges = np.zeros((edges,2),dtype=int)
     num_ecurrent, num_test = 0, 0
+    edges_hash = {}
 
     # lists containing the in/out-degrees for all nodes
     ia_in_deg = np.random.pareto(in_exp,num_target)+1
@@ -186,7 +186,7 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
     np.random.shuffle(ia_targets)
     ia_edges_tmp = np.array([ia_sources,ia_targets]).T
     ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                     b_one_pop, multigraph)
+                                     edges_hash, b_one_pop, multigraph)
         
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         num_desired = pre_recip_edges-num_ecurrent
@@ -194,7 +194,7 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
         ia_targets_tmp = ia_targets[randint(0,pre_recip_edges,num_desired)]
         ia_edges_tmp = np.array([ia_sources_tmp,ia_targets_tmp]).T
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         b_one_pop, multigraph)
+                                         edges_hash, b_one_pop, multigraph)
         num_test += 1
     
     if directed and reciprocity > 0:
@@ -229,6 +229,7 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
     
     ia_edges = np.zeros((edges,2), dtype=int)
     num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
+    edges_hash = {}
     
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         ia_sources = source_ids[randint(0, num_source,
@@ -237,7 +238,7 @@ def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
                                         pre_recip_edges-num_ecurrent)]
         ia_edges_tmp = np.array([ia_sources,ia_targets]).T
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         b_one_pop, multigraph)
+                                         edges_hash, b_one_pop, multigraph)
         num_test += 1
     
     if directed and reciprocity > 0:
@@ -299,12 +300,13 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     ia_edges[:circular_edges,:] = _circular_graph(node_ids, coord_nb)
     # add the random connections
     num_test, num_ecurrent = 0, circular_edges
+    edges_hash = {}
     while num_ecurrent != num_edges and num_test < MAXTESTS:
         ia_sources = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
         ia_targets = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
         ia_edges_tmp = np.array([ia_sources,ia_targets]).T
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         b_one_pop, multigraph)
+                                         edges_hash, b_one_pop, multigraph)
         num_test += 1
     ia_edges = _no_self_loops(ia_edges)
     return ia_edges
@@ -317,6 +319,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     Returns a distance-rule graph
     '''
     distance = [] if distance is None else distance
+    edges_hash = {}
     # compute the required values
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
@@ -365,17 +368,21 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
                 max(int(len(tgt_list)*(num_edges - num_ecurrent)*norm), 1))
         edges_tmp = [[], []]
         dist = []
-        kept = 0
-        for s, tgts, num_try in zip(source_ids, targets, trials):
-            # try to create edges
-            dist_tmp = []
+        dist_tmp = []
+        total_trials = int(np.sum(trials))
+        local_sources = np.repeat(source_ids, trials)
+        local_targets = np.zeros(total_trials, dtype=int)
+        current_pos = 0
+        for tgts, num_try in zip(targets, trials):
             t = np.random.randint(0, len(tgts), num_try)
-            test = dist_rule(rule, positions[:, s], positions[:, tgts[t]],
-                             scale, dist=dist_tmp)
-            test = np.greater(test, np.random.uniform(size=num_try))
-            dist.extend(np.array(dist_tmp)[test])
-            edges_tmp[0].extend(np.repeat(s, num_try)[test])
-            edges_tmp[1].extend(tgts[t][test])
+            local_targets[current_pos:current_pos + num_try] = tgts[t]
+            current_pos += num_try
+        test = dist_rule(rule, positions[:, local_sources],
+                         positions[:, local_targets], scale, dist=dist_tmp)
+        test = np.greater(test, np.random.uniform(size=total_trials))
+        edges_tmp[0].extend(local_sources[test])
+        edges_tmp[1].extend(local_targets[test])
+        dist.extend(np.array(dist_tmp)[test])
 
         # assess the current number of edges
         edges_tmp = np.array(edges_tmp).T
@@ -385,8 +392,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             np.random.shuffle(edges_tmp)
             edges_tmp = edges_tmp[:num_edges - num_ecurrent]
         ia_edges, num_ecurrent = _filter(
-            ia_edges, edges_tmp, num_ecurrent, b_one_pop, multigraph,
-            distance=distance, dist_tmp=dist)
+            ia_edges, edges_tmp, num_ecurrent, edges_hash, b_one_pop,
+            multigraph, distance=distance, dist_tmp=dist)
 
     return ia_edges
 

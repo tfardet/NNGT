@@ -171,7 +171,26 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
 
 
 def dist_rule(rule, pos_src, pos_targets, scale, dist=None):
-    ''' DR test from one source to several targets '''
+    '''
+    DR test from one source to several targets
+
+    Parameters
+    ----------
+    rule : str
+        Either 'exp' or 'lin'.
+    pos_src : array of shape (2, N)
+        Positions of the sources.
+    pos_targets : array of shape (2, N)
+        Positions of the targets.
+    scale : float
+        Characteristic scale.
+    dist : list, optional (default: None)
+        List that will be filled with the distances of the edges.
+
+    Returns
+    -------
+    Array of size N giving the probability of the edges according to the rule.
+    '''
     vect = pos_targets - pos_src
     origin = np.array([(0., 0.)])
     # todo correct this

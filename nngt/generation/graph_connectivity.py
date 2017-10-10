@@ -31,7 +31,7 @@ import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
 from nngt.lib.connect_tools import _set_options
 from nngt.lib.logger import _log_message
-from nngt.lib.test_functions import mpi_checker
+from nngt.lib.test_functions import mpi_checker, mpi_random
 
 # try to import multithreaded or mpi algorithms
 
@@ -545,6 +545,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
 # Distance-based models #
 # --------------------- #
 
+@mpi_random
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
                   density=-1., edges=-1, avg_deg=-1., unit='um', weighted=True,
                   directed=True, multigraph=False, name="DR", positions=None,
