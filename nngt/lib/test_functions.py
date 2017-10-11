@@ -59,6 +59,16 @@ def on_master_process():
         return True
 
 
+def num_mpi_processes():
+    ''' Returns the number of MPI processes (1 if MPI is not used) '''
+    try:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        return comm.Get_size()
+    except ImportError:
+        return 1
+
+
 def mpi_checker(func):
     '''
     Decorator used to check for mpi and make sure only rank zero is used

@@ -26,7 +26,7 @@ import logging
 import nngt
 from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
-from .test_functions import mpi_checker
+from .test_functions import mpi_checker, num_mpi_processes
 
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,7 @@ def set_config(config, value=None, silent=False):
     '''
     old_mt     = nngt._config["multithreading"]
     old_mpi    = nngt._config["mpi"]
+    old_gl     = nngt._config["graph_library"]
     new_config = None
     if not isinstance(config, dict):
         new_config = {config: value}
@@ -84,6 +85,9 @@ def set_config(config, value=None, silent=False):
             raise KeyError("Unknown configuration property: {}".format(key))
         if key == "log_level":
             new_config[key] = _convert(new_config[key])
+        if key == "graph_library" and new_config[key] != old_gl:
+            nngt.use_library(new_config[key])
+            del new_config[key]
     # check multithreading status and number of threads
     mt = "multithreading"
     if "omp" in new_config:
@@ -99,16 +103,18 @@ def set_config(config, value=None, silent=False):
                              "'multithreading' was set to False but new "
                              "'omp' is greater than one. Updating "
                              "'multithreading' to True.")
-    if 'mpi' in new_config:
+    if new_config.get('mpi', False) and new_config.get(mt, False):
+        raise InvalidArgument('Cannot set both "mpi" and "multithreading" to '
+                              'True simultaneously, choose one or the other.')
+    elif new_config.get(mt, False):
+        new_config['mpi'] = False
+    elif new_config.get('mpi', False):
         if old_mt:
             new_config[mt] = False
             _log_message(logger, "WARNING",
                          '"mpi" set to True but previous configuration was '
                          'using OpenMP; setting "multithreading" to False '
                          'to switch to mpi algorithms.')
-    if new_config.get('mpi', False) and new_config.get(mt, False):
-        raise InvalidArgument('Cannot set both "mpi" and "multithreading" to '
-                              'True simultaneously, choose one or the other.')
     # reset seeds if necessary
     reset_seeds  = (new_config.get("omp", 1) != nngt._config["omp"])
     reset_seeds += (nngt._config["mpi"] and new_config.get(mt, False))
@@ -150,6 +156,9 @@ def set_config(config, value=None, silent=False):
     _configure_logger(nngt._logger)
     glib = (nngt._config["library"] if nngt._config["library"] is not None
             else nngt)
+    num_mpi = num_mpi_processes()
+    s_mpi = False if not nngt._config["mpi"] else "True ({} process{})".format(
+                num_mpi, "es" if num_mpi > 1 else "")
     conf_info = config_info.format(
         gl     = nngt._config["graph_library"] + " " + glib.__version__[:5],
         thread = nngt._config["multithreading"],
@@ -158,7 +167,7 @@ def set_config(config, value=None, silent=False):
         db     = nngt._config["use_database"],
         omp    = nngt._config["omp"],
         s      = "s" if nngt._config["omp"] > 1 else "",
-        mpi    = True if nngt._config["mpi"] else False
+        mpi    = s_mpi
     )
     if not silent:
         _log_conf_changed(conf_info)
