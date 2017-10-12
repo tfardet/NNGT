@@ -27,6 +27,7 @@ import nngt
 from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
 from .test_functions import mpi_checker, num_mpi_processes
+from .errors import InvalidArgument
 
 
 logger = logging.getLogger(__name__)
@@ -135,7 +136,10 @@ def set_config(config, value=None, silent=False):
     if new_config.get('mpi', old_mpi) != old_mpi:
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
     # set graph-tool config
-    if "omp" in new_config and nngt._config["graph_library"] == "graph-tool":
+    old_gl = nngt._config["graph_library"]
+    using_gt = old_gl == "graph-tool"
+    using_gt *= new_config.get("graph_library", old_gl) == "graph-tool"
+    if "omp" in new_config and using_gt:
         omp_nest = new_config["omp"]
         if nngt._config['with_nest']:
             import nest
