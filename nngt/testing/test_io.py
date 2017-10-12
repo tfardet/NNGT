@@ -20,7 +20,6 @@ import nngt
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
-nngt.set_config('omp', 4)
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
 error = 'Wrong {{val}} for {graph}.'
@@ -48,6 +47,7 @@ class TestIO(TestBasis):
     def test_name(self):
         return "test_io"
 
+    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     def gen_graph(self, graph_name):
         # check whether we are loading from file
         if "." in graph_name:

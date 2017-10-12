@@ -175,20 +175,22 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
 # ------------- #
 
 
-def dist_rule(rule, pos_src, pos_targets, scale, dist=None):
+def dist_rule(rule, scale, norm, pos_src, pos_targets, dist=None):
     '''
     DR test from one source to several targets
 
     Parameters
     ----------
     rule : str
-        Either 'exp' or 'lin'.
+        Either 'exp', 'gaussian', or 'lin'.
+    scale : float
+        Characteristic scale.
+    norm : float
+        Normalization factor giving proba at zero distance.
     pos_src : array of shape (2, N)
         Positions of the sources.
     pos_targets : array of shape (2, N)
         Positions of the targets.
-    scale : float
-        Characteristic scale.
     dist : list, optional (default: None)
         List that will be filled with the distances of the edges.
 
@@ -203,8 +205,16 @@ def dist_rule(rule, pos_src, pos_targets, scale, dist=None):
     if dist is not None:
         dist.extend(dist_tmp)
     if rule == 'exp':
+        if norm != 1.:
+            return norm*np.exp(np.divide(dist_tmp, -scale))
         return np.exp(np.divide(dist_tmp, -scale))
+    elif rule == 'gaussian':
+        if norm != 1.:
+            return norm*np.exp(-0.5*np.square(np.divide(dist_tmp, scale)))
+        return np.exp(-0.5*np.square(np.divide(dist_tmp, scale)))
     elif rule == 'lin':
+        if norm != 1.:
+            return norm*np.divide(scale - dist_tmp, scale).clip(min=0.)
         return np.divide(scale - dist_tmp, scale).clip(min=0.)
     else:
         raise InvalidArgument('Unknown rule "' + rule + '".')

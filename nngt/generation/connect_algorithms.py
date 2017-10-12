@@ -313,7 +313,7 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
 
 def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
-                   scale=-1, rule="exp", shape=None, positions=None,
+                   scale=-1, norm=-1, rule="exp", shape=None, positions=None,
                    directed=True, multigraph=False, distance=None, **kwargs):
     '''
     Returns a distance-rule graph
@@ -355,7 +355,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         "create the required number of connections. Increase `scale` " +\
         "or `neuron_density`."
 
-    norm = 1. / tot_neighbours
+    neigh_norm = 1. / tot_neighbours
 
     # try to create edges until num_edges is attained
     ia_edges = np.zeros((num_edges, 2), dtype=int)
@@ -364,8 +364,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     while num_ecurrent < num_edges:
         trials = []
         for tgt_list in targets:
-            trials.append(
-                max(int(len(tgt_list)*(num_edges - num_ecurrent)*norm), 1))
+            trials.append(max(
+                int(len(tgt_list)*(num_edges - num_ecurrent)*neigh_norm), 1))
         edges_tmp = [[], []]
         dist = []
         dist_tmp = []
@@ -377,8 +377,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             t = np.random.randint(0, len(tgts), num_try)
             local_targets[current_pos:current_pos + num_try] = tgts[t]
             current_pos += num_try
-        test = dist_rule(rule, positions[:, local_sources],
-                         positions[:, local_targets], scale, dist=dist_tmp)
+        test = dist_rule(rule, scale, norm, positions[:, local_sources],
+                         positions[:, local_targets], dist=dist_tmp)
         test = np.greater(test, np.random.uniform(size=total_trials))
         edges_tmp[0].extend(local_sources[test])
         edges_tmp[1].extend(local_targets[test])
