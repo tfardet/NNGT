@@ -53,7 +53,7 @@ before_install:
     - sudo python get-pip.py
     - sudo -H pip install -U setuptools
     # Geos for shapely
-    - sudo apt-get install libgeos libgeos-dev
+    - sudo apt-get install libgeos-3.4.2 libgeos-dev
     # test scipy from apt (much faster) and install matplotlib
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev && pip install --user cython; fi
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo -H pip install matplotlib && pip install --user cython; fi
