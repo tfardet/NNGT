@@ -52,6 +52,8 @@ before_install:
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python get-pip.py
     - sudo -H pip install -U setuptools
+    # Geos for shapely
+    - sudo apt-get install geos
     # test scipy from apt (much faster) and install matplotlib
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev && pip install --user cython; fi
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo -H pip install matplotlib && pip install --user cython; fi
@@ -64,13 +66,13 @@ before_install:
     # testing and coverage analysis
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo -H ' && alias pipv=pip3; else alias sudo='sudo -H ' && alias pipv=pip; fi
-    - sudo pipv install nose2 cov-core coverage coveralls mpi4py
+    - sudo pipv install nose2 cov-core coverage coveralls mpi4py shapely
 
 install: sudo pipv install -e ".[$GL]"
 
 script:
     - coverage run -m nose2.__main__ -F
     - export OMP=4 && coverage run -m nose2.__main__ -F
-    - export MPI=1 && coverage run -m mpirun -n 4 nose2.__main__ -F
+    - export MPI=1 && mpirun -n 4 coverage run -m nose2.__main__ -F
 
 after_success: coveralls

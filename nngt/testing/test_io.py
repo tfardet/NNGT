@@ -20,6 +20,7 @@ import nngt
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
+nngt.set_config('omp', 4)
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
 error = 'Wrong {{val}} for {graph}.'
@@ -48,30 +49,49 @@ class TestIO(TestBasis):
         return "test_io"
 
     def gen_graph(self, graph_name):
-        di_instructions = self.parser.get_graph_options(graph_name)
-        graph = nngt.generate(di_instructions)
-        graph.set_name(graph_name)
-        graph.to_file(current_dir + graph_name + '.el')
-        return graph, di_instructions
+        # check whether we are loading from file
+        if "." in graph_name:
+            abspath = network_dir + graph_name
+            di_instructions = self.parser.get_graph_options(graph_name)
+            graph = nngt.Graph.from_file(abspath, **di_instructions)
+            graph.set_name(graph_name)
+            return graph, None
+        else:
+            di_instructions = self.parser.get_graph_options(graph_name)
+            graph = nngt.generate(di_instructions)
+            graph.set_name(graph_name)
+            graph.to_file(current_dir + graph_name + '.el')
+            return graph, di_instructions
 
     @foreach_graph
-    def test_identical(self, graph, **kwargs):
+    def test_identical(self, graph, instructions, **kwargs):
         err = error.format(graph=graph.get_name())
-        # load graph
-        h = nngt.Graph.from_file(current_dir + graph.get_name() + '.el')
-        attributes = h.edges_attributes
-        # test properties
-        self.assertTrue(h.node_nb() == graph.node_nb(),
-                        err.format(val='node number'))
-        self.assertTrue(h.edge_nb() == graph.edge_nb(),
-                        err.format(val='edge number'))
-        if graph.is_spatial():
-            self.assertTrue(np.allclose(h.get_positions(),
-                                        graph.get_positions()),
-                            err.format(val='positions'))
-        for attr, values in graph.edges_attributes.items():
-            self.assertTrue(np.allclose(h.edges_attributes[attr], values),
-                            err.format(val=attr))
+        if instructions is not None:  # working with generated graph
+            # load graph
+            h = nngt.Graph.from_file(current_dir + graph.get_name() + '.el')
+            attributes = h.edges_attributes
+            # test properties
+            self.assertTrue(h.node_nb() == graph.node_nb(),
+                            err.format(val='node number'))
+            self.assertTrue(h.edge_nb() == graph.edge_nb(),
+                            err.format(val='edge number'))
+            if graph.is_spatial():
+                self.assertTrue(np.allclose(h.get_positions(),
+                                            graph.get_positions()),
+                                err.format(val='positions'))
+            for attr, values in graph.edges_attributes.items():
+                self.assertTrue(np.allclose(h.edges_attributes[attr], values),
+                                err.format(val=attr))
+        else:  # working with loaded graph
+            ref_result = self.get_expected_result(graph, "nodes")
+            computed_result = graph.node_nb()
+            self.assertEqual(
+                ref_result, computed_result, err.format(val='node number'))
+            ref_result = self.get_expected_result(graph, "edges")
+            computed_result = graph.edge_nb()
+            self.assertEqual(
+                ref_result, computed_result, err.format(val='edge number'))
+
 
 
 #-----------------------------------------------------------------------------#
