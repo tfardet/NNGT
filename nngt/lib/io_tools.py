@@ -365,7 +365,6 @@ def _edge_list(graph, separator, secondary, attributes):
     lst_edges = []
     for i, e in enumerate(edges):
         str_edge = "{}{}{}".format(e[0], separator, e[1])
-        edge = tuple(e)
         if attributes:
             str_edge += separator
         for end, attr in zip(end_strings, attributes):

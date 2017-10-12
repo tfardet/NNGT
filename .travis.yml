@@ -51,22 +51,22 @@ before_install:
     # Install pip and other libraries
     - wget https://bootstrap.pypa.io/get-pip.py
     - sudo python get-pip.py
-    - sudo pip install -U setuptools
+    - sudo -H pip install -U setuptools
     # test scipy from apt (much faster) and install matplotlib
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev && pip install --user cython; fi
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo pip -H install matplotlib && pip install --user cython; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo -H pip install matplotlib && pip install --user cython; fi
     # install graph-tool and igraph
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "ig" ]]; then sudo apt-get install python3-cairo libxml2-dev && wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1*; fi
-    - if [[ "$PYVERSION" == "2.7" && "$GL" == "ig" ]]; then sudo pip -H install python-igraph; fi
+    - if [[ "$PYVERSION" == "2.7" && "$GL" == "ig" ]]; then sudo -H pip install python-igraph; fi
 
     # testing and coverage analysis
     - shopt -s expand_aliases
-    - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo ' && alias pipv=pip3; else alias sudo='sudo ' && alias pipv=pip; fi
-    - sudo pipv -H install nose2 cov-core coverage coveralls mpi4py
+    - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo -H ' && alias pipv=pip3; else alias sudo='sudo -H ' && alias pipv=pip; fi
+    - sudo pipv install nose2 cov-core coverage coveralls mpi4py
 
-install: sudo pipv -H install -e ".[$GL]"
+install: sudo pipv install -e ".[$GL]"
 
 script:
     - coverage run -m nose2.__main__ -F

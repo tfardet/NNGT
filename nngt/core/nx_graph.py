@@ -31,11 +31,19 @@ from nngt.lib.graph_helpers import _set_edge_attr
 from .base_graph import BaseGraph, BaseProperty
 
 
+_type_converter = {
+    "int": int,
+    "string": str,
+    "double": float,
+    "float": float,
+    "bool": bool,
+    "object": object,
+}
 
-#-----------------------------------------------------------------------------#
-# Properties
-#------------------------
-#
+
+# ---------- #
+# Properties #
+# ---------- #
 
 class _NxNProperty(BaseProperty):
 
@@ -119,28 +127,39 @@ class _NxEProperty(BaseProperty):
     def __getitem__(self, name):
         edges = None
         if isinstance(name, slice):
-            edges = self.parent().edges()[name]
+            edges = self.parent().edges_array[name]
         elif nonstring_container(name):
             if nonstring_container(name[0]):
                 edges = name
             else:
-                edges = [name]
+                if len(name) != 2:
+                    raise InvalidArgument(
+                        "key for edge attribute must be one of the following: "
+                        "slice, list of edges, edges or attribute name.")
+                return self.parent()[name[0]][name[1]]
         if isinstance(name, str):
-            return np.array([d[2] for d in self.parent().edges(data=name)])
+            dtype = _type_converter[super(
+                _NxEProperty, self).__getitem__(name)]
+            eprop = np.empty(self.parent().edge_nb(), dtype=dtype)
+            g = self.parent()
+            for d, eid in zip(g.edges(data=name), g.edges(data="eid")):
+                eprop[eid[2]] = d[2]
+            return eprop
         else:
             eprop = {k: [] for k in self.keys()}
             for edge in edges:
                 data = self.parent().get_edge_data(edge[0], edge[1])
                 for k, v in data.items():
-                    eprop[k].append(v)
+                    if k != "eid":
+                        eprop[k].append(v)
             return eprop
 
     def __setitem__(self, name, value):
         if name in self:
             size = self.parent().number_of_edges()
             if len(value) == size:
-                for i, e in enumerate(self.parent().edges()):
-                    self.parent().edges[e[0], e[1]][name] = value[i]
+                for e in self.parent().edges(data="eid"):
+                    self.parent().edges[e[0], e[1]][name] = value[e[2]]
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "edge in the graph is required")
@@ -246,7 +265,7 @@ class _NxGraph(BaseGraph):
         index : int or array of ints
             Index of the given `edge`.
         '''
-        if isinstance(edge[0], int):
+        if isinstance(edge[0], np.integer):
             return self[edge[0]][edge[1]]["eid"]
         elif hasattr(edge[0], "__len__"):
             return [self[e[0]][e[1]]["eid"] for e in edge]
@@ -258,8 +277,10 @@ class _NxGraph(BaseGraph):
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
-        unordered = np.array([e for e in self.edges()])
-        return unordered[self._eattr["eid"].astype(int)]
+        edges = np.zeros((self.edge_nb(), 2), dtype=int)
+        for weighted_edge in self.edges(data="eid"):
+            edges[weighted_edge[2], :] = weighted_edge[:2]
+        return edges
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
@@ -367,21 +388,20 @@ class _NxGraph(BaseGraph):
                                           "available with networkx.")
         initial_edges = self.number_of_edges()
         edge_list = np.array(edge_list)
+        num_added = len(edge_list)
+        arr_edges = np.zeros((num_added, 3), dtype=int)
+        arr_edges[:, :2] = edge_list
+        arr_edges[:, 2] = np.arange(initial_edges, initial_edges + num_added)
         if not self._directed:
-            recip_edges = edge_list[:,::-1]
+            recip_edges = edge_list[:, ::-1]
             # slow but works
             unique = ~(recip_edges[..., np.newaxis]
                       == edge_list[..., np.newaxis].T).all(1).any(1)
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val[unique]))
-        # add edge id attribute to get edges in creation order
-        attributes["names"] = ["eid"]
-        attributes["types"] = ["int"]
-        attributes["values"] = [np.arange(
-            initial_edges, initial_edges + len(edge_list)).astype(int)]
-        # create the edges
-        super(_NxGraph, self).add_edges_from(edge_list)
+        # create the edges with an eid attribute
+        super(_NxGraph, self).add_weighted_edges_from(arr_edges, weight="eid")
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
         return edge_list

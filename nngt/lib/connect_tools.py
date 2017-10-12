@@ -95,11 +95,14 @@ def _unique_rows(arr, return_index=False):
     return unique
 
 
-def _no_self_loops(array):
+def _no_self_loops(array, return_test=False):
     '''
     Remove self-loops
     '''
-    return array[array[:, 0] != array[:, 1], :].astype(int)
+    test = array[:, 0] != array[:, 1]
+    if return_test:
+        return array[test, :].astype(int), test
+    return array[test, :].astype(int)
 
 
 #~ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
@@ -137,7 +140,9 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
     is not a multigraph.
     '''
     if b_one_pop:
-        ia_edges_tmp = _no_self_loops(ia_edges_tmp)
+        ia_edges_tmp, test = _no_self_loops(ia_edges_tmp, return_test=True)
+        if dist_tmp is not None:
+            dist_tmp = dist_tmp[test]
 
     if not multigraph:
         num_ecurrent = len(edges_hash)

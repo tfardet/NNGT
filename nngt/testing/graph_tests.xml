@@ -2,12 +2,6 @@
 
     <!-- Test suites -->
 
-	<test name="test_analysis">
-		<graph_list>
-            <name>p2p-Gnutella04.txt</name>
-        </graph_list>
-	</test>
-
     <test name="test_graphclasses">
 		<graph_list>
             <name>from_scipy_sparse_rand</name>
@@ -49,6 +43,7 @@
 		<graph_list>
             <name>small_linear_distance_rule</name>
             <name>small_erdos_lognormal_weights</name>
+            <name>p2p-Gnutella04.txt</name>
         </graph_list>
 	</test>
 
@@ -304,7 +299,7 @@
             <generate_options>
                 <string name="graph_type">distance_rule</string>
                 <int name="nodes">100</int>
-                <float name="scale">0.2</float>
+                <float name="scale">200</float>
                 <string name="rule">lin</string>
                 <int name="avg_deg">10</int>
             </generate_options>

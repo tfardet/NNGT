@@ -125,7 +125,7 @@ class Graph(nngt.core.GraphObject):
         weights = None
         if weighted:
             if issubclass(matrix.__class__, ssp.spmatrix):
-                weights = np.array(matrix[edges[:, 0],edges[:, 1]])[0]
+                weights = np.array(matrix[edges[:, 0], edges[:, 1]])[0]
             else:
                 weights = matrix[edges[:, 0], edges[:, 1]]
         graph.new_edges(edges, {"weight": weights})
