@@ -83,14 +83,13 @@ class TestIO(TestBasis):
                 self.assertTrue(np.allclose(h.edges_attributes[attr], values),
                                 err.format(val=attr))
         else:  # working with loaded graph
-            ref_result = self.get_expected_result(graph, "nodes")
-            computed_result = graph.node_nb()
+            nodes = self.get_expected_result(graph, "nodes")
+            edges = self.get_expected_result(graph, "edges")
+            # check
             self.assertEqual(
-                ref_result, computed_result, err.format(val='node number'))
-            ref_result = self.get_expected_result(graph, "edges")
-            computed_result = graph.edge_nb()
+                nodes, graph.node_nb(), err.format(val='node number'))
             self.assertEqual(
-                ref_result, computed_result, err.format(val='edge number'))
+                edges, graph.edge_nb(), err.format(val='edge number'))
 
 
 
