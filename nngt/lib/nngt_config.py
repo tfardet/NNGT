@@ -136,22 +136,7 @@ def set_config(config, value=None, silent=False):
     if new_config.get('mpi', old_mpi) != old_mpi:
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
     # set graph-tool config
-    old_gl = nngt._config["graph_library"]
-    using_gt = old_gl == "graph-tool"
-    using_gt *= new_config.get("graph_library", old_gl) == "graph-tool"
-    if "omp" in new_config and using_gt:
-        omp_nest = new_config["omp"]
-        if nngt._config['with_nest']:
-            import nest
-            omp_nest = nest.GetKernelStatus("local_num_threads")
-        if omp_nest == new_config["omp"]:
-            nngt._config["library"].openmp_set_num_threads(nngt._config["omp"])
-        else:
-            _log_message(logger, "WARNING",
-                         "Using NEST and graph_tool, OpenMP number must be "
-                         "consistent throughout the code. Current NEST "
-                         "config states omp = " + str(omp_nest) + ", hence "
-                         "`graph_tool` configuration was not changed.")
+    _set_gt_config(old_gl, new_config)
     # update matplotlib
     if nngt._config['use_tex']:
         import matplotlib
@@ -217,6 +202,25 @@ def _load_config(path_config):
 @mpi_checker
 def _log_conf_changed(conf_info):
     logger.info(conf_info)
+
+
+def _set_gt_config(old_gl, new_config):
+    using_gt  = old_gl == "graph-tool"
+    using_gt *= new_config.get("graph_library", old_gl) == "graph-tool"
+    using_gt *= nngt._config["library"] is not None
+    if "omp" in new_config and using_gt:
+        omp_nest = new_config["omp"]
+        if nngt._config['with_nest']:
+            import nest
+            omp_nest = nest.GetKernelStatus("local_num_threads")
+        if omp_nest == new_config["omp"]:
+            nngt._config["library"].openmp_set_num_threads(nngt._config["omp"])
+        else:
+            _log_message(logger, "WARNING",
+                         "Using NEST and graph_tool, OpenMP number must be "
+                         "consistent throughout the code. Current NEST "
+                         "config states omp = " + str(omp_nest) + ", hence "
+                         "`graph_tool` configuration was not changed.")
     
 
 

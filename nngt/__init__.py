@@ -95,7 +95,7 @@ _config = {
     'db_to_file': False,
     'db_url': "mysql:///nngt_db",
     'graph': object,
-    'graph_library': "",
+    'graph_library': "graph-tool",
     'library': None,
     'load_nest': False,
     'log_folder': "~/.nngt/log",
@@ -172,6 +172,9 @@ if _config["omp"] > 1:
 from .lib.graph_backends import use_library, analyze_graph
 
 _libs = ['graph-tool', 'igraph', 'networkx']
+assert _config['graph_library'] in _libs, \
+	   "Internal error for graph library loading, please report " +\
+	   "this on GitHub."
 
 try:
     use_library(_config['graph_library'], False, silent=True)

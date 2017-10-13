@@ -48,7 +48,6 @@ import unittest
 import nngt
 
 
-
 # ------------- #
 # Get the tests #
 # ------------- #
