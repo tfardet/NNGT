@@ -75,7 +75,7 @@ class TestMPI(TestBasis):
         When generating graphs from on of the preconfigured models, check that
         the expected properties are indeed obtained.
         '''
-        if ngt.on_master_process():
+        if nngt.on_master_process():
             graph_type = instructions["graph_type"]
             ref_result = self.theo_prop[graph_type](instructions)
             computed_result = self.exp_prop[graph_type](graph, instructions)
