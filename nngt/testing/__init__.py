@@ -71,7 +71,6 @@ elif graph_library == "nx":
 # get the arguments for MPI/OpenMP
 omp = int(environ.get("OMP", 1))
 mpi = bool(environ.get("MPI", False))
-print({"multithreading": omp > 1, "omp": omp, "mpi": mpi})
 nngt.set_config({"multithreading": omp > 1, "omp": omp, "mpi": mpi})
 
 

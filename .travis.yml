@@ -73,6 +73,6 @@ install: sudo pipv install -e .
 script:
     - coverage run -m nose2.__main__ -F
     - export OMP=4 && coverage run -m nose2.__main__ -F
-    - export MPI=1 && mpirun -n 4 coverage run -m nose2.__main__ -F
+    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -m nose2.__main__ -F
 
 after_success: coveralls
