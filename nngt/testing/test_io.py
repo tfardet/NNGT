@@ -64,6 +64,9 @@ class TestIO(TestBasis):
             return graph, di_instructions
 
     @foreach_graph
+    @unittest.skipIf(nngt.get_config('graph_library') == 'graph-tool'
+                     and nngt.get_config('library').__version__[:4] < '2.22',
+                     'Not checking for graph-tool < 2.22.')
     def test_identical(self, graph, instructions, **kwargs):
         err = error.format(graph=graph.get_name())
         if instructions is not None:  # working with generated graph
