@@ -30,9 +30,9 @@
             <name>rsf_2.9_2.1</name>
             <name>rsf_2.2_recip</name>
             <name>newman_watts</name>
+-->
             <name>linear_distance_rule</name>
             <name>exponential_distance_rule</name>
--->
         </graph_list>
 	</test>
 
@@ -49,6 +49,13 @@
 		<graph_list>
             <name>small_linear_distance_rule</name>
             <name>small_erdos_lognormal_weights</name>
+        </graph_list>
+	</test>
+
+    <test name="test_mpi">
+		<graph_list>
+            <name>linear_distance_rule</name>
+            <name>exponential_distance_rule</name>
         </graph_list>
 	</test>
 
@@ -187,20 +194,22 @@
         <graph name="linear_distance_rule">
             <generate_options>
                 <string name="graph_type">distance_rule</string>
-                <int name="nodes">1000</int>
-                <float name="scale">0.2</float>
+                <int name="nodes">5000</int>
+                <float name="scale">500</float>
                 <string name="rule">lin</string>
                 <int name="avg_deg">100</int>
+                <float name="neuron_density">1000.</float>
             </generate_options>
         </graph>
 
         <graph name="exponential_distance_rule">
             <generate_options>
                 <string name="graph_type">distance_rule</string>
-                <int name="nodes">1000</int>
-                <float name="scale">0.04</float>
+                <int name="nodes">5000</int>
+                <float name="scale">130</float>
                 <string name="rule">exp</string>
                 <int name="avg_deg">100</int>
+                <float name="neuron_density">1000.</float>
             </generate_options>
         </graph>
 

@@ -32,7 +32,6 @@ import nngt
 from nngt.lib import InvalidArgument
 from nngt.lib.connect_tools import *
 
-
 __all__ = [
     "_distance_rule",
     "_erdos_renyi",
@@ -55,6 +54,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     Returns a distance-rule graph
     '''
     distance = [] if distance is None else distance
+    edges_hash = {}
     # mpi-related stuff
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
@@ -90,69 +90,101 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     for s in source_ids[rank::size]:
         keep  = (np.abs(positions[0, target_ids] - positions[0, s]) < lim)
         keep *= (np.abs(positions[1, target_ids] - positions[1, s]) < lim)
+        if b_one_pop:
+            keep[s] = 0
         sources.append(s)
         targets.append(target_ids[keep])
 
-    # the number of trials should be done depending on the number of
-    # neighbours that each node has, so compute this number
-    tot_neighbours = 0
+    # the number of trials should be done depending on total number of
+    # neighbours available, so we compute this number
+    local_neighbours = 0
 
     for tgt_list in targets:
-        tot_neighbours += len(tgt_list)
+        local_neighbours += len(tgt_list)
 
-    tot_neighbours = comm.scatter(tot_neighbours, root=0)
+    tot_neighbours = comm.gather(local_neighbours, root=0)
     if rank == 0:
-        tot_neighbours = np.sum(tot_neighbours)
-        assert tot_neighbours > num_edges, \
+        final_tot = np.sum(tot_neighbours)
+        assert final_tot > num_edges, \
             "Scale is too small: there are not enough close neighbours to " +\
             "create the required number of connections. Increase `scale` " +\
             "or `neuron_density`."
-    tot_neighbours = comm.bcast(tot_neighbours, root=0)
-    norm = 1. / tot_neighbours
+    else:
+        final_tot = None
+    final_tot = comm.bcast(final_tot, root=0)
+
+    norm = 1. / final_tot
 
     # try to create edges until num_edges is attained
     if rank == 0:
-        ia_edges = np.zeros((max_create, 2), dtype=int)
+        ia_edges = np.zeros((num_edges, 2), dtype=int)
     else:
         ia_edges = None
     num_ecurrent = 0
+
     while num_ecurrent < num_edges:
         trials = []
         for tgt_list in targets:
             trials.append(
-                int(len(tgt_list)*(num_edges - num_ecurrent)*norm) + 1)
+                max(int(len(tgt_list)*(num_edges - num_ecurrent)*norm), 1))
+        # try to create edges
         edges_tmp = [[], []]
         dist_local = []
-        for s, tgts, num_try in zip(sources, targets, trials):
-            # try to create edges
-            dist_tmp = []
+        total_trials = int(np.sum(trials))
+        local_sources = np.repeat(sources, trials)
+        local_targets = np.zeros(total_trials, dtype=int)
+        current_pos = 0
+        for tgts, num_try in zip(targets, trials):
             t = np.random.randint(0, len(tgts), num_try)
-            test = dist_rule(rule, positions[:, s], positions[:, tgts[t]],
-                             scale, dist=dist_tmp)
-            test = np.greater(test, np.random.uniform(size=num_try))
-            edges_tmp[0].extend(np.full(num_try, s)[test])
-            edges_tmp[1].extend(tgts[t][test])
-            dist_local.extend(dist_tmp[test])
+            local_targets[current_pos:current_pos + num_try] = tgts[t]
+            current_pos += num_try
+        test = dist_rule(rule, positions[:, local_sources],
+                         positions[:, local_targets], scale, dist=dist_local)
+        test = np.greater(test, np.random.uniform(size=total_trials))
+        edges_tmp[0].extend(local_sources[test])
+        edges_tmp[1].extend(local_targets[test])
+        dist_local = np.array(dist_local)[test]
+
+        comm.Barrier()
 
         # gather the result in root and assess the current number of edges
         edges_tmp  = comm.gather(edges_tmp, root=0)
         dist_local = comm.gather(dist_local, root=0)
+
         if rank == 0:
-            ia_edges_tmp = np.concatenate(edges_tmp, axis=1).T
+            edges_tmp = np.concatenate(edges_tmp, axis=1).T
+            dist_local = np.concatenate(dist_local)
+
             # if we're at the end, we'll make too many edges, so we keep only
             # the necessary fraction that we pick randomly
-            if num_edges - num_ecurrent < len(ia_edges_tmp):
-                np.random.shuffle(ia_edges_tmp)
-                ia_edges_tmp = ia_edges_tmp[:num_edges - num_ecurrent]
+            num_desired = num_edges - num_ecurrent
+            if num_desired < len(edges_tmp):
+                chosen = {}
+                while len(chosen) != num_desired:
+                    idx = np.random.randint(
+                        0, len(edges_tmp), num_desired - len(chosen))
+                    for i in idx:
+                        chosen[i] = None
+                edges_tmp = edges_tmp[list(chosen.keys())]
+                dist_local = np.array(dist_local)[list(chosen.keys())]
+
             ia_edges, num_ecurrent = _filter(
-                ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
-                distance=distance, dist_tmp=dist_local)
+                ia_edges, edges_tmp, num_ecurrent, edges_hash, b_one_pop,
+                multigraph, distance=distance, dist_tmp=dist_local)
+
         num_ecurrent = comm.bcast(num_ecurrent, root=0)
+
+        comm.Barrier()
 
     # make sure everyone gets same seed back
     if rank == 0:
         new_seed = np.random.randint(0, num_edges + 1)
+    else:
+        new_seed = None
     new_seed = comm.bcast(new_seed, root=0)
     np.random.seed(new_seed)
 
-    return ia_edges
+    if rank == 0:
+        return ia_edges
+    else:
+        return None

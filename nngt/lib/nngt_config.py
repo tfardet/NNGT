@@ -24,8 +24,9 @@ import sys
 import logging
 
 import nngt
-from .logger import _configure_logger, _init_logger
+from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
+from .test_functions import mpi_checker
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ def get_config(key=None):
         return res
 
 
-def set_config(config, value=None):
+def set_config(config, value=None, silent=False):
     '''
     Set NNGT's configuration.
 
@@ -89,19 +90,22 @@ def set_config(config, value=None):
         has_mt = new_config.get(mt, old_mt)
         if new_config["omp"] > 1:
             if mt in new_config and not new_config[mt]:
-                logger.warning("Updating to 'multithreading' == False with "
-                               "'omp' greater than one.")
+                _log_message(logger, "WARNING",
+                             "Updating to 'multithreading' == False with "
+                             "'omp' greater than one.")
             elif mt not in new_config and not old_mt:
                 new_config[mt] = True
-                logger.warning("'multithreading' was set to False but new "
-                               "'omp' is greater than one. Updating "
-                               "'multithreading' to True.")
+                _log_message(logger, "WARNING",
+                             "'multithreading' was set to False but new "
+                             "'omp' is greater than one. Updating "
+                             "'multithreading' to True.")
     if 'mpi' in new_config:
         if old_mt:
             new_config[mt] = False
-            logger.warning('"mpi" set to True but previous configuration was '
-                           'using OpenMP; setting "multithreading" to False '
-                           'to switch to mpi algorithms.')
+            _log_message(logger, "WARNING",
+                         '"mpi" set to True but previous configuration was '
+                         'using OpenMP; setting "multithreading" to False '
+                         'to switch to mpi algorithms.')
     if new_config.get('mpi', False) and new_config.get(mt, False):
         raise InvalidArgument('Cannot set both "mpi" and "multithreading" to '
                               'True simultaneously, choose one or the other.')
@@ -121,6 +125,9 @@ def set_config(config, value=None):
     if not nngt._config['multithreading']:
         nngt._config['omp'] = 1
         nngt._config['seeds'] = None
+    # reload for mpi
+    if new_config.get('mpi', old_mpi) != old_mpi:
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
     # set graph-tool config
     if "omp" in new_config and nngt._config["graph_library"] == "graph-tool":
         omp_nest = new_config["omp"]
@@ -130,26 +137,31 @@ def set_config(config, value=None):
         if omp_nest == new_config["omp"]:
             nngt._config["library"].openmp_set_num_threads(nngt._config["omp"])
         else:
-            logger.warning("Using NEST and graph_tool, OpenMP number must be "
-                           "consistent throughout the code. Current NEST "
-                           "config states omp = " + str(omp_nest) + ", hence "
-                           "`graph_tool` configuration was not changed.")
+            _log_message(logger, "WARNING",
+                         "Using NEST and graph_tool, OpenMP number must be "
+                         "consistent throughout the code. Current NEST "
+                         "config states omp = " + str(omp_nest) + ", hence "
+                         "`graph_tool` configuration was not changed.")
     # update matplotlib
     if nngt._config['use_tex']:
         import matplotlib
         matplotlib.rc('text', usetex=True)
     # log changes
     _configure_logger(nngt._logger)
+    glib = (nngt._config["library"] if nngt._config["library"] is not None
+            else nngt)
     conf_info = config_info.format(
-        gl     = nngt._config["graph_library"],
+        gl     = nngt._config["graph_library"] + " " + glib.__version__[:5],
         thread = nngt._config["multithreading"],
         plot   = nngt._config["with_plot"],
         nest   = nngt._config["with_nest"],
         db     = nngt._config["use_database"],
         omp    = nngt._config["omp"],
-        s      = "s" if nngt._config["omp"] > 1 else ""
+        s      = "s" if nngt._config["omp"] > 1 else "",
+        mpi    = True if nngt._config["mpi"] else False
     )
-    logger.info(conf_info)
+    if not silent:
+        _log_conf_changed(conf_info)
 
 
 # ----- #
@@ -187,6 +199,11 @@ def _load_config(path_config):
             opt_name = opt[:sep].strip()
             nngt._config[opt_name] = _convert(opt[sep+1:].strip())
     _init_logger(nngt._logger)
+
+
+@mpi_checker
+def _log_conf_changed(conf_info):
+    logger.info(conf_info)
     
 
 
@@ -199,4 +216,5 @@ Multithreading: {thread} ({omp} thread{s})
 Plotting:       {plot}
 NEST support:   {nest}
 Database:       {db}
+MPI:            {mpi}
 '''

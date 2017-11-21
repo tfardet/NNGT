@@ -11,6 +11,7 @@ import matplotlib.cm as cm
 from matplotlib.markers import MarkerStyle as MS
 
 import nngt
+from nngt.lib.logger import _log_message
 
 
 logger = logging.getLogger(__name__)
@@ -42,8 +43,8 @@ if nngt._config["color_lib"] == "seaborn":
                 return sns.color_palette(nngt._config["palette"], len(c))
         palette = sns_palette
     except ImportError as e:
-        logger.warning(
-            "`seaborn` requested but could not set it: {}.".format(e))
+        _log_message(logger, "WARNING",
+                     "`seaborn` requested but could not set it: {}.".format(e))
 
 
 if not with_seaborn:
@@ -74,8 +75,8 @@ if not with_seaborn:
         mpl.rcParams['grid.linestyle'] = ':'
         mpl.rcParams['path.simplify'] = True
     except Exception as e:
-        logger.warning(
-            "Error configuring `matplotlib`: {}.".format(e))
+        _log_message(logger, "WARNING",
+                     "Error configuring `matplotlib`: {}.".format(e))
 
 
 def format_exponent(ax, axis='y', pos=(1.,0.), valign="top", halign="right"):

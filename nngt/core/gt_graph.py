@@ -288,9 +288,18 @@ class _GtGraph(BaseGraph):
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        edges = self.get_edges()
-        order = np.argsort(edges[:, 2])
-        return edges[order, :2]
+        # this dirty check is necessary to work with old versions of graph-tool
+        gt = nngt.get_config('library')
+        gt_major_version = int(gt.__version__[0])
+        gt_minor_version = int(gt.__version__[2:4])
+        edges = None
+        if gt_major_version == 2 and gt_minor_version < 22:
+            return np.array(
+                [(int(e.source()), int(e.target())) for e in self.edges()])
+        else:
+            edges = self.get_edges()
+            order = np.argsort(edges[:, 2])
+            return edges[order, :2]
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''

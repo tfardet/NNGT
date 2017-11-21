@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 #
+# graph_connectivity.py
+#
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
@@ -28,6 +30,8 @@ import numpy as np
 import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
 from nngt.lib.connect_tools import _set_options
+from nngt.lib.logger import _log_message
+from nngt.lib.test_functions import mpi_checker, mpi_random
 
 # try to import multithreaded or mpi algorithms
 
@@ -39,8 +43,9 @@ if nngt.get_config("multithreading"):
         from .cconnect import *
         from .connect_algorithms import price_network
         using_mt_algorithms = True
-        logger.debug("Using multithreaded algorithms compiled on install.")
-        nngt.set_config('multithreading', True)
+        _log_message(logger, "DEBUG",
+                     "Using multithreaded algorithms compiled on install.")
+        nngt.set_config('multithreading', True, silent=True)
     except Exception as e:
         try:
             import cython
@@ -48,18 +53,22 @@ if nngt.get_config("multithreading"):
             from .cconnect import *
             from .connect_algorithms import price_network
             using_mt_algorithms = True
-            logger.debug(
-                str(e) + "\n\tCompiled multithreaded algorithms on-the-run.")
-            nngt.set_config('multithreading', True)
+            _log_message(logger, "DEBUG", str(e) + "\n\tCompiled "
+                         "multithreaded algorithms on-the-run.")
+            nngt.set_config('multithreading', True, silent=True)
         except Exception as e2:
-            logger.warning(
-                str(e) + "\n\t" + str(e2) + "\n\t" +
+            _log_message(
+                logger, "WARNING", str(e) + "\n\t" + str(e2) + "\n\t"
                 "Cython import failed, using non-multithreaded algorithms.")
 if not using_mt_algorithms:
     from .connect_algorithms import *
 if nngt.get_config("mpi"):
-    from .mpi_connect import _distance_rule  # overwrite only _distance_rule
-    nngt.set_config('mpi', True)
+    try:
+        from .mpi_connect import _distance_rule  # overwrite _distance_rule
+        nngt.set_config('mpi', True, silent=True)
+    except ImportError as e:
+        nngt.set_config('mpi', False, silent=True)
+        raise e
 
 
 
@@ -532,11 +541,11 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
     return graph_nw
 
 
-#
-#---
-# Distance-based models
-#------------------------
+# --------------------- #
+# Distance-based models #
+# --------------------- #
 
+@mpi_random
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
                   density=-1., edges=-1, avg_deg=-1., unit='um', weighted=True,
                   directed=True, multigraph=False, name="DR", positions=None,
@@ -592,6 +601,8 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         Initial graph whose nodes are to be connected.
     """
     distance = []
+    # convert neuronal density in (mu m)^2
+    neuron_density *= conversion_magnitude(unit, 'mm')**2
     # set node number and library graph
     graph_dr = from_graph
     if graph_dr is not None:
@@ -601,7 +612,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         nodes = population.size if population is not None else nodes
     # check shape
     if shape is None:
-        h = w = np.sqrt(float(nodes)/neuron_density)
+        h = w = np.sqrt(float(nodes) / neuron_density)
         shape = nngt.geometry.Shape.rectangle(h, w)
     if graph_dr is None:
         graph_dr = nngt.SpatialGraph(
@@ -623,7 +634,10 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
             ids, ids, density, edges, avg_deg, scale, rule, shape, positions,
             directed, multigraph, distance=distance, **kwargs)
         attr = {'distance': distance}
-        graph_dr.new_edges(ia_edges, attributes=attr)
+        # check for None if MPI
+        if ia_edges is not None:
+            graph_dr.new_edges(ia_edges, attributes=attr)
+
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
 

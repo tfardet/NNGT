@@ -29,6 +29,7 @@ import scipy.sparse as ssp
 import nngt
 from .reloading import reload_module
 from .errors import not_implemented
+from .logger import _log_message
 
 
 logger = logging.getLogger(__name__)
@@ -113,11 +114,15 @@ def use_library(library, reloading=True, silent=False):
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
     if success:
         if silent:
-            logger.debug("Successfuly updated to " + library + ".")
+            _log_message(logger, "DEBUG",
+                         "Successfuly switched to " + library + ".")
         else:
-            logger.info("Successfuly updated to " + library + ".")
+            _log_message(logger, "INFO",
+                         "Successfuly switched to " + library + ".")
     else:
-        logger.warning("Error, could not switch to " + library + ".")
+        _log_message(logger, "WARNING",
+                     "Error, could not switch to " + library + ": "
+                     "{}.".format(error))
         if error is not None:
             raise error
 
@@ -139,7 +144,7 @@ def _set_graph_tool():
     # analysis functions
     from graph_tool.spectral import adjacency as _adj
     from graph_tool.centrality import betweenness, closeness
-    from graph_tool.correlations import assortativity as assort
+    from graph_tool.correlations import scalar_assortativity as assort
     from graph_tool.topology import (edge_reciprocity,
                                     label_components, pseudo_diameter)
     from graph_tool.clustering import global_clustering, local_clustering
@@ -208,7 +213,7 @@ def _set_igraph():
             data = np.ones(xs.shape)
             if issubclass(weight.__class__, str):
                 data *= np.array(graph.es[weight])
-            else:
+            elif weight is not None:
                 data *= np.array(weight)
             coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
             return coo_adj.tocsr()
@@ -234,6 +239,9 @@ def _set_igraph():
 
 def _set_networkx():
     import networkx as glib
+    if glib.__version__[0] < '2':
+        raise ImportError("`networkx {} is ".format(glib.__version__) +\
+                          "installed while version 2+ is required.")
     from networkx import DiGraph as GraphLib
     nngt._config["graph_library"] = "networkx"
     nngt._config["library"] = glib
@@ -275,7 +283,7 @@ def _set_networkx():
     def adj_mat(graph, weight=None):
         return to_scipy_sparse_matrix(graph, weight=weight)
     def get_edges(graph):
-        return graph.edges_iter(data=False)
+        return graph.edges(data=False)
     # store functions
     nngt.analyze_graph["assortativity"] = degree_assortativity_coefficient
     nngt.analyze_graph["diameter"] = diameter

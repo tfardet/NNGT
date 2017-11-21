@@ -80,7 +80,7 @@ import sys as _sys
 import logging
 
 
-version = '0.8a'
+__version__ = '0.8a'
 ''' :obj:`str`, current NNGT version '''
 
 
@@ -88,12 +88,7 @@ version = '0.8a'
 # Requirements and config #
 # ----------------------- #
 
-# Python > 2.6
-if _sys.hexversion < 0x02070000:
-    _logger.critical('NNGT requires Python 2.7 or higher.')
-    raise ImportError('NNGT requires Python 2.7 or higher.')
-
-# configuration
+# IMPORTANT: configuration MUST COME FIRST
 _config = {
     'color_lib': 'matplotlib',
     'db_folder': "~/.nngt/database",
@@ -108,14 +103,13 @@ _config = {
     'log_to_file': False,
     'mpi': False,
     'mpl_backend': None,
-    'msd': None,
+    'msd': 0,
     'multithreading': False,
     'omp': 1,
     'palette': 'Set1',
     'use_database': False,
     'use_tex': False,
     'seeds': None,
-    'set_omp_graph_tool': False,
     'with_nest': False,
     'with_plot': False,
 }
@@ -130,13 +124,19 @@ if not _os.path.isdir(_lib_folder):
     _os.mkdir(_lib_folder)
 
 # IMPORTANT: first create logger
-from .lib.logger import _init_logger
+from .lib.logger import _init_logger, _log_message
 
 _logger = logging.getLogger(__name__)
 _init_logger(_logger)
 
+# Python > 2.6
+if _sys.hexversion < 0x02070000:
+    _log_message(_logger, 'CRITICAL', 'NNGT requires Python 2.7 or higher.')
+    raise ImportError('NNGT requires Python 2.7 or higher.')
+
 # IMPORTANT: afterwards, import config
-from .lib.nngt_config import get_config, set_config, _load_config, _convert
+from .lib.nngt_config import (get_config, set_config, _load_config, _convert,
+                              _log_conf_changed)
 
 # check that config file exists
 if not _os.path.isfile(_new_config):  # if it does not, create it
@@ -151,10 +151,11 @@ else:                                 # if it does check it is up-to-date
             opt_val = _convert(opt[sep+1:].strip())
             if opt_name == "version":
                 config_version = opt_val
-        if config_version != version:
+        if config_version != __version__:
             _shutil.copy(_default_config, _new_config)
-            _logger.warning("Updating the configuration file, your previous "
-                            "settings have be overwritten.")
+            _log_message(_logger, "WARNING",
+                         "Updating the configuration file, your previous "
+                         "settings have be overwritten.")
 
 _load_config(_new_config)
 
@@ -198,6 +199,7 @@ if not _libs:
 
 from .lib.io_tools import load_from_file, save_to_file
 from .lib.rng_tools import seed
+from .lib.test_functions import on_master_process
 
 from .core.graph_datastruct import NeuralPop, NeuralGroup, GroupProperty
 from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
@@ -229,13 +231,14 @@ __all__ = [
     "Network",
     "NeuralGroup",
     "NeuralPop",
+    "on_master_process",
     "save_to_file",
     "seed",
     "set_config",
     "SpatialGraph",
     "SpatialNetwork",
     "use_library",
-    "version"
+    "__version__"
 ]
 
 
@@ -246,7 +249,8 @@ try:
     _config['with_plot'] = True
     __all__.append('plot')
 except ImportError as e:
-    _logger.debug("Error, plot module will not be loaded: " + str(e))
+    _log_message(_logger, "DEBUG",
+                 "An error occured, plot module will not be loaded: " + str(e))
     _config['with_plot'] = False
 
 
@@ -267,7 +271,8 @@ if _config['load_nest']:
         except ValueError:
             pass
     except ImportError as e:
-        _logger.debug("NEST not found; nngt.simulation not loaded: " + str(e))
+        _log_message(_logger, "DEBUG",
+                     "NEST not found; nngt.simulation not loaded: " + str(e))
         _config["with_nest"] = False
 
 
@@ -281,12 +286,16 @@ if _config["use_database"]:
         from .database import db
         __all__.append('db')
     except ImportError as e:
-        _logger.debug("Could not load database module: " + str(e))
+        _log_message(_logger, "DEBUG",
+                     "Could not load database module: " + str(e))
 
 
 # ------------------------ #
 # Print config information #
 # ------------------------ #
+
+_glib_version = (_config["library"].__version__[:5]
+                 if _config["library"] is not None else __version__)
 
 _log_info = '''
 # ----------- #
@@ -297,14 +306,16 @@ Multithreading: {thread} ({omp} thread{s})
 Plotting:       {plot}
 NEST support:   {nest}
 Database:       {db}
+MPI:            {mpi}
 '''.format(
-    gl=_config["graph_library"],
+    gl=_config["graph_library"] + ' ' + _glib_version,
     thread=_config["multithreading"],
     plot=_config["with_plot"],
     nest=_config["with_nest"],
     db=_config["use_database"],
     omp=_config["omp"],
-    s="s" if _config["omp"] > 1 else ""
+    s="s" if _config["omp"] > 1 else "",
+    mpi=_config["mpi"]
 )
 
-_logger.info(_log_info)
+_log_conf_changed(_log_info)

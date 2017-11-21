@@ -33,6 +33,7 @@ from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
                       default_synapse, POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string
+from nngt.lib.logger import _log_message
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
@@ -61,12 +62,6 @@ class Graph(nngt.core.GraphObject):
 
     __num_graphs = 0
     __max_id = 0
-    #~ __di_property_func = {
-            #~ "reciprocity": reciprocity, "clustering": clustering,
-            #~ "assortativity": assortativity, "diameter": diameter,
-            #~ "scc": num_scc, "wcc": num_wcc, "radius": spectral_radius, 
-            #~ "num_iedges": num_iedges }
-    #~ __properties = __di_property_func.keys()
     
     @classmethod
     def num_graphs(cls):
@@ -109,20 +104,18 @@ class Graph(nngt.core.GraphObject):
         '''
         shape = matrix.shape
         graph_name = "FromYMatrix_Z"
-        if shape[0] != shape[1]:
-            raise InvalidArgument('A square matrix is required')
-        nodes = shape[0]
+        nodes = max(shape[0], shape[1])
         if issubclass(matrix.__class__, ssp.spmatrix):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
-                if not (matrix.T != matrix).nnz == 0:
+                if shape[0] != shape[1] or not (matrix.T != matrix).nnz == 0:
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
-                if not (matrix.T == matrix).all():
+                if shape[0] != shape[1] or not (matrix.T == matrix).all():
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
@@ -132,9 +125,9 @@ class Graph(nngt.core.GraphObject):
         weights = None
         if weighted:
             if issubclass(matrix.__class__, ssp.spmatrix):
-                weights = np.array(matrix[edges[:,0],edges[:,1]])[0]
+                weights = np.array(matrix[edges[:, 0],edges[:, 1]])[0]
             else:
-                weights = matrix[edges[:,0], edges[:,1]]
+                weights = matrix[edges[:, 0], edges[:, 1]]
         graph.new_edges(edges, {"weight": weights})
         return graph
     
@@ -144,7 +137,8 @@ class Graph(nngt.core.GraphObject):
                   from_string=False):
         '''
         Import a saved graph from a file.
-        @todo: implement population and shape loading, implement gml, dot, xml, gt
+        @todo: implement population and shape loading, implement gml, dot, xml,
+        gt
 
         Parameters
         ----------
@@ -281,7 +275,8 @@ class Graph(nngt.core.GraphObject):
         elif "delays" in kwargs and not hasattr(graph, '_d'):
             graph._d = kwargs["delays"]
         elif "delays" in kwargs:
-            logger.warning('Graph already had delays set, ignoring new ones.')
+            _log_message(logger, "WARNING",
+                         'Graph already had delays set, ignoring new ones.')
         graph._init_bioproperties(neural_pop)
         if copy:
             return graph
@@ -514,6 +509,8 @@ class Graph(nngt.core.GraphObject):
             Edges whose attributes should be set. Others will remain unchanged.
         '''
         if attribute not in self.edges_attributes:
+            assert value_type is not None, "`value_type` is necessary for " +\
+                                           "new attributes."
             self.new_edge_attribute(name=attribute, value_type=value_type,
                                     values=values, val=val)
         else:

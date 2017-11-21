@@ -9,12 +9,14 @@
 
 import xml.etree.ElementTree as xmlet
 import unittest
-import nngt
 
-#-----------------------------------------------------------------------------#
-# Xml tools
-#------------------------
-#   
+import nngt
+from nngt.lib.test_functions import mpi_checker
+
+
+# --------- #
+# Xml tools #
+# --------- #   
 
 def _bool_from_string(string):
     return True if (string.lower() == "true") else False
@@ -53,10 +55,9 @@ def _xml_to_dict(xml_elt, di_types):
     return di_result
 
 
-#-----------------------------------------------------------------------------#
-# Decorator: repeat test for each graph
-#------------------------
-#
+# ------------------------------------- #
+# Decorator: repeat test for each graph #
+# ------------------------------------- #
 
 def foreach_graph(func):
     '''
@@ -70,6 +71,9 @@ def foreach_graph(func):
             if nx and "corr" in graph_name:
                 print("Skipping correlated attributes with networkx")
             else:
-                g, di = self.gen_graph(graph_name)
-                func(self, g, instructions=di, **kwargs)
+                generated = self.gen_graph(graph_name)
+                # check for None when using MPI
+                if generated is not None:
+                    g, di = generated
+                    func(self, g, instructions=di, **kwargs)
     return wrapper

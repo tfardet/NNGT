@@ -104,41 +104,6 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map,
 }
 
 
-//~ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
-//~ {
-    //~ size_t total_unique = hash_map.size();
-    //~ size_t num_edges = a[0].size();
-    //~ size_t s, t;
-
-    //~ for (size_t i = total_unique; i < num_edges; i++)
-    //~ {
-        //~ s = a[0][i];
-        //~ t = a[1][i];
-        //~ // check if this number is already in the map
-        //~ if (hash_map.find(s) == hash_map.end())
-        //~ {
-            //~ // it's not in there yet so add it and set the count to 1
-            //~ std::unordered_map<size_t, int> newmap;
-            //~ newmap[t] = 1;
-            //~ hash_map.insert({s, newmap});
-            //~ a[0][total_unique] = s;
-            //~ a[1][total_unique] = t;
-            //~ total_unique += 1;
-        //~ }
-        //~ else if (hash_map[s].find(t) == hash_map[s].end())
-        //~ {
-            //~ // it's not in there yet so add it and set the count to 1
-            //~ hash_map[s].insert({t, 1});
-            //~ a[0][total_unique] = s;
-            //~ a[1][total_unique] = t;
-            //~ total_unique += 1;
-        //~ }
-    //~ }
-
-    //~ return total_unique;
-//~ }
-
-
 std::vector<size_t> _gen_edge_complement(
   std::mt19937& generator, const std::vector<size_t>& nodes, size_t other_end,
   size_t degree, const std::vector< std::vector<size_t> >* existing_edges,
@@ -287,7 +252,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
         std::mt19937 generator_(seeds[omp_get_thread_num()]);
         // thread local edges
         map_t hash_map;
-        //~ edge_t edge;
         size_t num_elocal = 0;
         std::vector< std::vector<size_t> > local_edges(2,
                                                        std::vector<size_t>());
@@ -298,33 +262,15 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
         // initialize the hash map and the local edges with the existing edges
         // the static schedule is CAPITAL: each thread must always handle
         // the same nodes
-        //~ #pragma omp for schedule(static)
-        //~ for (size_t i=0; i<source_nodes.size(); i++)
-        //~ {
-            //~ size_t s1 = source_nodes[i];
-            //~ size_t j = 0;
-            //~ for (auto s2 : existing_edges[0])
-            //~ {
-                //~ if (s1 == s2)
-                //~ {
-                    //~ edge = edge_t(s1, existing_edges[1][j]);
-                    //~ hash_map.insert({edge, 1});
-                //~ }
-                //~ j++;
-            //~ }
-        //~ }
                                                       
         do {
             // reset edge number (recomute it each time)
             #pragma omp single
             {
-                //~ printf("reset current enum\n");
                 current_enum = initial_enum;
-                //~ printf("reseted\n");
             }
             #pragma omp barrier
             #pragma omp flush(current_enum)
-            //~ printf("t %u has %lu\n", omp_get_thread_num(), current_enum);
             
             // the static schedule is CAPITAL: each thread must always handle
             // the same nodes
@@ -336,6 +282,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 local_tests = std::max(local_tests, 1lu);
                 elocal_tmp[0].reserve(local_tests);
                 elocal_tmp[1].reserve(local_tests);
+                dist_tmp.reserve(local_tests);
                 // initialize source; set target generator
                 src = source_nodes[i];
                 local_tgts = target_nodes[i];
@@ -374,25 +321,15 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             local_edges[0].resize(num_elocal);
             local_edges[1].resize(num_elocal);
 
-            //~ #pragma omp single
-            //~ printf("before reduction/ %lu\n", current_enum);
-
             #pragma omp atomic
             current_enum += num_elocal;
 
             #pragma omp barrier              // make sure everyone is ready
             #pragma omp flush(current_enum)  // and gets last value
             #pragma omp barrier              // for sure
-
-            //~ #pragma omp single
-            //~ {
-                //~ #pragma omp flush(current_enum)  // and gets last value
-                //~ printf("after reduction/ %lu\n", current_enum);
-            //~ }
         } while (current_enum < target_enum);
 
         // fill the edge container: first with the existing edges
-        //~ printf("out of loop (%u) with %lu\n", omp_get_thread_num(), current_enum);
         #pragma omp single
         {
             for (size_t i=0; i<initial_enum; i++)
@@ -407,7 +344,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
         // each thread successively adds its local edges
         #pragma omp critical
         {
-            //~ printf("in critical %lu, %lu, %lu\n", ecount_fill, target_enum, num_edges);
             size_t i = 0;
             #pragma omp flush(ecount_fill)
             if (ecount_fill + num_elocal <= target_enum)
@@ -427,7 +363,6 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 ecount_fill += 1;
                 i += 1;
             }
-            //~ printf("done\n");
         }
     }
 }

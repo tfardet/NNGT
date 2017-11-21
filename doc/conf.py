@@ -149,7 +149,7 @@ gen_autosum(source, target, 'nngt', 'autoclass', dtype="class",
             ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
 
 
-from nngt import version as nngt_version
+from nngt import __version__ as nngt_version
 
 
 # -- General configuration ------------------------------------------------

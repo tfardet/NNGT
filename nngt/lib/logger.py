@@ -25,7 +25,7 @@ from datetime import date
 import logging
 
 import nngt
-
+from .test_functions import mpi_checker
 
 # check that log folder exists, otherwise create it
 
@@ -72,3 +72,17 @@ def _log_to_file(logger, create_writer):
         fileHandler.setFormatter(logFileFormatter)
         fileHandler.setLevel(logging.DEBUG)
         logger.addHandler(fileHandler)
+
+
+# log message
+
+@mpi_checker
+def _log_message(logger, level, message):
+    if level == 'DEBUG':
+        logger.debug(message)
+    elif level == 'WARNING':
+        logger.warning(message)
+    elif level == 'INFO':
+        logger.info(message)
+    else:
+        logger.critical(message)

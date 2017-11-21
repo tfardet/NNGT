@@ -43,6 +43,7 @@ class TestGraphClasses(TestBasis):
     def test_name(self):
         return "test_graphclasses"
 
+    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     def gen_graph(self, graph_name):
         di_instructions = self.parser.get_graph_options(graph_name)
         mat = self.mat_gen[graph_name](**di_instructions)
@@ -88,12 +89,12 @@ class TestGraphClasses(TestBasis):
             ".format(graph.name, ref_result, computed_result))
 
 
-#-----------------------------------------------------------------------------#
-# Test suite
-#------------------------
-#
+# ---------- #
+# Test suite #
+# ---------- #
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestGraphClasses)
+if not nngt.get_config('mpi'):
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestGraphClasses)
 
-if __name__ == "__main__":
-    unittest.main()
+    if __name__ == "__main__":
+        unittest.main()

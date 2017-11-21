@@ -209,7 +209,7 @@ class BaseGraph(nngt._config["graph"]):
         if "names" in attributes:
             num_attr = len(attributes["names"])
             for i in range(num_attr):
-                v = attributes["values"]
+                v = attributes["values"][i]
                 if not nonstring_container(v):
                     v = np.repeat(v, self.edge_nb())
                 self._eattr.new_attribute(attributes["names"][i],
