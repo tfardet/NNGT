@@ -136,7 +136,7 @@ def old_graph_tool(version_min):
         def wrapper(*args, **kwargs):
             if using_gt and gt_version < version_min:
                 raise NotImplementedError('This function is not working for '
-                                          'graph-tool < ' + version + '.')
+                                          'graph-tool < ' + version_min + '.')
             else:
                 return func(*args, **kwargs)
         return wrapper
