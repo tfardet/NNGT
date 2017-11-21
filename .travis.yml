@@ -48,29 +48,31 @@ before_install:
     - sudo apt-get autoremove
     # requirements for building + installing scipy
     - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev
-    # Install pip and other libraries
-    - wget https://bootstrap.pypa.io/get-pip.py
-    - sudo python get-pip.py
-    - sudo pip install -U setuptools
-    # test scipy from apt (much faster) and install matplotlib
-    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev && pip install --user cython; fi
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib cython3; else sudo pip install matplotlib && pip install --user cython; fi
-    # install graph-tool and igraph
+    # Geos for shapely
+    - sudo apt-get install libgeos-3.4.2 libgeos-dev
+    # install scipy from apt (much faster) and install pip
+    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev python-pip; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip; fi
+    # Pip alias and additional libraries
+    - shopt -s expand_aliases
+    - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo -H ' && alias pipv=pip3; else alias sudo='sudo -H ' && alias pipv=pip; fi
+    - sudo pipv install -U setuptools
+    - sudo pipv install --user cython
+    - sudo pipv install mpi4py shapely matplotlib numpy
+    # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
-    - if [[ "$PYVERSION" == "3.x" && "$GL" == "ig" ]]; then sudo apt-get install python3-cairo libxml2-dev && wget http://igraph.org/nightly/get/c/igraph-0.7.1.tar.gz && tar -zxvf igraph-0.7.1.tar.gz && cd igraph-0.7.1 && ./configure && make -s && sudo make -s install && cd .. && rm -R igraph-0.7.1*; fi
-    - if [[ "$PYVERSION" == "2.7" && "$GL" == "ig" ]]; then sudo apt-get install python-igraph; fi
-
+    - if [[ "$PYVERSION" == "3.x" && "$GL" == "ig" ]]; then sudo apt-get install python3-cairo libxml2-dev; fi
+    - if [[ "$GL" == "ig" ]]; then sudo pipv install python-igraph; fi
+    - if [[ "$GL" == "nx" ]]; then sudo pipv install networkx; fi
     # testing and coverage analysis
-    - shopt -s expand_aliases
-    - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo ' && alias pipv=pip3; else alias sudo='sudo ' && alias pipv=pip; fi
-    - sudo pipv install nose2 cov-core coverage coveralls mpi4py
+    - sudo pipv install nose2 cov-core coverage coveralls
 
-install: sudo pipv install -e ".[$GL]"
+install: sudo pipv install -e .
 
 script:
     - coverage run -m nose2.__main__ -F
     - export OMP=4 && coverage run -m nose2.__main__ -F
-    - export MPI=1 && coverage run -m nose2.__main__ -F
+    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -m nose2.__main__ -F
 
 after_success: coveralls

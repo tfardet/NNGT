@@ -28,6 +28,7 @@ import scipy.sparse as ssp
 import nngt
 from nngt.lib import InvalidArgument
 from nngt.lib.logger import _log_message
+from .test_functions import old_graph_tool
 from ..geometry import Shape, _shapely_support
 
 
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 # IO #
 # -- #
 
+@old_graph_tool('2.22')
 def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                    attributes=[], notifier="@", ignore="#"):
     '''
@@ -141,6 +143,7 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     return di_notif, edges, di_attributes, pop, shape, positions
 
 
+@old_graph_tool('2.22')
 def save_to_file(graph, filename, fmt="auto", separator=" ",
                  secondary=";", attributes=None, notifier="@"):
     '''
@@ -365,7 +368,6 @@ def _edge_list(graph, separator, secondary, attributes):
     lst_edges = []
     for i, e in enumerate(edges):
         str_edge = "{}{}{}".format(e[0], separator, e[1])
-        edge = tuple(e)
         if attributes:
             str_edge += separator
         for end, attr in zip(end_strings, attributes):

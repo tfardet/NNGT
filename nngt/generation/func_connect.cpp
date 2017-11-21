@@ -202,9 +202,9 @@ void _gen_edges(
 
 void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
   const std::vector<std::vector<size_t>>& target_nodes,
-  const std::string& rule, float scale, const std::vector<float>& x,
-  const std::vector<float>& y, size_t num_neurons, size_t num_edges,
-  const std::vector< std::vector<size_t> >& existing_edges,
+  const std::string& rule, float scale, float norm,
+  const std::vector<float>& x, const std::vector<float>& y, size_t num_neurons,
+  size_t num_edges, const std::vector< std::vector<size_t> >& existing_edges,
   std::vector<float>& dist, bool multigraph, long msd, unsigned int num_omp)
 {
     float inv_scale = 1. / scale;
@@ -215,7 +215,24 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     std::uniform_real_distribution<float> rnd_uniform(0., 1.);
 
     // rule into int
-    int rule_type = (rule == "lin" ? 0 : 1);
+    int rule_type = -1;
+    if (rule == "lin")
+    {
+        rule_type = 0;
+    }
+    else if (rule == "exp")
+    {
+        rule_type = 1;
+    }
+    else if (rule == "gaussian")
+    {
+        rule_type = 2;
+    }
+    else
+    {
+        throw std::invalid_argument("`rule` must be among 'lin', 'exp', or "
+                                    "'gaussian'.");
+    }
 
     size_t initial_enum = existing_edges.empty() ?
         0 : existing_edges[0].size();               // initial number of edges
@@ -232,7 +249,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     {
         tot_neighbours += target_nodes[i].size();
     }
-    double norm = 1. / tot_neighbours;
+    double neigh_norm = 1. / tot_neighbours;
 
     // if not using multigraph, assert that we have enough neighbours
     if (tot_neighbours < target_enum)
@@ -278,7 +295,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             for (size_t i=0; i<target_nodes.size(); i++)
             {
                 local_tests = target_nodes[i].size()
-                              * (target_enum - current_enum) * norm;
+                              * (target_enum - current_enum) * neigh_norm;
                 local_tests = std::max(local_tests, 1lu);
                 elocal_tmp[0].reserve(local_tests);
                 elocal_tmp[1].reserve(local_tests);
@@ -299,7 +316,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                     }
                     distance = std::sqrt((x[tgt] - x[src])*(x[tgt] - x[src]) +
                                          (y[tgt] - y[src])*(y[tgt] - y[src]));
-                    proba = _proba(rule_type, inv_scale, distance);
+                    proba = _proba(rule_type, norm, inv_scale, distance);
                     if (proba >= rnd_uniform(generator_))
                     {
                         elocal_tmp[0].push_back(src);

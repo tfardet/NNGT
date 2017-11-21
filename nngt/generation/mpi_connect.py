@@ -48,7 +48,7 @@ __all__ = [
 
 
 def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
-                   scale=-1, rule="exp", shape=None, positions=None,
+                   scale=-1, norm=-1, rule="exp", shape=None, positions=None,
                    directed=True, multigraph=False, distance=None, **kwargs):
     '''
     Returns a distance-rule graph
@@ -113,7 +113,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         final_tot = None
     final_tot = comm.bcast(final_tot, root=0)
 
-    norm = 1. / final_tot
+    neigh_norm = 1. / final_tot
 
     # try to create edges until num_edges is attained
     if rank == 0:
@@ -125,8 +125,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     while num_ecurrent < num_edges:
         trials = []
         for tgt_list in targets:
-            trials.append(
-                max(int(len(tgt_list)*(num_edges - num_ecurrent)*norm), 1))
+            trials.append(max(
+                int(len(tgt_list)*(num_edges - num_ecurrent)*neigh_norm), 1))
         # try to create edges
         edges_tmp = [[], []]
         dist_local = []
@@ -138,8 +138,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             t = np.random.randint(0, len(tgts), num_try)
             local_targets[current_pos:current_pos + num_try] = tgts[t]
             current_pos += num_try
-        test = dist_rule(rule, positions[:, local_sources],
-                         positions[:, local_targets], scale, dist=dist_local)
+        test = dist_rule(rule, scale, norm, positions[:, local_sources],
+                         positions[:, local_targets], dist=dist_local)
         test = np.greater(test, np.random.uniform(size=total_trials))
         edges_tmp[0].extend(local_sources[test])
         edges_tmp[1].extend(local_targets[test])

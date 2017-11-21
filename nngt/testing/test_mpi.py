@@ -26,13 +26,6 @@ Test the main methods of the :mod:`~nngt.generation` module.
 
 import unittest
 
-try:
-    from mpi4py import MPI
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-except ImportError:
-    pass
-
 import numpy as np
 
 import nngt
@@ -68,21 +61,21 @@ class TestMPI(TestBasis):
     def test_name(self):
         return "test_mpi"
 
+    @unittest.skipIf(not nngt.get_config('mpi'), "Not using MPI.")
     def gen_graph(self, graph_name):
         di_instructions = self.parser.get_graph_options(graph_name)
         graph = nngt.generate(di_instructions)
-        if rank == 0:
+        if nngt.on_master_process():
             graph.set_name(graph_name)
         return graph, di_instructions
 
     @foreach_graph
-    @unittest.skipIf(not nngt.get_config('mpi'), "Not using MPI.")
     def test_model_properties(self, graph, instructions, **kwargs):
         '''
         When generating graphs from on of the preconfigured models, check that
         the expected properties are indeed obtained.
         '''
-        if rank == 0:
+        if nngt.on_master_process():
             graph_type = instructions["graph_type"]
             ref_result = self.theo_prop[graph_type](instructions)
             computed_result = self.exp_prop[graph_type](graph, instructions)

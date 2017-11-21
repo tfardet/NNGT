@@ -100,6 +100,14 @@ procedures are detailed in the documentation.
    ../modules/nngt
 
 
+Known bugs
+----------
+
+* Graph I/O confirmed not working with `graph_tool <= 2.19` when using
+  edge attributes. Confirmed working with `graph_tool >= 2.22`.
+* Plotting :class:`SpatialGraph` with `networkx` does not work.
+
+
 .. _graph_tool: http://graph-tool.skewed.de
 .. _igraph: http://igraph.org/
 .. _`NEST simulator`: http://www.nest-simulator.org/

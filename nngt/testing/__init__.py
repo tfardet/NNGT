@@ -48,7 +48,6 @@ import unittest
 import nngt
 
 
-
 # ------------- #
 # Get the tests #
 # ------------- #
@@ -72,7 +71,7 @@ elif graph_library == "nx":
 # get the arguments for MPI/OpenMP
 omp = int(environ.get("OMP", 1))
 mpi = bool(environ.get("MPI", False))
-nngt.set_config({"omp": omp, "mpi": mpi})
+nngt.set_config({"multithreading": omp > 1, "omp": omp, "mpi": mpi})
 
 
 # get the tests

@@ -546,10 +546,10 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
 # --------------------- #
 
 @mpi_random
-def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
-                  density=-1., edges=-1, avg_deg=-1., unit='um', weighted=True,
-                  directed=True, multigraph=False, name="DR", positions=None,
-                  population=None, from_graph=None, **kwargs):
+def distance_rule(scale, norm=1., rule="exp", shape=None, neuron_density=1000.,
+                  nodes=0, density=-1., edges=-1, avg_deg=-1., unit='um',
+                  weighted=True, directed=True, multigraph=False, name="DR",
+                  positions=None, population=None, from_graph=None, **kwargs):
     """
     Create a graph using a 2D distance rule to create the connection between
     neurons. Available rules are linear and exponential.
@@ -560,10 +560,13 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         Characteristic scale for the distance rule. E.g for linear distance-
         rule, :math:`P(i,j) \propto (1-d_{ij}/scale))`, whereas for the
         exponential distance-rule, :math:`P(i,j) \propto e^{-d_{ij}/scale}`.
+    norm : float, optional (default: 1.)
+        Normalization factor for the distance rule; it is equal to the
+        probability of connection when testing a node at zero distance.
     rule : string, optional (default: 'exp')
         Rule that will be apply to draw the connections between neurons.
-        Choose among "exp" (exponential), "lin" (linear),
-        "power" (power-law, not implemented yet).
+        Choose among "exp" (exponential), "gaussian" (Gaussian), or
+        "lin" (linear).
     shape : :class:`~nngt.geometry.Shape`, optional (default: None)
         Shape of the neurons' environment. If not specified, a square will be
         created with the appropriate dimensions for the number of neurons and
@@ -631,8 +634,8 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     if nodes > 1:
         ids = np.arange(0, nodes, dtype=np.uint)
         ia_edges = _distance_rule(
-            ids, ids, density, edges, avg_deg, scale, rule, shape, positions,
-            directed, multigraph, distance=distance, **kwargs)
+            ids, ids, density, edges, avg_deg, scale, norm, rule, shape,
+             positions, directed, multigraph, distance=distance, **kwargs)
         attr = {'distance': distance}
         # check for None if MPI
         if ia_edges is not None:

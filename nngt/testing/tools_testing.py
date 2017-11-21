@@ -9,9 +9,14 @@
 
 import xml.etree.ElementTree as xmlet
 import unittest
+import logging
 
 import nngt
 from nngt.lib.test_functions import mpi_checker
+from nngt.lib.logger import _log_message
+
+
+logger = logging.getLogger()
 
 
 # --------- #
@@ -69,7 +74,9 @@ def foreach_graph(func):
         nx = nngt.get_config("graph_library") == "networkx"
         for graph_name in self.graphs:
             if nx and "corr" in graph_name:
-                print("Skipping correlated attributes with networkx")
+                _log_message(logger, "DEBUG",
+                             "Skipping correlated attributes with "
+                             "networkx")
             else:
                 generated = self.gen_graph(graph_name)
                 # check for None when using MPI

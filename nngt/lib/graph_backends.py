@@ -72,6 +72,11 @@ def use_library(library, reloading=True, silent=False):
         Whether the graph objects should be `reload_module`d (this should
         always be set to True except when NNGT is first initiated!)
     '''
+    # save old config except for graph-library data
+    old_config = nngt.get_config()
+    for k in ("graph", "graph_library", "library"):
+        del old_config[k]
+    # try to switch graph library
     success = False
     error = None
     if library == "graph-tool":
@@ -112,6 +117,9 @@ def use_library(library, reloading=True, silent=False):
         sys.modules["nngt"].SpatialGraph = SpatialGraph
         sys.modules["nngt"].Network = Network
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
+    # restore old config
+    nngt.set_config(old_config, silent=True)
+    # log
     if success:
         if silent:
             _log_message(logger, "DEBUG",

@@ -22,6 +22,7 @@ import numpy as np
 
 from .custom_plt import palette, format_exponent
 from nngt.lib import POS, nonstring_container
+from nngt.analysis import num_wcc
 
 
 
@@ -115,7 +116,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             nsize = _node_size(network, nsize)
             nsize *= max_nsize
         else:
-            nsize = np.ones(n)
+            nsize = np.ones(n, dtype=float)
     elif isinstance(nsize, float):
         nsize = np.repeat(nsize, n)
     nsize *= 0.01 * size[0]
@@ -199,22 +200,24 @@ def _set_ax_lim(ax, xdata, ydata, xlims, ylims):
 
 
 def _node_size(network, nsize):
-    size = np.ones(network.node_nb())
+    size = np.ones(network.node_nb(), dtype=float)
     if "degree" in nsize:
         deg_type = nsize[:nsize.index("-")]
-        size = network.get_degrees(deg_type)
+        size = network.get_degrees(deg_type).astype(float)
         if size.max() > 15*size.min():
             size = np.power(size, 0.4)
     if nsize == "betweenness":
-        size = network.betweenness_list("node")
-        if size.max() > 15*size.min():
-            min_size = size[size!=0].min()
-            size[size == 0.] = min_size
-            size = np.log(size)
-            if size.min()<0:
-                size -= 1.1*size.min()
+        betw = network.betweenness_list("node").astype(float)
+        if num_wcc(network) == 1:
+            size *= betw
+            if size.max() > 15*size.min():
+                min_size = size[size!=0].min()
+                size[size == 0.] = min_size
+                size = np.log(size)
+                if size.min()<0:
+                    size -= 1.1*size.min()
     size /= size.max()
-    return size
+    return size.astype(float)
 
 
 def _edge_size(network, esize):

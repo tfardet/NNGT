@@ -34,6 +34,8 @@ from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string
 from nngt.lib.logger import _log_message
+from nngt.lib.test_functions import old_graph_tool
+
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
@@ -125,13 +127,14 @@ class Graph(nngt.core.GraphObject):
         weights = None
         if weighted:
             if issubclass(matrix.__class__, ssp.spmatrix):
-                weights = np.array(matrix[edges[:, 0],edges[:, 1]])[0]
+                weights = np.array(matrix[edges[:, 0], edges[:, 1]])[0]
             else:
                 weights = matrix[edges[:, 0], edges[:, 1]]
         graph.new_edges(edges, {"weight": weights})
         return graph
     
     @staticmethod
+    @old_graph_tool('2.22')
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
                   attributes=None, notifier="@", ignore="#",
                   from_string=False):
@@ -386,6 +389,7 @@ class Graph(nngt.core.GraphObject):
             Network.make_network(gc_instance, deepcopy(self.population))
         return gc_instance
 
+    @old_graph_tool('2.22')
     def to_file(self, filename, fmt="auto", separator=" ", secondary=";",
                 attributes=None, notifier="@"):
         '''
