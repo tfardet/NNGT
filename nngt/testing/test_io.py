@@ -47,7 +47,10 @@ class TestIO(TestBasis):
     def test_name(self):
         return "test_io"
 
-    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
+    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI'
+                     or (nngt.get_config('graph_library') == 'graph-tool'
+                         and nngt.get_config('library').__version__[:4]
+                         < '2.22', 'Not checking for graph-tool < 2.22.'))
     def gen_graph(self, graph_name):
         # check whether we are loading from file
         if "." in graph_name:
@@ -64,9 +67,6 @@ class TestIO(TestBasis):
             return graph, di_instructions
 
     @foreach_graph
-    @unittest.skipIf(nngt.get_config('graph_library') == 'graph-tool'
-                     and nngt.get_config('library').__version__[:4] < '2.22',
-                     'Not checking for graph-tool < 2.22.')
     def test_identical(self, graph, instructions, **kwargs):
         err = error.format(graph=graph.get_name())
         if instructions is not None:  # working with generated graph
