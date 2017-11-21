@@ -71,7 +71,8 @@ def set_config(config, value=None):
     --------
     :func:`~nngt.get_config`
     '''
-    old_multithreading = nngt._config["multithreading"]
+    old_mt     = nngt._config["multithreading"]
+    old_mpi    = nngt._config["mpi"]
     new_config = None
     if not isinstance(config, dict):
         new_config = {config: value}
@@ -82,21 +83,44 @@ def set_config(config, value=None):
             raise KeyError("Unknown configuration property: {}".format(key))
         if key == "log_level":
             new_config[key] = _convert(new_config[key])
-    # check multithreading status and number of threads 
+    # check multithreading status and number of threads
+    mt = "multithreading"
     if "omp" in new_config:
-        has_mt = new_config.get("multithreading", old_multithreading)
-        if new_config["omp"] > 1 and not has_mt:
-             logger.warning("'multithreading' is set to False but 'omp' is "
-                            "greater than one.")
+        has_mt = new_config.get(mt, old_mt)
+        if new_config["omp"] > 1:
+            if mt in new_config and not new_config[mt]:
+                logger.warning("Updating to 'multithreading' == False with "
+                               "'omp' greater than one.")
+            elif mt not in new_config and not old_mt:
+                new_config[mt] = True
+                logger.warning("'multithreading' was set to False but new "
+                               "'omp' is greater than one. Updating "
+                               "'multithreading' to True.")
+    if 'mpi' in new_config:
+        if old_mt:
+            new_config[mt] = False
+            logger.warning('"mpi" set to True but previous configuration was '
+                           'using OpenMP; setting "multithreading" to False '
+                           'to switch to mpi algorithms.')
+    if new_config.get('mpi', False) and new_config.get(mt, False):
+        raise InvalidArgument('Cannot set both "mpi" and "multithreading" to '
+                              'True simultaneously, choose one or the other.')
+    # reset seeds if necessary
+    reset_seeds  = (new_config.get("omp", 1) != nngt._config["omp"])
+    reset_seeds += (nngt._config["mpi"] and new_config.get(mt, False))
+    reset_seeds += (nngt._config[mt] and new_config.get('mpi', False))
+    if reset_seeds:
+        nngt._config['seeds'] = None
     # update
     nngt._config.update(new_config)
     # apply multithreading parameters
-    new_multithreading = new_config.get("multithreading", old_multithreading)
-    if new_multithreading != old_multithreading:
+    new_multithreading = new_config.get("multithreading", old_mt)
+    if new_multithreading != old_mt:
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
     # if multithreading loading failed, set omp back to 1
     if not nngt._config['multithreading']:
         nngt._config['omp'] = 1
+        nngt._config['seeds'] = None
     # set graph-tool config
     if "omp" in new_config and nngt._config["graph_library"] == "graph-tool":
         omp_nest = new_config["omp"]
@@ -117,13 +141,13 @@ def set_config(config, value=None):
     # log changes
     _configure_logger(nngt._logger)
     conf_info = config_info.format(
-        gl=nngt._config["graph_library"],
-        thread=nngt._config["multithreading"],
-        plot=nngt._config["with_plot"],
-        nest=nngt._config["with_nest"],
-        db=nngt._config["use_database"],
-        omp=nngt._config["omp"],
-        s="s" if nngt._config["omp"] > 1 else ""
+        gl     = nngt._config["graph_library"],
+        thread = nngt._config["multithreading"],
+        plot   = nngt._config["with_plot"],
+        nest   = nngt._config["with_nest"],
+        db     = nngt._config["use_database"],
+        omp    = nngt._config["omp"],
+        s      = "s" if nngt._config["omp"] > 1 else ""
     )
     logger.info(conf_info)
 
@@ -167,13 +191,12 @@ def _load_config(path_config):
 
 
 config_info = '''
-    --------------
-    Config changed
-    --------------
+# -------------- #
+# Config changed #
+# -------------- #
 Graph library:  {gl}
 Multithreading: {thread} ({omp} thread{s})
 Plotting:       {plot}
 NEST support:   {nest}
 Database:       {db}
-    --------------
 '''

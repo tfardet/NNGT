@@ -331,13 +331,13 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
 def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
                    np.ndarray[size_t, ndim=1] target_ids,
-                   density, edges, avg_deg, float scale,
-                   str rule, shape, np.ndarray[float, ndim=2] positions,
-                   float conversion_factor, bool directed, bool multigraph,
-                   num_neurons=None, **kwargs):
+                   density, edges, avg_deg, scale, str rule, shape,
+                   np.ndarray[float, ndim=2] positions, bool directed,
+                   bool multigraph, num_neurons=None, distance=None, **kwargs):
     '''
     Returns a distance-rule graph
     '''
+    distance = [] if distance is None else distance
     if num_neurons is None:
         num_neurons = len(set(np.concatenate((source_ids, target_ids))))
     cdef:
@@ -350,6 +350,7 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
         vector[ vector[size_t] ] targets
         vector[float] x = positions[0]
         vector[float] y = positions[1]
+        float cscale = scale
     # compute the required values
     edge_num, _ = _compute_connections(
         num_source, num_target, density, edges, avg_deg, directed)
@@ -366,14 +367,17 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
     # create the edges
     cdef:
         long msd = np.random.randint(0, edge_num + 1)
-        float area = shape.area * conversion_factor
+#~         float area = shape.area * conversion_factor
         size_t cedges = edge_num
         np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edge_num, 2), dtype=DTYPE)
+        vector[float] dist = vector[float]()
 
-    _cdistance_rule(&ia_edges[0,0], source_ids, targets, crule, scale, x, y,
-                    area, cnum_neurons, cedges, old_edges, multigraph, msd,
+    _cdistance_rule(&ia_edges[0,0], source_ids, targets, crule, cscale, x, y,
+                    cnum_neurons, cedges, old_edges, dist, multigraph, msd,
                     omp)
+    distance.extend(dist)
+    assert np.all(np.greater(distance, 0.)), "Negative distance detected."
     return ia_edges
 
 

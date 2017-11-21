@@ -85,6 +85,9 @@ def degree_distribution(network, deg_type="total", nodes=None,
     axis.axis('tight')
     if "alpha" not in kwargs:
         kwargs["alpha"] = 1 if isinstance(deg_type, str) else 0.5
+    labels = kwargs.get('label', None)
+    if not nonstring_container(labels) and labels is not None:
+        labels = [labels]
     # get degrees
     maxcounts, maxbins, minbins = 0, 0, np.inf
     if isinstance(deg_type, str):
@@ -111,10 +114,13 @@ def degree_distribution(network, deg_type="total", nodes=None,
             maxcounts = max(maxcounts, maxcounts_tmp)
             maxbins = max(maxbins, maxbins_tmp)
             minbins = min(minbins, minbins_tmp)
-            if "label" not in kwargs:
-                kwargs["label"] = s_type[0].upper() + s_type[1:] + " degree"
+            if labels is None:
+                kwargs['label'] = s_type[0].upper() + s_type[1:] + " degree"
+            else:
+                kwargs['label'] = labels[i]
             axis.bar(
                 bins[:-1], counts, np.diff(bins), color=colors[i], **kwargs)
+
     axis.set_xlabel("Degree")
     axis.set_ylabel("Node count")
     title_start = (deg_type[0].upper() + deg_type[1:] + '-d'
@@ -163,7 +169,7 @@ def attribute_distribution(network, attribute, num_bins='auto', logx=False,
     # get attribute
     maxcounts, maxbins, minbins = 0, 0, np.inf
     if isinstance(attribute, str):
-        values = network.attributes(name=attribute)
+        values = network.get_edge_attributes(name=attribute)
         counts, bins = _hist(
             values, num_bins, norm, logx, attribute, axis, **kwargs)
         maxcounts, maxbins, minbins = counts.max(), bins.max(), bins.min()

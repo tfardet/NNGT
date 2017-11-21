@@ -29,6 +29,7 @@ import numpy as np
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
+from nngt.lib.graph_helpers import _set_edge_attr
 
 
 # ---------------------------------- #
@@ -139,13 +140,16 @@ class BaseGraph(nngt._config["graph"]):
             The adjacency matrix of the graph.
         '''
         weights = "weight" if weights is True else weights
-        types = "type" if types is True else False
         mat = nngt.analyze_graph["adjacency"](self, weights)
-        if types in self.attributes() and weights in (True, "weight"):
-            mtype = adjacency(self, weight="type")
-            return mat * mtype
-        else:
-            return mat
+        if types and 'type' in self.nodes_attributes:
+            edges = mat.nonzero()
+            if len(edges[0]):
+                keep = self.nodes_attributes['type'][edges[0]] < 0
+                if np.any(keep):
+                    mat[edges[0][keep], edges[1][keep]] *= -1.
+        elif types and 'type' in self.edges_attributes:
+            raise NotImplementedError()
+        return mat
     
     #-------------------------------------------------------------------------#
     # Properties and methods to implement
@@ -175,30 +179,41 @@ class BaseGraph(nngt._config["graph"]):
         pass
         
     def attr_new_edges(self, edge_list, attributes=None):
-        if attributes:
-            for k in attributes.keys():
-                if k not in self.attributes() and k in ("weight", "delay"):
-                    self._eattr.new_attribute(name=k, value_type="double")
-            # take care of classic attributes
-            if "weight" in attributes:
-                self._eattr.set_attribute(
-                    "weight", attributes["weight"], edges=edge_list)
-            if "delay" in attributes:
-                self._eattr.set_attribute(
-                    "delay", attributes["delay"], edges=edge_list)
-            if "distance" in attributes:
-                raise NotImplementedError("distance not implemented yet")
-                #~ self.set_distances(elist=edge_list,
-                                   #~ dlist=attributes["distance"])
-            # take care of potential additional attributes
-            if "names" in attributes:
-                num_attr = len(attributes["names"])
-                for i in range(num_attr):
-                    v = attributes["values"]
-                    if not nonstring_container(v):
-                        v = np.repeat(v, self.edge_nb())
-                    self._eattr.new_attribute(attributes["names"][i],
-                                              attributes["types"][i], values=v)
+        attributes = {} if attributes is None else attributes
+        specials = ("weight", "delay", 'distance')
+        for k in attributes.keys():
+            if k not in self.edges_attributes and k in specials:
+                self._eattr.new_attribute(name=k, value_type="double")
+        # take care of classic attributes
+        # distance must come first
+        if self.is_spatial() or "distance" in attributes:
+            prop = attributes.get("distance", None)
+            values = _set_edge_attr(
+                self, edge_list, 'distance', prop, last_edges=True)
+            self._eattr.set_attribute(
+                "distance", values, edges=edge_list)
+        # then weights
+        if self.is_weighted() or "weight" in attributes:
+            values = _set_edge_attr(
+                self, edge_list, 'weight', attributes.get("weight", None),
+                last_edges=True)
+            self._eattr.set_attribute(
+                "weight", values, edges=edge_list)
+        if self.is_network() or "delay" in attributes:
+            prop = attributes.get("delay", None)
+            values = _set_edge_attr(
+                self, edge_list, 'delay', prop, last_edges=True)
+            self._eattr.set_attribute(
+                "delay", values, edges=edge_list)
+        # take care of potential additional attributes
+        if "names" in attributes:
+            num_attr = len(attributes["names"])
+            for i in range(num_attr):
+                v = attributes["values"]
+                if not nonstring_container(v):
+                    v = np.repeat(v, self.edge_nb())
+                self._eattr.new_attribute(attributes["names"][i],
+                                          attributes["types"][i], values=v)
         
     @abstractmethod
     def node_nb(self):

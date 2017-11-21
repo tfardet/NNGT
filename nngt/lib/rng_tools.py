@@ -24,25 +24,46 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
+from nngt.lib import InvalidArgument
 
 
 # ----------- #
 # Random seed #
 # ----------- #
 
-def seed(seed=None):
+def seed(msd=None, seeds=None):
     '''
     Seed the random generator used by NNGT (i.e. the numpy `RandomState`: for
     details, see :class:`numpy.random.RandomState`).
 
+    ..versionchanged:: 0.8
+        Renamed `seed` to `msd`, added `seeds` for multithreading.
+
     Parameters
     ----------
-    seed : int or array_like, optional
-        Seed for `RandomState`.
-        Must be convertible to 32 bit unsigned integers.
+    msd : int, optional
+        Master seed for numpy `RandomState`.
+        Must be convertible to 32-bit unsigned integers.
+    seeds : array of ints, optional
+        Seeds for  for `RandomState`.
+        Must be convertible to 32-bit unsigned integers.
     '''
-    np.random.seed(seed)
-    nngt._config["seed"] = seed
+    np.random.seed(msd)
+    nngt.set_config('msd', msd)
+    if seeds is not None:
+        with_mt = nngt.get_config('multithreading')
+        with_mpi = nngt.get_config('mpi')
+        err = 'Expected {} seeds.'
+        if with_mpi:
+            from mpi4py import MPI
+            comm = MPI.COMM_WORLD
+            size = comm.Get_size()
+            assert size == len(seeds), err.format(size)
+            nngt.set_config('seeds', seeds)
+        elif with_mt:
+            num_omp = nngt.get_config('omp')
+            assert num_omp == len(seeds), err.format(num_omp)
+            nngt.set_config('seeds', seeds)
 
 
 # ----------------------------- #
@@ -59,8 +80,10 @@ def _generate_random(number, instructions):
             "are {}".format(name, ", ".join(di_dfunc.keys())))
 
 
-def _eprop_distribution(graph, distrib_type, matrix=False, elist=None, **kw):
-    ra_values = di_dfunc[distrib_type](graph, elist=elist, **kw)
+def _eprop_distribution(graph, distrib_type, matrix=False, elist=None,
+                        last_edges=False, **kw):
+    ra_values = di_dfunc[distrib_type](graph, elist=elist,
+                                       last_edges=last_edges, **kw)
     num_edges = graph.edge_nb()
     if matrix:
         return _make_matrix(graph, num_edges, ra_values, elist)
@@ -108,7 +131,7 @@ def delta_distrib(graph=None, elist=None, num=None, value=1., **kwargs):
     return np.repeat(value, num)
 
 
-def uniform_distrib(graph, elist=None, num=None, lower=0., upper=1.5,
+def uniform_distrib(graph, elist=None, num=None, lower=None, upper=None,
                     **kwargs):
     '''
     Uniform distribution for edge attributes.
@@ -130,7 +153,8 @@ def uniform_distrib(graph, elist=None, num=None, lower=0., upper=1.5,
     return np.random.uniform(lower, upper, num)
 
 
-def gaussian_distrib(graph, elist=None, num=None, avg=1., std=0.2, **kwargs):
+def gaussian_distrib(graph, elist=None, num=None, avg=None, std=None,
+                     **kwargs):
     '''
     Gaussian distribution for edge attributes.
     
@@ -151,25 +175,50 @@ def gaussian_distrib(graph, elist=None, num=None, avg=1., std=0.2, **kwargs):
     return np.random.normal(avg, std, num)
 
 
-def lognormal_distrib(graph, elist=None, num=None, position=1., scale=0.2,
+def lognormal_distrib(graph, elist=None, num=None, position=None, scale=None,
                       **kwargs):
     num = _compute_num_prop(elist, graph, num)
     return np.random.lognormal(position, scale, num)
 
 
 def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
-                           noise_scale=None, lower=0., upper=2., **kwargs):
+                           noise_scale=None, lower=None, upper=None,
+                           slope=None, offset=0., last_edges=False, **kwargs):
+    if slope is not None and (lower, upper) != (None, None):
+        raise InvalidArgument('`slope` and `lower`/`upper` parameters are not '
+                              'compatible, please choose one or the other.')
+    elif (lower is not None or upper is not None) and None in (lower, upper):
+        raise InvalidArgument('Both `lower` and `upper` should be set if one '
+                              'of the two is used.')
     ecount = _compute_num_prop(elist, graph)
-    noise = ( 1. if noise_scale is None
-                 else np.abs(np.random.normal(1, noise_scale, ecount)) )
+    noise = (1. if noise_scale is None
+             else np.abs(np.random.normal(1, noise_scale, ecount)))
+    data = None
     if correl_attribute == "betweenness":
-        betw = graph.get_betweenness(kwargs["btype"], kwargs["use_weights"])
-        betw *= noise
-        bmax = betw.max()
-        bmin = betw.min()
-        return lower + (upper-lower)*(betw-bmin)/(bmax-bmin)
+        data = graph.get_betweenness(kwargs["btype"], kwargs["use_weights"])
+    elif correl_attribute == "distance":
+        assert 'distance' in graph.edges_attributes, \
+            'Graph has no "distance" edge attribute.'
+        if 'distance' not in kwargs:
+            if last_edges:
+                slc  = slice(-len(elist), None)
+                data = graph.get_edge_attributes(slc, 'distance')
+            else:
+                data = graph.get_edge_attributes(elist, 'distance')
+        else:
+            data = kwargs['distance']
     else:
         raise NotImplementedError()
+    if noise_scale is not None:
+        data *= noise
+    if len(data):
+        if slope is None:
+            dmax = np.max(data)
+            dmin = np.min(data)
+            return lower + (upper-lower)*(data-dmin)/(dmax-dmin) + offset
+        else:
+            return slope*data + offset
+    return np.array([])
 
 
 def log_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
@@ -179,6 +228,10 @@ def log_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
     raise NotImplementedError()
 
 
+def custom(graph, values=None, elist=None, **kwargs):
+    return values
+
+
 di_dfunc = {
     "constant": delta_distrib,
     "uniform": uniform_distrib,
@@ -186,7 +239,8 @@ di_dfunc = {
     "gaussian": gaussian_distrib,
     "normal": gaussian_distrib,
     "lin_corr": lin_correlated_distrib,
-    "log_corr": log_correlated_distrib
+    "log_corr": log_correlated_distrib,
+    "custom": custom
 }
 
 

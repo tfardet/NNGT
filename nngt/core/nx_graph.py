@@ -117,10 +117,24 @@ class _NxEProperty(BaseProperty):
     ''' Class for generic interactions with edge properties (networkx)  '''
 
     def __getitem__(self, name):
-        lst = []
-        for e in iter(self.parent().edges()):
-            lst.append(self.parent().edge[e[0]][e[1]][name])
-        return np.array(lst)
+        edges = None
+        if isinstance(name, slice):
+            edges = self.parent().edges()[name]
+        elif nonstring_container(name):
+            if nonstring_container(name[0]):
+                edges = name
+            else:
+                edges = [name]
+        if isinstance(name, str):
+            return np.array(
+                [d[2] for d in self.parent().edges_iter(data=name)])
+        else:
+            eprop = {k: [] for k in self.keys()}
+            for edge in edges:
+                data = self.parent().get_edge_data(edge[0], edge[1])
+                for k, v in data.items():
+                    eprop[k].append(v)
+            return eprop
 
     def __setitem__(self, name, value):
         if name in self:
@@ -129,11 +143,11 @@ class _NxEProperty(BaseProperty):
                 for i, e in enumerate(self.parent().edges()):
                     self.parent().edge[e[0]][e[1]][name] = value[i]
             else:
-                raise ValueError("A list or a np.array with one entry per \
-edge in the graph is required")
+                raise ValueError("A list or a np.array with one entry per "
+                                 "edge in the graph is required")
         else:
-            raise InvalidArgument("Attribute does not exist yet, use \
-set_attribute to create it.")
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
@@ -177,8 +191,8 @@ set_attribute to create it.")
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
                                  " and " + str(len(values)) + "entries.")
-            for e, val in zip(edges, values):
-                self.parent().edge[e[0]][e[1]][name] = val
+            for i, e in enumerate(edges):
+                self.parent().add_edge(e[0], e[1], attr_dict={name: values[i]})
         self._num_values_set[name] = num_edges
 
 
@@ -239,14 +253,15 @@ class _NxGraph(BaseGraph):
         elif hasattr(edge[0], "__len__"):
             return [self[e[0]][e[1]]["eid"] for e in edge]
         else:
-            raise AttributeError("`edge` must be either a 2-tuple of ints or\
-an array of 2-tuples of ints.")
+            raise AttributeError("`edge` must be either a 2-tuple of ints or "
+                                 "an array of 2-tuples of ints.")
     
     @property
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
-        return np.array(self.edges())
+        unordered = np.array([e for e in self.edges_iter()])
+        return unordered[self._eattr["eid"].astype(int)]
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
@@ -363,23 +378,11 @@ an array of 2-tuples of ints.")
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val[unique]))
-        if self._weighted and "weight" not in attributes:
-            attributes["weight"] = np.repeat(1., edge_list.shape[0])
+        # add edge id attribute to get edges in creation order
         attributes["eid"] = np.arange(
-            initial_edges, initial_edges + len(edge_list))
-        for i, (u,v) in enumerate(edge_list):
-            if u not in self.succ:
-                self.succ[u] = self.adjlist_dict_factory()
-                self.pred[u] = self.adjlist_dict_factory()
-                self.node[u] = {}
-            if v not in self.succ:
-                self.succ[v] = self.adjlist_dict_factory()
-                self.pred[v] = self.adjlist_dict_factory()
-                self.node[v] = {}
-            datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
-            datadict.update({key: val[i] for key, val in attributes.items()})
-            self.succ[u][v] = datadict
-            self.pred[v][u] = datadict
+            initial_edges, initial_edges + len(edge_list)).astype(int)
+        # call parent function to set the attributes
+        self.attr_new_edges(edge_list, attributes=attributes)
         return edge_list
 
     def clear_all_edges(self):

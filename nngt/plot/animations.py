@@ -280,7 +280,8 @@ class _SpikeAnimator(anim.TimedAnimation):
             self.event = None
 
     def save_movie(self, filename, fps=30, video_encoder='html5', codec=None,
-                   bitrate=-1, interval=None, num_frames=None, metadata=None):
+                   bitrate=-1, start=None, stop=None, interval=None,
+                   num_frames=None, metadata=None):
         '''
         Save the animation to a movie file.
 
@@ -298,11 +299,18 @@ class _SpikeAnimator(anim.TimedAnimation):
         bitrate : int, optional (default: -1)
             Controls size/quality tradeoff for movie. Default (-1) lets utility
             auto-determine.
+        start : float, optional (default: initial time)
+            Start time, corresponding to the first spike time that will appear
+            on the video.
+        stop : float, optional (default: final time)
+            Stop time, corresponding to the last spike time that will appear
+            on the video.
         interval : int, optional (default: None)
             Timestep increment for each new frame. Default saves all
             timesteps (often heavy). E.g. setting `interval` to 10 will make
             the file 10 times lighter.
-        num_frames
+        num_frames : int, optional (default: None)
+            Total number of frames that should be saved.
         metadata : :obj:`dict`, optional (default: None)
             Metadata for the video (e.g. 'title', 'artist', 'comment',
             'copyright')
@@ -318,7 +326,7 @@ class _SpikeAnimator(anim.TimedAnimation):
             raise InvalidArgument("Incompatible arguments `interval` and "
                                   "`num_frames` provided. Choose one.")
         elif interval is None:
-            self.self.increment = max(1, int(self.num_frames / num_frames))
+            self.increment = max(1, int(self.num_frames / num_frames))
             self.save_count = num_frames
         else:
             self.increment = interval

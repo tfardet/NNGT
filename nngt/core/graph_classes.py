@@ -21,23 +21,25 @@
 """ Graph classes for graph generation and management """
 
 from copy import deepcopy
-import warnings
+import logging
 
 import numpy as np
 import scipy.sparse as ssp
 
 import nngt
+from nngt import save_to_file, load_from_file
 import nngt.analysis as na
 from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
                       default_synapse, POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string
-from nngt import save_to_file, load_from_file
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
 
 
 __all__ = ['Graph', 'SpatialGraph', 'Network', 'SpatialNetwork']
+
+logger = logging.getLogger(__name__)
 
 
 # ----- #
@@ -138,7 +140,8 @@ class Graph(nngt.core.GraphObject):
     
     @staticmethod
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
-                 attributes=None, notifier="@", ignore="#", from_string=False):
+                  attributes=None, notifier="@", ignore="#",
+                  from_string=False):
         '''
         Import a saved graph from a file.
         @todo: implement population and shape loading, implement gml, dot, xml, gt
@@ -272,11 +275,13 @@ class Graph(nngt.core.GraphObject):
             graph.__class__ = SpatialNetwork
         else:
             graph.__class__ = Network
-        # set default delays
-        if "delays" not in kwargs:  # set default delay to 1.
+        # set delays to 1. or to provided value if they are not already set
+        if "delays" not in kwargs and not hasattr(graph, '_d'):
             graph._d = {"distribution": "constant", "value": 1.}
-        else:
+        elif "delays" in kwargs and not hasattr(graph, '_d'):
             graph._d = kwargs["delays"]
+        elif "delays" in kwargs:
+            logger.warning('Graph already had delays set, ignoring new ones.')
         graph._init_bioproperties(neural_pop)
         if copy:
             return graph
@@ -322,10 +327,12 @@ class Graph(nngt.core.GraphObject):
         # @todo: use those of the from_graph
         if weighted:
             self.new_edge_attribute('weight', 'double')
-            self._w = _edge_prop("weights", kwargs)
+            self._w = _edge_prop(kwargs.get("weights", None))
         if "delays" in kwargs:
             self.new_edge_attribute('delay', 'double')
-            self._d = _edge_prop("delays", kwargs)
+            self._d = _edge_prop(kwargs.get("delays", None))
+        if 'inh_weight_factor' in kwargs:
+            self._iwf = kwargs['inh_weight_factor']
         # update the counters
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
@@ -506,7 +513,7 @@ class Graph(nngt.core.GraphObject):
         edges : list of edges or array of shape (E, 2), optional (default: all)
             Edges whose attributes should be set. Others will remain unchanged.
         '''
-        if attribute not in self.attributes():
+        if attribute not in self.edges_attributes:
             self.new_edge_attribute(name=attribute, value_type=value_type,
                                     values=values, val=val)
         else:
@@ -539,6 +546,11 @@ class Graph(nngt.core.GraphObject):
             "gaussian", "lognormal", "lin_corr", "log_corr").
         parameters : dict, optional (default: {})
             Dictionary containing the properties of the weight distribution.
+            Properties are as follow for the distributions
+               - 'constant': 'value'
+               - 'uniform': 'lower', 'upper'
+               - 'gaussian': 'avg', 'std'
+               - 'lognormal': 'position', 'scale'
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
@@ -627,7 +639,7 @@ class Graph(nngt.core.GraphObject):
         if isinstance(delay, float):
             size = self.edge_nb() if elist is None else len(elist)
             delay = np.repeat(delay, size)
-        elif not hasattr(delay, "__len__") and delay is not None:
+        elif not nonstring_container(delay) and delay is not None:
             raise AttributeError("Invalid `delay` value: must be either "
                                  "float, array-like or None")
         if delay is None:
@@ -670,13 +682,15 @@ class Graph(nngt.core.GraphObject):
         '''
         return self._eattr
 
-    def attributes(self, edge=None, name=None):
+    def get_edge_attributes(self, edges=None, name=None):
         '''
         Attributes of the graph's edges.
 
+        .. versionadded: 0.8
+
         Parameters
         ----------
-        edge : tuple, optional (default: ``None``)
+        edge : tuple or list of tuples, optional (default: ``None``)
             Edge whose attribute should be displayed.
         name : str, optional (default: ``None``)
             Name of the desired attribute.
@@ -688,14 +702,17 @@ class Graph(nngt.core.GraphObject):
         attributes of the edge (or the value of attribute `name` if it is not
         ``None``).
         '''
-        if name is None and edge is None:
-            return self._eattr.keys()
+        if name is not None and edges is not None:
+            if isinstance(edges, slice):
+                return self._eattr[name][edges]
+            else:
+                return self._eattr[edges][name]
         elif name is None:
-            return self._eattr[edge]
-        elif edge is None:
+            return self._eattr[edges]
+        elif edges is None:
             return self._eattr[name]
         else:
-            return self._eattr[edge][name]
+            return self._eattr.keys()
     
     def get_attribute_type(self, attribute_name):
         ''' Return the type of an attribute '''
@@ -718,7 +735,7 @@ class Graph(nngt.core.GraphObject):
 
     def is_weighted(self):
         ''' Whether the edges have weights '''
-        return "weight" in self.attributes()
+        return "weight" in self.edges_attributes
 
     def is_directed(self):
         ''' Whether the graph is directed or not '''
@@ -795,8 +812,8 @@ class Graph(nngt.core.GraphObject):
         return self.betweenness_list(btype=btype, use_weights=use_weights)
 
     def get_edge_types(self):
-        if TYPE in self.edge_properties.keys():
-            return self.edge_properties[TYPE].a
+        if TYPE in self._eattr.keys():
+            return self.get_edge_attributes(name=TYPE)
         else:
             return repeat(1, self.edge_nb())
     
@@ -804,14 +821,14 @@ class Graph(nngt.core.GraphObject):
         ''' Returns the weighted adjacency matrix as a
         :class:`scipy.sparse.lil_matrix`.
         '''
-        return self.eproperties["weight"]
+        return self._eattr["weight"]
     
     def get_delays(self):
         ''' Returns the delay adjacency matrix as a
         :class:`scipy.sparse.lil_matrix` if delays are present; else raises
         an error.
         '''
-        return self.eproperties["delay"]
+        return self._eattr["delay"]
 
     def is_spatial(self):
         '''
@@ -910,6 +927,7 @@ class SpatialGraph(Graph):
         Create the positions of the neurons from the graph `shape` attribute
         and computes the connections distances.
         '''
+        self.new_edge_attribute('distance', 'double')
         if positions is not None and positions.shape[0] != self.node_nb():
             raise InvalidArgument("Wrong number of neurons in `positions`.")
         if shape is not None:
@@ -1036,8 +1054,7 @@ class Network(Graph):
         size = len(gids)
         nodes = [i for i in range(size)]
         group = nngt.NeuralGroup(
-            nodes, ntype=1, model=neuron_model, neuron_param=neuron_param,
-            syn_model=syn_model, syn_param=syn_param)
+            nodes, ntype=1, model=neuron_model, neuron_param=neuron_param)
         pop = nngt.NeuralPop.from_groups([group])
         # create the network
         net = cls(population=pop, **kwargs)
@@ -1092,53 +1109,56 @@ class Network(Graph):
         return net
 
     @classmethod
-    def ei_network(cls, size, ei_ratio=0.2, en_model=default_neuron,
-            en_param=None, es_model=default_synapse, es_param=None,
-            in_model=default_neuron, in_param=None, is_model=default_synapse,
-            is_param=None, **kwargs):
+    def ei_network(cls, size, iratio=0.2, en_model=default_neuron,
+            en_param=None, in_model=default_neuron, in_param=None,
+            syn_spec=None, **kwargs):
         '''
         Generate a network containing a population of two neural groups:
         inhibitory and excitatory neurons.
+
+        .. versionchanged:: 0.8
+            Removed `es_{model, param}` and `is_{model, param}` in favour of
+            `syn_spec` parameter.
+            Renamed `ei_ratio` to `iratio` to match
+            :func:`~nngt.NeuralPop.exc_and_inhib`.
         
         Parameters
         ----------
         size : int
             Number of neurons in the network.
-        ei_ratio : double, optional (default: 0.2)
+        i_ratio : double, optional (default: 0.2)
             Ratio of inhibitory neurons: :math:`\\frac{N_i}{N_e+N_i}`.
         en_model : string, optional (default: 'aeif_cond_alpha')
            Nest model for the excitatory neuron.
         en_param : dict, optional (default: {})
             Dictionary of parameters for the the excitatory neuron.
-        es_model : string, optional (default: 'static_synapse')
-            NEST model for the excitatory synapse.
-        es_param : dict, optional (default: {})
-            Dictionary containing the excitatory synaptic parameters.
         in_model : string, optional (default: 'aeif_cond_alpha')
            Nest model for the inhibitory neuron.
         in_param : dict, optional (default: {})
             Dictionary of parameters for the the inhibitory neuron.
-        is_model : string, optional (default: 'static_synapse')
-            NEST model for the inhibitory synapse.
-        is_param : dict, optional (default: {})
-            Dictionary containing the inhibitory synaptic parameters.
+        syn_spec : dict, optional (default: static synapse)
+            Dictionary containg a directed edge between groups as key and the
+            associated synaptic parameters for the post-synaptic neurons (i.e.
+            those of the second group) as value. If provided, all connections
+            between groups will be set according to the values contained in
+            `syn_spec`. Valid keys are:
+                - `('excitatory', 'excitatory')`
+                - `('excitatory', 'inhibitory')`
+                - `('inhibitory', 'excitatory')`
+                - `('inhibitory', 'inhibitory')`
         
         Returns
         -------
         net : :class:`~nngt.Network` or subclass
             Network of disconnected excitatory and inhibitory neurons.
+
+        See also
+        --------
+        :func:`~nngt.NeuralPop.exc_and_inhib`
         '''
-        if en_param is None:
-            en_param = {}
-        if es_param is None:
-            es_param = {}
-        if in_param is None:
-            in_param = {}
-        if is_param is None:
-            is_param = {}
         pop = nngt.NeuralPop.exc_and_inhib(
-            size, ei_ratio, None, en_model, en_param, es_model, es_param,
-            in_model, in_param, is_model, is_param)
+            size, iratio, None, en_model, en_param, in_model, in_param,
+            syn_spec=syn_spec)
         net = cls(population=pop, **kwargs)
         return net
 
@@ -1146,7 +1166,8 @@ class Network(Graph):
     # Constructor, destructor and attributes
     
     def __init__(self, name="Network", weighted=True, directed=True,
-                 from_graph=None, population=None, **kwargs):
+                 from_graph=None, population=None, inh_weight_factor=1.,
+                 **kwargs):
         '''
         Initializes :class:`~nngt.Network` instance.
 
@@ -1166,6 +1187,10 @@ class Network(Graph):
             An object containing the neural groups and their properties:
             model(s) to use in NEST to simulate the neurons as well as their
             parameters.
+        inh_weight_factor : float, optional (default: 1.)
+            Factor to apply to inhibitory synapses, to compensate for example
+            the strength difference due to timescales between excitatory and
+            inhibitory synapses.
         
         Returns
         -------
@@ -1184,9 +1209,10 @@ class Network(Graph):
             del kwargs["nodes"]
         if "delays" not in kwargs:  # set default delay to 1.
             kwargs["delays"] = 1.
-        super(Network, self).__init__(nodes=nodes, name=name,
-                                      weighted=weighted, directed=directed,
-                                      from_graph=from_graph, **kwargs)
+        super(Network, self).__init__(
+            nodes=nodes, name=name, weighted=weighted, directed=directed,
+            from_graph=from_graph, inh_weight_factor=inh_weight_factor,
+            **kwargs)
         self._init_bioproperties(population)
     
     def __del__(self):
@@ -1248,7 +1274,7 @@ class Network(Graph):
         else:
             return self._id_from_nest_gid[gids]
 
-    def to_nest(self, use_weights=True):
+    def to_nest(self, send_only=None, use_weights=True):
         '''
         Send the network to NEST.
         
@@ -1257,7 +1283,8 @@ class Network(Graph):
         '''
         from nngt.simulation import make_nest_network
         if nngt._config['with_nest']:
-            return make_nest_network(self, use_weights)
+            return make_nest_network(
+                self, send_only=send_only, use_weights=use_weights)
         else:
             raise RuntimeError("NEST is not present.")
 
@@ -1269,13 +1296,20 @@ class Network(Graph):
         self._population = None
         self._nest_gid = None
         self._id_from_nest_gid = None
+        if not hasattr(self, '_iwf'):
+            self._iwf = 1.
         if issubclass(population.__class__, nngt.NeuralPop):
             if population.is_valid:
                 self._population = population
                 nodes = population.size
                 # create the delay attribute if necessary
-                if "delay" not in self.attributes():
+                if "delay" not in self.edges_attributes:
                     self.set_delays()
+                # set the type attributes for neurons
+                types = np.ones(self.node_nb())
+                for group in population.values():
+                    types[group.ids] *= group.neuron_type
+                self.new_node_attribute('type', 'int', values=types)
             else:
                 raise AttributeError("NeuralPop is not valid (not all neurons "
                                      "are associated to a group).")

@@ -20,6 +20,7 @@
 
 """ Tools to interact with the graph libraries backends """
 
+import logging
 import sys
 
 import numpy as np
@@ -28,6 +29,9 @@ import scipy.sparse as ssp
 import nngt
 from .reloading import reload_module
 from .errors import not_implemented
+
+
+logger = logging.getLogger(__name__)
 
 
 # ------------------- #
@@ -51,7 +55,7 @@ analyze_graph = {
 
 # use library function
 
-def use_library(library, reloading=True):
+def use_library(library, reloading=True, silent=False):
     '''
     Allows the user to switch to a specific graph library.
     
@@ -64,15 +68,26 @@ def use_library(library, reloading=True):
     library : string
         Name of a graph library among 'graph_tool', 'igraph', 'networkx'.
     reload_moduleing : bool, optional (default: True)
-        Whether the graph objects should be reload_moduleed (this should always
-        be set to True except when NNGT is first initiated!)
+        Whether the graph objects should be `reload_module`d (this should
+        always be set to True except when NNGT is first initiated!)
     '''
+    success = False
+    error = None
     if library == "graph-tool":
-        _set_graph_tool()
+        try:
+            success = _set_graph_tool()
+        except Exception as e:
+            error = e
     elif library == "igraph":
-        _set_igraph()
+        try:
+            success = _set_igraph()
+        except Exception as e:
+            error = e
     elif library == "networkx":
-        _set_networkx()
+        try:
+            success = _set_networkx()
+        except Exception as e:
+            error = e
     else:
         raise ValueError("Invalid graph library requested.")
     if reloading:
@@ -96,6 +111,15 @@ def use_library(library, reloading=True):
         sys.modules["nngt"].SpatialGraph = SpatialGraph
         sys.modules["nngt"].Network = Network
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
+    if success:
+        if silent:
+            logger.debug("Successfuly updated to " + library + ".")
+        else:
+            logger.info("Successfuly updated to " + library + ".")
+    else:
+        logger.warning("Error, could not switch to " + library + ".")
+        if error is not None:
+            raise error
 
 
 # ----------------- #
@@ -139,7 +163,8 @@ def _set_graph_tool():
     def adj_mat(graph, weight=None):
         if weight not in (None, False):
             weight = graph.edge_properties[weight]
-        return _adj(graph, weight).T
+            return _adj(graph, weight).T
+        return _adj(graph).T
     def get_edges(graph):
         return graph.edges()
     # store the functions
@@ -154,6 +179,7 @@ def _set_graph_tool():
     nngt.analyze_graph["reciprocity"] = edge_reciprocity
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
+    return True
 
 
 def _set_igraph():
@@ -203,6 +229,7 @@ def _set_igraph():
     nngt.analyze_graph["reciprocity"] = not_implemented
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
+    return True
 
 
 def _set_networkx():
@@ -260,3 +287,4 @@ def _set_networkx():
     nngt.analyze_graph["wcc"] = diameter
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
+    return True

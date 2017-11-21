@@ -80,7 +80,7 @@ import sys as _sys
 import logging
 
 
-version = '0.7.1'
+version = '0.8a'
 ''' :obj:`str`, current NNGT version '''
 
 
@@ -108,12 +108,13 @@ _config = {
     'log_to_file': False,
     'mpi': False,
     'mpl_backend': None,
+    'msd': None,
     'multithreading': False,
     'omp': 1,
     'palette': 'Set1',
-    'seed': None,
     'use_database': False,
     'use_tex': False,
+    'seeds': None,
     'set_omp_graph_tool': False,
     'with_nest': False,
     'with_plot': False,
@@ -129,10 +130,10 @@ if not _os.path.isdir(_lib_folder):
     _os.mkdir(_lib_folder)
 
 # IMPORTANT: first create logger
-from .lib.logger import _configure_logger
+from .lib.logger import _init_logger
 
 _logger = logging.getLogger(__name__)
-_configure_logger(_logger)
+_init_logger(_logger)
 
 # IMPORTANT: afterwards, import config
 from .lib.nngt_config import get_config, set_config, _load_config, _convert
@@ -155,7 +156,6 @@ else:                                 # if it does check it is up-to-date
             _logger.warning("Updating the configuration file, your previous "
                             "settings have be overwritten.")
 
-
 _load_config(_new_config)
 
 # multithreading
@@ -170,17 +170,17 @@ if _config["omp"] > 1:
 
 from .lib.graph_backends import use_library, analyze_graph
 
-_libs = [ 'graph-tool', 'igraph', 'networkx' ]
+_libs = ['graph-tool', 'igraph', 'networkx']
 
 try:
-    use_library(_config['graph_library'], False)
+    use_library(_config['graph_library'], False, silent=True)
 except ImportError:
     idx = _libs.index(_config['graph_library'])
     del _libs[idx]
     keep_trying = True
     while _libs and keep_trying:
         try:
-            use_library(_libs[-1], False)
+            use_library(_libs[-1], False, silent=True)
             keep_trying = False
         except ImportError:
             _libs.pop()
@@ -254,11 +254,18 @@ except ImportError as e:
 
 if _config['load_nest']:
     try:
+        # silence nest
         _sys.argv.append('--quiet')
         import nest
         from . import simulation
         _config['with_nest'] = nest.version()
         __all__.append("simulation")
+        # remove quiet from sys.argv
+        try:
+            idx = _sys.argv.index('--quiet')
+            del _sys.argv[idx]
+        except ValueError:
+            pass
     except ImportError as e:
         _logger.debug("NEST not found; nngt.simulation not loaded: " + str(e))
         _config["with_nest"] = False
@@ -282,15 +289,14 @@ if _config["use_database"]:
 # ------------------------ #
 
 _log_info = '''
-    -----------
-    NNGT loaded
-    -----------
+# ----------- #
+# NNGT loaded #
+# ----------- #
 Graph library:  {gl}
 Multithreading: {thread} ({omp} thread{s})
 Plotting:       {plot}
 NEST support:   {nest}
 Database:       {db}
-    -----------
 '''.format(
     gl=_config["graph_library"],
     thread=_config["multithreading"],

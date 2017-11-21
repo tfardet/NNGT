@@ -1,20 +1,20 @@
 <input>
-    
+
     <!-- Test suites -->
-    
+
 	<test name="test_analysis">
 		<graph_list>
             <name>p2p-Gnutella04.txt</name>
         </graph_list>
 	</test>
-    
+
     <test name="test_graphclasses">
 		<graph_list>
             <name>from_scipy_sparse_rand</name>
             <name>from_numpy_randint</name>
         </graph_list>
 	</test>
-    
+
     <test name="test_generation">
 		<graph_list>
             <name>fixed_indegree</name>
@@ -35,7 +35,7 @@
 -->
         </graph_list>
 	</test>
-    
+
     <test name="test_attributes">
 		<graph_list>
             <name>erdos_uniform_weights</name>
@@ -44,13 +44,20 @@
             <name>erdos_lincorrbetw_weights</name>
         </graph_list>
 	</test>
-    
+
+    <test name="test_io">
+		<graph_list>
+            <name>small_linear_distance_rule</name>
+            <name>small_erdos_lognormal_weights</name>
+        </graph_list>
+	</test>
+
     <!-- Graphs -->
-    
+
     <graphs>
-        
+
         <!-- Reference graphs -->
-        
+
         <graph name="p2p-Gnutella04.txt">
             <load_options>
                 <string name="fmt">edge_list</string>
@@ -65,7 +72,7 @@
             <int name="edges_largest_scc">18742</int>
             <float name="clustering">0.0062</float>
         </graph>
-        
+
         <!-- testing graph generation -->
 
         <graph name="fixed_indegree">
@@ -76,7 +83,7 @@
                 <string name="degree_type">in</string>
             </generate_options>
         </graph>
-        
+
         <graph name="fixed_outdegree">
             <generate_options>
                 <string name="graph_type">fixed_degree</string>
@@ -85,7 +92,7 @@
                 <string name="degree_type">out</string>
             </generate_options>
         </graph>
-        
+
         <graph name="gaussian_indegree">
             <generate_options>
                 <string name="graph_type">gaussian_degree</string>
@@ -95,7 +102,7 @@
                 <string name="degree_type">in</string>
             </generate_options>
         </graph>
-        
+
         <graph name="gaussian_outdegree">
             <generate_options>
                 <string name="graph_type">gaussian_degree</string>
@@ -105,7 +112,7 @@
                 <string name="degree_type">out</string>
             </generate_options>
         </graph>
-        
+
         <graph name="erdos_sparse">
             <generate_options>
                 <string name="graph_type">erdos_renyi</string>
@@ -113,7 +120,7 @@
                 <float name="density">0.04</float>
             </generate_options>
         </graph>
-        
+
         <graph name="erdos_dense">
             <generate_options>
                 <string name="graph_type">erdos_renyi</string>
@@ -121,7 +128,7 @@
                 <float name="density">0.2</float>
             </generate_options>
         </graph>
-        
+
         <graph name="erdos_recip">
             <generate_options>
                 <string name="graph_type">erdos_renyi</string>
@@ -130,7 +137,7 @@
                 <float name="reciprocity">0.2</float>
             </generate_options>
         </graph>
-        
+
         <graph name="rsf_2.2_2.2">
             <generate_options>
                 <string name="graph_type">random_scale_free</string>
@@ -139,7 +146,7 @@
                 <float name="out_exp">2.2</float>
             </generate_options>
         </graph>
-        
+
         <graph name="rsf_2.1_2.9">
             <generate_options>
                 <string name="graph_type">random_scale_free</string>
@@ -148,7 +155,7 @@
                 <float name="out_exp">2.9</float>
             </generate_options>
         </graph>
-        
+
         <graph name="rsf_2.9_2.1">
             <generate_options>
                 <string name="graph_type">random_scale_free</string>
@@ -157,7 +164,7 @@
                 <float name="out_exp">2.1</float>
             </generate_options>
         </graph>
-        
+
         <graph name="rsf_2.2_recip">
             <generate_options>
                 <string name="graph_type">random_scale_free</string>
@@ -167,7 +174,7 @@
                 <float name="reciprocity">0.3</float>
             </generate_options>
         </graph>
-        
+
         <graph name="newman_watts">
             <generate_options>
                 <string name="graph_type">newman_watts</string>
@@ -176,25 +183,27 @@
                 <float name="proba_shortcut">0.1</float>
             </generate_options>
         </graph>
-        
+
         <graph name="linear_distance_rule">
             <generate_options>
                 <string name="graph_type">distance_rule</string>
                 <int name="nodes">1000</int>
                 <float name="scale">0.2</float>
                 <string name="rule">lin</string>
+                <int name="avg_deg">100</int>
             </generate_options>
         </graph>
-        
+
         <graph name="exponential_distance_rule">
             <generate_options>
                 <string name="graph_type">distance_rule</string>
                 <int name="nodes">1000</int>
                 <float name="scale">0.04</float>
                 <string name="rule">exp</string>
+                <int name="avg_deg">100</int>
             </generate_options>
         </graph>
-        
+
         <graph name="from_scipy_sparse_rand">
             <generate_options>
                 <int name="m">10</int>
@@ -203,7 +212,7 @@
                 <string name="format">csr</string>
             </generate_options>
         </graph>
-        
+
         <graph name="from_numpy_randint">
             <generate_options>
                 <int name="low">0</int>
@@ -213,7 +222,7 @@
         </graph>
 
         <!-- testing attributes and distributions -->
-        
+
         <graph name="erdos_uniform_weights">
             <generate_options>
                 <string name="graph_type">erdos_renyi</string>
@@ -226,7 +235,7 @@
                 </weights>
             </generate_options>
         </graph>
-        
+
         <graph name="erdos_gaussian_weights">
             <generate_options>
                 <string name="graph_type">erdos_renyi</string>
@@ -239,7 +248,7 @@
                 </weights>
             </generate_options>
         </graph>
-        
+
         <graph name="erdos_lognormal_weights">
             <generate_options>
                 <string name="graph_type">erdos_renyi</string>
@@ -252,7 +261,7 @@
                 </weights>
             </generate_options>
         </graph>
-        
+
         <graph name="erdos_lincorrbetw_weights">
             <generate_options>
                 <string name="graph_type">erdos_renyi</string>
@@ -266,6 +275,29 @@
                     <float name="lower">0.001</float>
                     <float name="upper">5.0</float>
                 </weights>
+            </generate_options>
+        </graph>
+
+        <graph name="small_erdos_lognormal_weights">
+            <generate_options>
+                <string name="graph_type">erdos_renyi</string>
+                <int name="nodes">100</int>
+                <float name="density">0.1</float>
+                <weights>
+                    <string name="distribution">lognormal</string>
+                    <float name="position">2.</float>
+                    <float name="scale">0.3</float>
+                </weights>
+            </generate_options>
+        </graph>
+
+        <graph name="small_linear_distance_rule">
+            <generate_options>
+                <string name="graph_type">distance_rule</string>
+                <int name="nodes">100</int>
+                <float name="scale">0.2</float>
+                <string name="rule">lin</string>
+                <int name="avg_deg">10</int>
             </generate_options>
         </graph>
     </graphs>

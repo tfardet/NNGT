@@ -130,19 +130,22 @@ class _GtEProperty(BaseProperty):
         '''
         Return the attributes of an edge or a list of edges.
         '''
-        if isinstance(name, str):
-            return np.array(self.parent().edge_properties[name].a)
-        elif hasattr(name[0], '__iter__'):
-            di_eattr = {}
-            for key in self.keys():
-                di_eattr[key] = np.array(
-                    [self.parent().edge_properties[key][e] for e in name])
-            return di_eattr
-        else:
-            di_eattr = {}
-            for key in self.keys():
-                di_eattr[key] = self.parent().edge_properties[key][name]
-            return di_eattr
+        if isinstance(name, slice):
+            eprop = {}
+            for k in self.keys():
+                eprop[k] = self.parent().edge_properties[k].a[name]
+            return eprop
+        elif nonstring_container(name):
+            eprop = {}
+            if nonstring_container(name[0]):
+                eids = [self.parent().edge_index[e] for e in name]
+                for k in self.keys():
+                    eprop[k] = self.parent().edge_properties[k].a[eids]
+            else:
+                for k in self.keys():
+                    eprop[k] = self.parent().edge_properties[k][name]
+            return eprop
+        return np.array(self.parent().edge_properties[name].a)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -285,8 +288,9 @@ class _GtGraph(BaseGraph):
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        return np.array(
-            [(int(e.source()), int(e.target())) for e in self.edges()])
+        edges = self.get_edges()
+        order = np.argsort(edges[:, 2])
+        return edges[order, :2]
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
@@ -404,8 +408,6 @@ class _GtGraph(BaseGraph):
                 attributes[key] = np.concatenate((val, val[unique]))
         # create the edges
         super(_GtGraph, self).add_edge_list(edge_list)
-        # prepare the default values for weight and delays if necessary
-        _set_edge_attr(self, edge_list, attributes)
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
         return edge_list
@@ -429,10 +431,10 @@ class _GtGraph(BaseGraph):
             deg_type = "total"
             w = 0.5
         if node_list is None:
-            node_list = slice(0,self.num_vertices()+1)
+            node_list = slice(0, self.num_vertices() + 1)
         if "weight" in self.edge_properties.keys() and use_weights:
-            return w*self.degree_property_map(deg_type,
-                            self.edge_properties["weight"]).a[node_list]
+            return w*self.degree_property_map(
+                deg_type, self.edge_properties["weight"]).a[node_list]
         else:
             return w*np.array(self.degree_property_map(deg_type).a[node_list])
 

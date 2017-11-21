@@ -27,7 +27,6 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT
-from nngt.lib.graph_helpers import _set_edge_attr
 from .base_graph import BaseGraph, BaseProperty
 
 
@@ -116,6 +115,22 @@ class _IgEProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (igraph)  '''
 
     def __getitem__(self, name):
+        if isinstance(name, slice):
+            eprop = {}
+            for k in self.keys():
+                eprop[k] = np.array(self.parent().es[k])[name]
+            return eprop
+        elif nonstring_container(name):
+            eprop = {}
+            if nonstring_container(name[0]):
+                eids = [self.parent().get_eid(*e) for e in name]
+                for k in self.keys():
+                    eprop[k] = np.array(self.parent().es[k])[eids]
+            else:
+                eid = self.parent().get_eid(*name)
+                for k in self.keys():
+                    eprop[k] = self.parent().es[k][eid]
+            return eprop
         return np.array(self.parent().es[name])
 
     def __setitem__(self, name, value):
@@ -124,11 +139,11 @@ class _IgEProperty(BaseProperty):
             if len(value) == size:
                 self.parent().es[name] = value
             else:
-                raise ValueError("A list or a np.array with one entry per \
-edge in the graph is required")
+                raise ValueError("A list or a np.array with one entry per "
+                                 "edge in the graph is required")
         else:
-            raise InvalidArgument("Attribute does not exist yet, use \
-set_attribute to create it.")
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
         if val is None:
@@ -324,8 +339,8 @@ an array of 2-tuples of ints.")
         edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
             List of the edges that should be added as tuples (source, target)
         attributes : dict, optional (default: ``None``)
-            Dictionary of the form ``{ "name": [], "values": [],
-            "type": [] }``, containing the attributes of the new edges.
+            Dictionary of the form ``{"name": [], "values": [],
+            "type": []}``, containing the attributes of the new edges.
             
         @todo: add example, check the edges for self-loops and multiple edges
         
@@ -347,13 +362,8 @@ an array of 2-tuples of ints.")
                 attributes[key] = np.concatenate((val, val[unique]))
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
-        _set_edge_attr(self, edge_list, attributes)
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
-        try:
-            idx = self.es["weight"].index(None)
-        except:
-            idx = -1
         return edge_list
 
     def remove_edge(self, edge):
@@ -381,9 +391,9 @@ an array of 2-tuples of ints.")
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         deg_type = 'all' if deg_type == 'total' else deg_type
         if use_weights:
-            return np.array(self.strength(node_list,mode=deg_type))
+            return np.array(self.strength(node_list, mode=deg_type, weights='weight'))
         else:
-            return np.array(self.degree(node_list,mode=deg_type))
+            return np.array(self.degree(node_list, mode=deg_type))
 
     def betweenness_list(self, btype="both", use_weights=False, norm=True,
                          **kwargs):

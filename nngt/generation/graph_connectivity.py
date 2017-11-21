@@ -144,6 +144,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         nodes = population.size if population is not None else nodes
         graph_fd = nngt.Graph(
             name=name, nodes=nodes, directed=directed, **kwargs)
+    _set_options(graph_fd, population, shape, positions)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -151,7 +152,6 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
                                  directed, multigraph)
         graph_fd.new_edges(ia_edges)
-    _set_options(graph_fd, population, shape, positions)
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
     return graph_fd
 
@@ -218,6 +218,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     else:
         nodes = population.size if population is not None else nodes
         graph_gd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+    _set_options(graph_gd, population, shape, positions)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -225,7 +226,6 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
         ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
                                     reciprocity, directed, multigraph)
         graph_gd.new_edges(ia_edges)
-    _set_options(graph_gd, population, shape, positions)
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
     return graph_gd
 
@@ -297,6 +297,7 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
         nodes = population.size if population is not None else nodes
         graph_er = nngt.Graph(
             name=name, nodes=nodes, directed=directed, **kwargs)
+    _set_options(graph_er, population, shape, positions)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -304,7 +305,6 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
         ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                                 directed, multigraph)
         graph_er.new_edges(ia_edges)
-    _set_options(graph_er, population, shape, positions)
     graph_er._graph_type = "erdos_renyi"
     return graph_er
 
@@ -380,6 +380,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         nodes = population.size if population is not None else nodes
         graph_rsf = nngt.Graph(
             name=name,nodes=nodes,directed=directed,**kwargs)
+    _set_options(graph_rsf, population, shape, positions)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -387,7 +388,6 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
         ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
                           edges, avg_deg, reciprocity, directed, multigraph)
         graph_rsf.new_edges(ia_edges)
-    _set_options(graph_rsf, population, shape, positions)
     graph_rsf._graph_type = "random_scale_free"
     return graph_rsf
 
@@ -448,7 +448,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     graph_obj_price = nngt.Graph.from_library(g)
 
     graph_price = nngt.Graph.from_library(g)
-    
+
     _set_options(graph_price, population, shape, positions)
     graph_price._graph_type = "price_scale_free"
     return graph_price
@@ -520,6 +520,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
     else:
         nodes = population.size if population is not None else nodes
         graph_nw = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+    _set_options(graph_nw, population, shape, positions)
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -527,7 +528,6 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
         ia_edges = _newman_watts(ids, ids, coord_nb, proba_shortcut, directed,
                                  multigraph)
         graph_nw.new_edges(ia_edges)
-    _set_options(graph_nw, population, shape, positions)
     graph_nw._graph_type = "newman_watts"
     return graph_nw
 
@@ -591,6 +591,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
     """
+    distance = []
     # set node number and library graph
     graph_dr = from_graph
     if graph_dr is not None:
@@ -609,6 +610,8 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
     else:
         Graph.make_spatial(graph_dr, shape, positions=positions)
     positions = np.array(graph_dr.get_positions().T, dtype=np.float32)
+    # set options (graph has already been made spatial)
+    _set_options(graph_dr, population, None, None)
     # add edges
     ia_edges = None
     conversion_factor = conversion_magnitude(shape.unit, unit)
@@ -616,12 +619,11 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000., nodes=0,
         positions = np.multiply(conversion_factor, positions, dtype=np.float32)
     if nodes > 1:
         ids = np.arange(0, nodes, dtype=np.uint)
-        ia_edges = _distance_rule(ids, ids, density, edges, avg_deg, scale,
-                                  rule, shape, positions, conversion_factor,
-                                  directed, multigraph, **kwargs)
-        graph_dr.new_edges(ia_edges)
-    # set options (graph has already been made spatial)
-    _set_options(graph_dr, population, None, None)
+        ia_edges = _distance_rule(
+            ids, ids, density, edges, avg_deg, scale, rule, shape, positions,
+            directed, multigraph, distance=distance, **kwargs)
+        attr = {'distance': distance}
+        graph_dr.new_edges(ia_edges, attributes=attr)
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
 
@@ -682,23 +684,23 @@ _di_gen_edges = {
 }
 
 
-_di_default = {  "density": -1.,
-                "edges": -1,
-                "avg_deg": -1,
-                "reciprocity": -1,
-                "directed": True,
-                "multigraph": False }
-
-
 _one_pop_models = ("newman_watts",)
 
 
 def connect_neural_types(network, source_type, target_type, graph_model,
-                         model_param):
+                         density=-1., edges=-1, avg_deg=-1., unit='um',
+                         weighted=True, directed=True, multigraph=False,
+                         **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
-    
+
+    .. versionchanged:: 0.8
+        Model-specific arguments are now provided as keywords and not through a
+        dict.
+        It is now possible to provide different weights and delays at each
+        call.
+
     @todo
         make the modifications for only a set of edges
     
@@ -714,34 +716,64 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     graph_model : string
         The name of the connectivity model (among "erdos_renyi", 
         "random_scale_free", "price_scale_free", and "newman_watts").
-    model_param : dict
-        Dictionary containing the model parameters (the keys are the keywords
-        of the associated generation function --- see above).
+    kwargs : keyword arguments
+        Specific model parameters. or edge attributes specifiers such as
+        `weights` or `delays`.
     '''
-    edges, source_ids, target_ids = None, [], []
-    di_param = _di_default.copy()
-    di_param.update(model_param)
+    elist, source_ids, target_ids = None, [], []
+    if network.is_spatial() and 'positions' not in kwargs:
+        kwargs['positions'] = network.get_positions().astype(np.float32).T
+    if network.is_spatial() and 'shape' not in kwargs:
+        kwargs['shape'] = network.shape
+
     for group in iter(network._population.values()):
         if group.neuron_type == source_type:
             source_ids.extend(group.ids)
         if group.neuron_type == target_type:
             target_ids.extend(group.ids)
+
+    source_ids = np.array(source_ids, dtype=np.uint)
+    target_ids = np.array(target_ids, dtype=np.uint)
+    distance = []
+
     if source_type == target_type:
-        edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
+        elist = _di_gen_edges[graph_model](
+            source_ids, source_ids, density=density, edges=edges,
+            avg_deg=avg_deg, weighted=weighted, directed=directed,
+            multigraph=multigraph, distances=distances, **kwargs)
     else:
-        edges = _di_gen_edges[graph_model](source_ids, target_ids, **di_param)
-    network.new_edges(edges)
-    if issubclass(network.__class__, nngt.SpatialGraph):
-        nngt.Connections.distances(network)
-    network._graph_type += "_neural_type_connect"
+        elist = _di_gen_edges[graph_model](
+            source_ids, target_ids, density=density, edges=edges,
+            avg_deg=avg_deg, weighted=weighted, directed=directed,
+            multigraph=multigraph, distance=distance, **kwargs)
+
+    attr = {}
+    if 'weights' in kwargs:
+        attr['weight'] = kwargs['weights']
+    if 'delays' in kwargs:
+        attr['delay'] = kwargs['delays']
+    if network.is_spatial():
+        attr['distance'] = distance
+    network.new_edges(elist, attributes=attr)
+
+    if not network._graph_type.endswith('_neural_type_connect'):
+        network._graph_type += "_neural_type_connect"
 
 
 def connect_neural_groups(network, source_groups, target_groups, graph_model,
-                          model_param):
+                          density=-1., edges=-1, avg_deg=-1., unit='um',
+                          weighted=True, directed=True, multigraph=False,
+                          **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
-    
+
+    .. versionchanged:: 0.8
+        Model-specific arguments are now provided as keywords and not through a
+        dict.
+        It is now possible to provide different weights and delays at each
+        call.
+
     @todo
         make the modifications for only a set of edges
     
@@ -756,27 +788,49 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     graph_model : string
         The name of the connectivity model (among "erdos_renyi", 
         "random_scale_free", "price_scale_free", and "newman_watts").
-    model_param : dict
-        Dictionary containing the model parameters (the keys are the keywords
-        of the associated generation function --- see above).
+    kwargs : keyword arguments
+        Specific model parameters. or edge attributes specifiers such as
+        `weights` or `delays`.
     '''
-    edges, source_ids, target_ids = None, [], []
-    di_param = _di_default.copy()
-    di_param.update(model_param)
+    elist, source_ids, target_ids = None, [], []
+    if network.is_spatial() and 'positions' not in kwargs:
+        kwargs['positions'] = network.get_positions().astype(np.float32).T
+    if network.is_spatial() and 'shape' not in kwargs:
+        kwargs['shape'] = network.shape
+
     if isinstance(source_groups, str):
         source_groups = [source_groups]
     if isinstance(target_groups, str):
         target_groups = [target_groups]
-    for name, group in iter(network._population.items()):
+    for name, group in network.population.items():
         if name in source_groups:
             source_ids.extend(group.ids)
         if name in target_groups:
             target_ids.extend(group.ids)
+
+    source_ids = np.array(source_ids, dtype=np.uint)
+    target_ids = np.array(target_ids, dtype=np.uint)
+    distance = []
+
     if source_groups == target_groups:
-        edges = _di_gen_edges[graph_model](source_ids, source_ids, **di_param)
+        elist = _di_gen_edges[graph_model](
+            source_ids, source_ids, density=density, edges=edges,
+            avg_deg=avg_deg, weighted=weighted, directed=directed,
+            multigraph=multigraph, distances=distances, **kwargs)
     else:
-        edges = _di_gen_edges[graph_model](source_ids, target_ids, **di_param)
-    network.new_edges(edges)
-    if issubclass(network.__class__, nngt.SpatialGraph):
-       nngt.Connections.distances(network)
-    network._graph_type += "_neural_group_connect"
+        elist = _di_gen_edges[graph_model](
+            source_ids, target_ids, density=density, edges=edges,
+            avg_deg=avg_deg, weighted=weighted, directed=directed,
+            multigraph=multigraph, distance=distance, **kwargs)
+
+    attr = {}
+    if 'weights' in kwargs:
+        attr['weight'] = kwargs['weights']
+    if 'delays' in kwargs:
+        attr['delay'] = kwargs['delays']
+    if network.is_spatial():
+        attr['distance'] = distance
+    network.new_edges(elist, attributes=attr)
+
+    if not network._graph_type.endswith('_neural_group_connect'):
+        network._graph_type += "_neural_group_connect"
