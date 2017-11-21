@@ -94,6 +94,10 @@ def set_config(config, value=None):
     new_multithreading = new_config.get("multithreading", old_multithreading)
     if new_multithreading != old_multithreading:
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
+    # if multithreading loading failed, set omp back to 1
+    if not nngt._config['multithreading']:
+        nngt._config['omp'] = 1
+    # set graph-tool config
     if "omp" in new_config and nngt._config["graph_library"] == "graph-tool":
         omp_nest = new_config["omp"]
         if nngt._config['with_nest']:

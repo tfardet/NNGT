@@ -40,7 +40,8 @@ extensions = Extension(
     "nngt.generation.cconnect", # name of extension
     sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
     extra_compile_args = [
-        "-std=c++11", "-fopenmp", "-Wno-cpp", "-Wno-unused-function"
+        "-O2", "-g", "-std=c++11", "-fopenmp", "-ftree-vectorize", "-msse",
+        "-Wno-cpp", "-ffast-math", "-Wno-unused-function"
     ],
     language="c++",
     include_dirs=[dirname, numpy.get_include()],

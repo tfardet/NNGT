@@ -313,29 +313,33 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
     num_neurons = len(set(np.concatenate((source_ids, target_ids))))
-    # compute the number of tests required
-    typical_distance = np.sqrt(shape.area) * conversion_factor
-    avg_distance = typical_distance * 0.5
-    typical_proba = (2 * (1. - avg_distance / scale) if rule == "lin"
-                    else np.exp(-avg_distance / scale) / scale)
-    proba_c = edges / (num_neurons * (num_neurons - 1))
-    num_tests = (num_neurons * (num_neurons - 1) if typical_proba <= proba_c
-                 else edges / typical_proba)
-    max_tests = (num_neurons * (num_neurons - 1))
-    max_create = kwargs.get("max_test_edges", 2*edges)
+
     # create the edges
     ia_edges = np.zeros((max_create, 2), dtype=int)
     num_ecurrent = 0
 
-    probas, test = None, None
-    if num_tests >= max_tests:  # compute all distances
-        distances = np.reshape(
-            cdist(positions[:, source_ids].T, positions[:, target_ids].T),
-            (num_source*num_target,))
-        if rule == "exp":
-            probas = np.exp(-distances / scale)
-        else:
-            probas = 2 * np.divide(scale-distances, scale).clip(min=0.)
+    # for each node, check the neighbours that are in an area where
+    # connections can be made: +/- scale for lin, +/- 10*scale for exp.
+    targets = []
+    lim = scale if rule == 'lin' else 10*scale
+    for s in source_ids:
+        keep  = (np.abs(positions[0, target_ids] - positions[0, s]) < lim)
+        keep *= (np.abs(positions[1, target_ids] - positions[1, s]) < lim)
+        targets.append(target_ids[keep])
+
+    # the number of trials should be done depending on the number of
+    # neighbours that each node has, so compute this number
+    tot_neighbours = 0
+
+    for tgt_list in targets:
+        tot_neighbours += len(tgt_list)
+
+    assert tot_neighbours > target_enum, \
+        "Scale is too small: there are not enough close neighbours to " +\
+        "create the required number of connections. Increase `scale` " +\
+        "or `neuron_density`."
+    norm = 1. / tot_neighbours
+
     while num_ecurrent < edges:
         num_create = int(min((edges - num_ecurrent) / typical_proba + 1,
                              max_create))
@@ -344,7 +348,7 @@ def _distance_rule(source_ids, target_ids, density, edges, avg_deg, scale,
         if num_tests >= max_tests:
             test = probas[ia_sources*num_target + ia_targets]
         else:
-            test = dist_test(positions[:,ia_sources], positions[:,ia_targets])
+            test = dist_test(positions[:,ia_sources], positions[:, ia_targets])
         test = np.greater(test, np.random.uniform(size=num_create))
         ia_edges_tmp = np.array([ia_sources[test], ia_targets[test]]).T
         ia_edges, num_ecurrent = _filter(

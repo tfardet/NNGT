@@ -331,9 +331,9 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
 def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
                    np.ndarray[size_t, ndim=1] target_ids,
-                   density, edges, avg_deg, double scale,
-                   str rule, shape, np.ndarray[double, ndim=2] positions,
-                   double conversion_factor, bool directed, bool multigraph,
+                   density, edges, avg_deg, float scale,
+                   str rule, shape, np.ndarray[float, ndim=2] positions,
+                   float conversion_factor, bool directed, bool multigraph,
                    num_neurons=None, **kwargs):
     '''
     Returns a distance-rule graph
@@ -347,26 +347,35 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
         string crule = _to_bytes(rule)
         unsigned int omp = nngt._config["omp"]
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
-        vector[double] x = positions[0]
-        vector[double] y = positions[1]
+        vector[ vector[size_t] ] targets
+        vector[float] x = positions[0]
+        vector[float] y = positions[1]
     # compute the required values
     edge_num, _ = _compute_connections(
         num_source, num_target, density, edges, avg_deg, directed)
     existing = 0  # for now
     #~ b_one_pop = _check_num_edges(
         #~ source_ids, target_ids, edges, directed, multigraph)
+    # for each node, check the neighbours that are in an area where
+    # connections can be made: +/- scale for lin, +/- 10*scale for exp
+    lim = scale if rule == 'lin' else 10*scale
+    for i in source_ids:
+        keep  = (np.abs(positions[0, target_ids] - positions[0, i]) < lim)
+        keep *= (np.abs(positions[1, target_ids] - positions[1, i]) < lim)
+        targets.push_back(target_ids[keep].tolist())
     # create the edges
     cdef:
         long msd = np.random.randint(0, edge_num + 1)
-        double area = shape.area * conversion_factor
+        float area = shape.area * conversion_factor
         size_t cedges = edge_num
         np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edge_num, 2), dtype=DTYPE)
 
-    _cdistance_rule(&ia_edges[0,0], source_ids, target_ids, crule, scale, x, y,
+    _cdistance_rule(&ia_edges[0,0], source_ids, targets, crule, scale, x, y,
                     area, cnum_neurons, cedges, old_edges, multigraph, msd,
                     omp)
     return ia_edges
+
 
 def price_network():
     #@todo: do it for other libraries

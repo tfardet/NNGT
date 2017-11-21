@@ -24,8 +24,6 @@ import scipy.sparse as ssp
 from scipy.optimize import root
 from scipy.signal import argrelmax, argrelmin
 
-import matplotlib.pyplot as plt
-
 from nngt.lib import InvalidArgument, WEIGHT, DELAY
 from nngt.lib.sorting import _sort_groups
 
@@ -258,8 +256,6 @@ def _get_psp_list(bins, neuron_model, di_param, timestep, simtime):
         raise InvalidArgument("simtime too short: all PSP maxima are not in \
 range")
     else:
-        plt.plot(da_times, da_voltage)
-        plt.show()
         return da_max_psp
 
 def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
