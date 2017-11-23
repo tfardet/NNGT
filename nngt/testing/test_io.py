@@ -101,6 +101,7 @@ class TestIO(TestBasis):
             self.assertEqual(
                 edges, graph.edge_nb(), err.format(val='edge number'))
 
+    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     @unittest.skipIf(_old_graph_tool('2.22'), 'Skip for graph-tool < 2.22.')
     def test_custom_attributes(self):
         '''
