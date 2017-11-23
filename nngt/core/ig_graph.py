@@ -112,7 +112,7 @@ class _IgNProperty(BaseProperty):
 
 class _IgEProperty(BaseProperty):
 
-    ''' Class for generic interactions with nodes properties (igraph)  '''
+    ''' Class for generic interactions with nodes properties (igraph) '''
 
     def __getitem__(self, name):
         if isinstance(name, slice):
