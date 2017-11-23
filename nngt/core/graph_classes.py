@@ -34,7 +34,7 @@ from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string
 from nngt.lib.logger import _log_message
-from nngt.lib.test_functions import old_graph_tool
+from nngt.lib.test_functions import graph_tool_check
 
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
@@ -134,7 +134,7 @@ class Graph(nngt.core.GraphObject):
         return graph
     
     @staticmethod
-    @old_graph_tool('2.22')
+    @graph_tool_check('2.22')
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
                   attributes=None, notifier="@", ignore="#",
                   from_string=False):
@@ -389,7 +389,7 @@ class Graph(nngt.core.GraphObject):
             Network.make_network(gc_instance, deepcopy(self.population))
         return gc_instance
 
-    @old_graph_tool('2.22')
+    @graph_tool_check('2.22')
     def to_file(self, filename, fmt="auto", separator=" ", secondary=";",
                 attributes=None, notifier="@"):
         '''
