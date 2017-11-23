@@ -17,8 +17,9 @@ import unittest
 import numpy as np
 
 import nngt
-from base_test import TestBasis, XmlHandler, network_dir
-from tools_testing import foreach_graph
+from nngt.lib.test_functions import _old_graph_tool
+from .base_test import TestBasis, XmlHandler, network_dir
+from .tools_testing import foreach_graph
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -52,9 +53,7 @@ class TestIO(TestBasis):
         return "test_io"
 
     @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
-    @unittest.skipIf(nngt.get_config('graph_library') == 'graph-tool'
-                     and nngt.get_config('library').__version__[:4] < '2.22',
-                     'Not checking for graph-tool < 2.22.')
+    @unittest.skipIf(_old_graph_tool('2.22'), 'Skip for graph-tool < 2.22.')
     def gen_graph(self, graph_name):
         # check whether we are loading from file
         if "." in graph_name:
@@ -102,6 +101,7 @@ class TestIO(TestBasis):
             self.assertEqual(
                 edges, graph.edge_nb(), err.format(val='edge number'))
 
+    @unittest.skipIf(_old_graph_tool('2.22'), 'Skip for graph-tool < 2.22.')
     def test_custom_attributes(self):
         '''
         Test that custom attributes are saved and loaded correctly

@@ -122,19 +122,15 @@ def nonstring_container(obj):
     return True
 
 
-def old_graph_tool(version_min):
+def graph_tool_check(version_min):
     '''
-    Check for old versions of graph-tool for which some functions are not
-    working.
+    Raise an error for function not working with old versions of graph-tool.
     '''
-    using_gt = nngt.get_config('graph_library') == 'graph-tool'
-    gt_version = '0'
-    if using_gt:
-        gt_version = nngt.get_config('library').__version__[:4]
+    old_graph_tool = _old_graph_tool(version_min)
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            if using_gt and gt_version < version_min:
+            if old_graph_tool:
                 raise NotImplementedError('This function is not working for '
                                           'graph-tool < ' + version_min + '.')
             else:
@@ -142,3 +138,12 @@ def old_graph_tool(version_min):
         return wrapper
 
     return decorator
+
+
+def _old_graph_tool(version_min):
+    '''
+    Check for old versions of graph-tool for which some functions are not
+    working.
+    '''
+    return (nngt.get_config('graph_library') == 'graph-tool'
+            and nngt.get_config('library').__version__[:4] < version_min)
