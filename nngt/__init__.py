@@ -104,7 +104,7 @@ _config = {
     'mpi': False,
     'mpl_backend': None,
     'msd': 0,
-    'multithreading': False,
+    'multithreading': True,
     'omp': 1,
     'palette': 'Set1',
     'use_database': False,

@@ -144,16 +144,23 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
 static inline float _proba(
   int rule, float norm, float inv_scale, float distance)
 {
+    float p = 0.;  // probability value
+
     switch (rule) 
     {
         case 0:  // linear
-            return norm*std::max(0., 1. - distance * inv_scale);
+            p = norm*std::max(0., 1. - distance * inv_scale);
+            break;
         case 1:  // exponential
-            return norm*std::exp(-distance * inv_scale);
+            p = norm*std::exp(-distance * inv_scale);
+            break;
         case 2:  // gaussian
-            return norm*std::exp(
+            p = norm*std::exp(
                 -0.5* distance*distance * inv_scale*inv_scale);
+            break;
     }
+
+    return p;
 };
 
 }

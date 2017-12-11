@@ -123,8 +123,8 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
 
 
 def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
-                     np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
-                     unsigned int std, degree_type, float reciprocity,
+                     np.ndarray[size_t, ndim=1] target_ids, float avg,
+                     float std, degree_type, float reciprocity,
                      bool directed, bool multigraph, existing_edges=None):
     '''
     Connect nodes with a Gaussian distribution (generation through C++
