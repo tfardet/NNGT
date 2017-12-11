@@ -17,6 +17,7 @@ import unittest
 import numpy as np
 
 import nngt
+from nngt.lib.test_functions import _old_graph_tool
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
@@ -42,15 +43,17 @@ class TestIO(TestBasis):
                 os.remove(current_dir + graphname + '.el')
             except:
                 pass
+        try:
+            os.remove(current_dir + 'test.el')
+        except:
+            pass
     
     @property
     def test_name(self):
         return "test_io"
 
     @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
-    @unittest.skipIf(nngt.get_config('graph_library') == 'graph-tool'
-                     and nngt.get_config('library').__version__[:4] < '2.22',
-                     'Not checking for graph-tool < 2.22.')
+    @unittest.skipIf(_old_graph_tool('2.22'), 'Skip for graph-tool < 2.22.')
     def gen_graph(self, graph_name):
         # check whether we are loading from file
         if "." in graph_name:
@@ -68,6 +71,10 @@ class TestIO(TestBasis):
 
     @foreach_graph
     def test_identical(self, graph, instructions, **kwargs):
+        '''
+        Test that the generated graph and the one loaded from the saved file
+        are indeed identical.
+        '''
         err = error.format(graph=graph.get_name())
         if instructions is not None:  # working with generated graph
             # load graph
@@ -93,6 +100,36 @@ class TestIO(TestBasis):
                 nodes, graph.node_nb(), err.format(val='node number'))
             self.assertEqual(
                 edges, graph.edge_nb(), err.format(val='edge number'))
+
+    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
+    @unittest.skipIf(_old_graph_tool('2.22'), 'Skip for graph-tool < 2.22.')
+    def test_custom_attributes(self):
+        '''
+        Test that custom attributes are saved and loaded correctly
+        '''
+        num_nodes = 1000
+        avg_deg = 100
+
+        g = nngt.Graph(nodes=num_nodes)
+        g.new_edge_attribute("test_attr", "int")
+
+        num_edges = 0
+
+        for i in range(num_nodes):
+            targets = np.unique(np.random.randint(0, num_nodes, avg_deg))
+            elist = np.zeros((len(targets), 2), dtype=int)
+            elist[:, 0] = i
+            elist[:, 1] = targets
+            ids  = np.random.randint(0, avg_deg*num_nodes, len(targets))
+            ids *= 2*np.random.randint(0, 2, len(targets)) - 1
+            g.new_edges(elist, attributes={"test_attr": ids})
+            num_edges = g.edge_nb()
+
+        g.to_file('test.el')
+        h = nngt.Graph.from_file('test.el')
+
+        self.assertTrue(np.allclose(g.get_edge_attributes(name="test_attr"),
+                                    h.get_edge_attributes(name="test_attr")))
 
 
 

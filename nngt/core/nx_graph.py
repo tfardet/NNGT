@@ -210,7 +210,12 @@ class _NxEProperty(BaseProperty):
                                  "size; got respectively " + str(num_e) + \
                                  " and " + str(len(values)) + "entries.")
             for i, e in enumerate(edges):
-                self.parent().add_edge(e[0], e[1], attr_dict={name: values[i]})
+                try:
+                    edict = self.parent()[e[0]][e[1]]
+                except:
+                    edict = {}
+                edict[name] = values[i]
+                self.parent().add_edge(e[0], e[1], **edict)
         self._num_values_set[name] = num_edges
 
 

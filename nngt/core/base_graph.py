@@ -205,7 +205,15 @@ class BaseGraph(nngt._config["graph"]):
                 self, edge_list, 'delay', prop, last_edges=True)
             self._eattr.set_attribute(
                 "delay", values, edges=edge_list)
-        # take care of potential additional attributes
+        for k in attributes.keys():
+            if k not in specials:
+                if k in self.edges_attributes:
+                    values = _set_edge_attr(
+                        self, edge_list, k, attributes[k], last_edges=True)
+                    self._eattr.set_attribute(k, values, edges=edge_list)
+                else:
+                    raise RuntimeError("Unknown attribute: '" + k + "'.")
+        # take care of potential new attributes
         if "names" in attributes:
             num_attr = len(attributes["names"])
             for i in range(num_attr):

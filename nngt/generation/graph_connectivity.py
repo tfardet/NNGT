@@ -219,6 +219,11 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 	If an `from_graph` is provided, all preexistant edges in the object
 	will be deleted before the new connectivity is implemented.
     """
+    # switch values to float
+    avg = float(avg)
+    std = float(std)
+    assert avg >= 0, "A positive value is required for `avg`."
+    assert std >= 0, "A positive value is required for `std`."
     # set node number and library graph
     graph_gd = from_graph
     if graph_gd is not None:
