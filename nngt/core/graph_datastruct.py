@@ -54,8 +54,15 @@ class NeuralPop(OrderedDict):
     """
     The basic class that contains groups of neurons and their properties.
 
-    :ivar has_models: :class:`bool`,
+    :ivar has_models: :obj:`bool`,
         ``True`` if every group has a ``model`` attribute.
+    :ivar size: :obj:`int`,
+        Returns the number of neurons in the population.
+    :ivar syn_spec: :obj:`dict`,
+        Dictionary containing informations about the synapses between the
+        different groups in the population.
+    :ivar is_valid: :obj:`bool`,
+        Whether this population can be used to create a network in NEST.
     """
 
     #-------------------------------------------------------------------------#
@@ -236,7 +243,8 @@ class NeuralPop(OrderedDict):
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
 
-    def __init__(self, size=0, parent=None, with_models=True, **kwargs):
+    def __init__(self, size=None, num_groups=None, parent=None,
+                 with_models=True, **kwargs):
         '''
         Initialize NeuralPop instance
 
@@ -244,6 +252,9 @@ class NeuralPop(OrderedDict):
         ----------
         size : int, optional (default: 0)
             Number of neurons that the population will contain.
+        num_groups : int, optional (default: 0)
+            Number of :class:`~nngt.NeuralGroup` that the population will
+            contain.
         parent : :class:`~nngt.Network`, optional (default: None)
             Network associated to this population.
         with_models : :class:`bool`
@@ -255,11 +266,15 @@ class NeuralPop(OrderedDict):
         pop : :class:`~nngt.NeuralPop` object.
         '''
         self._is_valid = False
-        self._size = size if parent is None else parent.node_nb()
+        self._desired_size = size if parent is None else parent.node_nb()
+        self._size = 0
         self._parent = None if parent is None else weakref.ref(parent)
         # array of strings containing the name of the group where each neuron
         # belongs
-        self._neuron_group = np.empty(self._size, dtype=object)
+        if self._desired_size is None:
+            self._neuron_group = None
+        else:
+            self._neuron_group = np.empty(self._desired_size, dtype=object)
         self._max_id = 0  # highest id among the existing neurons + 1
         super(NeuralPop, self).__init__()
         if parent is not None and 'group_pop' in kwargs:
@@ -283,27 +298,67 @@ class NeuralPop(OrderedDict):
         else:
             OrderedDict.__setitem__(self, key, value)
         # update _max_id
-        if len(value.ids) > 0:
+        old_max_id = self._max_id
+        group_size = len(value.ids)
+        if group_size > 0:
             self._max_id = max(self._max_id, *value.ids) + 1
+        self._size += group_size
         # update the group node property
+        if self._neuron_group is None:
+            self._neuron_group = np.empty(self._max_id, dtype=object)
+        elif self._max_id >= len(self._neuron_group):
+            ngroup_tmp = np.empty(self._max_id, dtype=object)
+            ngroup_tmp[:old_max_id+1] = self._neuron_group
+            self._neuron_group = ngroup_tmp
         self._neuron_group[value.ids] = key
         if None in list(self._neuron_group):
             self._is_valid = False
         else:
-            self._is_valid = True
+            if self._desired_size is not None:
+                self._is_valid = (self._desired_size == self._size)
+            else:
+                self._is_valid = True
 
     @property
     def size(self):
+        '''
+        Number of neurons in this population.
+        '''
         return self._size
 
     @property
     def parent(self):
+        '''
+        Parent :class:`~nngt.Network`, if it exists, otherwise ``None``.
+        '''
         return None if self._parent is None else self._parent()
 
     @property
     def syn_spec(self):
         '''
         The properties of the synaptic connections between groups.
+        Returns a :obj:`dict` containing tuples as keys and dicts of parameters
+        as values.
+
+        The keys are tuples containing the names of the groups in the
+        population, with the projecting group first (presynaptic neurons) and
+        the receiving group last (post-synaptic neurons).
+
+        Example
+        -------
+        For a population of excitatory ("exc") and inhibitory ("inh") neurons.
+
+        .. code-block:: python
+
+            syn_spec = {
+                ("exc", "exc"): {'model': 'stdp_synapse', 'weight': 2.5},
+                ("exc", "inh"): {'model': 'static_synapse'},
+                ("exc", "inh"): {'model': 'stdp_synapse', 'delay': 5.},
+                ("inh", "inh"): {
+                    'model': 'stdp_synapse', 'weight': 5.,
+                    'delay': ('normal', 5., 2.)}
+                }
+            }
 
         .. versionadded:: 0.8
         '''
@@ -319,6 +374,9 @@ class NeuralPop(OrderedDict):
 
     @property
     def is_valid(self):
+        '''
+        Whether the population can be used to create a NEST network.
+        '''
         return self._is_valid
 
     #-------------------------------------------------------------------------#
@@ -376,9 +434,10 @@ class NeuralPop(OrderedDict):
         the ``has_models`` function: it will answer ``True`` if all groups
         have a 'non-None' ``neuron_model`` attribute.
 
-        .. warning::
-            No check is performed on the validity of the models, which means
-            that errors will only be detected when building the graph in NEST.
+        Warning
+        -------
+        No check is performed on the validity of the models, which means
+        that errors will only be detected when building the graph in NEST.
         '''
         if group is None:
             group = self.keys()
@@ -538,10 +597,11 @@ class NeuralGroup:
     because of this, only the ``neuron_model`` attribute is checked by the
     ``has_model`` function.
 
-    .. warning::
-        Equality between :class:`~nngt.properties.NeuralGroup`s only compares
-        the  size and neuronal ``model`` and ``param`` attributes. This means
-        that groups differing only by their ``ids`` will register as equal.
+    Warning
+    -------
+    Equality between :class:`~nngt.properties.NeuralGroup`s only compares
+    the  size and neuronal ``model`` and ``param`` attributes. This means
+    that groups differing only by their ``ids`` will register as equal.
     """
 
     def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None):

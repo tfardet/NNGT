@@ -111,8 +111,8 @@ also implemented: ::
     print("Clustering: {}".format(na.clustering(g)))
 
 
-Making complex populations
-==========================
+Complex populations: :class:`~nngt.NeuralGroup` and :class:`~nngt.NeuralPop`
+============================================================================
 
 The :class:`~nngt.NeuralGroup` allows the creation of nodes that belong
 together. You can then make a population from these groups and connect them
@@ -126,7 +126,7 @@ with specific connectivities using the
 Real neuronal culture and NEST interaction: the :class:`~nngt.Network`
 ======================================================================
 
-Besides connectivity, the main interest of the :class:~nngt.NeuralGroup` is
+Besides connectivity, the main interest of the :class:`~nngt.NeuralGroup` is
 that you can pass it the biological properties that the neurons belonging to
 this group will share.
 
