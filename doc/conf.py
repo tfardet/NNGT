@@ -72,7 +72,7 @@ if on_rtd:
         def __setitem__(self, name, value):
             pass
 
-        @attribute
+        @property
         def __version__(self):
             return ""
 
