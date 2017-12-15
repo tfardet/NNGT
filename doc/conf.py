@@ -337,7 +337,7 @@ html_favicon = 'images/nngt_ico.png'
 html_static_path = ['_static']
 
 # Add permalinks to headers
-html_add_permalinks = "¶"
+html_add_permalinks = "#"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
