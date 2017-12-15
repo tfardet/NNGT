@@ -19,19 +19,12 @@ import nngt
 
 
 # set example dir
-
 current_dir = dirname(abspath(__file__))
 idx_nngt    = current_dir.find('nngt/testing')
 example_dir = current_dir[:idx_nngt] + 'doc/examples/'
 
-
-# define global variables
-import importlib
-
-global_vars = {
-    "importlib": importlib,
-    # ~ "nngt": nngt,
-}
+# remove plotting
+nngt.set_config("with_plot", False)
 
 
 # ---------- #
@@ -51,17 +44,10 @@ class TestExamples(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        for f in cls.example_files:
-            if f.endswith(".el"):
-                try:
-                    os.remove(f)
-                except:
-                    pass
-                local_f = f.rfind("/") + 1
-                try:
-                    os.remove(f[local_f:])
-                except:
-                    pass
+        try:
+            os.remove("sp_graph.el")
+        except:
+            pass
     
     @property
     def test_name(self):
@@ -73,16 +59,14 @@ class TestExamples(unittest.TestCase):
         Test that the example files execute correctly.
         '''
 
-        for example in example_files:
-            print(example)
+        for example in self.example_files:
             if example.endswith('.py'):
                 try:
                     execfile(example)
                 except NameError:
                     with open(example) as f:
                         code = compile(f.read(), example, 'exec')
-                        global_vars["__file__"] = example
-                        exec(code, global_vars)
+                        exec(code)
 
 
 #-----------------------------------------------------------------------------#

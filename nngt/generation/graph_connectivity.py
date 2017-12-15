@@ -758,7 +758,6 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     target_ids = np.array(target_ids, dtype=np.uint)
     distance = []
 
-    print(density, edges, avg_deg, weighted, directed, multigraph)
     if source_type == target_type:
         elist = _di_gen_edges[graph_model](
             source_ids, source_ids, density=density, edges=edges,

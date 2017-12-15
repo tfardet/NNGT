@@ -72,6 +72,10 @@ if on_rtd:
         def __setitem__(self, name, value):
             pass
 
+        @attribute
+        def __version__(self):
+            return ""
+
         def __iter__(self):
             return self
 
@@ -333,7 +337,7 @@ html_favicon = 'images/nngt_ico.png'
 html_static_path = ['_static']
 
 # Add permalinks to headers
-html_add_permalinks = True
+html_add_permalinks = "¶"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -495,7 +499,7 @@ intersphinx_mapping = {
     'gt': ('http://graph-tool.skewed.de/static/doc/', None),
     'ipython': ('http://ipython.org/ipython-doc/stable/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'networkx': ('https://networkx.readthedocs.io/en/stable/', None),
+    'networkx': ('https://networkx.github.io/documentation/stable/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy', None),
     'python': ('https://docs.python.org/3/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
