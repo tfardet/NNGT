@@ -120,7 +120,7 @@ with specific connectivities using the
 :func:`~nngt.generation.connect_neural_groups` function.
 
 .. literalinclude:: ../examples/multi_groups_network.py
-   :lines: 30-64
+   :lines: 32-63
 
 
 Real neuronal culture and NEST interaction: the :class:`~nngt.Network`
@@ -138,7 +138,7 @@ Since we are using NEST, these properties are:
 * the type of the neurons (``1`` for excitatory or ``-1`` for inhibitory)
 
 .. literalinclude:: ../examples/nest_network.py
-   :lines: 27-62
+   :lines: 27-66
 
 Once this network is created, it can simply be sent to nest through the
 command: ``gids = net.to_nest()``, and the NEST gids are returned.
@@ -162,7 +162,7 @@ library can be used directly on the :class:`~nngt.Graph` object.
     deletion of nodes or edges, for which you have to use the functions
     provided by NNGT.
     As a general rule, any operation that might alter the graph structure
-    should be done thourgh NNGT and never directly using the underlying
+    should be done through NNGT and never directly using the underlying
     library.
 
 Apart from this, you can use any analysis or drawing tool from the graph
