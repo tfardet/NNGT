@@ -38,37 +38,46 @@ neuron_model = "ht_neuron"      # hill-tononi model
 exc_syn = {'receptor_type': 1}  # 1 is 'AMPA' in this model
 inh_syn = {'receptor_type': 3}  # 3 is 'GABA_A' in this model
 
+synapses = {
+    (1, 1):   exc_syn,
+    (1, -1):  exc_syn,
+    (-1, 1):  inh_syn,
+    (-1, -1): inh_syn,
+}
+
 pop = nngt.NeuralPop.exc_and_inhib(
     num_neurons, en_model=neuron_model, in_model=neuron_model,
-    es_param=exc_syn, is_param=inh_syn)
+    syn_spec=synapses)
 
 # create the network and send it to NEST
-w_prop = {"distribution": "gaussian", "avg": 1., "std": .2}
+w_prop = {"distribution": "gaussian", "avg": 0.1, "std": .05}
 net = nngt.generation.gaussian_degree(
     avg_degree, std_degree, population=pop, weights=w_prop)
 
 '''
 Send to NEST and set excitation and recorders
 '''
-import nest
-from nngt.simulation import monitor_groups, plot_activity, set_noise
+if nngt.get_config('with_nest'):
+    import nest
+    import nngt.simulation as ns
 
-gids = net.to_nest()
+    gids = net.to_nest()
 
-# add noise to the excitatory neurons
-excs = list(pop["excitatory"].nest_gids)
-set_noise(excs, 10., 2.)
+    # add noise to the excitatory neurons
+    excs = list(pop["excitatory"].nest_gids)
+    ns.set_noise(excs, 10., 2.)
 
-# record
-groups = [key for key in net.population]
-recorder, record = monitor_groups(groups, net)
+    # record
+    groups = [key for key in net.population]
+    recorder, record = ns.monitor_groups(groups, net)
 
-'''
-Simulate and plot.
-'''
-simtime = 2000.
-nest.Simulate(simtime)
+    '''
+    Simulate and plot.
+    '''
+    simtime = 2000.
+    nest.Simulate(simtime)
 
-plot_activity(
-    recorder, record, network=net, show=True, hist=False,
-    limits=(0, simtime))
+    if nngt.get_config('with_plot'):
+        ns.plot_activity(
+            recorder, record, network=net, show=True, hist=False,
+            limits=(0, simtime))

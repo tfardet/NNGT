@@ -77,8 +77,10 @@ else:
 
 setup(
         name = 'nngt',
-        version = '0.8a',
-        description = 'Package to study growth and activity of neural networks',
+        version = '0.9.dev1',
+        description = 'Package to study structure and activity in ' +\
+                      'neuronal networks',
+
         package_dir = {'': '.'},
         packages = find_packages('.'),
 
@@ -87,6 +89,7 @@ setup(
 
         # Requirements
         install_requires = ['numpy', 'scipy>=0.11'],
+        python_requires = '>=2.7, <4',
         extras_require = {
             'matplotlib': 'matplotlib',
             'PySide': ['PySide'],
@@ -94,14 +97,6 @@ setup(
             'reST': ["docutils>=0.3"],
             'nx': ['networkx>=2.0'],
             'ig': ['python-igraph']
-        },
-        entry_points = {
-            #@todo
-            #~ 'console_scripts': [
-                #~ 'rst2pdf = nngt.tools.pdfgen [PDF]',
-                #~ 'rst2html = nngt.tools.htmlgen'
-            #~ ],
-            #~ 'gui_scripts': [ 'netgen = nngt.gui.main.__main__:main [PySide]' ]
         },
         
         # Cython module
@@ -111,6 +106,27 @@ setup(
         url = 'https://github.com/Silmathoron/NNGT',
         author = 'Tanguy Fardet',
         author_email = 'tanguy.fardet@univ-paris-diderot.fr',
-        license = 'GNU',
-        keywords = 'neural network graph simulation NEST topology growth'
+        license = 'GPL3',
+        keywords = 'neuronal network graph structure simulation NEST ' +\
+                   'topology growth',
+        long_description = 'NNGT provides a unified interface to use three ' +\
+                           'of the main Python graph libraries ' +\
+                           '(graph-tool, igraph, and networkx) in order ' +\
+                           'to generate and study neuronal networks. It ' +\
+                           'allows the user to easily send this graph to ' +\
+                           'the NEST simulator, the analyze the resulting ' +\
+                           'activity while taking structure into account.',
+        classifiers=[
+            'Development Status :: 3 - Alpha',
+            'Intended Audience :: Science/Research',
+            'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+            'Natural Language :: English',
+            'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3',
+            'Operating System :: OS Independent',
+            'Programming Language :: C++',
+            'Programming Language :: Cython',
+            'Programming Language :: Python',
+            'Topic :: Scientific/Engineering :: Bio-Informatics'
+        ],
 )

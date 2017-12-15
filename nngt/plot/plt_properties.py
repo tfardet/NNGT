@@ -77,11 +77,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
     import matplotlib.pyplot as plt
     if axis is None:
         axis = plt.gca()
-    # save ylims and xlims
-    xlims = axis.get_xlim()
-    if not axis.has_data():
-        xlims = (network.edge_nb(), 0)  # make sure first limit is data-driven
-    ylims = axis.get_ylim()
+    empty_axis = axis.has_data()
     axis.axis('tight')
     if "alpha" not in kwargs:
         kwargs["alpha"] = 1 if isinstance(deg_type, str) else 0.5
@@ -93,12 +89,18 @@ def degree_distribution(network, deg_type="total", nodes=None,
     if isinstance(deg_type, str):
         counts, bins = degree_distrib(network, deg_type, nodes,
                                       use_weights, logx, num_bins)
+        bottom_count = -1 if logy else 0
         if norm:
             counts = counts / float(np.sum(counts))
-        maxcounts, maxbins, minbins = counts.max(), bins.max(), bins.min()
+        if logy:
+            counts = counts.astype(float)
+            counts[counts<1] = 0.1
+            counts = np.log(counts)
+        max_nnz = np.where(counts > 0)[0][-1]
+        maxcounts, maxbins, minbins = counts.max(), bins[max_nnz], bins.min()
         if "label" not in kwargs:
             kwargs["label"] = deg_type[0].upper() + deg_type[1:] + " degree"
-        axis.bar(bins[:-1], counts, np.diff(bins), **kwargs)
+        axis.bar(bins[:-1], counts, np.diff(bins), bottom=bottom_count, **kwargs)
     else:
         if colors is None:
             colors = palette(np.linspace(0.,0.5, len(deg_type)))
@@ -107,10 +109,16 @@ def degree_distribution(network, deg_type="total", nodes=None,
         for i, s_type in enumerate(deg_type):
             counts, bins = degree_distrib(network, s_type, nodes,
                                           use_weights, logx, num_bins[i])
+            bottom_count = -1 if logy else 0
             if norm:
                 counts = counts / float(np.sum(counts))
+            if logy:
+                counts = counts.astype(float)
+                counts[counts<1] = 0.1
+                counts = np.log(counts) + 1
             maxcounts_tmp, mincounts_tmp = counts.max(), counts.min()
-            maxbins_tmp, minbins_tmp = bins.max(), bins.min()
+            max_nnz = np.where(counts > 0)[0][-1]
+            maxbins_tmp, minbins_tmp = bins[max_nnz], bins.min()
             maxcounts = max(maxcounts, maxcounts_tmp)
             maxbins = max(maxbins, maxbins_tmp)
             minbins = min(minbins, minbins_tmp)
@@ -119,7 +127,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
             else:
                 kwargs['label'] = labels[i]
             axis.bar(
-                bins[:-1], counts, np.diff(bins), color=colors[i], **kwargs)
+                bins[:-1], counts, np.diff(bins), color=colors[i], bottom=bottom_count, **kwargs)
 
     axis.set_xlabel("Degree")
     axis.set_ylabel("Node count")
@@ -129,8 +137,6 @@ def degree_distribution(network, deg_type="total", nodes=None,
         "{}egree distribution for {}".format(title_start, network.name), x=0.,
         y=1.05, loc='left')
     # restore ylims and xlims and adapt if necessary
-    axis.set_xlim(xlims)
-    axis.set_ylim(ylims)
     _set_scale(axis, maxbins, minbins, maxcounts, logx, logy)
     plt.legend()
     if show:
@@ -631,19 +637,44 @@ def _set_new_plot(fignum=None, num_new_plots=1, names=None, sharex=None):
     return fig, lst_new_axes
 
 
+def _log_format(y, pos):
+    '''
+    Needed to move log values by one, so first increment, then decrement
+    '''
+    # rounding err for 4 so add 0.4 to avoid it
+    return '{}'.format(int(np.e*np.e**(y-1) + 0.4)) if y > -1 else 0
+
+
 def _set_scale(ax1, maxbins, minbins, maxcounts, logx, logy):
-    if 0.9*minbins < ax1.get_xlim()[0]:
-        ax1.set_xlim(left=0.9*minbins)
-    if 1.1*maxbins > ax1.get_xlim()[1]:
-        ax1.set_xlim(right=1.1*maxbins)
-    if 1.1*maxcounts > ax1.get_ylim()[1]:
-        ax1.set_ylim([0, 1.1*maxcounts])
+    import matplotlib as mpl
     if logx:
         ax1.set_xscale("log")
-        ax1.set_xlim([max(0.8, 0.8*minbins), 1.5*maxbins])
+        next_power = np.ceil(np.log10(maxbins))
+        ax1.set_xlim([max(0.8, 0.8*minbins), 10**next_power])
+    else:
+        bin_margin = 0.05*(maxbins - minbins)
+        if minbins - bin_margin < ax1.get_xlim()[0]:
+            ax1.set_xlim(left=(minbins - bin_margin))
+        if maxbins + bin_margin > ax1.get_xlim()[1]:
+            ax1.set_xlim(right=(maxbins + bin_margin))
     if logy:
-        ax1.set_yscale("log")
-        ax1.set_ylim([0.8, 1.5*maxcounts])
+        ax1.set_ylim([-1, 1.05*maxcounts])
+        # add 1 to power (log values incremented by one)
+        max_power = int(np.ceil(np.log10(maxcounts))) + 2
+        ticks = [-1, 0]
+        ticks.extend([np.log(10**n) for n in range(1, max_power + 1)])
+        arr_ticks = np.array(ticks[1:])
+        minorticks = []
+        for i in range(2, 10):
+            minorticks.extend(np.log(i) + arr_ticks)
+        ax1.set_yticks(ticks)
+        # ~ ax1.set_yminorticks(minorticks)
+        minorticks = mpl.ticker.FixedLocator(minorticks)
+        ax1.yaxis.set_minor_locator(minorticks)
+        ax1.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(_log_format))
+    else:
+        if 1.05*maxcounts > ax1.get_ylim()[1]:
+            ax1.set_ylim([0, 1.05*maxcounts])
 
 
 def _set_ax_lims(ax, maxx, minx, maxy, miny, logx=False, logy=False):

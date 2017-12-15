@@ -328,7 +328,7 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
 # Scale-free models
 #------------------------
 
-def random_scale_free(in_exp, out_exp, nodes=0, density=0.1, edges=-1,
+def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
                       avg_deg=-1, reciprocity=0., weighted=True, directed=True,
                       multigraph=False, name="RandomSF", shape=None, 
                       positions=None, population=None, from_graph=None,
@@ -758,11 +758,12 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     target_ids = np.array(target_ids, dtype=np.uint)
     distance = []
 
+    print(density, edges, avg_deg, weighted, directed, multigraph)
     if source_type == target_type:
         elist = _di_gen_edges[graph_model](
             source_ids, source_ids, density=density, edges=edges,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, distances=distances, **kwargs)
+            multigraph=multigraph, distance=distance, **kwargs)
     else:
         elist = _di_gen_edges[graph_model](
             source_ids, target_ids, density=density, edges=edges,
@@ -838,7 +839,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         elist = _di_gen_edges[graph_model](
             source_ids, source_ids, density=density, edges=edges,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, distances=distances, **kwargs)
+            multigraph=multigraph, distance=distance, **kwargs)
     else:
         elist = _di_gen_edges[graph_model](
             source_ids, target_ids, density=density, edges=edges,

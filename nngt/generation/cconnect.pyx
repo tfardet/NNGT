@@ -85,9 +85,9 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
 #
 
 def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
-                  np.ndarray[size_t, ndim=1] target_ids, size_t degree,
-                  degree_type, float reciprocity, bool directed,
-                  bool multigraph, existing_edges=None):
+                  np.ndarray[size_t, ndim=1] target_ids, size_t degree=-1,
+                  degree_type="in", float reciprocity=-1, bool directed=True,
+                  bool multigraph=False, existing_edges=None, **kwargs):
     ''' Generation of the edges through the C++ function '''
     cdef:
         # type of degree
@@ -123,9 +123,10 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
 
 
 def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
-                     np.ndarray[size_t, ndim=1] target_ids, float avg,
-                     float std, degree_type, float reciprocity,
-                     bool directed, bool multigraph, existing_edges=None):
+                     np.ndarray[size_t, ndim=1] target_ids, float avg=-1,
+                     float std=-1, degree_type="in", float reciprocity=-1,
+                     bool directed=True, bool multigraph=False,
+                     existing_edges=None, **kwargs):
     '''
     Connect nodes with a Gaussian distribution (generation through C++
     function.
@@ -166,9 +167,9 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
     return ia_edges
     
 
-def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
-                       edges, avg_deg, reciprocity, directed, multigraph,
-                       **kwargs):
+def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
+                       density=-1, edges=-1, avg_deg=-1, reciprocity=-1,
+                       directed=True, multigraph=False, **kwargs):
     ''' Connect the nodes with power law distributions '''
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
@@ -231,8 +232,9 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
     return ia_edges
     
 
-def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
-                 directed, multigraph, **kwargs):
+def _erdos_renyi(source_ids, target_ids, float density=-1, int edges=-1,
+                 float avg_deg=-1, float reciprocity=-1, bool directed=True,
+                 bool multigraph=False, **kwargs):
     '''
     Returns a numpy array of dimension (2,edges) that describes the edge list
     of an Erdos-Renyi graph.
@@ -294,8 +296,10 @@ def _circular_graph(node_ids, coord_nb):
     ia_targets[ia_targets>nodes-0.5] -= nodes
     return np.array([node_ids[ia_sources], node_ids[ia_targets]]).astype(int).T
 
-def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
-                  directed, multigraph, **kwargs):
+
+def _newman_watts(source_ids, target_ids, int coord_nb=-1,
+                  float proba_shortcut=-1, directed=True, multigraph=False,
+                  **kwargs):
     '''
     Returns a numpy array of dimension (num_edges,2) that describes the edge 
     list of a Newmaan-Watts graph.
@@ -331,9 +335,11 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
 def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
                    np.ndarray[size_t, ndim=1] target_ids,
-                   density, edges, avg_deg, scale, norm, str rule, shape,
-                   np.ndarray[float, ndim=2] positions, bool directed,
-                   bool multigraph, num_neurons=None, distance=None, **kwargs):
+                   float density=-1, int edges=-1, float avg_deg=-1,
+                   float scale=-1, float norm=-1, str rule="exp", shape=None,
+                   np.ndarray[float, ndim=2] positions=np.array([[0], [0]]),
+                   bool directed=True, bool multigraph=False,
+                   num_neurons=None, distance=None, **kwargs):
     '''
     Returns a distance-rule graph
     '''

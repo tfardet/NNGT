@@ -20,6 +20,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from copy import deepcopy
+
 import nest
 import numpy as np
 import scipy.sparse as ssp
@@ -132,34 +134,31 @@ def make_nest_network(network, send_only=None, use_weights=True):
                 tgt_ids += min_tidx
                 if len(tgt_ids) and len(src_ids):
                     # get the synaptic parameters
-                    syn_param = _get_syn_param(
+                    syn_spec = _get_syn_param(
                         src_name, src_group, tgt_name, tgt_group, pop.syn_spec)
-                    for key, val in syn_param.items():
-                        if key not in ("receptor_port", "model"):
-                            syn_param[key] = np.repeat(val, len(src_ids))
                     # using A1 to get data from matrix
                     if use_weights:
-                        syn_param[WEIGHT] = syn_sign *\
+                        syn_spec[WEIGHT] = syn_sign *\
                             csr_weights[src_ids, tgt_ids].A1
                     else:
-                        syn_param[WEIGHT] = np.repeat(syn_sign, len(tgt_ids))
-                    syn_param[DELAY] = csr_delays[src_ids, tgt_ids].A1
+                        syn_spec[WEIGHT] = np.repeat(syn_sign, len(tgt_ids))
+                    syn_spec[DELAY] = csr_delays[src_ids, tgt_ids].A1
                     nest.Connect(
                         network.nest_gid[src_ids], network.nest_gid[tgt_ids],
-                        syn_spec=syn_param, conn_spec=cspec)
+                        syn_spec=syn_spec, conn_spec=cspec)
         elif len(src_group.ids) > 0:
             # get NEST gids of sources and targets for each edge
             src_ids = network.nest_gid[local_csr.nonzero()[0] + min_sidx]
             tgt_ids = network.nest_gid[local_csr.nonzero()[1]]
             # prepare weights
-            syn_param = {
+            syn_spec = {
                 WEIGHT: np.repeat(syn_sign, len(src_ids)).astype(float)
             }
             if use_weights:
-                syn_param[WEIGHT] *= csr_weights[src_group.ids, :].data
-            syn_param[DELAY] = csr_delays[src_group.ids, :].data
+                syn_spec[WEIGHT] *= csr_weights[src_group.ids, :].data
+            syn_spec[DELAY] = csr_delays[src_group.ids, :].data
             
-            nest.Connect(src_ids, tgt_ids, syn_spec=syn_param, conn_spec=cspec)
+            nest.Connect(src_ids, tgt_ids, syn_spec=syn_spec, conn_spec=cspec)
 
     return tuple(ia_nest_gids[:current_size])
 
@@ -253,33 +252,38 @@ def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec):
     '''
     Return the most specific synaptic properties in `syn_spec` with respect to
     connections between `src_group` and `tgt_group`.
+    Priority is given to source (presynaptic properties).
     '''
     group_keys = []
     for k in syn_spec.keys():
         group_keys.extend(k)
     group_keys = set(group_keys)
+    # entry for source name and target name
     if src_name in group_keys and tgt_name in group_keys:
         try:
-            return syn_spec[(src_name, tgt_name)].copy()
+            return deepcopy(syn_spec[(src_name, tgt_name)])
         except KeyError:
             pass
-    src_type = src_group.neuron_type
-    if tgt_name in group_keys:
-        try:
-            return syn_spec[(src_type, tgt_name)].copy()
-        except KeyError:
-            pass
+    # entry for source name and target type
     tgt_type = tgt_group.neuron_type
     if src_name in group_keys:
         try:
-            return syn_spec[(src_name, tgt_type)].copy()
+            return deepcopy(syn_spec[(src_name, tgt_type)])
         except KeyError:
             pass
+    # entry for source type and target
+    src_type = src_group.neuron_type
+    if tgt_name in group_keys:
+        try:
+            return deepcopy(syn_spec[(src_type, tgt_name)])
+        except KeyError:
+            pass
+    # entry for source type and target type
     try:
-        return syn_spec[(src_type, tgt_type)].copy()
+        return deepcopy(syn_spec[(src_type, tgt_type)])
     except KeyError:
         # return the default parameters or an empty dict
-        return {k: v for k, v in syn_spec.items() if not isinstance(k, tuple)}
+        return deepcopy(syn_spec.get("default", {}))
 
 
 def _value_psp(weight, neuron_model, di_param, timestep, simtime):

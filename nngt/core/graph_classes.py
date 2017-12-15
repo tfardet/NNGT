@@ -1158,7 +1158,7 @@ class Network(Graph):
         :func:`~nngt.NeuralPop.exc_and_inhib`
         '''
         pop = nngt.NeuralPop.exc_and_inhib(
-            size, iratio, None, en_model, en_param, in_model, in_param,
+            size, iratio, en_model, en_param, in_model, in_param,
             syn_spec=syn_spec)
         net = cls(population=pop, **kwargs)
         return net

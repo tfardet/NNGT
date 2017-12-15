@@ -41,15 +41,14 @@ net = nngt.Network.ei_network(num_nodes, ei_ratio=0.2)
 Connect the populations.
 '''
 # exc -> inhib (Erdos-Renyi)
-prop_er1 = {"density": 0.035}
-ng.connect_neural_types(net, 1, -1, "erdos_renyi", prop_er1)
+ng.connect_neural_types(net, 1, -1, "erdos_renyi", density=0.035)
 
 # exc -> exc (Newmann-Watts)
 prop_nw = {
     "coord_nb": 10,
     "proba_shortcut": 0.1
 }
-ng.connect_neural_types(net, 1, 1, "newman_watts", prop_nw)
+ng.connect_neural_types(net, 1, 1, "newman_watts", **prop_nw)
 
 # inhib -> exc (Random scale-free)
 prop_rsf = {
@@ -57,37 +56,38 @@ prop_rsf = {
     "out_exp": 2.6,
     "density": 0.2
 }
-ng.connect_neural_types(net, -1, 1, "random_scale_free", prop_rsf)
+ng.connect_neural_types(net, -1, 1, "random_scale_free", **prop_rsf)
 
 # inhib -> inhib (Erdos-Renyi)
-prop_er2 = { "density": 0.04 }
-ng.connect_neural_types(net, -1, -1, "erdos_renyi", prop_er2)
+ng.connect_neural_types(net, -1, -1, "erdos_renyi", density=0.04)
 
 
 # ------------------ #
 # Simulate with NEST #
 # ------------------ #
 
-import nest
-from nngt.simulation import monitor_groups, plot_activity, set_poisson_input
+if nngt.get_config('with_nest'):
+    import nest
+    import nngt.simulation as ns
 
-'''
-Prepare the network and devices.
-'''
-# send to NEST,
-gids = net.to_nest()
-# excite
-set_poisson_input(gids, rate=100000.)
-# record
-groups = [key for key in net.population]
-recorder, record = monitor_groups(groups, net)
+    '''
+    Prepare the network and devices.
+    '''
+    # send to NEST,
+    gids = net.to_nest()
+    # excite
+    ns.set_poisson_input(gids, rate=100000.)
+    # record
+    groups = [key for key in net.population]
+    recorder, record = ns.monitor_groups(groups, net)
 
-'''
-Simulate and plot.
-'''
-simtime = 100.
-nest.Simulate(simtime)
+    '''
+    Simulate and plot.
+    '''
+    simtime = 100.
+    nest.Simulate(simtime)
 
-plot_activity(
-    recorder, record, network=net, show=True, hist=False,
-    limits=(0,simtime))
+    if nngt.get_config('with_plot'):
+        ns.plot_activity(
+            recorder, record, network=net, show=True, hist=False,
+            limits=(0,simtime))
