@@ -534,7 +534,7 @@ class Graph(nngt.core.GraphObject):
         Set the synaptic weights.
 
         ..todo ::
-          take elist into account in Connections.weights
+        take elist into account in Connections.weights
         
         Parameters
         ----------
@@ -1118,10 +1118,10 @@ class Network(Graph):
         inhibitory and excitatory neurons.
 
         .. versionchanged:: 0.8
-            Removed `es_{model, param}` and `is_{model, param}` in favour of
-            `syn_spec` parameter.
-            Renamed `ei_ratio` to `iratio` to match
-            :func:`~nngt.NeuralPop.exc_and_inhib`.
+        Removed `es_{model, param}` and `is_{model, param}` in favour of
+        `syn_spec` parameter.
+        Renamed `ei_ratio` to `iratio` to match
+        :func:`~nngt.NeuralPop.exc_and_inhib`.
         
         Parameters
         ----------
@@ -1158,7 +1158,7 @@ class Network(Graph):
         :func:`~nngt.NeuralPop.exc_and_inhib`
         '''
         pop = nngt.NeuralPop.exc_and_inhib(
-            size, iratio, None, en_model, en_param, in_model, in_param,
+            size, iratio, en_model, en_param, in_model, in_param,
             syn_spec=syn_spec)
         net = cls(population=pop, **kwargs)
         return net

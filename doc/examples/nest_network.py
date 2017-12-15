@@ -37,14 +37,18 @@ params1.update({'E_L': -65., 'b': 30., 'I_e': 350., 'tau_w': 400.})
 params2.update({'b': 20., 'V_reset': -50., 'tau_w': 500.})
 
 oscill = nngt.NeuralGroup(
-    nodes=400, model='aeif_psc_alpha', neuron_param=params1,
-    syn_model='tsodyks2_synapse', syn_param={'U': 0.5})
+    nodes=400, model='aeif_psc_alpha', neuron_param=params1)
 burst = nngt.NeuralGroup(
-    nodes=200, model='aeif_psc_alpha', neuron_param=params2,
-    syn_model='tsodyks2_synapse')
+    nodes=200, model='aeif_psc_alpha', neuron_param=params2)
 adapt = nngt.NeuralGroup(
-    nodes=200, model='aeif_psc_alpha', neuron_param=base_params,
-    syn_model='tsodyks2_synapse')
+    nodes=200, model='aeif_psc_alpha', neuron_param=base_params)
+
+synapses = {
+    'default': {'model': 'tsodyks2_synapse'},
+    ('oscillators', 'bursters'): {'model': 'tsodyks2_synapse', 'U': 0.5},
+    ('oscillators', 'oscillators'): {'model': 'tsodyks2_synapse', 'U': 0.6},
+    ('oscillators', 'adaptive'): {'model': 'tsodyks2_synapse', 'U': 0.4}
+}
 
 '''
 Create the population that will represent the neuronal
@@ -52,7 +56,7 @@ network from these groups
 '''
 pop = nngt.NeuralPop.from_groups(
     [oscill, burst, adapt],
-    names=['oscillators', 'bursters', 'adaptive'])
+    names=['oscillators', 'bursters', 'adaptive'], syn_spec=synapses)
 
 '''
 Create the network from this population,
@@ -64,15 +68,18 @@ net = ng.gaussian_degree(
 '''
 Send the network to NEST, monitor and simulate
 '''
-import nngt.simulation as ns
-import nest
 
-nest.SetKernelStatus({'local_num_threads': 4})
+if nngt.get_config('with_nest'):
+    import nngt.simulation as ns
+    import nest
 
-gids = net.to_nest()
+    nest.SetKernelStatus({'local_num_threads': 4})
 
-recorders, records = ns.monitor_groups(pop.keys(), net)
+    gids = net.to_nest()
 
-nest.Simulate(1000.)
+    recorders, records = ns.monitor_groups(pop.keys(), net)
 
-ns.plot_activity(recorders, records, network=net, show=True)
+    nest.Simulate(1000.)
+
+    if nngt.get_config('with_plot'):
+        ns.plot_activity(recorders, records, network=net, show=True)

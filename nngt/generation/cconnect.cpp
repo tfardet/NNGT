@@ -2058,7 +2058,7 @@ static PyObject *__pyx_pf_4nngt_10generation_8cconnect__unique_rows(CYTHON_UNUSE
 static PyObject *__pyx_pf_4nngt_10generation_8cconnect_2_no_self_loops(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_array); /* proto */
 static PyObject *__pyx_pf_4nngt_10generation_8cconnect_4_filter(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_ia_edges, PyObject *__pyx_v_ia_edges_tmp, PyObject *__pyx_v_num_ecurrent, PyObject *__pyx_v_b_one_pop, PyObject *__pyx_v_multigraph); /* proto */
 static PyObject *__pyx_pf_4nngt_10generation_8cconnect_6_fixed_degree(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_source_ids, PyArrayObject *__pyx_v_target_ids, size_t __pyx_v_degree, PyObject *__pyx_v_degree_type, CYTHON_UNUSED float __pyx_v_reciprocity, bool __pyx_v_directed, bool __pyx_v_multigraph, PyObject *__pyx_v_existing_edges); /* proto */
-static PyObject *__pyx_pf_4nngt_10generation_8cconnect_8_gaussian_degree(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_source_ids, PyArrayObject *__pyx_v_target_ids, unsigned int __pyx_v_avg, unsigned int __pyx_v_std, PyObject *__pyx_v_degree_type, CYTHON_UNUSED float __pyx_v_reciprocity, bool __pyx_v_directed, bool __pyx_v_multigraph, PyObject *__pyx_v_existing_edges); /* proto */
+static PyObject *__pyx_pf_4nngt_10generation_8cconnect_8_gaussian_degree(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_source_ids, PyArrayObject *__pyx_v_target_ids, float __pyx_v_avg, float __pyx_v_std, PyObject *__pyx_v_degree_type, CYTHON_UNUSED float __pyx_v_reciprocity, bool __pyx_v_directed, bool __pyx_v_multigraph, PyObject *__pyx_v_existing_edges); /* proto */
 static PyObject *__pyx_pf_4nngt_10generation_8cconnect_10_random_scale_free(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_source_ids, PyObject *__pyx_v_target_ids, PyObject *__pyx_v_in_exp, PyObject *__pyx_v_out_exp, PyObject *__pyx_v_density, PyObject *__pyx_v_edges, PyObject *__pyx_v_avg_deg, PyObject *__pyx_v_reciprocity, PyObject *__pyx_v_directed, PyObject *__pyx_v_multigraph, CYTHON_UNUSED PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_4nngt_10generation_8cconnect_12_erdos_renyi(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_source_ids, PyObject *__pyx_v_target_ids, PyObject *__pyx_v_density, PyObject *__pyx_v_edges, PyObject *__pyx_v_avg_deg, PyObject *__pyx_v_reciprocity, PyObject *__pyx_v_directed, PyObject *__pyx_v_multigraph, CYTHON_UNUSED PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_4nngt_10generation_8cconnect_14_price_scale_free(CYTHON_UNUSED PyObject *__pyx_self); /* proto */
@@ -3977,8 +3977,8 @@ static PyObject *__pyx_pf_4nngt_10generation_8cconnect_6_fixed_degree(CYTHON_UNU
  * 
  * 
  * def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,             # <<<<<<<<<<<<<<
- *                      np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
- *                      unsigned int std, degree_type, float reciprocity,
+ *                      np.ndarray[size_t, ndim=1] target_ids, float avg,
+ *                      float std, degree_type, float reciprocity,
  */
 
 /* Python wrapper */
@@ -3988,8 +3988,8 @@ static PyMethodDef __pyx_mdef_4nngt_10generation_8cconnect_9_gaussian_degree = {
 static PyObject *__pyx_pw_4nngt_10generation_8cconnect_9_gaussian_degree(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyArrayObject *__pyx_v_source_ids = 0;
   PyArrayObject *__pyx_v_target_ids = 0;
-  unsigned int __pyx_v_avg;
-  unsigned int __pyx_v_std;
+  float __pyx_v_avg;
+  float __pyx_v_std;
   PyObject *__pyx_v_degree_type = 0;
   CYTHON_UNUSED float __pyx_v_reciprocity;
   bool __pyx_v_directed;
@@ -4003,8 +4003,8 @@ static PyObject *__pyx_pw_4nngt_10generation_8cconnect_9_gaussian_degree(PyObjec
     PyObject* values[9] = {0,0,0,0,0,0,0,0,0};
 
     /* "nngt/generation/cconnect.pyx":128
- *                      np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
- *                      unsigned int std, degree_type, float reciprocity,
+ *                      np.ndarray[size_t, ndim=1] target_ids, float avg,
+ *                      float std, degree_type, float reciprocity,
  *                      bool directed, bool multigraph, existing_edges=None):             # <<<<<<<<<<<<<<
  *     '''
  *     Connect nodes with a Gaussian distribution (generation through C++
@@ -4110,8 +4110,8 @@ static PyObject *__pyx_pw_4nngt_10generation_8cconnect_9_gaussian_degree(PyObjec
     }
     __pyx_v_source_ids = ((PyArrayObject *)values[0]);
     __pyx_v_target_ids = ((PyArrayObject *)values[1]);
-    __pyx_v_avg = __Pyx_PyInt_As_unsigned_int(values[2]); if (unlikely((__pyx_v_avg == (unsigned int)-1) && PyErr_Occurred())) __PYX_ERR(0, 126, __pyx_L3_error)
-    __pyx_v_std = __Pyx_PyInt_As_unsigned_int(values[3]); if (unlikely((__pyx_v_std == (unsigned int)-1) && PyErr_Occurred())) __PYX_ERR(0, 127, __pyx_L3_error)
+    __pyx_v_avg = __pyx_PyFloat_AsFloat(values[2]); if (unlikely((__pyx_v_avg == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 126, __pyx_L3_error)
+    __pyx_v_std = __pyx_PyFloat_AsFloat(values[3]); if (unlikely((__pyx_v_std == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 127, __pyx_L3_error)
     __pyx_v_degree_type = values[4];
     __pyx_v_reciprocity = __pyx_PyFloat_AsFloat(values[5]); if (unlikely((__pyx_v_reciprocity == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 127, __pyx_L3_error)
     __pyx_v_directed = __Pyx_PyObject_IsTrue(values[6]); if (unlikely((__pyx_v_directed == ((bool)-1)) && PyErr_Occurred())) __PYX_ERR(0, 128, __pyx_L3_error)
@@ -4134,8 +4134,8 @@ static PyObject *__pyx_pw_4nngt_10generation_8cconnect_9_gaussian_degree(PyObjec
  * 
  * 
  * def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,             # <<<<<<<<<<<<<<
- *                      np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
- *                      unsigned int std, degree_type, float reciprocity,
+ *                      np.ndarray[size_t, ndim=1] target_ids, float avg,
+ *                      float std, degree_type, float reciprocity,
  */
 
   /* function exit code */
@@ -4147,7 +4147,7 @@ static PyObject *__pyx_pw_4nngt_10generation_8cconnect_9_gaussian_degree(PyObjec
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_4nngt_10generation_8cconnect_8_gaussian_degree(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_source_ids, PyArrayObject *__pyx_v_target_ids, unsigned int __pyx_v_avg, unsigned int __pyx_v_std, PyObject *__pyx_v_degree_type, CYTHON_UNUSED float __pyx_v_reciprocity, bool __pyx_v_directed, bool __pyx_v_multigraph, PyObject *__pyx_v_existing_edges) {
+static PyObject *__pyx_pf_4nngt_10generation_8cconnect_8_gaussian_degree(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_source_ids, PyArrayObject *__pyx_v_target_ids, float __pyx_v_avg, float __pyx_v_std, PyObject *__pyx_v_degree_type, CYTHON_UNUSED float __pyx_v_reciprocity, bool __pyx_v_directed, bool __pyx_v_multigraph, PyObject *__pyx_v_existing_edges) {
   PyObject *__pyx_v_b_out = 0;
   CYTHON_UNUSED PyObject *__pyx_v_b_total = 0;
   size_t __pyx_v_num_source;
@@ -4342,9 +4342,9 @@ static PyObject *__pyx_pf_4nngt_10generation_8cconnect_8_gaussian_degree(CYTHON_
   __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_11, __pyx_n_s_normal); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 143, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_10);
   __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
-  __pyx_t_11 = __Pyx_PyInt_From_unsigned_int(__pyx_v_avg); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 143, __pyx_L1_error)
+  __pyx_t_11 = PyFloat_FromDouble(__pyx_v_avg); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 143, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
-  __pyx_t_12 = __Pyx_PyInt_From_unsigned_int(__pyx_v_std); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 143, __pyx_L1_error)
+  __pyx_t_12 = PyFloat_FromDouble(__pyx_v_std); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 143, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_12);
   __pyx_t_13 = __Pyx_PyInt_From_unsigned_int(__pyx_v_num_node); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 143, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_13);
@@ -5020,8 +5020,8 @@ static PyObject *__pyx_pf_4nngt_10generation_8cconnect_8_gaussian_degree(CYTHON_
  * 
  * 
  * def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,             # <<<<<<<<<<<<<<
- *                      np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
- *                      unsigned int std, degree_type, float reciprocity,
+ *                      np.ndarray[size_t, ndim=1] target_ids, float avg,
+ *                      float std, degree_type, float reciprocity,
  */
 
   /* function exit code */
@@ -16039,8 +16039,8 @@ static int __pyx_import_star_set(PyObject *o, PyObject* py_name, char *name) {
     "X",
     "__pyx_ctuple___dunderpyx_ctuple_size_t__dunderand_long",
     "__pyx_ctuple___dunderpyx_ctuple_size_t__dunderand_long_struct",
-    "__pyx_ctuple_dc9b9__unsigned__space_int__and_unsigned__space_int__and_unsigned__space_int__etc",
-    "__pyx_ctuple_dc9b9__unsigned__space_int__and_unsigned__space_int__and_unsigned__space_int__etc_struct",
+    "__pyx_ctuple_float__and_float__and_unsigned__space_int",
+    "__pyx_ctuple_float__and_float__and_unsigned__space_int_struct",
     "__pyx_ctuple_long__and_size_t",
     "__pyx_ctuple_long__and_size_t_struct",
     "__pyx_ctuple_size_t",
@@ -16820,8 +16820,8 @@ static int __Pyx_InitCachedConstants(void) {
  * 
  * 
  * def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,             # <<<<<<<<<<<<<<
- *                      np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
- *                      unsigned int std, degree_type, float reciprocity,
+ *                      np.ndarray[size_t, ndim=1] target_ids, float avg,
+ *                      float std, degree_type, float reciprocity,
  */
   __pyx_tuple__37 = PyTuple_Pack(23, __pyx_n_s_source_ids, __pyx_n_s_target_ids, __pyx_n_s_avg, __pyx_n_s_std, __pyx_n_s_degree_type, __pyx_n_s_reciprocity, __pyx_n_s_directed, __pyx_n_s_multigraph, __pyx_n_s_existing_edges, __pyx_n_s_b_out, __pyx_n_s_b_total, __pyx_n_s_num_source, __pyx_n_s_num_target, __pyx_n_s_idx, __pyx_n_s_omp, __pyx_n_s_num_node, __pyx_n_s_degrees, __pyx_n_s_old_edges, __pyx_n_s_edges, __pyx_n_s_b_one_pop, __pyx_n_s_msd, __pyx_n_s_existing, __pyx_n_s_ia_edges); if (unlikely(!__pyx_tuple__37)) __PYX_ERR(0, 125, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__37);
@@ -17334,8 +17334,8 @@ static int __pyx_pymod_exec_cconnect(PyObject *__pyx_pyinit_module)
  * 
  * 
  * def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,             # <<<<<<<<<<<<<<
- *                      np.ndarray[size_t, ndim=1] target_ids, unsigned int avg,
- *                      unsigned int std, degree_type, float reciprocity,
+ *                      np.ndarray[size_t, ndim=1] target_ids, float avg,
+ *                      float std, degree_type, float reciprocity,
  */
   __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_4nngt_10generation_8cconnect_9_gaussian_degree, NULL, __pyx_n_s_nngt_generation_cconnect); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 125, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);

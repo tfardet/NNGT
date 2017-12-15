@@ -21,7 +21,6 @@ from nngt.lib.test_functions import _old_graph_tool
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
-
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
 error = 'Wrong {{val}} for {graph}.'
 
@@ -90,8 +89,13 @@ class TestIO(TestBasis):
                                             graph.get_positions()),
                                 err.format(val='positions'))
             for attr, values in graph.edges_attributes.items():
-                self.assertTrue(np.allclose(h.edges_attributes[attr], values),
-                                err.format(val=attr))
+                allclose = np.allclose(h.edges_attributes[attr], values)
+                if not allclose:
+                    print("Error: expected")
+                    print(h.edges_attributes[attr])
+                    print("but got")
+                    print(values)
+                self.assertTrue(allclose, err.format(val=attr))
         else:  # working with loaded graph
             nodes = self.get_expected_result(graph, "nodes")
             edges = self.get_expected_result(graph, "edges")

@@ -24,7 +24,6 @@ import nngt
 import nngt.generation as ng
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 num_nodes = 1000
@@ -52,7 +51,7 @@ Connect the groups
 
 # inter-groups (Erdos-Renyi)
 prop_er1 = {"density": 0.005}
-ng.connect_neural_groups(net, "left", "right", "erdos_renyi", prop_er1)
+ng.connect_neural_groups(net, "left", "right", "erdos_renyi", **prop_er1)
 
 # intra-groups (Newman-Watts)
 prop_nw = {
@@ -60,37 +59,40 @@ prop_nw = {
     "proba_shortcut": 0.1
 }
 
-ng.connect_neural_groups(net, "left", "left", "newman_watts", prop_nw)
-ng.connect_neural_groups(net, "right", "right", "newman_watts", prop_nw)
+ng.connect_neural_groups(net, "left", "left", "newman_watts", **prop_nw)
+ng.connect_neural_groups(net, "right", "right", "newman_watts", **prop_nw)
 
 
 '''
 Plot the graph
 '''
 
-colors = np.zeros(num_nodes)
-colors[500:] = 1
+if nngt.get_config("with_plot"):
+    import matplotlib.pyplot as plt
 
-if nngt.get_config("graph_library") == "graph-tool":
-    from graph_tool.draw import graph_draw, prop_to_size, sfdp_layout
-    pm = net.new_vertex_property("int", colors)
-    size = net.new_vertex_property("double", val=5.)
-    pos = sfdp_layout(net, groups=pm, C=1., K=20, gamma=5, mu=20)
-    graph_draw(net, pos=pos, vertex_fill_color=pm, vertex_color=pm,
-               vertex_size=size, nodesfirst=True,
-               edge_color=[0.179, 0.203,0.210, 0.3])
-elif nngt.get_config("graph_library") == "networkx":
-    import networkx as nx
-    plt.figure()
-    init_pos = {i: np.random.uniform(-1000., -900, 2) for i in range(500)}
-    init_pos.update(
-        {i: np.random.uniform(900., 1000, 2) for i in range(500, 1000)})
-    layout = nx.spring_layout(net, k=20, pos=init_pos)
-    nx.draw(net, pos=layout, node_color=colors, node_size=20)
-else:
-    import igraph as ig
-    colors = [(1, 0, 0) for _ in range(500)]
-    colors.extend([(0, 0, 1) for _ in range(500)])
-    ig.plot(net, vertex_color=colors, vertex_size=5, edge_arrow_size=0.5)
+    colors = np.zeros(num_nodes)
+    colors[500:] = 1
 
-plt.show()
+    if nngt.get_config("graph_library") == "graph-tool":
+        from graph_tool.draw import graph_draw, prop_to_size, sfdp_layout
+        pm = net.new_vertex_property("int", colors)
+        size = net.new_vertex_property("double", val=5.)
+        pos = sfdp_layout(net, groups=pm, C=1., K=20, gamma=5, mu=20)
+        graph_draw(net, pos=pos, vertex_fill_color=pm, vertex_color=pm,
+                   vertex_size=size, nodesfirst=True,
+                   edge_color=[0.179, 0.203,0.210, 0.3])
+    elif nngt.get_config("graph_library") == "networkx":
+        import networkx as nx
+        plt.figure()
+        init_pos = {i: np.random.uniform(-1000., -900, 2) for i in range(500)}
+        init_pos.update(
+            {i: np.random.uniform(900., 1000, 2) for i in range(500, 1000)})
+        layout = nx.spring_layout(net, k=20, pos=init_pos)
+        nx.draw(net, pos=layout, node_color=colors, node_size=20)
+    else:
+        import igraph as ig
+        colors = [(1, 0, 0) for _ in range(500)]
+        colors.extend([(0, 0, 1) for _ in range(500)])
+        ig.plot(net, vertex_color=colors, vertex_size=5, edge_arrow_size=0.5)
+
+    plt.show()

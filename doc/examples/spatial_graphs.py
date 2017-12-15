@@ -43,11 +43,11 @@ g = nngt.generation.gaussian_degree(100., 5., nodes=num_nodes, shape=ell)
 # -------------- #
 
 start = time.time()
-g.to_file('sp_graph')
+g.to_file('sp_graph.el')
 print('Saving in {} s.'.format(time.time() - start))
 
 start = time.time()
-g2 = nngt.Graph.from_file('sp_graph')
+g2 = nngt.Graph.from_file('sp_graph.el')
 print('Loading in {} s.'.format(time.time() - start))
 
 print('Both networks have same area: {}.'.format(
@@ -60,4 +60,5 @@ print('They also have the same boundaries: {}.'.format(
 # Plot #
 # ---- #
 
-nngt.plot.draw_network(g2, decimate=100, show=True)
+if nngt.get_config('with_plot'):
+    nngt.plot.draw_network(g2, decimate=100, show=True)
