@@ -2,7 +2,7 @@
 # NNGT configuration file #
 #-------------------------#
 
-version = 0.8a
+version = 0.9.dev2
 
 #-------------------------
 ## default graph library -----------------------------------------------------

@@ -77,7 +77,7 @@ else:
 
 setup(
         name = 'nngt',
-        version = '0.9.dev1',
+        version = '0.9.dev2',
         description = 'Package to study structure and activity in ' +\
                       'neuronal networks',
 
@@ -85,7 +85,10 @@ setup(
         packages = find_packages('.'),
 
         # Include the non python files:
-        package_data = {'': ['*.txt', '*.rst', '*.md', '*.default']},
+        package_data = {'': [
+            '*.txt', '*.rst', '*.md', '*.default', '*.pyx', '*.pxd', '*.cpp',
+            '*.h', '*.pyxbld',
+        ]},
 
         # Requirements
         install_requires = ['numpy', 'scipy>=0.11'],

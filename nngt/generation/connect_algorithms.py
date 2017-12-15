@@ -55,8 +55,9 @@ EPS = 0.00001
 #------------------------
 #
 
-def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
-                  directed, multigraph, existing_edges=None):
+def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
+                  reciprocity=-1, directed=True, multigraph=False,
+                  existing_edges=None, **kwargs):
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -97,8 +98,9 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type, reciprocity,
     return ia_edges
 
 
-def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
-                     reciprocity, directed, multigraph, existing_edges=None):
+def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
+                     reciprocity=-1, directed=True, multigraph=False,
+                     existing_edges=None, **kwargs):
     ''' Connect nodes with a Gaussian distribution '''
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
@@ -145,9 +147,9 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type,
     return ia_edges
     
 
-def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
-                       edges, avg_deg, reciprocity, directed, multigraph,
-                       **kwargs):
+def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
+                       density=-1, edges=-1, avg_deg=-1, reciprocity=-1,
+                       directed=True, multigraph=False, **kwargs):
     ''' Connect the nodes with power law distributions '''
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
@@ -211,8 +213,8 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density,
     return ia_edges
     
 
-def _erdos_renyi(source_ids, target_ids, density, edges, avg_deg, reciprocity,
-                 directed, multigraph, **kwargs):
+def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
+                 reciprocity=-1, directed=True, multigraph=False, **kwargs):
     '''
     Returns a numpy array of dimension (2,edges) that describes the edge list
     of an Erdos-Renyi graph.
@@ -276,8 +278,8 @@ def _circular_graph(node_ids, coord_nb):
     return np.array([node_ids[ia_sources], node_ids[ia_targets]]).astype(int).T
 
 
-def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
-                  directed, multigraph, **kwargs):
+def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
+                  directed=True, multigraph=False, **kwargs):
     '''
     Returns a numpy array of dimension (num_edges,2) that describes the edge 
     list of a Newmaan-Watts graph.
