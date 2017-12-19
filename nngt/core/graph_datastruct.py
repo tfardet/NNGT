@@ -162,7 +162,7 @@ class NeuralPop(OrderedDict):
         for name, g in zip(names, groups):
             pop[name] = g
         # take care of synaptic connections
-        pop._syn_spec = deepcopy(syn_spec)
+        pop._syn_spec = deepcopy(syn_spec if syn_spec is not None else {})
         return pop
 
     @classmethod
@@ -179,7 +179,8 @@ class NeuralPop(OrderedDict):
         pop = cls(size, parent)
         pop.create_group("default", range(size), 1, neuron_model, neuron_param)
         pop._syn_spec = {'model': syn_model}
-        pop._syn_spec.update(syn_param)
+        if syn_param is not None:
+            pop._syn_spec.update(syn_param)
         return pop
 
     @classmethod
@@ -292,7 +293,7 @@ class NeuralPop(OrderedDict):
             dic = _make_groups(parent, kwargs["group_prop"])
             self._is_valid = True
             self.update(dic)
-        self._sn_spec = {}
+        self._syn_spec = {}
         self._has_models = with_models
 
     def __getitem__(self, key):
