@@ -143,7 +143,6 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     graph_fd : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
     """
-    degree = int(degree)
     # set node number and library graph
     graph_fd = from_graph
     if graph_fd is not None:
@@ -219,11 +218,6 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 	If an `from_graph` is provided, all preexistant edges in the object
 	will be deleted before the new connectivity is implemented.
     """
-    # switch values to float
-    avg = float(avg)
-    std = float(std)
-    assert avg >= 0, "A positive value is required for `avg`."
-    assert std >= 0, "A positive value is required for `std`."
     # set node number and library graph
     graph_gd = from_graph
     if graph_gd is not None:
@@ -769,6 +763,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
             multigraph=multigraph, distance=distance, **kwargs)
 
+    # Attributes are not set by subfunctions
     attr = {}
     if 'weights' in kwargs:
         attr['weight'] = kwargs['weights']
@@ -845,6 +840,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
             multigraph=multigraph, distance=distance, **kwargs)
 
+    # Attributes are not set by subfunctions
     attr = {}
     if 'weights' in kwargs:
         attr['weight'] = kwargs['weights']

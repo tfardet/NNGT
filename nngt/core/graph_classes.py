@@ -526,7 +526,45 @@ class Graph(nngt.core.GraphObject):
                     raise InvalidArgument("At least one of the `values` and "
                         "`val` arguments should not be ``None``.")
             self._eattr.set_attribute(attribute, values, edges=edges)
-                
+
+    def set_node_attribute(self, attribute, values=None, val=None,
+                           value_type=None, nodes=None):
+        '''
+        Set attributes to the connections between neurons.
+
+        .. versionadded:: 0.9
+
+        Parameters
+        ----------
+        attribute : str
+            The name of the attribute.
+        value_type : str
+            Type of the attribute, among 'int', 'double', 'string'
+        values : array, optional (default: None)
+            Values with which the edge attribute should be initialized.
+            (must have one entry per node in the graph)
+        val : int, float or str , optional (default: None)
+            Identical value for all edges.
+        value_type : str, optional (default: None)
+            Type of the attribute, among 'int', 'double', 'string'. Only used
+            if the attribute does not exist and must be created.
+        nodes : list of nodes, optional (default: all)
+            Nodes whose attributes should be set. Others will remain unchanged.
+        '''
+        if attribute not in self.nodes_attributes:
+            assert value_type is not None, "`value_type` is necessary for " +\
+                                           "new attributes."
+            self.new_node_attribute(name=attribute, value_type=value_type,
+                                    values=values, val=val)
+        else:
+            num_nodes = self.node_nb() if nodes is None else len(nodes)
+            if values is None:
+                if val is not None:
+                    values = np.repeat(val, num_nodes)
+                else:
+                    raise InvalidArgument("At least one of the `values` and "
+                        "`val` arguments should not be ``None``.")
+            self._nattr.set_attribute(attribute, values, nodes=nodes)
     
     def set_weights(self, weight=None, elist=None, distribution=None,
                     parameters=None, noise_scale=None):
@@ -714,6 +752,37 @@ class Graph(nngt.core.GraphObject):
             return self._eattr[name]
         else:
             return self._eattr.keys()
+
+    def get_node_attributes(self, nodes=None, name=None):
+        '''
+        Attributes of the graph's edges.
+
+        .. versionadded: 0.9
+
+        Parameters
+        ----------
+        nodes : list of ints, optional (default: ``None``)
+            Nodes whose attribute should be displayed.
+        name : str, optional (default: ``None``)
+            Name of the desired attribute.
+
+        Returns
+        -------
+        List containing the names of all nodes attributes if `nodes` is
+        ``None``, else a ``dict`` containing the attributes of the nodes (or
+        only the value of attribute `name` if it is not ``None``).
+        '''
+        if name is not None and nodes is not None:
+            if isinstance(nodes, slice):
+                return self._nattr[name][nodes]
+            else:
+                return self._nattr[nodes][name]
+        elif name is None:
+            return self._nattr[nodes]
+        elif nodes is None:
+            return self._nattr[name]
+        else:
+            return self._nattr.keys()
     
     def get_attribute_type(self, attribute_name):
         ''' Return the type of an attribute '''
@@ -768,9 +837,13 @@ class Graph(nngt.core.GraphObject):
         #~ di_result = { prop: self.get_property(prop) for prop in a_properties }
         #~ return di_result
 
-    def get_degrees(self, deg_type="total", node_list=None, use_weights=False):
+    def get_degrees(self, deg_type="total", node_list=None, use_weights=False,
+                    use_types=False):
         '''
         Degree sequence of all the nodes.
+
+        ..versionchanged :: 0.9
+            Added `use_types` keyword.
         
         Parameters
         ----------
@@ -780,6 +853,8 @@ class Graph(nngt.core.GraphObject):
             List of the nodes which degree should be returned
         use_weights : bool, optional (default: False)
             Whether to use weighted (True) or simple degrees (False).
+        use_types : bool, optional (default: False)
+            Whether to use typed (True) or positive degrees (False).
         
         Returns
         -------
@@ -787,7 +862,11 @@ class Graph(nngt.core.GraphObject):
         '''
         valid_types = ("in", "out", "total")
         if deg_type in valid_types:
-            return self.degree_list(node_list, deg_type, use_weights)
+            if use_types:
+                return self.adjacency_matrix(
+                    weights=use_weights).sum(axis=1).A1
+            else:
+                return self.degree_list(node_list, deg_type, use_weights)
         else:
             raise InvalidArgument("Invalid degree type '{}'".format(deg_type))
 
@@ -1311,6 +1390,13 @@ class Network(Graph):
                 for group in population.values():
                     types[group.ids] *= group.neuron_type
                 self.new_node_attribute('type', 'int', values=types)
+                # store the neuronal parameters in the graph
+                for group in population.values():
+                    if group.neuron_param is not None:
+                        for k, v in group.neuron_param.items():
+                            self.set_node_attribute(
+                                k, val=v, value_type='double',
+                                nodes=group.ids)
             else:
                 raise AttributeError("NeuralPop is not valid (not all neurons "
                                      "are associated to a group).")

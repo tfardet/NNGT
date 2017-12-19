@@ -50,7 +50,8 @@ logger = logging.getLogger(__name__)
 
 def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                   show=False, limits=None, hist=True, title=None, label=None,
-                  sort=None, average=False, normalize=1., decimate=None):
+                  sort=None, average=False, normalize=1., decimate=None,
+                  transparent=True):
     '''
     Plot the monitored activity.
     
@@ -82,9 +83,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     sort : str or list, optional (default: None)
         Sort neurons using a topological property ("in-degree", "out-degree",
         "total-degree" or "betweenness"), an activity-related property
-        ("firing_rate") or a user-defined list of sorted neuron ids.
-        Sorting is performed by increasing value of the `sort` property from
-        bottom to top inside each group.
+        ("firing_rate" or neuronal property) or a user-defined list of sorted
+        neuron ids. Sorting is performed by increasing value of the `sort`
+        property from bottom to top inside each group.
     normalize : float or list, optional (default: None)
         Normalize the recorded results by a given float. If a list is provided,
         there should be one entry per voltmeter or multimeter in the recorders.
@@ -140,14 +141,8 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     if sort is not None:
         assert network is not None, "`network` is required for sorting."
         if nonstring_container(sort):
-            # sort the attribute if it is a double array
-            if not np.issubdtype(sort[0], int):
-                attr = np.argsort(sort)
-            else:
-                # otherwise it is directly the NNGT node indices
-                attr = sort
-            sorted_neurons = _sort_neurons(attr, gids, network)
             attr = sort
+            sorted_neurons = _sort_neurons(attr, gids, network)
             sort = "user defined sort"
         else:
             data = None
@@ -206,7 +201,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             l = raster_plot(times, sorted_ids, color=c, show=False,
                             limits=limits, sort=sort, fignum=fnum,
                             decimate=decim[num_raster], sort_attribute=attr,
-                            network=network)
+                            network=network, transparent=transparent)
             num_raster += 1
             if l:
                 fig_raster = l[0].figure.number
@@ -275,7 +270,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                 num_bins=1000, color="b", decimate=None, fignum=None,
                 label=None, show=True, sort=None, sort_attribute=None,
-                network=None):
+                network=None, transparent=True):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
@@ -325,6 +320,8 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
 
     if len(times):
         fig = plt.figure(fignum)
+        if transparent:
+            fig.patch.set_visible(False)
         ylabel = "Neuron ID"
         xlabel = "Time (ms)"
 

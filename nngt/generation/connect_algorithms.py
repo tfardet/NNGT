@@ -58,6 +58,9 @@ EPS = 0.00001
 def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
                   reciprocity=-1, directed=True, multigraph=False,
                   existing_edges=None, **kwargs):
+    degree = int(degree)
+    assert degree >= 0, "A positive value is required for `degree`."
+
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -65,7 +68,7 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
     # edges
-    edges = num_target*degree if degree_type == "out" else num_source*degree
+    edges = num_source*degree if degree_type == "out" else num_target*degree
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
     
@@ -102,6 +105,12 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
                      reciprocity=-1, directed=True, multigraph=False,
                      existing_edges=None, **kwargs):
     ''' Connect nodes with a Gaussian distribution '''
+    # switch values to float
+    avg = float(avg)
+    std = float(std)
+    assert avg >= 0, "A positive value is required for `avg`."
+    assert std >= 0, "A positive value is required for `std`."
+
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -109,9 +118,9 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
     # edges
-    num_node = num_source if degree_type == "in" else num_target
+    num_degrees = num_target if degree_type == "in" else num_source
     lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_node), 0.)).astype(int)
+        np.maximum(np.random.normal(avg, std, num_degrees), 0.)).astype(int)
     edges = np.sum(lst_deg)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)

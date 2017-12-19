@@ -236,7 +236,9 @@ class NeuralPop(OrderedDict):
         if syn_spec is not None:
             _check_syn_spec(
                 syn_spec, ["excitatory", "inhibitory"], pop.values())
-        pop._syn_spec = deepcopy(syn_spec)
+            pop._syn_spec = deepcopy(syn_spec)
+        else:
+            pop._syn_spec = {}
         return pop
 
     @classmethod
@@ -290,6 +292,7 @@ class NeuralPop(OrderedDict):
             dic = _make_groups(parent, kwargs["group_prop"])
             self._is_valid = True
             self.update(dic)
+        self._sn_spec = {}
         self._has_models = with_models
 
     def __getitem__(self, key):

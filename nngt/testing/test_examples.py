@@ -58,15 +58,17 @@ class TestExamples(unittest.TestCase):
         '''
         Test that the example files execute correctly.
         '''
-
         for example in self.example_files:
             if example.endswith('.py'):
                 try:
                     execfile(example)
-                except NameError:
-                    with open(example) as f:
-                        code = compile(f.read(), example, 'exec')
-                        exec(code)
+                except (NameError, NotImplementedError):
+                    try:
+                        with open(example) as f:
+                            code = compile(f.read(), example, 'exec')
+                            exec(code)
+                    except NotImplementedError:
+                        pass  # potential IO error for gt <= 2.22
 
 
 #-----------------------------------------------------------------------------#

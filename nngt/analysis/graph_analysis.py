@@ -635,14 +635,20 @@ def _get_attribute(network, attribute, nodes=None, data=None):
         return local_clustering(network, nodes=nodes)
     elif "degree" in attribute.lower():
         dtype = attribute[:attribute.index("-")]
-        return network.get_degrees(dtype, node_list=nodes)
-    if attribute == "firing_rate":
-        return get_firing_rate(network, nodes, data)
+        if dtype.startswith("w"):
+            return network.get_degrees(
+                dtype[1:], node_list=nodes, use_weights=True, use_types=True)
+        else:
+            return network.get_degrees(dtype, node_list=nodes)
+    elif attribute == "firing_rate":
+        return get_firing_rate(network, nodes=nodes, data=data)
     elif attribute == "subgraph_centrality":
         sc = subgraph_centrality(network)
         if nodes is not None:
             return sc[nodes]
         return sc
+    elif attribute in network.nodes_attributes:
+        return network.get_node_attributes(nodes=nodes, name=attribute)
     else:
         raise RuntimeError(
             "Attribute '{}' is not available.".format(attribute))

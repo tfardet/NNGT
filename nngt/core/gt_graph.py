@@ -178,6 +178,7 @@ set_attribute to create it.")
         num_e = len(edges) if edges is not None else num_edges
         if num_e == num_edges:
             self[name] = values
+            self._num_values_set[name] = num_edges
         else:
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
@@ -185,11 +186,12 @@ set_attribute to create it.")
                                  " and " + str(len(values)) + "entries.")
             if self._num_values_set[name] == num_edges - num_e:
                 self.parent().edge_properties[name].a[-num_e:] = values
+                self._num_values_set[name] = num_edges
             else:
                 for e, val in zip(edges, values):
                     gt_e = self.parent().edge(*e)
                     self.parent().edge_properties[name][gt_e] = val
-        self._num_values_set[name] = num_edges
+                self._num_values_set[name] += num_e
 
     def new_attribute(self, name, value_type, values=None, val=None):
         if values is None and val is None:
@@ -452,6 +454,9 @@ class _GtGraph(BaseGraph):
         if self.num_edges():
             w_p = None
             if "weight" in self.edge_properties.keys() and use_weights:
+                ws = self.get_weights()
+                self.set_edge_attribute(
+                    BWEIGHT, values=ws.max() - ws, value_type="double")
                 w_p = self.edge_properties[BWEIGHT]
             tpl = nngt.analyze_graph["betweenness"](
                 self, weight=w_p, norm=norm)

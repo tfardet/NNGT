@@ -20,8 +20,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from copy import deepcopy
-
 import nest
 import numpy as np
 import scipy.sparse as ssp
@@ -31,6 +29,7 @@ from scipy.signal import argrelmax, argrelmin
 from nngt.lib import InvalidArgument, nonstring_container, WEIGHT, DELAY
 from nngt.lib.sorting import _sort_groups
 from nngt.lib.test_functions import mpi_checker
+from nngt.lib.graph_helpers import _get_syn_param
 
 
 __all__ = [
@@ -247,44 +246,6 @@ def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
 # ----- #
 # Tools #
 # ----- #
-
-def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec):
-    '''
-    Return the most specific synaptic properties in `syn_spec` with respect to
-    connections between `src_group` and `tgt_group`.
-    Priority is given to source (presynaptic properties).
-    '''
-    group_keys = []
-    for k in syn_spec.keys():
-        group_keys.extend(k)
-    group_keys = set(group_keys)
-    # entry for source name and target name
-    if src_name in group_keys and tgt_name in group_keys:
-        try:
-            return deepcopy(syn_spec[(src_name, tgt_name)])
-        except KeyError:
-            pass
-    # entry for source name and target type
-    tgt_type = tgt_group.neuron_type
-    if src_name in group_keys:
-        try:
-            return deepcopy(syn_spec[(src_name, tgt_type)])
-        except KeyError:
-            pass
-    # entry for source type and target
-    src_type = src_group.neuron_type
-    if tgt_name in group_keys:
-        try:
-            return deepcopy(syn_spec[(src_type, tgt_name)])
-        except KeyError:
-            pass
-    # entry for source type and target type
-    try:
-        return deepcopy(syn_spec[(src_type, tgt_type)])
-    except KeyError:
-        # return the default parameters or an empty dict
-        return deepcopy(syn_spec.get("default", {}))
-
 
 def _value_psp(weight, neuron_model, di_param, timestep, simtime):
     nest.ResetKernel()

@@ -26,10 +26,11 @@ from six import add_metaclass
 from weakref import ref
 
 import numpy as np
+from scipy.sparse import csr_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
-from nngt.lib.graph_helpers import _set_edge_attr
+from nngt.lib.graph_helpers import _set_edge_attr, _get_syn_param
 
 
 # ---------------------------------- #
@@ -179,12 +180,15 @@ class BaseGraph(nngt._config["graph"]):
         pass
         
     def attr_new_edges(self, edge_list, attributes=None):
+        num_edges = len(edge_list)
         attributes = {} if attributes is None else attributes
         specials = ("weight", "delay", 'distance')
         for k in attributes.keys():
             if k not in self.edges_attributes and k in specials:
                 self._eattr.new_attribute(name=k, value_type="double")
         # take care of classic attributes
+        bio_weights = False
+        bio_delays = False
         # distance must come first
         if self.is_spatial() or "distance" in attributes:
             prop = attributes.get("distance", None)
@@ -192,13 +196,47 @@ class BaseGraph(nngt._config["graph"]):
                 self, edge_list, 'distance', prop, last_edges=True)
             self._eattr.set_attribute(
                 "distance", values, edges=edge_list)
+        # first check for potential syn_spec if Network
+        if self.is_network():
+            for syn_param in self.population.syn_spec.values():
+                bio_weights += ("weight" in syn_param)
+                bio_delays += ("delay" in syn_param)
         # then weights
-        if self.is_weighted() or "weight" in attributes:
+        if bio_weights:
+            syn_spec = self.population.syn_spec
+            mat = csr_matrix(
+                (np.repeat(1., num_edges), (edge_list[:, 0], edge_list[:, 1])),
+                (self.population.size, self.population.size))
+            for name1, g1 in self.population.items():
+                for name2, g2 in self.population.items():
+                    src_slice = slice(g1.ids[0], g1.ids[-1]+1)
+                    tgt_slice = slice(g2.ids[0], g2.ids[-1]+1)
+                    e12 = mat[src_slice, tgt_slice].nonzero()
+                    syn_prop = _get_syn_param(
+                        name1, g1, name2, g2, syn_spec, "weight")
+                    syn_prop = 1. if syn_prop is None else syn_prop
+                    if isinstance(syn_prop, dict):
+                        # through set_weights for dict
+                        distrib = syn_prop["distribution"]
+                        del syn_prop["distribution"]
+                        self.set_weights(elist=e12, distribution=distrib,
+                                         parameters=syn_prop)
+                    elif nonstring_container(syn_prop):
+                        # otherwise direct attribute set
+                        self.set_edge_attribute(
+                            "weight", values=syn_prop, value_type="double",
+                            edges=edge_list)
+                    else:
+                        self.set_edge_attribute(
+                            "weight", val=syn_prop, value_type="double",
+                            edges=edge_list)
+        elif self.is_weighted() or "weight" in attributes:
             values = _set_edge_attr(
                 self, edge_list, 'weight', attributes.get("weight", None),
                 last_edges=True)
             self._eattr.set_attribute(
                 "weight", values, edges=edge_list)
+        # then delay
         if self.is_network() or "delay" in attributes:
             prop = attributes.get("delay", None)
             values = _set_edge_attr(

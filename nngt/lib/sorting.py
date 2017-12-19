@@ -89,8 +89,8 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
     max_nest_gid = network.nest_gid.max()
     sorting = np.zeros(max_nest_gid + 1)
     attribute = None
+    sorted_ids = None
     if isinstance(sort, str):
-        sorted_ids = None
         if sort == "firing_rate":
             # compute number of spikes per neuron
             spikes = np.bincount(data[:, 0].astype(int))
@@ -99,7 +99,7 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             # sort them (neuron with least spikes arrives at min_nest_gid)
             sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
             # get attribute
-            idx_min = np.min(data[:, 0])
+            idx_min = int(np.min(data[:, 0]))
             attribute = spikes[idx_min:] \
                         / (np.max(data[:, 1]) - np.min(data[:, 1]))
         elif sort.lower() == "b2":
@@ -117,14 +117,14 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
         else:
             attribute = node_attributes(network, sort)
             sorted_ids = np.argsort(attribute)
-        num_sorted = 1
-        for group in network.population.values():
-            gids = network.nest_gid[group.ids]
-            order = np.argsort(np.argsort(np.argsort(sorted_ids)[group.ids]))
-            sorting[gids] = num_sorted + order
-            num_sorted += len(group.ids)
     else:
-        sorting[network.nest_gid] = np.argsort(sort)
+        sorted_ids = np.argsort(sort)
+    num_sorted = 1
+    for group in network.population.values():
+        gids = network.nest_gid[group.ids]
+        order = np.argsort(np.argsort(np.argsort(sorted_ids)[group.ids]))
+        sorting[gids] = num_sorted + order
+        num_sorted += len(group.ids)
     if return_attr:
         return sorting.astype(int), attribute
     else:
