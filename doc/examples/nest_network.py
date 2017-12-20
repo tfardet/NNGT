@@ -73,6 +73,8 @@ if nngt.get_config('with_nest'):
     import nngt.simulation as ns
     import nest
 
+    nest.ResetKernel()
+
     nest.SetKernelStatus({'local_num_threads': 4})
 
     gids = net.to_nest()

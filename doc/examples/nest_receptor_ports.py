@@ -61,6 +61,8 @@ if nngt.get_config('with_nest'):
     import nest
     import nngt.simulation as ns
 
+    nest.ResetKernel()
+
     gids = net.to_nest()
 
     # add noise to the excitatory neurons

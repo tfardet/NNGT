@@ -69,7 +69,7 @@ copt =  {
         '-ftree-vectorize',
     ],
     'unix'    : [
-        '-Wno-cpp', 'Wno-unused-function', '-fopenmp', '-ffast-math',
+        '-Wno-cpp', '-Wno-unused-function', '-fopenmp', '-ffast-math',
         '-msse', '-ftree-vectorize', '-O2', '-g',
     ],
 }

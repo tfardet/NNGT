@@ -15,6 +15,8 @@ import os
 from os.path import dirname, abspath, isfile, join
 import unittest
 
+from scipy.special import lambertw
+
 import nngt
 
 
@@ -23,8 +25,12 @@ current_dir = dirname(abspath(__file__))
 idx_nngt    = current_dir.find('nngt/testing')
 example_dir = current_dir[:idx_nngt] + 'doc/examples/'
 
-# remove plotting
+# remove plotting and NEST
 nngt.set_config("with_plot", False)
+nngt.set_config("with_nest", False)
+
+# set globals
+glob = {"lambertw": lambertw}
 
 
 # ---------- #
@@ -66,7 +72,7 @@ class TestExamples(unittest.TestCase):
                     except NameError:  # python 3+
                         with open(example) as f:
                             code = compile(f.read(), example, 'exec')
-                            exec(code)
+                            exec(code, glob)
                 except NotImplementedError:
                     pass  # potential IO error for gt <= 2.22
 

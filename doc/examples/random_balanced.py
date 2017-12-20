@@ -128,6 +128,8 @@ if nngt.get_config('with_nest'):
     import nngt.simulation as ns
     import nest
 
+    nest.ResetKernel()
+
     nest.SetKernelStatus({"resolution": dt, "print_time": True,
                           "overwrite_files": True, 'local_num_threads': 4})
 
