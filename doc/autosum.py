@@ -25,6 +25,27 @@ import inspect
 
 
 def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
+    '''
+    Automatically write a sphinx-parsable file, adding a list of functions or
+    classes to the autosummary method of sphinx, in place of the @autosum@
+    keyword.
+
+    Parameters
+    ----------
+    source : str
+        Name of the input file, usually of the form "source.rst.in".
+    target : str
+        Name of the output file, usually "source.rst".
+    module : str
+        Name of the module on which autosummary should be performed.
+    autotype : str
+        Type of summary (normal for all, 'autofunction' or 'autoclass').
+    dtype : str, optional (default: all)
+        Type of object that should be kept ('func' or 'class'), depending on
+        `autotype`.
+    ignore : list, optional (default: None)
+        Names of the objects that should not be included in the summary.
+    '''
     # load module and get content
     mod = importlib.import_module(module)
     mod_dir = dir(mod)

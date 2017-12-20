@@ -838,12 +838,12 @@ class Graph(nngt.core.GraphObject):
         #~ return di_result
 
     def get_degrees(self, deg_type="total", node_list=None, use_weights=False,
-                    use_types=False):
+                    syn_type="all"):
         '''
         Degree sequence of all the nodes.
 
         ..versionchanged :: 0.9
-            Added `use_types` keyword.
+            Added `syn_type` keyword.
         
         Parameters
         ----------
@@ -853,8 +853,9 @@ class Graph(nngt.core.GraphObject):
             List of the nodes which degree should be returned
         use_weights : bool, optional (default: False)
             Whether to use weighted (True) or simple degrees (False).
-        use_types : bool, optional (default: False)
-            Whether to use typed (True) or positive degrees (False).
+        syn_type : int or str, optional (default: all)
+            Restrict to a given synaptic type ("excitatory", 1, or
+            "inhibitory", -1).
         
         Returns
         -------
@@ -862,11 +863,23 @@ class Graph(nngt.core.GraphObject):
         '''
         valid_types = ("in", "out", "total")
         if deg_type in valid_types:
-            if use_types:
+            if syn_type in ("excitatory", 1):
+                e_neurons = np.where(
+                    self.get_node_attributes(name="type") == 1)[0]
                 return self.adjacency_matrix(
-                    weights=use_weights).sum(axis=1).A1
-            else:
+                    weights=use_weights,
+                    types=False)[e_neurons, :].sum(axis=0).A1
+            elif syn_type in ("inhibitory", -1):
+                i_neurons = np.where(
+                    self.get_node_attributes(name="type") == -1)[0]
+                return self.adjacency_matrix(
+                    weights=use_weights,
+                    types=False)[i_neurons, :].sum(axis=0).A1
+            elif syn_type == "all":
                 return self.degree_list(node_list, deg_type, use_weights)
+            else:
+                raise InvalidArgument(
+                    "Invalid synaptic type '{}'".format(syn_type))
         else:
             raise InvalidArgument("Invalid degree type '{}'".format(deg_type))
 
