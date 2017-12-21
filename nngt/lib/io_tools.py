@@ -242,9 +242,9 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     secondary : str, optional (default: ";")
         Secondary separator used to separate attributes in the case of custom
         formats.
-    attributes : list, optional (default: ``None``)
+    attributes : list, optional (default: all)
         List of names for the edge attributes present in the graph that will be
-        saved to disk; by default (``None``), all attributes will be saved.
+        saved to disk; by default, all attributes will be saved.
     notifier : str, optional (default: "@")
         Symbol specifying the following as meaningfull information. Relevant
         information are formatted ``@info_name=info_value``, with
@@ -434,19 +434,26 @@ def _to_list(string):
     return string.split(chosen)
 
 
+def _to_int(string):
+    try:
+        return int(string)
+    except ValueError:
+        return int(float(string))
+
+
 def _gen_convert(attributes, attr_types):
     '''
     Generate a conversion dictionary that associates the right type to each
     attribute
     '''
     di_convert = {}
-    for attr,attr_type in zip(attributes, attr_types):
+    for attr, attr_type in zip(attributes, attr_types):
         if attr_type in ("double", "float", "real"):
             di_convert[attr] = float
         elif attr_type in ("str", "string"):
             di_convert[attr] = str
         elif attr_type in ("int", "integer"):
-            di_convert[attr] = int
+            di_convert[attr] = _to_int
         elif attr_type in ("lst", "list", "tuple", "array"):
             di_convert[attr] = _to_list
         else:
