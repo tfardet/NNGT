@@ -301,6 +301,7 @@ def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
     num_edges, circular_edges = (num_edges, circular_edges if directed
                              else (int(num_edges/2), int(circular_edges/2)))
     
+    print(np.random.get_state()[-3], "before check edges")
     b_one_pop = _check_num_edges(
         source_ids, target_ids, num_edges, directed, multigraph)
     if not b_one_pop:
@@ -308,10 +309,12 @@ def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
                               "and target populations are the same.")
     # generate the initial circular graph
     ia_edges = np.zeros((num_edges,2),dtype=int)
+    print(np.random.get_state()[-3], "before _circular_graph")
     ia_edges[:circular_edges,:] = _circular_graph(node_ids, coord_nb)
     # add the random connections
     num_test, num_ecurrent = 0, circular_edges
     edges_hash = {}
+    print(np.random.get_state()[-3], "before randomizing")
     while num_ecurrent != num_edges and num_test < MAXTESTS:
         ia_sources = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
         ia_targets = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
@@ -319,7 +322,9 @@ def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          edges_hash, b_one_pop, multigraph)
         num_test += 1
+    print(np.random.get_state()[-3], "after random")
     ia_edges = _no_self_loops(ia_edges)
+    print(np.random.get_state()[-3], "after no self loops")
     return ia_edges
 
 

@@ -95,13 +95,14 @@ _config = {
     'db_to_file': False,
     'db_url': "mysql:///nngt_db",
     'graph': object,
-    'graph_library': "graph-tool",
+    'graph_library': "nngt",
     'library': None,
     'load_nest': False,
     'log_folder': "~/.nngt/log",
     'log_level': 10,
     'log_to_file': False,
     'mpi': False,
+    'mpi_comm': None,
     'mpl_backend': None,
     'msd': 0,
     'multithreading': True,
@@ -172,7 +173,8 @@ if _config["omp"] > 1:
 from .lib.graph_backends import use_library, analyze_graph
 
 _libs = ['graph-tool', 'igraph', 'networkx']
-assert _config['graph_library'] in _libs, \
+_glib = _config['graph_library']
+assert _glib in _libs or _glib == 'nngt', \
 	   "Internal error for graph library loading, please report " +\
 	   "this on GitHub."
 
@@ -190,8 +192,10 @@ except ImportError:
             _libs.pop()
 
 if not _libs:
-    raise ImportError("This module needs one of the following graph libraries "
-                      "to work:  `graph_tool`, `igraph`, or `networkx`.")
+    use_library('nngt', False, silent=True)
+    _log_message(_logger, "WARNING",
+                 "This module needs one of the following graph libraries to "
+                 "study networks: `graph_tool`, `igraph`, or `networkx`.")
 
 
 # ------- #

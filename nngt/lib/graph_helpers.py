@@ -27,10 +27,9 @@ def _edge_prop(prop):
                               " a number; received {}".format(type(prop)))
 
 
-def _set_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
+def _get_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
     '''
-    Fill the `attributes` dictionnary by returning the values associated to a
-    given edge attribute.
+    Returns the values associated to a given edge attribute.
 
     Parameters
     ----------

@@ -23,6 +23,9 @@
 import nngt
 import nngt.generation as ng
 
+# ~ nngt.use_library("igraph")
+nngt.use_library("nngt")
+
 
 ''' Create groups with different parameters '''
 # adaptive spiking neurons
@@ -63,7 +66,7 @@ Create the network from this population,
 using a Gaussian in-degree
 '''
 net = ng.gaussian_degree(
-    100., 15., population=pop, weights=1500.)
+    100., 15., population=pop, weights=300.)
 
 '''
 Send the network to NEST, monitor and simulate
@@ -79,9 +82,17 @@ if nngt.get_config('with_nest'):
 
     gids = net.to_nest()
 
+    c = nest.GetConnections(source=gids)
+    # ~ c = [a[3] for a in nest.GetConnections(source=gids)]
+    sources = [a[0] for a in c]
+    s = nest.GetStatus(c)
+    w = [d["weight"] for d in s]
+    import numpy as np
+    print(len(c), net.edge_nb(), np.average(w))
+
     recorders, records = ns.monitor_groups(pop.keys(), net)
 
-    nest.Simulate(1000.)
+    # ~ nest.Simulate(1000.)
 
-    if nngt.get_config('with_plot'):
-        ns.plot_activity(recorders, records, network=net, show=True)
+    # ~ if nngt.get_config('with_plot'):
+        # ~ ns.plot_activity(recorders, records, network=net, show=True)

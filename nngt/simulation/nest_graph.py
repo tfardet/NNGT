@@ -113,6 +113,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
     # get all properties as scipy.sparse.csr matrices
     csr_weights = network.adjacency_matrix(types=False, weights=True)
     csr_delays = network.adjacency_matrix(types=False, weights=DELAY)
+    print(csr_weights.data)
 
     cspec = 'one_to_one'
     for src_name in send:

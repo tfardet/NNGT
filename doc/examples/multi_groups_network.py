@@ -89,10 +89,12 @@ if nngt.get_config("with_plot"):
             {i: np.random.uniform(900., 1000, 2) for i in range(500, 1000)})
         layout = nx.spring_layout(net, k=20, pos=init_pos)
         nx.draw(net, pos=layout, node_color=colors, node_size=20)
-    else:
+    elif nngt.get_config("graph_library") == "igraph":
         import igraph as ig
         colors = [(1, 0, 0) for _ in range(500)]
         colors.extend([(0, 0, 1) for _ in range(500)])
         ig.plot(net, vertex_color=colors, vertex_size=5, edge_arrow_size=0.5)
+    else:
+        nngt.plot.draw_network(net)
 
     plt.show()

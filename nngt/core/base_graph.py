@@ -26,11 +26,11 @@ from six import add_metaclass
 from weakref import ref
 
 import numpy as np
-from scipy.sparse import csr_matrix
+from scipy.sparse import coo_matrix, csr_matrix, lil_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
-from nngt.lib.graph_helpers import _set_edge_attr, _get_syn_param
+from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param
 
 
 # ---------------------------------- #
@@ -65,13 +65,12 @@ class BaseProperty(dict):
         return ( (k, self[k]) for k in self )
 
 
-#-----------------------------------------------------------------------------#
-# BaseGraph
-#------------------------
-#
+# --------- #
+# GraphInterface #
+# --------- #
 
 @add_metaclass(ABCMeta)
-class BaseGraph(nngt._config["graph"]):
+class GraphInterface(nngt._config["graph"]):
     
     #-------------------------------------------------------------------------#
     # Class methods and attributes
@@ -185,6 +184,7 @@ class BaseGraph(nngt._config["graph"]):
         specials = ("weight", "delay", 'distance')
         for k in attributes.keys():
             if k not in self.edges_attributes and k in specials:
+                print("initializing", k)
                 self._eattr.new_attribute(name=k, value_type="double")
         # take care of classic attributes
         bio_weights = False
@@ -192,7 +192,7 @@ class BaseGraph(nngt._config["graph"]):
         # distance must come first
         if self.is_spatial() or "distance" in attributes:
             prop = attributes.get("distance", None)
-            values = _set_edge_attr(
+            values = _get_edge_attr(
                 self, edge_list, 'distance', prop, last_edges=True)
             self._eattr.set_attribute(
                 "distance", values, edges=edge_list)
@@ -231,7 +231,7 @@ class BaseGraph(nngt._config["graph"]):
                             "weight", val=syn_prop, value_type="double",
                             edges=edge_list)
         elif self.is_weighted() or "weight" in attributes:
-            values = _set_edge_attr(
+            values = _get_edge_attr(
                 self, edge_list, 'weight', attributes.get("weight", None),
                 last_edges=True)
             self._eattr.set_attribute(
@@ -239,14 +239,14 @@ class BaseGraph(nngt._config["graph"]):
         # then delay
         if self.is_network() or "delay" in attributes:
             prop = attributes.get("delay", None)
-            values = _set_edge_attr(
+            values = _get_edge_attr(
                 self, edge_list, 'delay', prop, last_edges=True)
             self._eattr.set_attribute(
                 "delay", values, edges=edge_list)
         for k in attributes.keys():
             if k not in specials:
                 if k in self.edges_attributes:
-                    values = _set_edge_attr(
+                    values = _get_edge_attr(
                         self, edge_list, k, attributes[k], last_edges=True)
                     self._eattr.set_attribute(k, values, edges=edge_list)
                 else:
@@ -284,3 +284,488 @@ class BaseGraph(nngt._config["graph"]):
     @abstractmethod
     def clear_all_edges(self):
         pass
+
+
+# --------- #
+# BaseGraph #
+# --------- #
+
+class BaseGraph(GraphInterface):
+    '''
+    Minimal implementation of the GraphObject, which does not rely on any
+    graph-library.
+    '''
+    
+    #-------------------------------------------------------------------------#
+    # Constructor and instance properties        
+
+    def __init__(self, nodes=0, weighted=True, directed=True,
+                 **kwargs):
+        ''' Initialized independent graph '''
+        self._nattr    = _NProperty(self)
+        self._eattr    = _EProperty(self)
+        self._nodes    = []
+        self._out_deg  = []
+        self._in_deg   = []
+        self._edges    = OrderedDict()
+        self._adj_mat  = lil_matrix((nodes, nodes))
+        self._directed = directed
+        self._weighted = weighted
+        super(BaseGraph, self).__init__()
+        self.new_node(nodes)
+
+    #-------------------------------------------------------------------------#
+    # Graph manipulation
+
+    def edge_id(self, edge):
+        '''
+        Return the ID a given edge or a list of edges in the graph.
+        Raises an error if the edge is not in the graph or if one of the
+        vertices in the edge is nonexistent.
+
+        Parameters
+        ----------
+        edge : 2-tuple or array of edges
+            Edge descriptor (source, target).
+
+        Returns
+        -------
+        index : int or array of ints
+            Index of the given `edge`.
+        '''
+        if isinstance(edge[0], int):
+            return self._edges[edge]
+        elif hasattr(edge[0], "__len__"):
+            idx = [self._edges[tuple(e)] for e in edge]
+            return idx
+        else:
+            raise AttributeError("`edge` must be either a 2-tuple of ints or "
+                                 "an array of 2-tuples of ints.")
+    
+    @property
+    def edges_array(self):
+        '''
+        Edges of the graph, sorted by order of creation, as an array of
+        2-tuple.
+        '''
+        return np.array(self._edges.keys())
+    
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
+        '''
+        Adding a node to the graph, with optional properties.
+
+        Parameters
+        ----------
+        n : int, optional (default: 1)
+            Number of nodes to add.
+        ntype : int, optional (default: 1)
+            Type of neuron (1 for excitatory, -1 for inhibitory)
+        attributes : dict, optional (default: None)
+            Dictionary containing the attributes of the nodes.
+        value_types : dict, optional (default: None)
+            Dict of the `attributes` types, necessary only if the `attributes`
+            do not exist yet.
+
+        Returns
+        -------
+        The node or a tuple of the nodes created.
+        '''
+        nodes = []
+        if n == 1:
+            nodes.append(len(self._nodes))
+            self._in_deg.append(0)
+            self._out_deg.append(0)
+        else:
+            num_nodes = len(self._nodes)
+            nodes.extend(
+                [i for i in range(num_nodes, num_nodes + n)])
+            self._in_deg.extend([0 for _ in range(n)])
+            self._out_deg.extend([0 for _ in range(n)])
+        self._nodes.extend(nodes)
+
+        old_mat = self._adj_mat.tocoo()
+        if self.edge_nb():
+            tmp = coo_matrix((old_mat.data, (old_mat.row, old_mat.col)),
+                             shape=(len(self._nodes), len(self._nodes)))
+            self._adj_mat = tmp.tolil()
+        else:
+            self._adj_mat = lil_matrix((len(self._nodes), len(self._nodes)))
+
+        if attributes is not None:
+            for k, v in attributes.items():
+                if k not in self._nattr:
+                    self._nattr.new_attribute(k, value_types[k], val=v)
+                else:
+                    v = v if nonstring_container(v) else [v]
+                    self._nattr.set_attribute(k, v, nodes=nodes)
+        if n == 1:
+            return nodes[0]
+        return nodes
+
+    def new_edge(self, source, target, attributes=None, ignore=False):
+        '''
+        Adding a connection to the graph, with optional properties.
+        
+        Parameters
+        ----------
+        source : :class:`int/node`
+            Source node.
+        target : :class:`int/node`
+            Target node.
+        attributes : :class:`dict`, optional (default: ``{}``)
+            Dictionary containing optional edge properties. If the graph is
+            weighted, defaults to ``{"weight": 1.}``, the unit weight for the
+            connection (synaptic strength in NEST).
+        ignore : bool, optional (default: False)
+            If set to True, ignore attempts to add an existing edge, otherwise
+            raises an error.
+
+        Returns
+        -------
+        The new connection.
+        '''
+        if attributes is None:
+            attributes = {}
+        # check that the edge does not already exist
+        edge = (source, target)
+        if edge not in self._edges:
+            edge_id                = len(self._edges)
+            self._edges[edge]      = edge_id
+            self._out_deg[source] += 1
+            self._in_deg[target]  += 1
+            # attributes
+            self.attr_new_edges([(source, target)], attributes=attributes)
+            # update matrix
+            w = _get_edge_attr(self, [edge], "weight", last_edges=True)
+            self._adj_mat[source, target] = w
+            if not self._directed:
+                e_recip                = (target, source)
+                self._edges[e_recip]   = edge_id + 1
+                self._out_deg[target] += 1
+                self._in_deg[source]  += 1
+                _set_edge_attr(self, [e_recip], attributes)
+                self._adj_mat[source, target] = w
+        else:
+            if not ignore:
+                raise InvalidArgument("Trying to add existing edge.")
+        return edge
+
+    def new_edges(self, edge_list, attributes=None):
+        '''
+        Add a list of edges to the graph.
+        
+        .. warning ::
+            This function currently does not check for duplicate edges!
+        
+        Parameters
+        ----------
+        edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
+            List of the edges that should be added as tuples (source, target)
+        attributes : :class:`dict`, optional (default: ``{}``)
+            Dictionary containing optional edge properties. If the graph is
+            weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
+            array the same length as the `edge_list` containing a unit weight
+            for each connection (synaptic strength in NEST).
+            
+        @todo: add example, check the edges for self-loops and multiple edges
+        '''
+        if attributes is None:
+            attributes = {}
+        initial_edges = self.edge_nb()
+        if not isinstance(edge_list, np.ndarray):
+            edge_list = np.array(edge_list)
+        if not self._directed:
+            recip_edges = edge_list[:,::-1]
+            # slow but works
+            unique = ~(recip_edges[..., np.newaxis]
+                       == edge_list[..., np.newaxis].T).all(1).any(1)
+            edge_list = np.concatenate((edge_list, recip_edges[unique]))
+            for key, val in attributes.items():
+                attributes[key] = np.concatenate((val, val[unique]))
+        # create the edges
+        ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
+        for i, e in enumerate(edge_list):
+            self._edges[tuple(e)]     = initial_edges + i
+            self._out_deg[e[0]]      += 1
+            self._in_deg[e[1]]       += 1
+            self._adj_mat[e[0], e[1]] = ws[i]
+        # call parent function to set the attributes
+        self.attr_new_edges(edge_list, attributes=attributes)
+        return edge_list
+    
+    def clear_all_edges(self):
+        self._edges   = OrderedDict()
+        self._out_deg = []
+        self._in_deg  = []
+        self._adj_mat = lil_matrix((self.node_nb(), self.node_nb()))
+        self._eattr.clear()
+
+    #-------------------------------------------------------------------------#
+    # Getters
+    
+    def node_nb(self):
+        '''
+        Returns the number of nodes.
+
+        .. warning:: When using MPI, returns only the local number of nodes.
+        '''
+        return len(self._nodes)
+
+    def edge_nb(self):
+        '''
+        Returns the number of edges.
+
+        .. warning:: When using MPI, returns only the local number of edges.
+        '''
+        return len(self._edges)
+    
+    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+        '''
+        Returns the degree of the nodes.
+
+        .. warning::
+        When using MPI, returns only the degree of the local nodes.
+        '''
+
+        if node_list is None:
+            node_list = self._nodes
+
+        degrees = np.zeros(len(node_list))
+
+        if "weight" in self._eattr and use_weights:
+            if not self._directed:
+                degrees += self._adj_mat.sum(axis=0)
+            else:
+                if deg_type in ("in", "total"):
+                    degrees += self.adj_mat.sum(axis=1)
+                if deg_type in ("out", "total"):
+                    degrees += self._adj_mat.sum(axis=0)
+            return degrees
+        else:
+            w = 1.
+            if deg_type in ("in", "total"):
+                degrees += self._in_deg
+            if deg_type in ("out", "total"):
+                degrees += self._out_deg
+            if not self._directed:
+                w = 0.5
+            return w*degrees
+
+    def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
+                         norm=True):
+        raise NotImplementedError("BaseGraph does not support betweenness, "
+                                  "install a graph library to use it.")
+
+    def neighbours(self, node, mode="all"):
+        '''
+        Return the neighbours of `node`.
+
+        Parameters
+        ----------
+        node : int
+            Index of the node of interest.
+        mode : string, optional (default: "all")
+            Type of neighbours that will be returned: "all" returns all the
+            neighbours regardless of directionality, "in" returns the
+            in-neighbours (also called predecessors) and "out" retruns the
+            out-neighbours (or successors).
+
+        Returns
+        -------
+        neighbours : tuple
+            The neighbours of `node`.
+        '''
+        neighbours = []
+        if mode in ("in", "all"):
+            neighbours.extend(self._adj_mat[node])
+        elif mode in ("out", "all"):
+            neighbours.extend(self._adj_mat[:, node])
+        else:
+            raise ArgumentError('''Invalid `mode` argument {}; possible values
+                                are "all", "out" or "in".'''.format(mode))
+        return list(set(neighbours))
+
+
+class _NProperty(BaseProperty):
+
+    ''' Class for generic interactions with nodes properties (graph-tool)  '''
+
+    def __init__(self, *args, **kwargs):
+        super(_NProperty, self).__init__(*args, **kwargs)
+        self.prop = OrderedDict()
+
+    def __getitem__(self, name):
+        if super(_NProperty, self).__getitem__(name) in ('string', 'object'):
+            return np.array(self.prop[name], dtype=object)
+        else:
+            return np.array(self.prop[name])
+
+    def __setitem__(self, name, value):
+        if name in self:
+            size = self.parent().node_nb()
+            if len(value) == size:
+                self.prop[name] = list(value)
+            else:
+                raise ValueError("A list or a np.array with one entry per "
+                                 "node in the graph is required")
+        else:
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
+
+    def new_attribute(self, name, value_type, values=None, val=None):
+        dtype = object
+        if val is None:
+            if value_type == "int":
+                val = int(0)
+                dtype = int
+            elif value_type == "double":
+                val = 0.
+                dtype = float
+            elif value_type == "string":
+                val = ""
+            else:
+                val = None
+                value_type = "object"
+        if values is None:
+            values = np.full(self.parent().node_nb(), val, dtype=dtype)
+        if len(values) != self.parent().node_nb():
+            raise ValueError("A list or a np.array with one entry per "
+                             "node in the graph is required")
+        # store name and value type in the dict
+        super(_NProperty, self).__setitem__(name, value_type)
+        # store the real values in the attribute
+        self.prop[name] = list(values)
+        self._num_values_set[name] = len(values)
+
+    def set_attribute(self, name, values, nodes=None):
+        '''
+        Set the node attribute.
+
+        Parameters
+        ----------
+        name : str
+            Name of the node attribute.
+        values : array, size N
+            Values that should be set.
+        nodes : array-like, optional (default: all nodes)
+            Nodes for which the value of the property should be set. If `nodes`
+            is not None, it must be an array of size N.
+        '''
+        num_nodes = self.parent().node_nb()
+        num_n = len(nodes) if nodes is not None else num_nodes
+        if num_n == num_nodes:
+            self[name] = list(values)
+            self._num_values_set[name] = num_edges
+        else:
+            if num_n != len(values):
+                raise ValueError("`nodes` and `nodes` must have the same "
+                                 "size; got respectively " + str(num_n) + \
+                                 " and " + str(len(values)) + "entries.")
+            non_obj = (super(_NProperty, self).__getitem__(name)
+                       not in ('string', 'object'))
+            if self._num_values_set[name] == num_nodes - num_n and non_obj:
+                self.prop[name].extend(values)
+            else:
+                for n, val in zip(nodes, values):
+                    self.prop[name][n] = val
+        self._num_values_set[name] = num_nodes
+
+
+class _EProperty(BaseProperty):
+
+    ''' Class for generic interactions with nodes properties (graph-tool)  '''
+
+    def __init__(self, *args, **kwargs):
+        super(_EProperty, self).__init__(*args, **kwargs)
+        self.prop = OrderedDict()
+
+    def __getitem__(self, name):
+        '''
+        Return the attributes of an edge or a list of edges.
+        '''
+        eprop = {}
+        if isinstance(name, slice):
+            for k in self.keys():
+                eprop[k] = np.array(self.prop[k][name])
+            return eprop
+        elif nonstring_container(name):
+            if nonstring_container(name[0]):
+                eids = [self.parent().edge_id(e) for e in name]
+                for k in self.keys():
+                    eprop[k] = np.array(self.prop[k][eids])
+            else:
+                for k in self.keys():
+                    eprop[k] = np.array(self.prop[k][name])
+            return eprop
+        return np.array(self.prop[name])
+
+    def __setitem__(self, name, value):
+        if name in self:
+            size = self.parent().edge_nb()
+            if len(value) == size:
+                self.prop[name] = list(value)
+            else:
+                raise ValueError("A list or a np.array with one entry per "
+                                 "edge in the graph is required")
+        else:
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
+        self._num_values_set[name] = len(value)
+
+    def set_attribute(self, name, values, edges=None):
+        '''
+        Set the edge property.
+
+        Parameters
+        ----------
+        name : str
+            Name of the edge property.
+        values : array
+            Values that should be set.
+        edges : array-like, optional (default: None)
+            Edges for which the value of the property should be set. If `edges`
+            is not None, it must be an array of shape `(len(values), 2)`.
+        '''
+        num_edges = self.parent().edge_nb()
+        num_e = len(edges) if edges is not None else num_edges
+        if num_e == num_edges:
+            self[name] = list(values)
+            self._num_values_set[name] = num_edges
+        else:
+            if num_e != len(values):
+                raise ValueError("`edges` and `values` must have the same "
+                                 "size; got respectively " + str(num_e) + \
+                                 " and " + str(len(values)) + "entries.")
+            if self._num_values_set[name] == num_edges - num_e:
+                self.prop[name].extend(values)
+                self._num_values_set[name] = num_edges
+            else:
+                for e, val in zip(edges, values):
+                    idx = self.parent().edge_id(e)
+                    self.prop[name][idx] = val
+                self._num_values_set[name] += num_e
+
+    def new_attribute(self, name, value_type, values=None, val=None):
+        if values is None and val is None:
+            self._num_values_set[name] = self.parent().edge_nb()
+        if val is None:
+            if value_type == "int":
+                val = int(0)
+            elif value_type == "double":
+                val = 0.
+            elif value_type == "string":
+                val = ""
+            else:
+                val = None
+        if values is None:
+            values = np.repeat(val, self.parent().edge_nb())
+        
+        if len(values) != self.parent().edge_nb():
+            self._num_values_set[name] = 0
+            raise ValueError("A list or a np.array with one entry per "
+                             "edge in the graph is required")
+        # store name and value type in the dict
+        super(_EProperty, self).__setitem__(name, value_type)
+        # store the real values in the attribute
+        self.prop[name] = list(values)
+        self._num_values_set[name] = len(values)

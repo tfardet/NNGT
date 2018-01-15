@@ -94,6 +94,11 @@ def use_library(library, reloading=True, silent=False):
             success = _set_networkx()
         except Exception as e:
             error = e
+    elif library == "nngt":
+        try:
+            success = _set_backup()
+        except Exception as e:
+            error = e
     else:
         raise ValueError("Invalid graph library requested.")
     if reloading:
@@ -301,6 +306,35 @@ def _set_networkx():
     nngt.analyze_graph["reciprocity"] = overall_reciprocity
     nngt.analyze_graph["scc"] = strongly_connected_components
     nngt.analyze_graph["wcc"] = diameter
+    nngt.analyze_graph["adjacency"] = adj_mat
+    nngt.analyze_graph["get_edges"] = get_edges
+    return True
+
+
+def _set_backup():
+    from nngt.core import GraphObject
+    nngt._config["graph_library"] = "nngt"
+    nngt._config["library"] = nngt
+    nngt._config["graph"] = object
+    # analysis functions
+    from networkx.algorithms import ( diameter, 
+        strongly_connected_components, weakly_connected_components,
+        degree_assortativity_coefficient )
+    def _notimplemented(*args, **kwargs):
+        raise NotImplementedError("Install a graph library to use.")
+    def adj_mat(graph, weight=None):
+        return graph._adj_mat.tocsr()
+    def get_edges(graph):
+        return graph.edges_array()
+    # store functions
+    nngt.analyze_graph["assortativity"] = _notimplemented
+    nngt.analyze_graph["diameter"] = _notimplemented
+    nngt.analyze_graph["closeness"] = _notimplemented
+    nngt.analyze_graph["clustering"] = _notimplemented
+    nngt.analyze_graph["local_clustering"] = _notimplemented
+    nngt.analyze_graph["reciprocity"] = _notimplemented
+    nngt.analyze_graph["scc"] = _notimplemented
+    nngt.analyze_graph["wcc"] = _notimplemented
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
     return True
