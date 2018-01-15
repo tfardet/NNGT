@@ -30,6 +30,7 @@ import nngt
 from .gt_graph import _GtGraph
 from .ig_graph import _IGraph
 from .nx_graph import _NxGraph
+from .base_graph import BaseGraph
 from .graph_datastruct import Connections
 
 
@@ -37,6 +38,7 @@ _graphlib = {
     "graph-tool": _GtGraph,
     "igraph": _IGraph,
     "networkx": _NxGraph,
+    "nngt": BaseGraph,
     #~ # "snap": _SnapGraph
 }
 

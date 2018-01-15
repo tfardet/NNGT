@@ -27,10 +27,9 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
-from nngt.lib.graph_helpers import _set_edge_attr
 from nngt.lib.connect_tools import _unique_rows
 
-from .base_graph import BaseGraph, BaseProperty
+from .base_graph import GraphInterface, BaseProperty
 
 
 
@@ -107,6 +106,7 @@ class _GtNProperty(BaseProperty):
         num_n = len(nodes) if nodes is not None else num_nodes
         if num_n == num_nodes:
             self[name] = values
+            self._num_values_set[name] = num_edges
         else:
             if num_n != len(values):
                 raise ValueError("`nodes` and `nodes` must have the same "
@@ -225,7 +225,7 @@ set_attribute to create it.")
 #------------------------
 #
 
-class _GtGraph(BaseGraph):
+class _GtGraph(GraphInterface):
     
     '''
     Subclass of :class:`gt.Graph` that (with 
@@ -365,21 +365,12 @@ class _GtGraph(BaseGraph):
         if edge is None:
             connection = super(_GtGraph, self).add_edge(source, target,
                                                         add_missing=True)
-            _set_edge_attr(self, [(source, target)], attributes)
-            for key, val in attributes.items():
-                if key in self.edge_properties:
-                    self.edge_properties[key][connection] = val[0]
-                else:
-                    raise InvalidArgument(
-                        "Unknown edge property `" + key + "'.")
+            # call parent function to set the attributes
+            self.attr_new_edges([(source, target)], attributes=attributes)
             if not self._directed:
                 c2 = super(_GtGraph, self).add_edge(target, source)
-                for key, val in attributes:
-                    if key in self.edge_properties:
-                        self.edge_properties[key][c2] = val[0]
-                    else:
-                        raise InvalidArgument(
-                            "Unknown edge property `" + key + "'.")
+                # call parent function to set the attributes
+                self.attr_new_edges([(target, source)], attributes=attributes)
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")

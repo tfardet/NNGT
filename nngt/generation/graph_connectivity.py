@@ -224,9 +224,12 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
         nodes = graph_gd.node_nb()
         graph_gd.clear_all_edges()
     else:
-        nodes = population.size if population is not None else nodes
-        graph_gd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+        nodes    = population.size if population is not None else nodes
+        graph_gd = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
+
     _set_options(graph_gd, population, shape, positions)
+    print(graph_gd.node_nb())
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -736,6 +739,8 @@ def connect_neural_types(network, source_type, target_type, graph_model,
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
     '''
+    print("\nentering connect")
+    print(np.random.get_state()[-3])
     elist, source_ids, target_ids = None, [], []
     if network.is_spatial() and 'positions' not in kwargs:
         kwargs['positions'] = network.get_positions().astype(np.float32).T
@@ -752,16 +757,25 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     target_ids = np.array(target_ids, dtype=np.uint)
     distance = []
 
+    print(np.random.get_state()[-3], _di_gen_edges[graph_model])
+
     if source_type == target_type:
         elist = _di_gen_edges[graph_model](
             source_ids, source_ids, density=density, edges=edges,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
             multigraph=multigraph, distance=distance, **kwargs)
+        # ~ print(graph_model, source_ids, density, edges,
+              # ~ avg_deg, weighted, directed, multigraph, distance, kwargs)
+        # ~ print(len(elist))
     else:
         elist = _di_gen_edges[graph_model](
             source_ids, target_ids, density=density, edges=edges,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
             multigraph=multigraph, distance=distance, **kwargs)
+        # ~ print(graph_model, source_ids, target_ids, density, edges,
+              # ~ avg_deg, weighted, directed, multigraph, distance, kwargs)
+        # ~ print(len(elist))
+    print(np.random.get_state()[-3], "after elist")
 
     # Attributes are not set by subfunctions
     attr = {}

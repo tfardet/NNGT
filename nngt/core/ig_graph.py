@@ -27,7 +27,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT
-from .base_graph import BaseGraph, BaseProperty
+from .base_graph import GraphInterface, BaseProperty
 
 
 
@@ -201,7 +201,7 @@ class _IgEProperty(BaseProperty):
 #------------------------
 #
 
-class _IGraph(BaseGraph):
+class _IGraph(GraphInterface):
 
     '''
     Subclass of :class:`igraph.Graph`.
