@@ -12,6 +12,7 @@ def make_ext(modname, pyxfilename):
             "-O2", "-ggdb", "-std=c++11", "-fopenmp", "-ftree-vectorize", "-msse",
             "-Wno-cpp", "-ffast-math", "-Wno-unused-function"
         ],
+        extra_link_args=['-fopenmp'],
         language = "c++",
         include_dirs = [dirname, numpy.get_include()]
     )
