@@ -27,8 +27,8 @@ import nngt.generation as ng
 
 np.random.seed(0)
 
-# ~ nngt.use_library("igraph")
-# ~ nngt.use_library("nngt")
+nngt.use_library("igraph")
+#~ nngt.use_library("nngt")
 
 # -------------------- #
 # Generate the network #
@@ -57,13 +57,13 @@ prop_nw = {
 }
 ng.connect_neural_types(net, 1, 1, "newman_watts", **prop_nw)
 
-# ~ # inhib -> exc (Random scale-free)
-# ~ prop_rsf = {
-    # ~ "in_exp": 2.1,
-    # ~ "out_exp": 2.6,
-    # ~ "density": 0.2
-# ~ }
-# ~ ng.connect_neural_types(net, -1, 1, "random_scale_free", **prop_rsf)
+# inhib -> exc (Random scale-free)
+prop_rsf = {
+    "in_exp": 2.1,
+    "out_exp": 2.6,
+    "density": 0.2
+}
+ng.connect_neural_types(net, -1, 1, "random_scale_free", **prop_rsf)
 
 # ~ # inhib -> inhib (Erdos-Renyi)
 # ~ ng.connect_neural_types(net, -1, -1, "erdos_renyi", density=0.04)
