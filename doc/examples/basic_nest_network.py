@@ -27,8 +27,6 @@ import nngt.generation as ng
 
 np.random.seed(0)
 
-nngt.use_library("igraph")
-#~ nngt.use_library("nngt")
 
 # -------------------- #
 # Generate the network #
@@ -65,8 +63,8 @@ prop_rsf = {
 }
 ng.connect_neural_types(net, -1, 1, "random_scale_free", **prop_rsf)
 
-# ~ # inhib -> inhib (Erdos-Renyi)
-# ~ ng.connect_neural_types(net, -1, -1, "erdos_renyi", density=0.04)
+# inhib -> inhib (Erdos-Renyi)
+ng.connect_neural_types(net, -1, -1, "erdos_renyi", density=0.04)
 
 print(net.edge_nb(), np.average(net.get_weights()))
 
@@ -94,9 +92,9 @@ if nngt.get_config('with_nest'):
     Simulate and plot.
     '''
     simtime = 100.
-    # ~ nest.Simulate(simtime)
+    nest.Simulate(simtime)
 
-    # ~ if nngt.get_config('with_plot'):
-        # ~ ns.plot_activity(
-            # ~ recorder, record, network=net, show=True, hist=False,
-            # ~ limits=(0,simtime))
+    if nngt.get_config('with_plot'):
+        ns.plot_activity(
+            recorder, record, network=net, show=True, hist=False,
+            limits=(0,simtime))

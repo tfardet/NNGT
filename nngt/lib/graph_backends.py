@@ -27,9 +27,10 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from .reloading import reload_module
 from .errors import not_implemented
 from .logger import _log_message
+from .reloading import reload_module
+from .test_functions import nonstring_container
 
 
 logger = logging.getLogger(__name__)
@@ -224,10 +225,12 @@ def _set_igraph():
             xs, ys = map(np.array, zip(*graph.get_edgelist()))
             xs, ys = xs.T, ys.T
             data = np.ones(xs.shape)
-            if issubclass(weight.__class__, str):
+            if weight in graph.edges_attributes:
                 data *= np.array(graph.es[weight])
-            elif weight is not None:
+            elif nonstring_container(weight):
                 data *= np.array(weight)
+            elif weight:
+                data *= np.array(graph.es["weight"])
             coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
             return coo_adj.tocsr()
         else:
@@ -323,7 +326,19 @@ def _set_backup():
     def _notimplemented(*args, **kwargs):
         raise NotImplementedError("Install a graph library to use.")
     def adj_mat(graph, weight=None):
-        return graph._adj_mat.tocsr()
+        if weight in graph.edges_attributes and weight != "weight":
+            edges     = graph.edges_array
+            prop      = graph.get_edge_attributes(name=weight)
+            num_nodes = graph.node_nb()
+            mat       = ssp.coo_matrix((prop, (edges[:, 0], edges[:, 1])),
+                                       shape=(num_nodes, num_nodes))
+            return mat.tocsr()
+        elif weight is False:
+            mat = graph._adj_mat.tocsr()
+            mat.data = np.ones(len(mat.data))
+            return mat
+        else:
+            return graph._adj_mat.tocsr()
     def get_edges(graph):
         return graph.edges_array()
     # store functions

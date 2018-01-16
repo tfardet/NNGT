@@ -177,14 +177,13 @@ class GraphInterface(nngt._config["graph"]):
     @abstractmethod
     def new_edges(self, edge_list, attributes=None):
         pass
-        
+
     def attr_new_edges(self, edge_list, attributes=None):
         num_edges = len(edge_list)
         attributes = {} if attributes is None else attributes
         specials = ("weight", "delay", 'distance')
         for k in attributes.keys():
             if k not in self.edges_attributes and k in specials:
-                print("initializing", k)
                 self._eattr.new_attribute(name=k, value_type="double")
         # take care of classic attributes
         bio_weights = False
@@ -348,7 +347,7 @@ class BaseGraph(GraphInterface):
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        return np.array(self._edges.keys())
+        return np.array(list(self._edges.keys()))
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
