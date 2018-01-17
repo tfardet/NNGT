@@ -29,11 +29,15 @@ import nngt
 import nngt.generation as ng
 
 
+# np.random.seed(0)
+
+
 '''
 Simulation parameters
 '''
 
 nngt.set_config("omp", 8)
+nngt.set_config("seeds", [11, 12, 13, 14, 15, 16, 17, 18])
 
 dt = 0.1         # the resolution in ms
 simtime = 1000.  # Simulation time in ms
@@ -131,7 +135,8 @@ if nngt.get_config('with_nest'):
     nest.ResetKernel()
 
     nest.SetKernelStatus({"resolution": dt, "print_time": True,
-                          "overwrite_files": True, 'local_num_threads': 4})
+                          "overwrite_files": True, 'local_num_threads': 4,
+                          "rng_seeds": [5, 6, 7, 8]})
 
     gids = net.to_nest()
 

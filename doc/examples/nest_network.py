@@ -25,7 +25,8 @@ import numpy as np
 import nngt
 import nngt.generation as ng
 
-np.random.seed(0)
+
+# np.random.seed(0)
 
 
 ''' Create groups with different parameters '''
@@ -69,12 +70,10 @@ using a Gaussian in-degree
 net = ng.gaussian_degree(
     100., 15., population=pop, weights=250., delays=5.)
 
-# ~ nngt.plot.degree_distribution(net, ["in", "out"], show=True)
 
 '''
 Send the network to NEST, monitor and simulate
 '''
-
 if nngt.get_config('with_nest'):
     import nngt.simulation as ns
     import nest

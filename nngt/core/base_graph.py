@@ -142,11 +142,9 @@ class GraphInterface(nngt._config["graph"]):
         weights = "weight" if weights is True else weights
         mat = nngt.analyze_graph["adjacency"](self, weights)
         if types and 'type' in self.nodes_attributes:
-            edges = mat.nonzero()
-            if len(edges[0]):
-                keep = self.nodes_attributes['type'][edges[0]] < 0
-                if np.any(keep):
-                    mat[edges[0][keep], edges[1][keep]] *= -1.
+            tarray = np.where(self.nodes_attributes['type'] < 0)[0]
+            if np.any(tarray):
+                mat[tarray] *= -1.
         elif types and 'type' in self.edges_attributes:
             raise NotImplementedError()
         return mat
@@ -332,8 +330,8 @@ class BaseGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
-        if isinstance(edge[0], int):
-            return self._edges[edge]
+        if isinstance(edge[0], np.integer):
+            return self._edges[tuple(edge)]
         elif hasattr(edge[0], "__len__"):
             idx = [self._edges[tuple(e)] for e in edge]
             return idx
@@ -482,20 +480,28 @@ class BaseGraph(GraphInterface):
             for key, val in attributes.items():
                 attributes[key] = np.concatenate((val, val[unique]))
         # create the edges
-        ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
-        for i, e in enumerate(edge_list):
+        ws        = None
+        num_added = len(edge_list)
+        if "weight" in attributes:
+            if nonstring_container(attributes["weight"]):
+                ws = attributes["weight"]
+            else:
+                ws = (attributes["weight"] for _ in range(num_added))
+        else:
+            ws = (1 for _ in range(num_added))
+        for i, (e, w) in enumerate(zip(edge_list, ws)):
             self._edges[tuple(e)]     = initial_edges + i
             self._out_deg[e[0]]      += 1
             self._in_deg[e[1]]       += 1
-            self._adj_mat[e[0], e[1]] = ws[i]
+            self._adj_mat[e[0], e[1]] = w
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
         return edge_list
     
     def clear_all_edges(self):
         self._edges   = OrderedDict()
-        self._out_deg = []
-        self._in_deg  = []
+        self._out_deg = [0 for _ in range(self.node_nb())]
+        self._out_deg = [0 for _ in range(self.node_nb())]
         self._adj_mat = lil_matrix((self.node_nb(), self.node_nb()))
         self._eattr.clear()
 
@@ -533,22 +539,21 @@ class BaseGraph(GraphInterface):
 
         if "weight" in self._eattr and use_weights:
             if not self._directed:
-                degrees += self._adj_mat.sum(axis=0)
+                degrees += self._adj_mat.sum(axis=1).A1
             else:
                 if deg_type in ("in", "total"):
-                    degrees += self.adj_mat.sum(axis=1)
+                    degrees += self._adj_mat.sum(axis=0).A1
                 if deg_type in ("out", "total"):
-                    degrees += self._adj_mat.sum(axis=0)
-            return degrees
+                    degrees += self._adj_mat.sum(axis=1).A1
         else:
-            w = 1.
-            if deg_type in ("in", "total"):
-                degrees += self._in_deg
-            if deg_type in ("out", "total"):
-                degrees += self._out_deg
             if not self._directed:
-                w = 0.5
-            return w*degrees
+                degrees += self._in_deg
+            else:
+                if deg_type in ("in", "total"):
+                    degrees += self._in_deg
+                if deg_type in ("out", "total"):
+                    degrees += self._out_deg
+        return degrees
 
     def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
                          norm=True):

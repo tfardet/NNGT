@@ -905,10 +905,11 @@ class Graph(nngt.core.GraphObject):
         return self.betweenness_list(btype=btype, use_weights=use_weights)
 
     def get_edge_types(self):
-        if TYPE in self._eattr.keys():
+        print(self.edges_attributes, TYPE)
+        if TYPE in self.edges_attributes:
             return self.get_edge_attributes(name=TYPE)
         else:
-            return repeat(1, self.edge_nb())
+            return np.ones(self.edge_nb())
     
     def get_weights(self):
         ''' Returns the weighted adjacency matrix as a
@@ -1345,6 +1346,21 @@ class Network(Graph):
         self._nest_gid = gids
         for group in self.population.values():
             group._nest_gids = gids[group.ids]
+
+    def get_edge_types(self):
+        inhib_neurons = {}
+        types         = np.ones(self.edge_nb())
+
+        for g in self._population.values():
+            if g.neuron_type == -1:
+                for n in g.ids:
+                    inhib_neurons[n] = None
+
+        for i, e in enumerate(self.edges_array):
+            if e[0] in inhib_neurons:
+                types[i] = -1
+        
+        return types
 
     def id_from_nest_gid(self, gids):
         '''
