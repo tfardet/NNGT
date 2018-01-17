@@ -199,21 +199,40 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         Positions are saved as bytes by :func:`numpy.nparray.tostring`
     '''
     fmt = _get_format(fmt, filename)
-    str_graph, di_notif = "", {}
 
     # check for mpi
     if nngt.get_config("mpi"):
-        str_local, di_local = _as_string(
+        str_local, di_notif = _as_string(
             graph, separator=separator, fmt=fmt, secondary=secondary,
             attributes=attributes, notifier=notifier, return_info=True)
-        
+        # make notification string only on master thread
+        str_notif = ""
+        if on_master_process():
+            for key, val in iter(di_notif.items()):
+                str_notif += "{}{}={}\n".format(notifier, key, val)
+        # gather all strings sizes
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        sizes = comm.allgather(
+            _str_bytes_len(str_local) + _str_bytes_len(str_notif))
+        rank = comm.Get_rank()
+        # get rank-based offset
+        offset = [_str_bytes_len(str_notif)]
+        offset.extend(np.cumsum(sizes)[:-1])
+        # open file and write
+        if on_master_process():
+            with open(filename, "w") as f_graph:
+                f_graph.write(str_notif)
+        # parallel write
+        amode = MPI.MODE_WRONLY
+        fh = MPI.File.Open(comm, filename, amode)
+        fh.Write_at_all(offset[rank], str_local.encode('utf-8'))
+        fh.Close()
     else:
         str_graph, di_notif = _as_string(
             graph, separator=separator, fmt=fmt, secondary=secondary,
             attributes=attributes, notifier=notifier, return_info=True)
 
-    # only write from master MPI process
-    if on_master_process():
         with open(filename, "w") as f_graph:
             for key, val in iter(di_notif.items()):
                 f_graph.write("{}{}={}\n".format(notifier, key, val))
@@ -506,6 +525,9 @@ def _get_edges_elist(line, attributes, separator, secondary, edges,
         attr_data = data[2].split(secondary)
         for name, val in zip(attributes, attr_data):
             di_attributes[name].append(di_convert[name](val))
+
+def _str_bytes_len(s):
+    return len(s.encode('utf-8'))
 
 
 # ---------- #

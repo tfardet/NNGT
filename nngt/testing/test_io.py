@@ -21,6 +21,7 @@ from nngt.lib.test_functions import _old_graph_tool
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
+
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
 error = 'Wrong {{val}} for {graph}.'
 
