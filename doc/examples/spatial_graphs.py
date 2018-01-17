@@ -29,7 +29,13 @@ import nngt
 from nngt.geometry import Shape
 
 
-# np.random.seed(0)
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+np.random.seed(rank)
+
+nngt.use_library("nngt")
+nngt.set_config("mpi", True)
 
 
 # -------------------------- #
@@ -60,7 +66,7 @@ print('They also have the same boundaries: {}.'.format(
       np.all(np.isclose(g2.shape.bounds, ell.bounds))))
 
 # remove file
-os.remove('sp_graph.el')
+# ~ os.remove('sp_graph.el')
 
 
 # ---- #

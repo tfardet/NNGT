@@ -64,7 +64,7 @@ if not using_mt_algorithms:
     from .connect_algorithms import *
 if nngt.get_config("mpi"):
     try:
-        from .mpi_connect import _distance_rule  # overwrite _distance_rule
+        from .mpi_connect import *
         nngt.set_config('mpi', True, silent=True)
     except ImportError as e:
         nngt.set_config('mpi', False, silent=True)
@@ -235,7 +235,10 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
         ids = np.arange(nodes, dtype=np.uint)
         ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
                                     reciprocity, directed, multigraph)
-        graph_gd.new_edges(ia_edges)
+        # check for None if MPI
+        if ia_edges is not None:
+            print(len(ia_edges))
+            graph_gd.new_edges(ia_edges)
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
     return graph_gd
 
