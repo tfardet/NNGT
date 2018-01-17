@@ -20,8 +20,12 @@
 
 ''' Using complex NEST models '''
 
+import numpy as np
 import nngt
 import nngt.generation as ng
+
+
+# np.random.seed(0)
 
 
 '''

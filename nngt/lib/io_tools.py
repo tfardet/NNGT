@@ -28,7 +28,7 @@ import scipy.sparse as ssp
 import nngt
 from nngt.lib import InvalidArgument
 from nngt.lib.logger import _log_message
-from .test_functions import graph_tool_check
+from .test_functions import graph_tool_check, on_master_process
 from ..geometry import Shape, _shapely_support
 
 
@@ -199,14 +199,26 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         Positions are saved as bytes by :func:`numpy.nparray.tostring`
     '''
     fmt = _get_format(fmt, filename)
-    str_graph, di_notif = _as_string(graph, separator=separator, fmt=fmt,
-                          secondary=secondary, attributes=attributes,
-                          notifier=notifier,  return_info=True)
-    with open(filename, "w") as f_graph:
-        for key, val in iter(di_notif.items()):
-            f_graph.write("{}{}={}\n".format(notifier, key, val))
-        f_graph.write("\n")
-        f_graph.write(str_graph)
+    str_graph, di_notif = "", {}
+
+    # check for mpi
+    if nngt.get_config("mpi"):
+        str_local, di_local = _as_string(
+            graph, separator=separator, fmt=fmt, secondary=secondary,
+            attributes=attributes, notifier=notifier, return_info=True)
+        
+    else:
+        str_graph, di_notif = _as_string(
+            graph, separator=separator, fmt=fmt, secondary=secondary,
+            attributes=attributes, notifier=notifier, return_info=True)
+
+    # only write from master MPI process
+    if on_master_process():
+        with open(filename, "w") as f_graph:
+            for key, val in iter(di_notif.items()):
+                f_graph.write("{}{}={}\n".format(notifier, key, val))
+            f_graph.write("\n")
+            f_graph.write(str_graph)
 
 
 # --------------------- #

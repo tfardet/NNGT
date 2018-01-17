@@ -20,12 +20,16 @@
 
 ''' Spatial graphs generation and methods '''
 
+import os
 import time
 
 import numpy as np
 
 import nngt
 from nngt.geometry import Shape
+
+
+# np.random.seed(0)
 
 
 # -------------------------- #
@@ -54,6 +58,9 @@ print('Both networks have same area: {}.'.format(
       np.isclose(g2.shape.area, ell.area)))
 print('They also have the same boundaries: {}.'.format(
       np.all(np.isclose(g2.shape.bounds, ell.bounds))))
+
+# remove file
+os.remove('sp_graph.el')
 
 
 # ---- #

@@ -21,6 +21,8 @@ matrix:
         - python: "2.7"
           env: GL="gt" PYVERSION="2.7"
         - python: "2.7"
+          env: GL="nngt" PYVERSION="2.7"
+        - python: "2.7"
           env: GL="ig" PYVERSION="2.7"
         - python: "2.7"
           env: GL="nx" PYVERSION="2.7"
@@ -30,6 +32,8 @@ matrix:
           env: GL="ig" PYVERSION="3.5"
         - python: "3.5"
           env: GL="nx" PYVERSION="3.x"
+        - python: "3.5"
+          env: GL="nngt" PYVERSION="3.x"
     fast_finish: true
 
 cache:

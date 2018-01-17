@@ -25,7 +25,8 @@ import numpy as np
 import nngt
 import nngt.generation as ng
 
-np.random.seed(0)
+
+# np.random.seed(0)
 
 
 # -------------------- #
@@ -65,8 +66,6 @@ ng.connect_neural_types(net, -1, 1, "random_scale_free", **prop_rsf)
 
 # inhib -> inhib (Erdos-Renyi)
 ng.connect_neural_types(net, -1, -1, "erdos_renyi", density=0.04)
-
-print(net.edge_nb(), np.average(net.get_weights()))
 
 
 # ------------------ #
