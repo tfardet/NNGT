@@ -31,21 +31,11 @@ from mpi4py import MPI
 import nngt
 from nngt.lib import InvalidArgument
 from nngt.lib.connect_tools import *
+from . import connect_algorithms
 from .connect_algorithms import *
 
-__all__ = [
-    "_distance_rule",
-    "_erdos_renyi",
-    "_filter",
-    "_fixed_degree",
-    "_gaussian_degree",
-    "_newman_watts",
-    "_no_self_loops",
-    "_price_scale_free",
-    "_random_scale_free",
-    "_unique_rows",
-    "price_network",
-]
+
+__all__ = connect_algorithms.__all__
 
 
 def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
@@ -53,9 +43,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
                      existing_edges=None, **kwargs):
     ''' Connect nodes with a Gaussian distribution '''
     # mpi-related stuff
-    comm = MPI.COMM_WORLD
-    size = comm.Get_size()
-    rank = comm.Get_rank()
+    comm, size, rank = _mpi_and_random_init()
     # switch values to float
     avg = float(avg)
     std = float(std)
@@ -113,8 +101,10 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
 
     comm.Barrier()
 
+    _finalize_random()
+
     # the 'nngt' backend is made to be distributed, but the others are not
-    if nngt.get_config("graph_library") == "nngt":
+    if nngt.get_config("backend") == "nngt":
         return ia_edges
     else:
         # all the data is gather on the root processus
@@ -135,9 +125,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     distance = [] if distance is None else distance
     edges_hash = {}
     # mpi-related stuff
-    comm = MPI.COMM_WORLD
-    size = comm.Get_size()
-    rank = comm.Get_rank()
+    comm, size, rank = _mpi_and_random_init()
 
     # compute the required values
     source_ids = np.array(source_ids).astype(int)
@@ -149,16 +137,6 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     b_one_pop = _check_num_edges(
         source_ids, target_ids, num_edges, directed, multigraph)
     num_neurons = len(set(np.concatenate((source_ids, target_ids))))
-
-    # Random number generation seeding
-    if rank == 0:
-        msd = nngt.get_config('msd')
-    else:
-        msd = None
-    msd   = comm.bcast(msd, root=0)
-    seeds = nngt.get_config('seeds')
-    seed  = seeds[rank] if seeds is not None else msd + rank + 1
-    np.random.seed(seed)
 
     # for each node, check the neighbours that are in an area where
     # connections can be made: +/- scale for lin, +/- 10*scale for exp.
@@ -255,16 +233,10 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
 
         comm.Barrier()
 
-    # make sure everyone gets same seed back
-    if rank == 0:
-        new_seed = np.random.randint(0, num_edges + 1)
-    else:
-        new_seed = None
-    new_seed = comm.bcast(new_seed, root=0)
-    np.random.seed(new_seed)
+    _finalize_random()
 
     # the 'nngt' backend is made to be distributed, but the others are not
-    if nngt.get_config("graph_library") == "nngt":
+    if nngt.get_config("backend") == "nngt":
         local_edges = None
         if rank == 0:
             local_edges = [ia_edges[i::size, :] for i in range(size)]
@@ -278,3 +250,55 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             return ia_edges
         else:
             return None
+
+
+# --------------------- #
+# Unavailable functions #
+# --------------------- #
+
+def _not_yet(*args, **kwargs):
+    raise NotImplementedError("Not available with MPI yet.")
+
+_fixed_degree = _not_yet
+_gaussian_degree = _not_yet
+_newman_watts = _not_yet
+_price_scale_free = _not_yet
+_random_scale_free = _not_yet
+_unique_rows = _not_yet
+price_network = _not_yet
+
+
+# ----- #
+# Tools #
+# ----- #
+
+def _mpi_and_random_init():
+    '''
+    Init MPI comm and information and seed the 
+    '''
+    comm = MPI.COMM_WORLD
+    size = comm.Get_size()
+    rank = comm.Get_rank()
+    # Random number generation seeding
+    if rank == 0:
+        msd = nngt.get_config('msd')
+    else:
+        msd = None
+    msd   = comm.bcast(msd, root=0)
+    seeds = nngt.get_config('seeds')
+    seed  = seeds[rank] if seeds is not None else msd + rank + 1
+    np.random.seed(seed)
+
+    return comm, size, rank
+
+
+def _finalize_random():
+    '''
+    Make sure everyone gets same seed back.
+    '''
+    if rank == 0:
+        new_seed = np.random.randint(0, num_edges + 1)
+    else:
+        new_seed = None
+    new_seed = comm.bcast(new_seed, root=0)
+    np.random.seed(new_seed)

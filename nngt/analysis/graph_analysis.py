@@ -188,7 +188,7 @@ def local_clustering(graph, nodes=None):
     nodes : array-like container with node ids, optional (default = all nodes)
         Nodes for which the local clustering coefficient should be computed.
     '''
-    if nngt._config["graph_library"] == "igraph":
+    if nngt._config["backend"] == "igraph":
         return graph.transitivity_local_undirected(nodes)
     else:
         return nngt.analyze_graph["local_clustering"](graph, nodes)
@@ -213,11 +213,11 @@ def assortativity(graph, deg_type="in"):
     -------
     a float quantifying the graph assortativity.
     '''
-    if nngt._config["graph_library"] == "igraph":
+    if nngt._config["backend"] == "igraph":
         deg_list = graph.get_degrees(deg_type=deg_type)
         return graph.assortativity(deg_list, directed=graph.is_directed())
         #~ return graph.assortativity(deg_type, directed=graph.is_directed())
-    elif nngt._config["graph_library"] == "graph-tool":
+    elif nngt._config["backend"] == "graph-tool":
         return nngt.analyze_graph["assortativity"](graph, deg_type)[0]
     else:
         if deg_type == 'total':
@@ -237,7 +237,7 @@ def reciprocity(graph):
     -------
     a float quantifying the reciprocity.
     '''
-    if nngt._config["graph_library"] == "igraph":
+    if nngt._config["backend"] == "igraph":
         return graph.reciprocity()
     else:
         return nngt.analyze_graph["reciprocity"](graph)
@@ -251,7 +251,7 @@ def clustering(graph):
     .. math::
         c = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
     '''
-    if nngt._config["graph_library"] == "igraph":
+    if nngt._config["backend"] == "igraph":
         return graph.transitivity_undirected()
     else:
         return nngt.analyze_graph["clustering"](graph)
@@ -281,9 +281,9 @@ def num_scc(graph, listing=False):
     num_wcc
     '''
     lst_histo = None
-    if nngt._config["graph_library"] == "graph-tool":
+    if nngt._config["backend"] == "graph-tool":
         vprop_comp, lst_histo = nngt.analyze_graph["scc"](graph, directed=True)
-    elif nngt._config["graph_library"] == "igraph":
+    elif nngt._config["backend"] == "igraph":
         lst_histo = graph.clusters()
         lst_histo = [cluster for cluster in lst_histo]
     else:
@@ -304,9 +304,9 @@ def num_wcc(graph, listing=False):
     num_scc
     '''
     lst_histo = None
-    if nngt._config["graph_library"] == "graph-tool":
+    if nngt._config["backend"] == "graph-tool":
         _, lst_histo = nngt.analyze_graph["wcc"](graph, directed=False)
-    elif nngt._config["graph_library"] == "igraph":
+    elif nngt._config["backend"] == "igraph":
         lst_histo = graphclusters("WEAK")
         lst_histo = [cluster for cluster in lst_histo]
     else:
@@ -323,9 +323,9 @@ def diameter(graph):
 
     @todo: weighted diameter
     '''
-    if nngt._config["graph_library"] == "igraph":
+    if nngt._config["backend"] == "igraph":
         return graph.diameter()
-    elif nngt._config["graph_library"] == "networkx":
+    elif nngt._config["backend"] == "networkx":
         return nngt.analyze_graph["diameter"](graph)
     else:
         return nngt.analyze_graph["diameter"](graph)[0]

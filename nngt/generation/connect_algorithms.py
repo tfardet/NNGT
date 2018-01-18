@@ -37,7 +37,6 @@ __all__ = [
     "_fixed_degree",
     "_gaussian_degree",
     "_newman_watts",
-    "_no_self_loops",
     "_price_scale_free",
     "_random_scale_free",
     "_unique_rows",
@@ -419,10 +418,17 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     return ia_edges
 
 
-def price_network():
+def price_network(*args, **kwargs):
     #@todo: do it for other libraries
-    pass
+    raise NotImplementedError("Not implemented except for graph-tool.")
 
 
-if nngt.get_config("graph_library") == "graph-tool":
-    from graph_tool.generation import price_network
+if nngt.get_config("backend") == "graph-tool":
+    from graph_tool.generation import price_network as _pn
+
+    def price_network(*args, weighted=True, directed=True, population=None,
+                      shape=None, **kwargs):
+        g = _pn(*args, **kwargs)
+        return Graph.from_library(
+            g, weighted=weighted, directed=directed, population=population,
+            shape=shape, **kwargs)

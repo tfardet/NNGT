@@ -74,7 +74,7 @@ if nngt.get_config("with_plot"):
     colors = np.zeros(num_nodes)
     colors[500:] = 1
 
-    if nngt.get_config("graph_library") == "graph-tool":
+    if nngt.get_config("backend") == "graph-tool":
         from graph_tool.draw import graph_draw, prop_to_size, sfdp_layout
         pm = net.new_vertex_property("int", colors)
         size = net.new_vertex_property("double", val=5.)
@@ -82,7 +82,7 @@ if nngt.get_config("with_plot"):
         graph_draw(net, pos=pos, vertex_fill_color=pm, vertex_color=pm,
                    vertex_size=size, nodesfirst=True,
                    edge_color=[0.179, 0.203,0.210, 0.3])
-    elif nngt.get_config("graph_library") == "networkx":
+    elif nngt.get_config("backend") == "networkx":
         import networkx as nx
         plt.figure()
         init_pos = {i: np.random.uniform(-1000., -900, 2) for i in range(500)}
@@ -90,7 +90,7 @@ if nngt.get_config("with_plot"):
             {i: np.random.uniform(900., 1000, 2) for i in range(500, 1000)})
         layout = nx.spring_layout(net, k=20, pos=init_pos)
         nx.draw(net, pos=layout, node_color=colors, node_size=20)
-    elif nngt.get_config("graph_library") == "igraph":
+    elif nngt.get_config("backend") == "igraph":
         import igraph as ig
         colors = [(1, 0, 0) for _ in range(500)]
         colors.extend([(0, 0, 1) for _ in range(500)])

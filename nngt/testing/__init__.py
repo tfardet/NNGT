@@ -53,18 +53,18 @@ import nngt
 # ------------- #
 
 # get the arguments for the graph library
-graph_library = environ.get("GL", None)
-if graph_library == "gt":
-    nngt.use_library("graph-tool")
-    assert nngt.get_config('graph_library') == "graph-tool", \
+backend = environ.get("GL", None)
+if backend == "gt":
+    nngt.use_backend("graph-tool")
+    assert nngt.get_config('backend') == "graph-tool", \
            "Loading graph-tool failed..."
-elif graph_library == "ig":
-    nngt.use_library("igraph")
-    assert nngt.get_config('graph_library') == "igraph", \
+elif backend == "ig":
+    nngt.use_backend("igraph")
+    assert nngt.get_config('backend') == "igraph", \
            "Loading igraph failed..."
-elif graph_library == "nx":
-    nngt.use_library("networkx")
-    assert nngt.get_config('graph_library') == "networkx", \
+elif backend == "nx":
+    nngt.use_backend("networkx")
+    assert nngt.get_config('backend') == "networkx", \
            "Loading networkx failed..."
 
 

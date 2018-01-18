@@ -44,7 +44,7 @@ _graphlib = {
 
 
 #: Graph object (reference to one of the main libraries' wrapper
-GraphObject = _graphlib[nngt._config["graph_library"]]
+GraphObject = _graphlib[nngt._config["backend"]]
 
 
 __all__ = [

@@ -29,13 +29,7 @@ import nngt
 from nngt.geometry import Shape
 
 
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-np.random.seed(rank)
-
-nngt.use_library("nngt")
-nngt.set_config("mpi", True)
+# nngt.seed(0)
 
 
 # -------------------------- #
