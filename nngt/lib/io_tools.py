@@ -20,7 +20,9 @@
 
 """ IO tools for NNGT """
 
+import codecs
 import logging
+import pickle
 
 import numpy as np
 import scipy.sparse as ssp
@@ -41,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 @graph_tool_check('2.22')
 def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
-                   attributes=[], notifier="@", ignore="#"):
+                   attributes=None, notifier="@", ignore="#"):
     '''
     Load the main properties (edges, attributes...) from a file.
 
@@ -115,7 +117,8 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         lst_lines.pop()
     # make edges and attributes
     edges = []
-    di_attributes = {name: [] for name in di_notif["attributes"]}
+    attributes = di_notif["attributes"] if attributes is None else attributes
+    di_attributes = {name: [] for name in attributes}
     di_convert = _gen_convert(di_notif["attributes"], di_notif["attr_types"])
     line = None
     while lst_lines:
@@ -136,6 +139,10 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             _log_message(logger, "WARNING",
                          'A Shape object was present in the file but could '
                          'not be loaded because Shapely is not installed.')
+    # check whether a population is present
+    if 'population' in di_notif:
+        pop = pickle.loads(
+            codecs.decode(di_notif['population'].encode(), "base64"))
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
         y = np.fromstring(di_notif['y'], sep=separator)
@@ -341,6 +348,10 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         # set numpy cut threshold back on
         np.set_printoptions(threshold=old_threshold)
 
+    if graph.is_network():
+        additional_notif["population"] = codecs.encode(pickle.dumps(
+            graph.population, protocol=2), "base64").decode()
+
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)
 
@@ -476,6 +487,13 @@ def _to_int(string):
         return int(string)
     except ValueError:
         return int(float(string))
+
+
+def _to_string(byte_string):
+    ''' Convert bytes to string '''
+    if isinstance(byte_string, bytes):
+        return str(byte_string.decode())
+    return byte_string
 
 
 def _gen_convert(attributes, attr_types):

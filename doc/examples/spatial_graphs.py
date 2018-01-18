@@ -32,14 +32,17 @@ from nngt.geometry import Shape
 # nngt.seed(0)
 
 
-# -------------------------- #
-# Generate the spatial graph #
-# -------------------------- #
+# ---------------------------- #
+# Generate the spatial network #
+# ---------------------------- #
 
-ell = Shape.ellipse(radii=(3000., 5000.))
+ell        = Shape.ellipse(radii=(3000., 5000.))
 
-num_nodes = 1000
-g = nngt.generation.gaussian_degree(100., 5., nodes=num_nodes, shape=ell)
+num_nodes  = 1000
+population = nngt.NeuralPop.uniform(num_nodes)
+
+g = nngt.generation.gaussian_degree(
+    100., 5., nodes=num_nodes, shape=ell, population=population)
 
 
 # -------------- #
@@ -58,6 +61,9 @@ print('Both networks have same area: {}.'.format(
       np.isclose(g2.shape.area, ell.area)))
 print('They also have the same boundaries: {}.'.format(
       np.all(np.isclose(g2.shape.bounds, ell.bounds))))
+
+print('They also have the same population: {}.'.format(
+      np.all([g2.population[k] == g.population[k] for k in g.population])))
 
 # remove file
 # ~ os.remove('sp_graph.el')
