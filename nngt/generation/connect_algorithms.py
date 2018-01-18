@@ -426,8 +426,16 @@ def price_network(*args, **kwargs):
 if nngt.get_config("backend") == "graph-tool":
     from graph_tool.generation import price_network as _pn
 
-    def price_network(*args, weighted=True, directed=True, population=None,
-                      shape=None, **kwargs):
+    def price_network(*args, **kwargs):
+        weighted   = kwargs.get("weighted", True)
+        directed   = kwargs.get("directed", True)
+        population = kwargs.get("population", None)
+        shape      = kwargs.get("shape", None)
+        for k in ("weighted", "directed", "population", "shape"):
+            try:
+                del kwargs[k]
+            except KeyError:
+                pass
         g = _pn(*args, **kwargs)
         return Graph.from_library(
             g, weighted=weighted, directed=directed, population=population,

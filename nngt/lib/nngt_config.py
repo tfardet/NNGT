@@ -235,8 +235,8 @@ def _pre_update_parallelism(new_config, old_mt, old_mpi):
                          '"mpi" set to True but previous configuration was '
                          'using OpenMP; setting "multithreading" to False '
                          'to switch to mpi algorithms.')
-    with_mt  = new_config[mt]
-    with_mpi = new_config['mpi']
+    with_mt  = new_config.get(mt, old_mt)
+    with_mpi = new_config.get('mpi', old_mpi)
     # check that seeds are correct
     if new_config.get('seeds', None) is not None:
         err  = 'Expected {} seeds.'

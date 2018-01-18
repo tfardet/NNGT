@@ -118,13 +118,13 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     # make edges and attributes
     edges = []
     attributes = di_notif["attributes"] if attributes is None else attributes
-    di_attributes = {name: [] for name in attributes}
+    di_attributes = {name: [] for name in di_notif["attributes"]}
     di_convert = _gen_convert(di_notif["attributes"], di_notif["attr_types"])
     line = None
     while lst_lines:
         line = lst_lines.pop()
         if line and not line.startswith(notifier):
-            di_get_edges[fmt](line, di_notif["attributes"], separator,
+            di_get_edges[fmt](line, attributes, separator,
                               secondary, edges, di_attributes, di_convert)
         else:
             break
@@ -142,7 +142,8 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     # check whether a population is present
     if 'population' in di_notif:
         pop = pickle.loads(
-            codecs.decode(di_notif['population'].encode(), "base64"))
+            codecs.decode(di_notif['population'].replace('~', '\n').encode(),
+            "base64"))
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
         y = np.fromstring(di_notif['y'], sep=separator)
@@ -349,8 +350,9 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         np.set_printoptions(threshold=old_threshold)
 
     if graph.is_network():
-        additional_notif["population"] = codecs.encode(pickle.dumps(
-            graph.population, protocol=2), "base64").decode()
+        additional_notif["population"] = codecs.encode(
+            pickle.dumps(graph.population, protocol=2),
+                         "base64").decode().replace('\n', '~')
 
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)

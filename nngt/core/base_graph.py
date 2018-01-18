@@ -764,7 +764,6 @@ class _EProperty(BaseProperty):
         if values is None:
             values = np.repeat(val, self.parent().edge_nb())
 
-        print(name, len(values), self.parent().edge_nb())
         if len(values) != self.parent().edge_nb():
             self._num_values_set[name] = 0
             raise ValueError("A list or a np.array with one entry per "

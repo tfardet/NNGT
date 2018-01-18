@@ -57,16 +57,23 @@ start = time.time()
 g2 = nngt.Graph.from_file('sp_graph.el')
 print('Loading in {} s.'.format(time.time() - start))
 
+# check equality of shapes and populations
+
 print('Both networks have same area: {}.'.format(
       np.isclose(g2.shape.area, ell.area)))
 print('They also have the same boundaries: {}.'.format(
       np.all(np.isclose(g2.shape.bounds, ell.bounds))))
 
-print('They also have the same population: {}.'.format(
-      np.all([g2.population[k] == g.population[k] for k in g.population])))
+same_groups = np.all(
+    [g2.population[k] == g.population[k] for k in g.population])
+same_ids = np.all(
+    [g2.population[k].ids == g.population[k].ids for k in g.population])
+
+print('They also have the same population: {}.'.format(same_groups * same_ids))
+
 
 # remove file
-# ~ os.remove('sp_graph.el')
+os.remove('sp_graph.el')
 
 
 # ---- #
