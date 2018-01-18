@@ -143,7 +143,7 @@ from .lib.nngt_config import (get_config, set_config, _load_config, _convert,
 if not _os.path.isfile(_new_config):  # if it does not, create it
     _shutil.copy(_default_config, _new_config)
 else:                                 # if it does check it is up-to-date
-    with open(_new_config, 'r') as fconfig:
+    with open(_new_config, 'r+') as fconfig:
         options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
         config_version = ""
         for opt in options:
@@ -153,7 +153,22 @@ else:                                 # if it does check it is up-to-date
             if opt_name == "version":
                 config_version = opt_val
         if config_version != __version__:
-            _shutil.copy(_default_config, _new_config)
+            fconfig.seek(0)
+            data = []
+            with open(_default_config) as fdefault:
+                data = [l for l in fdefault]
+            i = 0
+            for line in data:
+                if '{version}' in line:
+                    fconfig.write(line.format(version=__version__))
+                    i += 1
+                    break
+                else:
+                    fconfig.write(line)
+                    i += 1
+            for line in data[i:]:
+                fconfig.write(line)
+            fconfig.truncate()
             _log_message(_logger, "WARNING",
                          "Updating the configuration file, your previous "
                          "settings have be overwritten.")

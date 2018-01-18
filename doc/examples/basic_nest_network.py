@@ -26,7 +26,7 @@ import nngt
 import nngt.generation as ng
 
 
-# np.random.seed(0)
+# nngt.seed(0)
 
 
 # -------------------- #

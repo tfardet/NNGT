@@ -168,6 +168,8 @@ class Graph(nngt.core.GraphObject):
             List of names for the attributes present in the file. If a
             `notifier` is present in the file, names will be deduced from it;
             otherwise the attributes will be numbered.
+            This argument can also be used to load only a subset of the saved
+            attributes.
         notifier : str, optional (default: "@")
             Symbol specifying the following as meaningfull information.
             Relevant information is formatted ``@info_name=info_value``, where
@@ -185,8 +187,6 @@ class Graph(nngt.core.GraphObject):
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
-        if attributes is None:
-            attributes = []
         info, edges, attr, pop, shape, pos = load_from_file(
             filename=filename, fmt=fmt, separator=separator,
             secondary=secondary, attributes=attributes, notifier=notifier)

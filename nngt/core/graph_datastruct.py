@@ -30,6 +30,7 @@ from numpy.random import randint, uniform
 import scipy.sparse as ssp
 import scipy.spatial as sptl
 
+import nngt
 from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
                       default_synapse, POS, WEIGHT, DELAY, DIST, TYPE, BWEIGHT)
 from nngt.lib.rng_tools import _eprop_distribution
@@ -255,8 +256,8 @@ class NeuralPop(OrderedDict):
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
 
-    def __init__(self, size=None, num_groups=None, parent=None,
-                 with_models=True, **kwargs):
+    def __init__(self, size=None, parent=None, with_models=True, *args,
+                 **kwargs):
         '''
         Initialize NeuralPop instance
 
@@ -264,13 +265,11 @@ class NeuralPop(OrderedDict):
         ----------
         size : int, optional (default: 0)
             Number of neurons that the population will contain.
-        num_groups : int, optional (default: 0)
-            Number of :class:`~nngt.NeuralGroup` that the population will
-            contain.
         parent : :class:`~nngt.Network`, optional (default: None)
             Network associated to this population.
         with_models : :class:`bool`
             whether the population's groups contain models to use in NEST
+        *args : items for OrderedDict parent
         **kwargs : :obj:`dict`
 
         Returns
@@ -286,18 +285,38 @@ class NeuralPop(OrderedDict):
         if self._desired_size is None:
             self._neuron_group = None
         else:
-            self._neuron_group = np.empty(self._desired_size, dtype=object)
+            self._neuron_group = np.repeat(-1, self._desired_size)
         self._max_id = 0  # highest id among the existing neurons + 1
-        super(NeuralPop, self).__init__()
-        if parent is not None and 'group_pop' in kwargs:
+        if parent is not None and 'group_prop' in kwargs:
             dic = _make_groups(parent, kwargs["group_prop"])
             self._is_valid = True
             self.update(dic)
         self._syn_spec = {}
         self._has_models = with_models
+        super(NeuralPop, self).__init__(*args)
+
+    def __reduce__(self):
+        '''
+        Overwrite this function to make NeuralPop pickable.
+        OrderedDict.__reduce__ returns a 3 to 5 tuple:
+        - the first is the class
+        - the second is the init args in Py2, empty sequence in Py3
+        - the third can be used to store attributes
+        - the fourth is None and needs to stay None
+        - the last must be kept unchanged: odict_iterator in Py3
+        '''
+        state    = super(NeuralPop, self).__reduce__()
+        last     = state[4] if len(state) == 5 else None
+        dic      = state[2]
+        od_args  = state[1][0] if state[1] else state[1]
+        args     = (dic.get("_size", None), dic.get("_parent", None),
+                    dic.get("_has_models", True), od_args)
+        newstate = (NeuralPop, args, dic, None, last)
+        return newstate
 
     def __getitem__(self, key):
-        if isinstance(key, int):
+        if isinstance(key, np.integer):
+            assert key >= 0, "Index must be positive, not {}.".format(key)
             new_key = tuple(self.keys())[key]
             return OrderedDict.__getitem__(self, new_key)
         else:
@@ -305,11 +324,14 @@ class NeuralPop(OrderedDict):
 
     def __setitem__(self, key, value):
         self._validity_check(key, value)
+        int_key = None
         if isinstance(key, int):
             new_key = tuple(self.keys())[key]
+            int_key = key
             OrderedDict.__setitem__(self, new_key, value)
         else:
             OrderedDict.__setitem__(self, key, value)
+            int_key = list(super(NeuralPop, self).keys()).index(key)
         # update _max_id
         old_max_id = self._max_id
         group_size = len(value.ids)
@@ -318,13 +340,13 @@ class NeuralPop(OrderedDict):
         self._size += group_size
         # update the group node property
         if self._neuron_group is None:
-            self._neuron_group = np.empty(self._max_id+1, dtype=object)
+            self._neuron_group = np.repeat(-1, self._max_id + 1)
         elif self._max_id >= len(self._neuron_group):
-            ngroup_tmp = np.empty(self._max_id+1, dtype=object)
-            ngroup_tmp[:old_max_id+1] = self._neuron_group
+            ngroup_tmp = np.repeat(-1, self._max_id + 1)
+            ngroup_tmp[:old_max_id + 1] = self._neuron_group
             self._neuron_group = ngroup_tmp
-        self._neuron_group[value.ids] = key
-        if None in list(self._neuron_group):
+        self._neuron_group[value.ids] = int_key
+        if -1 in list(self._neuron_group):
             self._is_valid = False
         else:
             if self._desired_size is not None:
@@ -555,18 +577,26 @@ class NeuralPop(OrderedDict):
             Whether the group identifier should be returned as a number; if
             ``False``, the group names are returned.
         '''
-        if not numbers:
+        names = np.array(tuple(self.keys()), dtype=object)
+        if numbers:
             return self._neuron_group[neurons]
-        elif isinstance(neurons, int):
-            keys.index(self._neuron_group[neurons])
         else:
-            keys = tuple(self.keys())
-            return [keys.index(self._neuron_group[n]) for n in neurons]
+            if self._is_valid:
+                return names[self._neuron_group[neurons]]
+            else:
+                groups = []
+                for i in self._neuron_group[neurons]:
+                    if i >= 0:
+                        groups.append(names[i])
+                    else:
+                        groups.append(None)
+                return groups
 
     def add_to_group(self, group_name, ids):
+        idx = list(self.keys()).index(group_name)
         self[group_name].ids += list(ids)
-        self._neuron_group[ids] = group_name
-        if None in list(self._neuron_group):
+        self._neuron_group[ids] = idx
+        if -1 in list(self._neuron_group):
             self._is_valid = False
         else:
             self._is_valid = True
@@ -660,8 +690,8 @@ class NeuralGroup:
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
             same_size = self.size == other.size
-            same_nmodel = (self.neuron_model == other.neuron_model
-                           * self.neuron_param == other.neuron_param)
+            same_nmodel = ((self.neuron_model == other.neuron_model)
+                           * (self.neuron_param == other.neuron_param))
             return same_size*same_nmodel
         else:
             return False
@@ -967,7 +997,7 @@ there are {} edges while {} values where provided'''.format(
         t_list : :class:`~numpy.ndarray`
             List of the edges' types.
         '''
-        t_list = np.repeat(1.,graph.edge_nb())
+        t_list = np.repeat(1., graph.edge_nb())
         edges = graph.edges_array
         num_inhib = 0
         idx_inhib = []

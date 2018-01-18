@@ -316,7 +316,6 @@ def _set_networkx():
 
 
 def _set_nngt():
-    from nngt.core import GraphObject
     nngt._config["backend"] = "nngt"
     nngt._config["library"] = nngt
     nngt._config["graph"]   = object
