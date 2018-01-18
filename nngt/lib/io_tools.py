@@ -99,10 +99,14 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     positions : array-like of shape (N, d)
         The positions of the neurons (``None`` if not present in the file).
     '''
+    # check for mpi
+    if nngt.get_config("mpi"):
+        raise NotImplementedError("This function is not ready for MPI yet.")
+    # load
     lst_lines, di_notif, pop, shape, positions = None, None, None, None, None
     fmt = _get_format(fmt, filename)
     with open(filename, "r") as filegraph:
-        lst_lines = [ line.strip() for line in filegraph.readlines() ]
+        lst_lines = [line.strip() for line in filegraph.readlines()]
     # notifier lines
     di_notif = _get_notif(lst_lines, notifier)
     # data
@@ -210,11 +214,14 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         if on_master_process():
             for key, val in iter(di_notif.items()):
                 str_notif += "{}{}={}\n".format(notifier, key, val)
+        # strings need to start with a newline because MPI strips last
+        str_local = "\n" + str_local
         # gather all strings sizes
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
         sizes = comm.allgather(
             _str_bytes_len(str_local) + _str_bytes_len(str_notif))
+        size = comm.Get_size()
         rank = comm.Get_rank()
         # get rank-based offset
         offset = [_str_bytes_len(str_notif)]
@@ -232,7 +239,6 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         str_graph, di_notif = _as_string(
             graph, separator=separator, fmt=fmt, secondary=secondary,
             attributes=attributes, notifier=notifier, return_info=True)
-
         with open(filename, "w") as f_graph:
             for key, val in iter(di_notif.items()):
                 f_graph.write("{}{}={}\n".format(notifier, key, val))
@@ -357,7 +363,7 @@ def _get_format(fmt, filename):
         elif filename.endswith('.dot'):
             fmt = 'dot'
         elif (filename.endswith('.gt') and
-              nngt._config["graph_library"] == "graph-tool"):
+              nngt._config["backend"] == "graph-tool"):
             fmt = 'gt'
         elif filename.endswith('.nn'):
             fmt = 'neighbour'

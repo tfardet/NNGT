@@ -57,9 +57,9 @@ analyze_graph = {
 
 # use library function
 
-def use_library(library, reloading=True, silent=False):
+def use_backend(backend, reloading=True, silent=False):
     '''
-    Allows the user to switch to a specific graph library.
+    Allows the user to switch to a specific graph library as backend.
     
     .. warning:
         If :class:`~nngt.Graph` objects have already been created, they will no
@@ -67,37 +67,38 @@ def use_library(library, reloading=True, silent=False):
 
     Parameters
     ----------
-    library : string
-        Name of a graph library among 'graph_tool', 'igraph', 'networkx'.
-    reload_moduleing : bool, optional (default: True)
+    backend : string
+        Name of a graph library among 'graph_tool', 'igraph', 'networkx', or
+        'nngt'.
+    reloading : bool, optional (default: True)
         Whether the graph objects should be `reload_module`d (this should
         always be set to True except when NNGT is first initiated!)
     '''
     # save old config except for graph-library data
-    old_config = nngt.get_config()
-    for k in ("graph", "graph_library", "library"):
+    old_config = nngt.get_config(detailed=True)
+    for k in ("graph", "backend", "library"):
         del old_config[k]
     # try to switch graph library
     success = False
     error = None
-    if library == "graph-tool":
+    if backend == "graph-tool":
         try:
             success = _set_graph_tool()
         except Exception as e:
             error = e
-    elif library == "igraph":
+    elif backend == "igraph":
         try:
             success = _set_igraph()
         except Exception as e:
             error = e
-    elif library == "networkx":
+    elif backend == "networkx":
         try:
             success = _set_networkx()
         except Exception as e:
             error = e
-    elif library == "nngt":
+    elif backend == "nngt":
         try:
-            success = _set_backup()
+            success = _set_nngt()
         except Exception as e:
             error = e
     else:
@@ -129,13 +130,13 @@ def use_library(library, reloading=True, silent=False):
     if success:
         if silent:
             _log_message(logger, "DEBUG",
-                         "Successfuly switched to " + library + ".")
+                         "Successfuly switched to " + backend + ".")
         else:
             _log_message(logger, "INFO",
-                         "Successfuly switched to " + library + ".")
+                         "Successfuly switched to " + backend + ".")
     else:
         _log_message(logger, "WARNING",
-                     "Error, could not switch to " + library + ": "
+                     "Error, could not switch to " + backend + ": "
                      "{}.".format(error))
         if error is not None:
             raise error
@@ -152,9 +153,9 @@ def _set_graph_tool():
     '''
     import graph_tool as glib
     from graph_tool import Graph as GraphLib
-    nngt._config["graph_library"] = "graph-tool"
+    nngt._config["backend"] = "graph-tool"
     nngt._config["library"] = glib
-    nngt._config["graph"] = GraphLib
+    nngt._config["graph"]   = GraphLib
     # analysis functions
     from graph_tool.spectral import adjacency as _adj
     from graph_tool.centrality import betweenness, closeness
@@ -208,9 +209,9 @@ def _set_igraph():
     '''
     import igraph as glib
     from igraph import Graph as GraphLib
-    nngt._config["graph_library"] = "igraph"
+    nngt._config["backend"] = "igraph"
     nngt._config["library"] = glib
-    nngt._config["graph"] = GraphLib
+    nngt._config["graph"]   = GraphLib
     # define
     def _closeness(graph, nodes, weights):
         if weights is True and graph.is_weighted():
@@ -259,9 +260,9 @@ def _set_networkx():
         raise ImportError("`networkx {} is ".format(glib.__version__) +\
                           "installed while version 2+ is required.")
     from networkx import DiGraph as GraphLib
-    nngt._config["graph_library"] = "networkx"
+    nngt._config["backend"] = "networkx"
     nngt._config["library"] = glib
-    nngt._config["graph"] = GraphLib
+    nngt._config["graph"]   = GraphLib
     # analysis functions
     from networkx.algorithms import ( diameter, 
         strongly_connected_components, weakly_connected_components,
@@ -314,15 +315,12 @@ def _set_networkx():
     return True
 
 
-def _set_backup():
+def _set_nngt():
     from nngt.core import GraphObject
-    nngt._config["graph_library"] = "nngt"
+    nngt._config["backend"] = "nngt"
     nngt._config["library"] = nngt
-    nngt._config["graph"] = object
+    nngt._config["graph"]   = object
     # analysis functions
-    from networkx.algorithms import ( diameter, 
-        strongly_connected_components, weakly_connected_components,
-        degree_assortativity_coefficient )
     def _notimplemented(*args, **kwargs):
         raise NotImplementedError("Install a graph library to use.")
     def adj_mat(graph, weight=None):

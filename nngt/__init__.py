@@ -95,7 +95,7 @@ _config = {
     'db_to_file': False,
     'db_url': "mysql:///nngt_db",
     'graph': object,
-    'graph_library': "nngt",
+    'backend': "nngt",
     'library': None,
     'load_nest': False,
     'log_folder': "~/.nngt/log",
@@ -104,7 +104,7 @@ _config = {
     'mpi': False,
     'mpi_comm': None,
     'mpl_backend': None,
-    'msd': 0,
+    'msd': None,
     'multithreading': True,
     'omp': 1,
     'palette': 'Set1',
@@ -170,29 +170,29 @@ if _config["omp"] > 1:
 # Loading graph library #
 #---------------------- #
 
-from .lib.graph_backends import use_library, analyze_graph
+from .lib.graph_backends import use_backend, analyze_graph
 
 _libs = ['graph-tool', 'igraph', 'networkx']
-_glib = _config['graph_library']
+_glib = _config['backend']
 assert _glib in _libs or _glib == 'nngt', \
 	   "Internal error for graph library loading, please report " +\
 	   "this on GitHub."
 
 try:
-    use_library(_config['graph_library'], False, silent=True)
+    use_backend(_config['backend'], False, silent=True)
 except ImportError:
-    idx = _libs.index(_config['graph_library'])
+    idx = _libs.index(_config['backend'])
     del _libs[idx]
     keep_trying = True
     while _libs and keep_trying:
         try:
-            use_library(_libs[-1], False, silent=True)
+            use_backend(_libs[-1], False, silent=True)
             keep_trying = False
         except ImportError:
             _libs.pop()
 
 if not _libs:
-    use_library('nngt', False, silent=True)
+    use_backend('nngt', False, silent=True)
     _log_message(_logger, "WARNING",
                  "This module needs one of the following graph libraries to "
                  "study networks: `graph_tool`, `igraph`, or `networkx`.")
@@ -245,7 +245,7 @@ __all__ = [
     "set_config",
     "SpatialGraph",
     "SpatialNetwork",
-    "use_library",
+    "use_backend",
     "__version__"
 ]
 
@@ -316,7 +316,7 @@ NEST support:   {nest}
 Database:       {db}
 MPI:            {mpi}
 '''.format(
-    gl=_config["graph_library"] + ' ' + _glib_version,
+    gl=_config["backend"] + ' ' + _glib_version,
     thread=_config["multithreading"],
     plot=_config["with_plot"],
     nest=_config["with_nest"],

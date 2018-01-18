@@ -905,7 +905,6 @@ class Graph(nngt.core.GraphObject):
         return self.betweenness_list(btype=btype, use_weights=use_weights)
 
     def get_edge_types(self):
-        print(self.edges_attributes, TYPE)
         if TYPE in self.edges_attributes:
             return self.get_edge_attributes(name=TYPE)
         else:

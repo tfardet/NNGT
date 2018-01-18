@@ -237,7 +237,6 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
                                     reciprocity, directed, multigraph)
         # check for None if MPI
         if ia_edges is not None:
-            print(len(ia_edges))
             graph_gd.new_edges(ia_edges)
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
     return graph_gd

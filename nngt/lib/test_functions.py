@@ -145,5 +145,5 @@ def _old_graph_tool(version_min):
     Check for old versions of graph-tool for which some functions are not
     working.
     '''
-    return (nngt.get_config('graph_library') == 'graph-tool'
+    return (nngt.get_config('backend') == 'graph-tool'
             and nngt.get_config('library').__version__[:4] < version_min)

@@ -71,7 +71,7 @@ def foreach_graph(func):
     '''
     def wrapper(*args, **kwargs):
         self = args[0]
-        nx = nngt.get_config("graph_library") == "networkx"
+        nx = nngt.get_config("backend") == "networkx"
         for graph_name in self.graphs:
             if nx and "corr" in graph_name:
                 _log_message(logger, "DEBUG",
