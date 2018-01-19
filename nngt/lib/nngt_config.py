@@ -23,6 +23,8 @@
 import sys
 import logging
 
+import numpy as np
+
 import nngt
 from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
@@ -239,6 +241,7 @@ def _pre_update_parallelism(new_config, old_mt, old_mpi):
     with_mpi = new_config.get('mpi', old_mpi)
     # check that seeds are correct
     if new_config.get('seeds', None) is not None:
+        seeds = new_config['seeds']
         err  = 'Expected {} seeds.'
         err2 = 'All seeds must be different.'
         if with_mpi:
