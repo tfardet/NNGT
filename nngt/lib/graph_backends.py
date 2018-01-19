@@ -61,7 +61,7 @@ def use_backend(backend, reloading=True, silent=False):
     '''
     Allows the user to switch to a specific graph library as backend.
     
-    .. warning:
+    .. warning ::
         If :class:`~nngt.Graph` objects have already been created, they will no
         longer be compatible with NNGT methods.
 
