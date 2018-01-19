@@ -29,7 +29,7 @@ import nngt
 from .errors import InvalidArgument
 from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
-from .rng_tools import seed
+from .rng_tools import seed as nngt_seed
 from .test_functions import mpi_checker, num_mpi_processes
 
 
@@ -307,7 +307,7 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
     _set_gt_config(old_gl, new_config)
     # seed python RNGs
     if old_msd != nngt._config['msd'] or not nngt._seeded:
-        seed(msd=nngt._config['msd'])
+        nngt_seed(msd=nngt._config['msd'])
         
 
 
