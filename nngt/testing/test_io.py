@@ -25,6 +25,8 @@ from tools_testing import foreach_graph
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
 error = 'Wrong {{val}} for {graph}.'
 
+nngt.set_config("multithreading", False)
+
 
 # ---------- #
 # Test class #
@@ -133,15 +135,18 @@ class TestIO(TestBasis):
         g.to_file('test.el')
         h = nngt.Graph.from_file('test.el')
 
-        self.assertTrue(np.allclose(g.get_edge_attributes(name="test_attr"),
-                                    h.get_edge_attributes(name="test_attr")))
+        allclose = np.allclose(g.get_edge_attributes(name="test_attr"),
+                               h.get_edge_attributes(name="test_attr"))
+        if not allclose:
+            print(g.get_edge_attributes(name="test_attr"))
+            print(h.get_edge_attributes(name="test_attr"))
+
+        self.assertTrue(allclose)
 
 
-
-#-----------------------------------------------------------------------------#
-# Test suite
-#------------------------
-#
+# ---------- #
+# Test suite #
+# ---------- #
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 

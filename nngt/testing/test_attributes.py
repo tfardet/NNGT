@@ -18,11 +18,9 @@ from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
 
-
-#-----------------------------------------------------------------------------#
-# Test tools
-#------------------------
-#
+# ---------- #
+# Test tools #
+# ---------- #
 
 def _results_theo(instruct):
     di_param = instruct["weights"]
@@ -52,10 +50,9 @@ def _results_exp(attrib, instruct):
         raise NotImplementedError("This distribution is not supported yet.")
 
 
-#-----------------------------------------------------------------------------#
-# Test class
-#------------------------
-#
+# ---------- #
+# Test class #
+# ---------- #
 
 class TestAttributes(TestBasis):
     

@@ -21,11 +21,9 @@ from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
 
-
-#-----------------------------------------------------------------------------#
-# Test class
-#------------------------
-#
+# ---------- #
+# Test class #
+# ---------- #
 
 class TestGraphClasses(TestBasis):
     

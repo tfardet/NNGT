@@ -23,10 +23,9 @@ from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
 
-#-----------------------------------------------------------------------------#
-# Test tools
-#------------------------
-#
+# ---------- #
+# Test tools #
+# ---------- #
 
 def _get_connections(instruct):
     nodes = instruct["nodes"]

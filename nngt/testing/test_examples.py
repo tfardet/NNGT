@@ -77,10 +77,9 @@ class TestExamples(unittest.TestCase):
                     pass  # potential IO error for gt <= 2.22
 
 
-#-----------------------------------------------------------------------------#
-# Test suite
-#------------------------
-#
+# ---------- #
+# Test suite #
+# ---------- #
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestExamples)
 

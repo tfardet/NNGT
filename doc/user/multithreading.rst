@@ -154,3 +154,30 @@ NNGT provides two different ways of using MPI:
     Using the 'nngt' backend, the :func:`~nngt.Graph.edge_nb` method, as well
     as all other edge-related methods will return information on the local
     edges only!
+
+
+Fully distributed setup
+-----------------------
+
+The python file should include (before any graph generation): ::
+
+    import nngt
+
+    msd   = 0             # choose a master seed
+    seeds = [1, 2, 3, 4]  # choose initial seeds, one per MPI process
+
+    nngt.set_config({
+        "mpi": True,
+        "backend": "nngt",
+        "msd": msd,
+        "seeds": seeds,
+    })
+
+The file should then be executed using:
+
+>>> mpirun -n 4 python name_of_the_script.py
+
+.. note ::
+    Graph saving is available in parallel in the fully distributed setup
+    through the :func:`Graph.to_file` and :func:`~nngt.save_to_file` functions
+    as in any other configuration.
