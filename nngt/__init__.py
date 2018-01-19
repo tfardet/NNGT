@@ -172,7 +172,7 @@ else:                                 # if it does check it is up-to-date
             _log_message(_logger, "WARNING",
                          "Updating the configuration file, your previous "
                          "settings have be overwritten.")
-
+_seeded = False
 _load_config(_new_config)
 
 # multithreading

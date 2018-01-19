@@ -68,10 +68,15 @@ elif backend == "nx":
            "Loading networkx failed..."
 
 
-# get the arguments for MPI/OpenMP
+# get the arguments for MPI/OpenMP + hide log
 omp = int(environ.get("OMP", 1))
 mpi = bool(environ.get("MPI", False))
-nngt.set_config({"multithreading": omp > 1, "omp": omp, "mpi": mpi})
+
+nngt.set_config({
+    "multithreading": omp > 1, "omp": omp,
+    "mpi": mpi,
+    "log_level": "ERROR",
+}, silent=True)
 
 
 # get the tests

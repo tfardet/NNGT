@@ -49,7 +49,10 @@ def seed(msd=None, seeds=None):
         Must be convertible to 32-bit unsigned integers.
     '''
     np.random.seed(msd)
-    nngt.set_config('msd', msd)
+    if msd is None:
+        nngt.set_config('msd', np.random.get_state()[1][0])
+    else:
+        nngt.set_config('msd', msd)
     if seeds is not None:
         with_mt = nngt.get_config('multithreading')
         with_mpi = nngt.get_config('mpi')
