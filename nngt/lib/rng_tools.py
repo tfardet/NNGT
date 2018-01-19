@@ -48,11 +48,22 @@ def seed(msd=None, seeds=None):
         Seeds for  for `RandomState`.
         Must be convertible to 32-bit unsigned integers.
     '''
-    np.random.seed(msd)
-    if msd is None:
-        nngt.set_config('msd', np.random.get_state()[1][0])
+    if msd is None and nngt.get_config("mpi"):
+        # when using MPI we need to sync the seeds
+        msd_tmp = np.random.randint(0, 2**32 - 1)
+        msd_tmp = nngt.get_config("mpi_comm").bcast(msd_tmp, root=0)
+        np.random.seed(msd_tmp)
     else:
-        nngt.set_config('msd', msd)
+        np.random.seed(msd)
+
+    if msd is None:
+        nngt._config['msd'] = np.random.get_state()[1][0]
+    else:
+        nngt._config['msd'] = msd
+
+    nngt._seeded = True
+
+    # check subseeds
     if seeds is not None:
         with_mt = nngt.get_config('multithreading')
         with_mpi = nngt.get_config('mpi')
@@ -62,11 +73,11 @@ def seed(msd=None, seeds=None):
             comm = MPI.COMM_WORLD
             size = comm.Get_size()
             assert size == len(seeds), err.format(size)
-            nngt.set_config('seeds', seeds)
+            nngt._config['seeds'] = seeds
         elif with_mt:
             num_omp = nngt.get_config('omp')
             assert num_omp == len(seeds), err.format(num_omp)
-            nngt.set_config('seeds', seeds)
+            nngt._config['seeds'] = seeds
 
 
 # ----------------------------- #

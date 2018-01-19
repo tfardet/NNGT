@@ -26,10 +26,11 @@ import logging
 import numpy as np
 
 import nngt
+from .errors import InvalidArgument
 from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
+from .rng_tools import seed
 from .test_functions import mpi_checker, num_mpi_processes
-from .errors import InvalidArgument
 
 
 logger = logging.getLogger(__name__)
@@ -265,6 +266,8 @@ def _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi):
         reset_seeds += (with_mt and old_mpi)
         if reset_seeds:
             new_config['seeds'] = None
+            new_config['msd']   = None
+            nngt._seeded        = False
 
 
 def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
@@ -304,10 +307,7 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
     _set_gt_config(old_gl, new_config)
     # seed python RNGs
     if old_msd != nngt._config['msd'] or not nngt._seeded:
-        np.random.seed(nngt._config['msd'])
-        if nngt._config['msd'] is None:
-            nngt._config['msd'] = np.random.get_state()[1][0]
-        nngt._seeded = True
+        seed(msd=nngt._config['msd'])
         
 
 

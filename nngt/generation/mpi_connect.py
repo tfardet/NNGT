@@ -101,7 +101,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
 
     comm.Barrier()
 
-    _finalize_random()
+    _finalize_random(rank)
 
     # the 'nngt' backend is made to be distributed, but the others are not
     if nngt.get_config("backend") == "nngt":
@@ -122,8 +122,9 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     '''
     Returns a distance-rule graph
     '''
-    distance = [] if distance is None else distance
-    edges_hash = {}
+    distance     = [] if distance is None else distance
+    distance_tmp = []
+    edges_hash   = {}
     # mpi-related stuff
     comm, size, rank = _mpi_and_random_init()
 
@@ -227,26 +228,28 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
 
             ia_edges, num_ecurrent = _filter(
                 ia_edges, edges_tmp, num_ecurrent, edges_hash, b_one_pop,
-                multigraph, distance=distance, dist_tmp=dist_local)
+                multigraph, distance=distance_tmp, dist_tmp=dist_local)
 
         num_ecurrent = comm.bcast(num_ecurrent, root=0)
 
         comm.Barrier()
 
-    _finalize_random()
+    _finalize_random(rank)
 
     # the 'nngt' backend is made to be distributed, but the others are not
     if nngt.get_config("backend") == "nngt":
         local_edges = None
         if rank == 0:
-            local_edges = [ia_edges[i::size, :] for i in range(size)]
-            distance    = [distance[i::size, :] for i in range(size)]
-        local_edges = comm.scatter(local_edges, root=0)
-        distance    = comm.scatter(local_dist, root=0)
+            local_edges  = [ia_edges[i::size, :] for i in range(size)]
+            distance_tmp = [distance_tmp[i::size] for i in range(size)]
+        local_edges  = comm.scatter(local_edges, root=0)
+        distance_tmp = comm.scatter(distance_tmp, root=0)
+        distance.extend(distance_tmp)
         return local_edges
     else:
         # all the data is gather on the root processus
         if rank == 0:
+            distance.extend(distance_tmp)
             return ia_edges
         else:
             return None
@@ -292,12 +295,13 @@ def _mpi_and_random_init():
     return comm, size, rank
 
 
-def _finalize_random():
+def _finalize_random(rank):
     '''
     Make sure everyone gets same seed back.
     '''
+    comm = MPI.COMM_WORLD
     if rank == 0:
-        new_seed = np.random.randint(0, num_edges + 1)
+        new_seed = np.random.randint(0, 2**32 - 1)
     else:
         new_seed = None
     new_seed = comm.bcast(new_seed, root=0)
