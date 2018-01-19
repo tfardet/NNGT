@@ -21,11 +21,9 @@ from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
 
-
-#-----------------------------------------------------------------------------#
-# Test class
-#------------------------
-#
+# ---------- #
+# Test class #
+# ---------- #
 
 class TestGraphClasses(TestBasis):
     
@@ -68,7 +66,7 @@ class TestGraphClasses(TestBasis):
 
     @foreach_graph
     @unittest.skipIf(
-        nngt._config["graph_library"] == "graph-tool"
+        nngt._config["backend"] == "graph-tool"
         and nngt._config["library"].__version__.startswith("2.22"),
         "Known bug with graph-tool 2.22.")
     def test_copy_clear(self, graph, **kwargs):

@@ -20,7 +20,9 @@
 
 """ IO tools for NNGT """
 
+import codecs
 import logging
+import pickle
 
 import numpy as np
 import scipy.sparse as ssp
@@ -28,7 +30,7 @@ import scipy.sparse as ssp
 import nngt
 from nngt.lib import InvalidArgument
 from nngt.lib.logger import _log_message
-from .test_functions import graph_tool_check
+from .test_functions import graph_tool_check, on_master_process
 from ..geometry import Shape, _shapely_support
 
 
@@ -41,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 @graph_tool_check('2.22')
 def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
-                   attributes=[], notifier="@", ignore="#"):
+                   attributes=None, notifier="@", ignore="#"):
     '''
     Load the main properties (edges, attributes...) from a file.
 
@@ -99,10 +101,14 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     positions : array-like of shape (N, d)
         The positions of the neurons (``None`` if not present in the file).
     '''
+    # check for mpi
+    if nngt.get_config("mpi"):
+        raise NotImplementedError("This function is not ready for MPI yet.")
+    # load
     lst_lines, di_notif, pop, shape, positions = None, None, None, None, None
     fmt = _get_format(fmt, filename)
     with open(filename, "r") as filegraph:
-        lst_lines = [ line.strip() for line in filegraph.readlines() ]
+        lst_lines = [line.strip() for line in filegraph.readlines()]
     # notifier lines
     di_notif = _get_notif(lst_lines, notifier)
     # data
@@ -111,13 +117,14 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         lst_lines.pop()
     # make edges and attributes
     edges = []
+    attributes = di_notif["attributes"] if attributes is None else attributes
     di_attributes = {name: [] for name in di_notif["attributes"]}
     di_convert = _gen_convert(di_notif["attributes"], di_notif["attr_types"])
     line = None
     while lst_lines:
         line = lst_lines.pop()
         if line and not line.startswith(notifier):
-            di_get_edges[fmt](line, di_notif["attributes"], separator,
+            di_get_edges[fmt](line, attributes, separator,
                               secondary, edges, di_attributes, di_convert)
         else:
             break
@@ -132,6 +139,11 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             _log_message(logger, "WARNING",
                          'A Shape object was present in the file but could '
                          'not be loaded because Shapely is not installed.')
+    # check whether a population is present
+    if 'population' in di_notif:
+        pop = pickle.loads(
+            codecs.decode(di_notif['population'].replace('~', '\n').encode(),
+            "base64"))
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
         y = np.fromstring(di_notif['y'], sep=separator)
@@ -199,14 +211,47 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         Positions are saved as bytes by :func:`numpy.nparray.tostring`
     '''
     fmt = _get_format(fmt, filename)
-    str_graph, di_notif = _as_string(graph, separator=separator, fmt=fmt,
-                          secondary=secondary, attributes=attributes,
-                          notifier=notifier,  return_info=True)
-    with open(filename, "w") as f_graph:
-        for key, val in iter(di_notif.items()):
-            f_graph.write("{}{}={}\n".format(notifier, key, val))
-        f_graph.write("\n")
-        f_graph.write(str_graph)
+
+    # check for mpi
+    if nngt.get_config("mpi"):
+        str_local, di_notif = _as_string(
+            graph, separator=separator, fmt=fmt, secondary=secondary,
+            attributes=attributes, notifier=notifier, return_info=True)
+        # make notification string only on master thread
+        str_notif = ""
+        if on_master_process():
+            for key, val in iter(di_notif.items()):
+                str_notif += "{}{}={}\n".format(notifier, key, val)
+        # strings need to start with a newline because MPI strips last
+        str_local = "\n" + str_local
+        # gather all strings sizes
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        sizes = comm.allgather(
+            _str_bytes_len(str_local) + _str_bytes_len(str_notif))
+        size = comm.Get_size()
+        rank = comm.Get_rank()
+        # get rank-based offset
+        offset = [_str_bytes_len(str_notif)]
+        offset.extend(np.cumsum(sizes)[:-1])
+        # open file and write
+        if on_master_process():
+            with open(filename, "w") as f_graph:
+                f_graph.write(str_notif)
+        # parallel write
+        amode = MPI.MODE_WRONLY
+        fh = MPI.File.Open(comm, filename, amode)
+        fh.Write_at_all(offset[rank], str_local.encode('utf-8'))
+        fh.Close()
+    else:
+        str_graph, di_notif = _as_string(
+            graph, separator=separator, fmt=fmt, secondary=secondary,
+            attributes=attributes, notifier=notifier, return_info=True)
+        with open(filename, "w") as f_graph:
+            for key, val in iter(di_notif.items()):
+                f_graph.write("{}{}={}\n".format(notifier, key, val))
+            f_graph.write("\n")
+            f_graph.write(str_graph)
 
 
 # --------------------- #
@@ -242,9 +287,9 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     secondary : str, optional (default: ";")
         Secondary separator used to separate attributes in the case of custom
         formats.
-    attributes : list, optional (default: ``None``)
+    attributes : list, optional (default: all)
         List of names for the edge attributes present in the graph that will be
-        saved to disk; by default (``None``), all attributes will be saved.
+        saved to disk; by default, all attributes will be saved.
     notifier : str, optional (default: "@")
         Symbol specifying the following as meaningfull information. Relevant
         information are formatted ``@info_name=info_value``, with
@@ -304,6 +349,11 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         # set numpy cut threshold back on
         np.set_printoptions(threshold=old_threshold)
 
+    if graph.is_network():
+        additional_notif["population"] = codecs.encode(
+            pickle.dumps(graph.population, protocol=2),
+                         "base64").decode().replace('\n', '~')
+
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)
 
@@ -326,7 +376,7 @@ def _get_format(fmt, filename):
         elif filename.endswith('.dot'):
             fmt = 'dot'
         elif (filename.endswith('.gt') and
-              nngt._config["graph_library"] == "graph-tool"):
+              nngt._config["backend"] == "graph-tool"):
             fmt = 'gt'
         elif filename.endswith('.nn'):
             fmt = 'neighbour'
@@ -434,19 +484,33 @@ def _to_list(string):
     return string.split(chosen)
 
 
+def _to_int(string):
+    try:
+        return int(string)
+    except ValueError:
+        return int(float(string))
+
+
+def _to_string(byte_string):
+    ''' Convert bytes to string '''
+    if isinstance(byte_string, bytes):
+        return str(byte_string.decode())
+    return byte_string
+
+
 def _gen_convert(attributes, attr_types):
     '''
     Generate a conversion dictionary that associates the right type to each
     attribute
     '''
     di_convert = {}
-    for attr,attr_type in zip(attributes, attr_types):
+    for attr, attr_type in zip(attributes, attr_types):
         if attr_type in ("double", "float", "real"):
             di_convert[attr] = float
         elif attr_type in ("str", "string"):
             di_convert[attr] = str
         elif attr_type in ("int", "integer"):
-            di_convert[attr] = int
+            di_convert[attr] = _to_int
         elif attr_type in ("lst", "list", "tuple", "array"):
             di_convert[attr] = _to_list
         else:
@@ -487,6 +551,9 @@ def _get_edges_elist(line, attributes, separator, secondary, edges,
         attr_data = data[2].split(secondary)
         for name, val in zip(attributes, attr_data):
             di_attributes[name].append(di_convert[name](val))
+
+def _str_bytes_len(s):
+    return len(s.encode('utf-8'))
 
 
 # ---------- #

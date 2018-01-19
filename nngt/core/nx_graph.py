@@ -27,8 +27,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
-from nngt.lib.graph_helpers import _set_edge_attr
-from .base_graph import BaseGraph, BaseProperty
+from .base_graph import GraphInterface, BaseProperty
 
 
 _type_converter = {
@@ -223,7 +222,7 @@ class _NxEProperty(BaseProperty):
 # Graph #
 # ----- #
 
-class _NxGraph(BaseGraph):
+class _NxGraph(GraphInterface):
 
     '''
     Subclass of networkx Graph
@@ -346,9 +345,6 @@ class _NxGraph(BaseGraph):
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
         else:
-            if attributes is None:
-                attributes = {}
-            _set_edge_attr(self, [(source, target)], attributes)
             for attr in attributes:
                 if "_corr" in attr:
                     raise NotImplementedError("Correlated attributes are not "
@@ -357,13 +353,14 @@ class _NxGraph(BaseGraph):
                 attributes["weight"] = 1.
             self.add_edge(source, target)
             self[source][target]["eid"] = self.number_of_edges()
-            for key, val in attributes.items():
-                self[source][target][key] = val
+            # call parent function to set the attributes
+            self.attr_new_edges([(source, target)], attributes=attributes)
             if not self._directed:
                 self.add_edge(target,source)
                 self[source][target]["eid"] = self.number_of_edges()
                 for key, val in attributes.items():
                     self[target][source][key] = val
+                self.attr_new_edges([(target, source)], attributes=attributes)
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None):

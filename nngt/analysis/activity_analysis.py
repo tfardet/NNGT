@@ -186,8 +186,11 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
     '''
     Return a 2D sparse matrix, where:
 
-    - each row i contains the spikes of neuron i
-    - each column j contains the times of the jth spike for all neurons
+    - each row i contains the spikes of neuron i (in NEST),
+    - each column j contains the times of the jth spike for all neurons.
+
+    .. versionchanged:: 1.0
+        Neurons are now located in the row corresponding to their NEST GID.
 
     Parameters
     ----------
@@ -212,22 +215,20 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
 
     Note
     ----
-    This function supposes that neuron GIDs for a continuous set of integers.
     If no arguments are passed to the function, the first spike_recorder
     available in NEST will be used.
+    Neuron positions correspond to their GIDs in NEST.
 
     Returns
     -------
-    CSR matrix containing the spikes sorted by neuron (rows) and time
+    CSR matrix containing the spikes sorted by neuron GIDs (rows) and time
     (columns).
     '''
-    # get spikes
     if recorder is not None:
         import nest
         data = nest.GetStatus(recorder[0])[0]["events"]
         spike_times = data["times"]
         senders = data["senders"]
-        senders -= np.min(senders)
     elif spike_times is None and senders is None:
         import nest
         nodes = nest.GetNodes(
@@ -235,16 +236,20 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
         data = nest.GetStatus(nodes[0])[0]["events"]
         spike_times = data["times"]
         senders = data["senders"]
-        senders -= np.min(senders)
-    # create the sparse matrix
-    data = [0 for _ in range(len(set(senders)))]
-    row_idx = []
-    col_idx = []
-    for time, neuron in zip(spike_times, senders):
-        row_idx.append(neuron)
-        col_idx.append(data[neuron])
-        data[neuron] += 1
-    return ssp.csr_matrix((spike_times, (row_idx, col_idx)))
+
+    if np.any(senders):
+        max_sender = np.max(senders)
+        # create the sparse matrix
+        data = [0 for _ in range(max_sender + 1)]
+        row_idx = []
+        col_idx = []
+        for time, neuron in zip(spike_times, senders):
+            row_idx.append(neuron)
+            col_idx.append(data[neuron])
+            data[neuron] += 1
+        return ssp.csr_matrix((spike_times, (row_idx, col_idx)))
+    else:
+        return ssp.csr_matrix([])
 
 
 # ----- #

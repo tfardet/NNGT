@@ -80,7 +80,7 @@ import sys as _sys
 import logging
 
 
-__version__ = '0.9.dev2'
+__version__ = '1.0.a'
 ''' :obj:`str`, current NNGT version '''
 
 
@@ -95,15 +95,16 @@ _config = {
     'db_to_file': False,
     'db_url': "mysql:///nngt_db",
     'graph': object,
-    'graph_library': "graph-tool",
+    'backend': "nngt",
     'library': None,
     'load_nest': False,
     'log_folder': "~/.nngt/log",
     'log_level': 10,
     'log_to_file': False,
     'mpi': False,
+    'mpi_comm': None,
     'mpl_backend': None,
-    'msd': 0,
+    'msd': None,
     'multithreading': True,
     'omp': 1,
     'palette': 'Set1',
@@ -142,7 +143,7 @@ from .lib.nngt_config import (get_config, set_config, _load_config, _convert,
 if not _os.path.isfile(_new_config):  # if it does not, create it
     _shutil.copy(_default_config, _new_config)
 else:                                 # if it does check it is up-to-date
-    with open(_new_config, 'r') as fconfig:
+    with open(_new_config, 'r+') as fconfig:
         options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
         config_version = ""
         for opt in options:
@@ -152,11 +153,26 @@ else:                                 # if it does check it is up-to-date
             if opt_name == "version":
                 config_version = opt_val
         if config_version != __version__:
-            _shutil.copy(_default_config, _new_config)
+            fconfig.seek(0)
+            data = []
+            with open(_default_config) as fdefault:
+                data = [l for l in fdefault]
+            i = 0
+            for line in data:
+                if '{version}' in line:
+                    fconfig.write(line.format(version=__version__))
+                    i += 1
+                    break
+                else:
+                    fconfig.write(line)
+                    i += 1
+            for line in data[i:]:
+                fconfig.write(line)
+            fconfig.truncate()
             _log_message(_logger, "WARNING",
                          "Updating the configuration file, your previous "
                          "settings have be overwritten.")
-
+_seeded = False
 _load_config(_new_config)
 
 # multithreading
@@ -169,29 +185,32 @@ if _config["omp"] > 1:
 # Loading graph library #
 #---------------------- #
 
-from .lib.graph_backends import use_library, analyze_graph
+from .lib.graph_backends import use_backend, analyze_graph
 
 _libs = ['graph-tool', 'igraph', 'networkx']
-assert _config['graph_library'] in _libs, \
+_glib = _config['backend']
+assert _glib in _libs or _glib == 'nngt', \
 	   "Internal error for graph library loading, please report " +\
 	   "this on GitHub."
 
 try:
-    use_library(_config['graph_library'], False, silent=True)
+    use_backend(_config['backend'], False, silent=True)
 except ImportError:
-    idx = _libs.index(_config['graph_library'])
+    idx = _libs.index(_config['backend'])
     del _libs[idx]
     keep_trying = True
     while _libs and keep_trying:
         try:
-            use_library(_libs[-1], False, silent=True)
+            use_backend(_libs[-1], False, silent=True)
             keep_trying = False
         except ImportError:
             _libs.pop()
 
 if not _libs:
-    raise ImportError("This module needs one of the following graph libraries "
-                      "to work:  `graph_tool`, `igraph`, or `networkx`.")
+    use_backend('nngt', False, silent=True)
+    _log_message(_logger, "WARNING",
+                 "This module needs one of the following graph libraries to "
+                 "study networks: `graph_tool`, `igraph`, or `networkx`.")
 
 
 # ------- #
@@ -241,7 +260,7 @@ __all__ = [
     "set_config",
     "SpatialGraph",
     "SpatialNetwork",
-    "use_library",
+    "use_backend",
     "__version__"
 ]
 
@@ -312,7 +331,7 @@ NEST support:   {nest}
 Database:       {db}
 MPI:            {mpi}
 '''.format(
-    gl=_config["graph_library"] + ' ' + _glib_version,
+    gl=_config["backend"] + ' ' + _glib_version,
     thread=_config["multithreading"],
     plot=_config["with_plot"],
     nest=_config["with_nest"],

@@ -64,7 +64,7 @@ if not using_mt_algorithms:
     from .connect_algorithms import *
 if nngt.get_config("mpi"):
     try:
-        from .mpi_connect import _distance_rule  # overwrite _distance_rule
+        from .mpi_connect import *
         nngt.set_config('mpi', True, silent=True)
     except ImportError as e:
         nngt.set_config('mpi', False, silent=True)
@@ -143,7 +143,6 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     graph_fd : :class:`~nngt.Graph`, or subclass
         A new generated graph or the modified `from_graph`.
     """
-    degree = int(degree)
     # set node number and library graph
     graph_fd = from_graph
     if graph_fd is not None:
@@ -219,19 +218,16 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 	If an `from_graph` is provided, all preexistant edges in the object
 	will be deleted before the new connectivity is implemented.
     """
-    # switch values to float
-    avg = float(avg)
-    std = float(std)
-    assert avg >= 0, "A positive value is required for `avg`."
-    assert std >= 0, "A positive value is required for `std`."
     # set node number and library graph
     graph_gd = from_graph
     if graph_gd is not None:
         nodes = graph_gd.node_nb()
         graph_gd.clear_all_edges()
     else:
-        nodes = population.size if population is not None else nodes
-        graph_gd = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+        nodes    = population.size if population is not None else nodes
+        graph_gd = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
+
     _set_options(graph_gd, population, shape, positions)
     # add edges
     ia_edges = None
@@ -239,7 +235,9 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
         ids = np.arange(nodes, dtype=np.uint)
         ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
                                     reciprocity, directed, multigraph)
-        graph_gd.new_edges(ia_edges)
+        # check for None if MPI
+        if ia_edges is not None:
+            graph_gd.new_edges(ia_edges)
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
     return graph_gd
 
@@ -769,6 +767,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
             multigraph=multigraph, distance=distance, **kwargs)
 
+    # Attributes are not set by subfunctions
     attr = {}
     if 'weights' in kwargs:
         attr['weight'] = kwargs['weights']
@@ -792,13 +791,12 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
 
     .. versionchanged:: 0.8
         Model-specific arguments are now provided as keywords and not through a
-        dict.
-        It is now possible to provide different weights and delays at each
-        call.
+        dict. It is now possible to provide different weights and delays at
+        each call.
 
     @todo
         make the modifications for only a set of edges
-    
+
     Parameters
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
@@ -845,6 +843,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
             avg_deg=avg_deg, weighted=weighted, directed=directed,
             multigraph=multigraph, distance=distance, **kwargs)
 
+    # Attributes are not set by subfunctions
     attr = {}
     if 'weights' in kwargs:
         attr['weight'] = kwargs['weights']

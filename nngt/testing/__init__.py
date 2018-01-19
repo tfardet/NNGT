@@ -53,25 +53,34 @@ import nngt
 # ------------- #
 
 # get the arguments for the graph library
-graph_library = environ.get("GL", None)
-if graph_library == "gt":
-    nngt.use_library("graph-tool")
-    assert nngt.get_config('graph_library') == "graph-tool", \
+backend = environ.get("GL", None)
+if backend == "gt":
+    nngt.use_backend("graph-tool")
+    assert nngt.get_config('backend') == "graph-tool", \
            "Loading graph-tool failed..."
-elif graph_library == "ig":
-    nngt.use_library("igraph")
-    assert nngt.get_config('graph_library') == "igraph", \
+elif backend == "ig":
+    nngt.use_backend("igraph")
+    assert nngt.get_config('backend') == "igraph", \
            "Loading igraph failed..."
-elif graph_library == "nx":
-    nngt.use_library("networkx")
-    assert nngt.get_config('graph_library') == "networkx", \
+elif backend == "nx":
+    nngt.use_backend("networkx")
+    assert nngt.get_config('backend') == "networkx", \
            "Loading networkx failed..."
+elif backend == "nngt":
+    nngt.use_backend("nngt")
+    assert nngt.get_config('backend') == "nngt", \
+           "Loading nngt failed..."
 
 
-# get the arguments for MPI/OpenMP
+# get the arguments for MPI/OpenMP + hide log
 omp = int(environ.get("OMP", 1))
 mpi = bool(environ.get("MPI", False))
-nngt.set_config({"multithreading": omp > 1, "omp": omp, "mpi": mpi})
+
+nngt.set_config({
+    "multithreading": omp > 1, "omp": omp,
+    "mpi": mpi,
+    "log_level": "ERROR",
+}, silent=True)
 
 
 # get the tests
@@ -80,6 +89,24 @@ dir_files = listdir(current_dir)
 sys.path.insert(0, current_dir)
 testfiles = [fname[:-3] for fname in dir_files if (fname.startswith("test_") 
              and fname.endswith(".py"))]
+
+# remove the MPI test unless we're using it, otherwise remove the examples
+if not nngt.get_config("mpi"):
+    idx = None
+    for i, test in enumerate(testfiles):
+        if "test_mpi" in test:
+            idx = i
+            break
+    del testfiles[idx]
+else:
+    idx = None
+    for i, test in enumerate(testfiles):
+        if "test_examples" in test:
+            idx = i
+            break
+    del testfiles[idx]
+
+
 tests = [importlib.import_module(name) for name in testfiles]
 
 
@@ -89,4 +116,5 @@ tests = [importlib.import_module(name) for name in testfiles]
 
 if __name__ == "__main__":
     for test in tests:
-        unittest.TextTestRunner(verbosity=2).run(test.suite)
+        if hasattr(test, "suite"):
+            unittest.TextTestRunner(verbosity=2).run(test.suite)

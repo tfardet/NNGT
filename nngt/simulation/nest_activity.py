@@ -307,10 +307,10 @@ def analyze_raster(raster=None, limits=None, network=None,
     network : :class:`~nngt.Network`, optional (default: None)
         Network on which the recorded activity was simulated.
     phase_coeff : tuple of floats, optional (default: (0.2, 5.))
-        A phase is considered `bursting' when the interspike between all spikes
+        A phase is considered 'bursting' when the interspike between all spikes
         that compose it is smaller than ``phase_coeff[0] / avg_rate`` (where
-        ``avg_rate`` is the average firing rate), `quiescent' when it is
-        greater that ``phase_coeff[1] / avg_rate``, `mixed' otherwise.
+        ``avg_rate`` is the average firing rate), 'quiescent' when it is
+        greater that ``phase_coeff[1] / avg_rate``, 'mixed' otherwise.
     mbis : float, optional (default: 0.5)
         Maximum interspike interval allowed for two spikes to be considered in
         the same burst (in ms).
@@ -318,17 +318,17 @@ def analyze_raster(raster=None, limits=None, network=None,
         Minimal fraction of the neurons that should participate for a burst to
         be validated (i.e. if the interspike is smaller that the limit BUT the
         number of participating neurons is too small, the phase will be
-        considered as `localized`).
+        considered as 'localized').
     mflb : float, optional (default: 0.05)
         Minimal fraction of the neurons that should participate for a local 
         burst to be validated (i.e. if the interspike is smaller that the limit
         BUT the number of participating neurons is too small, the phase will be
-        considered as `mixed`).
+        considered as 'mixed').
     skip_bursts : int, optional (default: 0)
         Skip the `skip_bursts` first bursts to consider only the permanent
         regime.
     simplify: bool, optional (default: False)
-        If ``True``, `mixed` phases that are contiguous to a burst are
+        If ``True``, 'mixed' phases that are contiguous to a burst are
         incorporated to it.
     fignums : list, optional (default: [])
         Indices of figures on which the periods can be drawn.

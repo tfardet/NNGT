@@ -20,8 +20,14 @@
 
 ''' Network generation for NEST '''
 
+import numpy as np
+
 import nngt
 import nngt.generation as ng
+
+
+# nngt.seed(0)
+
 
 # -------------------- #
 # Generate the network #

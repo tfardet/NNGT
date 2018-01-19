@@ -20,8 +20,12 @@
 
 ''' Using complex NEST models '''
 
+import numpy as np
 import nngt
 import nngt.generation as ng
+
+
+# np.random.seed(0)
 
 
 '''
@@ -60,6 +64,8 @@ Send to NEST and set excitation and recorders
 if nngt.get_config('with_nest'):
     import nest
     import nngt.simulation as ns
+
+    nest.ResetKernel()
 
     gids = net.to_nest()
 

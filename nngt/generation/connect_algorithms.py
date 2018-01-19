@@ -37,7 +37,6 @@ __all__ = [
     "_fixed_degree",
     "_gaussian_degree",
     "_newman_watts",
-    "_no_self_loops",
     "_price_scale_free",
     "_random_scale_free",
     "_unique_rows",
@@ -58,6 +57,9 @@ EPS = 0.00001
 def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
                   reciprocity=-1, directed=True, multigraph=False,
                   existing_edges=None, **kwargs):
+    degree = int(degree)
+    assert degree >= 0, "A positive value is required for `degree`."
+
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -65,7 +67,7 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
     # edges
-    edges = num_target*degree if degree_type == "out" else num_source*degree
+    edges = num_source*degree if degree_type == "out" else num_target*degree
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
     
@@ -102,6 +104,12 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
                      reciprocity=-1, directed=True, multigraph=False,
                      existing_edges=None, **kwargs):
     ''' Connect nodes with a Gaussian distribution '''
+    # switch values to float
+    avg = float(avg)
+    std = float(std)
+    assert avg >= 0, "A positive value is required for `avg`."
+    assert std >= 0, "A positive value is required for `std`."
+
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
@@ -109,9 +117,9 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
     # edges
-    num_node = num_source if degree_type == "in" else num_target
+    num_degrees = num_target if degree_type == "in" else num_source
     lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_node), 0.)).astype(int)
+        np.maximum(np.random.normal(avg, std, num_degrees), 0.)).astype(int)
     edges = np.sum(lst_deg)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
@@ -410,10 +418,25 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     return ia_edges
 
 
-def price_network():
+def price_network(*args, **kwargs):
     #@todo: do it for other libraries
-    pass
+    raise NotImplementedError("Not implemented except for graph-tool.")
 
 
-if nngt.get_config("graph_library") == "graph-tool":
-    from graph_tool.generation import price_network
+if nngt.get_config("backend") == "graph-tool":
+    from graph_tool.generation import price_network as _pn
+
+    def price_network(*args, **kwargs):
+        weighted   = kwargs.get("weighted", True)
+        directed   = kwargs.get("directed", True)
+        population = kwargs.get("population", None)
+        shape      = kwargs.get("shape", None)
+        for k in ("weighted", "directed", "population", "shape"):
+            try:
+                del kwargs[k]
+            except KeyError:
+                pass
+        g = _pn(*args, **kwargs)
+        return Graph.from_library(
+            g, weighted=weighted, directed=directed, population=population,
+            shape=shape, **kwargs)

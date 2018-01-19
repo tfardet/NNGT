@@ -168,6 +168,8 @@ class Graph(nngt.core.GraphObject):
             List of names for the attributes present in the file. If a
             `notifier` is present in the file, names will be deduced from it;
             otherwise the attributes will be numbered.
+            This argument can also be used to load only a subset of the saved
+            attributes.
         notifier : str, optional (default: "@")
             Symbol specifying the following as meaningfull information.
             Relevant information is formatted ``@info_name=info_value``, where
@@ -185,8 +187,6 @@ class Graph(nngt.core.GraphObject):
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
-        if attributes is None:
-            attributes = []
         info, edges, attr, pop, shape, pos = load_from_file(
             filename=filename, fmt=fmt, separator=separator,
             secondary=secondary, attributes=attributes, notifier=notifier)
@@ -526,7 +526,45 @@ class Graph(nngt.core.GraphObject):
                     raise InvalidArgument("At least one of the `values` and "
                         "`val` arguments should not be ``None``.")
             self._eattr.set_attribute(attribute, values, edges=edges)
-                
+
+    def set_node_attribute(self, attribute, values=None, val=None,
+                           value_type=None, nodes=None):
+        '''
+        Set attributes to the connections between neurons.
+
+        .. versionadded:: 0.9
+
+        Parameters
+        ----------
+        attribute : str
+            The name of the attribute.
+        value_type : str
+            Type of the attribute, among 'int', 'double', 'string'
+        values : array, optional (default: None)
+            Values with which the edge attribute should be initialized.
+            (must have one entry per node in the graph)
+        val : int, float or str , optional (default: None)
+            Identical value for all edges.
+        value_type : str, optional (default: None)
+            Type of the attribute, among 'int', 'double', 'string'. Only used
+            if the attribute does not exist and must be created.
+        nodes : list of nodes, optional (default: all)
+            Nodes whose attributes should be set. Others will remain unchanged.
+        '''
+        if attribute not in self.nodes_attributes:
+            assert value_type is not None, "`value_type` is necessary for " +\
+                                           "new attributes."
+            self.new_node_attribute(name=attribute, value_type=value_type,
+                                    values=values, val=val)
+        else:
+            num_nodes = self.node_nb() if nodes is None else len(nodes)
+            if values is None:
+                if val is not None:
+                    values = np.repeat(val, num_nodes)
+                else:
+                    raise InvalidArgument("At least one of the `values` and "
+                        "`val` arguments should not be ``None``.")
+            self._nattr.set_attribute(attribute, values, nodes=nodes)
     
     def set_weights(self, weight=None, elist=None, distribution=None,
                     parameters=None, noise_scale=None):
@@ -689,6 +727,10 @@ class Graph(nngt.core.GraphObject):
 
         .. versionadded: 0.8
 
+        .. versionchanged: 1.0
+            Returns the full dict of edges attributes if called without
+            arguments.
+
         Parameters
         ----------
         edge : tuple or list of tuples, optional (default: ``None``)
@@ -698,22 +740,58 @@ class Graph(nngt.core.GraphObject):
 
         Returns
         -------
-        List containing the names of the graph's attributes (synaptic weights,
-        delays...) if `edge` is ``None``, else a ``dict`` containing the
-        attributes of the edge (or the value of attribute `name` if it is not
-        ``None``).
+        Dict containing all graph's attributes (synaptic weights, delays...)
+        by default. If `edge` is specified, returns only the values for these
+        edges. If `name` is specified, returns value of the attribute for each
+        edge.
+
+        Note
+        ----
+        The attributes values are ordered as the edges in
+        :func:`~nngt.Graph.edges_array`.
         '''
         if name is not None and edges is not None:
             if isinstance(edges, slice):
                 return self._eattr[name][edges]
             else:
                 return self._eattr[edges][name]
+        elif name is None and edges is None:
+            return {k: self._eattr[k] for k in self._eattr.keys()}
         elif name is None:
             return self._eattr[edges]
-        elif edges is None:
-            return self._eattr[name]
         else:
-            return self._eattr.keys()
+            return self._eattr[name]
+
+    def get_node_attributes(self, nodes=None, name=None):
+        '''
+        Attributes of the graph's edges.
+
+        .. versionadded: 0.9
+
+        Parameters
+        ----------
+        nodes : list of ints, optional (default: ``None``)
+            Nodes whose attribute should be displayed.
+        name : str, optional (default: ``None``)
+            Name of the desired attribute.
+
+        Returns
+        -------
+        List containing the names of all nodes attributes if `nodes` is
+        ``None``, else a ``dict`` containing the attributes of the nodes (or
+        only the value of attribute `name` if it is not ``None``).
+        '''
+        if name is not None and nodes is not None:
+            if isinstance(nodes, slice):
+                return self._nattr[name][nodes]
+            else:
+                return self._nattr[nodes][name]
+        elif name is None:
+            return self._nattr[nodes]
+        elif nodes is None:
+            return self._nattr[name]
+        else:
+            return self._nattr.keys()
     
     def get_attribute_type(self, attribute_name):
         ''' Return the type of an attribute '''
@@ -768,9 +846,13 @@ class Graph(nngt.core.GraphObject):
         #~ di_result = { prop: self.get_property(prop) for prop in a_properties }
         #~ return di_result
 
-    def get_degrees(self, deg_type="total", node_list=None, use_weights=False):
+    def get_degrees(self, deg_type="total", node_list=None, use_weights=False,
+                    syn_type="all"):
         '''
         Degree sequence of all the nodes.
+
+        ..versionchanged :: 0.9
+            Added `syn_type` keyword.
         
         Parameters
         ----------
@@ -780,6 +862,9 @@ class Graph(nngt.core.GraphObject):
             List of the nodes which degree should be returned
         use_weights : bool, optional (default: False)
             Whether to use weighted (True) or simple degrees (False).
+        syn_type : int or str, optional (default: all)
+            Restrict to a given synaptic type ("excitatory", 1, or
+            "inhibitory", -1).
         
         Returns
         -------
@@ -787,7 +872,23 @@ class Graph(nngt.core.GraphObject):
         '''
         valid_types = ("in", "out", "total")
         if deg_type in valid_types:
-            return self.degree_list(node_list, deg_type, use_weights)
+            if syn_type in ("excitatory", 1):
+                e_neurons = np.where(
+                    self.get_node_attributes(name="type") == 1)[0]
+                return self.adjacency_matrix(
+                    weights=use_weights,
+                    types=False)[e_neurons, :].sum(axis=0).A1
+            elif syn_type in ("inhibitory", -1):
+                i_neurons = np.where(
+                    self.get_node_attributes(name="type") == -1)[0]
+                return self.adjacency_matrix(
+                    weights=use_weights,
+                    types=False)[i_neurons, :].sum(axis=0).A1
+            elif syn_type == "all":
+                return self.degree_list(node_list, deg_type, use_weights)
+            else:
+                raise InvalidArgument(
+                    "Invalid synaptic type '{}'".format(syn_type))
         else:
             raise InvalidArgument("Invalid degree type '{}'".format(deg_type))
 
@@ -813,10 +914,10 @@ class Graph(nngt.core.GraphObject):
         return self.betweenness_list(btype=btype, use_weights=use_weights)
 
     def get_edge_types(self):
-        if TYPE in self._eattr.keys():
+        if TYPE in self.edges_attributes:
             return self.get_edge_attributes(name=TYPE)
         else:
-            return repeat(1, self.edge_nb())
+            return np.ones(self.edge_nb())
     
     def get_weights(self):
         ''' Returns the weighted adjacency matrix as a
@@ -1118,10 +1219,10 @@ class Network(Graph):
         inhibitory and excitatory neurons.
 
         .. versionchanged:: 0.8
-        Removed `es_{model, param}` and `is_{model, param}` in favour of
-        `syn_spec` parameter.
-        Renamed `ei_ratio` to `iratio` to match
-        :func:`~nngt.NeuralPop.exc_and_inhib`.
+            Removed `es_{model, param}` and `is_{model, param}` in favour of
+            `syn_spec` parameter.
+            Renamed `ei_ratio` to `iratio` to match
+            :func:`~nngt.NeuralPop.exc_and_inhib`.
         
         Parameters
         ----------
@@ -1254,6 +1355,21 @@ class Network(Graph):
         for group in self.population.values():
             group._nest_gids = gids[group.ids]
 
+    def get_edge_types(self):
+        inhib_neurons = {}
+        types         = np.ones(self.edge_nb())
+
+        for g in self._population.values():
+            if g.neuron_type == -1:
+                for n in g.ids:
+                    inhib_neurons[n] = None
+
+        for i, e in enumerate(self.edges_array):
+            if e[0] in inhib_neurons:
+                types[i] = -1
+        
+        return types
+
     def id_from_nest_gid(self, gids):
         '''
         Return the ids of the nodes in the :class:`nngt.Network` instance from
@@ -1311,6 +1427,13 @@ class Network(Graph):
                 for group in population.values():
                     types[group.ids] *= group.neuron_type
                 self.new_node_attribute('type', 'int', values=types)
+                # store the neuronal parameters in the graph
+                for group in population.values():
+                    if group.neuron_param is not None:
+                        for k, v in group.neuron_param.items():
+                            self.set_node_attribute(
+                                k, val=v, value_type='double',
+                                nodes=group.ids)
             else:
                 raise AttributeError("NeuralPop is not valid (not all neurons "
                                      "are associated to a group).")

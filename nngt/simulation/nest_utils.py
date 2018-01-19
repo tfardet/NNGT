@@ -79,9 +79,12 @@ def set_noise(gids, mean, std):
     return noise
 
 
-def set_poisson_input(gids, rate):
+def set_poisson_input(gids, rate, syn_spec=None):
     '''
     Submit neurons to a Poissonian rate of spikes.
+
+    .. versionchanged :: 0.9
+        Added `syn_spec` parameter.
     
     Parameters
     ----------
@@ -89,6 +92,8 @@ def set_poisson_input(gids, rate):
         NEST gids of the target neurons.
     rate : float
         Rate of the spike train.
+    weight : float, optional (default: 1.)
+        Strength of the arriving spikes.
     
     Returns
     -------
@@ -96,8 +101,8 @@ def set_poisson_input(gids, rate):
         The NEST gid of the poisson_generator.
     '''
     poisson_input = nest.Create("poisson_generator")
-    nest.SetStatus(poisson_input,{"rate": rate})
-    nest.Connect(poisson_input, gids)
+    nest.SetStatus(poisson_input, {"rate": rate})
+    nest.Connect(poisson_input, gids, syn_spec=syn_spec)
     return poisson_input
 
 
@@ -195,13 +200,13 @@ def set_step_currents(gids, times, currents):
     return scg
 
 
-def randomize_neural_states(network, instructions, groups=None, ids=None,
+def randomize_neural_states(network, instructions, groups=None, nodes=None,
                             make_nest=False):
     '''
     Randomize the neural states according to the instructions.
 
     .. versionchanged:: 0.8
-        Added `ids` argument.
+        Changed `ids` to `nodes` argument.
 
     Parameters
     ----------
@@ -213,7 +218,7 @@ def randomize_neural_states(network, instructions, groups=None, ids=None,
     groups : list of :class:`~nngt.NeuralGroup`, optional (default: None)
         If provided, only the neurons belonging to these groups will have their
         properties randomized.
-    ids : array-like, optional (default: all neurons)
+    nodes : array-like, optional (default: all neurons)
         NNGT ids of the neurons that will have their status randomized. 
     make_nest : bool, optional (default: False)
         If ``True`` and network has not been converted to NEST, automatically
@@ -237,18 +242,25 @@ def randomize_neural_states(network, instructions, groups=None, ids=None,
             raise AttributeError(
                 '`network` has not been sent to NEST yet.')
     gids = []
-    if ids is not None and groups is not None:
-        raise InvalidArgument('`ids` and `groups` cannot be set together.')
+    if nodes is not None and groups is not None:
+        raise InvalidArgument('`nodes` and `groups` cannot be set together.')
     elif groups is not None:
         for group in groups:
             gids.extend(group.nest_gids)
         gids = list(set(gids))
     else:
-        gids.extend(network.nest_gid if ids is None else network.nest_gid[ids])
+        gids.extend(
+            network.nest_gid if nodes is None else network.nest_gid[nodes])
     num_neurons = len(gids)
     for key, val in instructions.items():
         state = _generate_random(num_neurons, val)
+        # set the values in NEST
         nest.SetStatus(gids, key, state)
+        if nodes is None:
+            nodes = network.id_from_nest_gid(gids)
+        # store the values in the node attributes
+        if key not in ("V_m", "w"):
+            network.set_node_attribute(key, values=state, nodes=nodes)
 
 
 # ----------------------- #
@@ -286,7 +298,7 @@ def monitor_groups(group_names, network, nest_recorder=None, params=None):
     if params is None:
         params = [{}]
     elif isinstance(params, dict):
-        params = [param]
+        params = [params]
     recorders, recordables = [], []
     for name in group_names:
         gids = tuple(network.population[name].nest_gids)

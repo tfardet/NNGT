@@ -16,7 +16,7 @@ from libcpp cimport bool
 cdef extern from "func_connect.h" namespace "generation":
     cdef void _gen_edges(
       size_t* ia_edges, const vector[size_t]& first_nodes,
-      const vector[size_t]& degrees, const vector[size_t]& second_nodes,
+      const vector[unsigned int]& degrees, const vector[size_t]& second_nodes,
       const vector[ vector[size_t] ]& existing_edges, unsigned int idx,
       bool multigraph, bool directed, long msd, unsigned int omp) except +
 

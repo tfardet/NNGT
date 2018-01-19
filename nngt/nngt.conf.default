@@ -2,15 +2,18 @@
 # NNGT configuration file #
 #-------------------------#
 
-version = 0.9.dev2
+version = {version}
 
 #-------------------------
-## default graph library -----------------------------------------------------
+## default backend       -----------------------------------------------------
 #-------------------------
 
-# (choose among "graph-tool", "igraph", "networkx")
+# library that will be used in the background to handle graph generation
+# (choose among "graph-tool", "igraph", "networkx", or "nngt"). Note that only
+# the 3 first options will allow full graph analysis features while only the
+# last one allows for fully distributed memory on clusters.
 
-graph_library = graph-tool
+backend = graph-tool
 
 
 #---------------------

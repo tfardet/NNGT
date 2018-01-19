@@ -106,7 +106,8 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map,
 
 std::vector<size_t> _gen_edge_complement(
   std::mt19937& generator, const std::vector<size_t>& nodes, size_t other_end,
-  size_t degree, const std::vector< std::vector<size_t> >* existing_edges,
+  unsigned int degree,
+  const std::vector< std::vector<size_t> >* existing_edges,
   bool multigraph)
 {
     // Initialize the RNG
@@ -160,7 +161,8 @@ std::vector<size_t> _gen_edge_complement(
 
 void _gen_edges(
   size_t* ia_edges, const std::vector<size_t>& first_nodes,
-  const std::vector<size_t>& degrees, const std::vector<size_t>& second_nodes,
+  const std::vector<unsigned int>& degrees,
+  const std::vector<size_t>& second_nodes,
   const std::vector< std::vector<size_t> >& existing_edges, unsigned int idx,
   bool multigraph, bool directed, long msd, unsigned int omp)
 {

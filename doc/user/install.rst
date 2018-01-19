@@ -17,6 +17,11 @@ Regardless of your needs, the following libraries are required:
 
 * `numpy <http://www.numpy.org/>`_ 
 * `scipy <http://www.scipy.org/scipylib/index.html>`_
+
+Though NNGT implements a default (very basic) backend, installing one of the
+following libraries is highly recommended to do some proper network
+analysis:
+
 * graph_tool_
 * or igraph_
 * or networkx_ (> 2.0)
@@ -25,9 +30,9 @@ Regardless of your needs, the following libraries are required:
 Additionnal dependencies
 ------------------------
 
-* `matplotlib <http://matplotlib.org/>`_ (optional but will limit the
-  functionalities if not present)
+* matplotlib_ (optional but will limit the functionalities if not present)
 * `peewee` for database features
+* shapely_ for complex spatial embedding
 
 .. note::
     If they are not present on your computer, `pip` will directly try to
@@ -52,7 +57,12 @@ versions via `pip`: ::
 
     sudo pip install numpy scipy matplotlib networkx
 
-Under most linux distributions, the simplest way is to install
+To install the last stable release, just use: ::
+
+    sudo pip install nngt
+
+Under most linux distributions, the simplest way to get the latest version
+of NNGT is to install to install both
 `pip <https://pip.pypa.io/en/stable/installing/>`_ and
 `git <https://git-scm.com/>`_, then simply type into a terminal: ::
 
@@ -139,5 +149,7 @@ For this, you will need to install NEST with Python bindings, which requires:
 
 .. _graph_tool: http://graph-tool.skewed.de
 .. _igraph: http://igraph.org/
+.. _matplotlib: http://matplotlib.org/
 .. _NEST simulator: http://www.nest-simulator.org/
 .. _networkx: https://networkx.github.io/
+.. _shapely: http://shapely.readthedocs.io/en/latest/index.html

@@ -251,6 +251,7 @@ def betweenness_distribution(network, btype="both", use_weights=True,
     ax = None
     if axes is None:
         fig, ax = plt.subplots()
+        fig.patch.set_visible(False)
         ax.grid(False, axis='y')
         axes = [ax.twinx()]
         if num_axes == 2:
@@ -375,6 +376,7 @@ def node_attributes_distribution(network, attributes, nodes=None,
         fig = plt.figure()
     else:
         fig = plt.figure(plt.get_fignums()[-1])
+    fig.patch.set_visible(False)
     # plot degrees if required
     degrees = []
     for name in attributes:
@@ -492,6 +494,7 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     if not nonstring_container(other_attributes):
         other_attributes = [other_attributes]
     fig = plt.figure()
+    fig.patch.set_visible(False)
     # get reference data
     ref_data = reference_attribute
     if isinstance(reference_attribute, str):
@@ -499,6 +502,8 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     else:
         reference_attribute = "user defined attribute"
     # plot the remaining attributes
+    assert isinstance(other_attributes, (str, list)), \
+        "Only attribute names are allowed for `other_attributes`"
     values = node_attributes(network, other_attributes, nodes=nodes)
     fig, axes = _set_new_plot(fignum=fig.number, names=other_attributes)
     for i, (attr, val) in enumerate(values.items()):
@@ -567,6 +572,7 @@ def compare_population_attributes(network, attributes, nodes=None,
     # get the last figure and put the axes to a dict
     # (order is degree, betweenness, attributes)
     fig = plt.figure(plt.get_fignums()[-1])
+    fig.patch.set_visible(False)
     axes = fig.get_axes()
     ref_kwargs = kwargs.copy()
     ref_kwargs.update({'alpha': 0.5})

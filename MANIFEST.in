@@ -2,11 +2,11 @@
 include LICENSE.txt
 
 # Include the Cython/C++ files
-include *.cpp
-include *.h
-include *.pyx
-include *.pxd
-include *.pyxbld
+recursive-include . *.cpp
+recursive-include . *.h
+recursive-include . *.pyx
+recursive-include . *.pxd
+recursive-include . *.pyxbld
 
 # Include the doc files
 recursive-include doc *

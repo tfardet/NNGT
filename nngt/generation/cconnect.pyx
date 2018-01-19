@@ -12,7 +12,7 @@ cimport numpy as np
 
 import numpy as np
 import scipy.sparse as ssp
-from numpy.random import randint
+from numpy.random import randint, get_state
 
 import nngt
 from nngt.lib import InvalidArgument
@@ -85,18 +85,21 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
 #
 
 def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
-                  np.ndarray[size_t, ndim=1] target_ids, size_t degree=-1,
+                  np.ndarray[size_t, ndim=1] target_ids, degree=-1,
                   degree_type="in", float reciprocity=-1, bool directed=True,
                   bool multigraph=False, existing_edges=None, **kwargs):
     ''' Generation of the edges through the C++ function '''
+    degree = int(degree)
+    assert degree >= 0, "A positive value is required for `degree`."
+
     cdef:
         # type of degree
         bool b_out = (degree_type == "out")
         bool b_total = (degree_type == "total")
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
-        size_t edges = (num_target * degree
-                        if degree_type == "out" else num_source * degree)
+        size_t edges = (num_source * degree
+                        if degree_type == "out" else num_target * degree)
         bool b_one_pop = _check_num_edges(
             source_ids, target_ids, edges, directed, multigraph)
         unsigned int existing = \
@@ -108,9 +111,9 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
     cdef:
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt._config["omp"]
-        unsigned int num_node = num_target if b_out else num_source
+        unsigned int num_degrees = num_source if b_out else num_target
         long msd = np.random.randint(0, edges + 1)
-        vector[size_t] degrees = np.repeat(degree, num_node)
+        vector[unsigned int] degrees = np.repeat(degree, num_degrees)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
     if b_out:
@@ -119,6 +122,7 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
     else:
         _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
             idx, multigraph, directed, msd, omp)
+
     return ia_edges
 
 
@@ -131,6 +135,12 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
     Connect nodes with a Gaussian distribution (generation through C++
     function.
     '''
+    # switch values to float
+    avg = float(avg)
+    std = float(std)
+    assert avg >= 0, "A positive value is required for `avg`."
+    assert std >= 0, "A positive value is required for `std`."
+
     cdef:
         # type of degree
         b_out = (degree_type == "out")
@@ -139,9 +149,9 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
         size_t num_target = target_ids.shape[0]
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt._config["omp"]
-        unsigned int num_node = num_target if b_out else num_source
-        vector[size_t] degrees = np.around(np.maximum(
-            np.random.normal(avg, std, num_node), 0.)).astype(DTYPE)
+        unsigned int num_degrees = num_source if b_out else num_target
+        vector[unsigned int] degrees = np.around(np.maximum(
+            np.random.normal(avg, std, num_degrees), 0.)).astype(DTYPE)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
     # edges
@@ -311,7 +321,8 @@ def _newman_watts(source_ids, target_ids, int coord_nb=-1,
     num_edges = int(circular_edges*(1+proba_shortcut))
     num_edges, circular_edges = (num_edges, circular_edges if directed
                              else (int(num_edges/2), int(circular_edges/2)))
-    
+
+    get_state()
     b_one_pop = _check_num_edges(
         source_ids, target_ids, num_edges, directed, multigraph)
     if not b_one_pop:

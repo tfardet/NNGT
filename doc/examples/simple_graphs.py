@@ -26,6 +26,9 @@ import nngt
 import nngt.generation as ng
 
 
+# np.random.seed(0)
+
+
 # ------------------- #
 # Generate the graphs #
 # ------------------- #

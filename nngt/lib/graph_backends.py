@@ -27,9 +27,10 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from .reloading import reload_module
 from .errors import not_implemented
 from .logger import _log_message
+from .reloading import reload_module
+from .test_functions import nonstring_container
 
 
 logger = logging.getLogger(__name__)
@@ -56,42 +57,48 @@ analyze_graph = {
 
 # use library function
 
-def use_library(library, reloading=True, silent=False):
+def use_backend(backend, reloading=True, silent=False):
     '''
-    Allows the user to switch to a specific graph library.
+    Allows the user to switch to a specific graph library as backend.
     
-    .. warning:
+    .. warning ::
         If :class:`~nngt.Graph` objects have already been created, they will no
         longer be compatible with NNGT methods.
 
     Parameters
     ----------
-    library : string
-        Name of a graph library among 'graph_tool', 'igraph', 'networkx'.
-    reload_moduleing : bool, optional (default: True)
+    backend : string
+        Name of a graph library among 'graph_tool', 'igraph', 'networkx', or
+        'nngt'.
+    reloading : bool, optional (default: True)
         Whether the graph objects should be `reload_module`d (this should
         always be set to True except when NNGT is first initiated!)
     '''
     # save old config except for graph-library data
-    old_config = nngt.get_config()
-    for k in ("graph", "graph_library", "library"):
+    old_config = nngt.get_config(detailed=True)
+    for k in ("graph", "backend", "library"):
         del old_config[k]
     # try to switch graph library
     success = False
     error = None
-    if library == "graph-tool":
+    if backend == "graph-tool":
         try:
             success = _set_graph_tool()
         except Exception as e:
             error = e
-    elif library == "igraph":
+    elif backend == "igraph":
         try:
             success = _set_igraph()
         except Exception as e:
             error = e
-    elif library == "networkx":
+    elif backend == "networkx":
         try:
             success = _set_networkx()
+        except Exception as e:
+            error = e
+    elif backend == "nngt":
+        try:
+            success = _set_nngt()
         except Exception as e:
             error = e
     else:
@@ -123,13 +130,13 @@ def use_library(library, reloading=True, silent=False):
     if success:
         if silent:
             _log_message(logger, "DEBUG",
-                         "Successfuly switched to " + library + ".")
+                         "Successfuly switched to " + backend + ".")
         else:
             _log_message(logger, "INFO",
-                         "Successfuly switched to " + library + ".")
+                         "Successfuly switched to " + backend + ".")
     else:
         _log_message(logger, "WARNING",
-                     "Error, could not switch to " + library + ": "
+                     "Error, could not switch to " + backend + ": "
                      "{}.".format(error))
         if error is not None:
             raise error
@@ -146,9 +153,9 @@ def _set_graph_tool():
     '''
     import graph_tool as glib
     from graph_tool import Graph as GraphLib
-    nngt._config["graph_library"] = "graph-tool"
+    nngt._config["backend"] = "graph-tool"
     nngt._config["library"] = glib
-    nngt._config["graph"] = GraphLib
+    nngt._config["graph"]   = GraphLib
     # analysis functions
     from graph_tool.spectral import adjacency as _adj
     from graph_tool.centrality import betweenness, closeness
@@ -202,9 +209,9 @@ def _set_igraph():
     '''
     import igraph as glib
     from igraph import Graph as GraphLib
-    nngt._config["graph_library"] = "igraph"
+    nngt._config["backend"] = "igraph"
     nngt._config["library"] = glib
-    nngt._config["graph"] = GraphLib
+    nngt._config["graph"]   = GraphLib
     # define
     def _closeness(graph, nodes, weights):
         if weights is True and graph.is_weighted():
@@ -219,10 +226,12 @@ def _set_igraph():
             xs, ys = map(np.array, zip(*graph.get_edgelist()))
             xs, ys = xs.T, ys.T
             data = np.ones(xs.shape)
-            if issubclass(weight.__class__, str):
+            if weight in graph.edges_attributes:
                 data *= np.array(graph.es[weight])
-            elif weight is not None:
+            elif nonstring_container(weight):
                 data *= np.array(weight)
+            elif weight:
+                data *= np.array(graph.es["weight"])
             coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
             return coo_adj.tocsr()
         else:
@@ -251,9 +260,9 @@ def _set_networkx():
         raise ImportError("`networkx {} is ".format(glib.__version__) +\
                           "installed while version 2+ is required.")
     from networkx import DiGraph as GraphLib
-    nngt._config["graph_library"] = "networkx"
+    nngt._config["backend"] = "networkx"
     nngt._config["library"] = glib
-    nngt._config["graph"] = GraphLib
+    nngt._config["graph"]   = GraphLib
     # analysis functions
     from networkx.algorithms import ( diameter, 
         strongly_connected_components, weakly_connected_components,
@@ -301,6 +310,43 @@ def _set_networkx():
     nngt.analyze_graph["reciprocity"] = overall_reciprocity
     nngt.analyze_graph["scc"] = strongly_connected_components
     nngt.analyze_graph["wcc"] = diameter
+    nngt.analyze_graph["adjacency"] = adj_mat
+    nngt.analyze_graph["get_edges"] = get_edges
+    return True
+
+
+def _set_nngt():
+    nngt._config["backend"] = "nngt"
+    nngt._config["library"] = nngt
+    nngt._config["graph"]   = object
+    # analysis functions
+    def _notimplemented(*args, **kwargs):
+        raise NotImplementedError("Install a graph library to use.")
+    def adj_mat(graph, weight=None):
+        if weight in graph.edges_attributes and weight != "weight":
+            edges     = graph.edges_array
+            prop      = graph.get_edge_attributes(name=weight)
+            num_nodes = graph.node_nb()
+            mat       = ssp.coo_matrix((prop, (edges[:, 0], edges[:, 1])),
+                                       shape=(num_nodes, num_nodes))
+            return mat.tocsr()
+        elif weight is False:
+            mat = graph._adj_mat.tocsr()
+            mat.data = np.ones(len(mat.data))
+            return mat
+        else:
+            return graph._adj_mat.tocsr()
+    def get_edges(graph):
+        return graph.edges_array()
+    # store functions
+    nngt.analyze_graph["assortativity"] = _notimplemented
+    nngt.analyze_graph["diameter"] = _notimplemented
+    nngt.analyze_graph["closeness"] = _notimplemented
+    nngt.analyze_graph["clustering"] = _notimplemented
+    nngt.analyze_graph["local_clustering"] = _notimplemented
+    nngt.analyze_graph["reciprocity"] = _notimplemented
+    nngt.analyze_graph["scc"] = _notimplemented
+    nngt.analyze_graph["wcc"] = _notimplemented
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
     return True

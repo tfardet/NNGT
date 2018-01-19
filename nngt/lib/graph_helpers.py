@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
+from copy import deepcopy
+
 import numpy as np
 
 from .errors import InvalidArgument
@@ -22,13 +24,12 @@ def _edge_prop(prop):
         return {'distribution': 'constant'}
     else:
         raise InvalidArgument("Edge property must be either a dict, a list, or"
-                              " a number.")
+                              " a number; received {}".format(type(prop)))
 
 
-def _set_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
+def _get_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
     '''
-    Fill the `attributes` dictionnary by returning the values associated to a
-    given edge attribute.
+    Returns the values associated to a given edge attribute.
 
     Parameters
     ----------
@@ -88,3 +89,39 @@ def _set_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
     return _eprop_distribution(
         graph, prop["distribution"], elist=elist, last_edges=last_edges,
         **params)
+
+
+def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec,
+                   key=None):
+    '''
+    Return the most specific synaptic properties in `syn_spec` with respect to
+    connections between `src_group` and `tgt_group`.
+    Priority is given to source (presynaptic properties): they come last.
+    '''
+    group_keys = []
+    for k in syn_spec.keys():
+        group_keys.extend(k)
+    group_keys = set(group_keys)
+
+    src_type = src_group.neuron_type
+    tgt_type = tgt_group.neuron_type
+
+    # entry for source type and target type
+    dict_prop = syn_spec.get((src_type, tgt_type), {})
+    key_prop = dict_prop.get(key, None)
+    # entry for source type and target name
+    if tgt_name in group_keys:
+        dict_prop = syn_spec.get((src_type, tgt_name), dict_prop)
+        key_prop = dict_prop.get(key, key_prop)
+    # entry for source name and target type
+    if src_name in group_keys:
+        dict_prop = syn_spec.get((src_name, tgt_type), dict_prop)
+        key_prop = dict_prop.get(key, key_prop)
+    # entry for source name and target name
+    if src_name in group_keys and tgt_name in group_keys:
+        dict_prop = syn_spec.get((src_name, tgt_name), dict_prop)
+        key_prop = dict_prop.get(key, key_prop)
+    if key is not None:
+        return deepcopy(key_prop)
+    else:
+        return deepcopy(dict_prop)

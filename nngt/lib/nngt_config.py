@@ -23,11 +23,14 @@
 import sys
 import logging
 
+import numpy as np
+
 import nngt
+from .errors import InvalidArgument
 from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
+from .rng_tools import seed as nngt_seed
 from .test_functions import mpi_checker, num_mpi_processes
-from .errors import InvalidArgument
 
 
 logger = logging.getLogger(__name__)
@@ -37,10 +40,37 @@ logger = logging.getLogger(__name__)
 # Getter and setter #
 # ----------------- #
 
-def get_config(key=None):
+def get_config(key=None, detailed=False):
     ''' Get the NNGT configuration as a dictionary. '''
     if key is None:
-        return {key: val for key, val in nngt._config.items()}
+        cfg = {key: val for key, val in nngt._config.items()}
+        if detailed:
+            return cfg
+        else:
+            # hide database config if not used
+            rm = []
+            if not nngt._config["use_database"]:
+                for k in cfg:
+                    if k.startswith('db_'):
+                        rm.append(k)
+            # hide mpi conf if not used
+            if not nngt._config["mpi"]:
+                del cfg['mpi_comm']
+            # hide technical stuff
+            del cfg["load_nest"]
+            del cfg["graph"]
+            del cfg["library"]
+            del cfg["palette"]
+            del cfg["use_tex"]
+            del cfg["mpl_backend"]
+            del cfg["color_lib"]
+            # hide log config
+            for k in cfg:
+                if k.startswith('log_'):
+                    rm.append(k)
+            for k in rm:
+                del cfg[k]
+        return cfg
     else:
         res = nngt._config[key]
         return res
@@ -75,7 +105,9 @@ def set_config(config, value=None, silent=False):
     '''
     old_mt     = nngt._config["multithreading"]
     old_mpi    = nngt._config["mpi"]
-    old_gl     = nngt._config["graph_library"]
+    old_omp    = nngt._config["omp"]
+    old_gl     = nngt._config["backend"]
+    old_msd    = nngt._config["msd"]
     new_config = None
     if not isinstance(config, dict):
         new_config = {config: value}
@@ -86,57 +118,15 @@ def set_config(config, value=None, silent=False):
             raise KeyError("Unknown configuration property: {}".format(key))
         if key == "log_level":
             new_config[key] = _convert(new_config[key])
-        if key == "graph_library" and new_config[key] != old_gl:
-            nngt.use_library(new_config[key])
+        if key == "backend" and new_config[key] != old_gl:
+            nngt.use_backend(new_config[key])
             del new_config[key]
     # check multithreading status and number of threads
-    mt = "multithreading"
-    if "omp" in new_config:
-        has_mt = new_config.get(mt, old_mt)
-        if new_config["omp"] > 1:
-            if mt in new_config and not new_config[mt]:
-                _log_message(logger, "WARNING",
-                             "Updating to 'multithreading' == False with "
-                             "'omp' greater than one.")
-            elif mt not in new_config and not old_mt:
-                new_config[mt] = True
-                _log_message(logger, "WARNING",
-                             "'multithreading' was set to False but new "
-                             "'omp' is greater than one. Updating "
-                             "'multithreading' to True.")
-    if new_config.get('mpi', False) and new_config.get(mt, False):
-        raise InvalidArgument('Cannot set both "mpi" and "multithreading" to '
-                              'True simultaneously, choose one or the other.')
-    elif new_config.get(mt, False):
-        new_config['mpi'] = False
-    elif new_config.get('mpi', False):
-        if old_mt:
-            new_config[mt] = False
-            _log_message(logger, "WARNING",
-                         '"mpi" set to True but previous configuration was '
-                         'using OpenMP; setting "multithreading" to False '
-                         'to switch to mpi algorithms.')
-    # reset seeds if necessary
-    reset_seeds  = (new_config.get("omp", 1) != nngt._config["omp"])
-    reset_seeds += (nngt._config["mpi"] and new_config.get(mt, False))
-    reset_seeds += (nngt._config[mt] and new_config.get('mpi', False))
-    if reset_seeds:
-        nngt._config['seeds'] = None
+    _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi)
     # update
     nngt._config.update(new_config)
     # apply multithreading parameters
-    new_multithreading = new_config.get("multithreading", old_mt)
-    if new_multithreading != old_mt:
-        reload_module(sys.modules["nngt"].generation.graph_connectivity)
-    # if multithreading loading failed, set omp back to 1
-    if not nngt._config['multithreading']:
-        nngt._config['omp'] = 1
-        nngt._config['seeds'] = None
-    # reload for mpi
-    if new_config.get('mpi', old_mpi) != old_mpi:
-        reload_module(sys.modules["nngt"].generation.graph_connectivity)
-    # set graph-tool config
-    _set_gt_config(old_gl, new_config)
+    _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi)
     # update matplotlib
     if nngt._config['use_tex']:
         import matplotlib
@@ -149,7 +139,7 @@ def set_config(config, value=None, silent=False):
     s_mpi = False if not nngt._config["mpi"] else "True ({} process{})".format(
                 num_mpi, "es" if num_mpi > 1 else "")
     conf_info = config_info.format(
-        gl     = nngt._config["graph_library"] + " " + glib.__version__[:5],
+        gl     = nngt._config["backend"] + " " + glib.__version__[:5],
         thread = nngt._config["multithreading"],
         plot   = nngt._config["with_plot"],
         nest   = nngt._config["with_nest"],
@@ -206,7 +196,7 @@ def _log_conf_changed(conf_info):
 
 def _set_gt_config(old_gl, new_config):
     using_gt  = old_gl == "graph-tool"
-    using_gt *= new_config.get("graph_library", old_gl) == "graph-tool"
+    using_gt *= new_config.get("backend", old_gl) == "graph-tool"
     using_gt *= nngt._config["library"] is not None
     if "omp" in new_config and using_gt:
         omp_nest = new_config["omp"]
@@ -221,7 +211,104 @@ def _set_gt_config(old_gl, new_config):
                          "consistent throughout the code. Current NEST "
                          "config states omp = " + str(omp_nest) + ", hence "
                          "`graph_tool` configuration was not changed.")
-    
+
+
+def _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi):
+    mt      = "multithreading"
+    if "omp" in new_config:
+        if new_config["omp"] > 1:
+            if mt in new_config and not new_config[mt]:
+                _log_message(logger, "WARNING",
+                             "Updating to 'multithreading' == False with "
+                             "'omp' greater than one.")
+            elif mt not in new_config and not old_mt:
+                new_config[mt] = True
+                _log_message(logger, "WARNING",
+                             "'multithreading' was set to False but new "
+                             "'omp' is greater than one. Updating "
+                             "'multithreading' to True.")
+    if new_config.get('mpi', False) and new_config.get(mt, False):
+        raise InvalidArgument('Cannot set both "mpi" and "multithreading" to '
+                              'True simultaneously, choose one or the other.')
+    elif new_config.get(mt, False):
+        new_config['mpi'] = False
+    elif new_config.get('mpi', False):
+        if old_mt:
+            new_config[mt] = False
+            _log_message(logger, "WARNING",
+                         '"mpi" set to True but previous configuration was '
+                         'using OpenMP; setting "multithreading" to False '
+                         'to switch to mpi algorithms.')
+    with_mt  = new_config.get(mt, old_mt)
+    with_mpi = new_config.get('mpi', old_mpi)
+    # check that seeds are correct
+    if new_config.get('seeds', None) is not None:
+        seeds = new_config['seeds']
+        err  = 'Expected {} seeds.'
+        err2 = 'All seeds must be different.'
+        if with_mpi:
+            from mpi4py import MPI
+            comm = MPI.COMM_WORLD
+            size = comm.Get_size()
+            assert size == len(seeds), err.format(size)
+            assert len(set(seeds)) == len(seeds), err2
+        elif with_mt:
+            num_omp = new_config.get("omp", old_omp)
+            assert num_omp == len(seeds), err.format(num_omp)
+            assert len(set(seeds)) == len(seeds), err2
+    else:
+        # reset seeds if necessary
+        # - because the number of threads changed
+        reset_seeds  = (new_config.get("omp", 1) != nngt._config["omp"])
+        # - because we switched from OpenMP to MPI
+        reset_seeds += (with_mpi and old_mt)
+        # - because we switched from MPI to OpenMP
+        reset_seeds += (with_mt and old_mpi)
+        if reset_seeds:
+            new_config['seeds'] = None
+            new_config['msd']   = None
+            nngt._seeded        = False
+
+
+def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
+    # reload for omp
+    new_multithreading = new_config.get("multithreading", old_mt)
+    if new_multithreading != old_mt:
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
+    # if multithreading loading failed, set omp back to 1
+    if not nngt._config['multithreading']:
+        nngt._config['omp'] = 1
+        nngt._config['seeds'] = None
+    # if MPI is on, set mpi_comm and check random numbers
+    if new_config.get('mpi', old_mpi):
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        nngt._config['mpi_comm'] = comm
+        # check that master seed is the same everywhere
+        msd = nngt._config['msd']
+        msd = comm.gather(msd, root=0)
+        if rank == 0:
+            if None not in msd:
+                msd = np.array(msd, dtype=int)
+                if not np.alltrue(msd == msd[0]):
+                    nngt._config["mpi"] = False
+                    raise InvalidArgument("'msd' entry must be the same on "
+                                          "all MPI processes.")
+            else:
+                differs = [seed != None for seed in msd]
+                if np.any(differs):
+                    raise InvalidArgument("'msd' entry must be the same on "
+                                          "all MPI processes.")
+    # reload for mpi
+    if new_config.get('mpi', old_mpi) != old_mpi:
+        reload_module(sys.modules["nngt"].generation.graph_connectivity)
+    # set graph-tool config
+    _set_gt_config(old_gl, new_config)
+    # seed python RNGs
+    if old_msd != nngt._config['msd'] or not nngt._seeded:
+        nngt_seed(msd=nngt._config['msd'])
+        
 
 
 config_info = '''

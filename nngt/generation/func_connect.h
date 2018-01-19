@@ -88,7 +88,8 @@ size_t _unique_2d(std::vector< std::vector<int> >& a, map_t& hash_map,
  */
 std::vector<size_t> _gen_edge_complement(
   long seed, const std::vector<size_t>& nodes, const size_t other_end,
-  const size_t degree, const std::vector< std::vector<size_t> >* existing_edges,
+  const unsigned int degree,
+  const std::vector< std::vector<size_t> >* existing_edges,
   const bool multigraph);
 
 
@@ -109,7 +110,8 @@ std::vector<size_t> _gen_edge_complement(
  */
 void _gen_edges(
   size_t* ia_edges, const std::vector<size_t>& first_nodes,
-  const std::vector<size_t>& degrees, const std::vector<size_t>& second_nodes,
+  const std::vector<unsigned int>& degrees,
+  const std::vector<size_t>& second_nodes,
   const std::vector< std::vector<size_t> >& existing_edges, unsigned int idx,
   bool multigraph, bool directed, long msd, unsigned int omp);
 

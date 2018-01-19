@@ -20,21 +20,26 @@
 
 """ Network generation for NEST """
 
+import numpy as np
+
 import nngt
 import nngt.generation as ng
+
+
+# nngt.seed(0)
 
 
 ''' Create groups with different parameters '''
 # adaptive spiking neurons
 base_params = {
-    'E_L': -60., 'V_th': -55., 'b': 10., 'tau_w': 100.,
-    'V_reset': -65., 't_ref': 1., 'g_L': 10., 'C_m': 250.
+    'E_L': -60., 'V_th': -57., 'b': 20., 'tau_w': 100.,
+    'V_reset': -65., 't_ref': 2., 'g_L': 10., 'C_m': 250.
 }
 # oscillators
 params1, params2 = base_params.copy(), base_params.copy()
-params1.update({'E_L': -65., 'b': 30., 'I_e': 350., 'tau_w': 400.})
+params1.update({'E_L': -65., 'b': 40., 'I_e': 200., 'tau_w': 400.})
 # bursters
-params2.update({'b': 20., 'V_reset': -50., 'tau_w': 500.})
+params2.update({'b': 30., 'V_reset': -50., 'tau_w': 500.})
 
 oscill = nngt.NeuralGroup(
     nodes=400, model='aeif_psc_alpha', neuron_param=params1)
@@ -45,9 +50,9 @@ adapt = nngt.NeuralGroup(
 
 synapses = {
     'default': {'model': 'tsodyks2_synapse'},
-    ('oscillators', 'bursters'): {'model': 'tsodyks2_synapse', 'U': 0.5},
-    ('oscillators', 'oscillators'): {'model': 'tsodyks2_synapse', 'U': 0.6},
-    ('oscillators', 'adaptive'): {'model': 'tsodyks2_synapse', 'U': 0.4}
+    ('oscillators', 'bursters'): {'model': 'tsodyks2_synapse', 'U': 0.6},
+    ('oscillators', 'oscillators'): {'model': 'tsodyks2_synapse', 'U': 0.7},
+    ('oscillators', 'adaptive'): {'model': 'tsodyks2_synapse', 'U': 0.5}
 }
 
 '''
@@ -63,23 +68,27 @@ Create the network from this population,
 using a Gaussian in-degree
 '''
 net = ng.gaussian_degree(
-    100., 15., population=pop, weights=1500.)
+    100., 15., population=pop, weights=250., delays=5.)
+
 
 '''
 Send the network to NEST, monitor and simulate
 '''
-
 if nngt.get_config('with_nest'):
     import nngt.simulation as ns
     import nest
+
+    nest.ResetKernel()
 
     nest.SetKernelStatus({'local_num_threads': 4})
 
     gids = net.to_nest()
 
+    nngt.simulation.randomize_neural_states(net, {"w": ("uniform", 0, 200)})
+
     recorders, records = ns.monitor_groups(pop.keys(), net)
 
-    nest.Simulate(1000.)
+    nest.Simulate(1600.)
 
     if nngt.get_config('with_plot'):
         ns.plot_activity(recorders, records, network=net, show=True)

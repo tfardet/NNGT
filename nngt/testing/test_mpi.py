@@ -75,7 +75,7 @@ class TestMPI(TestBasis):
         When generating graphs from on of the preconfigured models, check that
         the expected properties are indeed obtained.
         '''
-        if nngt.on_master_process():
+        if nngt.get_config("backend") != "nngt" and nngt.on_master_process():
             graph_type = instructions["graph_type"]
             ref_result = self.theo_prop[graph_type](instructions)
             computed_result = self.exp_prop[graph_type](graph, instructions)
@@ -95,6 +95,30 @@ class TestMPI(TestBasis):
                 self.assertTrue(err <= tolerance,
                     "Distance distribution for graph {} failed:\nerr = {} > {}\
                     ".format(graph.name, err, tolerance))
+        elif nngt.get_config("backend") == "nngt":
+            from mpi4py import MPI
+            comm       = MPI.COMM_WORLD
+            num_proc   = comm.Get_size()
+            graph_type = instructions["graph_type"]
+            ref_result = self.theo_prop[graph_type](instructions)
+            computed_result = self.exp_prop[graph_type](graph, instructions)
+            if graph_type == 'distance_rule':
+                # average degree
+                self.assertTrue(
+                    ref_result[0] == computed_result[0] * num_proc,
+                    "Avg. deg. for graph {} failed:\nref = {} vs exp {}\
+                    ".format(graph.name, ref_result[0], computed_result[0]))
+                # average error on distance distribution
+                sqd = np.square(
+                    np.subtract(ref_result[1:], computed_result[1:]))
+                avg_sqd = sqd / np.square(computed_result[1:])
+                err = np.sqrt(avg_sqd).mean()
+                tolerance = (self.tolerance if instructions['rule'] == 'lin'
+                             else 0.25)
+                self.assertTrue(err <= tolerance,
+                    "Distance distribution for graph {} failed:\nerr = {} > {}\
+                    ".format(graph.name, err, tolerance))
+            
 
 
 # ---------- #
