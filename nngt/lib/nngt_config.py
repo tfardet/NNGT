@@ -303,8 +303,11 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
     # set graph-tool config
     _set_gt_config(old_gl, new_config)
     # seed python RNGs
-    if old_msd != nngt._config['msd']:
-        np.random.seed(msd)
+    if old_msd != nngt._config['msd'] or not nngt._seeded:
+        np.random.seed(nngt._config['msd'])
+        if nngt._config['msd'] is None:
+            nngt._config['msd'] = np.random.get_state()[1][0]
+        nngt._seeded = True
         
 
 
