@@ -727,6 +727,10 @@ class Graph(nngt.core.GraphObject):
 
         .. versionadded: 0.8
 
+        .. versionchanged: 1.0
+            Returns the full dict of edges attributes if called without
+            arguments.
+
         Parameters
         ----------
         edge : tuple or list of tuples, optional (default: ``None``)
@@ -736,22 +740,27 @@ class Graph(nngt.core.GraphObject):
 
         Returns
         -------
-        List containing the names of the graph's attributes (synaptic weights,
-        delays...) if `edge` is ``None``, else a ``dict`` containing the
-        attributes of the edge (or the value of attribute `name` if it is not
-        ``None``).
+        Dict containing all graph's attributes (synaptic weights, delays...)
+        by default. If `edge` is specified, returns only the values for these
+        edges. If `name` is specified, returns value of the attribute for each
+        edge.
+
+        Note
+        ----
+        The attributes values are ordered as the edges in
+        :func:`Graph.edges_array`.
         '''
         if name is not None and edges is not None:
             if isinstance(edges, slice):
                 return self._eattr[name][edges]
             else:
                 return self._eattr[edges][name]
+        elif name is None and edges is None:
+            return {k: self._eattr[k] for k in self._eattr.keys()}
         elif name is None:
             return self._eattr[edges]
-        elif edges is None:
-            return self._eattr[name]
         else:
-            return self._eattr.keys()
+            return self._eattr[name]
 
     def get_node_attributes(self, nodes=None, name=None):
         '''

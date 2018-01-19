@@ -21,6 +21,7 @@
 """ GraphObject for subclassing the libraries graphs """
 
 from collections import OrderedDict
+from copy import deepcopy
 from abc import ABCMeta, abstractmethod, abstractproperty
 from six import add_metaclass
 from weakref import ref
@@ -297,19 +298,33 @@ class BaseGraph(GraphInterface):
     # Constructor and instance properties        
 
     def __init__(self, nodes=0, weighted=True, directed=True,
-                 **kwargs):
+                 g=None, **kwargs):
         ''' Initialized independent graph '''
-        self._nattr    = _NProperty(self)
-        self._eattr    = _EProperty(self)
         self._nodes    = []
         self._out_deg  = []
         self._in_deg   = []
         self._edges    = OrderedDict()
         self._adj_mat  = lil_matrix((nodes, nodes))
-        self._directed = directed
-        self._weighted = weighted
         super(BaseGraph, self).__init__()
-        self.new_node(nodes)
+        # test if copying graph
+        if g is not None:
+            # create nodes and node attributes
+            self.new_node(g.node_nb())
+            self._nattr    = deepcopy(g._nattr)
+            self._eattr    = _EProperty(self)
+            self._directed = g.is_directed()
+            self._weighted = g.is_weighted()
+            self._edges    = OrderedDict()
+            self._adj_mat  = lil_matrix((g.node_nb(), g.node_nb()))
+            # create edges and edge attributes
+            attributes = g.get_edge_attributes()
+            self.new_edges(g.edges_array, attributes=attributes)
+        else:
+            self._nattr    = _NProperty(self)
+            self._eattr    = _EProperty(self)
+            self._directed = directed
+            self._weighted = weighted
+            self.new_node(nodes)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
