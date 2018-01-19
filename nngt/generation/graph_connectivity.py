@@ -791,13 +791,12 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
 
     .. versionchanged:: 0.8
         Model-specific arguments are now provided as keywords and not through a
-        dict.
-        It is now possible to provide different weights and delays at each
-        call.
+        dict. It is now possible to provide different weights and delays at
+        each call.
 
     @todo
         make the modifications for only a set of edges
-    
+
     Parameters
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`

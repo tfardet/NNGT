@@ -748,7 +748,7 @@ class Graph(nngt.core.GraphObject):
         Note
         ----
         The attributes values are ordered as the edges in
-        :func:`Graph.edges_array`.
+        :func:`~nngt.Graph.edges_array`.
         '''
         if name is not None and edges is not None:
             if isinstance(edges, slice):

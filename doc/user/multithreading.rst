@@ -27,14 +27,13 @@ longer than the actual generation process.
 
 NNGT provides two types of parallelism:
 
-- shared-memory parallelism, using [OpenMP](http://www.openmp.org/), which can
-  be set using :func:`nngt.set_config` ``("multithreading", True)`` or, setting
-  the number of threads, with ``nngt.set_config("omp", 8)`` to use 8 threads.
+- shared-memory parallelism, using OpenMP_, which can be set using
+  :func:`nngt.set_config` ``("multithreading", True)`` or, setting the
+  number of threads, with ``nngt.set_config("omp", 8)`` to use 8 threads.
 - distributed-memory parallelism using
-  [MPI](https://en.wikipedia.org/wiki/Message_Passing_Interface), which is set
-  through ``nngt.set_config("mpi", True)``. In that case, the python script
-  must be run as ``mpirun -n 8 python name_of_the_script.py`` to be run in
-  parallel.
+  MPI_, which is set through ``nngt.set_config("mpi", True)``. In that case,
+  the python script must be run as ``mpirun -n 8 python name_of_the_script.py``
+  to be run in parallel.
 
 These two ways of running code in parallel differ widely, both regarding the
 situations in which they can be useful, and in the way the user should interact
@@ -179,5 +178,9 @@ The file should then be executed using:
 
 .. note ::
     Graph saving is available in parallel in the fully distributed setup
-    through the :func:`Graph.to_file` and :func:`~nngt.save_to_file` functions
-    as in any other configuration.
+    through the :func:`~nngt.Graph.to_file` and :func:`~nngt.save_to_file`
+    functions as in any other configuration.
+
+
+.. _MPI: https://en.wikipedia.org/wiki/Message_Passing_Interface
+.. _OpenMP: http://www.openmp.org/
