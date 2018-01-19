@@ -71,12 +71,12 @@ def foreach_graph(func):
     '''
     def wrapper(*args, **kwargs):
         self = args[0]
-        nx = nngt.get_config("backend") == "networkx"
+        partial_backend = nngt.get_config("backend") in ("networkx", "nngt")
         for graph_name in self.graphs:
-            if nx and "corr" in graph_name:
+            if partial_backend and "corr" in graph_name:
                 _log_message(logger, "DEBUG",
                              "Skipping correlated attributes with "
-                             "networkx")
+                             "networkx and nngt backends.")
             else:
                 generated = self.gen_graph(graph_name)
                 # check for None when using MPI

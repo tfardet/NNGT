@@ -104,6 +104,7 @@ def set_config(config, value=None, silent=False):
     '''
     old_mt     = nngt._config["multithreading"]
     old_mpi    = nngt._config["mpi"]
+    old_omp    = nngt._config["omp"]
     old_gl     = nngt._config["backend"]
     old_msd    = nngt._config["msd"]
     new_config = None
@@ -120,7 +121,7 @@ def set_config(config, value=None, silent=False):
             nngt.use_backend(new_config[key])
             del new_config[key]
     # check multithreading status and number of threads
-    _pre_update_parallelism(new_config, old_mt, old_mpi)
+    _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi)
     # update
     nngt._config.update(new_config)
     # apply multithreading parameters
@@ -211,7 +212,7 @@ def _set_gt_config(old_gl, new_config):
                          "`graph_tool` configuration was not changed.")
 
 
-def _pre_update_parallelism(new_config, old_mt, old_mpi):
+def _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi):
     mt      = "multithreading"
     if "omp" in new_config:
         if new_config["omp"] > 1:
@@ -251,7 +252,7 @@ def _pre_update_parallelism(new_config, old_mt, old_mpi):
             assert size == len(seeds), err.format(size)
             assert len(set(seeds)) == len(seeds), err2
         elif with_mt:
-            num_omp = new_config.get("omp", 1)
+            num_omp = new_config.get("omp", old_omp)
             assert num_omp == len(seeds), err.format(num_omp)
             assert len(set(seeds)) == len(seeds), err2
     else:
@@ -283,9 +284,9 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
         nngt._config['mpi_comm'] = comm
         # check that master seed is the same everywhere
         msd = nngt._config['msd']
-        msd = comm.gather(msd, root=0)
+        msd = np.array(comm.gather(msd, root=0), dtype=int)
         if rank == 0:
-            if not np.allclose(msd, msd[0]):
+            if not np.alltrue(msd == msd[0]):
                 nngt._config["mpi"] = False
                 raise InvalidArgument("'msd' entry must be the same on all "
                                       "MPI processes.")
