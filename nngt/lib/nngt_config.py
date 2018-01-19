@@ -284,12 +284,19 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
         nngt._config['mpi_comm'] = comm
         # check that master seed is the same everywhere
         msd = nngt._config['msd']
-        msd = np.array(comm.gather(msd, root=0), dtype=int)
+        msd = comm.gather(msd, root=0)
         if rank == 0:
-            if not np.alltrue(msd == msd[0]):
-                nngt._config["mpi"] = False
-                raise InvalidArgument("'msd' entry must be the same on all "
-                                      "MPI processes.")
+            if None not in msd:
+                msd = np.array(msd, dtype=int)
+                if not np.alltrue(msd == msd[0]):
+                    nngt._config["mpi"] = False
+                    raise InvalidArgument("'msd' entry must be the same on "
+                                          "all MPI processes.")
+            else:
+                differs = [seed != None for seed in msd]
+                if np.any(differs):
+                    raise InvalidArgument("'msd' entry must be the same on "
+                                          "all MPI processes.")
     # reload for mpi
     if new_config.get('mpi', old_mpi) != old_mpi:
         reload_module(sys.modules["nngt"].generation.graph_connectivity)
