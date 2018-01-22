@@ -263,7 +263,6 @@ def _not_yet(*args, **kwargs):
     raise NotImplementedError("Not available with MPI yet.")
 
 _fixed_degree = _not_yet
-_gaussian_degree = _not_yet
 _newman_watts = _not_yet
 _price_scale_free = _not_yet
 _random_scale_free = _not_yet

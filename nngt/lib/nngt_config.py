@@ -120,7 +120,6 @@ def set_config(config, value=None, silent=False):
             new_config[key] = _convert(new_config[key])
         if key == "backend" and new_config[key] != old_gl:
             nngt.use_backend(new_config[key])
-            del new_config[key]
     # check multithreading status and number of threads
     _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi)
     # update
