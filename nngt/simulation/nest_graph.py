@@ -26,6 +26,7 @@ import scipy.sparse as ssp
 from scipy.optimize import root
 from scipy.signal import argrelmax, argrelmin
 
+import nngt
 from nngt.lib import InvalidArgument, nonstring_container, WEIGHT, DELAY
 from nngt.lib.sorting import _sort_groups
 from nngt.lib.test_functions import mpi_checker
@@ -115,6 +116,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
     csr_delays = network.adjacency_matrix(types=False, weights=DELAY)
 
     cspec = 'one_to_one'
+
     for src_name in send:
         src_group = pop[src_name]
         syn_sign = src_group.neuron_type
@@ -142,9 +144,23 @@ def make_nest_network(network, send_only=None, use_weights=True):
                     else:
                         syn_spec[WEIGHT] = np.repeat(syn_sign, len(tgt_ids))
                     syn_spec[DELAY] = csr_delays[src_ids, tgt_ids].A1
-                    nest.Connect(
-                        network.nest_gid[src_ids], network.nest_gid[tgt_ids],
-                        syn_spec=syn_spec, conn_spec=cspec)
+
+                    # check backend
+                    with_mpi = nngt.get_config("mpi")
+                    if nngt.get_config("backend") == "nngt" and with_mpi:
+                        comm = nngt.get_config("mpi_comm")
+                        for i in range(comm.Get_size()):
+                            sources = comm.bcast(network.nest_gid[src_ids], i)
+                            targets = comm.bcast(network.nest_gid[tgt_ids], i)
+                            sspec   = comm.bcast(syn_spec, i)
+                            nest.Connect(sources, targets, syn_spec=sspec,
+                                         conn_spec=cspec)
+                            comm.Barrier()
+                    else:
+                        nest.Connect(
+                            network.nest_gid[src_ids],
+                            network.nest_gid[tgt_ids], syn_spec=syn_spec,
+                            conn_spec=cspec)
         elif len(src_group.ids) > 0:
             # get NEST gids of sources and targets for each edge
             src_ids = network.nest_gid[local_csr.nonzero()[0] + min_sidx]
