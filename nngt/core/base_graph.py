@@ -436,6 +436,7 @@ class BaseGraph(GraphInterface):
         -------
         The new connection.
         '''
+        #check attributes
         if attributes is None:
             attributes = {}
         # check that the edge does not already exist
@@ -481,6 +482,7 @@ class BaseGraph(GraphInterface):
             
         @todo: add example, check the edges for self-loops and multiple edges
         '''
+        #check attributes
         if attributes is None:
             attributes = {}
         initial_edges = self.edge_nb()
@@ -506,8 +508,8 @@ class BaseGraph(GraphInterface):
             ws = (1 for _ in range(num_added))
         for i, (e, w) in enumerate(zip(edge_list, ws)):
             self._edges[tuple(e)]     = initial_edges + i
-            self._out_deg[e[0]]      += 1
-            self._in_deg[e[1]]       += 1
+            self._out_deg[e[0]]  += 1
+            self._in_deg[e[1]]   += 1
             self._adj_mat[e[0], e[1]] = w
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
@@ -531,21 +533,32 @@ class BaseGraph(GraphInterface):
         '''
         return len(self._nodes)
 
-    def edge_nb(self):
+    def edge_nb(self, distributed=False):
         '''
         Returns the number of edges.
 
         .. warning:: When using MPI, returns only the local number of edges.
         '''
+        with_mpi = nngt.get_config("mpi")
+        if with_mpi and not distributed:
+            raise RuntimeError("This function returns only local nodes when "
+                               "using MPI. Add `distributed=True` to use it "
+                               "if you know what you are doing.")
         return len(self._edges)
     
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+    def degree_list(self, node_list=None, deg_type="total", use_weights=False,
+                    distributed=False):
         '''
         Returns the degree of the nodes.
 
         .. warning::
-        When using MPI, returns only the degree of the local nodes.
+        When using MPI, returns only the degree related to local edges.
         '''
+        with_mpi = nngt.get_config("mpi")
+        if with_mpi and not distributed:
+            raise RuntimeError("This function returns only local nodes when "
+                               "using MPI. Add `distributed=True` to use it "
+                               "if you know what you are doing.")
 
         if node_list is None:
             node_list = self._nodes
