@@ -72,7 +72,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     num_etotal = 0
     ia_edges   = np.zeros((edges, 2), dtype=int)
     idx        = 0 if b_out else 1  # differenciate source / target
-    variables  = source_ids if b_out else target_ids  # nodes picked randomly
+    variables  = targets_id if b_out else source_ids  # nodes picked randomly
     max_degree = np.inf if multigraph else len(variables)
     
     for i, v in enumerate(target_ids):
@@ -140,7 +140,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     num_neurons = len(set(np.concatenate((source_ids, target_ids))))
 
     # for each node, check the neighbours that are in an area where
-    # connections can be made: +/- scale for lin, +/- 10*scale for exp.
+    # connections can be made: ± scale for lin, ± 10*scale for exp.
     # Get the sources and associated targets for each MPI process
     sources = []
     targets = []

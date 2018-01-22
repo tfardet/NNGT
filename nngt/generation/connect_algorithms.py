@@ -76,7 +76,7 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
     if existing:
         ia_edges[:existing,:] = existing_edges
     idx = 0 if b_out else 1 # differenciate source / target
-    variables = source_ids if b_out else target_ids # nodes picked randomly
+    variables  = targets_id if b_out else source_ids  # nodes picked randomly
     
     for i,v in enumerate(target_ids):
         edges_i, ecurrent, variables_i = np.zeros((degree,2)), 0, []
@@ -129,7 +129,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     if num_etotal:
         ia_edges[:num_etotal,:] = existing_edges
     idx = 0 if b_out else 1 # differenciate source / target
-    variables = source_ids if b_out else target_ids # nodes picked randomly
+    variables = targets_id if b_out else source_ids  # nodes picked randomly
     
     for i,v in enumerate(target_ids):
         degree_i = lst_deg[i]

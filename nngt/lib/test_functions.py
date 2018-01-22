@@ -75,7 +75,7 @@ def mpi_checker(func):
     to store and generate the graph if the mpi algorithms are activated.
     '''
     def wrapper(*args, **kwargs):
-        if on_master_process():
+        if nngt.get_config("backend") == "nngt" or on_master_process():
             return func(*args, **kwargs)
         else:
             return None
