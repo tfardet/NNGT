@@ -76,7 +76,7 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
     if existing:
         ia_edges[:existing,:] = existing_edges
     idx = 0 if b_out else 1 # differenciate source / target
-    variables  = targets_id if b_out else source_ids  # nodes picked randomly
+    variables  = target_ids if b_out else source_ids  # nodes picked randomly
     
     for i,v in enumerate(target_ids):
         edges_i, ecurrent, variables_i = np.zeros((degree,2)), 0, []
