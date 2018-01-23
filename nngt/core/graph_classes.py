@@ -187,20 +187,29 @@ class Graph(nngt.core.GraphObject):
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
-        info, edges, attr, pop, shape, pos = load_from_file(
+        info, edges, nattr, eattr, pop, shape, pos = load_from_file(
             filename=filename, fmt=fmt, separator=separator,
             secondary=secondary, attributes=attributes, notifier=notifier)
         # create the graph
         graph = Graph(nodes=info["size"], name=info["name"],
                       directed=info["directed"])
+        # make the nodes attributes
         lst_attr, dtpes, lst_values = [], [], []
-        if info["attributes"]:  # their are attributes to add to the graph
-            lst_attr = info["attributes"]
-            dtpes = info["attr_types"]
-            lst_values = [attr[name] for name in info["attributes"]]
+        if info["node_attributes"]:  # edge attributes to add to the graph
+            lst_attr   = info["node_attributes"]
+            dtpes      = info["node_attr_types"]
+            lst_values = [nattr[name] for name in info["node_attributes"]]
+        for nattr, dtype, values in zip(lst_attr, dtpes, lst_values):
+            graph.new_node_attribute(nattr, dtype, values=values)
+        # make the edges and their attributes
+        lst_attr, dtpes, lst_values = [], [], []
+        if info["edge_attributes"]:  # edge attributes to add to the graph
+            lst_attr   = info["edge_attributes"]
+            dtpes      = info["edge_attr_types"]
+            lst_values = [eattr[name] for name in info["edge_attributes"]]
         graph.new_edges(edges)
-        for attr, dtype, values in zip(lst_attr, dtpes, lst_values):
-            graph.new_edge_attribute(attr, dtype, values=values)
+        for eattr, dtype, values in zip(lst_attr, dtpes, lst_values):
+            graph.new_edge_attribute(eattr, dtype, values=values)
         if pop is not None:
             Network.make_network(graph, pop)
         if pos is not None or shape is not None:
@@ -792,10 +801,45 @@ class Graph(nngt.core.GraphObject):
             return self._nattr[name]
         else:
             return self._nattr.keys()
-    
-    def get_attribute_type(self, attribute_name):
-        ''' Return the type of an attribute '''
-        return self._eattr.value_type(attribute_name)
+
+    def get_attribute_type(self, attribute_name, attribute_class=None):
+        '''
+        Return the type of an attribute (e.g. string, double, int).
+
+        .. versionchanged:: 1.0
+            Added `attribute_class` parameter.
+
+        Parameters
+        ----------
+        attribute_name : str
+            Name of the attribute.
+        attribute_class : str, optional (default: both)
+            Whether `attribute_name` is a "node" or an "edge" attribute.
+
+        Returns
+        -------
+        type : str
+            Type of the attribute.
+        '''
+        if attribute_class is None:
+            if attribute_name in self._eattr and attribute_name in self._nattr:
+                raise RuntimeError("Both edge and node attributes with name '"
+                                   + attribute_name + "' exist, please "
+                                   "specify `attribute_class`")
+            elif attribute_name in self._eattr:
+                return self._eattr.value_type(attribute_name)
+            elif attribute_name in self._nattr:
+                return self._nattr.value_type(attribute_name)
+            else:
+                raise KeyError("No '{}' attribute.".format(attribute_name))
+        else:
+            if attribute_class == "edge":
+                return self._eattr.value_type(attribute_name)
+            elif attribute_class == "node":
+                return self._nattr.value_type(attribute_name)
+            else:
+                raise InvalidArgument(
+                    "Unknown attribute class '{}'.".format(attribute_class))
     
     def get_name(self):
         ''' Get the name of the graph '''

@@ -21,6 +21,7 @@
 """ Test functions for the NNGT """
 
 import collections
+import warnings
 try:
     from collections.abc import Container as _container
 except:
@@ -35,6 +36,29 @@ def valid_gen_arguments(func):
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
     return wrapper
+
+
+def deprecated(version, reason=None, alternative=None):
+    '''
+    Decorator to mark deprecated functions.
+    '''
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            # turn off filter temporarily
+            warnings.simplefilter('always', DeprecationWarning)
+            message = "Function {} is deprecated since version {}"
+            message = message.format(func.__name__, version)
+            if reason is not None:
+                message += "because " + reason + "."
+            else:
+                message += "."
+            if alternative is not None:
+                message += "Use " + alternative + " instead."
+            warnings.warn(message, category=DeprecationWarning, stacklevel=2)
+            warnings.simplefilter('default', DeprecationWarning)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def on_master_process():
