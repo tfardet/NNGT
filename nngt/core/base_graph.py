@@ -533,33 +533,21 @@ class BaseGraph(GraphInterface):
         '''
         return len(self._nodes)
 
-    def edge_nb(self, distributed=False):
+    def edge_nb(self):
         '''
         Returns the number of edges.
 
         .. warning:: When using MPI, returns only the local number of edges.
         '''
-        with_mpi = nngt.get_config("mpi")
-        if with_mpi and not distributed:
-            raise RuntimeError("This function returns only local nodes when "
-                               "using MPI. Add `distributed=True` to use it "
-                               "if you know what you are doing.")
         return len(self._edges)
     
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False,
-                    distributed=False):
+    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         '''
         Returns the degree of the nodes.
 
         .. warning::
         When using MPI, returns only the degree related to local edges.
         '''
-        with_mpi = nngt.get_config("mpi")
-        if with_mpi and not distributed:
-            raise RuntimeError("This function returns only local nodes when "
-                               "using MPI. Add `distributed=True` to use it "
-                               "if you know what you are doing.")
-
         if node_list is None:
             node_list = self._nodes
 
