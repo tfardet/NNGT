@@ -32,6 +32,7 @@ from scipy.sparse import coo_matrix, csr_matrix, lil_matrix
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
 from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param
+from nngt.lib.io_tools import _np_dtype
 
 
 # ---------------------------------- #
@@ -615,10 +616,8 @@ class _NProperty(BaseProperty):
         self.prop = OrderedDict()
 
     def __getitem__(self, name):
-        if super(_NProperty, self).__getitem__(name) in ('string', 'object'):
-            return np.array(self.prop[name], dtype=object)
-        else:
-            return np.array(self.prop[name])
+        dtype = _np_dtype(super(_NProperty, self).__getitem__(name))
+        return np.array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -639,7 +638,7 @@ class _NProperty(BaseProperty):
                 val = int(0)
                 dtype = int
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
                 dtype = float
             elif value_type == "string":
                 val = ""
@@ -706,18 +705,22 @@ class _EProperty(BaseProperty):
         eprop = {}
         if isinstance(name, slice):
             for k in self.keys():
-                eprop[k] = np.array(self.prop[k][name])
+                dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
+                eprop[k] = np.array(self.prop[k][name], dtype=dtype)
             return eprop
         elif nonstring_container(name):
             if nonstring_container(name[0]):
                 eids = [self.parent().edge_id(e) for e in name]
                 for k in self.keys():
-                    eprop[k] = np.array(self.prop[k][eids])
+                    dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
+                    eprop[k] = np.array(self.prop[k][eids], dtype=dtype)
             else:
                 for k in self.keys():
-                    eprop[k] = np.array(self.prop[k][name])
+                    dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
+                    eprop[k] = np.array(self.prop[k][name], dtype=dtype)
             return eprop
-        return np.array(self.prop[name])
+        dtype = _np_dtype(super(_EProperty, self).__getitem__(name))
+        return np.array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:

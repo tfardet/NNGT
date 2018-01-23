@@ -38,17 +38,17 @@ class TestIO(TestBasis):
     Class testing saving and loading functions.
     '''
     
-    @classmethod
-    def tearDownClass(cls):
-        for graphname in cls.graphs:
-            try:
-                os.remove(current_dir + graphname + '.el')
-            except:
-                pass
-        try:
-            os.remove(current_dir + 'test.el')
-        except:
-            pass
+    # ~ @classmethod
+    # ~ def tearDownClass(cls):
+        # ~ for graphname in cls.graphs:
+            # ~ try:
+                # ~ os.remove(current_dir + graphname + '.el')
+            # ~ except:
+                # ~ pass
+        # ~ try:
+            # ~ os.remove(current_dir + 'test.el')
+        # ~ except:
+            # ~ pass
     
     @property
     def test_name(self):

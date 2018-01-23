@@ -1470,7 +1470,7 @@ class Network(Graph):
                 types = np.ones(self.node_nb())
                 for group in population.values():
                     types[group.ids] *= group.neuron_type
-                self.new_node_attribute('type', 'int', values=types)
+                self.new_node_attribute('type', value_type='int', values=types)
                 # store the neuronal parameters in the graph
                 for group in population.values():
                     if group.neuron_param is not None:

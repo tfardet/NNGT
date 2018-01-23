@@ -618,7 +618,7 @@ class NeuralPop(OrderedDict):
 # NeuralGroup and GroupProperty #
 # ----------------------------- #
 
-class NeuralGroup:
+class NeuralGroup(object):
 
     """
     Class defining groups of neurons.

@@ -477,7 +477,10 @@ def _format_notif(notif_name, notif_val):
     )
     if notif_name in attr:
         lst = notif_val[1:-1].split(", ")
-        return [val.strip("'\"") for val in lst]
+        if lst != ['']:  # check empty string
+            return [val.strip("'\"") for val in lst]
+        else:
+            return []
     elif notif_name == "size":
         return int(notif_val)
     elif notif_name == "directed":
@@ -558,7 +561,7 @@ def _np_dtype(attribute_type):
     elif attribute_type in ("int", "integer"):
         return int
     else:
-        return str
+        return object
 
 
 def _get_edges_neighbour(line, attributes, separator, secondary, edges,
