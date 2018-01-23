@@ -126,17 +126,15 @@ def graph_tool_check(version_min):
     '''
     Raise an error for function not working with old versions of graph-tool.
     '''
-    old_graph_tool = _old_graph_tool(version_min)
-
     def decorator(func):
         def wrapper(*args, **kwargs):
+            old_graph_tool = _old_graph_tool(version_min)
             if old_graph_tool:
                 raise NotImplementedError('This function is not working for '
                                           'graph-tool < ' + version_min + '.')
             else:
                 return func(*args, **kwargs)
         return wrapper
-
     return decorator
 
 
