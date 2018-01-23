@@ -1466,18 +1466,6 @@ class Network(Graph):
                 # create the delay attribute if necessary
                 if "delay" not in self.edges_attributes:
                     self.set_delays()
-                # set the type attributes for neurons
-                types = np.ones(self.node_nb())
-                for group in population.values():
-                    types[group.ids] *= group.neuron_type
-                self.new_node_attribute('type', value_type='int', values=types)
-                # store the neuronal parameters in the graph
-                for group in population.values():
-                    if group.neuron_param is not None:
-                        for k, v in group.neuron_param.items():
-                            self.set_node_attribute(
-                                k, val=v, value_type='double',
-                                nodes=group.ids)
             else:
                 raise AttributeError("NeuralPop is not valid (not all neurons "
                                      "are associated to a group).")
