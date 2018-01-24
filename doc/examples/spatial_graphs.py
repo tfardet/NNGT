@@ -28,7 +28,6 @@ import numpy as np
 import nngt
 from nngt.geometry import Shape
 
-
 # nngt.seed(0)
 
 

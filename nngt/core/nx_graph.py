@@ -27,17 +27,8 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
+from nngt.lib.io_tools import _np_dtype
 from .base_graph import GraphInterface, BaseProperty
-
-
-_type_converter = {
-    "int": int,
-    "string": str,
-    "double": float,
-    "float": float,
-    "bool": bool,
-    "object": object,
-}
 
 
 # ---------- #
@@ -53,10 +44,8 @@ class _NxNProperty(BaseProperty):
     def __getitem__(self, name):
         lst = [self.parent().node[i][name]
                for i in range(self.parent().node_nb())]
-        if super(_NxNProperty, self).__getitem__(name) in ('string', 'object'):
-            return np.array(lst, dtype=object)
-        else:
-            return np.array(lst)
+        dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
+        return np.array(lst, dtype=dtype)
 
     def __setitem__(self, name, value):
         size = self.parent().number_of_nodes()
@@ -76,7 +65,7 @@ class _NxNProperty(BaseProperty):
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:
@@ -137,8 +126,7 @@ class _NxEProperty(BaseProperty):
                         "slice, list of edges, edges or attribute name.")
                 return self.parent()[name[0]][name[1]]
         if isinstance(name, str):
-            dtype = _type_converter[super(
-                _NxEProperty, self).__getitem__(name)]
+            dtype = _np_dtype(super(_NxEProperty, self).__getitem__(name))
             eprop = np.empty(self.parent().edge_nb(), dtype=dtype)
             g = self.parent()
             for d, eid in zip(g.edges(data=name), g.edges(data="eid")):
@@ -151,6 +139,9 @@ class _NxEProperty(BaseProperty):
                 for k, v in data.items():
                     if k != "eid":
                         eprop[k].append(v)
+            for k, v in eprop.items():
+                dtype = _np_dtype(super(_NxEProperty, self).__getitem__(k))
+                eprop = {k: np.array(v, dtype)}
             return eprop
 
     def __setitem__(self, name, value):
@@ -171,7 +162,7 @@ class _NxEProperty(BaseProperty):
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:

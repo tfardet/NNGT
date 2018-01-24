@@ -361,7 +361,7 @@ class BaseGraph(GraphInterface):
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        return np.array(list(self._edges.keys()))
+        return np.array(list(self._edges.keys()), dtype=int)
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
@@ -775,7 +775,7 @@ class _EProperty(BaseProperty):
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:

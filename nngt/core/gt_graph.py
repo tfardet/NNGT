@@ -69,7 +69,7 @@ class _GtNProperty(BaseProperty):
                 val = int(0)
                 dtype = int
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
                 dtype = float
             elif value_type == "string":
                 val = ""
@@ -200,7 +200,7 @@ set_attribute to create it.")
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:

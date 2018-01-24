@@ -27,6 +27,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT
+from nngt.lib.io_tools import _np_dtype
 from .base_graph import GraphInterface, BaseProperty
 
 
@@ -43,10 +44,8 @@ class _IgNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
-        if super(_IgNProperty, self).__getitem__(name) in ('string', 'object'):
-            return np.array(np.array(self.parent().vs[name]), dtype=object)
-        else:
-            return np.array(self.parent().vs[name])
+        dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
+        return np.array(np.array(self.parent().vs[name]), dtype=dtype)
 
     def __setitem__(self, name, value):
         size = self.parent().vcount()
@@ -65,7 +64,7 @@ class _IgNProperty(BaseProperty):
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:
@@ -118,20 +117,23 @@ class _IgEProperty(BaseProperty):
         if isinstance(name, slice):
             eprop = {}
             for k in self.keys():
-                eprop[k] = np.array(self.parent().es[k])[name]
+                dtype = _np_dtype(super(_NxNProperty, self).__getitem__(k))
+                eprop[k] = np.array(self.parent().es[k], dtype=dtype)[name]
             return eprop
         elif nonstring_container(name):
             eprop = {}
             if nonstring_container(name[0]):
                 eids = [self.parent().get_eid(*e) for e in name]
                 for k in self.keys():
-                    eprop[k] = np.array(self.parent().es[k])[eids]
+                    dtype = _np_dtype(super(_NxNProperty, self).__getitem__(k))
+                    eprop[k] = np.array(self.parent().es[k], dtype=dtype)[eids]
             else:
                 eid = self.parent().get_eid(*name)
                 for k in self.keys():
                     eprop[k] = self.parent().es[k][eid]
             return eprop
-        return np.array(self.parent().es[name])
+        dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
+        return np.array(self.parent().es[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -225,16 +227,17 @@ class _IGraph(GraphInterface):
             edges = g.ecount()
             di_node_attr = {}
             di_edge_attr = {}
+            super(_IGraph, self).__init__(n=nodes, directed=True)
             if nodes:
                 nattr = g.vs[0].attributes().keys()
             if edges:
                 eattr = g.es[0].attributes().keys()
             for attr in nattr:
-                di_node_attr[attr] = np.array(g.vs[:][attr])
+                self._nattr.new_attribute(
+                    attr, value_type="double", values=g.vs[:][attr])
             for attr in eattr:
                 di_edge_attr[attr] = np.array(g.es[:][attr])
-            super(_IGraph, self).__init__(
-                n=nodes, directed=True, vertex_attrs=di_node_attr)
+                self._eattr.new_attribute(attr, value_type="double")
             lst_edges = nngt.analyze_graph["get_edges"](g)
             self.new_edges(lst_edges, attributes=di_edge_attr)
 
@@ -269,7 +272,7 @@ an array of 2-tuples of ints.")
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
-        return np.array([(e.source, e.target) for e in self.es])
+        return np.array([(e.source, e.target) for e in self.es], dtype=int)
     
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
         '''
