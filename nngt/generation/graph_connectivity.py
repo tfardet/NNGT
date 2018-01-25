@@ -90,6 +90,56 @@ __all__ = [
 # Specific degree distributions #
 # ----------------------------- #
 
+def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
+               name="AlltoAll", shape=None, positions=None, population=None,
+               **kwargs):
+    """
+    Generate a graph where all nodes are connected.
+
+    .. versionadded:: 1.0
+
+    Parameters
+    ----------
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    reciprocity : double, optional (default: -1 to let it free)
+        Fraction of edges that are bidirectional  (only for directed graphs
+        -- undirected graphs have a reciprocity of  1 by definition)
+    weighted : bool, optional (default: True)
+        Whether the graph edges have weights.
+    directed : bool, optional (default: True)
+        Whether the graph is directed or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+        Shape of the neurons' environment.
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
+
+    Note
+    ----
+	`nodes` is required unless `population` is provided.
+
+    Returns
+    -------
+    graph_all : :class:`~nngt.Graph`, or subclass
+        A new generated graph.
+    """
+    nodes = nodes if population is None else population.size
+    matrix = np.ones((nodes, nodes))
+    graph_all = nngt.Graph.from_matrix(matrix, name=name, nodes=nodes,
+                                       directed=directed, **kwargs)
+    _set_options(graph_all, population, shape, positions)
+    graph_all._graph_type = "all_to_all"
+    return graph_all
+
+
 def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
                  weighted=True, directed=True, multigraph=False, name="FD",
                  shape=None, positions=None, population=None, from_graph=None,

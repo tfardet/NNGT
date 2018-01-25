@@ -101,4 +101,20 @@ for name, area in shape.non_default_areas.items():
                                       edges=edges)
         print("bottom-up done")
 
+nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
+                       restrict_sources="top", restrict_targets="top",
+                       show=False)
+
+nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
+                       restrict_sources="top", restrict_targets="bottom",
+                       show=False)
+
+nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
+                       restrict_sources="bottom", restrict_targets="top",
+                       show=False)
+
+nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
+                       restrict_sources="bottom", restrict_targets="bottom",
+                       show=False)
+
 nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5, show=True)

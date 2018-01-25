@@ -19,7 +19,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-from matplotlib.patches import FancyArrowPatch, ArrowStyle
+from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
+from matplotlib.patches import Arc, RegularPolygon
+from matplotlib.collections import PatchCollection
 
 import nngt
 from nngt.lib import POS, nonstring_container
@@ -57,9 +59,11 @@ __all__ = ["draw_network"]
 
 def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
-                 ealpha=0.5, max_nsize=5., max_esize=2., threshold=0.5,
-                 decimate=None, spatial=True, size=(600,600), xlims=None,
-                 ylims=None, dpi=75, axis=None, show=False, **kwargs):
+                 ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
+                 threshold=0.5, decimate=None, spatial=True,
+                 restrict_sources=None, restrict_targets=None, size=(600,600),
+                 xlims=None, ylims=None, dpi=75, axis=None, show=False,
+                 **kwargs):
     '''
     Draw a given graph/network.
 
@@ -111,8 +115,39 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         axis = fig.add_subplot(111, frameon=0, aspect=1)
     axis.set_axis_off()
     pos, layout = None, None
+    # restrict sources and targets
+    if nonstring_container(restrict_sources):
+        if isinstance(restrict_sources[0], str):
+            assert network.is_network(), \
+                "`restrict_sources` canbe string only for Network."
+            sources = []
+            for name in restrict_sources:
+                sources.extend(network.population[name].ids)
+            restrict_sources = sources
+    elif isinstance(restrict_sources, str):
+        assert network.is_network(), \
+            "`restrict_sources` canbe string only for Network."
+        restrict_sources = network.population[restrict_sources].ids
+    if nonstring_container(restrict_targets):
+        if isinstance(restrict_targets[0], str):
+            assert network.is_network(), \
+                "`restrict_targets` canbe string only for Network."
+            targets = []
+            for name in restrict_targets:
+                targets.extend(network.population[name].ids)
+            restrict_targets = targets
+    elif isinstance(restrict_targets, str):
+        assert network.is_network(), \
+            "`restrict_sources` canbe string only for Network."
+        restrict_targets = network.population[restrict_targets].ids
+    # get nodes and edges
     n = network.node_nb()
-    e = network.edge_nb()
+    adj_mat = network.adjacency_matrix(weights=None)
+    if restrict_sources is not None:
+        adj_mat = adj_mat[restrict_sources, :]
+    if restrict_targets is not None:
+        adj_mat = adj_mat[:, restrict_targets]
+    e = adj_mat.nnz
     # compute properties
     decimate = 1 if decimate is None else decimate
     if isinstance(nsize, str):
@@ -133,8 +168,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
     ncolor = _node_color(network, ncolor)
     c = ncolor
-    # remove the edges
-    if isinstance(nborder_color, float):
+    if not nonstring_container(nborder_color):
         nborder_color = np.repeat(nborder_color, n)
     # check edge color
     group_based = False
@@ -152,7 +186,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                     ecolor[(src, tgt)] = ncolor[idx1]
                 else:
                     ecolor[(src, tgt)] = \
-                        np.abs(0.2*ncolor[idx1] - 0.8*ncolor[idx2])
+                        np.abs(0.8*ncolor[idx1] - 0.2*ncolor[idx2])
     # draw
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():
@@ -161,19 +195,25 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     else:
         pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
+    # make nodes
+    nodes = []
     if network.is_network():
         for group in network.population.values():
             idx = group.ids
             if nonstring_container(ncolor):
                 c = palette(ncolor[idx[0]])
-            # scatter required because of different markersize
-            axis.scatter(pos[idx,0], pos[idx,1], s=nsize, marker=nshape,
-                         c=c, edgecolors=nborder_color, zorder=2)
+            for i in idx:
+                nodes.append(
+                    Circle(pos[i], 0.5*nsize[i], fc=c, ec=nborder_color[i]))
     else:
         if not isinstance(c, str):
             c = palette(ncolor)
-        axis.scatter(pos[:,0], pos[:,1], s=nsize, marker=nshape,
-                     c=c, edgecolors=nborder_color, zorder=2)
+        for i in range(n):
+            nodes.append(
+                Circle(pos[i], 0.5*nsize[i], fc=c, ec=nborder_color[i]))
+    nodes = PatchCollection(nodes, match_original=True)
+    nodes.set_zorder(2)
+    axis.add_collection(nodes)
     _set_ax_lim(axis, pos[:,0], pos[:,1], xlims, ylims)
     # use quiver to draw the edges
     if e:
@@ -182,58 +222,107 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         arr_style = ArrowStyle.Simple(head_length=0.15*avg_size,
                                       head_width=0.1*avg_size,
                                       tail_width=0.05*avg_size)
+        arrows = []
         if group_based:
             for src_name, src_group in network.population.items():
                 for tgt_name, tgt_group in network.population.items():
                     s_ids        = src_group.ids
-                    s_min, s_max = np.min(s_ids), np.max(s_ids)
+                    if restrict_sources is not None:
+                        s_ids = list(set(restrict_sources).intersection(s_ids))
                     t_ids        = tgt_group.ids
-                    t_min, t_max = np.min(t_ids), np.max(t_ids)
-                    edges        = np.array(
-                        adj_mat[s_min:s_max, t_min:t_max].nonzero())
-                    edges[0, :] += s_min
-                    edges[1, :] += t_min
-                    if nonstring_container(esize):
-                        edges = edges[:, esize > 0]
-                        esize = esize[esize > 0]
-                    if decimate > 1:
-                        edges = edges[:, ::decimate]
+                    if restrict_targets is not None:
+                        t_ids = list(set(restrict_targets).intersection(t_ids))
+                    if t_ids and s_ids:
+                        s_min, s_max = np.min(s_ids), np.max(s_ids)
+                        t_min, t_max = np.min(t_ids), np.max(t_ids)
+                        edges        = np.array(
+                            adj_mat[s_min:s_max, t_min:t_max].nonzero(),
+                            dtype=int)
+                        edges[0, :] += s_min
+                        edges[1, :] += t_min
                         if nonstring_container(esize):
-                            esize = esize[::decimate]
-                    arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
-                    arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
-                    # plot
-                    ec      = palette(ecolor[(src_name, tgt_name)])
-                    # ~ print("edge color", ec, ecolor[(src_name, tgt_name)], ncolor)
-                    for s, t in zip(edges[0], edges[1]):
-                        xs, ys = pos[s, 0], pos[s, 1]
-                        xt, yt = pos[t, 0], pos[t, 1]
+                            keep = (esize > 0)
+                            edges = edges[:, keep]
+                            esize = esize[keep]
+                        if decimate > 1:
+                            edges = edges[:, ::decimate]
+                            if nonstring_container(esize):
+                                esize = esize[::decimate]
+                        arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
+                        arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
+                        # plot
+                        ec      = palette(ecolor[(src_name, tgt_name)])
+                        for s, t in zip(edges[0], edges[1]):
+                            xs, ys = pos[s, 0], pos[s, 1]
+                            xt, yt = pos[t, 0], pos[t, 1]
+                            dl     = 0.5*nsize[t]
+                            dx     = xt-xs
+                            dx -= np.sign(dx) * dl
+                            dy     = yt-ys
+                            dy -= np.sign(dy) * dl
 
-                        arr_patch = FancyArrowPatch(
-                            posA=(xs, ys), posB=(xt, yt), arrowstyle=arr_style,
-                            connectionstyle='arc3,rad=0.1',
-                            alpha=ealpha, fc=ec, ec=None, lw=0.2)
-                        axis.add_patch(arr_patch)
-                    # ~ axis.quiver(
-                        # ~ pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
-                        # ~ scale_units='xy', angles='xy', scale=1, alpha=ealpha,
-                        # ~ width=1.5e-3, linewidths=esize, edgecolors=ec,
-                        # ~ zorder=1)
+                            if curved_edges:
+                                arrow = FancyArrowPatch(
+                                    posA=(xs, ys), posB=(xt, yt),
+                                    arrowstyle=arr_style,
+                                    connectionstyle='arc3,rad=0.1',
+                                    alpha=ealpha, fc=ec, lw=0.5)
+                                axis.add_patch(arrow)
+                            else:
+                                arrows.append(FancyArrow(
+                                    xs, ys, dx, dy, width=0.3*avg_size,
+                                    head_length=0.7*avg_size,
+                                    head_width=0.7*avg_size,
+                                    length_includes_head=True, alpha=ealpha,
+                                    fc=ec, lw=0.5))
         else:
-            edges = np.array(adj_mat.nonzero())
+            edges = np.array(adj_mat.nonzero(), dtype=int)
+            s_min, s_max, t_min, t_max = 0, n, 0, n
+            if restrict_sources is not None:
+                s_min = np.min(restrict_sources)
+                s_max = np.max(restrict_sources)
+            if restrict_targets is not None:
+                t_min = np.min(restrict_targets)
+                t_max = np.max(restrict_targets)
+            edges = np.array(
+                adj_mat[s_min:s_max, t_min:t_max].nonzero(), dtype=int)
+            edges[0, :] += s_min
+            edges[1, :] += t_min
+            # keep only large edges
             if nonstring_container(esize):
-                edges = edges[:, esize > 0]
-                esize = esize[esize > 0]
+                keep = (esize > 0)
+                edges  = edges[:, keep]
+                if nonstring_container(ecolor):
+                    ecolor = ecolor[keep]
+                esize = esize[keep]
             if decimate > 1:
                 edges = edges[:, ::decimate]
                 if nonstring_container(esize):
                     esize = esize[::decimate]
-            arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
-            arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
-            axis.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
-                        scale_units='xy', angles='xy', scale=1, alpha=ealpha,
-                        width=1.5e-3, linewidths=esize, edgecolors=ecolor,
-                        zorder=1)
+                if nonstring_container(ecolor):
+                    ecolor = ecolor[::decimate]
+            
+            for i, (s, t) in enumerate(zip(edges[0], edges[1])):
+                xs, ys = pos[s, 0], pos[s, 1]
+                xt, yt = pos[t, 0], pos[t, 1]
+
+                if curved_edges:
+                    arrow = FancyArrowPatch(
+                        posA=(xs, ys), posB=(xt, yt), arrowstyle=arr_style,
+                        connectionstyle='arc3,rad=0.1',
+                        alpha=ealpha, fc=ecolor[i], lw=0.5)
+                    axis.add_patch(arrow)
+                else:
+                    arrows.append(FancyArrow(
+                        xs, ys, dx, dy, width=0.3*avg_size,
+                        head_length=0.7*avg_size, head_width=0.7*avg_size,
+                        length_includes_head=True, alpha=ealpha, fc=ec,
+                        lw=0.5))
+        
+        arrows = PatchCollection(arrows, match_original=True)
+        arrows.set_zorder(1)
+        axis.add_collection(arrows)
+
     if kwargs.get('tight', True):
         plt.tight_layout()
         plt.subplots_adjust(
@@ -305,3 +394,43 @@ def _node_color(network, ncolor):
             for i, group in enumerate(network.population.values()):
                 color[group.ids] = c[i]
     return color
+
+
+def _custom_arrows(sources, targets, angle):
+    '''
+    Create a curved arrow between `source` and `target` as the combination of
+    the arc of a circle and a triangle.
+
+    The initial and final angle $\alpha$ between the source-target line and
+    the arrow is linked to the radius of the circle, $r$ and the distance $d$
+    between the points:
+
+    .. math:: r = \frac{d}{2 \cdot \tan(\alpha)}
+
+    The beginning and the end of the arc are given through initial and final
+    angles, respectively $\theta_1$ and $\theta_2$, which are given with
+    respect to the y-axis; This leads to $\alpha = 0.5(\theta_1 - \theta_2)$.
+    '''
+    # compute the distances between the points
+    pass
+    #~ # compute the radius and the position of the center of the circle
+    
+    #~ #========Line
+    #~ arc = Arc([centX,centY],radius,radius,angle=angle_,
+          #~ theta1=0,theta2=theta2_,capstyle='round',linestyle='-',lw=10,color=color_)
+    #~ ax.add_patch(arc)
+
+
+    #~ #========Create the arrow head
+    #~ endX=centX+(radius/2)*np.cos(rad(theta2_+angle_)) #Do trig to determine end position
+    #~ endY=centY+(radius/2)*np.sin(rad(theta2_+angle_))
+
+    #~ ax.add_patch(                    #Create triangle as arrow head
+        #~ RegularPolygon(
+            #~ (endX, endY),            # (x,y)
+            #~ 3,                       # number of vertices
+            #~ radius/9,                # radius
+            #~ rad(angle_+theta2_),     # orientation
+            #~ color=color_
+        #~ )
+    #~ )
