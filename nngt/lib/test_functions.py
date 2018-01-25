@@ -146,6 +146,10 @@ def nonstring_container(obj):
     return True
 
 
+def is_integer(obj):
+    return isinstance(obj, (int, np.integer))
+
+
 def graph_tool_check(version_min):
     '''
     Raise an error for function not working with old versions of graph-tool.

@@ -46,18 +46,21 @@ def _compute_connections(num_source, num_target, density, edges, avg_deg,
         pre_recip_edges = int(density * num_source * num_target)
     dens = pre_recip_edges / float(num_source * num_target)
     edges = pre_recip_edges
-    if not directed:
-        pre_recip_edges = edges = int(edges/2)
-    elif reciprocity > max(0,(2.-1./dens)):
-        frac_recip = ((reciprocity - 1. + np.sqrt(1.+dens*(reciprocity-2.))) /
-                      (2. - reciprocity))
-        if frac_recip < 1.:
-            pre_recip_edges = int(edges/(1+frac_recip))
-        else:
+    if edges:
+        if not directed:
+            pre_recip_edges = edges = int(edges/2)
+        elif reciprocity > max(0,(2.-1./dens)):
+            frac_recip = ((reciprocity - 1.
+                           + np.sqrt(1. + dens*(reciprocity - 2.))) /
+                             (2. - reciprocity))
+            if frac_recip < 1.:
+                pre_recip_edges = int(edges/(1+frac_recip))
+            else:
+                raise InvalidArgument(
+                    "Such reciprocity cannot be obtained, request ignored.")
+        elif reciprocity > 0.:
             raise InvalidArgument(
-                "Such reciprocity cannot be obtained, request ignored.")
-    elif reciprocity > 0.:
-        raise InvalidArgument("Reciprocity cannot be lower than 2-1/density.")
+                "Reciprocity cannot be lower than 2-1/density.")
     return edges, pre_recip_edges
 
 

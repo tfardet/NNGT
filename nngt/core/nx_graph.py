@@ -26,7 +26,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
+from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.io_tools import _np_dtype
 from .base_graph import GraphInterface, BaseProperty
 
@@ -260,9 +260,9 @@ class _NxGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
-        if isinstance(edge[0], np.integer):
+        if is_integer(edge[0]):
             return self[edge[0]][edge[1]]["eid"]
-        elif hasattr(edge[0], "__len__"):
+        elif nonstring_container(edge[0]):
             return [self[e[0]][e[1]]["eid"] for e in edge]
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or "
@@ -277,7 +277,8 @@ class _NxGraph(GraphInterface):
             edges[weighted_edge[2], :] = weighted_edge[:2]
         return edges
     
-    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
+                 positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
         
@@ -295,6 +296,7 @@ class _NxGraph(GraphInterface):
         tpl_new_nodes = tuple(range(len(self), len(self)+n))
         for v in tpl_new_nodes:
             super(_NxGraph, self).add_node(v)
+
         if attributes is not None:
             for k, v in attributes.items():
                 if k not in self._nattr:
@@ -306,6 +308,28 @@ class _NxGraph(GraphInterface):
             filler = [None for _ in tpl_new_nodes]
             for k in self._nattr:
                 self._nattr.set_attribute(k, filler, nodes=tpl_new_nodes)
+
+        if self.is_spatial():
+            old_pos      = self._pos
+            self._pos    = np.full((self.node_nb(), 2), np.NaN)
+            num_existing = len(old_pos)
+            if num_existing != 0:
+                self._pos[:num_existing, :] = old_pos
+        if positions is not None and len(positions):
+            assert self.is_spatial(), \
+                "`positions` argument requires a SpatialGraph/SpatialNetwork."
+            self._pos[tpl_new_nodes, :] = positions
+
+        if groups is not None:
+            assert self.is_network(), \
+                "`positions` argument requires a Network/SpatialNetwork."
+            if nonstring_container(groups):
+                assert len(groups) == n, "One group per neuron required."
+                for g, node in zip(groups, tpl_new_nodes):
+                    self.population.add_to_group(g, node)
+            else:
+                self.population.add_to_group(groups, tpl_new_nodes)
+
         if len(tpl_new_nodes) == 1:
             return tpl_new_nodes[0]
         return tpl_new_nodes

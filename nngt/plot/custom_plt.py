@@ -8,6 +8,7 @@ import logging
 
 import matplotlib as mpl
 import matplotlib.cm as cm
+import matplotlib.colors as clrs
 from matplotlib.markers import MarkerStyle as MS
 
 import nngt

@@ -651,11 +651,11 @@ class Graph(nngt.core.GraphObject):
         '''
         inhib_nodes = nodes
         if syn_type == 'excitatory' or syn_type == 1:
-            if issubclass(nodes.__class__, int):
+            if is_integer(nodes):
                 inhib_nodes = graph.node_nb() - nodes
-            elif issubclass(nodes.__class__, float):
-                inhib_nodes = 1./nodes
-            elif hasattr(nodes, '__iter__'):
+            elif isinstance(nodes, np.float):
+                inhib_nodes = 1. / nodes
+            elif nonstring_container(nodes):
                 inhib_nodes = list(range(graph.node_nb()))
                 nodes.sort()
                 for node in nodes[::-1]:
@@ -917,14 +917,26 @@ class Graph(nngt.core.GraphObject):
         valid_types = ("in", "out", "total")
         if deg_type in valid_types:
             if syn_type in ("excitatory", 1):
-                e_neurons = np.where(
-                    self.get_node_attributes(name="type") == 1)[0]
+                e_neurons = []
+                if isinstance(self, Network):
+                    for g in self.population.values():
+                        if g.neuron_type == 1:
+                            e_neurons.extend(g.ids)
+                else:
+                    e_neurons = np.where(
+                        self.get_node_attributes(name="type") == 1)[0]
                 return self.adjacency_matrix(
                     weights=use_weights,
                     types=False)[e_neurons, :].sum(axis=0).A1
             elif syn_type in ("inhibitory", -1):
-                i_neurons = np.where(
-                    self.get_node_attributes(name="type") == -1)[0]
+                i_neurons = []
+                if isinstance(self, Network):
+                    for g in self.population.values():
+                        if g.neuron_type == -1:
+                            i_neurons.extend(g.ids)
+                else:
+                    i_neurons = np.where(
+                        self.get_node_attributes(name="type") == -1)[0]
                 return self.adjacency_matrix(
                     weights=use_weights,
                     types=False)[i_neurons, :].sum(axis=0).A1
@@ -1052,6 +1064,8 @@ class SpatialGraph(Graph):
         super(SpatialGraph, self).__init__(nodes, name, weighted, directed,
                                            from_graph, **kwargs)
         self._init_spatial_properties(shape, positions, **kwargs)
+        if "population" in kwargs:
+            self.make_network(self, kwargs["population"])
         
     def __del__(self):
         if hasattr(self, '_shape'):
@@ -1360,6 +1374,9 @@ class Network(Graph):
             from_graph=from_graph, inh_weight_factor=inh_weight_factor,
             **kwargs)
         self._init_bioproperties(population)
+        if "shape" in kwargs or "positions" in kwargs:
+            self.make_spatial(self, shape=kwargs.get("shape", None),
+                              positions=kwargs.get("positions", None))
     
     def __del__(self):
         super(Network, self).__del__()
@@ -1460,7 +1477,7 @@ class Network(Graph):
         if not hasattr(self, '_iwf'):
             self._iwf = 1.
         if issubclass(population.__class__, nngt.NeuralPop):
-            if population.is_valid:
+            if population.is_valid or not self.node_nb():
                 self._population = population
                 nodes = population.size
                 # create the delay attribute if necessary
@@ -1493,7 +1510,7 @@ class Network(Graph):
         ids : int or tuple
             Ids in the network. Same type as the requested `gids` type.
         '''
-        if isinstance(neuron_ids, int):
+        if is_integer(neuron_ids):
             group_name = self._population._neuron_group[neuron_ids]
             ntype = self._population[group_name].neuron_type
             return ntype

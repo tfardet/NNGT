@@ -368,7 +368,7 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
         vector[float] x = positions[0]
         vector[float] y = positions[1]
         float cscale = scale
-        float cnorm = norm
+        float cnorm = norm if 0 < norm <= 1 else 1.
     # compute the required values
     edge_num, _ = _compute_connections(
         num_source, num_target, density, edges, avg_deg, directed)

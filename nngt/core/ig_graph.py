@@ -26,7 +26,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT
+from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT, is_integer
 from nngt.lib.io_tools import _np_dtype
 from .base_graph import GraphInterface, BaseProperty
 
@@ -44,7 +44,7 @@ class _IgNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
-        dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
+        dtype = _np_dtype(super(_IgNProperty, self).__getitem__(name))
         return np.array(np.array(self.parent().vs[name]), dtype=dtype)
 
     def __setitem__(self, name, value):
@@ -117,7 +117,7 @@ class _IgEProperty(BaseProperty):
         if isinstance(name, slice):
             eprop = {}
             for k in self.keys():
-                dtype = _np_dtype(super(_NxNProperty, self).__getitem__(k))
+                dtype = _np_dtype(super(_IgEProperty, self).__getitem__(k))
                 eprop[k] = np.array(self.parent().es[k], dtype=dtype)[name]
             return eprop
         elif nonstring_container(name):
@@ -125,14 +125,14 @@ class _IgEProperty(BaseProperty):
             if nonstring_container(name[0]):
                 eids = [self.parent().get_eid(*e) for e in name]
                 for k in self.keys():
-                    dtype = _np_dtype(super(_NxNProperty, self).__getitem__(k))
+                    dtype = _np_dtype(super(_IgENProperty, self).__getitem__(k))
                     eprop[k] = np.array(self.parent().es[k], dtype=dtype)[eids]
             else:
                 eid = self.parent().get_eid(*name)
                 for k in self.keys():
                     eprop[k] = self.parent().es[k][eid]
             return eprop
-        dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
+        dtype = _np_dtype(super(_IgENProperty, self).__getitem__(name))
         return np.array(self.parent().es[name], dtype=dtype)
 
     def __setitem__(self, name, value):
@@ -260,9 +260,9 @@ class _IGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
-        if isinstance(edge[0], int):
+        if is_integer(edge[0]):
             return self.get_eid(*edge)
-        elif hasattr(edge[0], "__len__"):
+        elif nonstring_container(edge[0]):
             return self.get_eids(edge)
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or\
@@ -274,7 +274,8 @@ an array of 2-tuples of ints.")
         2-tuple. '''
         return np.array([(e.source, e.target) for e in self.es], dtype=int)
     
-    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
+                 positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
         
@@ -292,6 +293,7 @@ an array of 2-tuples of ints.")
         first_node_idx = self.vcount()
         super(_IGraph, self).add_vertices(n)
         nodes = list(range(first_node_idx, first_node_idx + n))
+
         if attributes is not None:
             for k, v in attributes.items():
                 if k not in self._nattr:
@@ -300,6 +302,28 @@ an array of 2-tuples of ints.")
                     v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=nodes)
         self.vs[nodes[0]:nodes[-1] + 1]['type'] = ntype
+
+        if self.is_spatial():
+            old_pos      = self._pos
+            self._pos    = np.full((self.node_nb(), 2), np.NaN)
+            num_existing = len(old_pos)
+            if num_existing != 0:
+                self._pos[:num_existing, :] = old_pos
+        if positions is not None:
+            assert self.is_spatial(), \
+                "`positions` argument requires a SpatialGraph/SpatialNetwork."
+            self._pos[nodes] = positions
+
+        if groups is not None:
+            assert self.is_network(), \
+                "`positions` argument requires a Network/SpatialNetwork."
+            if nonstring_container(groups):
+                assert len(groups) == n, "One group per neuron required."
+                for g, node in zip(groups, nodes):
+                    self.population.add_to_group(g, node)
+            else:
+                self.population.add_to_group(groups, nodes)
+
         if n == 1:
             return nodes[0]
         return nodes

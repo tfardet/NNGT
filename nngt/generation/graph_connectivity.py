@@ -75,6 +75,7 @@ if nngt.get_config("mpi"):
 __all__ = [
     'connect_neural_groups',
     'connect_neural_types',
+    'connect_nodes',
 	'distance_rule',
 	'erdos_renyi',
     'fixed_degree',
@@ -549,7 +550,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
 # --------------------- #
 
 @mpi_random
-def distance_rule(scale, norm=1., rule="exp", shape=None, neuron_density=1000.,
+def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
                   nodes=0, density=-1., edges=-1, avg_deg=-1., unit='um',
                   weighted=True, directed=True, multigraph=False, name="DR",
                   positions=None, population=None, from_graph=None, **kwargs):
@@ -563,9 +564,6 @@ def distance_rule(scale, norm=1., rule="exp", shape=None, neuron_density=1000.,
         Characteristic scale for the distance rule. E.g for linear distance-
         rule, :math:`P(i,j) \propto (1-d_{ij}/scale))`, whereas for the
         exponential distance-rule, :math:`P(i,j) \propto e^{-d_{ij}/scale}`.
-    norm : float, optional (default: 1.)
-        Normalization factor for the distance rule; it is equal to the
-        probability of connection when testing a node at zero distance.
     rule : string, optional (default: 'exp')
         Rule that will be apply to draw the connections between neurons.
         Choose among "exp" (exponential), "gaussian" (Gaussian), or
@@ -578,9 +576,12 @@ def distance_rule(scale, norm=1., rule="exp", shape=None, neuron_density=1000.,
         Density of neurons in space (:math:`neurons \cdot mm^{-2}`).
     nodes : int, optional (default: None)
         The number of nodes in the graph.
-    density: double, optional (default: 0.1)
+    p : float, optional
+        Normalization factor for the distance rule; it is equal to the
+        probability of connection when testing a node at zero distance.
+    density: double, optional
         Structural density given by `edges` / (`nodes` * `nodes`).
-    edges : int (optional)
+    edges : int, optional
         The number of edges between the nodes
     avg_deg : double, optional
         Average degree of the neurons given by `edges` / `nodes`.
@@ -637,8 +638,8 @@ def distance_rule(scale, norm=1., rule="exp", shape=None, neuron_density=1000.,
     if nodes > 1:
         ids = np.arange(0, nodes, dtype=np.uint)
         ia_edges = _distance_rule(
-            ids, ids, density, edges, avg_deg, scale, norm, rule, shape,
-             positions, directed, multigraph, distance=distance, **kwargs)
+            ids, ids, density, edges, avg_deg, scale, rule, shape,
+            positions, directed, multigraph, distance=distance, **kwargs)
         attr = {'distance': distance}
         # check for None if MPI
         if ia_edges is not None:
@@ -707,6 +708,57 @@ _di_gen_edges = {
 _one_pop_models = ("newman_watts",)
 
 
+def connect_nodes(network, sources, targets, graph_model, density=-1., 
+                  edges=-1, avg_deg=-1., unit='um', weighted=True,
+                  directed=True, multigraph=False, **kwargs):
+    '''
+    Function to connect nodes with a given graph model.
+
+    .. versionadded:: 1.0
+    
+    Parameters
+    ----------
+    network : :class:`Network` or :class:`SpatialNetwork`
+        The network to connect.
+    sources : list
+        Ids of the source nodes.
+    targets : list
+        Ids of the target nodes.
+    graph_model : string
+        The name of the connectivity model (among "erdos_renyi", 
+        "random_scale_free", "price_scale_free", and "newman_watts").
+    kwargs : keyword arguments
+        Specific model parameters. or edge attributes specifiers such as
+        `weights` or `delays`.
+    '''
+    if network.is_spatial() and 'positions' not in kwargs:
+        kwargs['positions'] = network.get_positions().astype(np.float32).T
+    if network.is_spatial() and 'shape' not in kwargs:
+        kwargs['shape'] = network.shape
+
+    sources  = np.array(sources, dtype=np.uint)
+    targets  = np.array(targets, dtype=np.uint)
+    distance = []
+
+    elist = _di_gen_edges[graph_model](
+        sources, targets, density=density, edges=edges,
+        avg_deg=avg_deg, weighted=weighted, directed=directed,
+        multigraph=multigraph, distance=distance, **kwargs)
+
+    # Attributes are not set by subfunctions
+    attr = {}
+    if 'weights' in kwargs:
+        attr['weight'] = kwargs['weights']
+    if 'delays' in kwargs:
+        attr['delay'] = kwargs['delays']
+    if network.is_spatial():
+        attr['distance'] = distance
+    network.new_edges(elist, attributes=attr)
+
+    if not network._graph_type.endswith('_connect'):
+        network._graph_type += "_nodes_connect"
+
+
 def connect_neural_types(network, source_type, target_type, graph_model,
                          density=-1., edges=-1, avg_deg=-1., unit='um',
                          weighted=True, directed=True, multigraph=False,
@@ -731,7 +783,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     source_type : int
         The type of source neurons (``1`` for excitatory, ``-1`` for
         inhibitory neurons).
-    source_type : int
+    target_type : int
         The type of target neurons.
     graph_model : string
         The name of the connectivity model (among "erdos_renyi", 
@@ -754,28 +806,11 @@ def connect_neural_types(network, source_type, target_type, graph_model,
 
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)
-    distance = []
 
-    if source_type == target_type:
-        elist = _di_gen_edges[graph_model](
-            source_ids, source_ids, density=density, edges=edges,
-            avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, distance=distance, **kwargs)
-    else:
-        elist = _di_gen_edges[graph_model](
-            source_ids, target_ids, density=density, edges=edges,
-            avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, distance=distance, **kwargs)
-
-    # Attributes are not set by subfunctions
-    attr = {}
-    if 'weights' in kwargs:
-        attr['weight'] = kwargs['weights']
-    if 'delays' in kwargs:
-        attr['delay'] = kwargs['delays']
-    if network.is_spatial():
-        attr['distance'] = distance
-    network.new_edges(elist, attributes=attr)
+    connect_nodes(network, source_ids, target_ids, graph_model,
+                  density=density, edges=edges, avg_deg=avg_deg, unit=unit,
+                  weighted=weighted, directed=directed, multigraph=multigraph,
+                  **kwargs)
 
     if not network._graph_type.endswith('_neural_type_connect'):
         network._graph_type += "_neural_type_connect"
@@ -830,28 +865,11 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
 
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)
-    distance = []
 
-    if source_groups == target_groups:
-        elist = _di_gen_edges[graph_model](
-            source_ids, source_ids, density=density, edges=edges,
-            avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, distance=distance, **kwargs)
-    else:
-        elist = _di_gen_edges[graph_model](
-            source_ids, target_ids, density=density, edges=edges,
-            avg_deg=avg_deg, weighted=weighted, directed=directed,
-            multigraph=multigraph, distance=distance, **kwargs)
-
-    # Attributes are not set by subfunctions
-    attr = {}
-    if 'weights' in kwargs:
-        attr['weight'] = kwargs['weights']
-    if 'delays' in kwargs:
-        attr['delay'] = kwargs['delays']
-    if network.is_spatial():
-        attr['distance'] = distance
-    network.new_edges(elist, attributes=attr)
+    connect_nodes(network, source_ids, target_ids, graph_model,
+                  density=density, edges=edges, avg_deg=avg_deg, unit=unit,
+                  weighted=weighted, directed=directed, multigraph=multigraph,
+                  **kwargs)
 
     if not network._graph_type.endswith('_neural_group_connect'):
         network._graph_type += "_neural_group_connect"

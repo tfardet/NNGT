@@ -19,10 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
+from matplotlib.patches import FancyArrowPatch, ArrowStyle
 
-from .custom_plt import palette, format_exponent
+import nngt
 from nngt.lib import POS, nonstring_container
 from nngt.analysis import num_wcc
+from .custom_plt import palette, format_exponent
 
 
 
@@ -55,7 +57,7 @@ __all__ = ["draw_network"]
 
 def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
-                 max_nsize=5., max_esize=2., threshold=0.5,
+                 ealpha=0.5, max_nsize=5., max_esize=2., threshold=0.5,
                  decimate=None, spatial=True, size=(600,600), xlims=None,
                  ylims=None, dpi=75, axis=None, show=False, **kwargs):
     '''
@@ -86,8 +88,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     esize : float, str, or array of floats, optional (default: 0.5)
         Width of the edges in percent of canvas length. Available string values
         are "betweenness" and "weight".
-    ecolor : char, float or array, optional (default: "k")
-        Edge color.
+    ecolor : str, char, float or array, optional (default: "k")
+        Edge color. If ecolor="group", edges color will depend on the source
+        and target groups, i.e. only edges from and toward same groups will
+        have the same color.
     max_esize : float, optional (default: 5.)
         If a custom property is entered as `esize`, this normalizes the edge
         width between 0. and `max_esize`.
@@ -132,16 +136,32 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # remove the edges
     if isinstance(nborder_color, float):
         nborder_color = np.repeat(nborder_color, n)
+    # check edge color
+    group_based = False
     if isinstance(ecolor, float):
         ecolor = np.repeat(ecolor, e)
+    elif ecolor == "groups" and network.is_network():
+        group_based = True
+        c           = np.linspace(0, 1, len(network.population))
+        ecolor      = {}
+        for i, src in enumerate(network.population):
+            idx1 = network.population[src].ids[0]
+            for j, tgt in enumerate(network.population):
+                idx2 = network.population[tgt].ids[0]
+                if src == tgt:
+                    ecolor[(src, tgt)] = ncolor[idx1]
+                else:
+                    ecolor[(src, tgt)] = \
+                        np.abs(0.2*ncolor[idx1] - 0.8*ncolor[idx2])
     # draw
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():
+        nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
         pos = network.get_positions()
     else:
         pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
-    if hasattr(network, "population"):
+    if network.is_network():
         for group in network.population.values():
             idx = group.ids
             if nonstring_container(ncolor):
@@ -158,19 +178,62 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # use quiver to draw the edges
     if e:
         adj_mat = network.adjacency_matrix(weights=None)
-        edges = np.array(adj_mat.nonzero())
-        if nonstring_container(esize):
-            edges = edges[:, esize > 0]
-            esize = esize[esize > 0]
-        if decimate > 1:
-            edges = edges[:, ::decimate]
+        avg_size = np.average(nsize)
+        arr_style = ArrowStyle.Simple(head_length=0.15*avg_size,
+                                      head_width=0.1*avg_size,
+                                      tail_width=0.05*avg_size)
+        if group_based:
+            for src_name, src_group in network.population.items():
+                for tgt_name, tgt_group in network.population.items():
+                    s_ids        = src_group.ids
+                    s_min, s_max = np.min(s_ids), np.max(s_ids)
+                    t_ids        = tgt_group.ids
+                    t_min, t_max = np.min(t_ids), np.max(t_ids)
+                    edges        = np.array(
+                        adj_mat[s_min:s_max, t_min:t_max].nonzero())
+                    edges[0, :] += s_min
+                    edges[1, :] += t_min
+                    if nonstring_container(esize):
+                        edges = edges[:, esize > 0]
+                        esize = esize[esize > 0]
+                    if decimate > 1:
+                        edges = edges[:, ::decimate]
+                        if nonstring_container(esize):
+                            esize = esize[::decimate]
+                    arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
+                    arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
+                    # plot
+                    ec      = palette(ecolor[(src_name, tgt_name)])
+                    # ~ print("edge color", ec, ecolor[(src_name, tgt_name)], ncolor)
+                    for s, t in zip(edges[0], edges[1]):
+                        xs, ys = pos[s, 0], pos[s, 1]
+                        xt, yt = pos[t, 0], pos[t, 1]
+
+                        arr_patch = FancyArrowPatch(
+                            posA=(xs, ys), posB=(xt, yt), arrowstyle=arr_style,
+                            connectionstyle='arc3,rad=0.1',
+                            alpha=ealpha, fc=ec, ec=None, lw=0.2)
+                        axis.add_patch(arr_patch)
+                    # ~ axis.quiver(
+                        # ~ pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
+                        # ~ scale_units='xy', angles='xy', scale=1, alpha=ealpha,
+                        # ~ width=1.5e-3, linewidths=esize, edgecolors=ec,
+                        # ~ zorder=1)
+        else:
+            edges = np.array(adj_mat.nonzero())
             if nonstring_container(esize):
-                esize = esize[::decimate]
-        arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
-        arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
-        axis.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
-                  scale_units='xy', angles='xy', scale=1, alpha=0.5,
-                  width=1.5e-3, linewidths=esize, edgecolors=ecolor, zorder=1)
+                edges = edges[:, esize > 0]
+                esize = esize[esize > 0]
+            if decimate > 1:
+                edges = edges[:, ::decimate]
+                if nonstring_container(esize):
+                    esize = esize[::decimate]
+            arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
+            arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
+            axis.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x, arrow_y,
+                        scale_units='xy', angles='xy', scale=1, alpha=ealpha,
+                        width=1.5e-3, linewidths=esize, edgecolors=ecolor,
+                        zorder=1)
     if kwargs.get('tight', True):
         plt.tight_layout()
         plt.subplots_adjust(
@@ -232,13 +295,13 @@ def _edge_size(network, esize):
 
 def _node_color(network, ncolor):
     color = ncolor
-    if issubclass(float, ncolor.__class__):
-        color = np.repeat(ncolor, n)
+    if isinstance(ncolor, np.float):
+        color = np.repeat(ncolor, network.node_nb())
     elif ncolor == "group":
         color = np.zeros(network.node_nb())
         if hasattr(network, "population"):
             l = len(network.population)
-            c = np.linspace(0,1,l)
-            for i,group in enumerate(network.population.values()):
+            c = np.linspace(0, 1, l)
+            for i, group in enumerate(network.population.values()):
                 color[group.ids] = c[i]
     return color

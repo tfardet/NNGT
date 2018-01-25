@@ -36,7 +36,7 @@ import nest
 import nngt
 from nngt.plot import palette, markers
 from nngt.plot.plt_properties import _set_new_plot, _set_ax_lims
-from nngt.lib import InvalidArgument, nonstring_container
+from nngt.lib import InvalidArgument, nonstring_container, is_integer
 from nngt.lib.sorting import _sort_groups, _sort_neurons
 from nngt.lib.logger import _log_message
 
@@ -163,9 +163,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     decim = []
     if decimate is None:
         decim = [None for _ in range(num_group)]
-    elif isinstance(decimate, int):
+    elif is_integer(decimate):
         decim = [decimate for _ in range(num_group)]
-    elif hasattr(decimate, "__len__"):
+    elif nonstring_container(decimate):
         assert len(decimate) == num_group, "`decimate` should have one " +\
                                            "entry per group in the population."
         decim = decimate
