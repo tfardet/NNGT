@@ -73,6 +73,7 @@ if nngt.get_config("mpi"):
 
 
 __all__ = [
+    'all_to_all',
     'connect_neural_groups',
     'connect_neural_types',
     'connect_nodes',
@@ -133,9 +134,13 @@ def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
     """
     nodes = nodes if population is None else population.size
     matrix = np.ones((nodes, nodes))
-    graph_all = nngt.Graph.from_matrix(matrix, name=name, nodes=nodes,
-                                       directed=directed, **kwargs)
+    graph_all = nngt.Graph(name=name, nodes=nodes, directed=directed, **kwargs)
     _set_options(graph_all, population, shape, positions)
+    # add edges
+    if nodes > 1:
+        ids = np.arange(nodes, dtype=np.uint)
+        edges = _all_to_all(ids, ids, directed, multigraph)
+        graph_all.new_edges(ia_edges)
     graph_all._graph_type = "all_to_all"
     return graph_all
 
@@ -601,9 +606,10 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
 
 @mpi_random
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
-                  nodes=0, density=-1., edges=-1, avg_deg=-1., unit='um',
-                  weighted=True, directed=True, multigraph=False, name="DR",
-                  positions=None, population=None, from_graph=None, **kwargs):
+                  max_proba=-1., nodes=0, density=-1., edges=-1, avg_deg=-1.,
+                  unit='um', weighted=True, directed=True, multigraph=False,
+                  name="DR", positions=None, population=None, from_graph=None,
+                  **kwargs):
     """
     Create a graph using a 2D distance rule to create the connection between
     neurons. Available rules are linear and exponential.
@@ -688,7 +694,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
     if nodes > 1:
         ids = np.arange(0, nodes, dtype=np.uint)
         ia_edges = _distance_rule(
-            ids, ids, density, edges, avg_deg, scale, rule, shape,
+            ids, ids, density, edges, avg_deg, scale, rule, max_proba, shape,
             positions, directed, multigraph, distance=distance, **kwargs)
         attr = {'distance': distance}
         # check for None if MPI
@@ -704,6 +710,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
 # -------------------- #
 
 _di_generator = {
+    "all_to_all": all_to_all,
     "distance_rule": distance_rule,
     "erdos_renyi": erdos_renyi,
     "fixed_degree": fixed_degree,
@@ -745,6 +752,7 @@ def generate(di_instructions, **kwargs):
 #
 
 _di_gen_edges = {
+    "all_to_all": _all_to_all,
     "distance_rule": _distance_rule,
     "erdos_renyi": _erdos_renyi,
     "fixed_degree": _fixed_degree,

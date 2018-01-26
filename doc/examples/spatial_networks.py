@@ -26,12 +26,13 @@ import time
 import numpy as np
 
 import nngt
-# ~ from nngt.geometry import Shape
-from PyNCulture import Shape
+from nngt.geometry import Shape
 
-# nngt.seed(0)
 
 nngt.set_config({"omp": 8, "palette": 'RdYlBu'})
+# ~ nngt.set_config("multithreading", False)
+
+nngt.seed(0)
 
 
 ''' Create a circular shape and add obstacles inside '''
@@ -47,11 +48,11 @@ shape.random_obstacles(filling_fraction, form="rectangle", params=params,
 
 ''' Create a Spatial network and seed neurons on top/bottom areas '''
 
-pop = nngt.NeuralPop(100)
+pop = nngt.NeuralPop(200)
 pop.set_model(None)
 num_top    = 100
 num_bottom = 100
-pop.create_group("top", num_top)
+pop.create_group("top", num_top, ntype=1, neuron_model="aeif_psc_alpha")
 pop.create_group("bottom", num_bottom)
 
 net = nngt.SpatialGraph(shape=shape, population=pop)
@@ -76,30 +77,28 @@ scale = 100.
 avg_deg = 0.1 * len(bottom_neurons)
 nngt.generation.connect_nodes(net, bottom_neurons, bottom_neurons,
                               "distance_rule", scale=scale, avg_deg=avg_deg)
-print("bottom-bottom done")
 
 # connect top areas
 for name, area in shape.non_default_areas.items():
-    print(name)
     contained = area.contains_neurons(top_pos)
     neurons   = top_neurons[contained]
     if np.any(neurons):
         # connect intra-area
         avg_deg   = 0.4*len(neurons)
         nngt.generation.connect_nodes(net, neurons, neurons, "distance_rule",
-                                      scale=scale, avg_deg=avg_deg)
-        print("top-top done")
+                                      scale=3*scale, max_proba=3.)
         # connect top to bottom and bottom to top
         edges = 0.08 * len(bottom_neurons) * len(neurons)
         nngt.generation.connect_nodes(net, neurons, bottom_neurons,
                                       "distance_rule", scale=3*scale,
-                                      edges=edges)
-        print("top-down done")
+                                      max_proba=3.)
         avg_deg = 0.02 * len(bottom_neurons) * len(neurons)
         nngt.generation.connect_nodes(net, bottom_neurons, neurons,
                                       "distance_rule", scale=3*scale,
                                       edges=edges)
-        print("bottom-up done")
+
+
+''' Plot the resulting network and subnetworks '''
 
 nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
                        restrict_sources="top", restrict_targets="top",

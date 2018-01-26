@@ -117,11 +117,13 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
 
 
 def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
-                   scale=-1, norm=-1, rule="exp", shape=None, positions=None,
-                   directed=True, multigraph=False, distance=None, **kwargs):
+                   scale=-1, rule="exp", max_proba=-1., shape=None,
+                   positions=None, directed=True, multigraph=False,
+                   distance=None, **kwargs):
     '''
     Returns a distance-rule graph
     '''
+    assert max_proba <= 0, "MPI distance_rule cannot use `max_proba` yet."
     distance     = [] if distance is None else distance
     distance_tmp = []
     edges_hash   = {}

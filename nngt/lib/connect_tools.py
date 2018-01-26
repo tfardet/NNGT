@@ -19,7 +19,8 @@ __all__ = [
     "_no_self_loops",
     "_set_options",
     "_unique_rows",
-    "dist_rule"
+    "dist_rule",
+    "max_proba_dist_rule"
 ]
 
 
@@ -177,8 +178,7 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
 # Distance rule #
 # ------------- #
 
-
-def dist_rule(rule, scale, norm, pos_src, pos_targets, dist=None):
+def dist_rule(rule, scale, pos_src, pos_targets, dist=None):
     '''
     DR test from one source to several targets
 
@@ -188,8 +188,6 @@ def dist_rule(rule, scale, norm, pos_src, pos_targets, dist=None):
         Either 'exp', 'gaussian', or 'lin'.
     scale : float
         Characteristic scale.
-    norm : float
-        Normalization factor giving proba at zero distance.
     pos_src : array of shape (2, N)
         Positions of the sources.
     pos_targets : array of shape (2, N)
@@ -208,16 +206,52 @@ def dist_rule(rule, scale, norm, pos_src, pos_targets, dist=None):
     if dist is not None:
         dist.extend(dist_tmp)
     if rule == 'exp':
-        if norm != 1.:
-            return norm*np.exp(np.divide(dist_tmp, -scale))
         return np.exp(np.divide(dist_tmp, -scale))
     elif rule == 'gaussian':
-        if norm != 1.:
-            return norm*np.exp(-0.5*np.square(np.divide(dist_tmp, scale)))
         return np.exp(-0.5*np.square(np.divide(dist_tmp, scale)))
     elif rule == 'lin':
-        if norm != 1.:
-            return norm*np.divide(scale - dist_tmp, scale).clip(min=0.)
         return np.divide(scale - dist_tmp, scale).clip(min=0.)
+    else:
+        raise InvalidArgument('Unknown rule "' + rule + '".')
+
+
+def max_proba_dist_rule(rule, scale, max_proba, pos_src, pos_targets,
+                        dist=None):
+    '''
+    DR test from one source to several targets
+
+    Parameters
+    ----------
+    rule : str
+        Either 'exp', 'gaussian', or 'lin'.
+    scale : float
+        Characteristic scale.
+    norm : float
+        Normalization factor giving proba at zero distance.
+    pos_src : 2-tuple
+        Positions of the sources.
+    pos_targets : array of shape (2, N)
+        Positions of the targets.
+    dist : list, optional (default: None)
+        List that will be filled with the distances of the edges.
+
+    Returns
+    -------
+    Array of size N giving the probability of the edges according to the rule.
+    '''
+    x, y = pos_src
+    s = np.repeat([[x], [y]], pos_targets.shape[1], axis=1)
+    vect = pos_targets - np.repeat([[x], [y]], pos_targets.shape[1], axis=1)
+    origin = np.array([(0., 0.)])
+    # todo correct this
+    dist_tmp = np.squeeze(cdist(vect.T, origin), axis=1)
+    if dist is not None:
+        dist.extend(dist_tmp)
+    if rule == 'exp':
+        return max_proba*np.exp(np.divide(dist_tmp, -scale))
+    elif rule == 'gaussian':
+        return max_proba*np.exp(-0.5*np.square(np.divide(dist_tmp, scale)))
+    elif rule == 'lin':
+        return max_proba*np.divide(scale - dist_tmp, scale).clip(min=0.)
     else:
         raise InvalidArgument('Unknown rule "' + rule + '".')

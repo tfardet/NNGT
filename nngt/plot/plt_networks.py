@@ -233,8 +233,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                     if restrict_targets is not None:
                         t_ids = list(set(restrict_targets).intersection(t_ids))
                     if t_ids and s_ids:
-                        s_min, s_max = np.min(s_ids), np.max(s_ids)
-                        t_min, t_max = np.min(t_ids), np.max(t_ids)
+                        s_min, s_max = np.min(s_ids), np.max(s_ids) + 1
+                        t_min, t_max = np.min(t_ids), np.max(t_ids) + 1
                         edges        = np.array(
                             adj_mat[s_min:s_max, t_min:t_max].nonzero(),
                             dtype=int)
@@ -277,13 +277,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                                     fc=ec, lw=0.5))
         else:
             edges = np.array(adj_mat.nonzero(), dtype=int)
-            s_min, s_max, t_min, t_max = 0, n, 0, n
+            s_min, s_max, t_min, t_max = 0, n + 1, 0, n + 1
             if restrict_sources is not None:
                 s_min = np.min(restrict_sources)
-                s_max = np.max(restrict_sources)
+                s_max = np.max(restrict_sources) + 1
             if restrict_targets is not None:
                 t_min = np.min(restrict_targets)
-                t_max = np.max(restrict_targets)
+                t_max = np.max(restrict_targets) + 1
             edges = np.array(
                 adj_mat[s_min:s_max, t_min:t_max].nonzero(), dtype=int)
             edges[0, :] += s_min
