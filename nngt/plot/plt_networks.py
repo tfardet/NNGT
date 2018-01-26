@@ -61,9 +61,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
                  ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
                  threshold=0.5, decimate=None, spatial=True,
-                 restrict_sources=None, restrict_targets=None, size=(600,600),
-                 xlims=None, ylims=None, dpi=75, axis=None, show=False,
-                 **kwargs):
+                 restrict_sources=None, restrict_targets=None,
+                 show_environment=True, size=(600,600), xlims=None, ylims=None,
+                 dpi=75, axis=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -190,7 +190,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # draw
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():
-        nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
+        if show_environment:
+            nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
         pos = network.get_positions()
     else:
         pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)

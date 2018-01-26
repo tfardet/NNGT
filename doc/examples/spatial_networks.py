@@ -24,6 +24,7 @@ import os
 import time
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import nngt
 from nngt.geometry import Shape
@@ -48,13 +49,21 @@ shape.random_obstacles(filling_fraction, form="rectangle", params=params,
 
 ''' Create a Spatial network and seed neurons on top/bottom areas '''
 
-pop = nngt.NeuralPop(200)
+num_neurons = 500
+
+# neurons are reparted proportionaly to the area
+total_area  = shape.area
+bottom_area = np.sum([a.area for a in shape.default_areas.values()])
+
+num_bottom  = int(num_neurons * bottom_area / total_area)
+num_top     = num_neurons - num_bottom
+
+pop = nngt.NeuralPop(num_neurons)
 pop.set_model(None)
-num_top    = 100
-num_bottom = 100
-pop.create_group("top", num_top, ntype=1, neuron_model="aeif_psc_alpha")
+pop.create_group("top", num_top)
 pop.create_group("bottom", num_bottom)
 
+# make the graph
 net = nngt.SpatialGraph(shape=shape, population=pop)
 
 # seed neurons
@@ -71,49 +80,74 @@ top_neurons    = np.array(net.new_node(num_top, positions=top_pos,
 
 ''' Make the connectivity '''
 
-scale = 100.
+top_scale    = 200.
+bottom_scale = 100.
+mixed_scale  = 150.
+
+base_proba   = 3.
+p_up         = 0.6
+p_down       = 0.9
+p_other_up   = p_down**2
 
 # connect bottom area
-avg_deg = 0.1 * len(bottom_neurons)
-nngt.generation.connect_nodes(net, bottom_neurons, bottom_neurons,
-                              "distance_rule", scale=scale, avg_deg=avg_deg)
+for name, area in shape.non_default_areas.items():
+    contained = area.contains_neurons(bottom_pos)
+    neurons   = bottom_neurons[contained]
+    nngt.generation.connect_nodes(net, bottom_neurons, bottom_neurons,
+                                  "distance_rule", scale=bottom_scale,
+                                  max_proba=base_proba)
 
 # connect top areas
 for name, area in shape.non_default_areas.items():
     contained = area.contains_neurons(top_pos)
     neurons   = top_neurons[contained]
+    other_top = [n for n in top_neurons if n not in neurons]
     if np.any(neurons):
         # connect intra-area
-        avg_deg   = 0.4*len(neurons)
         nngt.generation.connect_nodes(net, neurons, neurons, "distance_rule",
-                                      scale=3*scale, max_proba=3.)
-        # connect top to bottom and bottom to top
-        edges = 0.08 * len(bottom_neurons) * len(neurons)
+                                      scale=top_scale, max_proba=base_proba)
+        # connect between top areas (do it?)
+        nngt.generation.connect_nodes(net, neurons, other_top, "distance_rule",
+                                      scale=mixed_scale,
+                                      max_proba=base_proba*p_other_up)
+        # connect top to bottom
         nngt.generation.connect_nodes(net, neurons, bottom_neurons,
-                                      "distance_rule", scale=3*scale,
-                                      max_proba=3.)
-        avg_deg = 0.02 * len(bottom_neurons) * len(neurons)
+                                      "distance_rule", scale=mixed_scale,
+                                      max_proba=base_proba*p_down)
+        # connect bottom to top
         nngt.generation.connect_nodes(net, bottom_neurons, neurons,
-                                      "distance_rule", scale=3*scale,
-                                      edges=edges)
+                                      "distance_rule", scale=mixed_scale,
+                                      max_proba=base_proba*p_up)
+
+
+''' Check the degree distribution '''
+
+nngt.plot.degree_distribution(
+    net, ["in", "out"], nodes=top_neurons, show=False)
+nngt.plot.degree_distribution(
+    net, ["in", "out"], nodes=bottom_neurons, show=True)
 
 
 ''' Plot the resulting network and subnetworks '''
 
-nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
-                       restrict_sources="top", restrict_targets="top",
-                       show=False)
+restrict = [
+    ("bottom", "bottom"), ("top", "bottom"), ("top", "top"), ("bottom", "top")
+]
 
-nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
-                       restrict_sources="top", restrict_targets="bottom",
-                       show=False)
+for r_source, r_target in restrict:
+    nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
+                           restrict_sources=r_source,
+                           restrict_targets=r_target, show=False)
 
-nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
-                       restrict_sources="bottom", restrict_targets="top",
-                       show=False)
+fig, axis = plt.subplots()
+count = 0
+for r_source, r_target in restrict:
+    show_env = (count == 0)
+    nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
+                           restrict_sources=r_source,
+                           restrict_targets=r_target,
+                           show_environment=show_env, axis=axis, show=False)
+    count += 1
 
-nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
-                       restrict_sources="bottom", restrict_targets="bottom",
-                       show=False)
-
-nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5, show=True)
+plt.show()
+# ~ nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5, show=True)
