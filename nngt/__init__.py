@@ -75,6 +75,7 @@ Main classes and functions
 """
 
 import os as _os
+import errno as _errno
 import shutil as _shutil
 import sys as _sys
 import logging
@@ -122,7 +123,11 @@ _default_config = _os.path.dirname(_os.path.realpath(__file__)) + \
 
 # check that library config folder exists
 if not _os.path.isdir(_lib_folder):
-    _os.mkdir(_lib_folder)
+    try:
+        _os.mkdir(_lib_folder)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
 # IMPORTANT: first create logger
 from .lib.logger import _init_logger, _log_message

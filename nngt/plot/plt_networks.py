@@ -62,8 +62,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
                  threshold=0.5, decimate=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
-                 show_environment=True, size=(600,600), xlims=None, ylims=None,
-                 dpi=75, axis=None, show=False, **kwargs):
+                 show_environment=True, fast=False, size=(600,600), xlims=None,
+                 ylims=None, dpi=75, axis=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -103,10 +103,23 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Plot only one connection every `decimate`.
     spatial : bool, optional (default: True)
         If True, use the neurons' positions to draw them.
+    restrict_sources : str or list, optional (default: all)
+        Only draw edges starting from a restricted set of source nodes.
+    restrict_targets : str or list, optional (default: all)
+        Only draw edges ending on a restricted set of target nodes.
+    show_environment : bool, optional (default: True)
+        Plot the environment if the graph is spatial.
+    fast : bool, optional (default: False)
+        Use a faster algorithm to plot the edges. This method leads to less
+        pretty plots and zooming on the graph will make the edges start or
+        ending in places that will differ more or less strongly from the actual
+        node positions.
     size : tuple of ints, optional (default: (600,600))
         (width, height) tuple for the canvas size (in px).
     dpi : int, optional (default: 75)
         Resolution (dot per inch).
+    show : bool, optional (default: True)
+        Display the plot immediately.
     '''
     import matplotlib.pyplot as plt
     size_inches = (size[0]/float(dpi), size[1]/float(dpi))
@@ -249,42 +262,52 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                             edges = edges[:, ::decimate]
                             if nonstring_container(esize):
                                 esize = esize[::decimate]
-                        arrow_x = pos[edges[1], 0] - pos[edges[0], 0]
-                        arrow_y = pos[edges[1], 1] - pos[edges[0], 1]
                         # plot
-                        ec      = palette(ecolor[(src_name, tgt_name)])
-                        for s, t in zip(edges[0], edges[1]):
-                            xs, ys = pos[s, 0], pos[s, 1]
-                            xt, yt = pos[t, 0], pos[t, 1]
-                            dl     = 0.5*nsize[t]
-                            dx     = xt-xs
-                            dx -= np.sign(dx) * dl
-                            dy     = yt-ys
-                            dy -= np.sign(dy) * dl
+                        ec = palette(ecolor[(src_name, tgt_name)])
+                        if fast:
+                            dl       = 0.5*np.max(nsize)
+                            arrow_x  = pos[edges[1], 0] - pos[edges[0], 0]
+                            arrow_x -= np.sign(arrow_x) * dl
+                            arrow_y  = pos[edges[1], 1] - pos[edges[0], 1]
+                            arrow_x -= np.sign(arrow_y) * dl
+                            axis.quiver(
+                                pos[edges[0], 0], pos[edges[0], 1], arrow_x,
+                                arrow_y, scale_units='xy', angles='xy',
+                                scale=1, alpha=0.5, width=1.5e-3,
+                                linewidths=0.5*esize, edgecolors=ec, zorder=1)
+                        else:
+                            for s, t in zip(edges[0], edges[1]):
+                                xs, ys = pos[s, 0], pos[s, 1]
+                                xt, yt = pos[t, 0], pos[t, 1]
+                                dl     = 0.5*nsize[t]
+                                dx     = xt-xs
+                                dx -= np.sign(dx) * dl
+                                dy     = yt-ys
+                                dy -= np.sign(dy) * dl
 
-                            if curved_edges:
-                                arrow = FancyArrowPatch(
-                                    posA=(xs, ys), posB=(xt, yt),
-                                    arrowstyle=arr_style,
-                                    connectionstyle='arc3,rad=0.1',
-                                    alpha=ealpha, fc=ec, lw=0.5)
-                                axis.add_patch(arrow)
-                            else:
-                                arrows.append(FancyArrow(
-                                    xs, ys, dx, dy, width=0.3*avg_size,
-                                    head_length=0.7*avg_size,
-                                    head_width=0.7*avg_size,
-                                    length_includes_head=True, alpha=ealpha,
-                                    fc=ec, lw=0.5))
+                                if curved_edges:
+                                    arrow = FancyArrowPatch(
+                                        posA=(xs, ys), posB=(xt, yt),
+                                        arrowstyle=arr_style,
+                                        connectionstyle='arc3,rad=0.1',
+                                        alpha=ealpha, fc=ec, lw=0.5)
+                                    axis.add_patch(arrow)
+                                else:
+                                    arrows.append(FancyArrow(
+                                        xs, ys, dx, dy, width=0.3*avg_size,
+                                        head_length=0.7*avg_size,
+                                        head_width=0.7*avg_size,
+                                        length_includes_head=True,
+                                        alpha=ealpha, fc=ec, lw=0.5))
         else:
             edges = np.array(adj_mat.nonzero(), dtype=int)
-            s_min, s_max, t_min, t_max = 0, n + 1, 0, n + 1
+            s_min, s_max, t_min, t_max = 0, n, 0, n
             if restrict_sources is not None:
                 s_min = np.min(restrict_sources)
-                s_max = np.max(restrict_sources) + 1
+                s_max = np.min(np.max(restrict_sources) + 1, n)
             if restrict_targets is not None:
                 t_min = np.min(restrict_targets)
-                t_max = np.max(restrict_targets) + 1
+                t_max = np.min(np.max(restrict_targets) + 1, n)
             edges = np.array(
                 adj_mat[s_min:s_max, t_min:t_max].nonzero(), dtype=int)
             edges[0, :] += s_min
@@ -302,27 +325,46 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                     esize = esize[::decimate]
                 if nonstring_container(ecolor):
                     ecolor = ecolor[::decimate]
-            
-            for i, (s, t) in enumerate(zip(edges[0], edges[1])):
-                xs, ys = pos[s, 0], pos[s, 1]
-                xt, yt = pos[t, 0], pos[t, 1]
+            if isinstance(ecolor, str):
+                ecolor = [ecolor for i in range(0, e, decimate)]
 
-                if curved_edges:
-                    arrow = FancyArrowPatch(
-                        posA=(xs, ys), posB=(xt, yt), arrowstyle=arr_style,
-                        connectionstyle='arc3,rad=0.1',
-                        alpha=ealpha, fc=ecolor[i], lw=0.5)
-                    axis.add_patch(arrow)
-                else:
-                    arrows.append(FancyArrow(
-                        xs, ys, dx, dy, width=0.3*avg_size,
-                        head_length=0.7*avg_size, head_width=0.7*avg_size,
-                        length_includes_head=True, alpha=ealpha, fc=ec,
-                        lw=0.5))
-        
-        arrows = PatchCollection(arrows, match_original=True)
-        arrows.set_zorder(1)
-        axis.add_collection(arrows)
+            if fast:
+                dl       = 0.5*np.max(nsize)
+                arrow_x  = pos[edges[1], 0] - pos[edges[0], 0]
+                arrow_x -= np.sign(arrow_x) * dl
+                arrow_y  = pos[edges[1], 1] - pos[edges[0], 1]
+                arrow_x -= np.sign(arrow_y) * dl
+                axis.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x,
+                            arrow_y, scale_units='xy', angles='xy', scale=1,
+                            alpha=0.5, width=1.5e-3, linewidths=0.5*esize,
+                            edgecolors=ecolor, zorder=1)
+            else:
+                for i, (s, t) in enumerate(zip(edges[0], edges[1])):
+                    xs, ys = pos[s, 0], pos[s, 1]
+                    xt, yt = pos[t, 0], pos[t, 1]
+
+                    if curved_edges:
+                        arrow = FancyArrowPatch(
+                            posA=(xs, ys), posB=(xt, yt), arrowstyle=arr_style,
+                            connectionstyle='arc3,rad=0.1',
+                            alpha=ealpha, fc=ecolor[i], lw=0.5)
+                        axis.add_patch(arrow)
+                    else:
+                        dl     = 0.5*nsize[t]
+                        dx     = xt-xs
+                        dx -= np.sign(dx) * dl
+                        dy     = yt-ys
+                        dy -= np.sign(dy) * dl
+                        arrows.append(FancyArrow(
+                            xs, ys, dx, dy, width=0.3*avg_size,
+                            head_length=0.7*avg_size, head_width=0.7*avg_size,
+                            length_includes_head=True, alpha=ealpha,
+                            fc=ecolor[i], lw=0.5))
+
+        if not fast:
+            arrows = PatchCollection(arrows, match_original=True)
+            arrows.set_zorder(1)
+            axis.add_collection(arrows)
 
     if kwargs.get('tight', True):
         plt.tight_layout()

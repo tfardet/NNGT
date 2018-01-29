@@ -30,7 +30,7 @@ import nngt
 from nngt.geometry import Shape
 
 
-nngt.set_config({"omp": 8, "palette": 'RdYlBu'})
+nngt.set_config({"omp": 8, "palette": 'RdYlBu', "backend": "networkx"})
 # ~ nngt.set_config("multithreading", False)
 
 nngt.seed(0)
@@ -90,7 +90,7 @@ p_down       = 0.9
 p_other_up   = p_down**2
 
 # connect bottom area
-for name, area in shape.non_default_areas.items():
+for name, area in shape.default_areas.items():
     contained = area.contains_neurons(bottom_pos)
     neurons   = bottom_neurons[contained]
     nngt.generation.connect_nodes(net, bottom_neurons, bottom_neurons,

@@ -32,10 +32,9 @@ from .base_graph import GraphInterface, BaseProperty
 
 
 
-#-----------------------------------------------------------------------------#
-# Properties
-#------------------------
-#
+# ---------- #
+# Properties #
+# ---------- #
 
 class _IgNProperty(BaseProperty):
 
