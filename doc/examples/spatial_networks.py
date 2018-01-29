@@ -30,7 +30,7 @@ import nngt
 from nngt.geometry import Shape
 
 
-nngt.set_config({"omp": 8, "palette": 'RdYlBu', "backend": "networkx"})
+nngt.set_config({"omp": 8, "palette": 'RdYlBu'})
 # ~ nngt.set_config("multithreading", False)
 
 nngt.seed(0)
