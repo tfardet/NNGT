@@ -98,7 +98,7 @@ if on_rtd:
         "matplotlib", "matplotlib.cm",
         "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
         "matplotlib.patches", "matplotlib.path", "matplotlib.markers",
-        "matplotlib.colors", "svg", "svg.path"
+        "matplotlib.colors", "matplotlib.collections", "svg", "svg.path"
     ]
 
     mock_objects_modules = [
