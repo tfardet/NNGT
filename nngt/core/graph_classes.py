@@ -1062,7 +1062,7 @@ class SpatialGraph(Graph):
         self.__class__.__max_id += 1
         self._shape = None
         self._pos   = None
-        super(SpatialGraph, self).__init__(0, name, weighted, directed,
+        super(SpatialGraph, self).__init__(nodes, name, weighted, directed,
                                            from_graph, **kwargs)
         self._init_spatial_properties(shape, positions, **kwargs)
         if "population" in kwargs:

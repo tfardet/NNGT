@@ -391,10 +391,9 @@ def _newman_watts(source_ids, target_ids, int coord_nb=-1,
 
 
 def _distance_rule(cnp.ndarray[size_t, ndim=1] source_ids,
-                   cnp.ndarray[size_t, ndim=1] target_ids,
-                   float density=-1, int edges=-1, float avg_deg=-1,
-                   float scale=-1, float norm=-1, str rule="exp",
-                   float max_proba=-1., shape=None,
+                   cnp.ndarray[size_t, ndim=1] target_ids, float density=-1.,
+                   int edges=-1, float avg_deg=-1., float scale=-1.,
+                   str rule="exp", float max_proba=-1., shape=None,
                    cnp.ndarray[float, ndim=2] positions=np.array([[0], [0]]),
                    bool directed=True, bool multigraph=False,
                    num_neurons=None, distance=None, **kwargs):
@@ -419,12 +418,14 @@ def _distance_rule(cnp.ndarray[size_t, ndim=1] source_ids,
         vector[float] x = positions[0]
         vector[float] y = positions[1]
         float cscale = scale
-        float cnorm = norm if 0 < norm <= 1 else 1.
     # compute the required values
     edge_num = 0
     if max_proba <= 0.:
         edge_num, _ = _compute_connections(
             num_source, num_target, density, edges, avg_deg, directed)
+    else:
+        raise RuntimeError(
+            "Not working with max_proba and multithreading yet.")
     existing = 0  # for now
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
@@ -449,7 +450,7 @@ def _distance_rule(cnp.ndarray[size_t, ndim=1] source_ids,
 
     if max_proba <= 0.:
         _cdistance_rule(&ia_edges[0,0], source_ids, local_targets, crule,
-                        cscale, cnorm, x, y, cnum_neurons, cedges, old_edges,
+                        cscale, 1., x, y, cnum_neurons, cedges, old_edges,
                         dist, multigraph, msd, omp)
         distance.extend(dist)
         return ia_edges
