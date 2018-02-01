@@ -29,10 +29,10 @@ from tools_testing import foreach_graph
 
 def _get_connections(instruct):
     nodes = instruct["nodes"]
-    density = instruct.get("density", -1)
+    density = instruct.get("density", -1.)
     edges = instruct.get("edges", -1)
-    average_degree = instruct.get("avg_deg", -1)
-    reciprocity = instruct.get("reciprocity", -1)
+    average_degree = instruct.get("avg_deg", -1.)
+    reciprocity = instruct.get("reciprocity", -1.)
     directed = instruct.get("directed", True)
     #~ weighted = instruct.get("weighted", True))
     return nodes, density, edges, average_degree, directed, reciprocity

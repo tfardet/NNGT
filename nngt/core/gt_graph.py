@@ -26,7 +26,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
+from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.connect_tools import _unique_rows
 
 from .base_graph import GraphInterface, BaseProperty
@@ -69,7 +69,7 @@ class _GtNProperty(BaseProperty):
                 val = int(0)
                 dtype = int
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
                 dtype = float
             elif value_type == "string":
                 val = ""
@@ -200,7 +200,7 @@ set_attribute to create it.")
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:
@@ -275,9 +275,9 @@ class _GtGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
-        if isinstance(edge[0], int):
+        if is_integer(edge[0]):
             return self.edge_index[edge]
-        elif hasattr(edge[0], "__len__"):
+        elif nonstring_container(edge[0]):
             idx = [self.edge_index[e] for e in edge]
             return idx
         else:
@@ -303,7 +303,8 @@ class _GtGraph(GraphInterface):
             order = np.argsort(edges[:, 2])
             return edges[order, :2]
     
-    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
+                 positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
 
@@ -321,20 +322,43 @@ class _GtGraph(GraphInterface):
 
         Returns
         -------
-        The node or a tuple of the nodes created.
+        The node or a list of the nodes created.
         '''
-        node = super(_GtGraph, self).add_vertex(n)
-        node = [node] if n == 1 else tuple(node)
+        nodes = super(_GtGraph, self).add_vertex(n)
+        nodes = [nodes] if n == 1 else list(nodes)
+
         if attributes is not None:
             for k, v in attributes.items():
                 if k not in self._nattr:
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
                     v = v if nonstring_container(v) else [v]
-                    self._nattr.set_attribute(k, v, nodes=node)
+                    self._nattr.set_attribute(k, v, nodes=nodes)
+
+        if self.is_spatial():
+            old_pos      = self._pos
+            self._pos    = np.full((self.node_nb(), 2), np.NaN)
+            num_existing = len(old_pos) if old_pos is not None else 0
+            if num_existing != 0:
+                self._pos[:num_existing, :] = old_pos
+        if positions is not None:
+            assert self.is_spatial(), \
+                "`positions` argument requires a SpatialGraph/SpatialNetwork."
+            self._pos[nodes] = positions
+
+        if groups is not None:
+            assert self.is_network(), \
+                "`positions` argument requires a Network/SpatialNetwork."
+            if nonstring_container(groups):
+                assert len(groups) == n, "One group per neuron required."
+                for g, node in zip(groups, nodes):
+                    self.population.add_to_group(g, node)
+            else:
+                self.population.add_to_group(groups, nodes)
+
         if n == 1:
-            return node[0]
-        return node
+            return nodes[0]
+        return nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''

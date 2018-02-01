@@ -23,6 +23,7 @@
 import numpy as np
 
 from .errors import InvalidArgument
+from .test_functions import nonstring_container, is_integer
 
 
 def find_idx_nearest(array, values):
@@ -44,7 +45,7 @@ def find_idx_nearest(array, values):
     '''
     idx = np.searchsorted(array, values, side="left") # get the interval
     # return the index of the closest
-    if isinstance(values, float) or isinstance(values, int):
+    if isinstance(values, np.float) or is_integer(values):
         if idx == len(array):
             return idx-1
         else:

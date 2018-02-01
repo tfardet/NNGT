@@ -34,6 +34,7 @@ __all__ = [
     "find_idx_nearest",
     "gaussian_distrib",
     "InvalidArgument",
+    "is_integer",
     "lin_correlated_distrib",
     "log_correlated_distrib",
     "lognormal_distrib",

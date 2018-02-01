@@ -8,7 +8,7 @@ import warnings
 
 from cython.parallel import parallel, prange
 from .cconnect cimport *
-cimport numpy as np
+cimport numpy as cnp
 
 import numpy as np
 import scipy.sparse as ssp
@@ -20,6 +20,7 @@ from nngt.lib.connect_tools import *
 
 
 __all__ = [
+    "_all_to_all",
     "_distance_rule",
     "_erdos_renyi",
     "_filter",
@@ -79,13 +80,58 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
     return ia_edges, num_ecurrent
 
 
-#-----------------------------------------------------------------------------#
-# Graph model generation
-#------------------------
-#
+# ---------------------- #
+# Graph model generation #
+# ---------------------- #
 
-def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
-                  np.ndarray[size_t, ndim=1] target_ids, degree=-1,
+def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
+                cnp.ndarray[size_t, ndim=1] target_ids, list distance=None,
+                bool directed=True, bool multigraph=False, **kwargs):
+    ''' Generation of a fully connected graph '''
+    cdef:
+        size_t num_sources = len(source_ids)
+        size_t num_targets = len(target_ids)
+        cnp.ndarray[float, ndim=2, mode="c"] vectors
+        cnp.ndarray[float, ndim=1] x, y
+        size_t s
+    # find common nodes
+    edges  = None
+    common = set(source_ids).intersection(target_ids)
+    if common:
+        num_edges     = num_sources*num_targets - len(common)
+        edges         = np.empty((num_edges, 2), dtype=DTYPE)
+        current_edges = 0
+        next_enum     = 0
+        for s in source_ids:
+            if s in common:
+                idx       = np.where(target_ids == s)[0][0]
+                tgts      = target_ids[np.arange(num_targets) != idx]
+                next_enum = current_edges + num_targets - 1
+                edges[current_edges:next_enum, 0] = s
+                edges[current_edges:next_enum, 1] = tgts
+                current_edges = next_enum
+            else:
+                next_enum = current_edges + num_targets
+                edges[current_edges:next_enum, 0] = s
+                edges[current_edges:next_enum, 1] = target_ids
+                current_edges = next_enum
+    else:
+        edges       = np.empty((num_sources*num_targets, 2), dtype=DTYPE)
+        edges[:, 0] = np.repeat(source_ids, num_targets)
+        edges[:, 1] = np.tile(target_ids, num_sources)
+
+    if distance is not None:
+        pos       = kwargs['positions']
+        x, y      = pos[0], pos[1]
+        vectors   = np.array((x[edges[:, 1]] - x[edges[:, 0]],
+                              y[edges[:, 1]] - y[edges[:, 0]]))
+        distance.extend(np.linalg.norm(vectors, axis=0))
+
+    return edges
+
+
+def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
+                  cnp.ndarray[size_t, ndim=1] target_ids, degree=-1,
                   degree_type="in", float reciprocity=-1, bool directed=True,
                   bool multigraph=False, existing_edges=None, **kwargs):
     ''' Generation of the edges through the C++ function '''
@@ -104,7 +150,7 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
             source_ids, target_ids, edges, directed, multigraph)
         unsigned int existing = \
             0 if existing_edges is None else existing_edges.shape[0]
-        np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
+        cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing+edges, 2), dtype=DTYPE)
     if existing:
         ia_edges[:existing,:] = existing_edges
@@ -126,8 +172,8 @@ def _fixed_degree(np.ndarray[size_t, ndim=1] source_ids,
     return ia_edges
 
 
-def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
-                     np.ndarray[size_t, ndim=1] target_ids, float avg=-1,
+def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
+                     cnp.ndarray[size_t, ndim=1] target_ids, float avg=-1,
                      float std=-1, degree_type="in", float reciprocity=-1,
                      bool directed=True, bool multigraph=False,
                      existing_edges=None, **kwargs):
@@ -163,7 +209,7 @@ def _gaussian_degree(np.ndarray[size_t, ndim=1] source_ids,
         long msd = np.random.randint(0, edges + 1)
         unsigned int existing = \
             0 if existing_edges is None else existing_edges.shape[0]
-        np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
+        cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edges, 2), dtype=DTYPE)
     if existing:
         ia_edges[:existing,:] = existing_edges
@@ -344,11 +390,11 @@ def _newman_watts(source_ids, target_ids, int coord_nb=-1,
     return ia_edges
 
 
-def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
-                   np.ndarray[size_t, ndim=1] target_ids,
-                   float density=-1, int edges=-1, float avg_deg=-1,
-                   float scale=-1, float norm=-1, str rule="exp", shape=None,
-                   np.ndarray[float, ndim=2] positions=np.array([[0], [0]]),
+def _distance_rule(cnp.ndarray[size_t, ndim=1] source_ids,
+                   cnp.ndarray[size_t, ndim=1] target_ids, float density=-1.,
+                   int edges=-1, float avg_deg=-1., float scale=-1.,
+                   str rule="exp", float max_proba=-1., shape=None,
+                   cnp.ndarray[float, ndim=2] positions=np.array([[0], [0]]),
                    bool directed=True, bool multigraph=False,
                    num_neurons=None, distance=None, **kwargs):
     '''
@@ -361,42 +407,67 @@ def _distance_rule(np.ndarray[size_t, ndim=1] source_ids,
         size_t cnum_neurons = num_neurons
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
+        size_t s, i
         string crule = _to_bytes(rule)
         unsigned int omp = nngt._config["omp"]
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
-        vector[ vector[size_t] ] targets
+        vector[ vector[size_t] ] local_targets
+        cnp.ndarray[long, ndim=1] loc_tgts
+        list sources = []
+        list targets = []
         vector[float] x = positions[0]
         vector[float] y = positions[1]
         float cscale = scale
-        float cnorm = norm
     # compute the required values
-    edge_num, _ = _compute_connections(
-        num_source, num_target, density, edges, avg_deg, directed)
+    edge_num = 0
+    if max_proba <= 0.:
+        edge_num, _ = _compute_connections(
+            num_source, num_target, density, edges, avg_deg, directed)
+    else:
+        raise RuntimeError(
+            "Not working with max_proba and multithreading yet.")
     existing = 0  # for now
-    #~ b_one_pop = _check_num_edges(
-        #~ source_ids, target_ids, edges, directed, multigraph)
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
     # for each node, check the neighbours that are in an area where
     # connections can be made: +/- scale for lin, +/- 10*scale for exp
     lim = scale if rule == 'lin' else 10*scale
     for i in source_ids:
         keep  = (np.abs(positions[0, target_ids] - positions[0, i]) < lim)
         keep *= (np.abs(positions[1, target_ids] - positions[1, i]) < lim)
-        targets.push_back(target_ids[keep].tolist())
+        if b_one_pop:
+            idx = np.where(target_ids == i)[0][0]
+            keep[idx] = 0
+        local_targets.push_back(target_ids[keep].tolist())
     # create the edges
     cdef:
         long msd = np.random.randint(0, edge_num + 1)
         #~ float area = shape.area * conversion_factor
         size_t cedges = edge_num
-        np.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
+        cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edge_num, 2), dtype=DTYPE)
         vector[float] dist = vector[float]()
 
-    _cdistance_rule(&ia_edges[0,0], source_ids, targets, crule, cscale, cnorm,
-                    x, y, cnum_neurons, cedges, old_edges, dist, multigraph,
-                    msd, omp)
-    distance.extend(dist)
-    assert np.all(np.greater(distance, 0.)), "Negative distance detected."
-    return ia_edges
+    if max_proba <= 0.:
+        _cdistance_rule(&ia_edges[0,0], source_ids, local_targets, crule,
+                        cscale, 1., x, y, cnum_neurons, cedges, old_edges,
+                        dist, multigraph, msd, omp)
+        distance.extend(dist)
+        return ia_edges
+    else:
+        for i, s in enumerate(source_ids):
+            loc_tgts = np.array(local_targets[i], dtype=int)
+            if len(loc_tgts):
+                dist_tmp = []
+                test = max_proba_dist_rule(
+                    rule, scale, max_proba, positions[:, s],
+                    positions[:, loc_tgts], dist=dist_tmp)
+                test = np.greater(test, np.random.uniform(size=len(test)))
+                added = np.sum(test)
+                sources.extend((s for i in range(added)))
+                targets.extend(loc_tgts[test])
+                distance.extend(np.array(dist_tmp)[test])
+        return np.array([sources, targets]).T
 
 
 def price_network():

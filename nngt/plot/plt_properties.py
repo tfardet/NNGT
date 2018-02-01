@@ -76,7 +76,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
     '''
     import matplotlib.pyplot as plt
     if axis is None:
-        axis = plt.gca()
+        fig, axis = plt.subplots()
     empty_axis = axis.has_data()
     axis.axis('tight')
     if "alpha" not in kwargs:
@@ -100,7 +100,8 @@ def degree_distribution(network, deg_type="total", nodes=None,
         maxcounts, maxbins, minbins = counts.max(), bins[max_nnz], bins.min()
         if "label" not in kwargs:
             kwargs["label"] = deg_type[0].upper() + deg_type[1:] + " degree"
-        axis.bar(bins[:-1], counts, np.diff(bins), bottom=bottom_count, **kwargs)
+        axis.bar(
+            bins[:-1], counts, np.diff(bins), bottom=bottom_count, **kwargs)
     else:
         if colors is None:
             colors = palette(np.linspace(0.,0.5, len(deg_type)))
@@ -127,7 +128,8 @@ def degree_distribution(network, deg_type="total", nodes=None,
             else:
                 kwargs['label'] = labels[i]
             axis.bar(
-                bins[:-1], counts, np.diff(bins), color=colors[i], bottom=bottom_count, **kwargs)
+                bins[:-1], counts, np.diff(bins), color=colors[i],
+                bottom=bottom_count, **kwargs)
 
     axis.set_xlabel("Degree")
     axis.set_ylabel("Node count")

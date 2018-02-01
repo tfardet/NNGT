@@ -26,18 +26,9 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
+from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
+from nngt.lib.io_tools import _np_dtype
 from .base_graph import GraphInterface, BaseProperty
-
-
-_type_converter = {
-    "int": int,
-    "string": str,
-    "double": float,
-    "float": float,
-    "bool": bool,
-    "object": object,
-}
 
 
 # ---------- #
@@ -53,10 +44,8 @@ class _NxNProperty(BaseProperty):
     def __getitem__(self, name):
         lst = [self.parent().node[i][name]
                for i in range(self.parent().node_nb())]
-        if super(_NxNProperty, self).__getitem__(name) in ('string', 'object'):
-            return np.array(lst, dtype=object)
-        else:
-            return np.array(lst)
+        dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
+        return np.array(lst, dtype=dtype)
 
     def __setitem__(self, name, value):
         size = self.parent().number_of_nodes()
@@ -76,7 +65,7 @@ class _NxNProperty(BaseProperty):
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:
@@ -137,8 +126,7 @@ class _NxEProperty(BaseProperty):
                         "slice, list of edges, edges or attribute name.")
                 return self.parent()[name[0]][name[1]]
         if isinstance(name, str):
-            dtype = _type_converter[super(
-                _NxEProperty, self).__getitem__(name)]
+            dtype = _np_dtype(super(_NxEProperty, self).__getitem__(name))
             eprop = np.empty(self.parent().edge_nb(), dtype=dtype)
             g = self.parent()
             for d, eid in zip(g.edges(data=name), g.edges(data="eid")):
@@ -151,6 +139,9 @@ class _NxEProperty(BaseProperty):
                 for k, v in data.items():
                     if k != "eid":
                         eprop[k].append(v)
+            for k, v in eprop.items():
+                dtype = _np_dtype(super(_NxEProperty, self).__getitem__(k))
+                eprop = {k: np.array(v, dtype)}
             return eprop
 
     def __setitem__(self, name, value):
@@ -171,7 +162,7 @@ class _NxEProperty(BaseProperty):
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:
@@ -269,9 +260,9 @@ class _NxGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
-        if isinstance(edge[0], np.integer):
+        if is_integer(edge[0]):
             return self[edge[0]][edge[1]]["eid"]
-        elif hasattr(edge[0], "__len__"):
+        elif nonstring_container(edge[0]):
             return [self[e[0]][e[1]]["eid"] for e in edge]
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or "
@@ -286,7 +277,8 @@ class _NxGraph(GraphInterface):
             edges[weighted_edge[2], :] = weighted_edge[:2]
         return edges
     
-    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
+                 positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
         
@@ -299,25 +291,48 @@ class _NxGraph(GraphInterface):
             
         Returns
         -------
-        The node or an iterator over the nodes created.
+        The node or a list of the nodes created.
         '''
-        tpl_new_nodes = tuple(range(len(self), len(self)+n))
-        for v in tpl_new_nodes:
+        new_nodes = list(range(len(self), len(self)+n))
+        for v in new_nodes:
             super(_NxGraph, self).add_node(v)
+
         if attributes is not None:
             for k, v in attributes.items():
                 if k not in self._nattr:
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
                     v = v if nonstring_container(v) else [v]
-                    self._nattr.set_attribute(k, v, nodes=tpl_new_nodes)
+                    self._nattr.set_attribute(k, v, nodes=new_nodes)
         else:
-            filler = [None for _ in tpl_new_nodes]
+            filler = [None for _ in new_nodes]
             for k in self._nattr:
-                self._nattr.set_attribute(k, filler, nodes=tpl_new_nodes)
-        if len(tpl_new_nodes) == 1:
-            return tpl_new_nodes[0]
-        return tpl_new_nodes
+                self._nattr.set_attribute(k, filler, nodes=new_nodes)
+
+        if self.is_spatial():
+            old_pos      = self._pos
+            self._pos    = np.full((self.node_nb(), 2), np.NaN)
+            num_existing = len(old_pos) if old_pos is not None else 0
+            if num_existing != 0:
+                self._pos[:num_existing, :] = old_pos
+        if positions is not None and len(positions):
+            assert self.is_spatial(), \
+                "`positions` argument requires a SpatialGraph/SpatialNetwork."
+            self._pos[new_nodes, :] = positions
+
+        if groups is not None:
+            assert self.is_network(), \
+                "`positions` argument requires a Network/SpatialNetwork."
+            if nonstring_container(groups):
+                assert len(groups) == n, "One group per neuron required."
+                for g, node in zip(groups, new_nodes):
+                    self.population.add_to_group(g, node)
+            else:
+                self.population.add_to_group(groups, new_nodes)
+
+        if len(new_nodes) == 1:
+            return new_nodes[0]
+        return new_nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''

@@ -115,17 +115,23 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     lst_lines = lst_lines[::-1][:-len(di_notif)]
     while not lst_lines[-1] or lst_lines[-1].startswith(ignore):
         lst_lines.pop()
+    # get nodes attributes
+    di_nattributes  = _get_node_attr(di_notif, separator)
     # make edges and attributes
-    edges = []
-    attributes = di_notif["attributes"] if attributes is None else attributes
-    di_attributes = {name: [] for name in di_notif["attributes"]}
-    di_convert = _gen_convert(di_notif["attributes"], di_notif["attr_types"])
-    line = None
+    edges           = []
+    eattributes     = (di_notif["edge_attributes"] if attributes is None
+                       else attributes)
+    di_eattributes  = {name: [] for name in di_notif["edge_attributes"]}
+    di_edge_convert = _gen_convert(di_notif["edge_attributes"],
+                                   di_notif["edge_attr_types"])
+    line            = None
+
     while lst_lines:
         line = lst_lines.pop()
         if line and not line.startswith(notifier):
-            di_get_edges[fmt](line, attributes, separator,
-                              secondary, edges, di_attributes, di_convert)
+            di_get_edges[fmt](
+                line, eattributes, separator, secondary, edges, di_eattributes,
+                di_edge_convert)
         else:
             break
     # check whether a shape is present
@@ -152,7 +158,8 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             positions = np.array((x, y, z)).T
         else:
             positions = np.array((x, y)).T
-    return di_notif, edges, di_attributes, pop, shape, positions
+    return (di_notif, edges, di_nattributes, di_eattributes, pop, shape,
+            positions)
 
 
 @graph_tool_check('2.22')
@@ -312,16 +319,35 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     if notifier == separator or notifier == secondary:
         raise InvalidArgument("`notifier` string should differ from "
                               "`separator` and `secondary`.")
+    # temporarily disable numpy cut threshold to save string
+    old_threshold = np.get_printoptions()['threshold']
+    np.set_printoptions(threshold=np.NaN)
     # data
     if attributes is None:
         attributes = [a for a in graph.edges_attributes if a != "bweight"]
+    nattributes = [a for a in graph.nodes_attributes]
     additional_notif = {
         "directed": graph._directed,
-        "attributes": attributes,
-        "attr_types": [graph.get_attribute_type(attr) for attr in attributes],
+        "node_attributes": nattributes,
+        "node_attr_types": [
+            graph.get_attribute_type(nattr, "node") for nattr in nattributes
+        ],
+        "edge_attributes": attributes,
+        "edge_attr_types": [
+            graph.get_attribute_type(attr, "edge") for attr in attributes
+        ],
         "name": graph.get_name(),
         "size": graph.node_nb()
     }
+    # add node attributes to the notifications
+    for nattr in additional_notif["node_attributes"]:
+        key                   = "na_" + nattr
+        # ~ additional_notif[key] = codecs.encode(
+            # ~ graph.get_node_attributes(name=nattr).tobytes(),
+            # ~ "base64").decode().replace('\n', '~')
+        additional_notif[key] = np.array2string(
+                graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
+                separator=separator)[1:-1]
     # save positions for SpatialGraph (and shape if Shapely is available)
     if graph.is_spatial():
         if _shapely_support:
@@ -335,10 +361,6 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
                          'The `shape` attribute of the graph could not be '
                          'saved to file because Shapely is not installed.')
         pos = graph.get_positions()
-        # temporarily disable numpy cut threshold to save string
-        old_threshold = np.get_printoptions()['threshold']
-        #~ np.set_printoptions(threshold='nan')
-        np.set_printoptions(threshold=np.NaN)
         additional_notif['x'] = np.array2string(
             pos[:, 0], max_line_width=np.NaN, separator=separator)[1:-1]
         additional_notif['y'] = np.array2string(
@@ -346,8 +368,6 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         if pos.shape[1] == 3:
             additional_notif['z'] = np.array2string(
                 pos[:, 2], max_line_width=np.NaN, separator=separator)[1:-1]
-        # set numpy cut threshold back on
-        np.set_printoptions(threshold=old_threshold)
 
     if graph.is_network():
         additional_notif["population"] = codecs.encode(
@@ -356,6 +376,9 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
 
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)
+
+    # set numpy cut threshold back on
+    np.set_printoptions(threshold=old_threshold)
 
     if return_info:
         return str_graph, additional_notif
@@ -395,7 +418,10 @@ def _neighbour_list(graph, separator, secondary, attributes):
     @todo: speed this up!
     '''
     lst_neighbours = list(graph.adjacency_matrix().tolil().rows)
-    attributes = graph._eattr
+    attributes = {
+        k: v for k, v in graph.edges_attributes.items()
+        if k != 'bweight'
+    }
     for v1 in range(graph.node_nb()):
         for i, v2 in enumerate(lst_neighbours[v1]):
             str_edge = str(v2)
@@ -412,7 +438,10 @@ def _neighbour_list(graph, separator, secondary, attributes):
 def _edge_list(graph, separator, secondary, attributes):
     ''' Generate a string containing the edge list and their properties. '''
     edges = graph.edges_array
-    attributes = {k: v for k, v in graph.edges_attributes.items()}
+    attributes = {
+        k: v for k, v in graph.edges_attributes.items()
+        if k != 'bweight'
+    }
     end_strings = [secondary for _ in range(len(attributes) - 1)]
     end_strings.append('')
     lst_edges = []
@@ -448,9 +477,16 @@ def _gt(graph, attributes, **kwargs):
 # ------------- #
 
 def _format_notif(notif_name, notif_val):
-    if notif_name in ("attributes", "attr_types"):
+    attr = (
+        "node_attributes", "edge_attributes", "node_attr_types",
+        "edge_attr_types"
+    )
+    if notif_name in attr:
         lst = notif_val[1:-1].split(", ")
-        return [ val.strip("'\"") for val in lst ]
+        if lst != ['']:  # check empty string
+            return [val.strip("'\"") for val in lst]
+        else:
+            return []
     elif notif_name == "size":
         return int(notif_val)
     elif notif_name == "directed":
@@ -460,7 +496,10 @@ def _format_notif(notif_name, notif_val):
 
 
 def _get_notif(lines, notifier):
-    di_notif = { "attributes": [], "attr_types": [], "name": "LoadedGraph"}
+    di_notif = {
+        "node_attributes": [], "edge_attributes": [], "node_attr_types": [],
+        "edge_attr_types": [], "name": "LoadedGraph"
+    }
     for line in lines:
         if line.startswith(notifier):
             idx_eq = line.find("=")
@@ -481,6 +520,7 @@ def _to_list(string):
         if count < current:
             count = current
             chosen = separators[i]
+            break
     return string.split(chosen)
 
 
@@ -518,6 +558,18 @@ def _gen_convert(attributes, attr_types):
     return di_convert
 
 
+def _np_dtype(attribute_type):
+    '''
+    Return a relevant numpy dtype entry.
+    '''
+    if attribute_type in ("double", "float", "real"):
+        return float
+    elif attribute_type in ("int", "integer"):
+        return int
+    else:
+        return object
+
+
 def _get_edges_neighbour(line, attributes, separator, secondary, edges,
                          di_attributes, di_convert):
     '''
@@ -551,6 +603,25 @@ def _get_edges_elist(line, attributes, separator, secondary, edges,
         attr_data = data[2].split(secondary)
         for name, val in zip(attributes, attr_data):
             di_attributes[name].append(di_convert[name](val))
+
+
+def _get_node_attr(di_notif, separator):
+    '''
+    Return node attributes.
+    Attributes are stored under @na_{attr_name} in the file, so they are
+    stored under the coresponding key in `di_notif`.
+    '''
+    di_nattr   = {}
+    nattr_name = {str("na_" + k): k for k in di_notif["node_attributes"]}
+    nattr_type = di_notif["node_attr_types"]
+    for k, s in di_notif.items():
+        if k in nattr_name:
+            attr           = nattr_name[k]
+            idx            = di_notif["node_attributes"].index(attr)
+            dtype          = _np_dtype(nattr_type[idx])
+            di_nattr[attr] = np.fromstring(s, sep=separator, dtype=dtype)
+    return di_nattr
+
 
 def _str_bytes_len(s):
     return len(s.encode('utf-8'))

@@ -138,6 +138,7 @@ class TestIO(TestBasis):
         allclose = np.allclose(g.get_edge_attributes(name="test_attr"),
                                h.get_edge_attributes(name="test_attr"))
         if not allclose:
+            print("Results differed for '{}'.".format(g.name))
             print(g.get_edge_attributes(name="test_attr"))
             print(h.get_edge_attributes(name="test_attr"))
 

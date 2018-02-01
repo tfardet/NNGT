@@ -15,16 +15,16 @@ Basic dependencies
 
 Regardless of your needs, the following libraries are required:
 
-* `numpy <http://www.numpy.org/>`_ 
+* `numpy <http://www.numpy.org/>`_ (>= 1.11 required for full support)
 * `scipy <http://www.scipy.org/scipylib/index.html>`_
 
 Though NNGT implements a default (very basic) backend, installing one of the
 following libraries is highly recommended to do some proper network
 analysis:
 
-* graph_tool_
+* graph_tool_ (> 2.22 recommended)
 * or igraph_
-* or networkx_ (> 2.0)
+* or networkx_ (>= 2.0)
 
 
 Additionnal dependencies
@@ -55,18 +55,18 @@ debian/ubuntu/mint, ``pacman`` and ``yaourt`` on arch-based distributions, or
 your `.rpm` manager on fedora. Otherwise you can also install the latest
 versions via `pip`: ::
 
-    sudo pip install numpy scipy matplotlib networkx
+    pip install --user numpy scipy matplotlib networkx
 
 To install the last stable release, just use: ::
 
-    sudo pip install nngt
+    pip install --user nngt
 
 Under most linux distributions, the simplest way to get the latest version
 of NNGT is to install to install both
 `pip <https://pip.pypa.io/en/stable/installing/>`_ and
 `git <https://git-scm.com/>`_, then simply type into a terminal: ::
 
-    sudo pip install git+https://github.com/Silmathoron/NNGT.git
+    pip install --user git+https://github.com/Silmathoron/NNGT.git
 
 
 Mac

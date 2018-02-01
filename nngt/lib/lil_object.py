@@ -4,6 +4,7 @@
 """ Object lil_matrix """
 
 import bisect
+from .test_functions import is_integer, nonstring_container
 
 
 #
@@ -26,8 +27,7 @@ class ObjectLil:
         """
         if isinstance(index, tuple) and len(index) == 2:
             i, j = index
-            if ((isinstance(i, int) or isinstance(i, np.integer)) and
-                    (isinstance(j, int) or isinstance(j, np.integer))):
+            if is_integer(i) and is_integer(j):
                 try:
                     idx_j = self.rows[i].index(j)
                     return self.data[i][idx_j]
@@ -39,8 +39,7 @@ class ObjectLil:
     def __setitem__(self, index, x):
         if isinstance(index, tuple) and len(index) == 2:
             i, j = index
-            if ((isinstance(i, int) or isinstance(i, np.integer)) and
-                    (isinstance(j, int) or isinstance(j, np.integer))):
+            if is_integer(i) and is_integer(j):
                 if i >= self.shape[0] or j >= self.shape[1]:
                     raise IndexError("LilObject index out of range")
                 else:

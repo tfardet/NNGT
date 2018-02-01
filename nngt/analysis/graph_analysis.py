@@ -24,7 +24,7 @@ import numpy as np
 import scipy.sparse.linalg as spl
 
 import nngt
-from nngt.lib import InvalidArgument, nonstring_container
+from nngt.lib import InvalidArgument, nonstring_container, is_integer
 from .activity_analysis import get_b2, get_firing_rate
 from .bayesian_blocks import bayesian_blocks
 
@@ -93,7 +93,7 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
         bins
     '''
     degrees = graph.get_degrees(deg_type, node_list, use_weights)
-    if num_bins == 'bayes' or isinstance(num_bins, int):
+    if num_bins == 'bayes' or is_integer(num_bins):
         num_bins = binning(degrees, bins=num_bins, log=log)
     return np.histogram(degrees, num_bins)
 
@@ -608,7 +608,7 @@ def binning(x, bins='bayes', log=False):
         return bayesian_blocks(x)
     elif nonstring_container(bins):
         return bins
-    elif isinstance(bins, int):
+    elif is_integer(bins):
         if log:
             return np.logspace(np.log10(np.maximum(x.min(), 1e-10)),
                                np.log10(x.max()), bins)

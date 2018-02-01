@@ -72,7 +72,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     num_etotal = 0
     ia_edges   = np.zeros((edges, 2), dtype=int)
     idx        = 0 if b_out else 1  # differenciate source / target
-    variables  = source_ids if b_out else target_ids  # nodes picked randomly
+    variables  = targets_id if b_out else source_ids  # nodes picked randomly
     max_degree = np.inf if multigraph else len(variables)
     
     for i, v in enumerate(target_ids):
@@ -117,11 +117,13 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
 
 
 def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
-                   scale=-1, norm=-1, rule="exp", shape=None, positions=None,
-                   directed=True, multigraph=False, distance=None, **kwargs):
+                   scale=-1, rule="exp", max_proba=-1., shape=None,
+                   positions=None, directed=True, multigraph=False,
+                   distance=None, **kwargs):
     '''
     Returns a distance-rule graph
     '''
+    assert max_proba <= 0, "MPI distance_rule cannot use `max_proba` yet."
     distance     = [] if distance is None else distance
     distance_tmp = []
     edges_hash   = {}
@@ -140,7 +142,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     num_neurons = len(set(np.concatenate((source_ids, target_ids))))
 
     # for each node, check the neighbours that are in an area where
-    # connections can be made: +/- scale for lin, +/- 10*scale for exp.
+    # connections can be made: ± scale for lin, ± 10*scale for exp.
     # Get the sources and associated targets for each MPI process
     sources = []
     targets = []
@@ -196,7 +198,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             t = np.random.randint(0, len(tgts), num_try)
             local_targets[current_pos:current_pos + num_try] = tgts[t]
             current_pos += num_try
-        test = dist_rule(rule, scale, norm, positions[:, local_sources],
+        test = dist_rule(rule, scale, 1., positions[:, local_sources],
                          positions[:, local_targets], dist=dist_local)
         test = np.greater(test, np.random.uniform(size=total_trials))
         edges_tmp[0].extend(local_sources[test])
@@ -263,7 +265,6 @@ def _not_yet(*args, **kwargs):
     raise NotImplementedError("Not available with MPI yet.")
 
 _fixed_degree = _not_yet
-_gaussian_degree = _not_yet
 _newman_watts = _not_yet
 _price_scale_free = _not_yet
 _random_scale_free = _not_yet

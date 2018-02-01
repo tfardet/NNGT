@@ -30,8 +30,9 @@ import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, lil_matrix
 
 import nngt
-from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container
+from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param
+from nngt.lib.io_tools import _np_dtype
 
 
 # ---------------------------------- #
@@ -179,85 +180,87 @@ class GraphInterface(nngt._config["graph"]):
 
     def attr_new_edges(self, edge_list, attributes=None):
         num_edges = len(edge_list)
-        attributes = {} if attributes is None else attributes
-        specials = ("weight", "delay", 'distance')
-        for k in attributes.keys():
-            if k not in self.edges_attributes and k in specials:
-                self._eattr.new_attribute(name=k, value_type="double")
-        # take care of classic attributes
-        bio_weights = False
-        bio_delays = False
-        # distance must come first
-        if self.is_spatial() or "distance" in attributes:
-            prop = attributes.get("distance", None)
-            values = _get_edge_attr(
-                self, edge_list, 'distance', prop, last_edges=True)
-            self._eattr.set_attribute(
-                "distance", values, edges=edge_list)
-        # first check for potential syn_spec if Network
-        if self.is_network():
-            for syn_param in self.population.syn_spec.values():
-                bio_weights += ("weight" in syn_param)
-                bio_delays += ("delay" in syn_param)
-        # then weights
-        if bio_weights:
-            syn_spec = self.population.syn_spec
-            mat = csr_matrix(
-                (np.repeat(1., num_edges), (edge_list[:, 0], edge_list[:, 1])),
-                (self.population.size, self.population.size))
-            for name1, g1 in self.population.items():
-                for name2, g2 in self.population.items():
-                    src_slice = slice(g1.ids[0], g1.ids[-1]+1)
-                    tgt_slice = slice(g2.ids[0], g2.ids[-1]+1)
-                    e12 = mat[src_slice, tgt_slice].nonzero()
-                    syn_prop = _get_syn_param(
-                        name1, g1, name2, g2, syn_spec, "weight")
-                    syn_prop = 1. if syn_prop is None else syn_prop
-                    if isinstance(syn_prop, dict):
-                        # through set_weights for dict
-                        distrib = syn_prop["distribution"]
-                        del syn_prop["distribution"]
-                        self.set_weights(elist=e12, distribution=distrib,
-                                         parameters=syn_prop)
-                    elif nonstring_container(syn_prop):
-                        # otherwise direct attribute set
-                        self.set_edge_attribute(
-                            "weight", values=syn_prop, value_type="double",
-                            edges=edge_list)
+        if num_edges:
+            attributes = {} if attributes is None else attributes
+            specials = ("weight", "delay", 'distance')
+            for k in attributes.keys():
+                if k not in self.edges_attributes and k in specials:
+                    self._eattr.new_attribute(name=k, value_type="double")
+            # take care of classic attributes
+            bio_weights = False
+            bio_delays = False
+            # distance must come first
+            if self.is_spatial() or "distance" in attributes:
+                prop = attributes.get("distance", None)
+                values = _get_edge_attr(
+                    self, edge_list, 'distance', prop, last_edges=True)
+                self._eattr.set_attribute(
+                    "distance", values, edges=edge_list)
+            # first check for potential syn_spec if Network
+            if self.is_network():
+                for syn_param in self.population.syn_spec.values():
+                    bio_weights += ("weight" in syn_param)
+                    bio_delays += ("delay" in syn_param)
+            # then weights
+            if bio_weights:
+                syn_spec = self.population.syn_spec
+                mat = csr_matrix(
+                    (np.repeat(1., num_edges),
+                    (edge_list[:, 0], edge_list[:, 1])),
+                    (self.population.size, self.population.size))
+                for name1, g1 in self.population.items():
+                    for name2, g2 in self.population.items():
+                        src_slice = slice(g1.ids[0], g1.ids[-1]+1)
+                        tgt_slice = slice(g2.ids[0], g2.ids[-1]+1)
+                        e12 = mat[src_slice, tgt_slice].nonzero()
+                        syn_prop = _get_syn_param(
+                            name1, g1, name2, g2, syn_spec, "weight")
+                        syn_prop = 1. if syn_prop is None else syn_prop
+                        if isinstance(syn_prop, dict):
+                            # through set_weights for dict
+                            distrib = syn_prop["distribution"]
+                            del syn_prop["distribution"]
+                            self.set_weights(elist=e12, distribution=distrib,
+                                             parameters=syn_prop)
+                        elif nonstring_container(syn_prop):
+                            # otherwise direct attribute set
+                            self.set_edge_attribute(
+                                "weight", values=syn_prop, value_type="double",
+                                edges=edge_list)
+                        else:
+                            self.set_edge_attribute(
+                                "weight", val=syn_prop, value_type="double",
+                                edges=edge_list)
+            elif self.is_weighted() or "weight" in attributes:
+                values = _get_edge_attr(
+                    self, edge_list, 'weight', attributes.get("weight", None),
+                    last_edges=True)
+                self._eattr.set_attribute(
+                    "weight", values, edges=edge_list)
+            # then delay
+            if self.is_network() or "delay" in attributes:
+                prop = attributes.get("delay", None)
+                values = _get_edge_attr(
+                    self, edge_list, 'delay', prop, last_edges=True)
+                self._eattr.set_attribute(
+                    "delay", values, edges=edge_list)
+            for k in attributes.keys():
+                if k not in specials:
+                    if k in self.edges_attributes:
+                        values = _get_edge_attr(
+                            self, edge_list, k, attributes[k], last_edges=True)
+                        self._eattr.set_attribute(k, values, edges=edge_list)
                     else:
-                        self.set_edge_attribute(
-                            "weight", val=syn_prop, value_type="double",
-                            edges=edge_list)
-        elif self.is_weighted() or "weight" in attributes:
-            values = _get_edge_attr(
-                self, edge_list, 'weight', attributes.get("weight", None),
-                last_edges=True)
-            self._eattr.set_attribute(
-                "weight", values, edges=edge_list)
-        # then delay
-        if self.is_network() or "delay" in attributes:
-            prop = attributes.get("delay", None)
-            values = _get_edge_attr(
-                self, edge_list, 'delay', prop, last_edges=True)
-            self._eattr.set_attribute(
-                "delay", values, edges=edge_list)
-        for k in attributes.keys():
-            if k not in specials:
-                if k in self.edges_attributes:
-                    values = _get_edge_attr(
-                        self, edge_list, k, attributes[k], last_edges=True)
-                    self._eattr.set_attribute(k, values, edges=edge_list)
-                else:
-                    raise RuntimeError("Unknown attribute: '" + k + "'.")
-        # take care of potential new attributes
-        if "names" in attributes:
-            num_attr = len(attributes["names"])
-            for i in range(num_attr):
-                v = attributes["values"][i]
-                if not nonstring_container(v):
-                    v = np.repeat(v, self.edge_nb())
-                self._eattr.new_attribute(attributes["names"][i],
-                                          attributes["types"][i], values=v)
+                        raise RuntimeError("Unknown attribute: '" + k + "'.")
+            # take care of potential new attributes
+            if "names" in attributes:
+                num_attr = len(attributes["names"])
+                for i in range(num_attr):
+                    v = attributes["values"][i]
+                    if not nonstring_container(v):
+                        v = np.repeat(v, self.edge_nb())
+                    self._eattr.new_attribute(attributes["names"][i],
+                                              attributes["types"][i], values=v)
         
     @abstractmethod
     def node_nb(self):
@@ -345,24 +348,25 @@ class BaseGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
-        if isinstance(edge[0], np.integer):
+        if is_integer(edge[0]):
             return self._edges[tuple(edge)]
-        elif hasattr(edge[0], "__len__"):
+        elif nonstring_container(edge[0]):
             idx = [self._edges[tuple(e)] for e in edge]
             return idx
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or "
                                  "an array of 2-tuples of ints.")
-    
+
     @property
     def edges_array(self):
         '''
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        return np.array(list(self._edges.keys()))
+        return np.array(list(self._edges.keys()), dtype=int)
     
-    def new_node(self, n=1, ntype=1, attributes=None, value_types=None):
+    def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
+                 positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
 
@@ -377,6 +381,12 @@ class BaseGraph(GraphInterface):
         value_types : dict, optional (default: None)
             Dict of the `attributes` types, necessary only if the `attributes`
             do not exist yet.
+        positions : array of shape (n, 2), optional (default: None)
+            Positions of the neurons. Valid only for
+            :class:`~nngt.SpatialGraph` or :class:`~nngt.SpatialNetwork`.
+        groups : str, int, or list, optional (default: None)
+            :class:`~nngt.core.NeuralGroup` to which the neurons belong. Valid
+            only for :class:`~nngt.Network` or :class:`~nngt.SpatialNetwork`.
 
         Returns
         -------
@@ -410,6 +420,28 @@ class BaseGraph(GraphInterface):
                 else:
                     v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=nodes)
+
+        if self.is_spatial():
+            old_pos      = self._pos
+            self._pos    = np.full(np.NaN, (self.node_nb(), 2))
+            num_existing = len(old_pos) if old_pos is not None else 0
+            if num_existing != 0:
+                self._pos[:num_existing, :] = old_pos
+        if positions is not None:
+            assert self.is_spatial(), \
+                "`positions` argument requires a SpatialGraph/SpatialNetwork."
+            self._pos[nodes] = positions
+
+        if groups is not None:
+            assert self.is_network(), \
+                "`positions` argument requires a Network/SpatialNetwork."
+            if nonstring_container(groups):
+                assert len(groups) == n, "One group per neuron required."
+                for g, node in zip(groups, nodes):
+                    self.population.add_to_group(g, node)
+            else:
+                self.population.add_to_group(groups, nodes)
+
         if n == 1:
             return nodes[0]
         return nodes
@@ -436,6 +468,7 @@ class BaseGraph(GraphInterface):
         -------
         The new connection.
         '''
+        #check attributes
         if attributes is None:
             attributes = {}
         # check that the edge does not already exist
@@ -481,6 +514,7 @@ class BaseGraph(GraphInterface):
             
         @todo: add example, check the edges for self-loops and multiple edges
         '''
+        #check attributes
         if attributes is None:
             attributes = {}
         initial_edges = self.edge_nb()
@@ -506,8 +540,8 @@ class BaseGraph(GraphInterface):
             ws = (1 for _ in range(num_added))
         for i, (e, w) in enumerate(zip(edge_list, ws)):
             self._edges[tuple(e)]     = initial_edges + i
-            self._out_deg[e[0]]      += 1
-            self._in_deg[e[1]]       += 1
+            self._out_deg[e[0]]  += 1
+            self._in_deg[e[1]]   += 1
             self._adj_mat[e[0], e[1]] = w
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=attributes)
@@ -544,9 +578,8 @@ class BaseGraph(GraphInterface):
         Returns the degree of the nodes.
 
         .. warning::
-        When using MPI, returns only the degree of the local nodes.
+        When using MPI, returns only the degree related to local edges.
         '''
-
         if node_list is None:
             node_list = self._nodes
 
@@ -614,10 +647,8 @@ class _NProperty(BaseProperty):
         self.prop = OrderedDict()
 
     def __getitem__(self, name):
-        if super(_NProperty, self).__getitem__(name) in ('string', 'object'):
-            return np.array(self.prop[name], dtype=object)
-        else:
-            return np.array(self.prop[name])
+        dtype = _np_dtype(super(_NProperty, self).__getitem__(name))
+        return np.array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -638,7 +669,7 @@ class _NProperty(BaseProperty):
                 val = int(0)
                 dtype = int
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
                 dtype = float
             elif value_type == "string":
                 val = ""
@@ -705,18 +736,22 @@ class _EProperty(BaseProperty):
         eprop = {}
         if isinstance(name, slice):
             for k in self.keys():
-                eprop[k] = np.array(self.prop[k][name])
+                dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
+                eprop[k] = np.array(self.prop[k][name], dtype=dtype)
             return eprop
         elif nonstring_container(name):
             if nonstring_container(name[0]):
                 eids = [self.parent().edge_id(e) for e in name]
                 for k in self.keys():
-                    eprop[k] = np.array(self.prop[k][eids])
+                    dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
+                    eprop[k] = np.array(self.prop[k][eids], dtype=dtype)
             else:
                 for k in self.keys():
-                    eprop[k] = np.array(self.prop[k][name])
+                    dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
+                    eprop[k] = np.array(self.prop[k][name], dtype=dtype)
             return eprop
-        return np.array(self.prop[name])
+        dtype = _np_dtype(super(_EProperty, self).__getitem__(name))
+        return np.array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -771,7 +806,7 @@ class _EProperty(BaseProperty):
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:

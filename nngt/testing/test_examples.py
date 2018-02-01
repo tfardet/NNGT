@@ -8,7 +8,7 @@
 # terms of the GNU General Public License.
 
 """
-Test that the examples work.
+Check that the examples work.
 """
 
 import os

@@ -31,8 +31,9 @@ import scipy.sparse as ssp
 import scipy.spatial as sptl
 
 import nngt
-from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
-                      default_synapse, POS, WEIGHT, DELAY, DIST, TYPE, BWEIGHT)
+from nngt.lib import (InvalidArgument, nonstring_container, is_integer,
+                      default_neuron, default_synapse, POS, WEIGHT, DELAY,
+                      DIST, TYPE, BWEIGHT)
 from nngt.lib.rng_tools import _eprop_distribution
 from nngt.lib.logger import _log_message
 
@@ -315,7 +316,7 @@ class NeuralPop(OrderedDict):
         return newstate
 
     def __getitem__(self, key):
-        if isinstance(key, np.integer):
+        if isinstance(key, (int, np.integer)):
             assert key >= 0, "Index must be positive, not {}.".format(key)
             new_key = tuple(self.keys())[key]
             return OrderedDict.__getitem__(self, new_key)
@@ -325,26 +326,17 @@ class NeuralPop(OrderedDict):
     def __setitem__(self, key, value):
         self._validity_check(key, value)
         int_key = None
-        if isinstance(key, int):
+        if is_integer(key):
             new_key = tuple(self.keys())[key]
             int_key = key
             OrderedDict.__setitem__(self, new_key, value)
         else:
             OrderedDict.__setitem__(self, key, value)
             int_key = list(super(NeuralPop, self).keys()).index(key)
-        # update _max_id
-        old_max_id = self._max_id
+        # update pop size/max_id
         group_size = len(value.ids)
-        if group_size > 0:
-            self._max_id = max(self._max_id, *value.ids)
-        self._size += group_size
-        # update the group node property
-        if self._neuron_group is None:
-            self._neuron_group = np.repeat(-1, self._max_id + 1)
-        elif self._max_id >= len(self._neuron_group):
-            ngroup_tmp = np.repeat(-1, self._max_id + 1)
-            ngroup_tmp[:old_max_id + 1] = self._neuron_group
-            self._neuron_group = ngroup_tmp
+        max_id     = np.max(value.ids) if group_size != 0 else 0
+        _update_max_id_and_size(self, max_id)
         self._neuron_group[value.ids] = int_key
         if -1 in list(self._neuron_group):
             self._is_valid = False
@@ -424,13 +416,17 @@ class NeuralPop(OrderedDict):
 
         .. versionchanged:: 0.8
             Removed `syn_model` and `syn_param`.
+
+        .. versionchanged:: 1.0
+            `neurons` can be an int to signify a desired size for the group
+            without actually setting the indices.
         
         Parameters
         ----------
         name : str
             Name of the group.
-        neurons : array-like
-            List of the neurons indices.
+        neurons : int or array-like
+            Desired number of neurons or list of the neurons indices.
         ntype : int, optional (default: 1)
             Type of the neurons : 1 for excitatory, -1 for inhibitory.
         neuron_model : str, optional (default: None)
@@ -440,10 +436,6 @@ class NeuralPop(OrderedDict):
             default parameters will be used.
         '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
-        # create a group
-        if isinstance(neurons, int):
-            group_size = neurons
-            neurons = list(range(self._max_id, self._max_id + group_size))
         group = NeuralGroup(neurons, ntype, neuron_model, neuron_param)
         self[name] = group
 
@@ -475,7 +467,7 @@ class NeuralPop(OrderedDict):
         if group is None:
             group = self.keys()
         try:
-            for key,val in iter(model.items()):
+            for key, val in model.items():
                 for name in group:
                     if key == "neuron":
                         self[name].neuron_model = val
@@ -517,7 +509,7 @@ class NeuralPop(OrderedDict):
         if group is None:
             group = self.keys()
         try:
-            for key,val in iter(param.items()):
+            for key, val in param.items():
                 for name in group:
                     if key == "neuron":
                         self[name].neuron_param = val
@@ -557,7 +549,7 @@ class NeuralPop(OrderedDict):
         elif groups is None:
             groups = tuple(self.keys())
         key = "neuron_param" if element == "neuron" else "syn_param"
-        if isinstance(groups, (str, int)):
+        if isinstance(groups, (str, int, np.integer)):
             return self[groups].properties[key]
         else:
             param = []
@@ -593,9 +585,27 @@ class NeuralPop(OrderedDict):
                 return groups
 
     def add_to_group(self, group_name, ids):
-        idx = list(self.keys()).index(group_name)
+        '''
+        Add neurons to a specific group.
+
+        Parameters
+        ----------
+        group_name : str or int
+            Name or index of the group.
+        ids : list or 1D-array
+            Neuron ids.
+        '''
+        idx = None
+        if is_integer(group_name):
+            assert 0 <= group_name < len(self), "Group index does not exist."
+            idx = group_name
+        else:
+            idx = list(self.keys()).index(group_name)
         self[group_name].ids += list(ids)
-        self._neuron_group[ids] = idx
+        # update number of neurons
+        max_id = np.max(ids)
+        _update_max_id_and_size(self, max_id)
+        self._neuron_group[np.array(ids)] = idx
         if -1 in list(self._neuron_group):
             self._is_valid = False
         else:
@@ -605,12 +615,12 @@ class NeuralPop(OrderedDict):
         if self._has_models and not group.has_model:
             raise AttributeError(
                 "This NeuralPop requires group to have a model attribute that "
-                "is not `None`; to disable this, use `set_models(None)` "
+                "is not `None`; to disable this, use `set_model(None)` "
                 "method on this NeuralPop instance.")
         elif group.has_model and not self._has_models:
             _log_message(logger, "WARNING",
                          "This NeuralPop is not set to take models into "
-                         "account; use the `set_models` method to change its "
+                         "account; use the `set_model` method to change its "
                          "behaviour.")
 
 
@@ -618,7 +628,7 @@ class NeuralPop(OrderedDict):
 # NeuralGroup and GroupProperty #
 # ----------------------------- #
 
-class NeuralGroup:
+class NeuralGroup(object):
 
     """
     Class defining groups of neurons.
@@ -669,6 +679,7 @@ class NeuralGroup:
         -------
         A new :class:`~nngt.core.NeuralGroup` instance.
         '''
+        assert ntype in (1, -1), "`ntype` can either be 1 or -1."
         neuron_param = {} if neuron_param is None else neuron_param.copy()
         self._has_model = False if model is None else True
         self._neuron_model = model
@@ -678,7 +689,7 @@ class NeuralGroup:
         elif nonstring_container(nodes):
             self._desired_size = None
             self._ids = list(nodes)
-        elif isinstance(nodes, int):
+        elif is_integer(nodes):
             self._desired_size = nodes
             self._ids = []
         else:
@@ -1020,16 +1031,16 @@ there are {} edges while {} values where provided'''.format(
                 # get the dict of inhibitory nodes
                 num_inhib_nodes = 0
                 idx_nodes = {}
-                if hasattr(inhib_nodes, '__iter__'):
-                    idx_nodes = { i:-1 for i in inhib_nodes }
+                if nonstring_container(inhib_nodes):
+                    idx_nodes = {i: -1 for i in inhib_nodes}
                     num_inhib_nodes = len(idx_nodes)
-                if issubclass(inhib_nodes.__class__, float):
+                if isinstance(inhib_nodes, np.float):
                     if inhib_nodes > 1:
                         raise InvalidArgument(
                             "Inhibitory ratio (float value for `inhib_nodes`) "
                             "must be smaller than 1.")
                         num_inhib_nodes = int(inhib_nodes*n)
-                if issubclass(inhib_nodes.__class__, int):
+                if is_integer(inhib_nodes):
                     num_inhib_nodes = int(inhib_nodes)
                 while len(idx_nodes) != num_inhib_nodes:
                     indices = randint(0,n,num_inhib_nodes-len(idx_nodes))
@@ -1094,3 +1105,22 @@ def _check_syn_spec(syn_spec, group_names, groups):
     for val in syn_spec.values():
         assert 'weight' not in val, '`weight` cannot be set here.'
         assert 'delay' not in val, '`delay` cannot be set here.'
+
+
+def _update_max_id_and_size(neural_pop, max_id):
+    '''
+    Update NeuralPop after modification of a NeuralGroup ids.
+    '''
+    old_max_id   = neural_pop._max_id
+    neural_pop._max_id = max(neural_pop._max_id, max_id)
+    # update size
+    neural_pop._size   = 0
+    for g in neural_pop.values():
+        neural_pop._size += g.size
+    # update the group node property
+    if neural_pop._neuron_group is None:
+        neural_pop._neuron_group = np.repeat(-1, neural_pop._max_id + 1)
+    elif neural_pop._max_id >= len(neural_pop._neuron_group):
+        ngroup_tmp = np.repeat(-1, neural_pop._max_id + 1)
+        ngroup_tmp[:old_max_id + 1] = neural_pop._neuron_group
+        neural_pop._neuron_group = ngroup_tmp

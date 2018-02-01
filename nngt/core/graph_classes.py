@@ -187,20 +187,29 @@ class Graph(nngt.core.GraphObject):
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
-        info, edges, attr, pop, shape, pos = load_from_file(
+        info, edges, nattr, eattr, pop, shape, pos = load_from_file(
             filename=filename, fmt=fmt, separator=separator,
             secondary=secondary, attributes=attributes, notifier=notifier)
         # create the graph
         graph = Graph(nodes=info["size"], name=info["name"],
                       directed=info["directed"])
+        # make the nodes attributes
         lst_attr, dtpes, lst_values = [], [], []
-        if info["attributes"]:  # their are attributes to add to the graph
-            lst_attr = info["attributes"]
-            dtpes = info["attr_types"]
-            lst_values = [attr[name] for name in info["attributes"]]
+        if info["node_attributes"]:  # edge attributes to add to the graph
+            lst_attr   = info["node_attributes"]
+            dtpes      = info["node_attr_types"]
+            lst_values = [nattr[name] for name in info["node_attributes"]]
+        for nattr, dtype, values in zip(lst_attr, dtpes, lst_values):
+            graph.new_node_attribute(nattr, dtype, values=values)
+        # make the edges and their attributes
+        lst_attr, dtpes, lst_values = [], [], []
+        if info["edge_attributes"]:  # edge attributes to add to the graph
+            lst_attr   = info["edge_attributes"]
+            dtpes      = info["edge_attr_types"]
+            lst_values = [eattr[name] for name in info["edge_attributes"]]
         graph.new_edges(edges)
-        for attr, dtype, values in zip(lst_attr, dtpes, lst_values):
-            graph.new_edge_attribute(attr, dtype, values=values)
+        for eattr, dtype, values in zip(lst_attr, dtpes, lst_values):
+            graph.new_edge_attribute(eattr, dtype, values=values)
         if pop is not None:
             Network.make_network(graph, pop)
         if pos is not None or shape is not None:
@@ -642,11 +651,11 @@ class Graph(nngt.core.GraphObject):
         '''
         inhib_nodes = nodes
         if syn_type == 'excitatory' or syn_type == 1:
-            if issubclass(nodes.__class__, int):
+            if is_integer(nodes):
                 inhib_nodes = graph.node_nb() - nodes
-            elif issubclass(nodes.__class__, float):
-                inhib_nodes = 1./nodes
-            elif hasattr(nodes, '__iter__'):
+            elif isinstance(nodes, np.float):
+                inhib_nodes = 1. / nodes
+            elif nonstring_container(nodes):
                 inhib_nodes = list(range(graph.node_nb()))
                 nodes.sort()
                 for node in nodes[::-1]:
@@ -792,10 +801,45 @@ class Graph(nngt.core.GraphObject):
             return self._nattr[name]
         else:
             return self._nattr.keys()
-    
-    def get_attribute_type(self, attribute_name):
-        ''' Return the type of an attribute '''
-        return self._eattr.value_type(attribute_name)
+
+    def get_attribute_type(self, attribute_name, attribute_class=None):
+        '''
+        Return the type of an attribute (e.g. string, double, int).
+
+        .. versionchanged:: 1.0
+            Added `attribute_class` parameter.
+
+        Parameters
+        ----------
+        attribute_name : str
+            Name of the attribute.
+        attribute_class : str, optional (default: both)
+            Whether `attribute_name` is a "node" or an "edge" attribute.
+
+        Returns
+        -------
+        type : str
+            Type of the attribute.
+        '''
+        if attribute_class is None:
+            if attribute_name in self._eattr and attribute_name in self._nattr:
+                raise RuntimeError("Both edge and node attributes with name '"
+                                   + attribute_name + "' exist, please "
+                                   "specify `attribute_class`")
+            elif attribute_name in self._eattr:
+                return self._eattr.value_type(attribute_name)
+            elif attribute_name in self._nattr:
+                return self._nattr.value_type(attribute_name)
+            else:
+                raise KeyError("No '{}' attribute.".format(attribute_name))
+        else:
+            if attribute_class == "edge":
+                return self._eattr.value_type(attribute_name)
+            elif attribute_class == "node":
+                return self._nattr.value_type(attribute_name)
+            else:
+                raise InvalidArgument(
+                    "Unknown attribute class '{}'.".format(attribute_class))
     
     def get_name(self):
         ''' Get the name of the graph '''
@@ -873,14 +917,26 @@ class Graph(nngt.core.GraphObject):
         valid_types = ("in", "out", "total")
         if deg_type in valid_types:
             if syn_type in ("excitatory", 1):
-                e_neurons = np.where(
-                    self.get_node_attributes(name="type") == 1)[0]
+                e_neurons = []
+                if isinstance(self, Network):
+                    for g in self.population.values():
+                        if g.neuron_type == 1:
+                            e_neurons.extend(g.ids)
+                else:
+                    e_neurons = np.where(
+                        self.get_node_attributes(name="type") == 1)[0]
                 return self.adjacency_matrix(
                     weights=use_weights,
                     types=False)[e_neurons, :].sum(axis=0).A1
             elif syn_type in ("inhibitory", -1):
-                i_neurons = np.where(
-                    self.get_node_attributes(name="type") == -1)[0]
+                i_neurons = []
+                if isinstance(self, Network):
+                    for g in self.population.values():
+                        if g.neuron_type == -1:
+                            i_neurons.extend(g.ids)
+                else:
+                    i_neurons = np.where(
+                        self.get_node_attributes(name="type") == -1)[0]
                 return self.adjacency_matrix(
                     weights=use_weights,
                     types=False)[i_neurons, :].sum(axis=0).A1
@@ -1005,9 +1061,12 @@ class SpatialGraph(Graph):
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
         self._shape = None
+        self._pos   = None
         super(SpatialGraph, self).__init__(nodes, name, weighted, directed,
                                            from_graph, **kwargs)
         self._init_spatial_properties(shape, positions, **kwargs)
+        if "population" in kwargs:
+            self.make_network(self, kwargs["population"])
         
     def __del__(self):
         if hasattr(self, '_shape'):
@@ -1316,6 +1375,9 @@ class Network(Graph):
             from_graph=from_graph, inh_weight_factor=inh_weight_factor,
             **kwargs)
         self._init_bioproperties(population)
+        if "shape" in kwargs or "positions" in kwargs:
+            self.make_spatial(self, shape=kwargs.get("shape", None),
+                              positions=kwargs.get("positions", None))
     
     def __del__(self):
         super(Network, self).__del__()
@@ -1416,24 +1478,12 @@ class Network(Graph):
         if not hasattr(self, '_iwf'):
             self._iwf = 1.
         if issubclass(population.__class__, nngt.NeuralPop):
-            if population.is_valid:
+            if population.is_valid or not self.node_nb():
                 self._population = population
                 nodes = population.size
                 # create the delay attribute if necessary
                 if "delay" not in self.edges_attributes:
                     self.set_delays()
-                # set the type attributes for neurons
-                types = np.ones(self.node_nb())
-                for group in population.values():
-                    types[group.ids] *= group.neuron_type
-                self.new_node_attribute('type', 'int', values=types)
-                # store the neuronal parameters in the graph
-                for group in population.values():
-                    if group.neuron_param is not None:
-                        for k, v in group.neuron_param.items():
-                            self.set_node_attribute(
-                                k, val=v, value_type='double',
-                                nodes=group.ids)
             else:
                 raise AttributeError("NeuralPop is not valid (not all neurons "
                                      "are associated to a group).")
@@ -1461,7 +1511,7 @@ class Network(Graph):
         ids : int or tuple
             Ids in the network. Same type as the requested `gids` type.
         '''
-        if isinstance(neuron_ids, int):
+        if is_integer(neuron_ids):
             group_name = self._population._neuron_group[neuron_ids]
             ntype = self._population[group_name].neuron_type
             return ntype

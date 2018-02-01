@@ -7,14 +7,14 @@ import numpy as np
 
 from .errors import InvalidArgument
 from .rng_tools import _eprop_distribution
-from .test_functions import nonstring_container
+from .test_functions import nonstring_container, is_integer
 
 
 """ Helper functions for graph classes """
 
 def _edge_prop(prop):
     ''' Return edge property `name` as a distribution dict '''
-    if isinstance(prop, int) or isinstance(prop, float):
+    if is_integer(prop) or isinstance(prop, np.float):
         return {"distribution": "constant", "value": prop}
     elif isinstance(prop, dict):
         return prop.copy()

@@ -263,124 +263,127 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
     }
 
     // create the edges
-    #pragma omp parallel num_threads(num_omp)
+    if (num_edges > 0)
     {
-        float distance, proba;
-        size_t src, tgt, local_tests, nln, rnd;
-        std::vector<size_t> local_tgts;
-        std::mt19937 generator_(seeds[omp_get_thread_num()]);
-        // thread local edges
-        map_t hash_map;
-        size_t num_elocal = 0;
-        std::vector< std::vector<size_t> > local_edges(2,
-                                                       std::vector<size_t>());
-        std::vector< std::vector<size_t> > elocal_tmp(2,
-                                                      std::vector<size_t>());
-        std::vector< float > local_dist, dist_tmp;
-
-        // initialize the hash map and the local edges with the existing edges
-        // the static schedule is CAPITAL: each thread must always handle
-        // the same nodes
-                                                      
-        do {
-            // reset edge number (recomute it each time)
-            #pragma omp single
-            {
-                current_enum = initial_enum;
-            }
-            #pragma omp barrier
-            #pragma omp flush(current_enum)
-            
-            // the static schedule is CAPITAL: each thread must always handle
-            // the same nodes
-            #pragma omp for schedule(static)
-            for (size_t i=0; i<target_nodes.size(); i++)
-            {
-                local_tests = target_nodes[i].size()
-                              * (target_enum - current_enum) * neigh_norm;
-                local_tests = std::max(local_tests, 1lu);
-                elocal_tmp[0].reserve(local_tests);
-                elocal_tmp[1].reserve(local_tests);
-                dist_tmp.reserve(local_tests);
-                // initialize source; set target generator
-                src = source_nodes[i];
-                local_tgts = target_nodes[i];
-                nln = local_tgts.size();  // number of local neighbours
-                std::uniform_int_distribution<size_t> rnd_target(0, nln - 1);
-
-                for (size_t j=0; j<local_tests; j++)
+        #pragma omp parallel num_threads(num_omp)
+        {
+            float distance, proba;
+            size_t src, tgt, local_tests, nln, rnd;
+            std::vector<size_t> local_tgts;
+            std::mt19937 generator_(seeds[omp_get_thread_num()]);
+            // thread local edges
+            map_t hash_map;
+            size_t num_elocal = 0;
+            std::vector< std::vector<size_t> > local_edges(
+                2, std::vector<size_t>());
+            std::vector< std::vector<size_t> > elocal_tmp(
+                2, std::vector<size_t>());
+            std::vector< float > local_dist, dist_tmp;
+            do {
+                // reset edge number (recompute it each time)
+                #pragma omp single
                 {
-                    tgt = src;
-                    while (tgt == src)
+                    current_enum = initial_enum;
+                }
+                #pragma omp barrier
+                #pragma omp flush(current_enum)
+                
+                // the static schedule is CAPITAL: each thread must always
+                // handle the same nodes
+                #pragma omp for schedule(static)
+                for (size_t i=0; i<target_nodes.size(); i++)
+                {
+                    local_tgts = target_nodes[i];
+                    local_tests = target_nodes[i].size()
+                                  * (target_enum - current_enum) * neigh_norm;
+                    local_tests = std::max(local_tests, local_tgts.size());
+                    elocal_tmp[0].reserve(local_tests);
+                    elocal_tmp[1].reserve(local_tests);
+                    dist_tmp.reserve(local_tests);
+                    // initialize source; set target generator
+                    src = source_nodes[i];
+                    nln = local_tgts.size();  // number of local neighbours
+                    std::uniform_int_distribution<size_t> rnd_target(
+                        0, nln - 1);
+
+                    for (size_t j=0; j<local_tests; j++)
                     {
-                        rnd = rnd_target(generator_);
-                        tgt = local_tgts[rnd];
-                    }
-                    distance = std::sqrt((x[tgt] - x[src])*(x[tgt] - x[src]) +
-                                         (y[tgt] - y[src])*(y[tgt] - y[src]));
-                    proba = _proba(rule_type, norm, inv_scale, distance);
-                    if (proba >= rnd_uniform(generator_))
-                    {
-                        elocal_tmp[0].push_back(src);
-                        elocal_tmp[1].push_back(tgt);
-                        dist_tmp.push_back(distance);
+                        tgt = src;
+                        while (tgt == src)
+                        {
+                            rnd = rnd_target(generator_);
+                            tgt = local_tgts[rnd];
+                        }
+                        distance = std::sqrt(
+                            (x[tgt] - x[src])*(x[tgt] - x[src]) +
+                            (y[tgt] - y[src])*(y[tgt] - y[src]));
+                        proba = _proba(rule_type, norm, inv_scale, distance);
+                        if (proba >= rnd_uniform(generator_))
+                        {
+                            elocal_tmp[0].push_back(src);
+                            elocal_tmp[1].push_back(tgt);
+                            dist_tmp.push_back(distance);
+                        }
                     }
                 }
-            }
 
-            local_edges[0].insert(local_edges[0].end(),
-                                  elocal_tmp[0].begin(), elocal_tmp[0].end());
-            local_edges[1].insert(local_edges[1].end(),
-                                  elocal_tmp[1].begin(), elocal_tmp[1].end());
-            num_elocal = multigraph
-                         ? local_edges[0].size()
-                         : _unique_2d(local_edges, hash_map, local_dist,
-                                      dist_tmp);
+                local_edges[0].insert(local_edges[0].end(),
+                                      elocal_tmp[0].begin(),
+                                      elocal_tmp[0].end());
+                local_edges[1].insert(local_edges[1].end(),
+                                      elocal_tmp[1].begin(),
+                                      elocal_tmp[1].end());
+                num_elocal = multigraph
+                             ? local_edges[0].size()
+                             : _unique_2d(local_edges, hash_map, local_dist,
+                                          dist_tmp);
 
-            local_edges[0].resize(num_elocal);
-            local_edges[1].resize(num_elocal);
+                local_edges[0].resize(num_elocal);
+                local_edges[1].resize(num_elocal);
 
-            #pragma omp atomic
-            current_enum += num_elocal;
+                #pragma omp atomic
+                current_enum += num_elocal;
 
-            #pragma omp barrier              // make sure everyone is ready
-            #pragma omp flush(current_enum)  // and gets last value
-            #pragma omp barrier              // for sure
-        } while (current_enum < target_enum);
+                #pragma omp barrier              // ensure everyone is ready
+                #pragma omp flush(current_enum)  // and gets last value
+                #pragma omp barrier              // for sure
+            } while (current_enum < target_enum);
 
-        // fill the edge container: first with the existing edges
-        #pragma omp single
-        {
-            for (size_t i=0; i<initial_enum; i++)
+            // fill the edge container: first with the existing edges
+            #pragma omp single
             {
-                ia_edges[2*i]     = existing_edges[0][i];
-                ia_edges[2*i + 1] = existing_edges[1][i];
+                for (size_t i=0; i<initial_enum; i++)
+                {
+                    ia_edges[2*i]     = existing_edges[0][i];
+                    ia_edges[2*i + 1] = existing_edges[1][i];
+                }
+                ecount_fill += initial_enum;
             }
-            ecount_fill += initial_enum;
-        }
-        // then, once this is done
-        #pragma omp barrier
-        // each thread successively adds its local edges
-        #pragma omp critical
-        {
-            size_t i = 0;
-            #pragma omp flush(ecount_fill)
-            if (ecount_fill + num_elocal <= target_enum)
+            // then, once this is done
+            #pragma omp barrier
+            // each thread successively adds its local edges
+            #pragma omp critical
             {
-                dist.insert(dist.begin() + ecount_fill, local_dist.begin(),
-                            local_dist.end());
-            }
-            else
-            {
-                dist.insert(dist.begin() + ecount_fill, local_dist.begin(),
-                            local_dist.begin() + target_enum - ecount_fill);
-            }
-            while (i < num_elocal && ecount_fill < target_enum)
-            {
-                ia_edges[2*ecount_fill]     = local_edges[0][i];
-                ia_edges[2*ecount_fill + 1] = local_edges[1][i];
-                ecount_fill += 1;
-                i += 1;
+                size_t i = 0;
+                #pragma omp flush(ecount_fill)
+                if (ecount_fill + num_elocal <= target_enum)
+                {
+                    dist.insert(dist.begin() + ecount_fill, local_dist.begin(),
+                                local_dist.end());
+                }
+                else
+                {
+                    dist.insert(dist.begin() + ecount_fill, local_dist.begin(),
+                                local_dist.begin() + target_enum
+                                - ecount_fill);
+                }
+                while (i < num_elocal && ecount_fill < target_enum)
+                {
+                    ia_edges[2*ecount_fill]     = local_edges[0][i];
+                    ia_edges[2*ecount_fill + 1] = local_edges[1][i];
+                    ecount_fill += 1;
+                    i += 1;
+                }
             }
         }
     }

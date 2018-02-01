@@ -21,6 +21,7 @@
 """ Test functions for the NNGT """
 
 import collections
+import warnings
 try:
     from collections.abc import Container as _container
 except:
@@ -35,6 +36,29 @@ def valid_gen_arguments(func):
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
     return wrapper
+
+
+def deprecated(version, reason=None, alternative=None):
+    '''
+    Decorator to mark deprecated functions.
+    '''
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            # turn off filter temporarily
+            warnings.simplefilter('always', DeprecationWarning)
+            message = "Function {} is deprecated since version {}"
+            message = message.format(func.__name__, version)
+            if reason is not None:
+                message += "because " + reason + "."
+            else:
+                message += "."
+            if alternative is not None:
+                message += "Use " + alternative + " instead."
+            warnings.warn(message, category=DeprecationWarning, stacklevel=2)
+            warnings.simplefilter('default', DeprecationWarning)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def on_master_process():
@@ -75,7 +99,7 @@ def mpi_checker(func):
     to store and generate the graph if the mpi algorithms are activated.
     '''
     def wrapper(*args, **kwargs):
-        if on_master_process():
+        if nngt.get_config("backend") == "nngt" or on_master_process():
             return func(*args, **kwargs)
         else:
             return None
@@ -122,21 +146,23 @@ def nonstring_container(obj):
     return True
 
 
+def is_integer(obj):
+    return isinstance(obj, (int, np.integer))
+
+
 def graph_tool_check(version_min):
     '''
     Raise an error for function not working with old versions of graph-tool.
     '''
-    old_graph_tool = _old_graph_tool(version_min)
-
     def decorator(func):
         def wrapper(*args, **kwargs):
+            old_graph_tool = _old_graph_tool(version_min)
             if old_graph_tool:
                 raise NotImplementedError('This function is not working for '
                                           'graph-tool < ' + version_min + '.')
             else:
                 return func(*args, **kwargs)
         return wrapper
-
     return decorator
 
 
