@@ -23,8 +23,6 @@ from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
 
-nngt.set_config("multithreading", False)
-
 # ---------- #
 # Test tools #
 # ---------- #
