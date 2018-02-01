@@ -10,3 +10,6 @@ peewee
 ##    Numpy/Scipy    ##
 numpy
 scipy
+
+##     Networkx      ##
+networkx
