@@ -21,19 +21,16 @@
 ''' SpatialNetwork generation, complex shapes '''
 
 import os
-import time
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import nngt
 from nngt.geometry import Shape
 
 
 nngt.set_config({"omp": 8, "palette": 'RdYlBu'})
-# ~ nngt.set_config("multithreading", False)
 
-nngt.seed(0)
+# ~ nngt.seed(0)
 
 
 ''' Create a circular shape and add obstacles inside '''
@@ -120,34 +117,39 @@ for name, area in shape.non_default_areas.items():
                                       max_proba=base_proba*p_up)
 
 
-''' Check the degree distribution '''
+''' Plot if available '''
 
-nngt.plot.degree_distribution(
-    net, ["in", "out"], nodes=top_neurons, show=False)
-nngt.plot.degree_distribution(
-    net, ["in", "out"], nodes=bottom_neurons, show=True)
+if nngt.get_config("with_plot"):
+
+    ''' Check the degree distribution '''
+
+    nngt.plot.degree_distribution(
+        net, ["in", "out"], nodes=top_neurons, show=False)
+    nngt.plot.degree_distribution(
+        net, ["in", "out"], nodes=bottom_neurons, show=True)
 
 
-''' Plot the resulting network and subnetworks '''
+    ''' Plot the resulting network and subnetworks '''
 
-restrict = [
-    ("bottom", "bottom"), ("top", "bottom"), ("top", "top"), ("bottom", "top")
-]
+    restrict = [
+        ("bottom", "bottom"), ("top", "bottom"), ("top", "top"),
+        ("bottom", "top")
+    ]
 
-for r_source, r_target in restrict:
-    nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
-                           restrict_sources=r_source,
-                           restrict_targets=r_target, show=False)
+    for r_source, r_target in restrict:
+        nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
+                               restrict_sources=r_source,
+                               restrict_targets=r_target, show=False)
 
-fig, axis = plt.subplots()
-count = 0
-for r_source, r_target in restrict:
-    show_env = (count == 0)
-    nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
-                           restrict_sources=r_source,
-                           restrict_targets=r_target,
-                           show_environment=show_env, axis=axis, show=False)
-    count += 1
+    fig, axis = plt.subplots()
+    count = 0
+    for r_source, r_target in restrict:
+        show_env = (count == 0)
+        nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5,
+                               restrict_sources=r_source,
+                               restrict_targets=r_target,
+                               show_environment=show_env, axis=axis, show=False)
+        count += 1
 
-plt.show()
+    plt.show()
 # ~ nngt.plot.draw_network(net, nsize=7.5, ecolor="groups", ealpha=0.5, show=True)

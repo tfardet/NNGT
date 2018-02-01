@@ -131,7 +131,7 @@ class _IgEProperty(BaseProperty):
                 for k in self.keys():
                     eprop[k] = self.parent().es[k][eid]
             return eprop
-        dtype = _np_dtype(super(_IgENProperty, self).__getitem__(name))
+        dtype = _np_dtype(super(_IgEProperty, self).__getitem__(name))
         return np.array(self.parent().es[name], dtype=dtype)
 
     def __setitem__(self, name, value):

@@ -1061,9 +1061,9 @@ class SpatialGraph(Graph):
         self.__class__.__num_graphs += 1
         self.__class__.__max_id += 1
         self._shape = None
+        self._init_spatial_properties(shape, positions, **kwargs)
         super(SpatialGraph, self).__init__(nodes, name, weighted, directed,
                                            from_graph, **kwargs)
-        self._init_spatial_properties(shape, positions, **kwargs)
         if "population" in kwargs:
             self.make_network(self, kwargs["population"])
         

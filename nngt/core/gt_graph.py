@@ -322,10 +322,10 @@ class _GtGraph(GraphInterface):
 
         Returns
         -------
-        The node or a tuple of the nodes created.
+        The node or a list of the nodes created.
         '''
         nodes = super(_GtGraph, self).add_vertex(n)
-        nodes = [nodes] if n == 1 else tuple(nodes)
+        nodes = [nodes] if n == 1 else list(nodes)
 
         if attributes is not None:
             for k, v in attributes.items():
