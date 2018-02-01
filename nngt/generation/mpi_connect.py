@@ -198,7 +198,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             t = np.random.randint(0, len(tgts), num_try)
             local_targets[current_pos:current_pos + num_try] = tgts[t]
             current_pos += num_try
-        test = dist_rule(rule, scale, norm, positions[:, local_sources],
+        test = dist_rule(rule, scale, 1., positions[:, local_sources],
                          positions[:, local_targets], dist=dist_local)
         test = np.greater(test, np.random.uniform(size=total_trials))
         edges_tmp[0].extend(local_sources[test])
