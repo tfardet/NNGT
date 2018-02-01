@@ -424,7 +424,7 @@ class BaseGraph(GraphInterface):
         if self.is_spatial():
             old_pos      = self._pos
             self._pos    = np.full(np.NaN, (self.node_nb(), 2))
-            num_existing = len(old_pos)
+            num_existing = len(old_pos) if old_pos is not None else 0
             if num_existing != 0:
                 self._pos[:num_existing, :] = old_pos
         if positions is not None:

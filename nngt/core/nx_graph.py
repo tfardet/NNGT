@@ -291,10 +291,10 @@ class _NxGraph(GraphInterface):
             
         Returns
         -------
-        The node or an iterator over the nodes created.
+        The node or a list of the nodes created.
         '''
-        tpl_new_nodes = tuple(range(len(self), len(self)+n))
-        for v in tpl_new_nodes:
+        new_nodes = list(range(len(self), len(self)+n))
+        for v in new_nodes:
             super(_NxGraph, self).add_node(v)
 
         if attributes is not None:
@@ -303,36 +303,36 @@ class _NxGraph(GraphInterface):
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
                     v = v if nonstring_container(v) else [v]
-                    self._nattr.set_attribute(k, v, nodes=tpl_new_nodes)
+                    self._nattr.set_attribute(k, v, nodes=new_nodes)
         else:
-            filler = [None for _ in tpl_new_nodes]
+            filler = [None for _ in new_nodes]
             for k in self._nattr:
-                self._nattr.set_attribute(k, filler, nodes=tpl_new_nodes)
+                self._nattr.set_attribute(k, filler, nodes=new_nodes)
 
         if self.is_spatial():
             old_pos      = self._pos
             self._pos    = np.full((self.node_nb(), 2), np.NaN)
-            num_existing = len(old_pos)
+            num_existing = len(old_pos) if old_pos is not None else 0
             if num_existing != 0:
                 self._pos[:num_existing, :] = old_pos
         if positions is not None and len(positions):
             assert self.is_spatial(), \
                 "`positions` argument requires a SpatialGraph/SpatialNetwork."
-            self._pos[tpl_new_nodes, :] = positions
+            self._pos[new_nodes, :] = positions
 
         if groups is not None:
             assert self.is_network(), \
                 "`positions` argument requires a Network/SpatialNetwork."
             if nonstring_container(groups):
                 assert len(groups) == n, "One group per neuron required."
-                for g, node in zip(groups, tpl_new_nodes):
+                for g, node in zip(groups, new_nodes):
                     self.population.add_to_group(g, node)
             else:
-                self.population.add_to_group(groups, tpl_new_nodes)
+                self.population.add_to_group(groups, new_nodes)
 
-        if len(tpl_new_nodes) == 1:
-            return tpl_new_nodes[0]
-        return tpl_new_nodes
+        if len(new_nodes) == 1:
+            return new_nodes[0]
+        return new_nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
