@@ -33,6 +33,10 @@ from nngt.lib.connect_tools import _set_options
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import mpi_checker, mpi_random
 
+# do default import
+
+from .connect_algorithms import *
+
 # try to import multithreaded or mpi algorithms
 
 using_mt_algorithms = False
@@ -60,8 +64,6 @@ if nngt.get_config("multithreading"):
             _log_message(
                 logger, "WARNING", str(e) + "\n\t" + str(e2) + "\n\t"
                 "Cython import failed, using non-multithreaded algorithms.")
-if not using_mt_algorithms:
-    from .connect_algorithms import *
 if nngt.get_config("mpi"):
     try:
         from .mpi_connect import *
