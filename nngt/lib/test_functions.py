@@ -93,17 +93,22 @@ def num_mpi_processes():
         return 1
 
 
-def mpi_checker(func):
+def mpi_checker(logging=False):
     '''
     Decorator used to check for mpi and make sure only rank zero is used
     to store and generate the graph if the mpi algorithms are activated.
     '''
-    def wrapper(*args, **kwargs):
-        if nngt.get_config("backend") == "nngt" or on_master_process():
-            return func(*args, **kwargs)
-        else:
-            return None
-    return wrapper
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            backend = False
+            if not logging:
+                nngt.get_config("backend") == "nngt"
+            if backend or on_master_process():
+                return func(*args, **kwargs)
+            else:
+                return None
+        return wrapper
+    return decorator
 
 
 def mpi_random(func):

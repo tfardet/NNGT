@@ -76,7 +76,7 @@ def _log_to_file(logger, create_writer):
 
 # log message
 
-@mpi_checker
+@mpi_checker(logging=True)
 def _log_message(logger, level, message):
     if level == 'DEBUG':
         logger.debug(message)
