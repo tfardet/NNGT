@@ -12,6 +12,7 @@ Check that the examples work.
 """
 
 import os
+from os import environ
 from os.path import dirname, abspath, isfile, join
 import unittest
 
@@ -59,6 +60,7 @@ class TestExamples(unittest.TestCase):
     def test_name(self):
         return "test_examples"
 
+    @unittest.skipIf(int(environ.get("OMP", 1)) == 1, 'Check only with OMP')
     @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     def test_examples(self):
         '''
