@@ -100,9 +100,17 @@ def mpi_checker(logging=False):
     '''
     def decorator(func):
         def wrapper(*args, **kwargs):
+            # when using MPI, make sure everyone waits for the others
+            try:
+                from mpi4py import MPI
+                comm = MPI.COMM_WORLD
+                comm.Barrier()
+            except ImportError:
+                pass
+            # check backend ("nngt" is fully parallel, not the others)
             backend = False
             if not logging:
-                nngt.get_config("backend") == "nngt"
+                backend = nngt.get_config("backend") == "nngt"
             if backend or on_master_process():
                 return func(*args, **kwargs)
             else:

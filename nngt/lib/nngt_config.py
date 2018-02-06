@@ -188,7 +188,7 @@ def _load_config(path_config):
     _init_logger(nngt._logger)
 
 
-@mpi_checker
+@mpi_checker(logging=True)
 def _log_conf_changed(conf_info):
     logger.info(conf_info)
 

@@ -44,7 +44,7 @@ __all__ = [
 # Topology #
 # -------- #
 
-@mpi_checker
+@mpi_checker()
 def make_nest_network(network, send_only=None, use_weights=True):
     '''
     Create a new network which will be filled with neurons and
