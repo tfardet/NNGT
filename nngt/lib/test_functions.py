@@ -93,6 +93,18 @@ def num_mpi_processes():
         return 1
 
 
+def mpi_barrier(func):
+    def wrapper(*args, **kwargs):
+        try:
+            from mpi4py import MPI
+            comm = MPI.COMM_WORLD
+            comm.Barrier()
+        except ImportError:
+            pass
+        return func(*args, **kwargs)
+    return wrapper
+
+
 def mpi_checker(logging=False):
     '''
     Decorator used to check for mpi and make sure only rank zero is used

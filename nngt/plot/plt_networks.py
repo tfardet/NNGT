@@ -100,7 +100,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         If a custom property is entered as `esize`, this normalizes the edge
         width between 0. and `max_esize`.
     decimate : int, optional (default: keep all connections)
-        Plot only one connection every `decimate`.
+        Plot only one connection every `decimate`. Use -1 to hide all edges.
     spatial : bool, optional (default: True)
         If True, use the neurons' positions to draw them.
     restrict_sources : str or list, optional (default: all)
@@ -230,7 +230,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     axis.add_collection(nodes)
     _set_ax_lim(axis, pos[:,0], pos[:,1], xlims, ylims)
     # use quiver to draw the edges
-    if e:
+    if e and decimate != -1:
         adj_mat = network.adjacency_matrix(weights=None)
         avg_size = np.average(nsize)
         arr_style = ArrowStyle.Simple(head_length=0.15*avg_size,

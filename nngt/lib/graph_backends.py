@@ -30,7 +30,7 @@ import nngt
 from .errors import not_implemented
 from .logger import _log_message
 from .reloading import reload_module
-from .test_functions import nonstring_container
+from .test_functions import nonstring_container, mpi_barrier
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +57,7 @@ analyze_graph = {
 
 # use library function
 
+@mpi_barrier
 def use_backend(backend, reloading=True, silent=False):
     '''
     Allows the user to switch to a specific graph library as backend.

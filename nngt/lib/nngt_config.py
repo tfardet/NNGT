@@ -30,7 +30,7 @@ from .errors import InvalidArgument
 from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
 from .rng_tools import seed as nngt_seed
-from .test_functions import mpi_checker, num_mpi_processes
+from .test_functions import mpi_checker, num_mpi_processes, mpi_barrier
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,13 @@ logger = logging.getLogger(__name__)
 # ----------------- #
 
 def get_config(key=None, detailed=False):
-    ''' Get the NNGT configuration as a dictionary. '''
+    '''
+    Get the NNGT configuration as a dictionary.
+
+    Note
+    ----
+    This function has no MPI barrier on it.
+    '''
     if key is None:
         cfg = {key: val for key, val in nngt._config.items()}
         if detailed:
@@ -76,6 +82,7 @@ def get_config(key=None, detailed=False):
         return res
 
 
+@mpi_barrier
 def set_config(config, value=None, silent=False):
     '''
     Set NNGT's configuration.
@@ -94,10 +101,13 @@ def set_config(config, value=None, silent=False):
     >>> nngt.set_config({'multithreading': True, 'omp': 4})
     >>> nngt.set_config('multithreading', False)
 
-    Note
-    ----
+    Notes
+    -----
     See the config file `nngt/nngt.conf.default` or `~/.nngt/nngt.conf` for
     details about your configuration.
+
+    This function has an MPI barrier on it, so it must always be called on all
+    processes.
 
     See also
     --------

@@ -404,7 +404,7 @@ def _get_data(source):
             data[0].extend(tmp[:, 0])
             data[1].extend(tmp[:, 1])
     else:
-        source_shape = np.shape(source)
+        source_shape = np.shape(np.squeeze(source))
         if len(source_shape) == 2:
             # source is directly the data
             if source_shape[0] == 2 and source_shape[1] != 2:
@@ -413,7 +413,11 @@ def _get_data(source):
                 return np.array(source)
         else:
             # source contains gids
-            events = nest.GetStatus(source, "events")
+            events = None
+            if nonstring_container(source[0]):
+                events = [nest.GetStatus(gid, "events")[0] for gid in source]
+            else:
+                events = nest.GetStatus(source, "events")
             for ev in events:
                 data[0].extend(ev["senders"])
                 data[1].extend(ev["times"])

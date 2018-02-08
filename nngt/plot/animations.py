@@ -548,7 +548,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
     activity (neurons on the graph representation flash when spiking) in time.
     '''
 
-    def __init__(self, source, network, resolution=1, start=0.,
+    def __init__(self, source, network, resolution=1., start=0.,
                  timewindow=None, trace=5., show_spikes=False,
                  sort_neurons=None, decimate_connections=False,
                  interval=50, repeat=True, active_size=None, **kwargs):
@@ -585,7 +585,6 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         from nngt.simulation.nest_activity import _get_data
 
         self.network = weakref.ref(network)
-
         self.simtime = _get_data(source)[-1, 1]
         self.times = np.arange(start, self.simtime + resolution, resolution)
 

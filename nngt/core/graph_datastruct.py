@@ -285,9 +285,10 @@ class NeuralPop(OrderedDict):
         # belongs
         if self._desired_size is None:
             self._neuron_group = None
+            self._max_id       = 0
         else:
             self._neuron_group = np.repeat(-1, self._desired_size)
-        self._max_id = 0  # highest id among the existing neurons + 1
+            self._max_id       = len(self._neuron_group) - 1
         if parent is not None and 'group_prop' in kwargs:
             dic = _make_groups(parent, kwargs["group_prop"])
             self._is_valid = True
@@ -601,15 +602,16 @@ class NeuralPop(OrderedDict):
             idx = group_name
         else:
             idx = list(self.keys()).index(group_name)
-        self[group_name].ids += list(ids)
-        # update number of neurons
-        max_id = np.max(ids)
-        _update_max_id_and_size(self, max_id)
-        self._neuron_group[np.array(ids)] = idx
-        if -1 in list(self._neuron_group):
-            self._is_valid = False
-        else:
-            self._is_valid = True
+        if ids:
+            self[group_name].ids += list(ids)
+            # update number of neurons
+            max_id = np.max(ids)
+            _update_max_id_and_size(self, max_id)
+            self._neuron_group[np.array(ids)] = idx
+            if -1 in list(self._neuron_group):
+                self._is_valid = False
+            else:
+                self._is_valid = True
     
     def _validity_check(self, name, group):
         if self._has_models and not group.has_model:

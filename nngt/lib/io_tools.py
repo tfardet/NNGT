@@ -147,9 +147,15 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                          'not be loaded because Shapely is not installed.')
     # check whether a population is present
     if 'population' in di_notif:
-        pop = pickle.loads(
-            codecs.decode(di_notif['population'].replace('~', '\n').encode(),
-            "base64"))
+        str_enc = di_notif['population'].replace('~', '\n')
+        print(type(str_enc))
+        
+        str_enc = str_enc.encode('utf-8').decode('latin1').encode('utf-8')
+        str_dec = codecs.decode(str_enc, "base64")
+        # ~ str_dec = codecs.decode(str_enc.encode('utf-8'), "base64")
+        print(type(str_dec))
+        # ~ pop     = pickle.loads(codecs.decode(str_enc, "base64"))
+        pop     = pickle.loads(str(str_dec).encode())
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
         y = np.fromstring(di_notif['y'], sep=separator)
@@ -221,6 +227,11 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
 
     # check for mpi
     if nngt.get_config("mpi"):
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        size = comm.Get_size()
+        rank = comm.Get_rank()
+        # get the 
         str_local, di_notif = _as_string(
             graph, separator=separator, fmt=fmt, secondary=secondary,
             attributes=attributes, notifier=notifier, return_info=True)
@@ -232,12 +243,8 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         # strings need to start with a newline because MPI strips last
         str_local = "\n" + str_local
         # gather all strings sizes
-        from mpi4py import MPI
-        comm = MPI.COMM_WORLD
         sizes = comm.allgather(
             _str_bytes_len(str_local) + _str_bytes_len(str_notif))
-        size = comm.Get_size()
-        rank = comm.Get_rank()
         # get rank-based offset
         offset = [_str_bytes_len(str_notif)]
         offset.extend(np.cumsum(sizes)[:-1])
@@ -342,12 +349,12 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     # add node attributes to the notifications
     for nattr in additional_notif["node_attributes"]:
         key                   = "na_" + nattr
-        # ~ additional_notif[key] = codecs.encode(
-            # ~ graph.get_node_attributes(name=nattr).tobytes(),
-            # ~ "base64").decode().replace('\n', '~')
         additional_notif[key] = np.array2string(
                 graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
                 separator=separator)[1:-1]
+        # ~ additional_notif[key] = codecs.encode(
+            # ~ graph.get_node_attributes(name=nattr).tobytes(),
+            # ~ "base64").decode().replace('\n', '~')
     # save positions for SpatialGraph (and shape if Shapely is available)
     if graph.is_spatial():
         if _shapely_support:
@@ -370,9 +377,15 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
                 pos[:, 2], max_line_width=np.NaN, separator=separator)[1:-1]
 
     if graph.is_network():
-        additional_notif["population"] = codecs.encode(
-            pickle.dumps(graph.population, protocol=2),
-                         "base64").decode().replace('\n', '~')
+        if nngt.get_config("mpi"):
+            if nngt.get_config("mpi_comm").Get_rank() == 0:
+                additional_notif["population"] = codecs.encode(
+                    pickle.dumps(graph.population, protocol=2),
+                                 "base64").decode().replace('\n', '~')
+        else:
+            additional_notif["population"] = codecs.encode(
+                pickle.dumps(graph.population, protocol=2),
+                             "base64").decode().replace('\n', '~')
 
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)
