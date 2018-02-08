@@ -147,15 +147,12 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                          'not be loaded because Shapely is not installed.')
     # check whether a population is present
     if 'population' in di_notif:
-        str_enc = di_notif['population'].replace('~', '\n')
-        print(type(str_enc))
-        
-        str_enc = str_enc.encode('utf-8').decode('latin1').encode('utf-8')
+        str_enc = di_notif['population'].replace('~', '\n').encode()
         str_dec = codecs.decode(str_enc, "base64")
-        # ~ str_dec = codecs.decode(str_enc.encode('utf-8'), "base64")
-        print(type(str_dec))
-        # ~ pop     = pickle.loads(codecs.decode(str_enc, "base64"))
-        pop     = pickle.loads(str(str_dec).encode())
+        try:
+            pop = pickle.loads(str_dec)
+        except UnicodeError:
+            pop = pickle.loads(str_dec, encoding="latin1")
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
         y = np.fromstring(di_notif['y'], sep=separator)
