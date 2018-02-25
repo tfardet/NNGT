@@ -63,7 +63,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  threshold=0.5, decimate=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
                  show_environment=True, fast=False, size=(600,600), xlims=None,
-                 ylims=None, dpi=75, axis=None, show=False, **kwargs):
+                 ylims=None, dpi=75, axis=None, show=False, title="", save_graph=False,**kwargs):
     '''
     Draw a given graph/network.
 
@@ -105,8 +105,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         If True, use the neurons' positions to draw them.
     restrict_sources : str or list, optional (default: all)
         Only draw edges starting from a restricted set of source nodes.
+        Should be a list of valid group names, or a list of neurons' ids
     restrict_targets : str or list, optional (default: all)
         Only draw edges ending on a restricted set of target nodes.
+        Should be a list of valid group names, or a list of neurons' ids
     show_environment : bool, optional (default: True)
         Plot the environment if the graph is spatial.
     fast : bool, optional (default: False)
@@ -120,39 +122,82 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Resolution (dot per inch).
     show : bool, optional (default: True)
         Display the plot immediately.
+    title : graph title
+    save_graph : bool, if True save the figure
     '''
     import matplotlib.pyplot as plt
     size_inches = (size[0]/float(dpi), size[1]/float(dpi))
     if axis is None:
-        fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
+        fig = plt.figure(facecolor='black', figsize=size_inches, dpi=dpi)
         axis = fig.add_subplot(111, frameon=0, aspect=1)
+    axis.set_title(title)
     axis.set_axis_off()
     pos, layout = None, None
     # restrict sources and targets
-    if nonstring_container(restrict_sources):
-        if isinstance(restrict_sources[0], str):
+    pdb.set_trace()
+    if nonstring_container(restrict_sources): # if restrict_sources is not a string
+        if isinstance(restrict_sources[0], str): # if the first item is a string
+                                                # in this case possibly each entry
+                                                # is a group name, this must be checked
+                                                # if it is a group name, then the
+                                                # corresponding neurons' ids are added
+                                                # to the source neurons list.
             assert network.is_network(), \
                 "`restrict_sources` canbe string only for Network."
             sources = []
             for name in restrict_sources:
+                # Two cases either restrict_sources is a group name,
+                # then the corresponding neurons' ids can be automatically recovered
+                # or the restric_source is a list of neurons ids  (this is the case
+                # if we want to gather together the neurons from different groups,
+                # as for instance all the top neurons; these are all in the different groups
+                # for each top obstacle)
+                # We then have to test whether restric_sources is a valid group name 
+                assert(name in network.population.keys()),\
+                    "`restrict_sources` list contains {0} non valid group name".format(name)
+                # restrict_sources is a group name, then we recover the neurons ids
                 sources.extend(network.population[name].ids)
+
             restrict_sources = sources
-    elif isinstance(restrict_sources, str):
+    elif isinstance(restrict_sources, str): # if restrict_source is a string
+                                            # check if it is a valid group name
+        assert(restrict_sources in network.population.keys()),\
+                "`restrict_sources` list contains {0} non valid group name".format(name)
+ 
         assert network.is_network(), \
-            "`restrict_sources` canbe string only for Network."
-        restrict_sources = network.population[restrict_sources].ids
-    if nonstring_container(restrict_targets):
-        if isinstance(restrict_targets[0], str):
+                "`restrict_sources` list contains {0} non valid group name".format(name)
+
+    if nonstring_container(restrict_targets): # if restrict_targets is not a string
+        if isinstance(restrict_targets[0], str): # check if the entries are valid group names
             assert network.is_network(), \
                 "`restrict_targets` canbe string only for Network."
+
+            # The same as above now for the targets, testing if restrict_targets
+            # is a valid group or a neuron's list 
+            if restrict_targets  in network.population.keys() :
+                # restrict_targets is a group name, then we recover the neurons ids
+                restrict_targets = network.population[restrict_targets].ids
+            #  ELSE we assume then restrict_targets is already a neurons' ids list
+
             targets = []
             for name in restrict_targets:
+                # The same as above now for the targets, testing if restrict_targets
+                # is a valid group or a neuron's list 
+                assert(name in network.population.keys()),\
+                    "`restrict_targets` list contains  {0} non valid group name".format(name)
+                # restrict_sources is a group name, then we recover the neurons ids
                 targets.extend(network.population[name].ids)
             restrict_targets = targets
-    elif isinstance(restrict_targets, str):
+
+    elif isinstance(restrict_targets, str): # if restrict_targets is a string
+                                            # check if the entries are valid group names
+        assert(restrict_targets in network.population.keys()),\
+                "`restrict_targets` list contains  {0} non valid group name".format(name)
         assert network.is_network(), \
             "`restrict_sources` canbe string only for Network."
+
         restrict_targets = network.population[restrict_targets].ids
+
     # get nodes and edges
     n = network.node_nb()
     adj_mat = network.adjacency_matrix(weights=None)
@@ -372,6 +417,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             hspace=0., wspace=0., left=0., right=1., top=1., bottom=0.)
     if show:
         plt.show()
+
+    if save_graph:
+        fig.savefig()
 
 
 #-----------------------------------------------------------------------------#
