@@ -28,7 +28,6 @@ from nngt.analysis import (degree_distrib, betweenness_distrib,
                            node_attributes, binning)
 from .custom_plt import palette, format_exponent
 
-
 __all__ = [
     'degree_distribution',
     'betweenness_distribution',
@@ -45,7 +44,7 @@ __all__ = [
 def degree_distribution(network, deg_type="total", nodes=None,
                         num_bins='doane', use_weights=False, logx=False,
                         logy=False, axis=None, axis_num=None, colors=None,
-                        norm=False, show=False, **kwargs):
+                        norm=False, show=False, title="", **kwargs):
     '''
     Plotting the degree distribution of a graph.
     
@@ -72,9 +71,24 @@ def degree_distribution(network, deg_type="total", nodes=None,
         created.
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
+    title : string, optional title
     **kwargs : keyword arguments for :func:`matplotlib.axes.Axes.bar`.
     '''
     import matplotlib.pyplot as plt
+
+    #More modern look
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = 'Ubuntu'
+    plt.rcParams['font.monospace'] = 'Ubuntu Mono'
+    plt.rcParams['font.size'] = 10
+    plt.rcParams['axes.labelsize'] = 10
+    plt.rcParams['axes.labelweight'] = 'bold'
+    plt.rcParams['xtick.labelsize'] = 8
+    plt.rcParams['ytick.labelsize'] = 8
+    plt.rcParams['legend.fontsize'] = 10
+    plt.rcParams['figure.titlesize'] = 12
+    #plt.style.use('fivethirtyeight')
+
     if axis is None:
         fig, axis = plt.subplots()
     empty_axis = axis.has_data()
@@ -133,11 +147,19 @@ def degree_distribution(network, deg_type="total", nodes=None,
 
     axis.set_xlabel("Degree")
     axis.set_ylabel("Node count")
+    # title_start = (deg_type[0].upper() + deg_type[1:] + '-d'
+    #                if isinstance(deg_type, str) else 'D')
     title_start = (deg_type[0].upper() + deg_type[1:] + '-d'
-                   if isinstance(deg_type, str) else 'D')
-    axis.set_title(
-        "{}egree distribution for {}".format(title_start, network.name), x=0.,
-        y=1.05, loc='left')
+                   if isinstance(deg_type, str) else s_type[0].upper() + s_type[1:] + " D")
+
+    if title is not "": # if an optional title is provided at the function call
+        axis.set_title(
+            "{0} : {1}egree distribution for {2}".format(title,title_start, network.name), x=0.,
+            y=1.05, loc='left')
+    else :       
+        axis.set_title(
+            "{}egree distribution for {}".format(title_start, network.name), x=0.,
+            y=1.05, loc='left')
     # restore ylims and xlims and adapt if necessary
     _set_scale(axis, maxbins, minbins, maxcounts, logx, logy)
     plt.legend()
