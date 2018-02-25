@@ -134,7 +134,6 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     axis.set_axis_off()
     pos, layout = None, None
     # restrict sources and targets
-    pdb.set_trace()
     if nonstring_container(restrict_sources): # if restrict_sources is not a string
         if isinstance(restrict_sources[0], str): # if the first item is a string
                                                 # in this case possibly each entry
@@ -166,6 +165,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
  
         assert network.is_network(), \
                 "`restrict_sources` list contains {0} non valid group name".format(name)
+ 
+        # source neurons' ids recovered
+        restrict_sources = network.population[restrict_targets].ids
 
     if nonstring_container(restrict_targets): # if restrict_targets is not a string
         if isinstance(restrict_targets[0], str): # check if the entries are valid group names
@@ -195,7 +197,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 "`restrict_targets` list contains  {0} non valid group name".format(name)
         assert network.is_network(), \
             "`restrict_sources` canbe string only for Network."
-
+        # target neurons' ids recovered
         restrict_targets = network.population[restrict_targets].ids
 
     # get nodes and edges
