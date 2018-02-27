@@ -167,7 +167,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 "`restrict_sources` list contains {0} non valid group name".format(name)
  
         # source neurons' ids recovered
-        restrict_sources = network.population[restrict_targets].ids
+        restrict_sources = network.population[restrict_sources].ids
 
     if nonstring_container(restrict_targets): # if restrict_targets is not a string
         if isinstance(restrict_targets[0], str): # check if the entries are valid group names
