@@ -64,7 +64,7 @@ os_name = platform.system()
 # compiler options
 
 copt =  {
-    'msvc': ['/std:c++11', '/openmp', '/O2', '/fp:precise', '/favor:INTEL64'],
+    'msvc': ['/openmp', '/O2', '/fp:precise',],
     'mingw32': [
         '-std=c++11', '-fopenmp', '-O2', '-g', '-ffast-math', '-march=native',
         '-msse', '-ftree-vectorize',
@@ -110,7 +110,7 @@ ext = '.pyx' if with_cython else '.cpp'
 extensions = Extension(
     "nngt.generation.cconnect", # name of extension
     sources = [dirname + "cconnect" + ext, dirname + "func_connect.cpp"],
-    extra_compile_args = ["-std=c++11"],
+    extra_compile_args = [],
     language="c++",
     include_dirs=[dirname, numpy.get_include()],
     libraries = ['gomp'],
