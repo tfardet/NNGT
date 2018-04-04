@@ -22,6 +22,8 @@ import os
 import sys
 import warnings
 import traceback
+import platform
+import sysconfig
 
 from setuptools import setup, Extension, find_packages
 from distutils.command.build_ext import build_ext
@@ -51,9 +53,8 @@ omp_lib_dir = "/usr/lib" if omp_pos == -1 else sys.argv[omp_pos + 1]
 dirname = os.path.abspath(__file__)[:-8]
 dirname += ("/" if dirname[-1] != "/" else "") + "nngt/generation/"
 
-LINUX = (os.name == "posix")
-MAC   = (os.name == "mac")
-WIN   = (os.name == "nt")
+# OS name: Linux/Darwin (Mac)/Windows
+os_name = platform.system()
 
 
 # ------------------------ #
@@ -63,27 +64,38 @@ WIN   = (os.name == "nt")
 # compiler options
 
 copt =  {
-    'msvc'    : ['/openmp', '/O2', '/fp:precise', '/favor:INTEL64'],
-    'mingw32' : [
-        '-fopenmp', '-O2', '-g', '-ffast-math', '-march=native', '-msse',
-        '-ftree-vectorize',
+    'msvc': ['/std:c++11', '/openmp', '/O2', '/fp:precise', '/favor:INTEL64'],
+    'mingw32': [
+        '-std=c++11', '-fopenmp', '-O2', '-g', '-ffast-math', '-march=native',
+        '-msse', '-ftree-vectorize',
     ],
-    'unix'    : [
-        '-Wno-cpp', '-Wno-unused-function', '-fopenmp', '-ffast-math',
-        '-msse', '-ftree-vectorize', '-O2', '-g',
+    'gcc': [
+        '-std=c++11', '-Wno-cpp', '-Wno-unused-function', '-fopenmp',
+         '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
+    ],
+    'clang': [
+        '-x c++', '-std=c++11', '-Wno-cpp', '-Wno-unused-function',
+         '-fopenmp=libomp', '-ffast-math', '-msse', '-ftree-vectorize', '-O2',
+         '-g',
     ],
 }
 
 lopt =  {
-    'mingw32' : ['-fopenmp'],
-    'unix'    : ['-fopenmp']
+    'mingw32': ['-fopenmp'],
+    'gcc': ['-fopenmp'],
+    'clang': [],
 }
 
 
 class CustomBuildExt(build_ext):
 
     def build_extensions(self):
-        c = self.compiler.compiler_type
+        c = sysconfig.get_config_var('CC')
+        if c is None:
+            from distutils import ccompiler
+            c = ccompiler.get_default_compiler()
+        if c.startswith("gcc"):
+            c = "gcc"
 
         for e in self.extensions:
             e.extra_link_args.extend(lopt.get(c, []))
