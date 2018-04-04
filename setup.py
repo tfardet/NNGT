@@ -71,19 +71,18 @@ copt =  {
     ],
     'gcc': [
         '-std=c++11', '-Wno-cpp', '-Wno-unused-function', '-fopenmp',
-         '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
+        '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
     ],
     'clang': [
-        '-x c++', '-std=c++11', '-Wno-cpp', '-Wno-unused-function',
-         '-fopenmp=libomp', '-ffast-math', '-msse', '-ftree-vectorize', '-O2',
-         '-g',
+        '-std=c++11', '-Wno-cpp', '-Wno-unused-function',
+        '-fopenmp', '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
     ],
 }
 
 lopt =  {
     'mingw32': ['-fopenmp'],
     'gcc': ['-fopenmp'],
-    'clang': [],
+    'clang': ['-fopenmp'],
 }
 
 
