@@ -325,25 +325,47 @@ if _config["use_database"]:
 _glib_version = (_config["library"].__version__[:5]
                  if _config["library"] is not None else __version__)
 
+try:
+    import svg.path as _svg
+    _has_svg = True
+except:
+    _has_svg = False
+try:
+    import dxfgrabber as _dxf
+    _has_dxf = True
+except:
+    _has_dxf = False
+try:
+    import shapely as _shapely
+    _has_shapely = _shapely.__version__
+except:
+    _has_shapely = False
+
 _log_info = '''
 # ----------- #
 # NNGT loaded #
 # ----------- #
 Graph library:  {gl}
 Multithreading: {thread} ({omp} thread{s})
+MPI:            {mpi}
 Plotting:       {plot}
 NEST support:   {nest}
+Shapely:        {shapely}
+SVG support:    {svg}
+DXF support:    {dxf}
 Database:       {db}
-MPI:            {mpi}
 '''.format(
-    gl=_config["backend"] + ' ' + _glib_version,
-    thread=_config["multithreading"],
-    plot=_config["with_plot"],
-    nest=_config["with_nest"],
-    db=_config["use_database"],
-    omp=_config["omp"],
-    s="s" if _config["omp"] > 1 else "",
-    mpi=_config["mpi"]
+    gl      = _config["backend"] + ' ' + _glib_version,
+    thread  = _config["multithreading"],
+    plot    = _config["with_plot"],
+    nest    = _config["with_nest"],
+    db      =_config["use_database"],
+    omp     = _config["omp"],
+    s       = "s" if _config["omp"] > 1 else "",
+    mpi     = _config["mpi"],
+    shapely = _has_shapely,
+    svg     = _has_svg,
+    dxf     = _has_dxf,
 )
 
 _log_conf_changed(_log_info)

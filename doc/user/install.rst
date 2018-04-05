@@ -131,9 +131,13 @@ In case of problems with `msvc`:
 
 * install `MinGW <http://mingw.org/>` or `MinGW-W64 <https://mingw-w64.org/doku.php>`
 * use it to install gcc with g++ support
-* open a terminal and add the folder containing the compiler to your PATH:
-  e.g. ``set PATH=%PATH%;C:\MinGW\bin``
-* 
+* open a terminal, add the compiler to your `PATH` and set it as default:
+  e.g. ::
+
+    set PATH=%PATH%;C:\MinGW\bin
+    set CC=C:\MinGW\bin\mingw32-gcc.exe
+    set CXX=C:\MinGW\bin\mingw32-g++.exe
+* in that same terminal window, run ``pip install --user nngt``
 
 
 Local install

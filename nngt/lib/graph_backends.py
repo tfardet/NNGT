@@ -136,9 +136,14 @@ def use_backend(backend, reloading=True, silent=False):
             _log_message(logger, "INFO",
                          "Successfuly switched to " + backend + ".")
     else:
-        _log_message(logger, "WARNING",
-                     "Error, could not switch to " + backend + ": "
-                     "{}.".format(error))
+        if silent:
+            _log_message(logger, "DEBUG",
+                         "Error, could not switch to " + backend + ": "
+                         "{}.".format(error))
+        else:
+            _log_message(logger, "WARNING",
+                         "Error, could not switch to " + backend + ": "
+                         "{}.".format(error))
         if error is not None:
             raise error
 

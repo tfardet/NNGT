@@ -147,15 +147,33 @@ def set_config(config, value=None, silent=False):
     num_mpi = num_mpi_processes()
     s_mpi = False if not nngt._config["mpi"] else "True ({} process{})".format(
                 num_mpi, "es" if num_mpi > 1 else "")
+    try:
+        import svg.path
+        has_svg = True
+    except:
+        has_svg = False
+    try:
+        import dxfgrabber
+        has_dxf = True
+    except:
+        has_dxf = False
+    try:
+        import shapely
+        has_shapely = shapely.__version__
+    except:
+        has_shapely = False
     conf_info = config_info.format(
-        gl     = nngt._config["backend"] + " " + glib.__version__[:5],
-        thread = nngt._config["multithreading"],
-        plot   = nngt._config["with_plot"],
-        nest   = nngt._config["with_nest"],
-        db     = nngt._config["use_database"],
-        omp    = nngt._config["omp"],
-        s      = "s" if nngt._config["omp"] > 1 else "",
-        mpi    = s_mpi
+        gl      = nngt._config["backend"] + " " + glib.__version__[:5],
+        thread  = nngt._config["multithreading"],
+        plot    = nngt._config["with_plot"],
+        nest    = nngt._config["with_nest"],
+        db      = nngt._config["use_database"],
+        omp     = nngt._config["omp"],
+        s       = "s" if nngt._config["omp"] > 1 else "",
+        mpi     = s_mpi,
+        shapely = has_shapely,
+        svg     = has_svg,
+        dxf     = has_dxf,
     )
     if not silent:
         _log_conf_changed(conf_info)
@@ -326,8 +344,11 @@ config_info = '''
 # -------------- #
 Graph library:  {gl}
 Multithreading: {thread} ({omp} thread{s})
+MPI:            {mpi}
 Plotting:       {plot}
 NEST support:   {nest}
+Shapely:        {shapely}
+SVG support:    {svg}
+DXF support:    {dxf}
 Database:       {db}
-MPI:            {mpi}
 '''

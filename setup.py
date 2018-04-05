@@ -65,10 +65,6 @@ os_name = platform.system()
 
 copt =  {
     'msvc': ['/openmp', '/O2', '/fp:precise',],
-    'mingw32': [
-        '-std=c++11', '-fopenmp', '-O2', '-g', '-ffast-math', '-march=native',
-        '-msse', '-ftree-vectorize',
-    ],
     'gcc': [
         '-std=c++11', '-Wno-cpp', '-Wno-unused-function', '-fopenmp',
         '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
@@ -80,7 +76,6 @@ copt =  {
 }
 
 lopt =  {
-    'mingw32': ['-fopenmp'],
     'gcc': ['-fopenmp'],
     'clang': ['-fopenmp'],
 }
@@ -93,8 +88,12 @@ class CustomBuildExt(build_ext):
         if c is None:
             from distutils import ccompiler
             c = ccompiler.get_default_compiler()
-        if c.startswith("gcc"):
+        if "gcc" in c or "mingw" in c:
             c = "gcc"
+        elif "clang" in x:
+            c = "clang"
+        elif "msvc" in c:
+            c = "msvc"
 
         for e in self.extensions:
             e.extra_link_args.extend(lopt.get(c, []))
@@ -126,11 +125,11 @@ else:
 
 
 long_descr = '''
-NNGT provides a unified interface to use three of the main
-Python graph ''libraries (graph-tool, igraph, and networkx) in order to
-generate and study neuronal networks. It allows the user to easily send this
-graph to the NEST simulator, the analyze the resulting activity while taking
-structure into account.
+NNGT provides a unified interface to use three of the main Python graph
+libraries (graph-tool, igraph, and networkx) in order to generate and study
+neuronal networks. It allows the user to easily send this graph to the NEST
+simulator, the analyze the resulting activity while taking structure into
+account.
 '''
 
 
