@@ -84,7 +84,9 @@ lopt =  {
 class CustomBuildExt(build_ext):
 
     def build_extensions(self):
-        c = sysconfig.get_config_var('CC')
+        c = os.environ.get('CC', None)
+        if c is None:
+            c = sysconfig.get_config_var('CC')
         if c is None:
             from distutils import ccompiler
             c = ccompiler.get_default_compiler()

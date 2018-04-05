@@ -21,18 +21,27 @@ The Neural Network Growth and Topology (NNGT) module provides tools to grow and
 study detailed biological networks by interfacing efficient graph libraries
 with highly distributed activity simulators.
 
+The library has two main targets:
+
+* people looking for a unifying interface for the three main graph library,
+  allowing to run and share a single code on different platforms
+* neuroscience people looking for an easy way to generate complex networks
+  while keeping track of neuronal populations and their biological properties
+
 
 Main classes
 ------------
 
-NNGT uses four main classes:
+NNGT provides four main classes, the two first being aimed at the
+graph-theoretical community, the third and fourth are more for the neuroscience
+community:
 
 :class:`~nngt.Graph`
   provides a simple implementation over graphs objects from graph libraries
   (namely the addition of a name, management of detailed nodes and connection
   properties, and simple access to basic graph measurements).
 :class:`~nngt.SpatialGraph`
-  a Graph embedded in space (neurons have positions and connections are
+  a Graph embedded in space (nodes have positions and connections are
   associated to a distance)
 :class:`~nngt.Network`
   provides more detailed characteristics to emulate biological neural

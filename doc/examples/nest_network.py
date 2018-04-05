@@ -26,9 +26,6 @@ import nngt
 import nngt.generation as ng
 
 
-# nngt.seed(0)
-
-
 ''' Create groups with different parameters '''
 # adaptive spiking neurons
 base_params = {

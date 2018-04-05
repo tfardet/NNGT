@@ -24,6 +24,48 @@ In Jupyter, the docstring can be viewed using Shift+Tab.
    :local:
 
 
+NNGT properties and configuration
+=================================
+
+Upon loading, NNGT will display its current configuration, e.g.: ::
+
+    # ----------- #
+    # NNGT loaded #
+    # ----------- #
+    Graph library:  igraph 0.7.1
+    Multithreading: True (1 thread)
+    MPI:            False
+    Plotting:       True
+    NEST support:   NEST 2.14.0
+    Shapely:        1.6.1
+    SVG support:    True
+    DXF support:    False
+    Database:       False
+
+Let's walk through this configuration:
+
+* the backend used here is ``igraph``, so all graph-theoretical tools will be
+  derived from those of the igraph_ library and we're using version 0.7.1.
+* Multithreaded algorithms will be used, currently running on only one thread
+  (see :ref:`Multithreading` for more details)
+* MPI algorithms are not in use (you cannot use both MT and MPI at the same
+  time)
+* Plotting is available because the matplotlib_ library is installed
+* NEST is installed on the machine (version 2.14), so NNGT automatically
+  loaded it
+* Shapely_ is also available, which allows the creation of complex structures
+  for space-embedded networks (see :ref:`Geometry module` for more details)
+* Importing SVG files to generate spatial structures is possible, meaning that
+  the `svg.path`_ module is installed.
+* Importing DXF files to generate spatial structures is not possible because
+  the dxfgrabber_ module is not installed.
+* Using the database is not possible because peewee_ is not installed.
+
+In general, most of NNGT options can be found/set through the
+:func:`~nngt.get_config`/:func:`~nngt.set_config` functions, or made permanent
+by modifying the ``~/.nngt/nngt.conf`` configuration file.
+
+
 The ``Graph`` object
 ====================
 
@@ -138,7 +180,7 @@ Since we are using NEST, these properties are:
 * the type of the neurons (``1`` for excitatory or ``-1`` for inhibitory)
 
 .. literalinclude:: ../examples/nest_network.py
-   :lines: 27-66
+   :lines: 29-68
 
 Once this network is created, it can simply be sent to nest through the
 command: ``gids = net.to_nest()``, and the NEST gids are returned.
@@ -211,13 +253,13 @@ Example using networkx
     And even when they compute it, check how they do it!
 
 
-NNGT configuration status
-=========================
-
->>> nngt.get_config()
-
-
 .. References
 
 .. _IPython: http://ipython.org/
 .. _Jupyter: https://jupyter.org/
+.. _Shapely: http://toblerity.org/shapely/manual.html
+.. _dxfgrabber: https://pythonhosted.org/dxfgrabber/
+.. _igraph: http://igraph.org/
+.. _matplotlib: https://matplotlib.org/
+.. _peewee: http://docs.peewee-orm.com/en/latest/
+.. _`svg.path`: https://pypi.python.org/pypi/svg.path
