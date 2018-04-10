@@ -189,7 +189,6 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         ecolor = np.repeat(ecolor, e)
     elif ecolor == "groups" and network.is_network():
         group_based = True
-        c           = np.linspace(0, 1, len(network.population))
         ecolor      = {}
         for i, src in enumerate(network.population):
             idx1 = network.population[src].ids[0]
@@ -222,13 +221,16 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     else:
         if not isinstance(c, str):
             c = palette(ncolor)
-        for i in range(n):
+        if not nonstring_container(c):
+            c = (c for _ in range(n))
+        for i, ci in zip(range(n), c):
             nodes.append(
-                Circle(pos[i], 0.5*nsize[i], fc=c, ec=nborder_color[i]))
+                Circle(pos[i], 0.5*nsize[i], fc=ci, ec=nborder_color[i]))
     nodes = PatchCollection(nodes, match_original=True)
     nodes.set_zorder(2)
     axis.add_collection(nodes)
-    _set_ax_lim(axis, pos[:,0], pos[:,1], xlims, ylims)
+    if not show_environment or not spatial:
+        _set_ax_lim(axis, pos[:, 0], pos[:, 1], xlims, ylims)
     # use quiver to draw the edges
     if e and decimate != -1:
         adj_mat = network.adjacency_matrix(weights=None)
@@ -340,8 +342,11 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                             edgecolors=ecolor, zorder=1)
             else:
                 for i, (s, t) in enumerate(zip(edges[0], edges[1])):
+                    print(pos.shape, s, t)
                     xs, ys = pos[s, 0], pos[s, 1]
                     xt, yt = pos[t, 0], pos[t, 1]
+                    print(xs, ys)
+                    print(xt, yt)
 
                     if curved_edges:
                         arrow = FancyArrowPatch(
