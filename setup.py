@@ -92,7 +92,7 @@ class CustomBuildExt(build_ext):
             c = ccompiler.get_default_compiler()
         if "gcc" in c or "mingw" in c:
             c = "gcc"
-        elif "clang" in x:
+        elif "clang" in c:
             c = "clang"
         elif "msvc" in c:
             c = "msvc"

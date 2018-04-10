@@ -221,9 +221,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     else:
         if not isinstance(c, str):
             c = palette(ncolor)
-        if not nonstring_container(c):
-            c = (c for _ in range(n))
-        for i, ci in zip(range(n), c):
+
+        c = c if nonstring_container(c) else (c for _ in range(n))
+        for i, ci in enumerate(c):
             nodes.append(
                 Circle(pos[i], 0.5*nsize[i], fc=ci, ec=nborder_color[i]))
     nodes = PatchCollection(nodes, match_original=True)
@@ -342,11 +342,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                             edgecolors=ecolor, zorder=1)
             else:
                 for i, (s, t) in enumerate(zip(edges[0], edges[1])):
-                    print(pos.shape, s, t)
                     xs, ys = pos[s, 0], pos[s, 1]
                     xt, yt = pos[t, 0], pos[t, 1]
-                    print(xs, ys)
-                    print(xt, yt)
 
                     if curved_edges:
                         arrow = FancyArrowPatch(

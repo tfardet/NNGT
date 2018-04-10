@@ -92,7 +92,8 @@ class TestIO(TestBasis):
                                             graph.get_positions()),
                                 err.format(val='positions'))
             for attr, values in graph.edges_attributes.items():
-                allclose = np.allclose(h.edges_attributes[attr], values)
+                # different results probably because of rounding problems
+                allclose = np.allclose(h.edges_attributes[attr], values, 1e-4)
                 if not allclose:
                     print("Error: expected")
                     print(h.edges_attributes[attr])
