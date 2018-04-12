@@ -68,6 +68,7 @@ copt =  {
     'unix': [
         '-std=c++11', '-Wno-cpp', '-Wno-unused-function', '-fopenmp',
         '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
+    ]
 }
 
 lopt =  {
