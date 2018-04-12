@@ -65,18 +65,13 @@ os_name = platform.system()
 
 copt =  {
     'msvc': ['/openmp', '/O2', '/fp:precise',],
-    'gcc': [
+    'unix': [
         '-std=c++11', '-Wno-cpp', '-Wno-unused-function', '-fopenmp',
         '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
-    ],
-    'clang': [
-        '-std=c++11', '-Wno-cpp', '-Wno-unused-function',
-        '-fopenmp', '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
-    ],
 }
 
 lopt =  {
-    'gcc': ['-fopenmp'],
+    'unix': ['-fopenmp'],
     'clang': ['-fopenmp'],
 }
 
@@ -90,16 +85,20 @@ class CustomBuildExt(build_ext):
         if c is None:
             from distutils import ccompiler
             c = ccompiler.get_default_compiler()
-        if "gcc" in c or "mingw" in c:
-            c = "gcc"
-        elif "clang" in c:
-            c = "clang"
+        if "gcc" in c or "g++" in c or "mingw" in c:
+            c = "unix"
         elif "msvc" in c:
             c = "msvc"
 
         for e in self.extensions:
             e.extra_link_args.extend(lopt.get(c, []))
             e.extra_compile_args.extend(copt.get(c, []))
+
+        try:
+            self.compiler.compiler_so.remove("-Wstrict-prototypes")
+            self.compiler.compiler_so.remove("-O3")
+        except:
+            pass
 
         build_ext.build_extensions(self)
 

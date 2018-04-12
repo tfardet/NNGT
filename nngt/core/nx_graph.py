@@ -28,6 +28,7 @@ import scipy.sparse as ssp
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.io_tools import _np_dtype
+from nngt.lib.connect_tools import _unique_rows
 from .base_graph import GraphInterface, BaseProperty
 
 
@@ -381,9 +382,13 @@ class _NxGraph(GraphInterface):
     def new_edges(self, edge_list, attributes=None):
         '''
         Add a list of edges to the graph.
-        
+
+        .. versionchanged:: 1.0
+            new_edges checks for duplicate edges
+
         .. warning ::
-            This function currently does not check for duplicate edges!
+            This function currently does not check for duplicate edges between
+            the existing edges and the added ones, but only inside `edge_list`!
         
         Parameters
         ----------
@@ -395,7 +400,7 @@ class _NxGraph(GraphInterface):
             array the same length as the `edge_list` containing a unit weight
             for each connection (synaptic strength in NEST).
             
-        @todo: add example, check the edges for self-loops and multiple edges
+        @todo: add example, check the edges for self-loops
         '''
         if attributes is None:
             attributes = {}
@@ -404,7 +409,7 @@ class _NxGraph(GraphInterface):
                 raise NotImplementedError("Correlated attributes are not "
                                           "available with networkx.")
         initial_edges = self.number_of_edges()
-        edge_list = np.array(edge_list)
+        edge_list = _unique_rows(edge_list)
         num_added = len(edge_list)
         arr_edges = np.zeros((num_added, 3), dtype=int)
         arr_edges[:, :2] = edge_list
