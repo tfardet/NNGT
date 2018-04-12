@@ -354,7 +354,7 @@ an array of 2-tuples of ints.")
             attributes = {k: [v] for k, v in attributes.items()}
         self.new_edges(((source, target),), attributes)
 
-    def new_edges(self, edge_list, attributes=None):
+    def new_edges(self, edge_list, attributes=None, **kwargs):
         '''
         Add a list of edges to the graph.
 
@@ -382,7 +382,10 @@ an array of 2-tuples of ints.")
         if attributes is None:
             attributes = {}
         initial_ecount = self.ecount()
-        edge_list = _unique_rows(edge_list)
+        if kwargs.get('valid_edges', False):
+            edge_list = np.array(edge_list)
+        else:
+            edge_list = _unique_rows(np.array(edge_list))
         if not self._directed:
             recip_edges = edge_list[:,::-1]
             # slow but works

@@ -41,15 +41,62 @@ logger = logging.getLogger(__name__)
 # IO #
 # -- #
 
-@graph_tool_check('2.22')
 def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                    attributes=None, notifier="@", ignore="#"):
     '''
-    Load the main properties (edges, attributes...) from a file.
+    Load a Graph from a file.
 
-    .. warning::
-        To import a graph directly from a file, use the
-        :func:`~nngt.Graph.from_file` classmethod.
+    Parameters
+    ----------
+    filename: str
+        The path to the file.
+    fmt : str, optional (default: "neighbour")
+        The format used to save the graph. Supported formats are: "neighbour"
+        (neighbour list, default if format cannot be deduced automatically),
+        "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
+        one edge per line, represented by a ``source target``-pair), "gml"
+        (gml format, default if `filename` ends with '.gml'), "graphml"
+        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
+        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
+        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
+        detected if `filename` ends with '.gt').
+    separator : str, optional (default " ")
+        separator used to separate inputs in the case of custom formats (namely
+        "neighbour" and "edge_list")
+    secondary : str, optional (default: ";")
+        Secondary separator used to separate attributes in the case of custom
+        formats.
+    attributes : list, optional (default: [])
+        List of names for the attributes present in the file. If a `notifier`
+        is present in the file, names will be deduced from it; otherwise the
+        attributes will be numbered.
+    notifier : str, optional (default: "@")
+        Symbol specifying the following as meaningfull information. Relevant
+        information are formatted ``@info_name=info_value``, where
+        ``info_name`` is in ("attributes", "directed", "name", "size") and
+        associated ``info_value``s are of type (``list``, ``bool``, ``str``,
+        ``int``).
+        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
+        which must be followed by the relevant notifiers among ``@shape``,
+        ``@population``, and ``@graph``.
+    ignore : str, optional (default: "#")
+        Ignore lines starting with the `ignore` string.
+
+    Returns
+    -------
+    graph : :class:`~nngt.Graph` or subclass
+        Loaded graph.
+    '''
+    return nngt.Graph.from_file(
+        filename, fmt=fmt, separator=separator, secondary=secondary,
+        attributes=attributes, notifier=notifier, ignore=ignore)
+
+
+@graph_tool_check('2.22')
+def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
+                   attributes=None, notifier="@", ignore="#"):
+    '''
+    Load the main properties (edges, attributes...) from a file.
 
     Parameters
     ----------
@@ -175,7 +222,7 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         Added support to write position and Shape when saving
         :class:`~nngt.SpatialGraph`. Note that saving Shape requires shapely.
 
-    @todo: implement population and shape saving, implement gml, dot, xml, gt
+    @todo: implement gml, dot, xml, gt formats
 
     Parameters
     ----------
@@ -211,14 +258,9 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         which are followed by the relevant notifiers among ``@shape``,
         ``@population``, and ``@graph`` to separate the sections.
 
-    .. warning ::
-        For now, all formats lead to
-        dataloss if your graph is a subclass of :class:`~nngt.SpatialGraph` or
-        :class:`~nngt.Network` (the :class:`~nngt.geometry.Shape` and
-        :class:`~nngt.NeuralPop` attributes will not be saved).
-
-    .. note ::
-        Positions are saved as bytes by :func:`numpy.nparray.tostring`
+    Note
+    ----
+    Positions are saved as bytes by :func:`numpy.nparray.tostring`
     '''
     fmt = _get_format(fmt, filename)
 

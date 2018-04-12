@@ -400,7 +400,7 @@ class _GtGraph(GraphInterface):
                 raise InvalidArgument("Trying to add existing edge.")
         return connection
 
-    def new_edges(self, edge_list, attributes=None):
+    def new_edges(self, edge_list, attributes=None, **kwargs):
         '''
         Add a list of edges to the graph.
 
@@ -426,7 +426,10 @@ class _GtGraph(GraphInterface):
         if attributes is None:
             attributes = {}
         initial_edges = self.num_edges()
-        edge_list = _unique_rows(edge_list)
+        if kwargs.get('valid_edges', False):
+            edge_list = np.array(edge_list)
+        else:
+            edge_list = _unique_rows(np.array(edge_list))
         if not self._directed:
             recip_edges = edge_list[:,::-1]
             # slow but works

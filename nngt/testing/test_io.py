@@ -99,6 +99,9 @@ class TestIO(TestBasis):
                     print(h.edges_attributes[attr])
                     print("but got")
                     print(values)
+                    print("max error is: {}".format(
+                        np.max(np.abs(np.subtract(
+                            h.edges_attributes[attr], values)))))
                 self.assertTrue(allclose, err.format(val=attr))
         else:  # working with loaded graph
             nodes = self.get_expected_result(graph, "nodes")

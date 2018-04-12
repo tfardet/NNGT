@@ -379,7 +379,7 @@ class _NxGraph(GraphInterface):
                 self.attr_new_edges([(target, source)], attributes=attributes)
         return (source, target)
 
-    def new_edges(self, edge_list, attributes=None):
+    def new_edges(self, edge_list, attributes=None, **kwargs):
         '''
         Add a list of edges to the graph.
 
@@ -409,7 +409,10 @@ class _NxGraph(GraphInterface):
                 raise NotImplementedError("Correlated attributes are not "
                                           "available with networkx.")
         initial_edges = self.number_of_edges()
-        edge_list = _unique_rows(edge_list)
+        if kwargs.get('valid_edges', False):
+            edge_list = np.array(edge_list)
+        else:
+            edge_list = _unique_rows(np.array(edge_list))
         num_added = len(edge_list)
         arr_edges = np.zeros((num_added, 3), dtype=int)
         arr_edges[:, :2] = edge_list

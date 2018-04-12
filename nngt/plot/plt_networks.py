@@ -93,7 +93,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Width of the edges in percent of canvas length. Available string values
         are "betweenness" and "weight".
     ecolor : str, char, float or array, optional (default: "k")
-        Edge color. If ecolor="group", edges color will depend on the source
+        Edge color. If ecolor="groups", edges color will depend on the source
         and target groups, i.e. only edges from and toward same groups will
         have the same color.
     max_esize : float, optional (default: 5.)
@@ -173,6 +173,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         nsize = np.repeat(nsize, n)
     nsize *= 0.01 * size[0]
     if isinstance(esize, str) and e:
+        if isinstance(ecolor, str):
+            raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
+                               "and ecolor='{}'.".format(ecolor))
         esize = _edge_size(network, esize)
         esize *= max_esize
         esize[esize < threshold] = 0.
@@ -199,6 +202,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 else:
                     ecolor[(src, tgt)] = \
                         np.abs(0.8*ncolor[idx1] - 0.2*ncolor[idx2])
+    elif isinstance(ecolor, str):
+        raise TypeError("Only 'groups' is allowed for string type `ecolor`, "
+                        "not " + ecolor + ".")
     # draw
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():

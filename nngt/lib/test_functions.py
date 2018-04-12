@@ -31,11 +31,7 @@ import numpy as np
 
 import nngt
 
-
-def valid_gen_arguments(func):
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
+from .decorator import decorate
 
 
 def deprecated(version, reason=None, alternative=None):
@@ -43,7 +39,7 @@ def deprecated(version, reason=None, alternative=None):
     Decorator to mark deprecated functions.
     '''
     def decorator(func):
-        def wrapper(*args, **kwargs):
+        def wrapper(func, *args, **kwargs):
             # turn off filter temporarily
             warnings.simplefilter('always', DeprecationWarning)
             message = "Function {} is deprecated since version {}"
@@ -58,7 +54,7 @@ def deprecated(version, reason=None, alternative=None):
             warnings.simplefilter('default', DeprecationWarning)
             return func(*args, **kwargs)
         return wrapper
-    return decorator
+    return decorate(func, wrapper)
 
 
 def on_master_process():
@@ -94,7 +90,7 @@ def num_mpi_processes():
 
 
 def mpi_barrier(func):
-    def wrapper(*args, **kwargs):
+    def wrapper(func, *args, **kwargs):
         try:
             from mpi4py import MPI
             comm = MPI.COMM_WORLD
@@ -102,7 +98,7 @@ def mpi_barrier(func):
         except ImportError:
             pass
         return func(*args, **kwargs)
-    return wrapper
+    return decorate(func, wrapper)
 
 
 def mpi_checker(logging=False):
@@ -111,7 +107,7 @@ def mpi_checker(logging=False):
     to store and generate the graph if the mpi algorithms are activated.
     '''
     def decorator(func):
-        def wrapper(*args, **kwargs):
+        def wrapper(func, *args, **kwargs):
             # when using MPI, make sure everyone waits for the others
             try:
                 from mpi4py import MPI
@@ -127,7 +123,7 @@ def mpi_checker(logging=False):
                 return func(*args, **kwargs)
             else:
                 return None
-        return wrapper
+        return decorate(func, wrapper)
     return decorator
 
 
@@ -136,7 +132,7 @@ def mpi_random(func):
     Decorator asserting that all processes start with same random seed when
     using mpi.
     '''
-    def wrapper(*args, **kwargs):
+    def wrapper(func, *args, **kwargs):
         try:
             from mpi4py import MPI
             comm = MPI.COMM_WORLD
@@ -150,7 +146,7 @@ def mpi_random(func):
         except ImportError:
             pass
         return func(*args, **kwargs)
-    return wrapper
+    return decorate(func, wrapper)
 
 
 def nonstring_container(obj):
@@ -180,14 +176,14 @@ def graph_tool_check(version_min):
     Raise an error for function not working with old versions of graph-tool.
     '''
     def decorator(func):
-        def wrapper(*args, **kwargs):
+        def wrapper(func, *args, **kwargs):
             old_graph_tool = _old_graph_tool(version_min)
             if old_graph_tool:
                 raise NotImplementedError('This function is not working for '
                                           'graph-tool < ' + version_min + '.')
             else:
                 return func(*args, **kwargs)
-        return wrapper
+        return decorate(func, wrapper)  # to preserve the docstring info
     return decorator
 
 

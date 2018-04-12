@@ -27,12 +27,12 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt import save_to_file, load_from_file
+from nngt import save_to_file
 import nngt.analysis as na
 from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
                       default_synapse, POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
-from nngt.lib.io_tools import _as_string
+from nngt.lib.io_tools import _as_string, _load_from_file
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import graph_tool_check
 
@@ -187,7 +187,7 @@ class Graph(nngt.core.GraphObject):
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
-        info, edges, nattr, eattr, pop, shape, pos = load_from_file(
+        info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
             filename=filename, fmt=fmt, separator=separator,
             secondary=secondary, attributes=attributes, notifier=notifier)
         # create the graph
@@ -207,7 +207,7 @@ class Graph(nngt.core.GraphObject):
             lst_attr   = info["edge_attributes"]
             dtpes      = info["edge_attr_types"]
             lst_values = [eattr[name] for name in info["edge_attributes"]]
-        graph.new_edges(edges)
+        graph.new_edges(edges, valid_edges=True)
         for eattr, dtype, values in zip(lst_attr, dtpes, lst_values):
             graph.new_edge_attribute(eattr, dtype, values=values)
         if pop is not None:
