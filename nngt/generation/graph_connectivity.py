@@ -143,7 +143,7 @@ def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
     if nodes > 1:
         ids = np.arange(nodes, dtype=np.uint)
         edges = _all_to_all(ids, ids, directed, multigraph)
-        graph_all.new_edges(ia_edges)
+        graph_all.new_edges(ia_edges, check_edges=False)
     graph_all._graph_type = "all_to_all"
     return graph_all
 
@@ -218,7 +218,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         ids = np.arange(nodes, dtype=np.uint)
         ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
                                  directed, multigraph)
-        graph_fd.new_edges(ia_edges)
+        graph_fd.new_edges(ia_edges, check_edges=False)
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
     return graph_fd
 
@@ -296,7 +296,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
                                     reciprocity, directed, multigraph)
         # check for None if MPI
         if ia_edges is not None:
-            graph_gd.new_edges(ia_edges)
+            graph_gd.new_edges(ia_edges, check_edges=False)
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
     return graph_gd
 
@@ -375,7 +375,7 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
         ids = range(nodes)
         ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                                 directed, multigraph)
-        graph_er.new_edges(ia_edges)
+        graph_er.new_edges(ia_edges, check_edges=False)
     graph_er._graph_type = "erdos_renyi"
     return graph_er
 
@@ -458,7 +458,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
         ids = range(nodes)
         ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
                           edges, avg_deg, reciprocity, directed, multigraph)
-        graph_rsf.new_edges(ia_edges)
+        graph_rsf.new_edges(ia_edges, check_edges=False)
     graph_rsf._graph_type = "random_scale_free"
     return graph_rsf
 
@@ -598,7 +598,7 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
         ids = range(nodes)
         ia_edges = _newman_watts(ids, ids, coord_nb, proba_shortcut, directed,
                                  multigraph)
-        graph_nw.new_edges(ia_edges)
+        graph_nw.new_edges(ia_edges, check_edges=False)
     graph_nw._graph_type = "newman_watts"
     return graph_nw
 
@@ -702,7 +702,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
         attr = {'distance': distance}
         # check for None if MPI
         if ia_edges is not None:
-            graph_dr.new_edges(ia_edges, attributes=attr)
+            graph_dr.new_edges(ia_edges, attributes=attr, check_edges=False)
 
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr
@@ -814,7 +814,7 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
         attr['delay'] = kwargs['delays']
     if network.is_spatial():
         attr['distance'] = distance
-    network.new_edges(elist, attributes=attr)
+    network.new_edges(elist, attributes=attr, check_edges=False)
 
     if not network._graph_type.endswith('_connect'):
         network._graph_type += "_nodes_connect"

@@ -83,7 +83,6 @@ class Graph(nngt.core.GraphObject):
         cls.__max_id += 1
         cls.__num_graphs += 1
         return library_graph
-        
     
     @classmethod
     def from_matrix(cls, matrix, weighted=True, directed=True):
@@ -130,7 +129,7 @@ class Graph(nngt.core.GraphObject):
                 weights = np.array(matrix[edges[:, 0], edges[:, 1]])[0]
             else:
                 weights = matrix[edges[:, 0], edges[:, 1]]
-        graph.new_edges(edges, {"weight": weights})
+        graph.new_edges(edges, {"weight": weights}, check_edges=False)
         return graph
     
     @staticmethod
@@ -207,7 +206,7 @@ class Graph(nngt.core.GraphObject):
             lst_attr   = info["edge_attributes"]
             dtpes      = info["edge_attr_types"]
             lst_values = [eattr[name] for name in info["edge_attributes"]]
-        graph.new_edges(edges, valid_edges=True)
+        graph.new_edges(edges, check_edges=False)
         for eattr, dtype, values in zip(lst_attr, dtpes, lst_values):
             graph.new_edge_attribute(eattr, dtype, values=values)
         if pop is not None:
@@ -389,7 +388,7 @@ class Graph(nngt.core.GraphObject):
         Returns a deepcopy of the current :class:`~nngt.Graph`
         instance
         '''
-        gc_instance = Graph(name=self._name+'_copy',
+        gc_instance = Graph(name=self._name + '_copy',
                             weighted=self._weighted,
                             from_graph=self)
         if self.is_spatial():
@@ -1228,7 +1227,7 @@ class Network(Graph):
             mat = get_nest_adjacency(converter)
             edges = np.array(mat.nonzero()).T
             w = mat.data
-            net.new_edges(edges, {'weight': w})
+            net.new_edges(edges, {'weight': w}, check_edges=False)
         if get_params:
             raise NotImplementedError('`get_params` not implemented yet.')
         return net

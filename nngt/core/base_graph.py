@@ -25,6 +25,7 @@ from copy import deepcopy
 from abc import ABCMeta, abstractmethod, abstractproperty
 from six import add_metaclass
 from weakref import ref
+import logging
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, lil_matrix
@@ -33,6 +34,10 @@ import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param
 from nngt.lib.io_tools import _np_dtype
+from nngt.lib.logger import _log_message
+
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------- #
@@ -321,7 +326,8 @@ class BaseGraph(GraphInterface):
             self._adj_mat  = lil_matrix((g.node_nb(), g.node_nb()))
             # create edges and edge attributes
             attributes = g.get_edge_attributes()
-            self.new_edges(g.edges_array, attributes=attributes)
+            self.new_edges(g.edges_array, attributes=attributes,
+                           check_edges=False)
         else:
             self._nattr    = _NProperty(self)
             self._eattr    = _EProperty(self)
@@ -495,12 +501,16 @@ class BaseGraph(GraphInterface):
                 raise InvalidArgument("Trying to add existing edge.")
         return edge
 
-    def new_edges(self, edge_list, attributes=None):
+    def new_edges(self, edge_list, attributes=None, check_edges=True):
         '''
         Add a list of edges to the graph.
-        
+
+        .. versionchanged:: 1.0
+            new_edges checks for duplicate edges and self-loops
+
         .. warning ::
-            This function currently does not check for duplicate edges!
+            This function currently does not check for duplicate edges between
+            the existing edges and the added ones, but only inside `edge_list`!
         
         Parameters
         ----------
@@ -511,31 +521,54 @@ class BaseGraph(GraphInterface):
             weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
             array the same length as the `edge_list` containing a unit weight
             for each connection (synaptic strength in NEST).
+        check_edges : bool, optional (default: True)
+            Check for duplicate edges and self-loops.
             
-        @todo: add example, check the edges for self-loops and multiple edges
+        @todo: add example
+
+        Returns
+        -------
+        Returns new edges only.
         '''
         #check attributes
         if attributes is None:
             attributes = {}
         initial_edges = self.edge_nb()
-        if not isinstance(edge_list, np.ndarray):
+        new_attr = None
+        if check_edges:
+            new_attr = {key: [] for key in attributes}
+            eweight_list = OrderedDict()
+            for i, e in enumerate(edge_list):
+                tpl_e = tuple(e)
+                if tpl_e in eweight_list:
+                    eweight_list[tpl_e] += 1
+                elif e[0] == e[1]:
+                    _log_message(logger, "WARNING",
+                    "Self-loop on {} ignored.".format(e[0]))
+                else:
+                    eweight_list[tpl_e] = 1
+                    for k, vv in attributes.items():
+                        new_attr[k].append(vv[i])
+            edge_list = np.array(list(eweight_list.keys()))
+        else:
             edge_list = np.array(edge_list)
+            new_attr = attributes
         if not self._directed:
             recip_edges = edge_list[:,::-1]
             # slow but works
             unique = ~(recip_edges[..., np.newaxis]
                        == edge_list[..., np.newaxis].T).all(1).any(1)
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
-            for key, val in attributes.items():
-                attributes[key] = np.concatenate((val, val[unique]))
+            for key, val in new_attr.items():
+                new_attr[key] = np.concatenate((val, val[unique]))
         # create the edges
         ws        = None
         num_added = len(edge_list)
-        if "weight" in attributes:
-            if nonstring_container(attributes["weight"]):
-                ws = attributes["weight"]
+        if "weight" in new_attr:
+            if nonstring_container(new_attr["weight"]):
+                ws = new_attr["weight"]
             else:
-                ws = (attributes["weight"] for _ in range(num_added))
+                ws = (new_attr["weight"] for _ in range(num_added))
         else:
             ws = (1 for _ in range(num_added))
         for i, (e, w) in enumerate(zip(edge_list, ws)):
@@ -544,7 +577,7 @@ class BaseGraph(GraphInterface):
             self._in_deg[e[1]]   += 1
             self._adj_mat[e[0], e[1]] = w
         # call parent function to set the attributes
-        self.attr_new_edges(edge_list, attributes=attributes)
+        self.attr_new_edges(edge_list, attributes=new_attr)
         return edge_list
     
     def clear_all_edges(self):
