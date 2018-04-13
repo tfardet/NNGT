@@ -124,8 +124,6 @@ class TestIO(TestBasis):
         g = nngt.Graph(nodes=num_nodes)
         g.new_edge_attribute("test_attr", "int")
 
-        num_edges = 0
-
         for i in range(num_nodes):
             targets = np.unique(np.random.randint(0, num_nodes, avg_deg))
             elist = np.zeros((len(targets), 2), dtype=int)
@@ -133,8 +131,8 @@ class TestIO(TestBasis):
             elist[:, 1] = targets
             ids  = np.random.randint(0, avg_deg*num_nodes, len(targets))
             ids *= 2*np.random.randint(0, 2, len(targets)) - 1
-            g.new_edges(elist, attributes={"test_attr": ids})
-            num_edges = g.edge_nb()
+            g.new_edges(elist, attributes={"test_attr": ids},
+                        check_edges=False)
 
         g.to_file('test.el')
         h = nngt.Graph.from_file('test.el')
@@ -145,6 +143,9 @@ class TestIO(TestBasis):
             print("Results differed for '{}'.".format(g.name))
             print(g.get_edge_attributes(name="test_attr"))
             print(h.get_edge_attributes(name="test_attr"))
+            with open('test.el', 'r') as f:
+                for line in f.readlines():
+                    print(line.strip())
 
         self.assertTrue(allclose)
 

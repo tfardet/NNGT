@@ -441,7 +441,7 @@ class _NxGraph(GraphInterface):
         num_added = len(edge_list)
         arr_edges = np.zeros((num_added, 3), dtype=int)
         arr_edges[:, :2] = edge_list
-        arr_edges[:, 2] = np.arange(initial_edges, initial_edges + num_added)
+        arr_edges[:, 2]  = np.arange(initial_edges, initial_edges + num_added)
         if not self._directed:
             recip_edges = edge_list[:, ::-1]
             # slow but works
