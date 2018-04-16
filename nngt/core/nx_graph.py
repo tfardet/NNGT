@@ -439,21 +439,24 @@ class _NxGraph(GraphInterface):
             edge_list = np.array(edge_list)
             new_attr = attributes
         num_added = len(edge_list)
-        arr_edges = np.zeros((num_added, 3), dtype=int)
-        arr_edges[:, :2] = edge_list
-        arr_edges[:, 2]  = np.arange(initial_edges, initial_edges + num_added)
-        if not self._directed:
-            recip_edges = edge_list[:, ::-1]
-            # slow but works
-            unique = ~(recip_edges[..., np.newaxis]
-                      == edge_list[..., np.newaxis].T).all(1).any(1)
-            edge_list = np.concatenate((edge_list, recip_edges[unique]))
-            for key, val in new_attr.items():
-                new_attr[key] = np.concatenate((val, val[unique]))
-        # create the edges with an eid attribute
-        super(_NxGraph, self).add_weighted_edges_from(arr_edges, weight="eid")
-        # call parent function to set the attributes
-        self.attr_new_edges(edge_list, attributes=new_attr)
+        if num_added:
+            arr_edges = np.zeros((num_added, 3), dtype=int)
+            arr_edges[:, :2] = edge_list
+            arr_edges[:, 2]  = np.arange(initial_edges,
+                initial_edges + num_added)
+            if not self._directed:
+                recip_edges = edge_list[:, ::-1]
+                # slow but works
+                unique = ~(recip_edges[..., np.newaxis]
+                          == edge_list[..., np.newaxis].T).all(1).any(1)
+                edge_list = np.concatenate((edge_list, recip_edges[unique]))
+                for key, val in new_attr.items():
+                    new_attr[key] = np.concatenate((val, val[unique]))
+            # create the edges with an eid attribute
+            super(_NxGraph, self).add_weighted_edges_from(
+                arr_edges, weight="eid")
+            # call parent function to set the attributes
+            self.attr_new_edges(edge_list, attributes=new_attr)
         return edge_list
 
     def clear_all_edges(self):

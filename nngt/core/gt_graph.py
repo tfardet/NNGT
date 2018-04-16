@@ -469,9 +469,10 @@ class _GtGraph(GraphInterface):
             for key, val in new_attr.items():
                 new_attr[key] = np.concatenate((val, val[unique]))
         # create the edges
-        super(_GtGraph, self).add_edge_list(edge_list)
-        # call parent function to set the attributes
-        self.attr_new_edges(edge_list, attributes=new_attr)
+        if len(edge_list):
+            super(_GtGraph, self).add_edge_list(edge_list)
+            # call parent function to set the attributes
+            self.attr_new_edges(edge_list, attributes=new_attr)
         return edge_list
     
     def clear_all_edges(self):
