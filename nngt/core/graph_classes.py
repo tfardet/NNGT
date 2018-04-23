@@ -22,6 +22,7 @@
 
 from copy import deepcopy
 import logging
+import weakref
 
 import numpy as np
 import scipy.sparse as ssp
@@ -211,6 +212,10 @@ class Graph(nngt.core.GraphObject):
             graph.new_edge_attribute(eattr, dtype, values=values)
         if pop is not None:
             Network.make_network(graph, pop)
+            pop._parent = weakref.ref(graph)
+            for g in pop.values():
+                g._pop = weakref.ref(pop)
+                g._net = weakref.ref(graph)
         if pos is not None or shape is not None:
             SpatialGraph.make_spatial(graph, shape=shape, positions=pos)
         return graph
