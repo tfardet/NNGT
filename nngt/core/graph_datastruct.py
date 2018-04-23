@@ -560,7 +560,7 @@ class NeuralPop(OrderedDict):
             # get the groups they could belong to
             if group is not None:
                 if nonstring_container(group):
-                    groups.extend(group)
+                    groups.extend((self[g] for g in group))
                 else:
                     groups.append(self[group])
             else:
@@ -591,7 +591,8 @@ class NeuralPop(OrderedDict):
             if not nonstring_container(group):
                 group = [group]
             start = 0
-            for g in group:
+            for name in group:
+                g = self[name]
                 for k, v in params.items():
                     if nonstring_container(v):
                         g.neuron_param[k] = v[start:start+g.size]
