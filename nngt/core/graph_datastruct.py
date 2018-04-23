@@ -570,8 +570,21 @@ class NeuralPop(OrderedDict):
                 idx = np.where(np.in1d(g.ids, neurons, assume_unique=True))[0]
                 # set the properties of the nodes for each entry in params
                 for k, v in params.items():
-                    vv      = np.repeat(np.NaN, g.size)
+                    default = np.NaN
+                    if k in g.neuron_param:
+                        default = g.neuron_param[k]
+                    elif nngt.get_config('with_nest'):
+                        try:
+                            import nest
+                            try:
+                                default = nest.GetDefaults(g.neuron_model, k)
+                            except nest.NESTError:
+                                pass
+                        except ImportError:
+                            pass
+                    vv      = np.repeat(default, g.size)
                     vv[idx] = v
+                    # update
                     g.neuron_param[k] = vv
         else:  # all neurons in one or several groups
             group = self.keys() if group is None else group
