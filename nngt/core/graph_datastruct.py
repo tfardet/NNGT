@@ -34,6 +34,7 @@ import nngt
 from nngt.lib import (InvalidArgument, nonstring_container, is_integer,
                       default_neuron, default_synapse, POS, WEIGHT, DELAY,
                       DIST, TYPE, BWEIGHT)
+from nngt.lib._frozendict import _frozendict
 from nngt.lib.rng_tools import _eprop_distribution
 from nngt.lib.logger import _log_message
 
@@ -142,6 +143,10 @@ class NeuralPop(OrderedDict):
         '''
         if not nonstring_container(groups):
             groups = [groups]
+
+        for i, g in enumerate(groups):
+            assert g.is_valid(), "Group number " + str(i) + " is invalid."
+
         gsize = len(groups)
         neurons = []
         names = [str(i) for i in range(gsize)] if names is None else names
@@ -163,6 +168,9 @@ class NeuralPop(OrderedDict):
         pop = cls(current_size, parent=parent, with_models=with_models)
         for name, g in zip(names, groups):
             pop[name] = g
+            g._pop    = weakref.ref(pop)
+            g._net    = weakref.ref(parent) if parent is not None else None
+
         # take care of synaptic connections
         pop._syn_spec = deepcopy(syn_spec if syn_spec is not None else {})
         return pop
@@ -295,6 +303,9 @@ class NeuralPop(OrderedDict):
             self.update(dic)
         self._syn_spec = {}
         self._has_models = with_models
+        # whether the network this population represents was sent to NEST
+        self._to_nest = False
+        # init the OrderedDict
         super(NeuralPop, self).__init__(*args)
 
     def __reduce__(self):
@@ -325,6 +336,9 @@ class NeuralPop(OrderedDict):
             return OrderedDict.__getitem__(self, key)
 
     def __setitem__(self, key, value):
+        if self._to_nest:
+            raise RuntimeError("Populations items can no longer be modified "
+                               "once the network has been sent to NEST!")
         self._validity_check(key, value)
         int_key = None
         if is_integer(key):
@@ -334,6 +348,8 @@ class NeuralPop(OrderedDict):
         else:
             OrderedDict.__setitem__(self, key, value)
             int_key = list(super(NeuralPop, self).keys()).index(key)
+        value._pop = weakref.ref(self)
+        value._net = self._parent
         # update pop size/max_id
         group_size = len(value.ids)
         max_id     = np.max(value.ids) if group_size != 0 else 0
@@ -346,6 +362,16 @@ class NeuralPop(OrderedDict):
                 self._is_valid = (self._desired_size == self._size)
             else:
                 self._is_valid = True
+
+    def _sent_to_nest(self):
+        '''
+        Signify to the population and its groups that the network was sent
+        to NEST and that therefore properties and groups should no longer
+        be modified.
+        '''
+        self._to_nest = True
+        for g in self.values():
+            g._to_nest = True
 
     @property
     def size(self):
@@ -436,9 +462,14 @@ class NeuralPop(OrderedDict):
             Parameters for `neuron_model` in the NEST simulator. If None,
             default parameters will be used.
         '''
+        if self._to_nest:
+            raise RuntimeError("Groups can no longer be created once the "
+                               "network has been sent to NEST!")
         neuron_param = {} if neuron_param is None else neuron_param.copy()
-        group = NeuralGroup(neurons, ntype, neuron_model, neuron_param)
-        self[name] = group
+        group        = NeuralGroup(neurons, ntype, neuron_model, neuron_param)
+        group._pop   = weakref.ref(self)
+        group._net   = self._parent
+        self[name]   = group
 
     def set_model(self, model, group=None):
         '''
@@ -465,6 +496,9 @@ class NeuralPop(OrderedDict):
         No check is performed on the validity of the models, which means
         that errors will only be detected when building the graph in NEST.
         '''
+        if self._to_nest:
+            raise RuntimeError("Models cannot be changed after the network "
+                               "has been sent to NEST!")
         if group is None:
             group = self.keys()
         try:
@@ -489,40 +523,68 @@ class NeuralPop(OrderedDict):
             b_has_model *= group.has_model
         self._has_models = b_has_models
 
-    def set_param(self, param, group=None):
+    def set_neuron_param(self, params, neurons=None, group=None):
         '''
-        Set the groups' parameters.
+        Set the parameters of specific neurons or of a whole group.
+
+        .. versionadded : 1.0
 
         Parameters
         ----------
-        param : dict
-            Dictionary containing the model type as key ("neuron" or "synapse")
-            and the model parameter as value (e.g. {"neuron": {"C_m": 125.}}).
+        params : dict
+            Dictionary containing parameters for the neurons. Entries can be
+            either a single number (same for all neurons) or a list (one entry
+            per neuron).
+        neurons : list of ints, optional (default: None)
+            Ids of the neurons whose parameters should be modified.
         group : list of strings, optional (default: None)
-            List of strings containing the names of the groups which models
-            should be updated.
+            List of strings containing the names of the groups whose parameters
+            should be updated. When modifying neurons from a single group, it
+            is still usefull to specify the group name to speed up the pace.
+
+        .. note::
+            If both `neurons` and `group` are None, all neurons will be
+            modified.
 
         .. warning::
             No check is performed on the validity of the parameters, which
             means that errors will only be detected when building the graph in
             NEST.
         '''
-        if group is None:
-            group = self.keys()
-        try:
-            for key, val in param.items():
-                for name in group:
-                    if key == "neuron":
-                        self[name].neuron_param = val
-                    elif key == "synapse":
-                        self[name].syn_param = val
+        if self._to_nest:
+            raise RuntimeError("Parameters cannot be changed after the "
+                               "network has been sent to NEST!")
+
+        if neurons is not None:  # specific neuron ids
+            groups = []
+            # get the groups they could belong to
+            if group is not None:
+                if nonstring_container(group):
+                    groups.extend(group)
+                else:
+                    groups.append(self[group])
+            else:
+                groups.extend(self.values())
+            # update the groups parameters
+            for g in groups:
+                idx = np.where(np.in1d(g.ids, neurons, assume_unique=True))[0]
+                # set the properties of the nodes for each entry in params
+                for k, v in params.items():
+                    vv      = np.repeat(np.NaN, g.size)
+                    vv[idx] = v
+                    g.neuron_param[k] = vv
+        else:  # all neurons in one or several groups
+            group = self.keys() if group is None else group
+            if not nonstring_container(group):
+                group = [group]
+            start = 0
+            for g in group:
+                for k, v in params.items():
+                    if nonstring_container(v):
+                        g.neuron_param[k] = v[start:start+g.size]
                     else:
-                        raise ValueError(
-                            "Model type {} is not valid; choose among 'neuron'"
-                            " or 'synapse'.".format(key))
-        except:
-            raise InvalidArgument(
-                "Invalid param dict or group; see docstring.")
+                        g.neuron_param[k] = v
+                start += g.size
 
     def get_param(self, groups=None, neurons=None, element="neuron"):
         '''
@@ -596,6 +658,9 @@ class NeuralPop(OrderedDict):
         ids : list or 1D-array
             Neuron ids.
         '''
+        if self._to_nest:
+            raise RuntimeError("Groups cannot be changed after the "
+                               "network has been sent to NEST!")
         idx = None
         if is_integer(group_name):
             assert 0 <= group_name < len(self), "Group index does not exist."
@@ -697,8 +762,13 @@ class NeuralGroup(object):
         else:
             raise InvalidArgument('`nodes` must be either array-like or int.')
         self._nest_gids = None
-        self.neuron_param = neuron_param if self._has_model else None
+        self._neuron_param = neuron_param if self._has_model else {}
         self.neuron_type = ntype
+        # whether the network this group belongs to was sent to NEST
+        self._to_nest = False
+        # parents
+        self._pop = None
+        self._net = None
 
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
@@ -718,8 +788,27 @@ class NeuralGroup(object):
 
     @neuron_model.setter
     def neuron_model(self, value):
+        if self._to_nest:
+            raise RuntimeError("Models cannot be changed after the "
+                               "network has been sent to NEST!")
         self._neuron_model = value
-        self._has_model = False if value is None else True
+        self._has_model = False if value is None else self._has_model
+
+    @property
+    def neuron_param(self):
+        if self._to_nest:
+            return _frozendict(self._neuron_param, message="Cannot set " +
+                               "neuron params after the network has been " +
+                               "sent to NEST!")
+        else:
+            return self._neuron_param
+
+    @neuron_param.setter
+    def neuron_param(self, value):
+        if self._to_nest:
+            raise RuntimeError("Parameters cannot be changed after the "
+                               "network has been sent to NEST!")
+        self._neuron_param = value
 
     @property
     def size(self):
@@ -733,6 +822,9 @@ class NeuralGroup(object):
 
     @ids.setter
     def ids(self, value):
+        if self._to_nest:
+            raise RuntimeError("Ids cannot be changed after the "
+                               "network has been sent to NEST!")
         if self._desired_size != len(value):
             _log_message(logger, "WARNING",
                          'The length of the `ids` passed is not the same as '
@@ -758,6 +850,15 @@ class NeuralGroup(object):
             "neuron_param": deepcopy(self.neuron_param)
         }
         return dic
+
+    def is_valid(self):
+        '''
+        Whether the group can be used in a population: i.e. if it has either
+        a size or some ids associated to it.
+
+        .. versionadded : 1.0
+        '''
+        return (self._desired_size is not None) or self._ids
 
 
 class GroupProperty:

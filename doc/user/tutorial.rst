@@ -153,6 +153,34 @@ also implemented: ::
     print("Clustering: {}".format(na.clustering(g)))
 
 
+Using random numbers
+====================
+
+By default, NNGT uses the `numpy` random-number generators (RNGs) which are
+seeded automatically when `numpy` is loaded.
+
+However, you can seed the RNGs manually using the following command: ::
+
+    nngt.set_config("msd", 0)
+
+which will seed the master seed to 0 (or any other value you enter).
+Once seeded manually, a NNGT script will always give the same results provided
+the same number of thread is being used.
+
+Indeed, when using multithreading, sub-RNGs are used (one per thread). By
+default, these RNGs are seeded from the master seed as `msd + n + 1` where `n`
+is the thread number, starting from zero.
+If needed, these sub-RNGs can also be seeded manually using (for 4 threads) ::
+
+    nngt.set_config("seeds", [1, 2, 3, 4])
+
+.. warning ::
+When using NEST, the simulator's RNGs must be seeded separately using the NEST
+commands; see the
+`NEST user manual <http://www.nest-simulator.org/random-numbers/>`_ for
+details.
+
+
 Complex populations: :class:`~nngt.NeuralGroup` and :class:`~nngt.NeuralPop`
 ============================================================================
 
