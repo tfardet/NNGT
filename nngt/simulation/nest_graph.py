@@ -176,7 +176,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
             nest.Connect(src_ids, tgt_ids, syn_spec=syn_spec, conn_spec=cspec)
 
     # tell the populaton that the network it describes was sent to NEST
-    net.population._sent_to_nest()
+    network.population._sent_to_nest()
 
     return tuple(ia_nest_gids[:current_size])
 
