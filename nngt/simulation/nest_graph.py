@@ -97,7 +97,8 @@ def make_nest_network(network, send_only=None, use_weights=True):
             n_param = {key: val for key, val in group.neuron_param.items()
                        if key in defaults and key != "model"}
             # create neurons
-            gids_tmp = nest.Create(group.neuron_model, group_size, n_param)
+            gids_tmp = nest.Create(group.neuron_model, group_size, n_param,
+                                   _warn=False)
             idx_nest = ia_nngt_ids[np.arange(
                 current_size, current_size + group_size)]
             ia_nest_gids[current_size:current_size + group_size] = gids_tmp
@@ -154,13 +155,13 @@ def make_nest_network(network, send_only=None, use_weights=True):
                             targets = comm.bcast(network.nest_gid[tgt_ids], i)
                             sspec   = comm.bcast(syn_spec, i)
                             nest.Connect(sources, targets, syn_spec=sspec,
-                                         conn_spec=cspec)
+                                         conn_spec=cspec, _warn=False)
                             comm.Barrier()
                     else:
                         nest.Connect(
                             network.nest_gid[src_ids],
                             network.nest_gid[tgt_ids], syn_spec=syn_spec,
-                            conn_spec=cspec)
+                            conn_spec=cspec, _warn=False)
         elif len(src_group.ids) > 0:
             # get NEST gids of sources and targets for each edge
             src_ids = network.nest_gid[local_csr.nonzero()[0] + min_sidx]
@@ -173,7 +174,8 @@ def make_nest_network(network, send_only=None, use_weights=True):
                 syn_spec[WEIGHT] *= csr_weights[src_group.ids, :].data
             syn_spec[DELAY] = csr_delays[src_group.ids, :].data
             
-            nest.Connect(src_ids, tgt_ids, syn_spec=syn_spec, conn_spec=cspec)
+            nest.Connect(src_ids, tgt_ids, syn_spec=syn_spec, conn_spec=cspec,
+                         _warn=False)
 
     # tell the populaton that the network it describes was sent to NEST
     network.population._sent_to_nest()
@@ -270,15 +272,17 @@ def _value_psp(weight, neuron_model, di_param, timestep, simtime):
     nest.ResetKernel()
     nest.SetKernelStatus({"resolution": timestep})
     # create neuron and recorder
-    neuron = nest.Create(neuron_model, params=di_param)
+    neuron = nest.Create(neuron_model, params=di_param, _warn=False)
     V_rest = nest.GetStatus(neuron)[0]["E_L"]
-    nest.SetStatus(neuron, {"V_m": V_rest})
-    vm = nest.Create("voltmeter", params={"interval": timestep})
-    nest.Connect(vm, neuron)
+    nest.SetStatus(neuron, {"V_m": V_rest}, _warn=False)
+    vm = nest.Create("voltmeter", params={"interval": timestep}, _warn=False)
+    nest.Connect(vm, neuron, _warn=False)
     # send the initial spike
-    sg = nest.Create("spike_generator", params={'spike_times': [timestep],
-                                                'spike_weights': weight})
-    nest.Connect(sg, neuron)
+    sg = nest.Create(
+        "spike_generator", params={'spike_times': [timestep],
+                                   'spike_weights': weight},
+        _warn=False)
+    nest.Connect(sg, neuron, _warn=False)
     nest.Simulate(simtime)
     # get the max and its time
     dvm = nest.GetStatus(vm)[0]
@@ -342,14 +346,16 @@ def _get_psp_list(bins, neuron_model, di_param, timestep, simtime):
     nest.ResetKernel()
     nest.SetKernelStatus({"resolution": timestep})
     # create neuron and recorder
-    neuron = nest.Create(neuron_model, params=di_param)
-    vm = nest.Create("voltmeter", params={"interval": timestep})
-    nest.Connect(vm, neuron)
+    neuron = nest.Create(neuron_model, params=di_param, _warn=False)
+    vm = nest.Create("voltmeter", params={"interval": timestep}, _warn=False)
+    nest.Connect(vm, neuron, _warn=False)
     # send the spikes
     times = [timestep + n*simtime for n in range(len(bins))]
-    sg = nest.Create("spike_generator", params={'spike_times': times,
-                                                'spike_weights': bins})
-    nest.Connect(sg, neuron)
+    sg = nest.Create(
+        "spike_generator", params={'spike_times': times,
+                                   'spike_weights': bins},
+        _warn=False)
+    nest.Connect(sg, neuron, _warn=False)
     nest.Simulate((len(bins)+1)*simtime)
     # get the max and its time
     dvm = nest.GetStatus(vm)[0]

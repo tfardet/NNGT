@@ -23,6 +23,13 @@ NNGT tools with regard to NEST ca, be separated into
   stimulations to the neurons or monitor them.
 
 
+.. note::
+    Calls to ``nest.ResetKernel`` will also reset all networks and populations,
+    which means that after such a call, populations, parameters, etc, can again
+    be changed until the next invocation of
+    :func:`~nngt.simulation.make_nest_network` or :func:`~nngt.Network.to_nest`.
+
+
 .. contents::
    :local:
 
