@@ -55,3 +55,19 @@ __all__.extend(_nu.__all__)
 if _nngt._config['with_plot']:
     from .nest_plot import plot_activity, raster_plot
     __all__.extend(("plot_activity", "raster_plot"))
+
+
+# ---------------- #
+# Wrap ResetKernel #
+# ---------------- #
+
+from nest import ResetKernel as _rk
+
+def _new_reset_kernel():
+    '''
+    Call nest.ResetKernel, then reset all NeuralPops and parent Networks.
+    '''
+    _rk()
+    _nngt.NeuralPop._nest_reset()
+
+_sys.modules["nest"].ResetKernel = _new_reset_kernel

@@ -68,8 +68,23 @@ class NeuralPop(OrderedDict):
         Whether this population can be used to create a network in NEST.
     """
 
+    __num_created = 0   # number of created populations
+    __pops        = {}  # store weakrefs to created populations
+
     #-------------------------------------------------------------------------#
     # Class attributes and methods
+
+    @classmethod
+    def _nest_reset(cls):
+        '''
+        Reset the _to_nest bool and potential parent networks.
+        '''
+        for pop in cls.__pops.values():
+            pop()._to_nest = False
+            for g in pop().values():
+                g._to_nest = False
+            if pop().parent is not None:
+                pop().parent._nest_gids = None
 
     @classmethod
     def from_network(cls, graph, *args):
@@ -307,6 +322,13 @@ class NeuralPop(OrderedDict):
         self._to_nest = False
         # init the OrderedDict
         super(NeuralPop, self).__init__(*args)
+        # update class properties
+        self.__id = self.__class__.__num_created
+        self.__class__.__num_created += 1
+        self.__class__.__pops[self.__id] = weakref.ref(self)
+
+    def __del__(self):
+        del self.__class__.__pops[self.__id]
 
     def __reduce__(self):
         '''
@@ -542,14 +564,14 @@ class NeuralPop(OrderedDict):
             should be updated. When modifying neurons from a single group, it
             is still usefull to specify the group name to speed up the pace.
 
-        .. note::
-            If both `neurons` and `group` are None, all neurons will be
-            modified.
+        Note
+        ----
+        If both `neurons` and `group` are None, all neurons will be modified.
 
-        .. warning::
-            No check is performed on the validity of the parameters, which
-            means that errors will only be detected when building the graph in
-            NEST.
+        Warning
+        -------
+        No check is performed on the validity of the parameters, which means
+        that errors will only be detected when building the graph in NEST.
         '''
         if self._to_nest:
             raise RuntimeError("Parameters cannot be changed after the "

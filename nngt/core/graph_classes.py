@@ -1163,7 +1163,7 @@ class Network(Graph):
     # Class attributes and methods
 
     __num_networks = 0
-    __max_id = 0
+    __max_id       = 0
         
     @classmethod
     def num_networks(cls):
