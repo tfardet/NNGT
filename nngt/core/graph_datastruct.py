@@ -68,8 +68,10 @@ class NeuralPop(OrderedDict):
         Whether this population can be used to create a network in NEST.
     """
 
-    __num_created = 0   # number of created populations
-    __pops        = {}  # store weakrefs to created populations
+    # number of created populations
+    __num_created = 0
+    # store weakrefs to created populations
+    __pops = weakref.WeakValueDictionary()
 
     #-------------------------------------------------------------------------#
     # Class attributes and methods
@@ -79,12 +81,13 @@ class NeuralPop(OrderedDict):
         '''
         Reset the _to_nest bool and potential parent networks.
         '''
-        for pop in cls.__pops.values():
-            pop()._to_nest = False
-            for g in pop().values():
-                g._to_nest = False
-            if pop().parent is not None:
-                pop().parent._nest_gids = None
+        for pop in cls.__pops.valuerefs():
+            if pop() is not None:
+                pop()._to_nest = False
+                for g in pop().values():
+                    g._to_nest = False
+                if pop().parent is not None:
+                    pop().parent._nest_gids = None
 
     @classmethod
     def from_network(cls, graph, *args):
@@ -326,9 +329,6 @@ class NeuralPop(OrderedDict):
         self.__id = self.__class__.__num_created
         self.__class__.__num_created += 1
         self.__class__.__pops[self.__id] = weakref.ref(self)
-
-    def __del__(self):
-        del self.__class__.__pops[self.__id]
 
     def __reduce__(self):
         '''
