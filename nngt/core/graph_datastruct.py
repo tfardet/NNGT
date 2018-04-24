@@ -328,7 +328,7 @@ class NeuralPop(OrderedDict):
         # update class properties
         self.__id = self.__class__.__num_created
         self.__class__.__num_created += 1
-        self.__class__.__pops[self.__id] = weakref.ref(self)
+        self.__class__.__pops[self.__id] = self
 
     def __reduce__(self):
         '''
