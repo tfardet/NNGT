@@ -92,13 +92,23 @@ def make_nest_network(network, send_only=None, use_weights=True):
         group_size = len(group.ids)
         if group_size:
             ia_nngt_ids[current_size:current_size + group_size] = group.ids
-            # clean up neuron_param dict
-            defaults = nest.GetDefaults(group.neuron_model)
-            n_param = {key: val for key, val in group.neuron_param.items()
-                       if key in defaults and key != "model"}
-            # create neurons
-            gids_tmp = nest.Create(group.neuron_model, group_size, n_param,
-                                   _warn=False)
+            # clean up neuron_param dict, separate scalar and non-scalar
+            defaults     = nest.GetDefaults(group.neuron_model)
+            scalar_param = {}
+            ns_param     = {}
+            for key, val in group.neuron_param.items():
+                if key in defaults and key != "model":
+                    if nonstring_container(val):
+                        ns_param[key] = val
+                    else:
+                        scalar_param[key] = val
+            # create neurons:
+            gids_tmp = nest.Create(group.neuron_model, group_size,
+                                   scalar_param, _warn=False)
+            # set non-scalar properties
+            for k, v in ns_param.items():
+                nest.SetStatus(gids_tmp, k, v, _warn=False)
+            # create ids
             idx_nest = ia_nngt_ids[np.arange(
                 current_size, current_size + group_size)]
             ia_nest_gids[current_size:current_size + group_size] = gids_tmp
