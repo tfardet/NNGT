@@ -92,13 +92,14 @@ def set_poisson_input(gids, rate, syn_spec=None):
         NEST gids of the target neurons.
     rate : float
         Rate of the spike train.
-    weight : float, optional (default: 1.)
-        Strength of the arriving spikes.
+    syn_spec : dict, optional (default: static synapse with weight 1)
+        Properties of the connection between the ``poisson_generator`` object
+        and the target neurons.
     
     Returns
     -------
     poisson_input : tuple
-        The NEST gid of the poisson_generator.
+        The NEST gid of the ``poisson_generator``.
     '''
     poisson_input = nest.Create("poisson_generator")
     nest.SetStatus(poisson_input, {"rate": rate})
@@ -106,16 +107,21 @@ def set_poisson_input(gids, rate, syn_spec=None):
     return poisson_input
 
 
-def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
-              weight_normalization=1.):
+def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
+              gids=None, weight_normalization=1.):
     '''
-    Mimick spontaneous release of neurotransmitters, called spontaneous PSCs or
-    "minis".
+    Mimick spontaneous release of neurotransmitters, called miniature PSCs or
+    "minis" that can occur at excitatory (mEPSCs) or inhibitory (mIPSCs)
+    synapses.
     These minis consists in only a fraction of the usual strength of a spike-
     triggered PSC and can be modeled by a Poisson process.
     This Poisson process occurs independently at every synapse of a neuron, so
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
+
+    .. versionchanged:: 1.0
+        Added `syn_type`, separating the excitatory and inhibitory degrees
+        and weights.
 
     .. versionchanged:: 0.8
         Added `nodes`, removed `syn_model` and `syn_params`.
@@ -127,6 +133,10 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
         Network on which the minis should be simulated.
     base_rate : float
         Rate for the Poisson process on one synapse (:math:`\\lambda`).
+    syn_type : int, optional (default: 1)
+        Synaptic type of the noisy connections. By default, mEPSCs are
+        generated, by taking into account only the excitatory degrees and
+        synaptic weights. To setup mIPSCs, used `syn_type=-1`.
     weight_fraction : float, optional (default: 0.4)
         Fraction of a spike-triggered PSC that will be released by a mini.
     nodes : array-like, optional (default: all nodes)
@@ -138,7 +148,7 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
 
     Note
     ----
-    `nodes` and `gids` are uncompatible, only one one the two arguments can
+    `nodes` and `gids` are not compatible, only one one the two arguments can
     be used in any given call to `set_minis`.
 
     When using this function, you must compensate the weight using
@@ -148,13 +158,20 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
     assert (weight_fraction >= 0. and weight_fraction <= 1.), \
            "`weight_fraction` must be between 0 and 1."
     assert network.nest_gid is not None, "Create the NEST network first."
-    degrees = network.get_degrees("in")
-    weighted_deg = network.get_degrees("in", use_weights=True)
-    deg_set = set(degrees)
+
+    degrees      = network.get_degrees("in", syn_type=syn_type)
+    weighted_deg = network.get_degrees("in", use_weights=True,
+                                       syn_type=syn_type)
+
+    # get the unique degrees and create one poisson_generator per degree
+    deg_set    = set(degrees)
     map_deg_pg = {d: i for i, d in enumerate(deg_set)}
-    pgs = nest.Create("poisson_generator", len(deg_set))
+    pgs        = nest.Create("poisson_generator", len(deg_set))
+
     for d, pg in zip(deg_set, pgs):
         nest.SetStatus([pg], {"rate": d*base_rate})
+
+    # find the target nodes' gids
     if gids is not None and nodes is not None:
         raise InvalidArgument('Only one of `nodes` and `gids` can be set.')
     elif nodes is None and gids is None:
@@ -164,10 +181,14 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
         nodes = [network.id_from_nest_gid(gid) for gid in gids]
     elif nodes is not None:
         gids = network.nest_gid[nodes]
+
+    # connect
     for i, n in enumerate(nodes):
         gid, d = (gids[i],), degrees[n]
-        w = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
+
+        w  = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
         pg = [pgs[map_deg_pg[d]]]
+
         nest.Connect(pg, gid, syn_spec={'weight': w})
 
 

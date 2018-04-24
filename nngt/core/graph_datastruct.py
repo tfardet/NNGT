@@ -527,7 +527,7 @@ class NeuralPop(OrderedDict):
         '''
         Set the parameters of specific neurons or of a whole group.
 
-        .. versionadded : 1.0
+        .. versionadded:: 1.0
 
         Parameters
         ----------
@@ -869,7 +869,7 @@ class NeuralGroup(object):
         Whether the group can be used in a population: i.e. if it has either
         a size or some ids associated to it.
 
-        .. versionadded : 1.0
+        .. versionadded:: 1.0
         '''
         return (self._desired_size is not None) or self._ids
 

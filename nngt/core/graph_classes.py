@@ -738,11 +738,11 @@ class Graph(nngt.core.GraphObject):
         '''
         Attributes of the graph's edges.
 
-        .. versionadded: 0.8
-
-        .. versionchanged: 1.0
+        .. versionchanged:: 1.0
             Returns the full dict of edges attributes if called without
             arguments.
+
+        .. versionadded:: 0.8
 
         Parameters
         ----------
@@ -779,7 +779,7 @@ class Graph(nngt.core.GraphObject):
         '''
         Attributes of the graph's edges.
 
-        .. versionadded: 0.9
+        .. versionadded:: 0.9
 
         Parameters
         ----------

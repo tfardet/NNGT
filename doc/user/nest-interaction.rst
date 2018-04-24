@@ -10,6 +10,18 @@ models, and how to create and setup NEST nodes.
 If this is not the case, please see the `NEST user doc`_ and the
 `PyNEST tutorials`_ first.
 
+NNGT tools with regard to NEST ca, be separated into
+
+* the structural tools (:class:`~nngt.Network`, :class:`~nngt.NeuralPop` ...)
+  that are used to prepare the neuronal network and setup its properties and
+  connectivity; these tools should be used **before**
+* the :func:`~nngt.simulation.make_nest_network` and the associated,
+  :func:`~nngt.Network.to_nest` functions that are used to send the previously
+  prepared network to NEST;
+* then, **after** using one of the previous functions, all the other functions
+  contained in the :mod:`nngt.simulation` module can be used to add
+  stimulations to the neurons or monitor them.
+
 
 .. contents::
    :local:
