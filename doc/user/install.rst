@@ -31,18 +31,19 @@ Additionnal dependencies
 ------------------------
 
 * matplotlib_ (optional but will limit the functionalities if not present)
-* `peewee` for database features
 * shapely_ for complex spatial embedding
+* `peewee>3` for database features
 
 .. note::
     If they are not present on your computer, `pip` will directly try to
-    install the three first libraries, however:
+    install scipy and numpy, however:
 
     * `lapack <http://www.netlib.org/lapack/>`_ is necessary for `scipy` and
       `pip` cannot install it on its own
-    * you will have to install the graph library yourself (only `networkx` can
-      be installed directly using `pip`)
-    
+    * if you want advanced network analysis features, you will have to install
+      the graph library yourself (only `networkx` can be installed directly
+      using `pip`)
+
 
 Simple install
 ==============

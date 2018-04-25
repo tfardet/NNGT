@@ -370,8 +370,12 @@ class NeuralPop(OrderedDict):
         else:
             OrderedDict.__setitem__(self, key, value)
             int_key = list(super(NeuralPop, self).keys()).index(key)
-        value._pop = weakref.ref(self)
-        value._net = self._parent
+
+        # set name and parents
+        value._name = key
+        value._pop  = weakref.ref(self)
+        value._net  = self._parent
+
         # update pop size/max_id
         group_size = len(value.ids)
         max_id     = np.max(value.ids) if group_size != 0 else 0
@@ -488,7 +492,9 @@ class NeuralPop(OrderedDict):
             raise RuntimeError("Groups can no longer be created once the "
                                "network has been sent to NEST!")
         neuron_param = {} if neuron_param is None else neuron_param.copy()
-        group        = NeuralGroup(neurons, ntype, neuron_model, neuron_param)
+        group        = NeuralGroup(neurons, ntype=ntype,
+                                   neuron_model=neuron_model,
+                                   neuron_param=neuron_param, name=name)
         group._pop   = weakref.ref(self)
         group._net   = self._parent
         self[name]   = group
@@ -758,7 +764,8 @@ class NeuralGroup(object):
     that groups differing only by their ``ids`` will register as equal.
     """
 
-    def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None):
+    def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None,
+                  name=None):
         '''
         Create a group of neurons (empty group is default, but it is not a
         valid object for most use cases).
@@ -797,6 +804,7 @@ class NeuralGroup(object):
             self._ids = []
         else:
             raise InvalidArgument('`nodes` must be either array-like or int.')
+        self._name = "" if name is None else name
         self._nest_gids = None
         self._neuron_param = neuron_param if self._has_model else {}
         self.neuron_type = ntype
@@ -817,6 +825,10 @@ class NeuralGroup(object):
 
     def __len__(self):
         return self.size
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def neuron_model(self):

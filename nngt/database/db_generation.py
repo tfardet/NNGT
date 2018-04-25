@@ -6,12 +6,13 @@
 from collections import namedtuple
 
 from peewee import *
-from playhouse.csv_loader import load_csv, dump_csv
-from playhouse.fields import PickledField, CompressedField
+from playhouse.fields import CompressedField
 from playhouse.migrate import *
 from playhouse.db_url import connect
 
-from nngt import config
+import nngt
+from .csv_utils import load_csv, dump_csv
+from .pickle_field import PickledField
 
 
 __all__ = [
@@ -20,7 +21,6 @@ __all__ = [
     'Connection',
     'db_migrator',
     'ignore',
-    'main_db',
     'migrate',
     'NeuralNetwork',
     'Neuron',
@@ -30,19 +30,9 @@ __all__ = [
 ]
 
 
-
-#-----------------------------------------------------------------------------#
-# Parse config file and generate database
-#------------------------
-#
-
-main_db = connect(config['db_url'], fields={'longblob': 'longblob'}) #: Object refering to the database
-
-
-#-----------------------------------------------------------------------------#
-# Database classes
-#------------------------
-#
+# ---------------- #
+# Database classes #
+# ---------------- #
 
 class LongCompressedField(CompressedField):
     db_field = 'longblob'
@@ -50,7 +40,7 @@ class LongCompressedField(CompressedField):
     
 class BaseModel(Model):
     class Meta:
-        database = main_db
+        database = nngt._main_db
 
 
 class Computer(BaseModel):
@@ -180,15 +170,20 @@ ignore = {
 
 val_to_field = {
     'int': IntegerField,
+    'INTEGER': IntegerField,
     'bigint': IntegerField,
     'tinyint': IntegerField,
     'long': PickledField,
     'blob': PickledField,
+    'BLOB': PickledField,
     'datetime': DateTimeField,
+    'DATETIME': DateTimeField,
     'str': TextField,
+    'TEXT': TextField,
     'longtext': TextField,
     'SLILiteral': TextField,
     'float': FloatField,
+    'REAL': FloatField,
     'float64': FloatField,
     'float32': FloatField,
     'bool': BooleanField,

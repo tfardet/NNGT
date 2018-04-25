@@ -45,16 +45,16 @@ def deprecated(version, reason=None, alternative=None):
             message = "Function {} is deprecated since version {}"
             message = message.format(func.__name__, version)
             if reason is not None:
-                message += "because " + reason + "."
+                message += " because " + reason + "."
             else:
                 message += "."
             if alternative is not None:
-                message += "Use " + alternative + " instead."
-            warnings.warn(message, category=DeprecationWarning, stacklevel=2)
+                message += " Use " + alternative + " instead."
+            warnings.warn(message, category=DeprecationWarning)
             warnings.simplefilter('default', DeprecationWarning)
             return func(*args, **kwargs)
-        return wrapper
-    return decorate(func, wrapper)
+        return decorate(func, wrapper)
+    return decorator
 
 
 def on_master_process():

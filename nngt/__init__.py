@@ -78,7 +78,7 @@ import os as _os
 import errno as _errno
 import shutil as _shutil
 import sys as _sys
-import logging
+import logging as _logging
 
 
 __version__ = '1.0.a'
@@ -89,11 +89,12 @@ __version__ = '1.0.a'
 # Requirements and config #
 # ----------------------- #
 
-# IMPORTANT: configuration MUST COME FIRST
+# IMPORTANT: configuration MUST come first
 _config = {
     'color_lib': 'matplotlib',
     'db_folder': "~/.nngt/database",
-    'db_to_file': False,
+    'db_name': "main",
+    'db_to_file': True,
     'db_url': "mysql:///nngt_db",
     'graph': object,
     'backend': "nngt",
@@ -126,13 +127,13 @@ if not _os.path.isdir(_lib_folder):
     try:
         _os.mkdir(_lib_folder)
     except OSError as e:
-        if e.errno != errno.EEXIST:
+        if e.errno != _errno.EEXIST:
             raise
 
 # IMPORTANT: first create logger
 from .lib.logger import _init_logger, _log_message
 
-_logger = logging.getLogger(__name__)
+_logger = _logging.getLogger(__name__)
 _init_logger(_logger)
 
 # Python > 2.6
@@ -149,14 +150,14 @@ if not _os.path.isfile(_new_config):  # if it does not, create it
     _shutil.copy(_default_config, _new_config)
 else:                                 # if it does check it is up-to-date
     with open(_new_config, 'r+') as fconfig:
-        options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
+        _options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
         config_version = ""
-        for opt in options:
-            sep = opt.find("=")
-            opt_name = opt[:sep].strip()
-            opt_val = _convert(opt[sep+1:].strip())
-            if opt_name == "version":
-                config_version = opt_val
+        for _opt in _options:
+            sep = _opt.find("=")
+            _opt_name = _opt[:sep].strip()
+            _opt_val = _convert(_opt[sep+1:].strip())
+            if _opt_name == "version":
+                config_version = _opt_val
         if config_version != __version__:
             fconfig.seek(0)
             data = []
@@ -288,9 +289,9 @@ if _config['load_nest']:
     try:
         # silence nest
         _sys.argv.append('--quiet')
-        import nest
+        import nest as _nest
         from . import simulation
-        _config['with_nest'] = nest.version()
+        _config['with_nest'] = _nest.version()
         __all__.append("simulation")
         # remove quiet from sys.argv
         try:
@@ -306,13 +307,13 @@ if _config['load_nest']:
 
 # load database module if required
 
+_db      = None
+_main_db = None
+
 if _config["use_database"]:
-    if _config["db_to_file"]:
-        if not _os.path.isdir(_config["db_folder"]):
-            _os.mkdir(_config["db_folder"])
     try:
-        from .database import db
-        __all__.append('db')
+        from . import database
+        __all__.append('database')
     except ImportError as e:
         _log_message(_logger, "DEBUG",
                      "Could not load database module: " + str(e))

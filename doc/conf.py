@@ -155,7 +155,17 @@ gen_autosum(source, target, 'nngt', 'autoclass', dtype="class",
             ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
 
 
+# -- NNGT setup -----------------------------------------------------------
+
+import nngt
 from nngt import __version__ as nngt_version
+
+# set database
+try:
+    import peewee
+    nngt.set_config("use_database", True)
+except ImportError:
+    pass
 
 
 # -- General configuration ------------------------------------------------

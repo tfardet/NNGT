@@ -85,7 +85,12 @@ if nngt.get_config('with_nest'):
 
     recorders, records = ns.monitor_groups(pop.keys(), net)
 
-    nest.Simulate(1600.)
+    nngt.set_config("use_database", True)
+    nngt.database.log_simulation_start(net, "nest")
+
+    nest.Simulate(1.)
+
+    nngt.database.log_simulation_end()
 
     if nngt.get_config('with_plot'):
         ns.plot_activity(recorders, records, network=net, show=True)

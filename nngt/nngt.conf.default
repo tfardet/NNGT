@@ -48,13 +48,14 @@ palette = Set1
 
 use_database = False
 
-# use a database (if False, results will be stored in CSV files)
-db_to_file = False
-#db_folder = ~/.nngt/database
+# use a database (by default, will be stored in SQLite database)
+db_to_file = True
+db_folder  = ~/.nngt/database
+db_name    = main
 
-# database url or temporary database used if use_database = False
+# database url or temporary database used if db_to_file = False
 # example of real database url: db_url = mysql://user:password@host:port/my_db
-db_url = mysql:///nngt_db
+# db_url = mysql:///nngt_db
 
 
 #-----------------------------
@@ -67,7 +68,7 @@ db_url = mysql:///nngt_db
 log_level = INFO
 
 # write log to file?
-log_to_file = False
+log_to_file = True
 # if True, write to default folder '~/.nngt/log'
 #log_folder = ~/.nngt/log
 

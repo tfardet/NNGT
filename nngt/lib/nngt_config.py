@@ -20,6 +20,7 @@
 
 """ Configuration tools for NNGT """
 
+import os
 import sys
 import logging
 
@@ -130,6 +131,12 @@ def set_config(config, value=None, silent=False):
             new_config[key] = _convert(new_config[key])
         if key == "backend" and new_config[key] != old_gl:
             nngt.use_backend(new_config[key])
+        if key == "log_folder":
+            new_config["log_folder"] = os.path.abspath(
+                os.path.expanduser(new_config["log_folder"]))
+        if key == "db_folder":
+            new_config["db_folder"] = os.path.abspath(
+                os.path.expanduser(new_config["db_folder"]))
     # check multithreading status and number of threads
     _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi)
     # update
@@ -140,6 +147,10 @@ def set_config(config, value=None, silent=False):
     if nngt._config['use_tex']:
         import matplotlib
         matplotlib.rc('text', usetex=True)
+    # update database
+    if nngt._config["use_database"] and not hasattr(nngt, "db"):
+        from .. import database
+        sys.modules["nngt.database"] = database
     # log changes
     _configure_logger(nngt._logger)
     glib = (nngt._config["library"] if nngt._config["library"] is not None

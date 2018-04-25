@@ -99,6 +99,7 @@ The docs
 
    modules/nngt
    modules/analysis
+   modules/database
    modules/generation
    modules/geometry
    modules/lib

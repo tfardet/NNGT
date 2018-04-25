@@ -35,7 +35,7 @@ from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string, _load_from_file
 from nngt.lib.logger import _log_message
-from nngt.lib.test_functions import graph_tool_check
+from nngt.lib.test_functions import graph_tool_check, deprecated
 
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
@@ -1238,11 +1238,23 @@ class Network(Graph):
         return net
 
     @classmethod
-    def uniform_network(cls, size, neuron_model=default_neuron,
+    @deprecated("1.0", reason="of a redondant name", alternative="uniform")
+    def uniform_network(cls, *args, **kwargs):
+        return cls.uniform(*args, **kwargs)
+
+    @classmethod
+    @deprecated("1.0", reason="redondant name", alternative="exc_and_inhib")
+    def ei_network(cls, *args, **kargs):
+        return cls.exc_and_inhib(*args, **kwargs)
+
+    @classmethod
+    def uniform(cls, size, neuron_model=default_neuron,
                         neuron_param=None, syn_model=default_synapse,
                         syn_param=None, **kwargs):
         '''
         Generate a network containing only one type of neurons.
+
+        .. versionadded:: 1.0
         
         Parameters
         ----------
@@ -1269,17 +1281,20 @@ class Network(Graph):
         if syn_param is None:
             syn_param = {}
         pop = nngt.NeuralPop.uniform(
-            size, None, neuron_model, neuron_param, syn_model, syn_param)
+            size, neuron_model=neuron_model, neuron_param=neuron_param,
+            syn_model=syn_model, syn_param=syn_param, parent=None)
         net = cls(population=pop, **kwargs)
         return net
 
     @classmethod
-    def ei_network(cls, size, iratio=0.2, en_model=default_neuron,
+    def exc_and_inhib(cls, size, iratio=0.2, en_model=default_neuron,
             en_param=None, in_model=default_neuron, in_param=None,
             syn_spec=None, **kwargs):
         '''
         Generate a network containing a population of two neural groups:
         inhibitory and excitatory neurons.
+
+        .. versionadded:: 1.0
 
         .. versionchanged:: 0.8
             Removed `es_{model, param}` and `is_{model, param}` in favour of
