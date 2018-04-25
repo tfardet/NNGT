@@ -32,6 +32,7 @@ Content
 import os, errno
 
 from peewee import *
+from playhouse.db_url import connect
 
 import nngt
 
@@ -51,7 +52,7 @@ __all__ = [
 # --------------------------------------- #
 
 def _set_main_db():
-    if nngt.get_config("db_to_file"):
+    if nngt.get_config("db_url") is None or nngt.get_config("db_to_file"):
         # check for db_folder
         abs_dbfolder = os.path.abspath(
             os.path.expanduser(nngt.get_config("db_folder")))

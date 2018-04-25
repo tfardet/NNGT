@@ -331,7 +331,8 @@ class NNGTdb:
             entry.save()
         simul_data = Simulation(**self.current_simulation)
         simul_data.save()
-        if nngt.get_config("to_file"):
+        if nngt.get_config("db_to_file"):
+            from .csv_utils import dump_csv
             db_cls = list(self.tables.values())
             q = ( Simulation.select(*db_cls).join(Computer).join(NeuralNetwork)
                   .join(Activity).join(Neuron).join(Synapse).join(Connection) )

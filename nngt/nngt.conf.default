@@ -49,11 +49,11 @@ palette = Set1
 use_database = False
 
 # use a database (by default, will be stored in SQLite database)
-db_to_file = True
+db_to_file = False
 db_folder  = ~/.nngt/database
 db_name    = main
 
-# database url or temporary database used if db_to_file = False
+# database url if you do not want to use a SQLite file
 # example of real database url: db_url = mysql://user:password@host:port/my_db
 # db_url = mysql:///nngt_db
 

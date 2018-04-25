@@ -8,10 +8,8 @@ from collections import namedtuple
 from peewee import *
 from playhouse.fields import CompressedField
 from playhouse.migrate import *
-from playhouse.db_url import connect
 
 import nngt
-from .csv_utils import load_csv, dump_csv
 from .pickle_field import PickledField
 
 
