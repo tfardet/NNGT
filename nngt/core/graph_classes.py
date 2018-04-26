@@ -1244,7 +1244,7 @@ class Network(Graph):
 
     @classmethod
     @deprecated("1.0", reason="redondant name", alternative="exc_and_inhib")
-    def ei_network(cls, *args, **kargs):
+    def ei_network(cls, *args, **kwargs):
         return cls.exc_and_inhib(*args, **kwargs)
 
     @classmethod
