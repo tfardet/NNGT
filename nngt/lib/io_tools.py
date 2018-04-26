@@ -482,7 +482,6 @@ def _neighbour_list(graph, separator, secondary, attributes):
     @todo: speed this up!
     '''
     lst_neighbours = list(graph.adjacency_matrix().tolil().rows)
-    attributes = [k for k in graph.edges_attributes if k != 'bweight']
     for v1 in range(graph.node_nb()):
         for i, v2 in enumerate(lst_neighbours[v1]):
             str_edge = str(v2)
@@ -499,11 +498,11 @@ def _neighbour_list(graph, separator, secondary, attributes):
 def _edge_list(graph, separator, secondary, attributes):
     ''' Generate a string containing the edge list and their properties. '''
     edges = graph.edges_array
-    attributes = {
+    di_attributes = {
         k: v for k, v in graph.edges_attributes.items()
         if k != 'bweight'
     }
-    end_strings = [secondary for _ in range(len(attributes) - 1)]
+    end_strings = (len(attributes) - 1)*[secondary]
     end_strings.append('')
     lst_edges = []
     for i, e in enumerate(edges):
@@ -511,7 +510,7 @@ def _edge_list(graph, separator, secondary, attributes):
         if attributes:
             str_edge += separator
         for end, attr in zip(end_strings, attributes):
-            str_edge += "{}{}".format(attributes[attr][i], end)
+            str_edge += "{}{}".format(di_attributes[attr][i], end)
         lst_edges.append(str_edge)
     str_edges = "\n".join(lst_edges)
     return str_edges

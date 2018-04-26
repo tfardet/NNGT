@@ -81,7 +81,7 @@ import sys as _sys
 import logging as _logging
 
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 ''' :obj:`str`, current NNGT version '''
 
 

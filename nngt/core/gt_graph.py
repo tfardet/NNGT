@@ -476,6 +476,7 @@ class _GtGraph(GraphInterface):
         return edge_list
     
     def clear_all_edges(self):
+        ''' Remove all edges from the graph '''
         super(_GtGraph, self).clear_edges()
         self._eattr.clear()
 
@@ -483,9 +484,11 @@ class _GtGraph(GraphInterface):
     # Getters
     
     def node_nb(self):
+        ''' Number of nodes in the graph '''
         return self.num_vertices()
 
     def edge_nb(self):
+        ''' Number of edges in the graph '''
         return self.num_edges()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):

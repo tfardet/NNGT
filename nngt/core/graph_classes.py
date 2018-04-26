@@ -868,32 +868,6 @@ class Graph(nngt.core.GraphObject):
         ''' Whether the graph is directed or not '''
         return self._directed
 
-    #~ def get_property(self, s_property):
-        #~ ''' Return the desired property or None for an incorrect one. '''
-        #~ if s_property in Graph.__properties:
-            #~ return Graph.__di_property_func[s_property](self._graph)
-        #~ else:
-            #~ warnings.warn("Ignoring request for unknown property \
-                          #~ '{}'".format(s_property))
-            #~ return None
-
-    #~ def get_properties(self, a_properties):
-        #~ '''
-        #~ Return a dictionary containing the desired properties
-
-        #~ Parameters
-        #~ ----------
-        #~ a_properties : sequence
-            #~ List or tuple of strings of the property names.
-
-        #~ Returns
-        #~ -------
-        #~ di_result : dict
-            #~ A dictionary of values with the property names as keys.
-        #~ '''
-        #~ di_result = { prop: self.get_property(prop) for prop in a_properties }
-        #~ return di_result
-
     def get_degrees(self, deg_type="total", node_list=None, use_weights=False,
                     syn_type="all"):
         '''
