@@ -482,7 +482,6 @@ def _neighbour_list(graph, separator, secondary, attributes):
     @todo: speed this up!
     '''
     lst_neighbours = list(graph.adjacency_matrix().tolil().rows)
-    attributes = [k for k in graph.edges_attributes if k != 'bweight']
     for v1 in range(graph.node_nb()):
         for i, v2 in enumerate(lst_neighbours[v1]):
             str_edge = str(v2)
