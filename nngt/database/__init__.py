@@ -68,7 +68,8 @@ def _set_main_db():
 
         nngt._main_db = SqliteDatabase(
             db_file,
-            pragmas=(('journal_mode', 'wal'), ('cache_size', -1024 * 64)))
+            pragmas=(('journal_mode', 'wal'), ('cache_size', -1024 * 64),
+                     ('foreign_keys', 'on'),))
     else:
         nngt._main_db = connect(
             nngt.get_config('db_url'), fields={'longblob': 'longblob'})

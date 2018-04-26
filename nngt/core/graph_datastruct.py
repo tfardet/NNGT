@@ -764,7 +764,7 @@ class NeuralGroup(object):
     that groups differing only by their ``ids`` will register as equal.
     """
 
-    def __init__ (self, nodes=None, ntype=1, model=None, neuron_param=None,
+    def __init__ (self, nodes=None, ntype=1, neuron_model=None, neuron_param=None,
                   name=None):
         '''
         Create a group of neurons (empty group is default, but it is not a
@@ -780,7 +780,7 @@ class NeuralGroup(object):
             neurons in an existing graph.
         ntype : int, optional (default: 1)
             Type of the neurons (1 for excitatory, -1 for inhibitory).
-        model : str, optional (default: None)
+        neuron_model : str, optional (default: None)
             NEST model for the neuron.
         neuron_param : dict, optional (default: model defaults)
             Dictionary containing the parameters associated to the NEST model.
@@ -791,8 +791,8 @@ class NeuralGroup(object):
         '''
         assert ntype in (1, -1), "`ntype` can either be 1 or -1."
         neuron_param = {} if neuron_param is None else neuron_param.copy()
-        self._has_model = False if model is None else True
-        self._neuron_model = model
+        self._has_model = False if neuron_model is None else True
+        self._neuron_model = neuron_model
         if nodes is None:
             self._desired_size = None
             self._ids = []

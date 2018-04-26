@@ -135,12 +135,14 @@ class Simulation(BaseModel):
     ''' Master seed of the simulation. '''
     local_seeds = PickledField(null=True)
     ''' List of the local threads seeds. '''
-    computer = ForeignKeyField(Computer, related_name='simulations')
+    computer = ForeignKeyField(Computer, related_name='simulations', null=True)
     ''' Computer table entry where the computer used is defined. '''
-    network = ForeignKeyField(NeuralNetwork, related_name='simulations')
+    network = ForeignKeyField(NeuralNetwork, related_name='simulations', null=True)
     ''' Network table entry where the simulated network is described. '''
-    activity = ForeignKeyField(Activity, related_name='simulations')
+    activity = ForeignKeyField(Activity, related_name='simulations', null=True)
     ''' Activity table entry where the simulated activity is described. '''
+    connections = ForeignKeyField(Connection, related_name='simulations', null=True)
+    ''' Connection table entry where the connections are described. '''
     population = PickledField()
     ''' Pickled list containing the neural group names. '''
     pop_sizes = PickledField()

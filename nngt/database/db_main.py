@@ -12,6 +12,8 @@ try:
 except ImportError:
     raise ImportError("Database module requires NEST to work.")
 
+import peewee
+
 import nngt
 from nngt.lib.db_tools import psutil
 from .db_generation import *
@@ -62,12 +64,15 @@ class NNGTdb:
                 # generate field instance
                 dtype = value if type_names else value.__class__.__name__
                 val_field = val_to_field[dtype](null=True)
-                klass._meta.add_field("'{}'".format(attr), val_field)
+                if len(attr) == 1 and attr.isupper():
+                    attr = 2*attr.lower()
+                klass._meta.add_field(attr, val_field)
                 # check whether the column exists on the table, if not create
                 if not attr in columns:
-                    print(value.__class__.__name__, value)
-                    print(attr, [ x.name for x in self.db.get_columns(table) ], columns)
-                    migrate(migrator.add_column(table, attr, val_field))
+                    try:
+                        migrate(migrator.add_column(table, attr, val_field))
+                    except peewee.OperationalError:
+                        pass
         return klass
     
     def _update_models(self):
@@ -127,7 +132,7 @@ class NNGTdb:
             'nodes': network.node_nb(),
             'edges': network.edge_nb(),
             'weighted': weighted,
-            'compressed_file': str(network)
+            'compressed_file': str(network).encode('utf-8')
         }
         if weighted:
             net_prop['weight_distribution'] = network._w
@@ -191,6 +196,14 @@ class NNGTdb:
         syn_prop={}
         if connections:
             syn_prop = nest.GetStatus((connections[0],))[0]
+            # check single uppercase letters
+            sngl_upper = []
+            for k in syn_prop:
+                if len(k) == 1 and k.isupper():
+                    sngl_upper.append(k)
+            for k in sngl_upper:
+                syn_prop[2*k.lower()] = syn_prop[k]
+                del syn_prop[k]
             # update Synapse class accordingly
             Synapse = self._update_class("synapse", **syn_prop)
         synapse = Synapse(**syn_prop)
@@ -317,11 +330,15 @@ class NNGTdb:
         # get completion time and simulated time
         self.current_simulation['completion_time'] = datetime.now()
         start_time = self.current_simulation['simulated_time']
-        new_time = nest.GetKernelStatus('time')
+        new_time   = nest.GetKernelStatus('time')
         self.current_simulation['simulated_time'] = new_time - start_time
         # save activity if provided
         if activity is not None:
             self._make_activity_entry(activity)
+        else:
+            empty_act = Activity()
+            self.current_simulation['activity'] = empty_act
+            self.nodes['activity_prop'] = empty_act
         # save data and reset
         self.computer.save()
         self.neuralnet.save()
@@ -331,13 +348,16 @@ class NNGTdb:
             entry.save()
         simul_data = Simulation(**self.current_simulation)
         simul_data.save()
-        if nngt.get_config("db_to_file"):
-            from .csv_utils import dump_csv
-            db_cls = list(self.tables.values())
-            q = ( Simulation.select(*db_cls).join(Computer).join(NeuralNetwork)
-                  .join(Activity).join(Neuron).join(Synapse).join(Connection) )
-            dump_csv(q, "{}_{}.csv".format(self.computer.name,
-                                           simul_data.completion_time))
+        # ~ if nngt.get_config("db_to_file"):
+            # ~ from .csv_utils import dump_csv
+            # ~ db_cls = list(self.tables.values())
+            # ~ q = (Simulation.select(*db_cls).join(Computer).switch(Simulation)
+                  # ~ .join(NeuralNetwork).switch(Simulation).join(Activity)
+                  # ~ .switch(Simulation).join(Connection).join(Neuron, on=Connection.pre)
+                  # ~ .switch(Connection).join(Neuron, on=Connection.post)
+                  # ~ .switch(Connection).join(Synapse)).select(*db_cls)
+            # ~ dump_csv(q, "{}_{}.csv".format(self.computer.name,
+                                           # ~ simul_data.completion_time))
         self.reset()
     
     def get_results(self, table, column=None, value=None):

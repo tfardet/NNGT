@@ -151,6 +151,9 @@ def set_config(config, value=None, silent=False):
     if nngt._config["use_database"] and not hasattr(nngt, "db"):
         from .. import database
         sys.modules["nngt.database"] = database
+        if nngt._config["db_to_file"]:
+            _log_message(logger, "WARNING",
+                        "This functionality is not available")
     # log changes
     _configure_logger(nngt._logger)
     glib = (nngt._config["library"] if nngt._config["library"] is not None

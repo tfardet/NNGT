@@ -56,10 +56,10 @@ Neural groups can be created as follow: ::
     # 100 inhibitory neurons
     basic_group = nngt.NeuralGroup(100, ntype=-1)
     # 10 excitatory (default) aeif neurons
-    aeif_group  = nngt.NeuralGroup(10, model="aeif_psc_alpha")
+    aeif_group  = nngt.NeuralGroup(10, neuron_model="aeif_psc_alpha")
     # an unspecified number of aeif neurons with specific parameters
     p = {"E_L": -58., "V_th": -54.}
-    aeif_g2 = nngt.NeuralGroup(model="aeif_psc_alpha", neuron_param=p)
+    aeif_g2 = nngt.NeuralGroup(neuron_model="aeif_psc_alpha", neuron_param=p)
 
 In the case where the number of neurons is specified upon creation, NNGT can
 check that the number of neurons matches in the network and the associated

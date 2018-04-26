@@ -1219,7 +1219,7 @@ class Network(Graph):
         size = len(gids)
         nodes = [i for i in range(size)]
         group = nngt.NeuralGroup(
-            nodes, ntype=1, model=neuron_model, neuron_param=neuron_param)
+            nodes, ntype=1, neuron_model=neuron_model, neuron_param=neuron_param)
         pop = nngt.NeuralPop.from_groups([group])
         # create the network
         net = cls(population=pop, **kwargs)
