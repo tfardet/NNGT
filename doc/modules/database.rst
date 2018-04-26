@@ -33,7 +33,7 @@ Functions
 Recording a simulation
 ----------------------
 
-.. ::
+::
 
     nngt.database.log_simulation_start(net, "nest-2.14")
     nest.Simulate(1000.)
