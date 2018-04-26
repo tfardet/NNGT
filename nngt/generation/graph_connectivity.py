@@ -64,13 +64,13 @@ if nngt.get_config("multithreading"):
             _log_message(
                 logger, "WARNING", str(e) + "\n\t" + str(e2) + "\n\t"
                 "Cython import failed, using non-multithreaded algorithms.")
-            nngt.set_config('multithreading', False, silent=True)
+            nngt._config['multithreading'] = False
 if nngt.get_config("mpi"):
     try:
         from .mpi_connect import *
-        nngt.set_config('mpi', True, silent=True)
+        nngt._config['mpi'] = True
     except ImportError as e:
-        nngt.set_config('mpi', False, silent=True)
+        nngt._config['mpi'] = False
         raise e
 
 
