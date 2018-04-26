@@ -460,7 +460,7 @@ class _NxGraph(GraphInterface):
         return edge_list
 
     def clear_all_edges(self):
-        ''' Remove all connections in the graph '''
+        ''' Remove all edges from the graph '''
         ebunch = [e for e in self.edges()]
         self.remove_edges_from(ebunch)
         self._eattr.clear()
@@ -473,9 +473,11 @@ class _NxGraph(GraphInterface):
     # Getters
     
     def node_nb(self):
+        ''' Number of nodes in the graph '''
         return self.number_of_nodes()
 
     def edge_nb(self):
+        ''' Number of edges in the graph '''
         return self.size()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):

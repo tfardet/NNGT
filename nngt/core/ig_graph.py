@@ -432,7 +432,7 @@ an array of 2-tuples of ints.")
             makes using node properties too complicated")
 
     def clear_all_edges(self):
-        ''' Remove all connections in the graph. '''
+        ''' Remove all edges from the graph '''
         self.delete_edges(None)
         self._eattr.clear()
     
@@ -440,9 +440,11 @@ an array of 2-tuples of ints.")
     # Getters
     
     def node_nb(self):
+        ''' Number of nodes in the graph '''
         return self.vcount()
 
     def edge_nb(self):
+        ''' Number of edges in the graph '''
         return self.ecount()
     
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
