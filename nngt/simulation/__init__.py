@@ -24,9 +24,13 @@ functions to excite or record the network activity.
 """
 
 import sys as _sys
-_sys.argv.append('--quiet')
+import logging as _logging
 
 import nngt as _nngt
+from nngt.lib.logger import _log_message
+
+
+_logger = _logging.getLogger(__name__)
 
 
 # -------------- #
@@ -55,3 +59,48 @@ __all__.extend(_nu.__all__)
 if _nngt._config['with_plot']:
     from .nest_plot import plot_activity, raster_plot
     __all__.extend(("plot_activity", "raster_plot"))
+
+
+# ---------------- #
+# Wrap ResetKernel #
+# ---------------- #
+
+from nest import ResetKernel as _rk
+from nest import ResetNetwork as _rn
+from nest import Connect as _conn
+from nest import Disconnect as _disc
+from nest import Create as _cr
+from nest import SetStatus as _setstat
+
+
+def _new_reset_kernel():
+    '''
+    Call nest.ResetKernel, then reset all NeuralPops and parent Networks.
+    '''
+    _rk()
+    _nngt.NeuralPop._nest_reset()
+
+
+def _new_nest_func(old_nest_func):
+    '''
+    Print a warning to make sure user know what they are doing.
+    '''
+    def wrapper(*args, **kwargs):
+        if kwargs.get("_warn", True):
+            _log_message(_logger, "WARNING", "This function could interfere "
+                         "with NNGT, making your Network obsolete compared to "
+                         "the one in NEST... make sure to check what is "
+                         "modified!")
+        if "_warn" in kwargs:
+            del kwargs["_warn"]
+        return old_nest_func(*args, **kwargs)
+    return wrapper
+
+
+# nest is in sysmodules because it was imported in the main __init__.py
+_sys.modules["nest"].ResetKernel  = _new_reset_kernel
+_sys.modules["nest"].ResetNetwork = _new_nest_func(_rn)
+_sys.modules["nest"].Connect      = _new_nest_func(_conn)
+_sys.modules["nest"].Disconnect   = _new_nest_func(_disc)
+_sys.modules["nest"].Create       = _new_nest_func(_cr)
+_sys.modules["nest"].SetStatus    = _new_nest_func(_setstat)

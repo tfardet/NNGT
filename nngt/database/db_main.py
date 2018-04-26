@@ -7,14 +7,19 @@ import platform
 from datetime import datetime
 from itertools import permutations
 
-import nest
+try:
+    import nest
+except ImportError:
+    raise ImportError("Database module requires NEST to work.")
 
-from nngt import config
+import peewee
+
+import nngt
 from nngt.lib.db_tools import psutil
 from .db_generation import *
 
 
-__all__ = ['db']
+__all__ = ['NNGTdb']
 
 
 class NNGTdb:
@@ -34,10 +39,11 @@ class NNGTdb:
     }
 
     def __init__(self):
-        self.db = main_db
+        self.db = nngt._main_db
         self.db.connect()
         self.db.create_tables(self.tables.values(), safe=True)
         self._update_models()
+        self.activity = None
         self.current_simulation = None
         self.simulator_lib = None
         self.computer = None
@@ -54,15 +60,20 @@ class NNGTdb:
         if "dtype" in kwargs:
             type_names = kwargs["dtype"]
             del kwargs["dtype"]
-        for attr, value in iter(kwargs.items()):
+        for attr, value in kwargs.items():
             if attr not in ignore:
                 # generate field instance
                 dtype = value if type_names else value.__class__.__name__
                 val_field = val_to_field[dtype](null=True)
-                val_field.add_to_class(klass, attr)
+                if len(attr) == 1 and attr.isupper():
+                    attr = 2*attr.lower()
+                klass._meta.add_field(attr, val_field)
                 # check whether the column exists on the table, if not create
                 if not attr in columns:
-                    migrate(migrator.add_column(table, attr, val_field))
+                    try:
+                        migrate(migrator.add_column(table, attr, val_field))
+                    except peewee.OperationalError:
+                        pass
         return klass
     
     def _update_models(self):
@@ -122,10 +133,10 @@ class NNGTdb:
             'nodes': network.node_nb(),
             'edges': network.edge_nb(),
             'weighted': weighted,
-            'compressed_file': str(network)
+            'compressed_file': str(network).encode('utf-8')
         }
         if weighted:
-            net_prop['weight_distribution'] = network._w['distrib']
+            net_prop['weight_distribution'] = network._w
         neuralnet = NeuralNetwork(**net_prop)
         return neuralnet
 
@@ -172,15 +183,28 @@ class NNGTdb:
         synapse : :class:`~nngt.database.Synapse`
             New synapse entry.
         '''
-        syn_model = group_pre.syn_model
+        syn_model = "static_synapse"
+        if (group_pre.name, group_post.name) in network.population.syn_spec:
+            pre, post = group_pre.name, group_post.name
+            syn_model = network.population.syn_spec[(pre, post)]
+            if isinstance(syn_model, dict):
+                syn_model = syn_model.get("model", "static_synapse")
         source_gids = tuple(network.nest_gid[group_pre.ids])
         target_gids = tuple(network.nest_gid[group_post.ids])
-        connections = nest.GetConnections(synapse_model=syn_model,
-                                        source=source_gids, target=target_gids)
+        connections = nest.GetConnections(
+            synapse_model=syn_model, source=source_gids, target=target_gids)
         # get the dictionary
         syn_prop={}
         if connections:
             syn_prop = nest.GetStatus((connections[0],))[0]
+            # check single uppercase letters
+            sngl_upper = []
+            for k in syn_prop:
+                if len(k) == 1 and k.isupper():
+                    sngl_upper.append(k)
+            for k in sngl_upper:
+                syn_prop[2*k.lower()] = syn_prop[k]
+                del syn_prop[k]
             # update Synapse class accordingly
             Synapse = self._update_class("synapse", **syn_prop)
         synapse = Synapse(**syn_prop)
@@ -238,22 +262,25 @@ class NNGTdb:
             'pop_sizes': size
         }
 
-    def _make_activity_entry(self, activity):
+    def _make_activity_entry(self, network=None):
         '''
         Create an activity entry from an
         :class:`~nngt.simulation.ActivityRecord` object.
         '''
-        di_activity = activity.properties._asdict()
+        raster      = nngt.analysis.get_spikes(astype="np")
+        activity    = nngt.simulation.analyze_raster(raster, network=network)
+        di_activity = activity.properties
+        di_activity["raster"] = raster
         act_attr = { k: v.__class__.__name__ for k, v in  di_activity.items() }
         if "spike_files" in act_attr:
-            act_attr["spike_files"] = "compressed" 
+            act_attr["spike_files"] = "compressed"
         act_attr["dtypes"] = True
         ''' ..todo ::
             compress the spike files '''
         Activity = self._update_class("activity", **act_attr)
-        activity_entry = Activity(di_activity)
-        self.nodes['activity_prop'] = activity_entry
+        activity_entry = Activity(**di_activity)
         self.current_simulation['activity'] = activity_entry
+        return activity_entry
         
     def log_simulation_start(self, network, simulator):
         '''
@@ -268,8 +295,8 @@ class NNGTdb:
             Name of the simulator.
         '''
         if not self.is_clear():
-            raise RuntimeError("Database log started without clearing the \
-previous one.")
+            raise RuntimeError("Database log started without clearing the "
+                               "previous one.")
         self._get_simulation_prop(network, simulator)
         # computer and network data
         self.computer = self._make_computer_entry()
@@ -297,7 +324,7 @@ previous one.")
             self.connections["{}->{}".format(name_pre, name_post)] = conn
         
 
-    def log_simulation_end(self, activity=None):
+    def log_simulation_end(self, network=None, log_activity=True):
         '''
         Record the simulation completion and simulated times, save the data,
         then reset.
@@ -307,12 +334,16 @@ previous one.")
         # get completion time and simulated time
         self.current_simulation['completion_time'] = datetime.now()
         start_time = self.current_simulation['simulated_time']
-        new_time = nest.GetKernelStatus('time')
+        new_time   = nest.GetKernelStatus('time')
         self.current_simulation['simulated_time'] = new_time - start_time
         # save activity if provided
-        if activity is not None:
-            self._make_activity_entry(activity)
+        if log_activity:
+            self.activity = self._make_activity_entry(network)
+        else:
+            self.activity = Activity()
+            self.current_simulation['activity'] = self.activity
         # save data and reset
+        self.activity.save()
         self.computer.save()
         self.neuralnet.save()
         for entry in iter(self.nodes.values()):
@@ -321,15 +352,19 @@ previous one.")
             entry.save()
         simul_data = Simulation(**self.current_simulation)
         simul_data.save()
-        if config["to_file"]:
-            db_cls = list(self.tables.values())
-            q = ( Simulation.select(*db_cls).join(Computer).join(NeuralNetwork)
-                  .join(Activity).join(Neuron).join(Synapse).join(Connection) )
-            dump_csv(q, "{}_{}.csv".format(self.computer.name,
-                                           simul_data.completion_time))
+        # ~ if nngt.get_config("db_to_file"):
+            # ~ from .csv_utils import dump_csv
+            # ~ db_cls = list(self.tables.values())
+            # ~ q = (Simulation.select(*db_cls).join(Computer).switch(Simulation)
+                  # ~ .join(NeuralNetwork).switch(Simulation).join(Activity)
+                  # ~ .switch(Simulation).join(Connection).join(Neuron, on=Connection.pre)
+                  # ~ .switch(Connection).join(Neuron, on=Connection.post)
+                  # ~ .switch(Connection).join(Synapse)).select(*db_cls)
+            # ~ dump_csv(q, "{}_{}.csv".format(self.computer.name,
+                                           # ~ simul_data.completion_time))
         self.reset()
     
-    def get_results(self, table, column, value):
+    def get_results(self, table, column=None, value=None):
         '''
         Return the entries where the attribute `column` satisfies the required
         equality.
@@ -340,17 +375,25 @@ previous one.")
             Name of the table where the search should be performed (among
             ``'simulation'``, ``'computer'``, ``'neuralnetwork'``,
             ``'activity'``, ``'synapse'``, ``'neuron'``, or ``'connection'``).
-        column : str
-            Name of the variable of interest (a column on the table).
-        value : `column` corresponding type
-            Specific value for the variable of interest.
+        column : str, optional (default: None)
+            Name of the variable of interest (a column on the table). If None,
+            the whole table is returned.
+        value : `column` corresponding type, optional (default: None)
+            Specific value for the variable of interest. If None, the whole
+            column is returned.
         
         Returns
         -------
         :class:`peewee.SelectQuery` with entries matching the request.
         '''
         TableModel = self.tables[table]
-        return TableModel.select().where(getattr(TableModel, column) == value)
+        if column is None:
+            return TableModel.select()
+        elif value is None:
+            return TableModel.select(getattr(TableModel, column))
+        else:
+            return TableModel.select().where(
+                getattr(TableModel, column) == value)
 
     def is_clear(self):
         ''' Check that the logs are clear. '''
@@ -371,12 +414,4 @@ previous one.")
         self.neuralnet = None
         self.connections = {}
         self.nodes = {}
-
-
-#-----------------------------------------------------------------------------#
-# Main database object
-#------------------------
-#
-        
-db = NNGTdb() #: main database object
 

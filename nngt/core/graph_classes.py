@@ -22,19 +22,20 @@
 
 from copy import deepcopy
 import logging
+import weakref
 
 import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt import save_to_file, load_from_file
+from nngt import save_to_file
 import nngt.analysis as na
 from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
                       default_synapse, POS, WEIGHT, DELAY, DIST, TYPE)
 from nngt.lib.graph_helpers import _edge_prop
-from nngt.lib.io_tools import _as_string
+from nngt.lib.io_tools import _as_string, _load_from_file
 from nngt.lib.logger import _log_message
-from nngt.lib.test_functions import graph_tool_check
+from nngt.lib.test_functions import graph_tool_check, deprecated
 
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
@@ -83,7 +84,6 @@ class Graph(nngt.core.GraphObject):
         cls.__max_id += 1
         cls.__num_graphs += 1
         return library_graph
-        
     
     @classmethod
     def from_matrix(cls, matrix, weighted=True, directed=True):
@@ -130,7 +130,7 @@ class Graph(nngt.core.GraphObject):
                 weights = np.array(matrix[edges[:, 0], edges[:, 1]])[0]
             else:
                 weights = matrix[edges[:, 0], edges[:, 1]]
-        graph.new_edges(edges, {"weight": weights})
+        graph.new_edges(edges, {"weight": weights}, check_edges=False)
         return graph
     
     @staticmethod
@@ -187,7 +187,7 @@ class Graph(nngt.core.GraphObject):
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
-        info, edges, nattr, eattr, pop, shape, pos = load_from_file(
+        info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
             filename=filename, fmt=fmt, separator=separator,
             secondary=secondary, attributes=attributes, notifier=notifier)
         # create the graph
@@ -207,11 +207,15 @@ class Graph(nngt.core.GraphObject):
             lst_attr   = info["edge_attributes"]
             dtpes      = info["edge_attr_types"]
             lst_values = [eattr[name] for name in info["edge_attributes"]]
-        graph.new_edges(edges)
+        graph.new_edges(edges, check_edges=False)
         for eattr, dtype, values in zip(lst_attr, dtpes, lst_values):
             graph.new_edge_attribute(eattr, dtype, values=values)
         if pop is not None:
             Network.make_network(graph, pop)
+            pop._parent = weakref.ref(graph)
+            for g in pop.values():
+                g._pop = weakref.ref(pop)
+                g._net = weakref.ref(graph)
         if pos is not None or shape is not None:
             SpatialGraph.make_spatial(graph, shape=shape, positions=pos)
         return graph
@@ -389,7 +393,7 @@ class Graph(nngt.core.GraphObject):
         Returns a deepcopy of the current :class:`~nngt.Graph`
         instance
         '''
-        gc_instance = Graph(name=self._name+'_copy',
+        gc_instance = Graph(name=self._name + '_copy',
                             weighted=self._weighted,
                             from_graph=self)
         if self.is_spatial():
@@ -734,11 +738,11 @@ class Graph(nngt.core.GraphObject):
         '''
         Attributes of the graph's edges.
 
-        .. versionadded: 0.8
-
-        .. versionchanged: 1.0
+        .. versionchanged:: 1.0
             Returns the full dict of edges attributes if called without
             arguments.
+
+        .. versionadded:: 0.8
 
         Parameters
         ----------
@@ -775,7 +779,7 @@ class Graph(nngt.core.GraphObject):
         '''
         Attributes of the graph's edges.
 
-        .. versionadded: 0.9
+        .. versionadded:: 0.9
 
         Parameters
         ----------
@@ -1159,7 +1163,7 @@ class Network(Graph):
     # Class attributes and methods
 
     __num_networks = 0
-    __max_id = 0
+    __max_id       = 0
         
     @classmethod
     def num_networks(cls):
@@ -1215,7 +1219,7 @@ class Network(Graph):
         size = len(gids)
         nodes = [i for i in range(size)]
         group = nngt.NeuralGroup(
-            nodes, ntype=1, model=neuron_model, neuron_param=neuron_param)
+            nodes, ntype=1, neuron_model=neuron_model, neuron_param=neuron_param)
         pop = nngt.NeuralPop.from_groups([group])
         # create the network
         net = cls(population=pop, **kwargs)
@@ -1228,17 +1232,29 @@ class Network(Graph):
             mat = get_nest_adjacency(converter)
             edges = np.array(mat.nonzero()).T
             w = mat.data
-            net.new_edges(edges, {'weight': w})
+            net.new_edges(edges, {'weight': w}, check_edges=False)
         if get_params:
             raise NotImplementedError('`get_params` not implemented yet.')
         return net
 
     @classmethod
-    def uniform_network(cls, size, neuron_model=default_neuron,
+    @deprecated("1.0", reason="of a redondant name", alternative="uniform")
+    def uniform_network(cls, *args, **kwargs):
+        return cls.uniform(*args, **kwargs)
+
+    @classmethod
+    @deprecated("1.0", reason="redondant name", alternative="exc_and_inhib")
+    def ei_network(cls, *args, **kwargs):
+        return cls.exc_and_inhib(*args, **kwargs)
+
+    @classmethod
+    def uniform(cls, size, neuron_model=default_neuron,
                         neuron_param=None, syn_model=default_synapse,
                         syn_param=None, **kwargs):
         '''
         Generate a network containing only one type of neurons.
+
+        .. versionadded:: 1.0
         
         Parameters
         ----------
@@ -1265,17 +1281,20 @@ class Network(Graph):
         if syn_param is None:
             syn_param = {}
         pop = nngt.NeuralPop.uniform(
-            size, None, neuron_model, neuron_param, syn_model, syn_param)
+            size, neuron_model=neuron_model, neuron_param=neuron_param,
+            syn_model=syn_model, syn_param=syn_param, parent=None)
         net = cls(population=pop, **kwargs)
         return net
 
     @classmethod
-    def ei_network(cls, size, iratio=0.2, en_model=default_neuron,
+    def exc_and_inhib(cls, size, iratio=0.2, en_model=default_neuron,
             en_param=None, in_model=default_neuron, in_param=None,
             syn_spec=None, **kwargs):
         '''
         Generate a network containing a population of two neural groups:
         inhibitory and excitatory neurons.
+
+        .. versionadded:: 1.0
 
         .. versionchanged:: 0.8
             Removed `es_{model, param}` and `is_{model, param}` in favour of

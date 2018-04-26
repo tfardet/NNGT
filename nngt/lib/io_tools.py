@@ -23,6 +23,7 @@
 import codecs
 import logging
 import pickle
+import weakref
 
 import numpy as np
 import scipy.sparse as ssp
@@ -41,15 +42,62 @@ logger = logging.getLogger(__name__)
 # IO #
 # -- #
 
-@graph_tool_check('2.22')
 def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                    attributes=None, notifier="@", ignore="#"):
     '''
-    Load the main properties (edges, attributes...) from a file.
+    Load a Graph from a file.
 
-    .. warning::
-        To import a graph directly from a file, use the
-        :func:`~nngt.Graph.from_file` classmethod.
+    Parameters
+    ----------
+    filename: str
+        The path to the file.
+    fmt : str, optional (default: "neighbour")
+        The format used to save the graph. Supported formats are: "neighbour"
+        (neighbour list, default if format cannot be deduced automatically),
+        "ssp" (scipy.sparse), "edge_list" (list of all the edges in the graph,
+        one edge per line, represented by a ``source target``-pair), "gml"
+        (gml format, default if `filename` ends with '.gml'), "graphml"
+        (graphml format, default if `filename` ends with '.graphml' or '.xml'),
+        "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
+        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
+        detected if `filename` ends with '.gt').
+    separator : str, optional (default " ")
+        separator used to separate inputs in the case of custom formats (namely
+        "neighbour" and "edge_list")
+    secondary : str, optional (default: ";")
+        Secondary separator used to separate attributes in the case of custom
+        formats.
+    attributes : list, optional (default: [])
+        List of names for the attributes present in the file. If a `notifier`
+        is present in the file, names will be deduced from it; otherwise the
+        attributes will be numbered.
+    notifier : str, optional (default: "@")
+        Symbol specifying the following as meaningfull information. Relevant
+        information are formatted ``@info_name=info_value``, where
+        ``info_name`` is in ("attributes", "directed", "name", "size") and
+        associated ``info_value``s are of type (``list``, ``bool``, ``str``,
+        ``int``).
+        Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
+        which must be followed by the relevant notifiers among ``@shape``,
+        ``@population``, and ``@graph``.
+    ignore : str, optional (default: "#")
+        Ignore lines starting with the `ignore` string.
+
+    Returns
+    -------
+    graph : :class:`~nngt.Graph` or subclass
+        Loaded graph.
+    '''
+    return nngt.Graph.from_file(
+        filename, fmt=fmt, separator=separator, secondary=secondary,
+        attributes=attributes, notifier=notifier, ignore=ignore)
+
+
+@graph_tool_check('2.22')
+def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
+                   attributes=None, notifier="@", ignore="#"):
+    '''
+    Load the main properties (edges, attributes...) from a file.
 
     Parameters
     ----------
@@ -147,9 +195,12 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                          'not be loaded because Shapely is not installed.')
     # check whether a population is present
     if 'population' in di_notif:
-        pop = pickle.loads(
-            codecs.decode(di_notif['population'].replace('~', '\n').encode(),
-            "base64"))
+        str_enc = di_notif['population'].replace('~', '\n').encode()
+        str_dec = codecs.decode(str_enc, "base64")
+        try:
+            pop = pickle.loads(str_dec)
+        except UnicodeError:
+            pop = pickle.loads(str_dec, encoding="latin1")
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
         y = np.fromstring(di_notif['y'], sep=separator)
@@ -172,7 +223,7 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         Added support to write position and Shape when saving
         :class:`~nngt.SpatialGraph`. Note that saving Shape requires shapely.
 
-    @todo: implement population and shape saving, implement gml, dot, xml, gt
+    @todo: implement gml, dot, xml, gt formats
 
     Parameters
     ----------
@@ -208,19 +259,19 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         which are followed by the relevant notifiers among ``@shape``,
         ``@population``, and ``@graph`` to separate the sections.
 
-    .. warning ::
-        For now, all formats lead to
-        dataloss if your graph is a subclass of :class:`~nngt.SpatialGraph` or
-        :class:`~nngt.Network` (the :class:`~nngt.geometry.Shape` and
-        :class:`~nngt.NeuralPop` attributes will not be saved).
-
-    .. note ::
-        Positions are saved as bytes by :func:`numpy.nparray.tostring`
+    Note
+    ----
+    Positions are saved as bytes by :func:`numpy.nparray.tostring`
     '''
     fmt = _get_format(fmt, filename)
 
     # check for mpi
     if nngt.get_config("mpi"):
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        size = comm.Get_size()
+        rank = comm.Get_rank()
+        # get the 
         str_local, di_notif = _as_string(
             graph, separator=separator, fmt=fmt, secondary=secondary,
             attributes=attributes, notifier=notifier, return_info=True)
@@ -232,12 +283,8 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         # strings need to start with a newline because MPI strips last
         str_local = "\n" + str_local
         # gather all strings sizes
-        from mpi4py import MPI
-        comm = MPI.COMM_WORLD
         sizes = comm.allgather(
             _str_bytes_len(str_local) + _str_bytes_len(str_notif))
-        size = comm.Get_size()
-        rank = comm.Get_rank()
         # get rank-based offset
         offset = [_str_bytes_len(str_notif)]
         offset.extend(np.cumsum(sizes)[:-1])
@@ -342,12 +389,12 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     # add node attributes to the notifications
     for nattr in additional_notif["node_attributes"]:
         key                   = "na_" + nattr
-        # ~ additional_notif[key] = codecs.encode(
-            # ~ graph.get_node_attributes(name=nattr).tobytes(),
-            # ~ "base64").decode().replace('\n', '~')
         additional_notif[key] = np.array2string(
                 graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
                 separator=separator)[1:-1]
+        # ~ additional_notif[key] = codecs.encode(
+            # ~ graph.get_node_attributes(name=nattr).tobytes(),
+            # ~ "base64").decode().replace('\n', '~')
     # save positions for SpatialGraph (and shape if Shapely is available)
     if graph.is_spatial():
         if _shapely_support:
@@ -370,9 +417,26 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
                 pos[:, 2], max_line_width=np.NaN, separator=separator)[1:-1]
 
     if graph.is_network():
-        additional_notif["population"] = codecs.encode(
-            pickle.dumps(graph.population, protocol=2),
-                         "base64").decode().replace('\n', '~')
+        # temporarily remove weakrefs
+        graph.population._parent = None
+        for g in graph.population.values():
+            g._pop = None
+            g._net = None
+        # save as string
+        if nngt.get_config("mpi"):
+            if nngt.get_config("mpi_comm").Get_rank() == 0:
+                additional_notif["population"] = codecs.encode(
+                    pickle.dumps(graph.population, protocol=2),
+                                 "base64").decode().replace('\n', '~')
+        else:
+            additional_notif["population"] = codecs.encode(
+                pickle.dumps(graph.population, protocol=2),
+                             "base64").decode().replace('\n', '~')
+        # restore weakrefs
+        graph.population._parent = weakref.ref(graph)
+        for g in graph.population.values():
+            g._pop = weakref.ref(graph.population)
+            g._net = weakref.ref(graph)
 
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)
@@ -418,16 +482,13 @@ def _neighbour_list(graph, separator, secondary, attributes):
     @todo: speed this up!
     '''
     lst_neighbours = list(graph.adjacency_matrix().tolil().rows)
-    attributes = {
-        k: v for k, v in graph.edges_attributes.items()
-        if k != 'bweight'
-    }
+    attributes = [k for k in graph.edges_attributes if k != 'bweight']
     for v1 in range(graph.node_nb()):
         for i, v2 in enumerate(lst_neighbours[v1]):
             str_edge = str(v2)
+            eattr    = graph.get_edge_attributes((v1, v2))
             for attr in attributes:
-                str_edge += "{}{}".format(secondary,
-                                          attributes[(v1, v2)][attr])
+                str_edge += "{}{}".format(secondary, eattr[attr])
             lst_neighbours[v1][i] = str_edge
         lst_neighbours[v1] = "{}{}{}".format(
             v1, separator, separator.join(lst_neighbours[v1]))

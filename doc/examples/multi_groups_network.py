@@ -27,7 +27,6 @@ import numpy as np
 
 
 num_nodes = 1000
-# np.random.seed(0)
 
 
 '''

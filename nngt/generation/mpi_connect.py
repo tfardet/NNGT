@@ -74,7 +74,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     idx        = 0 if b_out else 1  # differenciate source / target
     variables  = targets_id if b_out else source_ids  # nodes picked randomly
     max_degree = np.inf if multigraph else len(variables)
-    
+
     for i, v in enumerate(target_ids):
         degree_i = lst_deg[i]
         edges_i, ecurrent, variables_i = np.zeros((degree_i, 2)), 0, []

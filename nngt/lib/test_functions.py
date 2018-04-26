@@ -31,11 +31,7 @@ import numpy as np
 
 import nngt
 
-
-def valid_gen_arguments(func):
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
+from .decorator import decorate
 
 
 def deprecated(version, reason=None, alternative=None):
@@ -43,21 +39,21 @@ def deprecated(version, reason=None, alternative=None):
     Decorator to mark deprecated functions.
     '''
     def decorator(func):
-        def wrapper(*args, **kwargs):
+        def wrapper(func, *args, **kwargs):
             # turn off filter temporarily
             warnings.simplefilter('always', DeprecationWarning)
             message = "Function {} is deprecated since version {}"
             message = message.format(func.__name__, version)
             if reason is not None:
-                message += "because " + reason + "."
+                message += " because " + reason + "."
             else:
                 message += "."
             if alternative is not None:
-                message += "Use " + alternative + " instead."
-            warnings.warn(message, category=DeprecationWarning, stacklevel=2)
+                message += " Use " + alternative + " instead."
+            warnings.warn(message, category=DeprecationWarning)
             warnings.simplefilter('default', DeprecationWarning)
             return func(*args, **kwargs)
-        return wrapper
+        return decorate(func, wrapper)
     return decorator
 
 
@@ -93,17 +89,42 @@ def num_mpi_processes():
         return 1
 
 
-def mpi_checker(func):
+def mpi_barrier(func):
+    def wrapper(func, *args, **kwargs):
+        try:
+            from mpi4py import MPI
+            comm = MPI.COMM_WORLD
+            comm.Barrier()
+        except ImportError:
+            pass
+        return func(*args, **kwargs)
+    return decorate(func, wrapper)
+
+
+def mpi_checker(logging=False):
     '''
     Decorator used to check for mpi and make sure only rank zero is used
     to store and generate the graph if the mpi algorithms are activated.
     '''
-    def wrapper(*args, **kwargs):
-        if nngt.get_config("backend") == "nngt" or on_master_process():
-            return func(*args, **kwargs)
-        else:
-            return None
-    return wrapper
+    def decorator(func):
+        def wrapper(func, *args, **kwargs):
+            # when using MPI, make sure everyone waits for the others
+            try:
+                from mpi4py import MPI
+                comm = MPI.COMM_WORLD
+                comm.Barrier()
+            except ImportError:
+                pass
+            # check backend ("nngt" is fully parallel, not the others)
+            backend = False
+            if not logging:
+                backend = nngt.get_config("backend") == "nngt"
+            if backend or on_master_process():
+                return func(*args, **kwargs)
+            else:
+                return None
+        return decorate(func, wrapper)
+    return decorator
 
 
 def mpi_random(func):
@@ -111,7 +132,7 @@ def mpi_random(func):
     Decorator asserting that all processes start with same random seed when
     using mpi.
     '''
-    def wrapper(*args, **kwargs):
+    def wrapper(func, *args, **kwargs):
         try:
             from mpi4py import MPI
             comm = MPI.COMM_WORLD
@@ -125,7 +146,7 @@ def mpi_random(func):
         except ImportError:
             pass
         return func(*args, **kwargs)
-    return wrapper
+    return decorate(func, wrapper)
 
 
 def nonstring_container(obj):
@@ -155,14 +176,14 @@ def graph_tool_check(version_min):
     Raise an error for function not working with old versions of graph-tool.
     '''
     def decorator(func):
-        def wrapper(*args, **kwargs):
+        def wrapper(func, *args, **kwargs):
             old_graph_tool = _old_graph_tool(version_min)
             if old_graph_tool:
                 raise NotImplementedError('This function is not working for '
                                           'graph-tool < ' + version_min + '.')
             else:
                 return func(*args, **kwargs)
-        return wrapper
+        return decorate(func, wrapper)  # to preserve the docstring info
     return decorator
 
 

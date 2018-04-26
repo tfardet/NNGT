@@ -93,14 +93,14 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Width of the edges in percent of canvas length. Available string values
         are "betweenness" and "weight".
     ecolor : str, char, float or array, optional (default: "k")
-        Edge color. If ecolor="group", edges color will depend on the source
+        Edge color. If ecolor="groups", edges color will depend on the source
         and target groups, i.e. only edges from and toward same groups will
         have the same color.
     max_esize : float, optional (default: 5.)
         If a custom property is entered as `esize`, this normalizes the edge
         width between 0. and `max_esize`.
     decimate : int, optional (default: keep all connections)
-        Plot only one connection every `decimate`.
+        Plot only one connection every `decimate`. Use -1 to hide all edges.
     spatial : bool, optional (default: True)
         If True, use the neurons' positions to draw them.
     restrict_sources : str or list, optional (default: all)
@@ -173,6 +173,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         nsize = np.repeat(nsize, n)
     nsize *= 0.01 * size[0]
     if isinstance(esize, str) and e:
+        if isinstance(ecolor, str):
+            raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
+                               "and ecolor='{}'.".format(ecolor))
         esize = _edge_size(network, esize)
         esize *= max_esize
         esize[esize < threshold] = 0.
@@ -189,7 +192,6 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         ecolor = np.repeat(ecolor, e)
     elif ecolor == "groups" and network.is_network():
         group_based = True
-        c           = np.linspace(0, 1, len(network.population))
         ecolor      = {}
         for i, src in enumerate(network.population):
             idx1 = network.population[src].ids[0]
@@ -200,6 +202,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 else:
                     ecolor[(src, tgt)] = \
                         np.abs(0.8*ncolor[idx1] - 0.2*ncolor[idx2])
+    elif isinstance(ecolor, str):
+        raise TypeError("Only 'groups' is allowed for string type `ecolor`, "
+                        "not " + ecolor + ".")
     # draw
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():
@@ -222,15 +227,18 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     else:
         if not isinstance(c, str):
             c = palette(ncolor)
-        for i in range(n):
+
+        c = c if nonstring_container(c) else (c for _ in range(n))
+        for i, ci in enumerate(c):
             nodes.append(
-                Circle(pos[i], 0.5*nsize[i], fc=c, ec=nborder_color[i]))
+                Circle(pos[i], 0.5*nsize[i], fc=ci, ec=nborder_color[i]))
     nodes = PatchCollection(nodes, match_original=True)
     nodes.set_zorder(2)
     axis.add_collection(nodes)
-    _set_ax_lim(axis, pos[:,0], pos[:,1], xlims, ylims)
+    if not show_environment or not spatial:
+        _set_ax_lim(axis, pos[:, 0], pos[:, 1], xlims, ylims)
     # use quiver to draw the edges
-    if e:
+    if e and decimate != -1:
         adj_mat = network.adjacency_matrix(weights=None)
         avg_size = np.average(nsize)
         arr_style = ArrowStyle.Simple(head_length=0.15*avg_size,

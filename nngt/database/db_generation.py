@@ -6,12 +6,11 @@
 from collections import namedtuple
 
 from peewee import *
-from playhouse.csv_loader import load_csv, dump_csv
-from playhouse.fields import PickledField, CompressedField
+from playhouse.fields import CompressedField
 from playhouse.migrate import *
-from playhouse.db_url import connect
 
-from nngt import config
+import nngt
+from .pickle_field import PickledField
 
 
 __all__ = [
@@ -20,7 +19,6 @@ __all__ = [
     'Connection',
     'db_migrator',
     'ignore',
-    'main_db',
     'migrate',
     'NeuralNetwork',
     'Neuron',
@@ -30,19 +28,9 @@ __all__ = [
 ]
 
 
-
-#-----------------------------------------------------------------------------#
-# Parse config file and generate database
-#------------------------
-#
-
-main_db = connect(config['db_url'], fields={'longblob': 'longblob'}) #: Object refering to the database
-
-
-#-----------------------------------------------------------------------------#
-# Database classes
-#------------------------
-#
+# ---------------- #
+# Database classes #
+# ---------------- #
 
 class LongCompressedField(CompressedField):
     db_field = 'longblob'
@@ -50,7 +38,7 @@ class LongCompressedField(CompressedField):
     
 class BaseModel(Model):
     class Meta:
-        database = main_db
+        database = nngt._main_db
 
 
 class Computer(BaseModel):
@@ -125,7 +113,9 @@ class Activity(BaseModel):
     '''
     Class detailing the network's simulated activity.
     '''
-    pass
+
+    raster = PickledField(null=True)
+    ''' Raster of the simulated activity. '''
 
 
 class Simulation(BaseModel):
@@ -147,12 +137,14 @@ class Simulation(BaseModel):
     ''' Master seed of the simulation. '''
     local_seeds = PickledField(null=True)
     ''' List of the local threads seeds. '''
-    computer = ForeignKeyField(Computer, related_name='simulations')
+    computer = ForeignKeyField(Computer, related_name='simulations', null=True)
     ''' Computer table entry where the computer used is defined. '''
-    network = ForeignKeyField(NeuralNetwork, related_name='simulations')
+    network = ForeignKeyField(NeuralNetwork, related_name='simulations', null=True)
     ''' Network table entry where the simulated network is described. '''
-    activity = ForeignKeyField(Activity, related_name='simulations')
+    activity = ForeignKeyField(Activity, related_name='simulations', null=True)
     ''' Activity table entry where the simulated activity is described. '''
+    connections = ForeignKeyField(Connection, related_name='simulations', null=True)
+    ''' Connection table entry where the connections are described. '''
     population = PickledField()
     ''' Pickled list containing the neural group names. '''
     pop_sizes = PickledField()
@@ -180,15 +172,20 @@ ignore = {
 
 val_to_field = {
     'int': IntegerField,
+    'INTEGER': IntegerField,
     'bigint': IntegerField,
     'tinyint': IntegerField,
     'long': PickledField,
     'blob': PickledField,
+    'BLOB': PickledField,
     'datetime': DateTimeField,
+    'DATETIME': DateTimeField,
     'str': TextField,
+    'TEXT': TextField,
     'longtext': TextField,
     'SLILiteral': TextField,
     'float': FloatField,
+    'REAL': FloatField,
     'float64': FloatField,
     'float32': FloatField,
     'bool': BooleanField,

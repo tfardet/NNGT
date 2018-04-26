@@ -73,31 +73,44 @@ class TestAttributes(TestBasis):
         graph.set_name(graph_name)
         return graph, di_instructions
 
-    @foreach_graph
-    def test_user_defined(self, graph, instructions, **kwargs):
+    def test_node_attr(self):
         '''
         When generating graphs with weights, check that the expected properties
         are indeed obtained.
         '''
-        ref_result = np.random.uniform(0, 5, graph.edge_nb())
-        graph.set_edge_attribute("ud", values=ref_result, value_type="double")
-        computed_result = graph.get_edge_attributes(name="ud")
+        g = nngt.Graph(100)
+        ref_result = np.random.uniform(-1, 4, g.node_nb())
+        g.set_node_attribute("nud", values=ref_result, value_type="double")
+        computed_result = g.get_node_attributes(name="nud")
+        self.assertTrue(np.allclose(ref_result, computed_result),
+            '''Error on graph {}: unequal 'nud' attribute for tolerance {}.
+            '''.format(g.name, self.tolerance))
+
+    def test_user_defined(self):
+        '''
+        When generating graphs with weights, check that the expected properties
+        are indeed obtained.
+        '''
+        g = nngt.generation.erdos_renyi(avg_deg=50, nodes=200)
+        ref_result = np.random.uniform(0, 5, g.edge_nb())
+        g.set_edge_attribute("ud", values=ref_result, value_type="double")
+        computed_result = g.get_edge_attributes(name="ud")
         self.assertTrue(np.allclose(ref_result, computed_result),
             '''Error on graph {}: unequal 'ud' attribute for tolerance {}.
-            '''.format(graph.name, self.tolerance))
+            '''.format(g.name, self.tolerance))
 
-    @foreach_graph
-    def test_user_defined2(self, graph, instructions, **kwargs):
+    def test_user_defined2(self):
         '''
         When generating graphs with weights, check that the expected properties
         are indeed obtained.
         '''
-        ref_result = np.full(graph.edge_nb(), 4.)
-        graph.set_edge_attribute("ud2", val=4., value_type="double")
-        computed_result = graph.get_edge_attributes(name="ud2")
+        g = nngt.generation.erdos_renyi(avg_deg=50, nodes=200)
+        ref_result = np.full(g.edge_nb(), 4.)
+        g.set_edge_attribute("ud2", val=4., value_type="double")
+        computed_result = g.get_edge_attributes(name="ud2")
         self.assertTrue(np.allclose(ref_result, computed_result),
             '''Error on graph {}: unequal 'ud2' attribute for tolerance {}.
-            '''.format(graph.name, self.tolerance))
+            '''.format(g.name, self.tolerance))
 
     @foreach_graph
     def test_weights(self, graph, instructions, **kwargs):

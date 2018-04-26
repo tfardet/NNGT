@@ -21,6 +21,7 @@
 """ iGraph subclassing """
 
 from collections import OrderedDict
+import logging
 
 import numpy as np
 import scipy.sparse as ssp
@@ -28,8 +29,11 @@ import scipy.sparse as ssp
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT, is_integer
 from nngt.lib.io_tools import _np_dtype
+from nngt.lib.logger import _log_message
 from .base_graph import GraphInterface, BaseProperty
 
+
+logger = logging.getLogger(__name__)
 
 
 # ---------- #
@@ -238,7 +242,8 @@ class _IGraph(GraphInterface):
                 di_edge_attr[attr] = np.array(g.es[:][attr])
                 self._eattr.new_attribute(attr, value_type="double")
             lst_edges = nngt.analyze_graph["get_edges"](g)
-            self.new_edges(lst_edges, attributes=di_edge_attr)
+            self.new_edges(lst_edges, attributes=di_edge_attr,
+                           check_edges=False)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -353,23 +358,31 @@ an array of 2-tuples of ints.")
             attributes = {k: [v] for k, v in attributes.items()}
         self.new_edges(((source, target),), attributes)
 
-    def new_edges(self, edge_list, attributes=None):
+    def new_edges(self, edge_list, attributes=None, check_edges=True):
         '''
         Add a list of edges to the graph.
-        
+
+        .. versionchanged:: 1.0
+            new_edges checks for duplicate edges and self-loops
+
         .. warning ::
-            This function currently does not check for duplicate edges!
+            This function currently does not check for duplicate edges between
+            the existing edges and the added ones, but only inside `edge_list`!
         
         Parameters
         ----------
         edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
             List of the edges that should be added as tuples (source, target)
-        attributes : dict, optional (default: ``None``)
-            Dictionary of the form ``{"name": [], "values": [],
-            "type": []}``, containing the attributes of the new edges.
+        attributes : :class:`dict`, optional (default: ``{}``)
+            Dictionary containing optional edge properties. If the graph is
+            weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
+            array the same length as the `edge_list` containing a unit weight
+            for each connection (synaptic strength in NEST).
+        check_edges : bool, optional (default: True)
+            Check for duplicate edges and self-loops.
             
-        @todo: add example, check the edges for self-loops and multiple edges
-        
+        @todo: add example
+
         Returns
         -------
         Returns new edges only.
@@ -377,19 +390,37 @@ an array of 2-tuples of ints.")
         if attributes is None:
             attributes = {}
         initial_ecount = self.ecount()
-        edge_list = np.array(edge_list)
+        new_attr = None
+        if check_edges:
+            new_attr = {key: [] for key in attributes}
+            eweight_list = OrderedDict()
+            for i, e in enumerate(edge_list):
+                tpl_e = tuple(e)
+                if tpl_e in eweight_list:
+                    eweight_list[tpl_e] += 1
+                elif e[0] == e[1]:
+                    _log_message(logger, "WARNING",
+                    "Self-loop on {} ignored.".format(e[0]))
+                else:
+                    eweight_list[tpl_e] = 1
+                    for k, vv in attributes.items():
+                        new_attr[k].append(vv[i])
+            edge_list = np.array(list(eweight_list.keys()))
+        else:
+            edge_list = np.array(edge_list)
+            new_attr = attributes
         if not self._directed:
             recip_edges = edge_list[:,::-1]
             # slow but works
             unique = ~(recip_edges[..., np.newaxis]
                       == edge_list[..., np.newaxis].T).all(1).any(1)
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
-            for key, val in attributes.items():
-                attributes[key] = np.concatenate((val, val[unique]))
+            for key, val in new_attr.items():
+                new_attr[key] = np.concatenate((val, val[unique]))
         first_eid = self.ecount()
         super(_IGraph, self).add_edges(edge_list)
         # call parent function to set the attributes
-        self.attr_new_edges(edge_list, attributes=attributes)
+        self.attr_new_edges(edge_list, attributes=new_attr)
         return edge_list
 
     def remove_edge(self, edge):

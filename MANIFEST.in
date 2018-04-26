@@ -11,3 +11,7 @@ recursive-include . *.pyxbld
 # Include the doc files
 recursive-include doc *
 prune doc/.build
+
+# include setup.py (this makes no sense to me)
+# but without it, sdist does not include it...
+include setup.py

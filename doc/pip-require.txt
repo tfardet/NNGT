@@ -1,8 +1,15 @@
 ## bootstrap theming ##
 sphinx_bootstrap_theme
 
-## Plot module ##
+##    Plot module    ##
 matplotlib
 
-## Database tools ##
+##   Database tools  ##
 peewee
+
+##    Numpy/Scipy    ##
+numpy
+scipy
+
+##     Networkx      ##
+networkx

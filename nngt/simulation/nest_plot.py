@@ -28,7 +28,6 @@
 
 import logging
 
-import matplotlib.pyplot as plt
 from matplotlib.colors import ColorConverter
 import numpy as np
 import nest
@@ -107,6 +106,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     lines : list of lists of :class:`matplotlib.lines.Line2D`
         Lines containing the data that was plotted, grouped by figure.
     '''
+    import matplotlib.pyplot as plt
     lst_rec, lst_labels, lines, labels = [], [], {}, {}
     num_fig = np.max(plt.get_fignums()) if plt.get_fignums() else 0
     # normalize recorders and recordables
@@ -308,6 +308,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
     lines : list of :class:`matplotlib.lines.Line2D`
         Lines containing the data that was plotted.
     """
+    import matplotlib.pyplot as plt
     num_neurons = len(np.unique(senders))
     lines = []
     kwargs = {} if label is None else {'label': label}
@@ -484,6 +485,7 @@ def _moving_average (values, window):
 
 
 def _second_axis(sort, sort_attribute, ax):
+    import matplotlib.pyplot as plt
     if sort is not None:
         asort = np.argsort(sort_attribute)
         ax3 = ax.twinx()

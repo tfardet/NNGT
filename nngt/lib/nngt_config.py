@@ -20,6 +20,7 @@
 
 """ Configuration tools for NNGT """
 
+import os
 import sys
 import logging
 
@@ -30,7 +31,7 @@ from .errors import InvalidArgument
 from .logger import _configure_logger, _init_logger, _log_message
 from .reloading import reload_module
 from .rng_tools import seed as nngt_seed
-from .test_functions import mpi_checker, num_mpi_processes
+from .test_functions import mpi_checker, num_mpi_processes, mpi_barrier
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,13 @@ logger = logging.getLogger(__name__)
 # ----------------- #
 
 def get_config(key=None, detailed=False):
-    ''' Get the NNGT configuration as a dictionary. '''
+    '''
+    Get the NNGT configuration as a dictionary.
+
+    Note
+    ----
+    This function has no MPI barrier on it.
+    '''
     if key is None:
         cfg = {key: val for key, val in nngt._config.items()}
         if detailed:
@@ -76,6 +83,7 @@ def get_config(key=None, detailed=False):
         return res
 
 
+@mpi_barrier
 def set_config(config, value=None, silent=False):
     '''
     Set NNGT's configuration.
@@ -94,10 +102,13 @@ def set_config(config, value=None, silent=False):
     >>> nngt.set_config({'multithreading': True, 'omp': 4})
     >>> nngt.set_config('multithreading', False)
 
-    Note
-    ----
+    Notes
+    -----
     See the config file `nngt/nngt.conf.default` or `~/.nngt/nngt.conf` for
     details about your configuration.
+
+    This function has an MPI barrier on it, so it must always be called on all
+    processes.
 
     See also
     --------
@@ -120,6 +131,12 @@ def set_config(config, value=None, silent=False):
             new_config[key] = _convert(new_config[key])
         if key == "backend" and new_config[key] != old_gl:
             nngt.use_backend(new_config[key])
+        if key == "log_folder":
+            new_config["log_folder"] = os.path.abspath(
+                os.path.expanduser(new_config["log_folder"]))
+        if key == "db_folder":
+            new_config["db_folder"] = os.path.abspath(
+                os.path.expanduser(new_config["db_folder"]))
     # check multithreading status and number of threads
     _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi)
     # update
@@ -130,6 +147,13 @@ def set_config(config, value=None, silent=False):
     if nngt._config['use_tex']:
         import matplotlib
         matplotlib.rc('text', usetex=True)
+    # update database
+    if nngt._config["use_database"] and not hasattr(nngt, "db"):
+        from .. import database
+        sys.modules["nngt.database"] = database
+        if nngt._config["db_to_file"]:
+            _log_message(logger, "WARNING",
+                        "This functionality is not available")
     # log changes
     _configure_logger(nngt._logger)
     glib = (nngt._config["library"] if nngt._config["library"] is not None
@@ -137,15 +161,33 @@ def set_config(config, value=None, silent=False):
     num_mpi = num_mpi_processes()
     s_mpi = False if not nngt._config["mpi"] else "True ({} process{})".format(
                 num_mpi, "es" if num_mpi > 1 else "")
+    try:
+        import svg.path
+        has_svg = True
+    except:
+        has_svg = False
+    try:
+        import dxfgrabber
+        has_dxf = True
+    except:
+        has_dxf = False
+    try:
+        import shapely
+        has_shapely = shapely.__version__
+    except:
+        has_shapely = False
     conf_info = config_info.format(
-        gl     = nngt._config["backend"] + " " + glib.__version__[:5],
-        thread = nngt._config["multithreading"],
-        plot   = nngt._config["with_plot"],
-        nest   = nngt._config["with_nest"],
-        db     = nngt._config["use_database"],
-        omp    = nngt._config["omp"],
-        s      = "s" if nngt._config["omp"] > 1 else "",
-        mpi    = s_mpi
+        gl      = nngt._config["backend"] + " " + glib.__version__[:5],
+        thread  = nngt._config["multithreading"],
+        plot    = nngt._config["with_plot"],
+        nest    = nngt._config["with_nest"],
+        db      = nngt._config["use_database"],
+        omp     = nngt._config["omp"],
+        s       = "s" if nngt._config["omp"] > 1 else "",
+        mpi     = s_mpi,
+        shapely = has_shapely,
+        svg     = has_svg,
+        dxf     = has_dxf,
     )
     if not silent:
         _log_conf_changed(conf_info)
@@ -188,7 +230,7 @@ def _load_config(path_config):
     _init_logger(nngt._logger)
 
 
-@mpi_checker
+@mpi_checker(logging=True)
 def _log_conf_changed(conf_info):
     logger.info(conf_info)
 
@@ -316,8 +358,11 @@ config_info = '''
 # -------------- #
 Graph library:  {gl}
 Multithreading: {thread} ({omp} thread{s})
+MPI:            {mpi}
 Plotting:       {plot}
 NEST support:   {nest}
+Shapely:        {shapely}
+SVG support:    {svg}
+DXF support:    {dxf}
 Database:       {db}
-MPI:            {mpi}
 '''

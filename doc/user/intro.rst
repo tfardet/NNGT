@@ -1,6 +1,6 @@
-============
-Introduction
-============
+===================
+Intro & user manual
+===================
 
 Yet another graph library?
 ==========================
@@ -15,8 +15,12 @@ build various networks from efficient and verified algorithms.
 Moreover, it also acts as an interface between those graph libraries and the
 `NEST simulator`_.
 
+Documentation structure
+-----------------------
+
 For users that are in a hurry, you can go directly to the Tutorial_ section.
-Specific examples are also detailed in the following sections:
+For more specific and detailed examples, several topics are then detailed
+separately in the following pages:
 
 .. toctree::
    :maxdepth: 1
@@ -25,6 +29,7 @@ Specific examples are also detailed in the following sections:
    component-properties
    activity-analysis
    multithreading
+   nest-interaction
 
 .. note ::
   This library provides many tools which will (or not) be loaded on startup

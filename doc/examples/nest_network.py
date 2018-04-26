@@ -26,9 +26,6 @@ import nngt
 import nngt.generation as ng
 
 
-# nngt.seed(0)
-
-
 ''' Create groups with different parameters '''
 # adaptive spiking neurons
 base_params = {
@@ -42,11 +39,11 @@ params1.update({'E_L': -65., 'b': 40., 'I_e': 200., 'tau_w': 400.})
 params2.update({'b': 30., 'V_reset': -50., 'tau_w': 500.})
 
 oscill = nngt.NeuralGroup(
-    nodes=400, model='aeif_psc_alpha', neuron_param=params1)
+    nodes=400, neuron_model='aeif_psc_alpha', neuron_param=params1)
 burst = nngt.NeuralGroup(
-    nodes=200, model='aeif_psc_alpha', neuron_param=params2)
+    nodes=200, neuron_model='aeif_psc_alpha', neuron_param=params2)
 adapt = nngt.NeuralGroup(
-    nodes=200, model='aeif_psc_alpha', neuron_param=base_params)
+    nodes=200, neuron_model='aeif_psc_alpha', neuron_param=base_params)
 
 synapses = {
     'default': {'model': 'tsodyks2_synapse'},

@@ -74,8 +74,9 @@ def set_noise(gids, mean, std):
     noise : tuple
         The NEST gid of the noise_generator.
     '''
-    noise = nest.Create("noise_generator", params={"mean": mean, "std": std })
-    nest.Connect(noise, gids)
+    noise = nest.Create("noise_generator", params={"mean": mean, "std": std },
+                        _warn=False)
+    nest.Connect(noise, gids, _warn=False)
     return noise
 
 
@@ -92,30 +93,36 @@ def set_poisson_input(gids, rate, syn_spec=None):
         NEST gids of the target neurons.
     rate : float
         Rate of the spike train.
-    weight : float, optional (default: 1.)
-        Strength of the arriving spikes.
+    syn_spec : dict, optional (default: static synapse with weight 1)
+        Properties of the connection between the ``poisson_generator`` object
+        and the target neurons.
     
     Returns
     -------
     poisson_input : tuple
-        The NEST gid of the poisson_generator.
+        The NEST gid of the ``poisson_generator``.
     '''
-    poisson_input = nest.Create("poisson_generator")
-    nest.SetStatus(poisson_input, {"rate": rate})
-    nest.Connect(poisson_input, gids, syn_spec=syn_spec)
+    poisson_input = nest.Create("poisson_generator", _warn=False)
+    nest.SetStatus(poisson_input, {"rate": rate}, _warn=False)
+    nest.Connect(poisson_input, gids, syn_spec=syn_spec, _warn=False)
     return poisson_input
 
 
-def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
-              weight_normalization=1.):
+def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
+              gids=None, weight_normalization=1.):
     '''
-    Mimick spontaneous release of neurotransmitters, called spontaneous PSCs or
-    "minis".
+    Mimick spontaneous release of neurotransmitters, called miniature PSCs or
+    "minis" that can occur at excitatory (mEPSCs) or inhibitory (mIPSCs)
+    synapses.
     These minis consists in only a fraction of the usual strength of a spike-
     triggered PSC and can be modeled by a Poisson process.
     This Poisson process occurs independently at every synapse of a neuron, so
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
+
+    .. versionchanged:: 1.0
+        Added `syn_type`, separating the excitatory and inhibitory degrees
+        and weights.
 
     .. versionchanged:: 0.8
         Added `nodes`, removed `syn_model` and `syn_params`.
@@ -127,6 +134,10 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
         Network on which the minis should be simulated.
     base_rate : float
         Rate for the Poisson process on one synapse (:math:`\\lambda`).
+    syn_type : int, optional (default: 1)
+        Synaptic type of the noisy connections. By default, mEPSCs are
+        generated, by taking into account only the excitatory degrees and
+        synaptic weights. To setup mIPSCs, used `syn_type=-1`.
     weight_fraction : float, optional (default: 0.4)
         Fraction of a spike-triggered PSC that will be released by a mini.
     nodes : array-like, optional (default: all nodes)
@@ -138,7 +149,7 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
 
     Note
     ----
-    `nodes` and `gids` are uncompatible, only one one the two arguments can
+    `nodes` and `gids` are not compatible, only one one the two arguments can
     be used in any given call to `set_minis`.
 
     When using this function, you must compensate the weight using
@@ -148,13 +159,20 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
     assert (weight_fraction >= 0. and weight_fraction <= 1.), \
            "`weight_fraction` must be between 0 and 1."
     assert network.nest_gid is not None, "Create the NEST network first."
-    degrees = network.get_degrees("in")
-    weighted_deg = network.get_degrees("in", use_weights=True)
-    deg_set = set(degrees)
+
+    degrees      = network.get_degrees("in", syn_type=syn_type)
+    weighted_deg = network.get_degrees("in", use_weights=True,
+                                       syn_type=syn_type)
+
+    # get the unique degrees and create one poisson_generator per degree
+    deg_set    = set(degrees)
     map_deg_pg = {d: i for i, d in enumerate(deg_set)}
-    pgs = nest.Create("poisson_generator", len(deg_set))
+    pgs        = nest.Create("poisson_generator", len(deg_set), _warn=False)
+
     for d, pg in zip(deg_set, pgs):
-        nest.SetStatus([pg], {"rate": d*base_rate})
+        nest.SetStatus([pg], {"rate": d*base_rate}, _warn=False)
+
+    # find the target nodes' gids
     if gids is not None and nodes is not None:
         raise InvalidArgument('Only one of `nodes` and `gids` can be set.')
     elif nodes is None and gids is None:
@@ -164,11 +182,15 @@ def set_minis(network, base_rate, weight_fraction=0.4, nodes=None, gids=None,
         nodes = [network.id_from_nest_gid(gid) for gid in gids]
     elif nodes is not None:
         gids = network.nest_gid[nodes]
+
+    # connect
     for i, n in enumerate(nodes):
         gid, d = (gids[i],), degrees[n]
-        w = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
+
+        w  = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
         pg = [pgs[map_deg_pg[d]]]
-        nest.Connect(pg, gid, syn_spec={'weight': w})
+
+        nest.Connect(pg, gid, syn_spec={'weight': w}, _warn=False)
 
 
 def set_step_currents(gids, times, currents):
@@ -195,8 +217,8 @@ def set_step_currents(gids, times, currents):
         raise InvalidArgument('Length of `times` and `currents` must be the '
                               'same')
     params = { "amplitude_times": times, "amplitude_values":currents }
-    scg = nest.Create("step_current_generator", 1, params)
-    nest.Connect(scg, gids)
+    scg = nest.Create("step_current_generator", 1, params, _warn=False)
+    nest.Connect(scg, gids, _warn=False)
     return scg
 
 
@@ -255,7 +277,7 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
     for key, val in instructions.items():
         state = _generate_random(num_neurons, val)
         # set the values in NEST
-        nest.SetStatus(gids, key, state)
+        nest.SetStatus(gids, key, state, _warn=False)
         if nodes is None:
             nodes = network.id_from_nest_gid(gids)
         # store the values in the node attributes
@@ -355,23 +377,23 @@ def _monitor(gids, nest_recorder, params):
             device = None
             di_spec = {"rule": "all_to_all"}
             if not params[i].get("to_accumulator", True):
-                device = nest.Create(rec, len(gids))
+                device = nest.Create(rec, len(gids), _warn=False)
                 di_spec["rule"] = "one_to_one"
             else:
-                device = nest.Create(rec)
+                device = nest.Create(rec, _warn=False)
             recorders.append(device)
             device_params = nest.GetDefaults(rec)
             device_params.update(params[i])
             new_record.append(device_params["record_from"])
-            nest.SetStatus(device, params[i])
-            nest.Connect(device, gids, conn_spec=di_spec)
+            nest.SetStatus(device, params[i], _warn=False)
+            nest.Connect(device, gids, conn_spec=di_spec, _warn=False)
         # event detectors
         elif "detector" in rec:
-            device = nest.Create(rec)
+            device = nest.Create(rec, _warn=False)
             recorders.append(device)
             new_record.append("spikes")
-            nest.SetStatus(device,params[i])
-            nest.Connect(gids, device)
+            nest.SetStatus(device,params[i], _warn=False)
+            nest.Connect(gids, device, _warn=False)
         else:
             raise InvalidArgument('Invalid recorder item in `nest_recorder`: '
                                   '{} is unknown.'.format(nest_recorder))
