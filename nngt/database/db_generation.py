@@ -113,7 +113,9 @@ class Activity(BaseModel):
     '''
     Class detailing the network's simulated activity.
     '''
-    pass
+
+    raster = PickledField(null=True)
+    ''' Raster of the simulated activity. '''
 
 
 class Simulation(BaseModel):

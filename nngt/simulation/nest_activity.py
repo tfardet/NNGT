@@ -299,9 +299,10 @@ def analyze_raster(raster=None, limits=None, network=None,
 
     Parameters
     ----------
-    raster : array-like or str
-        Either an array containing the ids of the spiking neurons and the
-        corresponding time, or the path to a NEST .gdf recording.
+    raster : array-like (N, 2) or str
+        Either an array containing the ids of the spiking neurons on the first
+        column, then the corresponding times on the second column, or the path
+        to a NEST .gdf recording.
     limits : tuple of floats
         Time limits of the simulation regrion which should be studied (in ms).
     network : :class:`~nngt.Network`, optional (default: None)
@@ -596,10 +597,12 @@ def _compute_properties(data, phases, fr, skip_bursts):
             idxs = np.where((times >= burst[0])*(times <= burst[1]))[0]
             num_spikes = len(times[idxs])
             num_neurons = len(set(data[0, :][idxs]))
-            prop["SpB"] += num_spikes / float(num_neurons)
+            if num_neurons:
+                prop["SpB"] += num_spikes / float(num_neurons)
             # ISI
-            prop["ISI"] += num_neurons * (burst[1] - burst[0])\
-                           / float(num_spikes)
+            if num_spikes:
+                prop["ISI"] += num_neurons * (burst[1] - burst[0])\
+                               / float(num_spikes)
     for key in iter(prop.keys()):
         if key not in ("bursting", "firing_rate") and num_bursts > skip_bursts:
             prop[key] /= float(num_bursts - skip_bursts)

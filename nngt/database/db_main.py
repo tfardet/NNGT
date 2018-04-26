@@ -43,6 +43,7 @@ class NNGTdb:
         self.db.connect()
         self.db.create_tables(self.tables.values(), safe=True)
         self._update_models()
+        self.activity = None
         self.current_simulation = None
         self.simulator_lib = None
         self.computer = None
@@ -261,22 +262,25 @@ class NNGTdb:
             'pop_sizes': size
         }
 
-    def _make_activity_entry(self, activity):
+    def _make_activity_entry(self, network=None):
         '''
         Create an activity entry from an
         :class:`~nngt.simulation.ActivityRecord` object.
         '''
-        di_activity = activity.properties._asdict()
+        raster      = nngt.analysis.get_spikes(astype="np")
+        activity    = nngt.simulation.analyze_raster(raster, network=network)
+        di_activity = activity.properties
+        di_activity["raster"] = raster
         act_attr = { k: v.__class__.__name__ for k, v in  di_activity.items() }
         if "spike_files" in act_attr:
-            act_attr["spike_files"] = "compressed" 
+            act_attr["spike_files"] = "compressed"
         act_attr["dtypes"] = True
         ''' ..todo ::
             compress the spike files '''
         Activity = self._update_class("activity", **act_attr)
-        activity_entry = Activity(di_activity)
-        self.nodes['activity_prop'] = activity_entry
+        activity_entry = Activity(**di_activity)
         self.current_simulation['activity'] = activity_entry
+        return activity_entry
         
     def log_simulation_start(self, network, simulator):
         '''
@@ -320,7 +324,7 @@ class NNGTdb:
             self.connections["{}->{}".format(name_pre, name_post)] = conn
         
 
-    def log_simulation_end(self, activity=None):
+    def log_simulation_end(self, network=None, log_activity=True):
         '''
         Record the simulation completion and simulated times, save the data,
         then reset.
@@ -333,13 +337,13 @@ class NNGTdb:
         new_time   = nest.GetKernelStatus('time')
         self.current_simulation['simulated_time'] = new_time - start_time
         # save activity if provided
-        if activity is not None:
-            self._make_activity_entry(activity)
+        if log_activity:
+            self.activity = self._make_activity_entry(network)
         else:
-            empty_act = Activity()
-            self.current_simulation['activity'] = empty_act
-            self.nodes['activity_prop'] = empty_act
+            self.activity = Activity()
+            self.current_simulation['activity'] = self.activity
         # save data and reset
+        self.activity.save()
         self.computer.save()
         self.neuralnet.save()
         for entry in iter(self.nodes.values()):

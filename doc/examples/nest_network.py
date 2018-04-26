@@ -88,7 +88,7 @@ if nngt.get_config('with_nest'):
     nngt.set_config("use_database", True)
     nngt.database.log_simulation_start(net, "nest")
 
-    nest.Simulate(1.)
+    nest.Simulate(1600.)
 
     nngt.database.log_simulation_end()
 

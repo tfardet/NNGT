@@ -182,7 +182,7 @@ def total_firing_rate(network=None, spike_detector=None, data=None,
     return fr, times
 
 
-def get_spikes(recorder=None, spike_times=None, senders=None):
+def get_spikes(recorder=None, spike_times=None, senders=None, astype="ssp"):
     '''
     Return a 2D sparse matrix, where:
 
@@ -237,19 +237,22 @@ def get_spikes(recorder=None, spike_times=None, senders=None):
         spike_times = data["times"]
         senders = data["senders"]
 
-    if np.any(senders):
-        max_sender = np.max(senders)
-        # create the sparse matrix
-        data = [0 for _ in range(max_sender + 1)]
-        row_idx = []
-        col_idx = []
-        for time, neuron in zip(spike_times, senders):
-            row_idx.append(neuron)
-            col_idx.append(data[neuron])
-            data[neuron] += 1
-        return ssp.csr_matrix((spike_times, (row_idx, col_idx)))
-    else:
-        return ssp.csr_matrix([])
+    if astype == "np":
+        return np.array([senders, spike_times]).T
+    elif astype == "ssp":
+        if np.any(senders):
+            max_sender = np.max(senders)
+            # create the sparse matrix
+            data = [0 for _ in range(max_sender + 1)]
+            row_idx = []
+            col_idx = []
+            for time, neuron in zip(spike_times, senders):
+                row_idx.append(neuron)
+                col_idx.append(data[neuron])
+                data[neuron] += 1
+            return ssp.csr_matrix((spike_times, (row_idx, col_idx)))
+        else:
+            return ssp.csr_matrix([])
 
 
 # ----- #
