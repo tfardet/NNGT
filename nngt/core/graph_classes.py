@@ -609,10 +609,17 @@ class Graph(nngt.core.GraphObject):
         '''
         if isinstance(weight, float):
             size = self.edge_nb() if elist is None else len(elist)
+            self._w = {"distribution": "constant", "value": weight}
             weight = np.repeat(weight, size)
-        elif not hasattr(weight, "__len__") and weight is not None:
-            raise AttributeError('''Invalid `weight` value: must be either
-                                 float, array-like or None.''')
+        elif not nonstring_container(weight) and weight is not None:
+            raise AttributeError("Invalid `weight` value: must be either "
+                                 "float, array-like or None.")
+        elif weight is not None:
+            graph._w = {"distribution": "custom"}
+        elif None not in (distribution, parameters):
+            graph._w = {"distribution": distribution}
+            graph._w.update(parameters)
+
         if distribution is None:
             distribution = self._w["distribution"]
         if parameters is None:
@@ -688,12 +695,20 @@ class Graph(nngt.core.GraphObject):
             Scale of the multiplicative Gaussian noise that should be applied
             on the delays.
         '''
+        # check special cases and set graph._d
         if isinstance(delay, float):
             size = self.edge_nb() if elist is None else len(elist)
+            self._d = {"distribution": "constant", "value": delay}
             delay = np.repeat(delay, size)
         elif not nonstring_container(delay) and delay is not None:
             raise AttributeError("Invalid `delay` value: must be either "
                                  "float, array-like or None")
+        elif delay is not None:
+            graph._d = {"distribution": "custom"}
+        elif None not in (distribution, parameters):
+            graph._d = {"distribution": distribution}
+            graph._d.update(parameters)
+
         if delay is None:
             if distribution is None:
                 if hasattr(self, "_d"):
