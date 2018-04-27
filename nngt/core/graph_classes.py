@@ -615,10 +615,10 @@ class Graph(nngt.core.GraphObject):
             raise AttributeError("Invalid `weight` value: must be either "
                                  "float, array-like or None.")
         elif weight is not None:
-            graph._w = {"distribution": "custom"}
+            self._w = {"distribution": "custom"}
         elif None not in (distribution, parameters):
-            graph._w = {"distribution": distribution}
-            graph._w.update(parameters)
+            self._w = {"distribution": distribution}
+            self._w.update(parameters)
 
         if distribution is None:
             distribution = self._w["distribution"]
@@ -695,7 +695,7 @@ class Graph(nngt.core.GraphObject):
             Scale of the multiplicative Gaussian noise that should be applied
             on the delays.
         '''
-        # check special cases and set graph._d
+        # check special cases and set self._d
         if isinstance(delay, float):
             size = self.edge_nb() if elist is None else len(elist)
             self._d = {"distribution": "constant", "value": delay}
@@ -704,10 +704,10 @@ class Graph(nngt.core.GraphObject):
             raise AttributeError("Invalid `delay` value: must be either "
                                  "float, array-like or None")
         elif delay is not None:
-            graph._d = {"distribution": "custom"}
+            self._d = {"distribution": "custom"}
         elif None not in (distribution, parameters):
-            graph._d = {"distribution": distribution}
-            graph._d.update(parameters)
+            self._d = {"distribution": distribution}
+            self._d.update(parameters)
 
         if delay is None:
             if distribution is None:
