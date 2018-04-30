@@ -305,8 +305,8 @@ class NNGTdb:
         self._get_simulation_prop(network, simulator)
         # computer and network data
         self.computer  = self._make_computer_entry()
-        self.neuralnet = self._make_network_entry(
-            network if save_network else None)
+        self.neuralnet = (self._make_network_entry(network)
+                          if save_network else None)
         self.current_simulation['computer'] = self.computer
         self.current_simulation['network']  = self.neuralnet
         # neurons, synapses and connections
@@ -351,7 +351,8 @@ class NNGTdb:
         # save data and reset
         self.activity.save()
         self.computer.save()
-        self.neuralnet.save()
+        if self.neuralnet is not None:
+            self.neuralnet.save()
         for entry in iter(self.nodes.values()):
             entry.save()
         for entry in iter(self.connections.values()):
