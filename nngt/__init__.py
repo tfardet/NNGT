@@ -117,6 +117,13 @@ _config = {
     'with_plot': False,
 }
 
+# database (predeclare here, can be used in config)
+
+_db      = None
+_main_db = None
+
+# configuration folders and files
+
 _lib_folder = _os.path.expanduser('~') + '/.nngt'
 _new_config = _os.path.expanduser('~') + '/.nngt/nngt.conf'
 _default_config = _os.path.dirname(_os.path.realpath(__file__)) + \
@@ -306,9 +313,6 @@ if _config['load_nest']:
 
 
 # load database module if required
-
-_db      = None
-_main_db = None
 
 if _config["use_database"]:
     try:
