@@ -895,7 +895,7 @@ class NeuralGroup(object):
         dic = {
             "neuron_type": self.neuron_type,
             "neuron_model": self._neuron_model,
-            "neuron_param": deepcopy(self.neuron_param)
+            "neuron_param": deepcopy(self._neuron_param)
         }
         return dic
 
