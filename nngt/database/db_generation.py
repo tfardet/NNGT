@@ -64,15 +64,15 @@ class NeuralNetwork(BaseModel):
     Class containing informations about the neural network.
     '''
 
-    network_type = TextField()
+    network_type = TextField(null=True)
     ''' Type of the network from Graph.type '''
-    directed = BooleanField()
+    directed = BooleanField(null=True)
     ''' Whether the graph is directed or not '''
-    nodes = IntegerField()
+    nodes = IntegerField(null=True)
     ''' Number of nodes. '''
-    edges = IntegerField()
+    edges = IntegerField(null=True)
     ''' Number of edges. '''
-    weighted = BooleanField()
+    weighted = BooleanField(null=True)
     ''' Whether the graph is weighted or not. '''
     weight_distribution = TextField(null=True)
     ''' Name of the weight_distribution used. '''

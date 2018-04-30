@@ -92,7 +92,7 @@ def set_poisson_input(gids, rate, syn_spec=None):
     gids : tuple
         NEST gids of the target neurons.
     rate : float
-        Rate of the spike train.
+        Rate of the spike train (in Hz).
     syn_spec : dict, optional (default: static synapse with weight 1)
         Properties of the connection between the ``poisson_generator`` object
         and the target neurons.
@@ -102,8 +102,8 @@ def set_poisson_input(gids, rate, syn_spec=None):
     poisson_input : tuple
         The NEST gid of the ``poisson_generator``.
     '''
-    poisson_input = nest.Create("poisson_generator", _warn=False)
-    nest.SetStatus(poisson_input, {"rate": rate}, _warn=False)
+    poisson_input = nest.Create(
+        "poisson_generator", params={"rate": rate}, _warn=False)
     nest.Connect(poisson_input, gids, syn_spec=syn_spec, _warn=False)
     return poisson_input
 
@@ -133,7 +133,7 @@ def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
     network : :class:`~nngt.Network` object
         Network on which the minis should be simulated.
     base_rate : float
-        Rate for the Poisson process on one synapse (:math:`\\lambda`).
+        Rate for the Poisson process on one synapse (:math:`\\lambda`), in Hz.
     syn_type : int, optional (default: 1)
         Synaptic type of the noisy connections. By default, mEPSCs are
         generated, by taking into account only the excitatory degrees and
