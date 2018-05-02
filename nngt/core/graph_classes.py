@@ -1006,7 +1006,7 @@ class Graph(nngt.core.GraphObject):
         -------
         the list of weights
         '''
-        if self.weighted():
+        if self.is_weighted():
             if edges is None:
                 return self._eattr["weight"]
             else:
