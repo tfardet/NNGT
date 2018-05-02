@@ -182,15 +182,18 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     #~ elif isinstance(esize, float):
         #~ esize = np.repeat(esize, e)
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
-    ncolor = _node_color(network, ncolor)
-    c = ncolor
+    node_color = _node_color(network, ncolor)
+    c = node_color
     if not nonstring_container(nborder_color):
         nborder_color = np.repeat(nborder_color, n)
     # check edge color
     group_based = False
     if isinstance(ecolor, float):
         ecolor = np.repeat(ecolor, e)
-    elif ecolor == "groups" and network.is_network():
+    elif ecolor == "groups":
+        if not network.is_network():
+            raise TypeError(
+                "The graph must be a Network to use `ecolor='groups'`.")
         group_based = True
         ecolor      = {}
         for i, src in enumerate(network.population):
@@ -198,13 +201,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             for j, tgt in enumerate(network.population):
                 idx2 = network.population[tgt].ids[0]
                 if src == tgt:
-                    ecolor[(src, tgt)] = ncolor[idx1]
+                    ecolor[(src, tgt)] = node_color[idx1]
                 else:
                     ecolor[(src, tgt)] = \
-                        np.abs(0.8*ncolor[idx1] - 0.2*ncolor[idx2])
-    elif isinstance(ecolor, str):
-        raise TypeError("Only 'groups' is allowed for string type `ecolor`, "
-                        "not " + ecolor + ".")
+                        np.abs(0.8*node_color[idx1] - 0.2*node_color[idx2])
     # draw
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():
@@ -212,30 +212,41 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
         pos = network.get_positions()
     else:
-        pos[:,0] = size[0]*(np.random.uniform(size=n)-0.5)
-        pos[:,1] = size[1]*(np.random.uniform(size=n)-0.5)
+        pos[:, 0] = size[0]*(np.random.uniform(size=n)-0.5)
+        pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)
     # make nodes
     nodes = []
     if network.is_network():
         for group in network.population.values():
             idx = group.ids
-            if nonstring_container(ncolor):
-                c = palette(ncolor[idx[0]])
+            if nonstring_container(node_color):
+                c = palette(node_color[idx[0]])
+                # make the colorbar for the nodes
+                sm = plt.cm.ScalarMappable(cmap=my_cmap)
+                sm.set_array(node_color)
+                cb = axis.colorbar(sm, ticks=ncolor_ticks)
+                cb.set_label(ncolor_label)
             for i in idx:
                 nodes.append(
                     Circle(pos[i], 0.5*nsize[i], fc=c, ec=nborder_color[i]))
     else:
         if not isinstance(c, str):
-            c = palette(ncolor)
-
-        c = c if nonstring_container(c) else (c for _ in range(n))
+            c = palette(node_color)
+        if nonstring_container(c):
+            # make the colorbar for the nodes
+            sm = plt.cm.ScalarMappable(cmap=my_cmap)
+            sm.set_array(c)
+            cb = axis.colorbar(sm, ticks=ncolor_ticks)
+            cb.set_label(ncolor_label)
+        else:
+            c = (c for _ in range(n))
         for i, ci in enumerate(c):
             nodes.append(
                 Circle(pos[i], 0.5*nsize[i], fc=ci, ec=nborder_color[i]))
     nodes = PatchCollection(nodes, match_original=True)
     nodes.set_zorder(2)
     axis.add_collection(nodes)
-    if not show_environment or not spatial:
+    if not show_environment or not spatial or not network.is_spatial():
         _set_ax_lim(axis, pos[:, 0], pos[:, 1], xlims, ylims)
     # use quiver to draw the edges
     if e and decimate != -1:
@@ -434,17 +445,48 @@ def _edge_size(network, esize):
 
 
 def _node_color(network, ncolor):
-    color = ncolor
+    '''
+    Return an array of colors, a set of ticks, and a label for the colorbar
+    of the nodes (if necessary).
+    '''
+    color  = ncolor
+    nticks = None
+    nlabel = ""
     if isinstance(ncolor, np.float):
         color = np.repeat(ncolor, network.node_nb())
-    elif ncolor == "group":
-        color = np.zeros(network.node_nb())
-        if hasattr(network, "population"):
-            l = len(network.population)
-            c = np.linspace(0, 1, l)
-            for i, group in enumerate(network.population.values()):
-                color[group.ids] = c[i]
-    return color
+    elif isinstance(ncolor, str):
+        if ncolor == "group":
+            color = np.zeros(network.node_nb())
+            if hasattr(network, "population"):
+                l = len(network.population)
+                c = np.linspace(0, 1, l)
+                for i, group in enumerate(network.population.values()):
+                    color[group.ids] = c[i]
+
+                nlabel = "Neuron groups"
+                nticks = list(network.population.values())
+        else:
+            values = None
+            if "degree" in ncolor:
+                dtype   = ncolor[:ncolor.find("-")]
+                values = network.get_degrees(dtype)
+            elif ncolor == "betweenness":
+                values = network.get_betweenness("node")
+            elif ncolor in network.nodes_attributes:
+                values = network.get_node_attributes(name=ncolor)
+            else:
+                raise RuntimeError("Invalid `ncolor`: {}.".format(ncolor))
+
+            vmin, vmax = np.min(values), np.max(values)
+            color = (values - vmin) / (vmax - vmin)
+
+            nlabel = ncolor # todo
+            nticks = np.linspace(vmin, vmax, 10)
+    else:
+        nlabel = "Custom node colors"
+        nticks = np.linspace(np.min(ncolor), np.max(ncolor), 10)
+
+    return color, nticks, nlabel
 
 
 def _custom_arrows(sources, targets, angle):
