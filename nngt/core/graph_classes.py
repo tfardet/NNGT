@@ -794,6 +794,10 @@ class Graph(nngt.core.GraphObject):
         '''
         Attributes of the graph's edges.
 
+        .. versionchanged:: 1.0.1
+            Corrected default behavior and made it the same as
+            :func:`~nngt.Graph.get_edge_attributes`.
+
         .. versionadded:: 0.9
 
         Parameters
@@ -805,21 +809,23 @@ class Graph(nngt.core.GraphObject):
 
         Returns
         -------
-        List containing the names of all nodes attributes if `nodes` is
-        ``None``, else a ``dict`` containing the attributes of the nodes (or
-        only the value of attribute `name` if it is not ``None``).
+        Dict containing all nodes attributes by default. If `nodes` is
+        specified, returns a ``dict`` containing only the attributes of these
+        nodes. If `name` is specified, returns a list containing the values of
+        the specific attribute for the required nodes (or all nodes if
+        unspecified).
         '''
         if name is not None and nodes is not None:
             if isinstance(nodes, slice):
                 return self._nattr[name][nodes]
             else:
                 return self._nattr[nodes][name]
+        if name is None and nodes is None:
+            return {k: self._nattr[k] for k in self._nattr.keys()}
         elif name is None:
             return self._nattr[nodes]
-        elif nodes is None:
-            return self._nattr[name]
         else:
-            return self._nattr.keys()
+            return self._nattr[name]
 
     def get_attribute_type(self, attribute_name, attribute_class=None):
         '''
@@ -962,24 +968,73 @@ class Graph(nngt.core.GraphObject):
         '''
         return self.betweenness_list(btype=btype, use_weights=use_weights)
 
-    def get_edge_types(self):
+    def get_edge_types(self, edges=None):
+        '''
+        Return the type of all or a subset of the edges.
+
+        .. versionchanged:: 1.0.1
+            Added the possibility to ask for a subset of edges.
+
+        Parameters
+        ----------
+        edges : (E, 2) array, optional (default: all edges)
+            Edges for which the type should be returned.
+
+        Returns
+        -------
+        the list of types (1 for excitatory, -1 for inhibitory)
+        '''
         if TYPE in self.edges_attributes:
-            return self.get_edge_attributes(name=TYPE)
+            return self.get_edge_attributes(name=TYPE, edges=edges)
         else:
-            return np.ones(self.edge_nb())
+            size = self.edge_nb() if edges is None else len(edges)
+            return np.ones(size)
     
-    def get_weights(self):
-        ''' Returns the weighted adjacency matrix as a
-        :class:`scipy.sparse.lil_matrix`.
+    def get_weights(self, edges=None):
         '''
-        return self._eattr["weight"]
+        Returns the weights of all or a subset of the edges.
+
+        .. versionchanged:: 1.0.1
+            Added the possibility to ask for a subset of edges.
+
+        Parameters
+        ----------
+        edges : (E, 2) array, optional (default: all edges)
+            Edges for which the type should be returned.
+
+        Returns
+        -------
+        the list of weights
+        '''
+        if self.weighted():
+            if edges is None:
+                return self._eattr["weight"]
+            else:
+                return self._eattr[edges]["weight"]
+        else:
+            size = self.edge_nb() if edges is None else len(edges)
+            return np.ones(size)
     
-    def get_delays(self):
-        ''' Returns the delay adjacency matrix as a
-        :class:`scipy.sparse.lil_matrix` if delays are present; else raises
-        an error.
+    def get_delays(self, edges=None):
         '''
-        return self._eattr["delay"]
+        Returns the delays of all or a subset of the edges.
+
+        .. versionchanged:: 1.0.1
+            Added the possibility to ask for a subset of edges.
+
+        Parameters
+        ----------
+        edges : (E, 2) array, optional (default: all edges)
+            Edges for which the type should be returned.
+
+        Returns
+        -------
+        the list of delays
+        '''
+        if edges is None:
+            return self._eattr["delay"]
+        else:
+            return self._eattr[edges]["delay"]
 
     def is_spatial(self):
         '''
