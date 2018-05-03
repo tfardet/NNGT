@@ -107,7 +107,7 @@ class _GtNProperty(BaseProperty):
         num_n = len(nodes) if nodes is not None else num_nodes
         if num_n == num_nodes:
             self[name] = values
-            self._num_values_set[name] = num_edges
+            self._num_values_set[name] = num_nodes
         else:
             if num_n != len(values):
                 raise ValueError("`nodes` and `nodes` must have the same "

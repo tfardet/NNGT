@@ -182,7 +182,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     #~ elif isinstance(esize, float):
         #~ esize = np.repeat(esize, e)
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
-    node_color = _node_color(network, ncolor)
+    # node color information
+    node_color, nticks, nlabel = _node_color(network, ncolor)
     c = node_color
     if not nonstring_container(nborder_color):
         nborder_color = np.repeat(nborder_color, n)
@@ -222,10 +223,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             if nonstring_container(node_color):
                 c = palette(node_color[idx[0]])
                 # make the colorbar for the nodes
-                sm = plt.cm.ScalarMappable(cmap=my_cmap)
-                sm.set_array(node_color)
-                cb = axis.colorbar(sm, ticks=ncolor_ticks)
-                cb.set_label(ncolor_label)
+                if nticks is not None:
+                    cmap = palette()
+                    sm = plt.cm.ScalarMappable(cmap=cmap)
+                    sm.set_array(node_color)
+                    cb = plt.colorbar(sm, ticks=nticks)
+                    if nlabel:
+                        cb.set_label(nlabel)
             for i in idx:
                 nodes.append(
                     Circle(pos[i], 0.5*nsize[i], fc=c, ec=nborder_color[i]))
@@ -234,10 +238,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             c = palette(node_color)
         if nonstring_container(c):
             # make the colorbar for the nodes
-            sm = plt.cm.ScalarMappable(cmap=my_cmap)
-            sm.set_array(c)
-            cb = axis.colorbar(sm, ticks=ncolor_ticks)
-            cb.set_label(ncolor_label)
+            if nticks is not None:
+                cmap = palette()
+                sm = plt.cm.ScalarMappable(cmap=cmap)
+                sm.set_array(c)
+                cb = plt.colorbar(sm, ticks=nticks)
+                if nlabel:
+                    cb.set_label(nlabel)
         else:
             c = (c for _ in range(n))
         for i, ci in enumerate(c):
@@ -480,7 +487,7 @@ def _node_color(network, ncolor):
             vmin, vmax = np.min(values), np.max(values)
             color = (values - vmin) / (vmax - vmin)
 
-            nlabel = ncolor # todo
+            nlabel = "Node " + ncolor
             nticks = np.linspace(vmin, vmax, 10)
     else:
         nlabel = "Custom node colors"
