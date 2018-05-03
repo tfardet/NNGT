@@ -22,6 +22,8 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
 from matplotlib.patches import Arc, RegularPolygon
 from matplotlib.collections import PatchCollection
+from matplotlib.colors import ListedColormap, Normalize
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import nngt
 from nngt.lib import POS, nonstring_container
@@ -183,7 +185,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         #~ esize = np.repeat(esize, e)
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
     # node color information
-    node_color, nticks, nlabel = _node_color(network, ncolor)
+    node_color, nticks, ntickslabels, nlabel = _node_color(network, ncolor)
     c = node_color
     if not nonstring_container(nborder_color):
         nborder_color = np.repeat(nborder_color, n)
@@ -224,10 +226,20 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 c = palette(node_color[idx[0]])
                 # make the colorbar for the nodes
                 if nticks is not None:
-                    cmap = palette()
-                    sm = plt.cm.ScalarMappable(cmap=cmap)
-                    sm.set_array(node_color)
-                    cb = plt.colorbar(sm, ticks=nticks)
+                    cmap = _discrete_cmap(len(nticks), palette())
+                    cnorm = None
+                    if isinstance(nticks[0], (int, float, np.integer)):
+                        cnorm = Normalize(nticks[0]-0.5, nticks[-1] + 0.5)
+                    else:
+                        dc = c[1] - c[0]
+                        cnorm = Normalize(c[0]-dc, c[-1] + dc)
+                    sm = plt.cm.ScalarMappable(cmap=cmap, norm=cnorm)
+                    sm.set_array(nticks)
+                    plt.subplots_adjust(right=0.95)
+                    cb = plt.colorbar(sm, ticks=nticks, ax=axis, shrink=0.85)
+                    cb.set_ticklabels(ntickslabels)
+                    if isinstance(nticks[0], (int, float)):
+                        cb.set_clim(nticks[0]-0.5, nticks[-1] - 0.5)
                     if nlabel:
                         cb.set_label(nlabel)
             for i in idx:
@@ -239,10 +251,18 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         if nonstring_container(c):
             # make the colorbar for the nodes
             if nticks is not None:
-                cmap = palette()
-                sm = plt.cm.ScalarMappable(cmap=cmap)
-                sm.set_array(c)
-                cb = plt.colorbar(sm, ticks=nticks)
+                cmap  = _discrete_cmap(len(nticks), palette())
+                cnorm = None
+                if isinstance(nticks[0], (int, float, np.integer)):
+                    cnorm = Normalize(nticks[0]-0.5, nticks[-1] + 0.5)
+                else:
+                    dc = c[1] - c[0]
+                    cnorm = Normalize(c[0]-dc, c[-1] + dc)
+                sm = plt.cm.ScalarMappable(cmap=cmap, norm=cnorm)
+                sm.set_array(nticks)
+                plt.subplots_adjust(right=0.95)
+                cb = plt.colorbar(sm, ticks=nticks, ax=axis, shrink=0.85)
+                cb.set_ticklabels(ntickslabels)
                 if nlabel:
                     cb.set_label(nlabel)
         else:
@@ -456,9 +476,10 @@ def _node_color(network, ncolor):
     Return an array of colors, a set of ticks, and a label for the colorbar
     of the nodes (if necessary).
     '''
-    color  = ncolor
-    nticks = None
-    nlabel = ""
+    color        = ncolor
+    nticks       = None
+    ntickslabels = None
+    nlabel       = ""
     if isinstance(ncolor, np.float):
         color = np.repeat(ncolor, network.node_nb())
     elif isinstance(ncolor, str):
@@ -470,8 +491,9 @@ def _node_color(network, ncolor):
                 for i, group in enumerate(network.population.values()):
                     color[group.ids] = c[i]
 
-                nlabel = "Neuron groups"
-                nticks = list(network.population.values())
+                nlabel       = "Neuron groups"
+                nticks       = list(range(len(network.population)))
+                ntickslabels = list(network.population.values())
         else:
             values = None
             if "degree" in ncolor:
@@ -487,13 +509,46 @@ def _node_color(network, ncolor):
             vmin, vmax = np.min(values), np.max(values)
             color = (values - vmin) / (vmax - vmin)
 
-            nlabel = "Node " + ncolor
-            nticks = np.linspace(vmin, vmax, 10)
+            nlabel = "Node " + ncolor.replace("_", " ")
+            setval = set(values)
+            if len(setval) <= 10:
+                nticks = list(setval)
+                nticks.sort()
+                ntickslabels = nticks
+            else:
+                nticks       = np.linspace(vmin, vmax, 10)
+                ntickslabels = nticks
     else:
-        nlabel = "Custom node colors"
-        nticks = np.linspace(np.min(ncolor), np.max(ncolor), 10)
+        nlabel       = "Custom node colors"
+        nticks       = np.linspace(np.min(ncolor), np.max(ncolor), 10)
+        ntickslabels = nticks
 
-    return color, nticks, nlabel
+    return color, nticks, ntickslabels, nlabel
+
+
+def _discrete_cmap(N, base_cmap=None):
+    '''
+    Create an N-bin discrete colormap from the specified input map
+
+    Parameters
+    ----------
+    N : number of values
+    base_cmap : str, None, or cmap object
+
+    # Modified from Jake VanderPlas
+    # License: BSD-style
+    '''
+    import matplotlib.pyplot as plt
+    # Note that if base_cmap is a string or None, you can simply do
+    #    return plt.cm.get_cmap(base_cmap, N)
+    # The following works for string, None, or a colormap instance:
+    base = plt.cm.get_cmap(base_cmap, N)
+    color_list = base(np.linspace(0, 1, N))
+    cmap_name = base.name + str(N)
+    try:
+        return base.from_list(cmap_name, color_list, N)
+    except:
+        return ListedColormap(color_list, cmap_name, N=N)
 
 
 def _custom_arrows(sources, targets, angle):

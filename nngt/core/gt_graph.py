@@ -108,7 +108,7 @@ class _GtNProperty(BaseProperty):
         if num_n == num_nodes:
             self[name] = values
             self._num_values_set[name] = num_nodes
-        else:
+        elif num_n:
             if num_n != len(values):
                 raise ValueError("`nodes` and `nodes` must have the same "
                                  "size; got respectively " + str(num_n) + \
@@ -120,7 +120,8 @@ class _GtNProperty(BaseProperty):
             else:
                 for n, val in zip(nodes, values):
                     self.parent().vertex_properties[name][n] = val
-        self._num_values_set[name] = num_nodes
+        if num_n:
+            self._num_values_set[name] = num_nodes
 
 
 class _GtEProperty(BaseProperty):
@@ -180,7 +181,7 @@ set_attribute to create it.")
         if num_e == num_edges:
             self[name] = values
             self._num_values_set[name] = num_edges
-        else:
+        elif num_e:
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
