@@ -554,11 +554,11 @@ class _GtGraph(GraphInterface):
         '''
         v = self.vertex(node)
         if mode == "all":
-            return tuple(v.all_neighbours())
+            return (int(n) for n in v.all_neighbours())
         elif mode == "in":
-            return tuple(v.in_neighbours())
+            return (int(n) for n in v.in_neighbours())
         elif mode == "out":
-            return tuple(v.out_neighbours())
+            return (int(n) for n in v.out_neighbours())
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
