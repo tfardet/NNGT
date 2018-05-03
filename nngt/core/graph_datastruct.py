@@ -1107,10 +1107,7 @@ class Connections:
                                                   "Connections.weights"
             num_edges = graph.edge_nb() if elist is None else elist.shape[0]
             if len(wlist) != num_edges:
-                raise InvalidArgument(
-                    '''`wlist` must have one entry per edge. For graph {},
-there are {} edges while {} values where provided'''.format(
-                    graph.name, num_edges, len(wlist)))
+                raise InvalidArgument("`wlist` must have one entry per edge.")
         else:
             wlist = _eprop_distribution(graph, distribution, elist=elist,
                                         **parameters)

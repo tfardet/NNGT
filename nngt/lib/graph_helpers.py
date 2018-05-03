@@ -70,7 +70,7 @@ def _get_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
     # also check delays
     if "delay" == attribute:
         delays = np.ones(len(elist))
-        if graph.is_network() and prop is None:
+        if prop is None and hasattr(graph, "_d"):
             prop = graph._d
         elif prop is not None:
             prop = _edge_prop(prop)

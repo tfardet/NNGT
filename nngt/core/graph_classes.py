@@ -709,21 +709,20 @@ class Graph(nngt.core.GraphObject):
             self._d = {"distribution": distribution}
             self._d.update(parameters)
 
-        if delay is None:
-            if distribution is None:
-                if hasattr(self, "_d"):
-                    distribution = self._d["distribution"]
-                else:
-                    raise AttributeError(
-                        "Invalid `distribution` value: cannot be None if "
-                        "default delays were not set at graph creation.")
-            if parameters is None:
-                if hasattr(self, "_d"):
-                    parameters = self._d
-                else:
-                    raise AttributeError(
-                        "Invalid `parameters` value: cannot be None if default"
-                        " delays were not set at graph creation.")
+        if distribution is None:
+            if hasattr(self, "_d"):
+                distribution = self._d["distribution"]
+            else:
+                raise AttributeError(
+                    "Invalid `distribution` value: cannot be None if "
+                    "default delays were not set at graph creation.")
+        if parameters is None:
+            if hasattr(self, "_d"):
+                parameters = self._d
+            else:
+                raise AttributeError(
+                    "Invalid `parameters` value: cannot be None if default"
+                    " delays were not set at graph creation.")
         return nngt.core.Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)

@@ -461,16 +461,16 @@ class _GtGraph(GraphInterface):
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in new_attr.items():
                 new_attr[key] = np.concatenate((val, val[unique]))
-        if not self._directed:
-            recip_edges = edge_list[:,::-1]
-            # slow but works
-            unique = ~(recip_edges[..., np.newaxis]
-                       == edge_list[..., np.newaxis].T).all(1).any(1)
-            edge_list = np.concatenate((edge_list, recip_edges[unique]))
-            for key, val in new_attr.items():
-                new_attr[key] = np.concatenate((val, val[unique]))
         # create the edges
         if len(edge_list):
+            if not self._directed:
+                recip_edges = edge_list[:,::-1]
+                # slow but works
+                unique = ~(recip_edges[..., np.newaxis]
+                           == edge_list[..., np.newaxis].T).all(1).any(1)
+                edge_list = np.concatenate((edge_list, recip_edges[unique]))
+                for key, val in new_attr.items():
+                    new_attr[key] = np.concatenate((val, val[unique]))
             super(_GtGraph, self).add_edge_list(edge_list)
             # call parent function to set the attributes
             self.attr_new_edges(edge_list, attributes=new_attr)
