@@ -818,7 +818,7 @@ class Graph(nngt.core.GraphObject):
         if name is None:
             res = {k: self._nattr[k] for k in self._nattr.keys()}
         else:
-            res = self._nattr[k]
+            res = self._nattr[name]
         if nodes is None:
             return res
         else:
