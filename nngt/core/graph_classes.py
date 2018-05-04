@@ -814,17 +814,19 @@ class Graph(nngt.core.GraphObject):
         the specific attribute for the required nodes (or all nodes if
         unspecified).
         '''
-        if name is not None and nodes is not None:
-            if isinstance(nodes, slice):
-                return self._nattr[name][nodes]
-            else:
-                return self._nattr[nodes][name]
-        if name is None and nodes is None:
-            return {k: self._nattr[k] for k in self._nattr.keys()}
-        elif name is None:
-            return self._nattr[nodes]
+        res = None
+        if name is None:
+            res = {k: self._nattr[k] for k in self._nattr.keys()}
         else:
-            return self._nattr[name]
+            res = self._nattr[k]
+        if nodes is None:
+            return res
+        else:
+            if isinstance(nodes, (slice, int)) or nonstring_container(nodes):
+                return res[nodes]
+            else:
+                raise ValueError("Invalid `nodes`: "
+                                 "{}, use slice, int, or list".format(nodes))
 
     def get_attribute_type(self, attribute_name, attribute_class=None):
         '''
