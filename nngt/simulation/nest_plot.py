@@ -229,11 +229,35 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 lines[info["model"]].extend(l)
         else:
             da_time = info["events"]["times"]
-            fig = plt.figure(fnum)
-            fignums[info["model"]] = fig.number
+            # prepare axis setup
+            fig = None
+            if axis is None:
+                fig = plt.figure(fnum)
+                fignums[info["model"]] = fig.number
+            else:
+                fig = axis.get_figure()
             lines_tmp, labels_tmp = [], []
             if nonstring_container(var):
                 axes = fig.axes
+                if axis is not None:
+                    # multiple y axes on a single subplot, adapted from
+                    # https://matplotlib.org/examples/pylab_examples/
+                    # multiple_yaxis_with_spines.html
+                    axes = [axis]
+                    axis.name = var[0]
+                    if len(var) > 1:
+                        axes.append(axis.twinx())
+                        axes[-1].name = var[1]
+                    if len(var) > 2:
+                        fig.subplots_adjust(right=0.75)
+                        for i, name in zip(range(len(var)-2), var[2:]):
+                            new_ax = axis.twinx()
+                            new_ax.spines["right"].set_position(
+                                ("axes", 1.2*(i+1)))
+                            axes.append(new_ax)
+                            _make_patch_spines_invisible(new_ax)
+                            new_ax.spines["right"].set_visible(True)
+                            axes[-1].name = name
                 if not axes:
                     axes = _set_new_plot(fig.number, names=var)[1]
                 labels_tmp = [lbl for _ in range(len(var))]
@@ -254,7 +278,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                             if limits is not None:
                                 ax.set_xlim(limits[0], limits[1])
             else:
-                ax = fig.add_subplot(111)
+                num_axes, ax = len(fig.axes), axis
+                if axis is None:
+                    ax = fig.add_subplot(num_axes + 1, 1, num_axes + 1)
                 da_var = info["events"][var]
                 lines_tmp.extend(ax.plot(da_time, da_var/normalize))
                 labels_tmp.append(lbl)
@@ -541,3 +567,9 @@ def _sci_format(n):
     else:
        label = '{:.2f}'.format(n)
     return label
+
+def _make_patch_spines_invisible(ax):
+    ax.set_frame_on(True)
+    ax.patch.set_visible(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
