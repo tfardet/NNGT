@@ -228,7 +228,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 labels[info["model"]].append(lbl)
                 lines[info["model"]].extend(l)
         else:
-            da_time = info["events"]["times"]
+            da_time  = info["events"]["times"]
             # prepare axis setup
             fig = None
             if axis is None:
@@ -238,6 +238,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 fig = axis.get_figure()
             lines_tmp, labels_tmp = [], []
             if nonstring_container(var):
+                m_colors = palette(np.linspace(0, 1, len(var)))
                 axes = fig.axes
                 if axis is not None:
                     # multiple y axes on a single subplot, adapted from
@@ -261,7 +262,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 if not axes:
                     axes = _set_new_plot(fig.number, names=var)[1]
                 labels_tmp = [lbl for _ in range(len(var))]
-                for subvar in var:
+                for subvar, c in zip(var, m_colors):
                     for ax in axes:
                         if ax.name == subvar:
                             da_subvar = info["events"][subvar]
@@ -272,7 +273,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                             elif normalize is not None:
                                 da_subvar /= normalize
                             lines_tmp.extend(
-                                ax.plot(da_time, da_subvar))
+                                ax.plot(da_time, da_subvar, color=c))
                             ax.set_ylabel(subvar)
                             ax.set_xlabel("time")
                             if limits is not None:
