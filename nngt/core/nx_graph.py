@@ -146,7 +146,7 @@ class _NxEProperty(BaseProperty):
                         eprop[k].append(v)
             for k, v in eprop.items():
                 dtype = _np_dtype(super(_NxEProperty, self).__getitem__(k))
-                eprop = {k: np.array(v, dtype)}
+                eprop[k] = np.array(v, dtype)
             return eprop
 
     def __setitem__(self, name, value):
@@ -438,6 +438,7 @@ class _NxGraph(GraphInterface):
         else:
             edge_list = np.array(edge_list)
             new_attr = attributes
+        # create the edges
         num_added = len(edge_list)
         if num_added:
             arr_edges = np.zeros((num_added, 3), dtype=int)

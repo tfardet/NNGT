@@ -126,18 +126,21 @@ class NNGTdb:
         neuralnet : :class:`~nngt.database.NeuralNetwork`
             New NeuralNetwork entry.
         '''
-        weighted = network._weighted
-        net_prop = {
-            'network_type': network.type,
-            'directed': network._directed,
-            'nodes': network.node_nb(),
-            'edges': network.edge_nb(),
-            'weighted': weighted,
-            'compressed_file': str(network).encode('utf-8')
-        }
-        if weighted:
-            net_prop['weight_distribution'] = network._w
-        neuralnet = NeuralNetwork(**net_prop)
+        if network is not None:
+            weighted = network._weighted
+            net_prop = {
+                'network_type': network.type,
+                'directed': network._directed,
+                'nodes': network.node_nb(),
+                'edges': network.edge_nb(),
+                'weighted': weighted,
+                'compressed_file': str(network).encode('utf-8')
+            }
+            if weighted:
+                net_prop['weight_distribution'] = network._w
+            neuralnet = NeuralNetwork(**net_prop)
+        else:
+            neuralnet = NeuralNetwork()
         return neuralnet
 
     def _make_neuron_entry(self, network, group):
@@ -282,7 +285,7 @@ class NNGTdb:
         self.current_simulation['activity'] = activity_entry
         return activity_entry
         
-    def log_simulation_start(self, network, simulator):
+    def log_simulation_start(self, network, simulator, save_network=True):
         '''
         Record the simulation start time, all nodes, connections, network, and
         computer properties, as well as some of simulation's.
@@ -293,16 +296,19 @@ class NNGTdb:
             Network used for the current simulation.
         simulator : str
             Name of the simulator.
+        save_network : bool, optional (default: True)
+            Whether to save the network or not.
         '''
         if not self.is_clear():
             raise RuntimeError("Database log started without clearing the "
                                "previous one.")
         self._get_simulation_prop(network, simulator)
         # computer and network data
-        self.computer = self._make_computer_entry()
-        self.neuralnet = self._make_network_entry(network)
+        self.computer  = self._make_computer_entry()
+        self.neuralnet = (self._make_network_entry(network)
+                          if save_network else None)
         self.current_simulation['computer'] = self.computer
-        self.current_simulation['network'] = self.neuralnet
+        self.current_simulation['network']  = self.neuralnet
         # neurons, synapses and connections
         perm_names = tuple(permutations(network.population.keys(), 2))
         perm_groups = tuple(permutations(network.population.values(), 2))
@@ -345,7 +351,8 @@ class NNGTdb:
         # save data and reset
         self.activity.save()
         self.computer.save()
-        self.neuralnet.save()
+        if self.neuralnet is not None:
+            self.neuralnet.save()
         for entry in iter(self.nodes.values()):
             entry.save()
         for entry in iter(self.connections.values()):

@@ -23,9 +23,12 @@ logger = logging.getLogger(__name__)
 
 with_seaborn = False
 
-def palette(numbers):
+def palette(numbers=None):
     pal = cm.get_cmap(nngt._config["palette"])
-    return pal(numbers)
+    if numbers is None:
+        return pal
+    else:
+        return pal(numbers)
 
 # markers list
 markers = itertools.cycle([m for m in MS().filled_markers if m != '.'])

@@ -349,31 +349,34 @@ def analyze_raster(raster=None, limits=None, network=None,
         from these phases.
     '''
     data = _get_data(raster) if isinstance(raster, str) else raster
-    if limits is None:
-        limits = [np.min(data[:, 1]), np.max(data[:, 1])]
-    kwargs = {
-        "limits": limits,
-        "phase_coeff": phase_coeff,
-        "mbis": mbis,
-        "mfb": mfb,
-        "mflb": mflb,
-        "simplify": simplify
-    }
-    # compute phases and properties
-    phases, fr = _analysis(data[:, 1], data[:, 0], limits, network=network,
-              phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
-              simplify=simplify)
-    properties = _compute_properties(data.T, phases, fr, skip_bursts)
-    # plot if required
-    if show:
-        import matplotlib.pyplot as plt
-        if fignums:
-            _plot_phases(phases, fignums)
-        else:
-            fig, ax = plt.subplots()
-            ax.scatter(data[:, 1], data[:, 0])
-            _plot_phases(phases, [fig.number])
-    return ActivityRecord(data, phases, properties, kwargs)
+    if data.any():
+        if limits is None:
+            limits = [np.min(data[:, 1]), np.max(data[:, 1])]
+        kwargs = {
+            "limits": limits,
+            "phase_coeff": phase_coeff,
+            "mbis": mbis,
+            "mfb": mfb,
+            "mflb": mflb,
+            "simplify": simplify
+        }
+        # compute phases and properties
+        phases, fr = _analysis(data[:, 1], data[:, 0], limits, network=network,
+                  phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
+                  simplify=simplify)
+        properties = _compute_properties(data.T, phases, fr, skip_bursts)
+        # plot if required
+        if show:
+            import matplotlib.pyplot as plt
+            if fignums:
+                _plot_phases(phases, fignums)
+            else:
+                fig, ax = plt.subplots()
+                ax.scatter(data[:, 1], data[:, 0])
+                _plot_phases(phases, [fig.number])
+        return ActivityRecord(data, phases, properties, kwargs)
+    else:
+        return ActivityRecord(data, {}, {})
 
 
 # ----- #

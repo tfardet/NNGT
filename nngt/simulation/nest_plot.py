@@ -48,11 +48,14 @@ logger = logging.getLogger(__name__)
 # --------------------- #
 
 def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
-                  show=False, limits=None, hist=True, title=None, label=None,
-                  sort=None, average=False, normalize=1., decimate=None,
-                  transparent=True):
+                  axis=None, show=False, limits=None, hist=True, title=None,
+                  fignum=None, label=None, sort=None, average=False,
+                  normalize=1., decimate=None, transparent=True):
     '''
     Plot the monitored activity.
+
+    .. versionchanged:: 1.0.1
+        Added `axis` parameter, restored missing `fignum` parameter.
     
     Parameters
     ----------
@@ -66,6 +69,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         Network which activity will be monitored.
     gids : tuple, optional (default: None)
         NEST gids of the neurons which should be monitored.
+    axis : matplotlib axis object, optional (default: new one)
+        Axis that should be use to plot the activity. This takes precedence
+        over `fignum`.
     show : bool, optional (default: False)
         Whether to show the plot right away or to wait for the next plt.show().
     hist : bool, optional (default: True)
@@ -75,8 +81,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         spike for raster plots).
     title : str, optional (default: None)
         Title of the plot.
-    fignum : int, optional (default: None)
-        Plot the activity on an existing figure (from ``figure.number``).
+    fignum : int, or dict, optional (default: None)
+        Plot the activity on an existing figure (from ``figure.number``). This
+        parameter is ignored if `axis` is provided.
     label : str or list, optional (default: None)
         Add labels to the plot (one per recorder).
     sort : str or list, optional (default: None)
@@ -159,7 +166,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_raster, num_detec, num_meter = 0, 0, 0
-    fignums = {}
+    fignums = fignum if isinstance(fignum, dict) else {}
     decim = []
     if decimate is None:
         decim = [None for _ in range(num_group)]
@@ -190,7 +197,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     # plot
     for rec, var, lbl in zip(lst_rec, record, lst_labels):
         info = nest.GetStatus([rec])[0]
-        fnum = fignums[info["model"]] if info["model"] in fignums else None
+        fnum = fignums.get(info["model"], fignum)
         if info["model"] not in labels:
             labels[info["model"]] = []
             lines[info["model"]] = []
@@ -199,7 +206,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
             l = raster_plot(times, sorted_ids, color=c, show=False,
-                            limits=limits, sort=sort, fignum=fnum,
+                            limits=limits, sort=sort, fignum=fnum, axis=axis,
                             decimate=decim[num_raster], sort_attribute=attr,
                             network=network, transparent=transparent)
             num_raster += 1
@@ -212,7 +219,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             c = colors[num_detec]
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
-            l = raster_plot(times, sorted_ids, fignum=fnum, color=c,
+            l = raster_plot(times, sorted_ids, fignum=fnum, color=c, axis=axis,
                             show=False, hist=hist, limits=limits)
             if l:
                 fig_detect = l[0].figure.number
@@ -221,16 +228,41 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 labels[info["model"]].append(lbl)
                 lines[info["model"]].extend(l)
         else:
-            da_time = info["events"]["times"]
-            fig = plt.figure(fnum)
-            fignums[info["model"]] = fig.number
+            da_time  = info["events"]["times"]
+            # prepare axis setup
+            fig = None
+            if axis is None:
+                fig = plt.figure(fnum)
+                fignums[info["model"]] = fig.number
+            else:
+                fig = axis.get_figure()
             lines_tmp, labels_tmp = [], []
             if nonstring_container(var):
+                m_colors = palette(np.linspace(0, 1, len(var)))
                 axes = fig.axes
+                if axis is not None:
+                    # multiple y axes on a single subplot, adapted from
+                    # https://matplotlib.org/examples/pylab_examples/
+                    # multiple_yaxis_with_spines.html
+                    axes = [axis]
+                    axis.name = var[0]
+                    if len(var) > 1:
+                        axes.append(axis.twinx())
+                        axes[-1].name = var[1]
+                    if len(var) > 2:
+                        fig.subplots_adjust(right=0.75)
+                        for i, name in zip(range(len(var)-2), var[2:]):
+                            new_ax = axis.twinx()
+                            new_ax.spines["right"].set_position(
+                                ("axes", 1.2*(i+1)))
+                            axes.append(new_ax)
+                            _make_patch_spines_invisible(new_ax)
+                            new_ax.spines["right"].set_visible(True)
+                            axes[-1].name = name
                 if not axes:
                     axes = _set_new_plot(fig.number, names=var)[1]
                 labels_tmp = [lbl for _ in range(len(var))]
-                for subvar in var:
+                for subvar, c in zip(var, m_colors):
                     for ax in axes:
                         if ax.name == subvar:
                             da_subvar = info["events"][subvar]
@@ -241,13 +273,15 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                             elif normalize is not None:
                                 da_subvar /= normalize
                             lines_tmp.extend(
-                                ax.plot(da_time, da_subvar))
+                                ax.plot(da_time, da_subvar, color=c))
                             ax.set_ylabel(subvar)
                             ax.set_xlabel("time")
                             if limits is not None:
                                 ax.set_xlim(limits[0], limits[1])
             else:
-                ax = fig.add_subplot(111)
+                num_axes, ax = len(fig.axes), axis
+                if axis is None:
+                    ax = fig.add_subplot(num_axes + 1, 1, num_axes + 1)
                 da_var = info["events"][var]
                 lines_tmp.extend(ax.plot(da_time, da_var/normalize))
                 labels_tmp.append(lbl)
@@ -268,12 +302,15 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
 
 
 def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
-                num_bins=1000, color="b", decimate=None, fignum=None,
-                label=None, show=True, sort=None, sort_attribute=None,
-                network=None, transparent=True):
+                num_bins=1000, color="b", decimate=None, axis=None,
+                fignum=None, label=None, show=True, sort=None,
+                sort_attribute=None, network=None, transparent=True):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
+
+    .. versionchanged:: 1.0.1
+        Added `axis` parameter.
     
     Parameters
     ----------
@@ -296,6 +333,8 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         Represent only a fraction of the spiking neurons; only one neuron in
         `decimate` will be represented (e.g. setting `decimate` to 10 will lead
         to only 10% of the neurons being represented).
+    axis : matplotlib axis object, optional (default: new one)
+        Axis that should be use to plot the activity.
     fignum : int, optional (default: None)
         Id of another raster plot to which the new data should be added.
     label : str, optional (default: None)
@@ -320,7 +359,10 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         times = times[idx_keep]
 
     if len(times):
-        fig = plt.figure(fignum)
+        if axis is not None:
+            fig = axis.get_figure()
+        else:
+            fig = plt.figure(fignum)
         if transparent:
             fig.patch.set_visible(False)
         ylabel = "Neuron ID"
@@ -329,13 +371,11 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         delta_t = 0.01*(times[-1]-times[0])
 
         if hist:
-            ax1, ax2 = None, None
-            if len(fig.axes) == 2:
-                ax1 = fig.axes[0]
-                ax2 = fig.axes[1]
-            else:
-                ax1 = fig.add_axes([0.1, 0.3, 0.85, 0.6])
-                ax2 = fig.add_axes([0.1, 0.08, 0.85, 0.17], sharex=ax1)
+            num_axes = len(fig.axes)
+            for i, old_ax in enumerate(fig.axes):
+                old_ax.change_geometry(num_axes + 2, 1, i+1)
+            ax1 = fig.add_subplot(num_axes + 2, 1, num_axes + 1)
+            ax2 = fig.add_subplot(num_axes + 2, 1, num_axes + 2, sharex=ax1)
             lines.extend(ax1.plot(
                 times, senders, c=color, marker="o", linestyle='None',
                 mec="k", mew=0.5, ms=4, **kwargs))
@@ -400,7 +440,13 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             ax2.set_xlim(ax1.get_xlim())
             _second_axis(sort, sort_attribute, ax1)
         else:
-            ax = fig.axes[0] if fig.axes else fig.add_subplot(111)
+            if axis is not None:
+                ax = axis
+            else:
+                num_axes = len(fig.axes)
+                for i, old_ax in enumerate(fig.axes):
+                    old_ax.change_geometry(num_axes + 1, 1, i+1)
+                ax = fig.add_subplot(num_axes + 1, 1, num_axes + 1)
             if network is not None:
                 for m, (k, v) in zip(markers, network.population.items()):
                     keep = np.where(
@@ -522,3 +568,9 @@ def _sci_format(n):
     else:
        label = '{:.2f}'.format(n)
     return label
+
+def _make_patch_spines_invisible(ax):
+    ax.set_frame_on(True)
+    ax.patch.set_visible(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)

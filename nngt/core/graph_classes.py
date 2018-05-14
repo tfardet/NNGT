@@ -609,10 +609,17 @@ class Graph(nngt.core.GraphObject):
         '''
         if isinstance(weight, float):
             size = self.edge_nb() if elist is None else len(elist)
+            self._w = {"distribution": "constant", "value": weight}
             weight = np.repeat(weight, size)
-        elif not hasattr(weight, "__len__") and weight is not None:
-            raise AttributeError('''Invalid `weight` value: must be either
-                                 float, array-like or None.''')
+        elif not nonstring_container(weight) and weight is not None:
+            raise AttributeError("Invalid `weight` value: must be either "
+                                 "float, array-like or None.")
+        elif weight is not None:
+            self._w = {"distribution": "custom"}
+        elif None not in (distribution, parameters):
+            self._w = {"distribution": distribution}
+            self._w.update(parameters)
+
         if distribution is None:
             distribution = self._w["distribution"]
         if parameters is None:
@@ -688,27 +695,34 @@ class Graph(nngt.core.GraphObject):
             Scale of the multiplicative Gaussian noise that should be applied
             on the delays.
         '''
+        # check special cases and set self._d
         if isinstance(delay, float):
             size = self.edge_nb() if elist is None else len(elist)
+            self._d = {"distribution": "constant", "value": delay}
             delay = np.repeat(delay, size)
         elif not nonstring_container(delay) and delay is not None:
             raise AttributeError("Invalid `delay` value: must be either "
                                  "float, array-like or None")
-        if delay is None:
-            if distribution is None:
-                if hasattr(self, "_d"):
-                    distribution = self._d["distribution"]
-                else:
-                    raise AttributeError(
-                        "Invalid `distribution` value: cannot be None if "
-                        "default delays were not set at graph creation.")
-            if parameters is None:
-                if hasattr(self, "_d"):
-                    parameters = self._d
-                else:
-                    raise AttributeError(
-                        "Invalid `parameters` value: cannot be None if default"
-                        " delays were not set at graph creation.")
+        elif delay is not None:
+            self._d = {"distribution": "custom"}
+        elif None not in (distribution, parameters):
+            self._d = {"distribution": distribution}
+            self._d.update(parameters)
+
+        if distribution is None:
+            if hasattr(self, "_d"):
+                distribution = self._d["distribution"]
+            else:
+                raise AttributeError(
+                    "Invalid `distribution` value: cannot be None if "
+                    "default delays were not set at graph creation.")
+        if parameters is None:
+            if hasattr(self, "_d"):
+                parameters = self._d
+            else:
+                raise AttributeError(
+                    "Invalid `parameters` value: cannot be None if default"
+                    " delays were not set at graph creation.")
         return nngt.core.Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
@@ -779,6 +793,10 @@ class Graph(nngt.core.GraphObject):
         '''
         Attributes of the graph's edges.
 
+        .. versionchanged:: 1.0.1
+            Corrected default behavior and made it the same as
+            :func:`~nngt.Graph.get_edge_attributes`.
+
         .. versionadded:: 0.9
 
         Parameters
@@ -790,21 +808,25 @@ class Graph(nngt.core.GraphObject):
 
         Returns
         -------
-        List containing the names of all nodes attributes if `nodes` is
-        ``None``, else a ``dict`` containing the attributes of the nodes (or
-        only the value of attribute `name` if it is not ``None``).
+        Dict containing all nodes attributes by default. If `nodes` is
+        specified, returns a ``dict`` containing only the attributes of these
+        nodes. If `name` is specified, returns a list containing the values of
+        the specific attribute for the required nodes (or all nodes if
+        unspecified).
         '''
-        if name is not None and nodes is not None:
-            if isinstance(nodes, slice):
-                return self._nattr[name][nodes]
-            else:
-                return self._nattr[nodes][name]
-        elif name is None:
-            return self._nattr[nodes]
-        elif nodes is None:
-            return self._nattr[name]
+        res = None
+        if name is None:
+            res = {k: self._nattr[k] for k in self._nattr.keys()}
         else:
-            return self._nattr.keys()
+            res = self._nattr[name]
+        if nodes is None:
+            return res
+        else:
+            if isinstance(nodes, (slice, int)) or nonstring_container(nodes):
+                return res[nodes]
+            else:
+                raise ValueError("Invalid `nodes`: "
+                                 "{}, use slice, int, or list".format(nodes))
 
     def get_attribute_type(self, attribute_name, attribute_class=None):
         '''
@@ -947,24 +969,73 @@ class Graph(nngt.core.GraphObject):
         '''
         return self.betweenness_list(btype=btype, use_weights=use_weights)
 
-    def get_edge_types(self):
+    def get_edge_types(self, edges=None):
+        '''
+        Return the type of all or a subset of the edges.
+
+        .. versionchanged:: 1.0.1
+            Added the possibility to ask for a subset of edges.
+
+        Parameters
+        ----------
+        edges : (E, 2) array, optional (default: all edges)
+            Edges for which the type should be returned.
+
+        Returns
+        -------
+        the list of types (1 for excitatory, -1 for inhibitory)
+        '''
         if TYPE in self.edges_attributes:
-            return self.get_edge_attributes(name=TYPE)
+            return self.get_edge_attributes(name=TYPE, edges=edges)
         else:
-            return np.ones(self.edge_nb())
+            size = self.edge_nb() if edges is None else len(edges)
+            return np.ones(size)
     
-    def get_weights(self):
-        ''' Returns the weighted adjacency matrix as a
-        :class:`scipy.sparse.lil_matrix`.
+    def get_weights(self, edges=None):
         '''
-        return self._eattr["weight"]
+        Returns the weights of all or a subset of the edges.
+
+        .. versionchanged:: 1.0.1
+            Added the possibility to ask for a subset of edges.
+
+        Parameters
+        ----------
+        edges : (E, 2) array, optional (default: all edges)
+            Edges for which the type should be returned.
+
+        Returns
+        -------
+        the list of weights
+        '''
+        if self.is_weighted():
+            if edges is None:
+                return self._eattr["weight"]
+            else:
+                return self._eattr[edges]["weight"]
+        else:
+            size = self.edge_nb() if edges is None else len(edges)
+            return np.ones(size)
     
-    def get_delays(self):
-        ''' Returns the delay adjacency matrix as a
-        :class:`scipy.sparse.lil_matrix` if delays are present; else raises
-        an error.
+    def get_delays(self, edges=None):
         '''
-        return self._eattr["delay"]
+        Returns the delays of all or a subset of the edges.
+
+        .. versionchanged:: 1.0.1
+            Added the possibility to ask for a subset of edges.
+
+        Parameters
+        ----------
+        edges : (E, 2) array, optional (default: all edges)
+            Edges for which the type should be returned.
+
+        Returns
+        -------
+        the list of delays
+        '''
+        if edges is None:
+            return self._eattr["delay"]
+        else:
+            return self._eattr[edges]["delay"]
 
     def is_spatial(self):
         '''

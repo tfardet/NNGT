@@ -107,8 +107,8 @@ class _GtNProperty(BaseProperty):
         num_n = len(nodes) if nodes is not None else num_nodes
         if num_n == num_nodes:
             self[name] = values
-            self._num_values_set[name] = num_edges
-        else:
+            self._num_values_set[name] = num_nodes
+        elif num_n:
             if num_n != len(values):
                 raise ValueError("`nodes` and `nodes` must have the same "
                                  "size; got respectively " + str(num_n) + \
@@ -120,7 +120,8 @@ class _GtNProperty(BaseProperty):
             else:
                 for n, val in zip(nodes, values):
                     self.parent().vertex_properties[name][n] = val
-        self._num_values_set[name] = num_nodes
+        if num_n:
+            self._num_values_set[name] = num_nodes
 
 
 class _GtEProperty(BaseProperty):
@@ -180,7 +181,7 @@ set_attribute to create it.")
         if num_e == num_edges:
             self[name] = values
             self._num_values_set[name] = num_edges
-        else:
+        elif num_e:
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
@@ -460,16 +461,16 @@ class _GtGraph(GraphInterface):
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in new_attr.items():
                 new_attr[key] = np.concatenate((val, val[unique]))
-        if not self._directed:
-            recip_edges = edge_list[:,::-1]
-            # slow but works
-            unique = ~(recip_edges[..., np.newaxis]
-                       == edge_list[..., np.newaxis].T).all(1).any(1)
-            edge_list = np.concatenate((edge_list, recip_edges[unique]))
-            for key, val in new_attr.items():
-                new_attr[key] = np.concatenate((val, val[unique]))
         # create the edges
         if len(edge_list):
+            if not self._directed:
+                recip_edges = edge_list[:,::-1]
+                # slow but works
+                unique = ~(recip_edges[..., np.newaxis]
+                           == edge_list[..., np.newaxis].T).all(1).any(1)
+                edge_list = np.concatenate((edge_list, recip_edges[unique]))
+                for key, val in new_attr.items():
+                    new_attr[key] = np.concatenate((val, val[unique]))
             super(_GtGraph, self).add_edge_list(edge_list)
             # call parent function to set the attributes
             self.attr_new_edges(edge_list, attributes=new_attr)
@@ -553,11 +554,11 @@ class _GtGraph(GraphInterface):
         '''
         v = self.vertex(node)
         if mode == "all":
-            return tuple(v.all_neighbours())
+            return (int(n) for n in v.all_neighbours())
         elif mode == "in":
-            return tuple(v.in_neighbours())
+            return (int(n) for n in v.in_neighbours())
         elif mode == "out":
-            return tuple(v.out_neighbours())
+            return (int(n) for n in v.out_neighbours())
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))

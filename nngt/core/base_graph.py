@@ -243,7 +243,7 @@ class GraphInterface(nngt._config["graph"]):
                 self._eattr.set_attribute(
                     "weight", values, edges=edge_list)
             # then delay
-            if self.is_network() or "delay" in attributes:
+            if self.is_network() or "delay" in self.edges_attributes:
                 prop = attributes.get("delay", None)
                 values = _get_edge_attr(
                     self, edge_list, 'delay', prop, last_edges=True)

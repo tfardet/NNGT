@@ -99,7 +99,7 @@ class _IgNProperty(BaseProperty):
         num_n = len(nodes) if nodes is not None else num_nodes
         if num_n == num_nodes:
             self[name] = values
-        else:
+        elif num_n:
             if num_n != len(values):
                 raise ValueError("`nodes` and `nodes` must have the same "
                                  "size; got respectively " + str(num_n) + \
@@ -109,7 +109,8 @@ class _IgNProperty(BaseProperty):
             else:
                 for n, val in zip(nodes, values):
                     self.parent().vs[n][name] = val
-        self._num_values_set[name] = num_nodes
+        if num_n:
+            self._num_values_set[name] = num_nodes
 
 
 class _IgEProperty(BaseProperty):
@@ -128,7 +129,7 @@ class _IgEProperty(BaseProperty):
             if nonstring_container(name[0]):
                 eids = [self.parent().get_eid(*e) for e in name]
                 for k in self.keys():
-                    dtype = _np_dtype(super(_IgENProperty, self).__getitem__(k))
+                    dtype = _np_dtype(super(_IgEProperty, self).__getitem__(k))
                     eprop[k] = np.array(self.parent().es[k], dtype=dtype)[eids]
             else:
                 eid = self.parent().get_eid(*name)
@@ -187,7 +188,7 @@ class _IgEProperty(BaseProperty):
         num_e = len(edges) if edges is not None else num_edges
         if num_e == num_edges:
             self[name] = values
-        else:
+        elif num_e:
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
@@ -198,7 +199,8 @@ class _IgEProperty(BaseProperty):
                 for e, val in zip(edges, values):
                     eid = self.parent().get_eid(*e)
                     self.parent().es[eid][name] = val
-        self._num_values_set[name] = num_edges
+        if num_e:
+            self._num_values_set[name] = num_edges
 
 
 #-----------------------------------------------------------------------------#
@@ -495,11 +497,11 @@ an array of 2-tuples of ints.")
             The neighbours of `node`.
         '''
         if mode == "all":
-            return self.neighbors(node, mode=3)
+            return (n for n in self.neighbors(node, mode=3))
         elif mode == "in":
-            return self.neighbors(node, mode=1)
+            return (n for n in self.neighbors(node, mode=2))
         elif mode == "out":
-            return self.neighbors(node, mode=2)
+            return (n for n in self.neighbors(node, mode=1))
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
