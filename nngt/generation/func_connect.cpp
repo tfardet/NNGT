@@ -9,6 +9,7 @@
 #define _USE_MATH_DEFINES
 #include <limits>
 #include <random>
+#include <cmath>
 
 #include <stdexcept>
 #include <assert.h>
@@ -296,6 +297,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                     local_tgts = target_nodes[i];
                     local_tests = target_nodes[i].size()
                                   * (target_enum - current_enum) * neigh_norm;
+                    // test at least all neighbours
                     local_tests = std::max(local_tests, local_tgts.size());
                     elocal_tmp[0].reserve(local_tests);
                     elocal_tmp[1].reserve(local_tests);
@@ -364,6 +366,25 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             // each thread successively adds its local edges
             #pragma omp critical
             {
+                if (current_enum > num_edges)
+                {
+                    // more connections than needed, we need to randomize the
+                    // generated edges and keep only a fraction
+                    size_t keep = ceil(
+                        local_edges[0].size() * num_edges /
+                        static_cast<double>(current_enum - initial_enum));
+                    // randomize (first copy MT generator
+                    auto rng_copy  = generator_;
+                    auto rng_copy2 = generator_;
+                    std::shuffle(local_edges[0].begin(), local_edges[0].end(), generator_);
+                    std::shuffle(local_edges[1].begin(), local_edges[1].end(), rng_copy);
+                    std::shuffle(local_dist.begin(), local_dist.end(), rng_copy2);
+                    // keep only chosen ones
+                    local_edges[0].resize(keep);
+                    local_edges[1].resize(keep);
+                    local_dist.resize(keep);
+                    num_elocal = keep;
+                }
                 size_t i = 0;
                 #pragma omp flush(ecount_fill)
                 if (ecount_fill + num_elocal <= target_enum)
