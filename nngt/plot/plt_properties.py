@@ -32,6 +32,7 @@ from .custom_plt import palette, format_exponent
 __all__ = [
     'degree_distribution',
     'betweenness_distribution',
+    'edge_attributes_distribution',
     'node_attributes_distribution',
     'compare_population_attributes',
     "correlation_to_attribute",
@@ -351,7 +352,7 @@ def node_attributes_distribution(network, attributes, nodes=None,
         Nodes for which the attributes should be returned.
     num_bins : int or list, optional (default: 'auto')
         Number of bins to plot the distributions. If only one int is provided,
-        it is used for all attributes, otherwize a list containing one int per
+        it is used for all attributes, otherwise a list containing one int per
         attribute in `attributes` is required. Defaults to unsupervised
         Bayesian blocks method.
     logx : bool or list, optional (default: False)
@@ -371,7 +372,7 @@ def node_attributes_distribution(network, attributes, nodes=None,
     logy = _format_arg(logy, num_attr, 'logy')
     num_plot = 0
     # kwargs that will not be passed:
-    ignore = ["degree", "betweeness"] + attributes
+    ignore = ["degree", "betweenness"] + attributes
     new_kwargs = {k: v for k, v in kwargs.items() if k not in ignore}
     fig = None
     if new_kwargs == kwargs:
@@ -464,6 +465,121 @@ def node_attributes_distribution(network, attributes, nodes=None,
         num_plot += 1
     # adjust space, set title, and show
     _format_and_show(fig, num_plot, values, title, show)
+
+
+def edge_attributes_distribution(network, attributes, edges=None,
+                                 num_bins='auto', logx=False, logy=False,
+                                 norm=False, title=None, colors=None,
+                                 show=True, **kwargs):
+    '''
+    Return node `attributes` for a set of `nodes`.
+
+    .. versionadded:: 1.0.3
+    
+    Parameters
+    ----------
+    network : :class:`~nngt.Graph`
+        The graph where the `nodes` belong.
+    attributes : str or list
+        Attributes which should be returned (e.g. "betweenness", "delay",
+        "weights").
+    edges : list, optional (default: all edges)
+        Edges for which the attributes should be returned.
+    num_bins : int or list, optional (default: 'auto')
+        Number of bins to plot the distributions. If only one int is provided,
+        it is used for all attributes, otherwise a list containing one int per
+        attribute in `attributes` is required. Defaults to unsupervised
+        Bayesian blocks method.
+    logx : bool or list, optional (default: False)
+        Use log-spaced bins.
+    logy : bool or list, optional (default: False)
+        use logscale for the node count.
+    '''
+    import matplotlib.pyplot as plt
+    if not nonstring_container(attributes):
+        attributes = [attributes]
+    else:
+        attributes = [name for name in attributes]
+
+    num_attr = len(attributes)
+    num_bins = _format_arg(num_bins, num_attr, 'num_bins')
+    colors   = _format_arg(colors, num_attr, 'num_bins')
+    logx     = _format_arg(logx, num_attr, 'logx')
+    logy     = _format_arg(logy, num_attr, 'logy')
+    num_plot = 0
+    
+    # kwargs that will not be passed:
+    ignore = ["weight", "delay", "betweenness"] + attributes
+    new_kwargs = {k: v for k, v in kwargs.items() if k not in ignore}
+
+    fig = plt.figure()
+    fig.patch.set_visible(False)
+
+    # plot betweenness if needed
+    if "betweenness" in attributes:
+        idx = attributes.index("betweenness")
+        fig, axes = _set_new_plot(
+                fignum=fig.number, num_new_plots=1,
+                names=['Betweenness distribution'])
+        betweenness_distribution(
+            network, btype="edges", edges=edges, logx=logx[idx],
+            logy=logy[idx], norm=norm, axes=axes, show=False)
+        del attributes[idx]
+        del num_bins[idx]
+        del logx[idx]
+        del logy[idx]
+        if colors is not None:
+            del colors[idx]
+        num_plot += 1
+    # plot weights and delays if needed
+    if "weight" in attributes:
+        idx     = attributes.index("weight")
+        w       = network.get_weights(edges=edges)
+        fig, ax = _set_new_plot(fignum=fig.number, names=["weight"])
+        counts, bins = _hist(
+            w, num_bins[i], norm, logx[i], attr, ax[0], **kwargs)
+        del attributes[idx]
+        del num_bins[idx]
+        del logx[idx]
+        del logy[idx]
+        if colors is not None:
+            del colors[idx]
+    if "delay" in attributes:
+        idx     = attributes.index("delay")
+        d       = network.get_delays(edges=edges)
+        fig, ax = _set_new_plot(fignum=fig.number, names=["delay"])
+        counts, bins = _hist(
+            d, num_bins[i], norm, logx[i], attr, ax[0], **kwargs)
+        del attributes[idx]
+        del num_bins[idx]
+        del logx[idx]
+        del logy[idx]
+        if colors is not None:
+            del colors[idx]
+    # plot the remaining attributes
+    for i, attr in enumerate(attributes):
+        val = network.get_edge_attributes(edges=edges, name=attr)
+        if attr in kwargs:
+            new_kwargs['color'] = colors[i]
+            counts, bins = _hist(
+                val, num_bins[i], norm, logx[i], attr, kwargs[attr],
+                **new_kwargs)
+        else:
+            fig, ax = _set_new_plot(fignum=fig.number, names=[attr])
+            counts, bins = _hist(
+                val, num_bins[i], norm, logx[i], attr, ax[0], **kwargs)
+            end_attr = attr[1:]
+            if nngt._config["use_tex"]:
+                end_attr = end_attr.replace("_", "\\_")
+            ax[0].set_title("{}{} distribution for {}".format(
+                attr[0].upper(), end_attr, network.name), y=1.05)
+            ax[0].set_ylabel("Node count")
+            ax[0].set_xlabel(attr[0].upper() + end_attr)
+            _set_scale(ax[0], bins.max(), bins.min(), counts.max(),
+                       logx[i], logy[i])
+        num_plot += 1
+    # adjust space, set title, and show
+    _format_and_show(fig, num_plot, attributes, title, show)
 
 
 def correlation_to_attribute(network, reference_attribute, other_attributes,
@@ -736,8 +852,8 @@ def _format_and_show(fig, num_plot, values, title, show):
     num_rows = int(ratio)
     if int(ratio) != int(np.ceil(ratio)):
         num_rows += 1
-    plt.subplots_adjust(hspace=num_rows*0.2, wspace=num_cols*0.1, left=0.075,
-                        right=0.95, top=0.9, bottom=0.075)
+    #~ plt.subplots_adjust(hspace=num_rows*0.2, wspace=num_cols*0.1, left=0.075,
+                        #~ right=0.95, top=0.9, bottom=0.075)
     if title is not None:
         fig.suptitle(title)
     if show:

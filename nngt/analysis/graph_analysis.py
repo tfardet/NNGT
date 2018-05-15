@@ -606,7 +606,7 @@ def binning(x, bins='bayes', log=False):
 
     if bins == 'bayes':
         return bayesian_blocks(x)
-    elif nonstring_container(bins):
+    elif nonstring_container(bins) or bins == "auto":
         return bins
     elif is_integer(bins):
         if log:
