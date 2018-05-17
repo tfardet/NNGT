@@ -65,7 +65,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  threshold=0.5, decimate=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
                  show_environment=True, fast=False, size=(600,600), xlims=None,
-                 ylims=None, dpi=75, axis=None, show=False, **kwargs):
+                 ylims=None, dpi=75, axis=None, colorbar=False, show=False,
+                 **kwargs):
     '''
     Draw a given graph/network.
 
@@ -120,6 +121,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         (width, height) tuple for the canvas size (in px).
     dpi : int, optional (default: 75)
         Resolution (dot per inch).
+    colorbar : bool, optional (default: False)
+        Whether to display a colorbar for the node colors or not.
     show : bool, optional (default: True)
         Display the plot immediately.
     '''
@@ -178,7 +181,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         if isinstance(ecolor, str):
             raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
                                "and ecolor='{}'.".format(ecolor))
-        esize = _edge_size(network, esize)
+        esize  = _edge_size(network, esize)
         esize *= max_esize
         esize[esize < threshold] = 0.
     #~ elif isinstance(esize, float):
@@ -219,54 +222,38 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)
     # make nodes
     nodes = []
+    if not isinstance(c, str):
+        c = palette(node_color)
+    if nonstring_container(c):
+        # make the colorbar for the nodes
+        if nticks is not None and colorbar:
+            clist = np.unique(c, axis=0) \
+                    if not nonstring_container(ncolor) and ncolor == "group" \
+                    else None
+            cmap  = _discrete_cmap(len(nticks), palette(), clist=clist)
+            cnorm = None
+            if isinstance(nticks[0], (int, float, np.integer)):
+                cnorm = Normalize(nticks[0]-0.5, nticks[-1] + 0.5)
+            elif ncolor != "group":
+                uniques = np.unique(c)
+                dc = uniques[1] - uniques[0]
+                cnorm = Normalize(uniques[0]-dc, uniques[-1] + dc)
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=cnorm)
+            sm.set_array(nticks)
+            plt.subplots_adjust(right=0.95)
+            cb = plt.colorbar(sm, ticks=nticks, ax=axis, shrink=0.85)
+            cb.set_ticklabels(ntickslabels)
+            if nlabel:
+                cb.set_label(nlabel)
+    else:
+        c = (c for _ in range(n))
     if network.is_network():
         for group in network.population.values():
             idx = group.ids
-            if nonstring_container(node_color):
-                c = palette(node_color[idx[0]])
-                # make the colorbar for the nodes
-                if nticks is not None:
-                    cmap = _discrete_cmap(len(nticks), palette())
-                    cnorm = None
-                    if isinstance(nticks[0], (int, float, np.integer)):
-                        cnorm = Normalize(nticks[0]-0.5, nticks[-1] + 0.5)
-                    else:
-                        dc = c[1] - c[0]
-                        cnorm = Normalize(c[0]-dc, c[-1] + dc)
-                    sm = plt.cm.ScalarMappable(cmap=cmap, norm=cnorm)
-                    sm.set_array(nticks)
-                    plt.subplots_adjust(right=0.95)
-                    cb = plt.colorbar(sm, ticks=nticks, ax=axis, shrink=0.85)
-                    cb.set_ticklabels(ntickslabels)
-                    if isinstance(nticks[0], (int, float)):
-                        cb.set_clim(nticks[0]-0.5, nticks[-1] - 0.5)
-                    if nlabel:
-                        cb.set_label(nlabel)
             for i in idx:
                 nodes.append(
-                    Circle(pos[i], 0.5*nsize[i], fc=c, ec=nborder_color[i]))
+                    Circle(pos[i], 0.5*nsize[i], fc=c[i], ec=nborder_color[i]))
     else:
-        if not isinstance(c, str):
-            c = palette(node_color)
-        if nonstring_container(c):
-            # make the colorbar for the nodes
-            if nticks is not None:
-                cmap  = _discrete_cmap(len(nticks), palette())
-                cnorm = None
-                if isinstance(nticks[0], (int, float, np.integer)):
-                    cnorm = Normalize(nticks[0]-0.5, nticks[-1] + 0.5)
-                else:
-                    dc = c[1] - c[0]
-                    cnorm = Normalize(c[0]-dc, c[-1] + dc)
-                sm = plt.cm.ScalarMappable(cmap=cmap, norm=cnorm)
-                sm.set_array(nticks)
-                plt.subplots_adjust(right=0.95)
-                cb = plt.colorbar(sm, ticks=nticks, ax=axis, shrink=0.85)
-                cb.set_ticklabels(ntickslabels)
-                if nlabel:
-                    cb.set_label(nlabel)
-        else:
-            c = (c for _ in range(n))
         for i, ci in enumerate(c):
             nodes.append(
                 Circle(pos[i], 0.5*nsize[i], fc=ci, ec=nborder_color[i]))
@@ -415,7 +402,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     if kwargs.get('tight', True):
         plt.tight_layout()
         plt.subplots_adjust(
-            hspace=0., wspace=0., left=0., right=1., top=1., bottom=0.)
+            hspace=0., wspace=0., left=0., right=0.95 if colorbar else 1.,
+            top=1., bottom=0.)
+
     if show:
         plt.show()
 
@@ -445,6 +434,8 @@ def _node_size(network, nsize):
     if "degree" in nsize:
         deg_type = nsize[:nsize.index("-")]
         size = network.get_degrees(deg_type).astype(float)
+        if np.isclose(size.min(), 0):
+            size[np.isclose(size, 0)] = 0.5
         if size.max() > 15*size.min():
             size = np.power(size, 0.4)
     if nsize == "betweenness":
@@ -493,7 +484,7 @@ def _node_color(network, ncolor):
 
                 nlabel       = "Neuron groups"
                 nticks       = list(range(len(network.population)))
-                ntickslabels = list(network.population.values())
+                ntickslabels = [s.replace("_", " ") for s in network.population.keys()]
         else:
             values = None
             if "degree" in ncolor:
@@ -507,7 +498,8 @@ def _node_color(network, ncolor):
                 raise RuntimeError("Invalid `ncolor`: {}.".format(ncolor))
 
             vmin, vmax = np.min(values), np.max(values)
-            color = (values - vmin) / (vmax - vmin)
+            #~ color = (values - vmin) / (vmax - vmin)
+            color = values
 
             nlabel = "Node " + ncolor.replace("_", " ")
             setval = set(values)
@@ -519,14 +511,18 @@ def _node_color(network, ncolor):
                 nticks       = np.linspace(vmin, vmax, 10)
                 ntickslabels = nticks
     else:
-        nlabel       = "Custom node colors"
-        nticks       = np.linspace(np.min(ncolor), np.max(ncolor), 10)
+        nlabel  = "Custom node colors"
+        uniques = np.unique(ncolor, axis=0)
+        if len(uniques) <= 10:
+            nticks = uniques
+        else:
+            nticks = np.linspace(np.min(ncolor), np.max(ncolor), 10)
         ntickslabels = nticks
 
     return color, nticks, ntickslabels, nlabel
 
 
-def _discrete_cmap(N, base_cmap=None):
+def _discrete_cmap(N, base_cmap=None, clist=None):
     '''
     Create an N-bin discrete colormap from the specified input map
 
@@ -534,6 +530,7 @@ def _discrete_cmap(N, base_cmap=None):
     ----------
     N : number of values
     base_cmap : str, None, or cmap object
+    clist : list of colors
 
     # Modified from Jake VanderPlas
     # License: BSD-style
@@ -543,7 +540,7 @@ def _discrete_cmap(N, base_cmap=None):
     #    return plt.cm.get_cmap(base_cmap, N)
     # The following works for string, None, or a colormap instance:
     base = plt.cm.get_cmap(base_cmap, N)
-    color_list = base(np.linspace(0, 1, N))
+    color_list = base(np.linspace(0, 1, N)) if clist is None else clist
     cmap_name = base.name + str(N)
     try:
         return base.from_list(cmap_name, color_list, N)

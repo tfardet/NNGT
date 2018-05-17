@@ -531,7 +531,7 @@ class _NxGraph(GraphInterface):
             The neighbours of `node`.
         '''
         if mode == "all":
-            neighbours = self.successors(node)
+            neighbours = list(self.successors(node))
             neighbours.extend(self.predecessors(node))
             return neighbours
         elif mode == "in":
