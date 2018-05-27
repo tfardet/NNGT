@@ -114,7 +114,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         Lines containing the data that was plotted, grouped by figure.
     '''
     import matplotlib.pyplot as plt
-    lst_rec, lst_labels, lines, labels = [], [], {}, {}
+    lst_rec, lst_labels, lines, axes, labels = [], [], {}, {}, {}
     num_fig = np.max(plt.get_fignums()) if plt.get_fignums() else 0
     # normalize recorders and recordables
     if gid_recorder is not None:
@@ -202,6 +202,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             labels[info["model"]] = []
             lines[info["model"]] = []
         if str(info["model"]) == "spike_detector":
+            old_axis = axis
+            if "spike_detector" in axes:
+                axis = axes["spike_detector"]
             c = colors[num_raster]
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
@@ -213,6 +216,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             if l:
                 fig_raster = l[0].figure.number
                 fignums['spike_detector'] = fig_raster
+                axes['spike_detector'] = l[0].axes
                 labels["spike_detector"].append(lbl)
                 lines["spike_detector"].extend(l)
         elif "detector" in str(info["model"]):

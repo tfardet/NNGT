@@ -80,6 +80,8 @@ def make_nest_network(network, send_only=None, use_weights=True):
     elif nonstring_container(send_only):
         send = [g for g in send_only]
 
+    send = [g for g in send if pop[g].ids]
+
     # link NEST Gids to nngt.Network ids as neurons are created
     num_neurons = network.node_nb()
     ia_nngt_ids = np.full(num_neurons, -1, dtype=int)
@@ -124,7 +126,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
 
     # get all properties as scipy.sparse.csr matrices
     csr_weights = network.adjacency_matrix(types=False, weights=True)
-    csr_delays = network.adjacency_matrix(types=False, weights=DELAY)
+    csr_delays  = network.adjacency_matrix(types=False, weights=DELAY)
 
     cspec = 'one_to_one'
 
@@ -133,44 +135,49 @@ def make_nest_network(network, send_only=None, use_weights=True):
         syn_sign = src_group.neuron_type
         # local connectivity matrix and offset to correct neuron id
         local_csr = csr_weights[src_group.ids, :]
-        min_sidx = np.min(src_group.ids)
+        assert local_csr.shape[1] == network.node_nb()
+        arr_idx  = np.sort(src_group.ids).astype(int)
+        src_ids  = arr_idx[local_csr.nonzero()[0]]
+        tgt_ids  = local_csr.nonzero()[1]
         if len(src_group.ids) > 0 and pop.syn_spec is not None:
             # check whether custom synapses should be used
+            local_tgt_names = [name for name in send if pop[name].ids]
+            
             for tgt_name in send:
                 tgt_group = pop[tgt_name]
                 # get list of targets for each
-                src_ids  = local_csr[:, tgt_group.ids].nonzero()[0]
-                src_ids += min_sidx
                 min_tidx = np.min(tgt_group.ids)
-                tgt_ids  = local_csr[:, tgt_group.ids].nonzero()[1]
-                tgt_ids += min_tidx
-                if len(tgt_ids) and len(src_ids):
+                max_tidx = np.max(tgt_group.ids)
+                keep = np.where((tgt_ids >= min_tidx) & (tgt_ids <= max_tidx))[0]
+                local_tgt_ids = tgt_ids[keep]
+                local_src_ids = src_ids[keep]
+                if len(local_tgt_ids) and len(local_src_ids):
                     # get the synaptic parameters
                     syn_spec = _get_syn_param(
                         src_name, src_group, tgt_name, tgt_group, pop.syn_spec)
                     # using A1 to get data from matrix
                     if use_weights:
                         syn_spec[WEIGHT] = syn_sign *\
-                            csr_weights[src_ids, tgt_ids].A1
+                            csr_weights[local_src_ids, local_tgt_ids].A1
                     else:
                         syn_spec[WEIGHT] = np.repeat(syn_sign, len(tgt_ids))
-                    syn_spec[DELAY] = csr_delays[src_ids, tgt_ids].A1
+                    syn_spec[DELAY] = csr_delays[local_src_ids, local_tgt_ids].A1
 
                     # check backend
                     with_mpi = nngt.get_config("mpi")
                     if nngt.get_config("backend") == "nngt" and with_mpi:
                         comm = nngt.get_config("mpi_comm")
                         for i in range(comm.Get_size()):
-                            sources = comm.bcast(network.nest_gid[src_ids], i)
-                            targets = comm.bcast(network.nest_gid[tgt_ids], i)
+                            sources = comm.bcast(network.nest_gid[local_src_ids], i)
+                            targets = comm.bcast(network.nest_gid[local_tgt_ids], i)
                             sspec   = comm.bcast(syn_spec, i)
                             nest.Connect(sources, targets, syn_spec=sspec,
                                          conn_spec=cspec, _warn=False)
                             comm.Barrier()
                     else:
                         nest.Connect(
-                            network.nest_gid[src_ids],
-                            network.nest_gid[tgt_ids], syn_spec=syn_spec,
+                            network.nest_gid[local_src_ids],
+                            network.nest_gid[local_tgt_ids], syn_spec=syn_spec,
                             conn_spec=cspec, _warn=False)
         elif len(src_group.ids) > 0:
             # get NEST gids of sources and targets for each edge

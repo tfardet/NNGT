@@ -141,6 +141,8 @@ class _NxEProperty(BaseProperty):
             eprop = {k: [] for k in self.keys()}
             for edge in edges:
                 data = self.parent().get_edge_data(edge[0], edge[1])
+                if data is None:
+                    raise ValueError("Edge {} does not exist.".format(edge))
                 for k, v in data.items():
                     if k != "eid":
                         eprop[k].append(v)
@@ -156,8 +158,11 @@ class _NxEProperty(BaseProperty):
                 for e in self.parent().edges(data="eid"):
                     self.parent().edges[e[0], e[1]][name] = value[e[2]]
             else:
-                raise ValueError("A list or a np.array with one entry per "
-                                 "edge in the graph is required")
+                raise ValueError(
+                    "A list or a np.array with one entry per edge in the "
+                    "graph is required. For attribute "
+                    "'{}', got {} entries vs {} edges.".format(
+                        name, len(value), size))
         else:
             raise InvalidArgument("Attribute does not exist yet, use "
                                   "set_attribute to create it.")

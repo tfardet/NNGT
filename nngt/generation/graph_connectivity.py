@@ -819,6 +819,8 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
     if not network._graph_type.endswith('_connect'):
         network._graph_type += "_nodes_connect"
 
+    return elist
+
 
 def connect_neural_types(network, source_type, target_type, graph_model,
                          density=-1., edges=-1, avg_deg=-1., unit='um',
@@ -868,13 +870,15 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)
 
-    connect_nodes(network, source_ids, target_ids, graph_model,
-                  density=density, edges=edges, avg_deg=avg_deg, unit=unit,
-                  weighted=weighted, directed=directed, multigraph=multigraph,
-                  **kwargs)
+    elist = connect_nodes(
+        network, source_ids, target_ids, graph_model, density=density,
+        edges=edges, avg_deg=avg_deg, unit=unit, weighted=weighted,
+        directed=directed, multigraph=multigraph, **kwargs)
 
     if not network._graph_type.endswith('_neural_type_connect'):
         network._graph_type += "_neural_type_connect"
+
+    return elist
 
 
 def connect_neural_groups(network, source_groups, target_groups, graph_model,
@@ -927,10 +931,12 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)
 
-    connect_nodes(network, source_ids, target_ids, graph_model,
-                  density=density, edges=edges, avg_deg=avg_deg, unit=unit,
-                  weighted=weighted, directed=directed, multigraph=multigraph,
-                  **kwargs)
+    elist = connect_nodes(
+        network, source_ids, target_ids, graph_model, density=density,
+        edges=edges, avg_deg=avg_deg, unit=unit, weighted=weighted,
+        directed=directed, multigraph=multigraph, **kwargs)
 
     if not network._graph_type.endswith('_neural_group_connect'):
         network._graph_type += "_neural_group_connect"
+
+    return elist
