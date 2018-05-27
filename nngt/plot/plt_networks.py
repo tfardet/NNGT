@@ -22,7 +22,7 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
 from matplotlib.patches import Arc, RegularPolygon
 from matplotlib.collections import PatchCollection
-from matplotlib.colors import ListedColormap, Normalize
+from matplotlib.colors import ListedColormap, Normalize, cnames, ColorConverter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import nngt
@@ -246,13 +246,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             if nlabel:
                 cb.set_label(nlabel)
     else:
-        c = (c for _ in range(n))
+        c = [c for _ in range(n)]
     if network.is_network():
         for group in network.population.values():
             idx = group.ids
-            for i in idx:
+            for i, fc in zip(idx, c):
                 nodes.append(
-                    Circle(pos[i], 0.5*nsize[i], fc=c[i], ec=nborder_color[i]))
+                    Circle(pos[i], 0.5*nsize[i], fc=fc, ec=nborder_color[i]))
     else:
         for i, ci in enumerate(c):
             nodes.append(
@@ -494,22 +494,23 @@ def _node_color(network, ncolor):
                 values = network.get_betweenness("node")
             elif ncolor in network.nodes_attributes:
                 values = network.get_node_attributes(name=ncolor)
-            else:
+            elif ncolor not in cnames and ncolor not in ColorConverter.colors:
                 raise RuntimeError("Invalid `ncolor`: {}.".format(ncolor))
 
-            vmin, vmax = np.min(values), np.max(values)
-            #~ color = (values - vmin) / (vmax - vmin)
-            color = values
+            if values is not None:
+                vmin, vmax = np.min(values), np.max(values)
+                #~ color = (values - vmin) / (vmax - vmin)
+                color = values
 
-            nlabel = "Node " + ncolor.replace("_", " ")
-            setval = set(values)
-            if len(setval) <= 10:
-                nticks = list(setval)
-                nticks.sort()
-                ntickslabels = nticks
-            else:
-                nticks       = np.linspace(vmin, vmax, 10)
-                ntickslabels = nticks
+                nlabel = "Node " + ncolor.replace("_", " ")
+                setval = set(values)
+                if len(setval) <= 10:
+                    nticks = list(setval)
+                    nticks.sort()
+                    ntickslabels = nticks
+                else:
+                    nticks       = np.linspace(vmin, vmax, 10)
+                    ntickslabels = nticks
     else:
         nlabel  = "Custom node colors"
         uniques = np.unique(ncolor, axis=0)
