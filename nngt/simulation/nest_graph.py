@@ -130,6 +130,8 @@ def make_nest_network(network, send_only=None, use_weights=True):
 
     cspec = 'one_to_one'
 
+    num_conn = 0
+
     for src_name in send:
         src_group = pop[src_name]
         syn_sign = src_group.neuron_type
@@ -137,8 +139,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
         local_csr = csr_weights[src_group.ids, :]
         assert local_csr.shape[1] == network.node_nb()
         arr_idx  = np.sort(src_group.ids).astype(int)
-        src_ids  = arr_idx[local_csr.nonzero()[0]]
-        tgt_ids  = local_csr.nonzero()[1]
+
         if len(src_group.ids) > 0 and pop.syn_spec is not None:
             # check whether custom synapses should be used
             local_tgt_names = [name for name in send if pop[name].ids]
@@ -146,11 +147,10 @@ def make_nest_network(network, send_only=None, use_weights=True):
             for tgt_name in send:
                 tgt_group = pop[tgt_name]
                 # get list of targets for each
-                min_tidx = np.min(tgt_group.ids)
-                max_tidx = np.max(tgt_group.ids)
-                keep = np.where((tgt_ids >= min_tidx) & (tgt_ids <= max_tidx))[0]
-                local_tgt_ids = tgt_ids[keep]
-                local_src_ids = src_ids[keep]
+                arr_tgt_idx = np.sort(tgt_group.ids).astype(int)
+                keep = local_csr[:, arr_tgt_idx].nonzero()
+                local_tgt_ids = arr_tgt_idx[keep[1]]
+                local_src_ids = arr_idx[keep[0]]
                 if len(local_tgt_ids) and len(local_src_ids):
                     # get the synaptic parameters
                     syn_spec = _get_syn_param(
@@ -162,6 +162,8 @@ def make_nest_network(network, send_only=None, use_weights=True):
                     else:
                         syn_spec[WEIGHT] = np.repeat(syn_sign, len(tgt_ids))
                     syn_spec[DELAY] = csr_delays[local_src_ids, local_tgt_ids].A1
+
+                    num_conn += len(local_src_ids)
 
                     # check backend
                     with_mpi = nngt.get_config("mpi")
@@ -179,6 +181,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
                             network.nest_gid[local_src_ids],
                             network.nest_gid[local_tgt_ids], syn_spec=syn_spec,
                             conn_spec=cspec, _warn=False)
+
         elif len(src_group.ids) > 0:
             # get NEST gids of sources and targets for each edge
             src_ids = network.nest_gid[local_csr.nonzero()[0] + min_sidx]

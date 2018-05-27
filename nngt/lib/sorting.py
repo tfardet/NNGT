@@ -115,17 +115,57 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
                 for i, n in enumerate(non_spiking):
                     sorted_ids[sorted_ids >= n] += 1
                     sorted_ids[num_b2 + i] = n
+        elif sort == "space":
+            xs, ys = network.get_positions().T
+            x_min, x_max = np.min(xs), np.max(xs)
+            y_min, y_max = np.min(ys), np.max(ys)
+
+            num_boxes = 10
+
+            xbins  = np.linspace(x_min, x_max, num_boxes + 1)
+            ybins  = np.linspace(y_min, y_max, num_boxes + 1)
+            xboxes = np.digitize(xs, xbins)
+            yboxes = np.digitize(ys, ybins)
+
+            attribute  = xboxes*num_boxes + yboxes
+            sorted_ids = np.lexsort((xboxes, yboxes))
+        elif sort == "x":
+            xs, _ = network.get_positions().T
+            x_min, x_max = np.min(xs), np.max(xs)
+
+            num_boxes = 10
+
+            xbins  = np.linspace(x_min, x_max, num_boxes + 1)
+            attribute = np.digitize(xs, xbins)
+            sorted_ids = np.argsort(attribute)
+        elif sort == "y":
+            _, ys = network.get_positions().T
+            y_min, y_max = np.min(ys), np.max(ys)
+
+            num_boxes = 10
+
+            ybins  = np.linspace(y_min, y_max, num_boxes + 1)
+            attribute = np.digitize(ys, ybins)
+            sorted_ids = np.argsort(attribute)
         else:
             attribute = node_attributes(network, sort)
             sorted_ids = np.argsort(attribute)
     else:
         sorted_ids = np.argsort(sort)
-    num_sorted = 1
-    for group in network.population.values():
-        gids = network.nest_gid[group.ids]
-        order = np.argsort(np.argsort(np.argsort(sorted_ids)[group.ids]))
-        sorting[gids] = num_sorted + order
-        num_sorted += len(group.ids)
+    if network.is_network():
+        neuron_groups = network.population.values()
+        avg_attr = []
+        for group in neuron_groups:
+            ids = np.array(group.ids, dtype=int)
+            avg_attr.append(np.average(attribute[ids - min_nest_gid]))
+        idx_srt = np.argsort(avg_attr)
+        neuron_groups = [neuron_groups[i] for i in idx_srt]
+        num_sorted = 1
+        for group in neuron_groups:
+            gids = network.nest_gid[group.ids]
+            order = np.argsort(np.argsort(np.argsort(sorted_ids)[group.ids]))
+            sorting[gids] = num_sorted + order
+            num_sorted += len(group.ids)
     if return_attr:
         return sorting.astype(int), attribute
     else:

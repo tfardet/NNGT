@@ -163,6 +163,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 data = np.array(data).T
             sorted_neurons, attr = _sort_neurons(
                 sort, gids, network, data=data, return_attr=True)
+    elif network is not None and network.is_spatial():
+        sorted_neurons, attr = _sort_neurons(
+            "space", gids, network, data=None, return_attr=True)
     # spikes plotting
     colors = palette(np.linspace(0, 1, num_group))
     num_raster, num_detec, num_meter = 0, 0, 0
@@ -294,6 +297,19 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             labels[info["model"]].extend(labels_tmp)
             lines[info["model"]].extend(lines_tmp)
             num_meter += 1
+    if "spike_detector" in axes:
+        ax = axes['spike_detector']
+        t_min, t_max, idx_min, idx_max = np.inf, -np.inf, np.inf, -np.inf
+        for l in ax.lines:
+            t_max = max(l.get_xdata().max(), t_max)
+            t_min = min(l.get_xdata().min(), t_max)
+            idx_min = min(l.get_ydata().min(), idx_min)
+            idx_max = max(l.get_ydata().max(), idx_max)
+        dt   = t_max - t_min
+        didx = idx_max - idx_min
+        pc   = 0.02
+        ax.set_xlim([t_min - pc*dt, t_max + pc*dt])
+        ax.set_ylim([idx_min - pc*didx, idx_max + pc*didx])
     for recorder in fignums:
         fig = plt.figure(fignums[recorder])
         if title is not None:
@@ -537,21 +553,28 @@ def _moving_average (values, window):
 def _second_axis(sort, sort_attribute, ax):
     import matplotlib.pyplot as plt
     if sort is not None:
-        asort = np.argsort(sort_attribute)
-        ax3 = ax.twinx()
-        ax3.grid(False)
-        ax3.set_ylabel(sort)
-        plt.draw()
-        old_ticks = ax.get_yticks()
-        ax3.set_yticks(old_ticks)
-        ax3.set_ylim(ax.get_ylim())
-        labels = ['' for _ in range(len(old_ticks))]
-        idx_max = len(sort_attribute) - 1
-        for i, t in enumerate(old_ticks):
-            if t >= 0:
-                idx = min(int(t), idx_max)
-                labels[i] = _sci_format(sort_attribute[asort[idx]])
-        ax3.set_yticklabels(labels)
+        fig = ax.get_figure()
+        twin = None
+        for axis in fig.axes:
+            if axis.get_ylabel() == sort:
+                twin = axis
+                break
+        if twin is None:
+            asort = np.argsort(sort_attribute)
+            twin = ax.twinx()
+            twin.grid(False)
+            twin.set_ylabel(sort)
+            plt.draw()
+            old_ticks = ax.get_yticks()
+            twin.set_yticks(old_ticks)
+            twin.set_ylim(ax.get_ylim())
+            labels = ['' for _ in range(len(old_ticks))]
+            idx_max = len(sort_attribute) - 1
+            for i, t in enumerate(old_ticks):
+                if t >= 0:
+                    idx = min(int(t), idx_max)
+                    labels[i] = _sci_format(sort_attribute[asort[idx]])
+            twin.set_yticklabels(labels)
 
 
 def _sci_format(n):

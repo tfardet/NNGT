@@ -325,6 +325,9 @@ class _SpikeAnimator(anim.TimedAnimation):
         if interval is not None and num_frames is not None:
             raise InvalidArgument("Incompatible arguments `interval` and "
                                   "`num_frames` provided. Choose one.")
+        elif interval is None and num_frames is None:
+            self.increment  = 1
+            self.save_count = self.num_frames
         elif interval is None:
             self.increment = max(1, int(self.num_frames / num_frames))
             self.save_count = num_frames
