@@ -153,7 +153,7 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
     else:
         sorted_ids = np.argsort(sort)
     if network.is_network():
-        neuron_groups = network.population.values()
+        neuron_groups = list(network.population.values())
         avg_attr = []
         for group in neuron_groups:
             ids = np.array(group.ids, dtype=int)

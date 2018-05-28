@@ -215,6 +215,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():
         if show_environment:
+            print("plotting env")
             nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
         pos = network.get_positions()
     else:
@@ -247,6 +248,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 cb.set_label(nlabel)
     else:
         c = [c for _ in range(n)]
+    if kwargs.get("simple_nodes", False):
+        axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize))
     if network.is_network():
         for group in network.population.values():
             idx = group.ids
