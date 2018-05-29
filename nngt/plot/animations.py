@@ -567,7 +567,8 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
     def __init__(self, source, network, resolution=1., start=0.,
                  timewindow=None, trace=5., show_spikes=False,
                  sort_neurons=None, decimate_connections=False,
-                 interval=50, repeat=True, active_size=None, **kwargs):
+                 interval=50, repeat=True, resting_size=None, active_size=None,
+                 **kwargs):
         '''
         Generate a SubplotAnimation instance to plot a network activity.
 
@@ -631,7 +632,9 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         bbox = self.env.get_window_extent().transformed(
             self.fig.dpi_scale_trans.inverted())
         area_px = bbox.width * bbox.height * self.fig.dpi**2
-        n_size = max(2, 0.5*np.sqrt(area_px/self.num_neurons))  # neuron size
+        # neuron size
+        n_size = (resting_size if resting_size is not None
+                  else max(2, 0.5*np.sqrt(area_px/self.num_neurons)))
         if active_size is None:
             active_size = n_size + 2
         pos = network.get_positions()  # positions of the neurons
@@ -756,6 +759,13 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         # initialize the neurons and connections between neurons
         draw_network(self.network(), ncolor='k', axis=self.env, show=False,
                      simple_nodes=True, decimate=-1, tight=False, **self.kwargs)
+        if self.network().is_spatial():
+            shape = self.network().shape
+            xmin, ymin, xmax, ymax = shape.bounds
+            dx = 0.02*(xmax-xmin)
+            dy = 0.02*(ymax-ymin)
+            self.env.set_xlim(xmin-dx, xmax+dx)
+            self.env.set_ylim(ymin-dy, ymax+dy)
         self.line_neurons = self.env.lines[0]
         #~ self.line_neurons.set_data(self.x, self.y)
         #~ num_edges = self.network().edge_nb()
