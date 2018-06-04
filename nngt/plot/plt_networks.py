@@ -247,13 +247,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             if nlabel:
                 cb.set_label(nlabel)
     else:
-        c = [c for _ in range(n)]
+        c = np.array([c for _ in range(n)])
     if kwargs.get("simple_nodes", False):
         axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize))
     if network.is_network():
         for group in network.population.values():
             idx = group.ids
-            for i, fc in zip(idx, c):
+            for i, fc in zip(idx, c[idx]):
                 nodes.append(
                     Circle(pos[i], 0.5*nsize[i], fc=fc, ec=nborder_color[i]))
     else:
