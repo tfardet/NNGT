@@ -178,6 +178,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         nsize = np.repeat(nsize, n)
     nsize *= 0.01 * size[0]
     if isinstance(esize, str) and e:
+        # @todo check why this "if" is here 
         if isinstance(ecolor, str):
             raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
                                "and ecolor='{}'.".format(ecolor))
@@ -196,7 +197,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     group_based = False
     if isinstance(ecolor, float):
         ecolor = np.repeat(ecolor, e)
-    elif ecolor == "groups":
+    elif ecolor == "groups" or ecolor == "group":
         if not network.is_network():
             raise TypeError(
                 "The graph must be a Network to use `ecolor='groups'`.")
@@ -477,7 +478,7 @@ def _node_color(network, ncolor):
     if isinstance(ncolor, np.float):
         color = np.repeat(ncolor, network.node_nb())
     elif isinstance(ncolor, str):
-        if ncolor == "group":
+        if ncolor == "group" or ncolor == "groups":
             color = np.zeros(network.node_nb())
             if hasattr(network, "population"):
                 l = len(network.population)
