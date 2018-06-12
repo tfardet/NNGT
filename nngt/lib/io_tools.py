@@ -195,10 +195,14 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             def_areas_prop = ast.literal_eval(di_notif['default_areas_prop'])
             for k in def_areas:
                 p = {key: float(v) for key, v in def_areas_prop[k].items()}
-                a = Shape.from_wkt(def_areas[k], unit=unit)
-                shape.add_area(a, height=p["height"], name=k, properties=p)
-            ndef_areas      = ast.literal_eval(di_notif['default_areas'])
-            ndef_areas_prop = ast.literal_eval(di_notif['default_areas_prop'])
+                if k == "default_area":
+                    shape._areas["default_area"]._prop.update(p)
+                    shape._areas["default_area"].height = p["height"]
+                else:
+                    a = Shape.from_wkt(def_areas[k], unit=unit)
+                    shape.add_area(a, height=p["height"], name=k, properties=p)
+            ndef_areas      = ast.literal_eval(di_notif['non_default_areas'])
+            ndef_areas_prop = ast.literal_eval(di_notif['non_default_areas_prop'])
             for k in ndef_areas:
                 p = {key: float(v) for key, v in ndef_areas_prop[k].items()}
                 a = Shape.from_wkt(ndef_areas[k], unit=unit)
