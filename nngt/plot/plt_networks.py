@@ -204,19 +204,21 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         group_based = True
         ecolor      = {}
         for i, src in enumerate(network.population):
-            idx1 = network.population[src].ids[0]
-            for j, tgt in enumerate(network.population):
-                idx2 = network.population[tgt].ids[0]
-                if src == tgt:
-                    ecolor[(src, tgt)] = node_color[idx1]
-                else:
-                    ecolor[(src, tgt)] = \
-                        np.abs(0.8*node_color[idx1] - 0.2*node_color[idx2])
+            if network.population[src].ids:
+                idx1 = network.population[src].ids[0]
+                for j, tgt in enumerate(network.population):
+                    if network.population[tgt].ids:
+                        idx2 = network.population[tgt].ids[0]
+                        if src == tgt:
+                            ecolor[(src, tgt)] = node_color[idx1]
+                        else:
+                            ecolor[(src, tgt)] = \
+                                np.abs(0.8*node_color[idx1]
+                                       - 0.2*node_color[idx2])
     # draw
     pos = np.zeros((n, 2))
     if spatial and network.is_spatial():
         if show_environment:
-            print("plotting env")
             nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
         pos = network.get_positions()
     else:
