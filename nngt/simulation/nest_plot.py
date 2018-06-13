@@ -118,6 +118,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     num_fig = np.max(plt.get_fignums()) if plt.get_fignums() else 0
     # normalize recorders and recordables
     if gid_recorder is not None:
+        assert record is not None, "`record` must also be provided."
         if len(record) != len(gid_recorder):
             raise InvalidArgument('`record` must either be the same for all '
                                   'recorders, or contain one entry per '
