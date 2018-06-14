@@ -464,7 +464,10 @@ an array of 2-tuples of ints.")
         ecoeff_norm = (e-1)*(e-2)/2.
         w, nbetw, ebetw = None, None, None
         if use_weights:
-            w = self.es['bweight']
+            if "bweight" in self.es:
+                w = self.es['bweight']
+            else:
+                w = np.max(self.get_weights()) - self.get_weights() + 1e-5
         if btype in ("both", "node"):
             nbetw = np.array(self.betweenness(weights=w))
         if btype in ("both", "edge"):
@@ -473,9 +476,10 @@ an array of 2-tuples of ints.")
             return nbetw/ncoeff_norm if norm else nbetw
         elif btype == "edge":
             return ebetw/ecoeff_norm if norm else ebetw
+        elif norm:
+            return nbetw/ncoeff_norm, ebetw/ecoeff_norm
         else:
-            return ( nbetw/ncoeff_norm, ebetw/ecoeff_norm if norm
-                     else nbetw, ebetw )
+            return nbetw, ebetw
 
     def neighbours(self, node, mode="all"):
         '''

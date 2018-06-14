@@ -135,7 +135,8 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='bayes',
     ebetw : :class:`numpy.array`
         bins for edge betweenness
     '''
-    ia_nbetw, ia_ebetw = graph.get_betweenness(use_weights)
+    ia_nbetw, ia_ebetw = graph.get_betweenness(
+        btype="both", use_weights=use_weights)
     if nodes is not None:
         ia_nbetw = ia_nbetw[nodes]
     ra_nbins, ra_ebins = None, None
@@ -460,6 +461,7 @@ def node_attributes(network, attributes, nodes=None, data=None):
         Attributes which should be returned, among:
         * "betweenness"
         * "clustering"
+        * "closeness"
         * "in-degree", "out-degree", "total-degree"
         * "subgraph_centrality"
     nodes : list, optional (default: all nodes)
