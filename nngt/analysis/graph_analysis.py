@@ -190,9 +190,10 @@ def local_clustering(graph, nodes=None):
         Nodes for which the local clustering coefficient should be computed.
     '''
     if nngt._config["backend"] == "igraph":
-        return graph.transitivity_local_undirected(nodes)
-    else:
-        return nngt.analyze_graph["local_clustering"](graph, nodes)
+        return np.array(graph.transitivity_local_undirected(nodes))
+    elif nngt._config["backend"] == "networkx":
+        raise NotImplementedError("Will soon be available for NX.")
+    return nngt.analyze_graph["local_clustering"](graph, nodes)
 
 
 # ---------------- #
@@ -308,7 +309,7 @@ def num_wcc(graph, listing=False):
     if nngt._config["backend"] == "graph-tool":
         _, lst_histo = nngt.analyze_graph["wcc"](graph, directed=False)
     elif nngt._config["backend"] == "igraph":
-        lst_histo = graphclusters("WEAK")
+        lst_histo = graph.clusters("WEAK")
         lst_histo = [cluster for cluster in lst_histo]
     else:
         lst_histo = [comp for comp in nngt.analyze_graph["wcc"](graph)]

@@ -46,7 +46,7 @@ __all__ = [
 def degree_distribution(network, deg_type="total", nodes=None,
                         num_bins='doane', use_weights=False, logx=False,
                         logy=False, axis=None, axis_num=None, colors=None,
-                        norm=False, show=False, **kwargs):
+                        norm=False, show=False, title=None, **kwargs):
     '''
     Plotting the degree distribution of a graph.
     
@@ -138,9 +138,12 @@ def degree_distribution(network, deg_type="total", nodes=None,
     axis.set_ylabel("Node count")
     title_start = (deg_type[0].upper() + deg_type[1:] + '-d'
                    if isinstance(deg_type, str) else 'D')
-    axis.set_title(
-        "{}egree distribution for {}".format(title_start, network.name), x=0.,
-        y=1.05, loc='left')
+    if title is not "":
+        str_title = title
+        if title is None:
+            str_title = "{}egree distribution for {}".format(
+                title_start, network.name)
+        axis.set_title(str_title, x=0., y=1.05, loc='left')
     # restore ylims and xlims and adapt if necessary
     _set_scale(axis, maxbins, minbins, mincounts, maxcounts, logx, logy)
     plt.legend()

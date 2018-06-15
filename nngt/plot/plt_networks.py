@@ -126,7 +126,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     show : bool, optional (default: True)
         Display the plot immediately.
     '''
+    from matplotlib.cm import get_cmap
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
     import matplotlib.pyplot as plt
+    # figure and axes
     size_inches = (size[0]/float(dpi), size[1]/float(dpi))
     if axis is None:
         fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
@@ -174,7 +177,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             nsize *= max_nsize
         else:
             nsize = np.ones(n, dtype=float)
-    elif isinstance(nsize, float):
+    elif isinstance(nsize, (float, int, np.number)):
         nsize = np.repeat(nsize, n)
     nsize *= 0.01 * size[0]
     if isinstance(esize, str) and e:
@@ -189,7 +192,12 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         #~ esize = np.repeat(esize, e)
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
     # node color information
+    ncmap = get_cmap(kwargs.get("node_cmap", palette()))
     node_color, nticks, ntickslabels, nlabel = _node_color(network, ncolor)
+    if nonstring_container(ncolor):
+        assert len(ncolor) == network.node_nb(), "For color arrays, one " +\
+            "color per node is required."
+        ncolor = "custom"
     c = node_color
     if not nonstring_container(nborder_color):
         nborder_color = np.repeat(nborder_color, n)
@@ -226,30 +234,42 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)
     # make nodes
     nodes = []
-    if not isinstance(c, str):
-        c = palette(node_color)
     if nonstring_container(c):
         # make the colorbar for the nodes
-        if nticks is not None and colorbar:
-            clist = np.unique(c, axis=0) \
-                    if not nonstring_container(ncolor) and ncolor == "group" \
-                    else None
-            cmap  = _discrete_cmap(len(nticks), palette(), clist=clist)
+        cmap = ncmap
+        if colorbar:
+            clist = np.unique(c, axis=0) if ncolor == "group" else None
             cnorm = None
-            if isinstance(nticks[0], (int, float, np.integer)):
+            if ncolor.startswith("group"):
+                cmap  = _discrete_cmap(len(nticks), ncmap, clist=clist)
                 cnorm = Normalize(nticks[0]-0.5, nticks[-1] + 0.5)
-            elif ncolor != "group":
-                uniques = np.unique(c)
-                dc = uniques[1] - uniques[0]
-                cnorm = Normalize(uniques[0]-dc, uniques[-1] + dc)
+            else:
+                cnorm = Normalize(np.min(c), np.max(c))
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=cnorm)
-            sm.set_array(nticks)
+            c  = cnorm(c)
+            if ncolor.startswith("group"):
+                sm.set_array(nticks)
+            else:
+                sm.set_array(c)
             plt.subplots_adjust(right=0.95)
-            cb = plt.colorbar(sm, ticks=nticks, ax=axis, shrink=0.85)
-            cb.set_ticklabels(ntickslabels)
-            if nlabel:
-                cb.set_label(nlabel)
+            divider = make_axes_locatable(axis)
+            cax     = divider.append_axes("right", size="5%", pad=0.05)
+            if ncolor.startswith("group"):
+                cb = plt.colorbar(sm, ticks=nticks, cax=cax, shrink=0.8)
+                cb.set_ticklabels(ntickslabels)
+                if nlabel:
+                    cb.set_label(nlabel)
+            else:
+                cb = plt.colorbar(sm, cax=cax, shrink=0.8)
+        else:
+            cmin, cmax = np.min(c), np.max(c)
+            if cmin != cmax:
+                c = (c - cmin)/(cmax - cmin)
+        c = cmap(c)
     else:
+        if not isinstance(c, str):
+            minc = np.min(node_color)
+            c    = ncmap((node_color - minc)/(np.max(node_color) - minc))
         c = np.array([c for _ in range(n)])
     if kwargs.get("simple_nodes", False):
         axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize))
@@ -500,6 +520,10 @@ def _node_color(network, ncolor):
                 values = network.get_betweenness("node")
             elif ncolor in network.nodes_attributes:
                 values = network.get_node_attributes(name=ncolor)
+            elif ncolor == "clustering" :
+                values = nngt.analysis.local_clustering(network)
+            elif ncolor in nngt.analyze_graph:
+                values = nngt.analyze_graph[ncolor](network)
             elif ncolor not in cnames and ncolor not in ColorConverter.colors:
                 raise RuntimeError("Invalid `ncolor`: {}.".format(ncolor))
 
