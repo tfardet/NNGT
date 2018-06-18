@@ -464,7 +464,7 @@ def _node_size(network, nsize):
             size[np.isclose(size, 0)] = 0.5
         if size.max() > 15*size.min():
             size = np.power(size, 0.4)
-    if nsize == "betweenness":
+    elif nsize == "betweenness":
         betw = network.betweenness_list("node").astype(float)
         if num_wcc(network) == 1:
             size *= betw
@@ -474,6 +474,10 @@ def _node_size(network, nsize):
                 size = np.log(size)
                 if size.min()<0:
                     size -= 1.1*size.min()
+    elif nsize == "clustering":
+        size *= nngt.analysis.local_clustering(network)
+    elif nsize in nngt.analyze_graph:
+        size *= nngt.analyze_graph[nsize](network)
     size /= size.max()
     return size.astype(float)
 
