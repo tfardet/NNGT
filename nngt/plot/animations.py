@@ -491,7 +491,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
             yield i
 
     def _draw(self, framedata):
-        i = framedata
+        i = int(framedata)
 
         head = i - 1
         head_slice = ((self.times > (self.times[i] - self.trace))
@@ -687,7 +687,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             yield i
 
     def _draw(self, framedata):
-        i = framedata
+        i = int(framedata)
         if i == 0:  # initialize neurons and connections
             self.line_neurons.set_data(self.x, self.y)
             #~ self.line_connections.set_data(self.x_conn, self.y_conn)
@@ -849,7 +849,7 @@ def _save_movie(animation, filename, fps, video_encoder, codec, bitrate,
 
         # Draw frames and write to the pipe
         for i in range(start, stop):
-            frame = i*animation.increment
+            frame = int(i*animation.increment)
             # draw the frame
             animation._draw(frame)
             fig.canvas.draw()
