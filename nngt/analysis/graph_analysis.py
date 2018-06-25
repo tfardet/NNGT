@@ -432,7 +432,7 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     centralities : :class:`numpy.ndarray`
         The subgraph centrality of each node.
     '''
-    adj_mat = graph.adjacency_matrix(types=False, weights=weights)
+    adj_mat = graph.adjacency_matrix(types=False, weights=weights).tocsc()
     centralities = None
     if normalize == "max_centrality":
         centralities = spl.expm(adj_mat / adj_mat.max()).diagonal()
