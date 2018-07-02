@@ -191,22 +191,32 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             shape = Shape.from_wkt(
                 di_notif['shape'], min_x=min_x, max_x=max_x, unit=unit)
             # load areas
-            def_areas      = ast.literal_eval(di_notif['default_areas'])
-            def_areas_prop = ast.literal_eval(di_notif['default_areas_prop'])
-            for k in def_areas:
-                p = {key: float(v) for key, v in def_areas_prop[k].items()}
-                if k == "default_area":
-                    shape._areas["default_area"]._prop.update(p)
-                    shape._areas["default_area"].height = p["height"]
-                else:
-                    a = Shape.from_wkt(def_areas[k], unit=unit)
-                    shape.add_area(a, height=p["height"], name=k, properties=p)
-            ndef_areas      = ast.literal_eval(di_notif['non_default_areas'])
-            ndef_areas_prop = ast.literal_eval(di_notif['non_default_areas_prop'])
-            for k in ndef_areas:
-                p = {key: float(v) for key, v in ndef_areas_prop[k].items()}
-                a = Shape.from_wkt(ndef_areas[k], unit=unit)
-                shape.add_area(a, height=p["height"], name=k, properties=p)
+            try:
+                def_areas      = ast.literal_eval(di_notif['default_areas'])
+                def_areas_prop = ast.literal_eval(
+                    di_notif['default_areas_prop'])
+
+                for k in def_areas:
+                    p = {key: float(v) for key, v in def_areas_prop[k].items()}
+                    if "default_area" in k:
+                        shape._areas["default_area"]._prop.update(p)
+                        shape._areas["default_area"].height = p["height"]
+                    else:
+                        a = Shape.from_wkt(def_areas[k], unit=unit)
+                        shape.add_area(a, height=p["height"], name=k,
+                                       properties=p)
+
+                ndef_areas      = ast.literal_eval(
+                                      di_notif['non_default_areas'])
+                ndef_areas_prop = ast.literal_eval(
+                                      di_notif['non_default_areas_prop'])
+                for i in ndef_areas:
+                    p = {k: float(v) for k, v in ndef_areas_prop[i].items()}
+                    a = Shape.from_wkt(ndef_areas[i], unit=unit)
+                    shape.add_area(a, height=p["height"], name=i, properties=p)
+            except KeyError:
+                # backup compatibility with older versions
+                pass
         else:
             _log_message(logger, "WARNING",
                          'A Shape object was present in the file but could '

@@ -404,7 +404,8 @@ def _monitor(gids, nest_recorder, params):
 # Saving the activity #
 # ------------------- #
 
-def save_spikes(filename, recorder=None, network=None, **kwargs):
+def save_spikes(filename, recorder=None, network=None, save_positions=True,
+                **kwargs):
     '''
     Plot the monitored activity.
 
@@ -419,6 +420,9 @@ def save_spikes(filename, recorder=None, network=None, **kwargs):
         "spike_detector"s are used.
     network : :class:`~nngt.Network` or subclass, optional (default: None)
         Network which activity will be monitored.
+    save_positions : bool, optional (default: True)
+        Whether to include the position of the neurons in the file; this
+        requires `network` to be provided.
     **kwargs : see :func:`numpy.savetxt`
     '''
     lst_rec = []
@@ -440,15 +444,19 @@ def save_spikes(filename, recorder=None, network=None, **kwargs):
         lst_rec = nest.GetNodes(
             (0,), properties={'model': 'spike_detector'})[0]
 
-    if network is not None and network.is_spatial():
+    if network is not None and network.is_spatial() and save_positions:
+        save_positions = True
         kwargs['header'] += '{}X{}Y'.format(delim, delim)
         if delim in kwargs['fmt']:
             kwargs['fmt'] += '{}%.6f{}%.6f'.format(delim, delim)
+    else:
+        save_positions = False
+
     with open(filename, "wb") as f:
         for rec in lst_rec:
             data = nest.GetStatus([rec], "events")[0]
             if len(data['senders']):
-                if network is not None and network.is_spatial():
+                if save_positions:
                     gids = np.unique(data['senders'])
                     gid_to_id = np.zeros(gids[-1] + 1, dtype=int)
                     for gid in gids:
