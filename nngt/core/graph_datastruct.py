@@ -662,7 +662,7 @@ class NeuralPop(OrderedDict):
                 param.append(self[group].properties[key])
             return param
 
-    def get_group(neurons, numbers=False):
+    def get_group(self, neurons, numbers=False):
         '''
         Return the group of the neurons.
         
