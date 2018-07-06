@@ -202,6 +202,11 @@ def get_spikes(recorder=None, spike_times=None, senders=None, astype="ssp"):
         through their `spike_times` and the associated `senders`.
     senders : array-like, optional (default: None)
         `senders[i]` corresponds to the neuron which fired at `spike_times[i]`.
+    astype : str, optional (default: "ssp")
+        Format of the returned data. Default is sparse lil_matrix ("ssp")
+        with one row per neuron, otherwise "np" returns a (T, 2) array, with
+        T the number of spikes (the first row being the NEST gid, the second
+        the spike time).
 
     Example
     -------

@@ -109,7 +109,7 @@ def set_poisson_input(gids, rate, syn_spec=None):
 
 
 def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
-              gids=None, weight_normalization=1.):
+              gids=None, weight_normalization=1., fixed_weight=False):
     '''
     Mimick spontaneous release of neurotransmitters, called miniature PSCs or
     "minis" that can occur at excitatory (mEPSCs) or inhibitory (mIPSCs)
@@ -187,7 +187,11 @@ def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
     for i, n in enumerate(nodes):
         gid, d = (gids[i],), degrees[n]
 
-        w  = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
+        w = 1.
+        if fixed_weight:
+            w = fixed_weight
+        else:
+            w = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
         pg = [pgs[map_deg_pg[d]]]
 
         nest.Connect(pg, gid, syn_spec={'weight': w}, _warn=False)
