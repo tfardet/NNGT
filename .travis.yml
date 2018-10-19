@@ -55,7 +55,7 @@ before_install:
     - sudo apt-get install libgeos-3.4.2 libgeos-dev
     # install scipy from apt (much faster when possible) and pip if necessary
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev python-matplotlib; fi
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplolib; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib; fi
     - if [[ "$PYVERSION" == "3.5" ]]; then sudo pip install scipy matplotlib; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
