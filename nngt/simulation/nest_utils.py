@@ -286,6 +286,8 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
             nodes = network.id_from_nest_gid(gids)
         # store the values in the node attributes
         if key not in ("V_m", "w"):
+            if key not in network.nodes_attributes:
+                network.new_node_attribute(key, "double", val=np.NaN)
             network.set_node_attribute(
                 key, values=state, nodes=nodes, value_type="double")
 

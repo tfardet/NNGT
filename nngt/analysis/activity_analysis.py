@@ -107,7 +107,7 @@ def get_firing_rate(network=None, spike_detector=None, data=None, nodes=None):
     return _fr_from_data(nodes, data)
 
 
-def total_firing_rate(network=None, spike_detector=None, data=None,
+def total_firing_rate(network=None, spike_detector=None, nodes=None, data=None,
                       kernel_center=0., kernel_std=30., resolution=None,
                       cut_gaussian=5.):
     '''
@@ -152,7 +152,7 @@ def total_firing_rate(network=None, spike_detector=None, data=None,
     times, kernel_size = None, None
     if data is None:
         data, _ = _set_data_nodes(network, data, nodes)
-        data = _set_spike_data(data, spike_detector)
+        data    = _set_spike_data(data, spike_detector)
     # set resolution and kernel properties + generate the times
     if resolution is None:
         resolution = 0.1*kernel_std

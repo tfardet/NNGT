@@ -1,6 +1,9 @@
 // connect.cpp
 //
 // Accelerated network generation functions
+//
+// Note: signed ints are required because MSVC does not implement OpenMP 3
+// standards which allow unsigned variables in for loops.
 
 #include "func_connect.h"
 
@@ -10,6 +13,7 @@
 #include <limits>
 #include <random>
 #include <cmath>
+#include <numeric>  // partial_sum
 
 #include <stdexcept>
 #include <assert.h>
@@ -181,7 +185,7 @@ void _gen_edges(
         std::mt19937 generator_(seeds[omp_get_thread_num()]);
         
         #pragma omp for schedule(static)
-        for (size_t node=0; node < first_nodes.size(); node++)
+        for (long int node=0; node < first_nodes.size(); node++)
         {
             // generate the vector of complementary nodes
             std::vector<size_t> res_tmp = _gen_edge_complement(
@@ -189,7 +193,7 @@ void _gen_edges(
               multigraph);
             // fill the edges
             size_t idx_start = cum_degrees[node] - degrees[node];
-            for (size_t j = 0; j < degrees[node]; j++)
+            for (long int j = 0; j < degrees[node]; j++)
             {
                 ia_edges[2*(idx_start + j) + idx] = node;
                 ia_edges[2*(idx_start + j) + 1 - idx] = res_tmp[j];
@@ -292,7 +296,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 // the static schedule is CAPITAL: each thread must always
                 // handle the same nodes
                 #pragma omp for schedule(static)
-                for (size_t i=0; i<target_nodes.size(); i++)
+                for (long int i=0; i<target_nodes.size(); i++)
                 {
                     local_tgts = target_nodes[i];
                     local_tests = target_nodes[i].size()
@@ -354,7 +358,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             // fill the edge container: first with the existing edges
             #pragma omp single
             {
-                for (size_t i=0; i<initial_enum; i++)
+                for (long int i=0; i<initial_enum; i++)
                 {
                     ia_edges[2*i]     = existing_edges[0][i];
                     ia_edges[2*i + 1] = existing_edges[1][i];

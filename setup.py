@@ -47,14 +47,16 @@ except ImportError as e:
 # Paths and platform #
 # ------------------ #
 
-omp_pos = sys.argv.index("--omp") if "--omp" in sys.argv else -1
+# OS name: Linux/Darwin (Mac)/Windows
+os_name = platform.system()
+
+# OpenMP
+omp_lib     = [] if os_name == "Windows" else ["gomp"]
+omp_pos     = sys.argv.index("--omp") if "--omp" in sys.argv else -1
 omp_lib_dir = "/usr/lib" if omp_pos == -1 else sys.argv[omp_pos + 1]
 
 dirname = os.path.abspath(__file__)[:-8]
 dirname += ("/" if dirname[-1] != "/" else "") + "nngt/generation/"
-
-# OS name: Linux/Darwin (Mac)/Windows
-os_name = platform.system()
 
 
 # ------------------------ #
@@ -64,7 +66,7 @@ os_name = platform.system()
 # compiler options
 
 copt =  {
-    'msvc': ['/openmp', '/O2', '/fp:precise',],
+    'msvc': ['/openmp', '/O2', '/fp:precise', '/permissive-', '/Zc:twoPhase-'],
     'unix': [
         '-std=c++11', '-Wno-cpp', '-Wno-unused-function', '-fopenmp',
         '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
@@ -114,7 +116,7 @@ extensions = Extension(
     extra_compile_args = [],
     language="c++",
     include_dirs=[dirname, numpy.get_include()],
-    libraries = ['gomp'],
+    libraries = omp_lib,
     library_dirs = [dirname, omp_lib_dir]
 )
 
@@ -147,6 +149,7 @@ setup_params = dict(
 
     package_dir = {'': '.'},
     packages = find_packages('.'),
+    include_package_data = False,
 
     cmdclass = {'build_ext': CustomBuildExt},
 
