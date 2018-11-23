@@ -23,6 +23,7 @@
 import os
 import sys
 import logging
+from copy import deepcopy
 
 import numpy as np
 
@@ -119,7 +120,10 @@ def set_config(config, value=None, silent=False):
     old_omp    = nngt._config["omp"]
     old_gl     = nngt._config["backend"]
     old_msd    = nngt._config["msd"]
+
+    old_config = nngt._config.copy()
     new_config = None
+
     if not isinstance(config, dict):
         new_config = {config: value}
     else:
@@ -189,7 +193,7 @@ def set_config(config, value=None, silent=False):
         svg     = has_svg,
         dxf     = has_dxf,
     )
-    if not silent:
+    if not silent and old_config != nngt._config:
         _log_conf_changed(conf_info)
 
 

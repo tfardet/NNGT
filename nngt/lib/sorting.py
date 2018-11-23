@@ -152,6 +152,8 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             sorted_ids = np.argsort(attribute)
     else:
         sorted_ids = np.argsort(sort)
+        attribute  = sort[sorted_ids]
+
     if network.is_network():
         neuron_groups = list(network.population.values())
         avg_attr = []
@@ -166,6 +168,7 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             order = np.argsort(np.argsort(np.argsort(sorted_ids)[group.ids]))
             sorting[gids] = num_sorted + order
             num_sorted += len(group.ids)
+
     if return_attr:
         return sorting.astype(int), attribute
     else:

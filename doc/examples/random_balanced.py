@@ -143,7 +143,7 @@ if nngt.get_config('with_nest'):
     pg = ns.set_poisson_input(gids, rate=p_rate,
                               syn_spec={"weight": J_ex, "delay": delay})
 
-    ns.set_minis(net, base_rate=0.1)
+    ns.set_minis(net, base_rate=0.1, weight=0.04)
 
     recorders, records = ns.monitor_groups(
         ["excitatory", "inhibitory"], network=net)

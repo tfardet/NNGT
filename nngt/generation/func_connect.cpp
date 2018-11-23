@@ -185,7 +185,7 @@ void _gen_edges(
         std::mt19937 generator_(seeds[omp_get_thread_num()]);
         
         #pragma omp for schedule(static)
-        for (long int node=0; node < first_nodes.size(); node++)
+        for (size_t node=0; node < first_nodes.size(); node++)
         {
             // generate the vector of complementary nodes
             std::vector<size_t> res_tmp = _gen_edge_complement(
@@ -193,7 +193,7 @@ void _gen_edges(
               multigraph);
             // fill the edges
             size_t idx_start = cum_degrees[node] - degrees[node];
-            for (long int j = 0; j < degrees[node]; j++)
+            for (unsigned int j = 0; j < degrees[node]; j++)
             {
                 ia_edges[2*(idx_start + j) + idx] = node;
                 ia_edges[2*(idx_start + j) + 1 - idx] = res_tmp[j];
@@ -296,7 +296,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 // the static schedule is CAPITAL: each thread must always
                 // handle the same nodes
                 #pragma omp for schedule(static)
-                for (long int i=0; i<target_nodes.size(); i++)
+                for (size_t i=0; i<target_nodes.size(); i++)
                 {
                     local_tgts = target_nodes[i];
                     local_tests = target_nodes[i].size()
@@ -358,7 +358,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             // fill the edge container: first with the existing edges
             #pragma omp single
             {
-                for (long int i=0; i<initial_enum; i++)
+                for (size_t i=0; i<initial_enum; i++)
                 {
                     ia_edges[2*i]     = existing_edges[0][i];
                     ia_edges[2*i + 1] = existing_edges[1][i];
