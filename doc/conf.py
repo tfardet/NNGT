@@ -93,24 +93,10 @@ if on_rtd:
         def __bases__(self):
             return (object,)
 
-    mocked_modules = [
-        # ~ "graph_tool", "igraph", "networkx",
-        "matplotlib", "matplotlib.cm",
-        "matplotlib.lines", "matplotlib.pyplot", "matplotlib.animation",
-        "matplotlib.patches", "matplotlib.path", "matplotlib.markers",
-        "matplotlib.colors", "matplotlib.collections", "svg", "svg.path"
-    ]
-
     mock_objects_modules = [
-        # ~ "graph_tool.spectral", "graph_tool.generation", "graph_tool.util",
-        # ~ "graph_tool.stats", "graph_tool.centrality",
-        # ~ "graph_tool.correlations", "graph_tool.topology",
-        # ~ "graph_tool.draw", "graph_tool.clustering",
         "nest", "shapely", "shapely.affinity", "shapely.geometry", "dxfgrabber"
     ]
 
-    for mod in mocked_modules:
-        sys.modules[mod] = Mock()
     for mod in mock_objects_modules:
         sys.modules[mod] = mock_object
 

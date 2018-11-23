@@ -108,8 +108,7 @@ def set_poisson_input(gids, rate, syn_spec=None):
     return poisson_input
 
 
-def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
-              gids=None, weight_normalization=1.):
+def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
     '''
     Mimick spontaneous release of neurotransmitters, called miniature PSCs or
     "minis" that can occur at excitatory (mEPSCs) or inhibitory (mIPSCs)
@@ -119,6 +118,12 @@ def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
     This Poisson process occurs independently at every synapse of a neuron, so
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
+
+    .. versionchanged:: 1.1
+        Removed optional `weight_fraction` in favour of a compulsory `weight`
+        to avoid problems when synaptic weights need to change.
+        Because of this, `weight_normalization` is no longer necessary and
+        has been removed.
 
     .. versionchanged:: 1.0
         Added `syn_type`, separating the excitatory and inhibitory degrees
@@ -134,43 +139,24 @@ def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
         Network on which the minis should be simulated.
     base_rate : float
         Rate for the Poisson process on one synapse (:math:`\\lambda`), in Hz.
+    weight : float or array of size N
+        Amplitude of a minitature post-synaptic event.
     syn_type : int, optional (default: 1)
         Synaptic type of the noisy connections. By default, mEPSCs are
         generated, by taking into account only the excitatory degrees and
         synaptic weights. To setup mIPSCs, used `syn_type=-1`.
-    weight_fraction : float, optional (default: 0.4)
-        Fraction of a spike-triggered PSC that will be released by a mini.
-    nodes : array-like, optional (default: all nodes)
+    nodes : array-like (size N), optional (default: all nodes)
         NNGT ids of the neurons that should be subjected to minis.
-    gids : array-like container ids, optional (default: all neurons)
+    gids : array-like (size N), optional (default: all neurons)
         NEST gids of the neurons that should be subjected to minis.
-    weight_normalization : float, optional (default: 1.)
-        Normalize the weight.
 
     Note
     ----
     `nodes` and `gids` are not compatible, only one one the two arguments can
     be used in any given call to `set_minis`.
-
-    When using this function, you must compensate the weight using
-    `weight_normalization` when working with quantal or plastic synapses;
-    otherwise the weights will not be correctly tuned.
     '''
-    assert (weight_fraction >= 0. and weight_fraction <= 1.), \
-           "`weight_fraction` must be between 0 and 1."
-    assert network.nest_gid is not None, "Create the NEST network first."
-
-    degrees      = network.get_degrees("in", syn_type=syn_type)
-    weighted_deg = network.get_degrees("in", use_weights=True,
-                                       syn_type=syn_type)
-
-    # get the unique degrees and create one poisson_generator per degree
-    deg_set    = set(degrees)
-    map_deg_pg = {d: i for i, d in enumerate(deg_set)}
-    pgs        = nest.Create("poisson_generator", len(deg_set), _warn=False)
-
-    for d, pg in zip(deg_set, pgs):
-        nest.SetStatus([pg], {"rate": d*base_rate}, _warn=False)
+    assert network.nest_gid is not None, \
+        "Create the NEST network before calling `set_minis`."
 
     # find the target nodes' gids
     if gids is not None and nodes is not None:
@@ -183,11 +169,25 @@ def set_minis(network, base_rate, syn_type=1, weight_fraction=0.4, nodes=None,
     elif nodes is not None:
         gids = network.nest_gid[nodes]
 
+    if nonstring_container(weight):
+        assert len(weight) == len(gids)
+    else:
+        weight = [weight for _ in range(len(gids))]
+
+    # get the unique degrees and create one poisson_generator per degree
+    degrees    = network.get_degrees("in", syn_type=syn_type)
+    deg_set    = set(degrees)
+    map_deg_pg = {d: i for i, d in enumerate(deg_set)}
+    pgs        = nest.Create("poisson_generator", len(deg_set), _warn=False)
+
+    for d, pg in zip(deg_set, pgs):
+        nest.SetStatus([pg], {"rate": d*base_rate}, _warn=False)
+
     # connect
     for i, n in enumerate(nodes):
         gid, d = (gids[i],), degrees[n]
 
-        w  = weighted_deg[n]*weight_fraction*weight_normalization / float(d)
+        w  = weight[i]
         pg = [pgs[map_deg_pg[d]]]
 
         nest.Connect(pg, gid, syn_spec={'weight': w}, _warn=False)
@@ -282,6 +282,8 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
             nodes = network.id_from_nest_gid(gids)
         # store the values in the node attributes
         if key not in ("V_m", "w"):
+            if key not in network.nodes_attributes:
+                network.new_node_attribute(key, "double", val=np.NaN)
             network.set_node_attribute(
                 key, values=state, nodes=nodes, value_type="double")
 
@@ -404,7 +406,8 @@ def _monitor(gids, nest_recorder, params):
 # Saving the activity #
 # ------------------- #
 
-def save_spikes(filename, recorder=None, network=None, **kwargs):
+def save_spikes(filename, recorder=None, network=None, save_positions=True,
+                **kwargs):
     '''
     Plot the monitored activity.
 
@@ -419,6 +422,9 @@ def save_spikes(filename, recorder=None, network=None, **kwargs):
         "spike_detector"s are used.
     network : :class:`~nngt.Network` or subclass, optional (default: None)
         Network which activity will be monitored.
+    save_positions : bool, optional (default: True)
+        Whether to include the position of the neurons in the file; this
+        requires `network` to be provided.
     **kwargs : see :func:`numpy.savetxt`
     '''
     lst_rec = []
@@ -440,15 +446,19 @@ def save_spikes(filename, recorder=None, network=None, **kwargs):
         lst_rec = nest.GetNodes(
             (0,), properties={'model': 'spike_detector'})[0]
 
-    if network is not None and network.is_spatial():
+    if network is not None and network.is_spatial() and save_positions:
+        save_positions = True
         kwargs['header'] += '{}X{}Y'.format(delim, delim)
         if delim in kwargs['fmt']:
             kwargs['fmt'] += '{}%.6f{}%.6f'.format(delim, delim)
+    else:
+        save_positions = False
+
     with open(filename, "wb") as f:
         for rec in lst_rec:
             data = nest.GetStatus([rec], "events")[0]
             if len(data['senders']):
-                if network is not None and network.is_spatial():
+                if save_positions:
                     gids = np.unique(data['senders'])
                     gid_to_id = np.zeros(gids[-1] + 1, dtype=int)
                     for gid in gids:

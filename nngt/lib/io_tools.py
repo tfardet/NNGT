@@ -20,6 +20,7 @@
 
 """ IO tools for NNGT """
 
+import ast
 import codecs
 import logging
 import pickle
@@ -187,8 +188,35 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         if _shapely_support:
             min_x, max_x = float(di_notif['min_x']), float(di_notif['max_x'])
             unit = di_notif['unit']
-            shape = Shape.from_wtk(
+            shape = Shape.from_wkt(
                 di_notif['shape'], min_x=min_x, max_x=max_x, unit=unit)
+            # load areas
+            try:
+                def_areas      = ast.literal_eval(di_notif['default_areas'])
+                def_areas_prop = ast.literal_eval(
+                    di_notif['default_areas_prop'])
+
+                for k in def_areas:
+                    p = {key: float(v) for key, v in def_areas_prop[k].items()}
+                    if "default_area" in k:
+                        shape._areas["default_area"]._prop.update(p)
+                        shape._areas["default_area"].height = p["height"]
+                    else:
+                        a = Shape.from_wkt(def_areas[k], unit=unit)
+                        shape.add_area(a, height=p["height"], name=k,
+                                       properties=p)
+
+                ndef_areas      = ast.literal_eval(
+                                      di_notif['non_default_areas'])
+                ndef_areas_prop = ast.literal_eval(
+                                      di_notif['non_default_areas_prop'])
+                for i in ndef_areas:
+                    p = {k: float(v) for k, v in ndef_areas_prop[i].items()}
+                    a = Shape.from_wkt(ndef_areas[i], unit=unit)
+                    shape.add_area(a, height=p["height"], name=i, properties=p)
+            except KeyError:
+                # backup compatibility with older versions
+                pass
         else:
             _log_message(logger, "WARNING",
                          'A Shape object was present in the file but could '
@@ -399,6 +427,15 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     if graph.is_spatial():
         if _shapely_support:
             additional_notif['shape'] = graph.shape.wkt
+            additional_notif['default_areas'] = \
+                {k: v.wkt for k, v in graph.shape.default_areas.items()}
+            additional_notif['default_areas_prop'] = \
+                {k: v.properties for k, v in graph.shape.default_areas.items()}
+            additional_notif['non_default_areas'] = \
+                {k: v.wkt for k, v in graph.shape.non_default_areas.items()}
+            additional_notif['non_default_areas_prop'] = \
+                {k: v.properties
+                 for k, v in graph.shape.non_default_areas.items()}
             additional_notif['unit'] = graph.shape.unit
             min_x, min_y, max_x, max_y = graph.shape.bounds
             additional_notif['min_x'] = min_x

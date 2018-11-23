@@ -72,6 +72,22 @@ from nest import Disconnect as _disc
 from nest import Create as _cr
 from nest import SetStatus as _setstat
 
+# store old functions
+if not _nngt._old_nest_func:
+    _nngt._old_nest_func["ResetKernel"]  = _rk
+    _nngt._old_nest_func["ResetNetwork"] = _rn
+    _nngt._old_nest_func["Connect"]      = _conn
+    _nngt._old_nest_func["Disconnect"]   = _disc
+    _nngt._old_nest_func["Create"]       = _cr
+    _nngt._old_nest_func["SetStatus"]    = _setstat
+else:
+    _rk      = _nngt._old_nest_func["ResetKernel"]
+    _rn      = _nngt._old_nest_func["ResetNetwork"]
+    _conn    = _nngt._old_nest_func["Connect"]
+    _disc    = _nngt._old_nest_func["Disconnect"]
+    _cr      = _nngt._old_nest_func["Create"]
+    _setstat = _nngt._old_nest_func["SetStatus"]
+
 
 def _new_reset_kernel():
     '''

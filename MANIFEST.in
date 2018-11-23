@@ -3,6 +3,7 @@ include LICENSE.txt
 
 # Include the Cython/C++ files
 recursive-include . *.cpp
+prune nngt/generation/cconnect.cpp
 recursive-include . *.h
 recursive-include . *.pyx
 recursive-include . *.pxd

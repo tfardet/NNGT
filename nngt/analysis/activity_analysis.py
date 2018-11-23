@@ -107,7 +107,7 @@ def get_firing_rate(network=None, spike_detector=None, data=None, nodes=None):
     return _fr_from_data(nodes, data)
 
 
-def total_firing_rate(network=None, spike_detector=None, data=None,
+def total_firing_rate(network=None, spike_detector=None, nodes=None, data=None,
                       kernel_center=0., kernel_std=30., resolution=None,
                       cut_gaussian=5.):
     '''
@@ -152,7 +152,7 @@ def total_firing_rate(network=None, spike_detector=None, data=None,
     times, kernel_size = None, None
     if data is None:
         data, _ = _set_data_nodes(network, data, nodes)
-        data = _set_spike_data(data, spike_detector)
+        data    = _set_spike_data(data, spike_detector)
     # set resolution and kernel properties + generate the times
     if resolution is None:
         resolution = 0.1*kernel_std
@@ -202,6 +202,11 @@ def get_spikes(recorder=None, spike_times=None, senders=None, astype="ssp"):
         through their `spike_times` and the associated `senders`.
     senders : array-like, optional (default: None)
         `senders[i]` corresponds to the neuron which fired at `spike_times[i]`.
+    astype : str, optional (default: "ssp")
+        Format of the returned data. Default is sparse lil_matrix ("ssp")
+        with one row per neuron, otherwise "np" returns a (T, 2) array, with
+        T the number of spikes (the first row being the NEST gid, the second
+        the spike time).
 
     Example
     -------

@@ -22,6 +22,7 @@
 
 import warnings
 import weakref
+import subprocess
 
 import numpy as np
 
@@ -107,6 +108,7 @@ class _SpikeAnimator(anim.TimedAnimation):
 
             dt = self.times[1] - self.times[0]
             self.simtime = self.times[-1] - self.times[0]
+            self.dt = dt
 
             # generate the spike-rate
             if make_rate:
@@ -322,18 +324,32 @@ class _SpikeAnimator(anim.TimedAnimation):
           type ``ffmpeg -codecs | grep EV`` for available codecs.
         * Imagemagick is required for 'imagemagick' encoder.
         '''
+        print(interval, num_frames)
         if interval is not None and num_frames is not None:
             raise InvalidArgument("Incompatible arguments `interval` and "
                                   "`num_frames` provided. Choose one.")
+        elif interval is None and num_frames is None:
+            self.increment  = 1
+            self.save_count = self.num_frames
         elif interval is None:
             self.increment = max(1, int(self.num_frames / num_frames))
             self.save_count = num_frames
         else:
             self.increment = interval
             self.save_count = int(self.num_frames / interval)
+        start_frame = 0
+        stop_frame  = self.save_count
+        if start is not None:
+            start_frame = int(start / self.dt / self.increment) + 1
+            self.spks.set_xlim(left=start)
+            self.second.set_xlim(left=start)
+        if stop is not None:
+            stop_frame = int(stop / self.dt / self.increment) + 1
+            self.spks.set_xlim(right=stop)
+            self.second.set_xlim(right=stop)
         _save_movie(
             self, filename, fps, video_encoder, codec, bitrate, metadata,
-            self.fig.dpi)
+            self.fig.dpi, start_frame, stop_frame)
 
 
 class Animation2d(_SpikeAnimator, anim.FuncAnimation):
@@ -475,7 +491,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
             yield i
 
     def _draw(self, framedata):
-        i = framedata
+        i = int(framedata)
 
         head = i - 1
         head_slice = ((self.times > (self.times[i] - self.trace))
@@ -551,7 +567,8 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
     def __init__(self, source, network, resolution=1., start=0.,
                  timewindow=None, trace=5., show_spikes=False,
                  sort_neurons=None, decimate_connections=False,
-                 interval=50, repeat=True, active_size=None, **kwargs):
+                 interval=50, repeat=True, resting_size=None, active_size=None,
+                 **kwargs):
         '''
         Generate a SubplotAnimation instance to plot a network activity.
 
@@ -615,7 +632,9 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         bbox = self.env.get_window_extent().transformed(
             self.fig.dpi_scale_trans.inverted())
         area_px = bbox.width * bbox.height * self.fig.dpi**2
-        n_size = max(2, 0.5*np.sqrt(area_px/self.num_neurons))  # neuron size
+        # neuron size
+        n_size = (resting_size if resting_size is not None
+                  else max(2, 0.5*np.sqrt(area_px/self.num_neurons)))
         if active_size is None:
             active_size = n_size + 2
         pos = network.get_positions()  # positions of the neurons
@@ -668,7 +687,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             yield i
 
     def _draw(self, framedata):
-        i = framedata
+        i = int(framedata)
         if i == 0:  # initialize neurons and connections
             self.line_neurons.set_data(self.x, self.y)
             #~ self.line_connections.set_data(self.x_conn, self.y_conn)
@@ -739,7 +758,14 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             l.set_data([], [])
         # initialize the neurons and connections between neurons
         draw_network(self.network(), ncolor='k', axis=self.env, show=False,
-                     tight=False, **self.kwargs)
+                     simple_nodes=True, decimate=-1, tight=False, **self.kwargs)
+        if self.network().is_spatial():
+            shape = self.network().shape
+            xmin, ymin, xmax, ymax = shape.bounds
+            dx = 0.02*(xmax-xmin)
+            dy = 0.02*(ymax-ymin)
+            self.env.set_xlim(xmin-dx, xmax+dx)
+            self.env.set_ylim(ymin-dy, ymax+dy)
         self.line_neurons = self.env.lines[0]
         #~ self.line_neurons.set_data(self.x, self.y)
         #~ num_edges = self.network().edge_nb()
@@ -807,15 +833,45 @@ def _convert_axis(axis_name):
 
 
 def _save_movie(animation, filename, fps, video_encoder, codec, bitrate,
-                metadata, dpi):
-    if metadata is None:
-        metadata = {"artist": "NNGT"}
-    encoder = 'ffmpeg' if video_encoder == 'html5' else video_encoder
-    Writer = anim.writers[encoder]
-    if video_encoder == 'html5':
-        codec = 'libx264'
-    writer = Writer(codec=codec, fps=fps, bitrate=bitrate, metadata=metadata)
-    animation.save(filename, writer=writer, dpi=dpi)
+                metadata, dpi, start, stop):
+    if filename.endswith('.mp4') or filename.endswith('.avi'):
+        ffcodec = 'h264' if filename.endswith('.mp4') else 'xvid'
+        fig = animation.fig
+        canvas_width, canvas_height = fig.get_size_inches()*fig.dpi
+        # Open an ffmpeg process
+        cmdstring = ('ffmpeg', 
+                     '-y', '-r', str(fps), # overwrite, 1fps
+                     '-s', '%dx%d' % (canvas_width, canvas_height), # size of image string
+                     '-pix_fmt', 'argb', # format
+                     '-f', 'rawvideo',  '-i', '-', # tell ffmpeg to expect raw video from the pipe
+                     '-vcodec', ffcodec, filename) # output encoding
+        p = subprocess.Popen(cmdstring, stdin=subprocess.PIPE)
+
+        # Draw frames and write to the pipe
+        for i in range(start, stop):
+            frame = int(i*animation.increment)
+            # draw the frame
+            animation._draw(frame)
+            fig.canvas.draw()
+
+            # extract the image as an ARGB string
+            string = fig.canvas.tostring_argb()
+
+            # write to pipe
+            p.stdin.write(string)
+
+        # Finish up
+        p.communicate()
+        animation._init_draw()
+    else:
+        if metadata is None:
+            metadata = {"artist": "NNGT"}
+        encoder = 'ffmpeg' if video_encoder == 'html5' else video_encoder
+        Writer = anim.writers[encoder]
+        if video_encoder == 'html5':
+            codec = 'libx264'
+        writer = Writer(codec=codec, fps=fps, bitrate=bitrate, metadata=metadata)
+        animation.save(filename, writer=writer, dpi=dpi)
 
 
 def _vector_field(q, dotx_func, doty_func, x, y, Is):

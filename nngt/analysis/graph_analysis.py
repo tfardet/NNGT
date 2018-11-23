@@ -135,7 +135,8 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='bayes',
     ebetw : :class:`numpy.array`
         bins for edge betweenness
     '''
-    ia_nbetw, ia_ebetw = graph.get_betweenness(use_weights)
+    ia_nbetw, ia_ebetw = graph.get_betweenness(
+        btype="both", use_weights=use_weights)
     if nodes is not None:
         ia_nbetw = ia_nbetw[nodes]
     ra_nbins, ra_ebins = None, None
@@ -189,9 +190,10 @@ def local_clustering(graph, nodes=None):
         Nodes for which the local clustering coefficient should be computed.
     '''
     if nngt._config["backend"] == "igraph":
-        return graph.transitivity_local_undirected(nodes)
-    else:
-        return nngt.analyze_graph["local_clustering"](graph, nodes)
+        return np.array(graph.transitivity_local_undirected(nodes))
+    elif nngt._config["backend"] == "networkx":
+        raise NotImplementedError("Will soon be available for NX.")
+    return nngt.analyze_graph["local_clustering"](graph, nodes)
 
 
 # ---------------- #
@@ -307,7 +309,7 @@ def num_wcc(graph, listing=False):
     if nngt._config["backend"] == "graph-tool":
         _, lst_histo = nngt.analyze_graph["wcc"](graph, directed=False)
     elif nngt._config["backend"] == "igraph":
-        lst_histo = graphclusters("WEAK")
+        lst_histo = graph.clusters("WEAK")
         lst_histo = [cluster for cluster in lst_histo]
     else:
         lst_histo = [comp for comp in nngt.analyze_graph["wcc"](graph)]
@@ -430,7 +432,7 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     centralities : :class:`numpy.ndarray`
         The subgraph centrality of each node.
     '''
-    adj_mat = graph.adjacency_matrix(types=False, weights=weights)
+    adj_mat = graph.adjacency_matrix(types=False, weights=weights).tocsc()
     centralities = None
     if normalize == "max_centrality":
         centralities = spl.expm(adj_mat / adj_mat.max()).diagonal()
@@ -460,6 +462,7 @@ def node_attributes(network, attributes, nodes=None, data=None):
         Attributes which should be returned, among:
         * "betweenness"
         * "clustering"
+        * "closeness"
         * "in-degree", "out-degree", "total-degree"
         * "subgraph_centrality"
     nodes : list, optional (default: all nodes)
@@ -606,7 +609,7 @@ def binning(x, bins='bayes', log=False):
 
     if bins == 'bayes':
         return bayesian_blocks(x)
-    elif nonstring_container(bins):
+    elif nonstring_container(bins) or bins == "auto":
         return bins
     elif is_integer(bins):
         if log:
