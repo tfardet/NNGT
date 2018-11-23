@@ -1,8 +1,8 @@
 language: generic
 
-#For Ubuntu Trusty (14.04 LTS)
+#For Ubuntu Xenial (16.04 LTS)
 sudo: required
-dist: trusty
+dist: xenial
 
 # add toolchains for newer, C++14 supporting gcc-6
 addons:
@@ -10,11 +10,11 @@ addons:
     sources:
     - ubuntu-toolchain-r-test
     packages:
-    - gcc-6
-    - g++-6
+    - gcc-8
+    - g++-8
 
 env:
-    - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+    - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 
 matrix:
     include:
