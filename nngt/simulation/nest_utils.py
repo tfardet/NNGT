@@ -119,13 +119,15 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
 
-    .. versionchanged:: 1.0
-        Added `syn_type`, separating the excitatory and inhibitory degrees
-        and weights.
+    .. versionchanged:: 1.1
         Removed optional `weight_fraction` in favour of a compulsory `weight`
         to avoid problems when synaptic weights need to change.
         Because of this, `weight_normalization` is no longer necessary and
         has been removed.
+
+    .. versionchanged:: 1.0
+        Added `syn_type`, separating the excitatory and inhibitory degrees
+        and weights.
 
     .. versionchanged:: 0.8
         Added `nodes`, removed `syn_model` and `syn_params`.
