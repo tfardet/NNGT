@@ -20,7 +20,7 @@
 
 """ GraphObject for subclassing the libraries graphs """
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from copy import deepcopy
 from abc import ABCMeta, abstractmethod, abstractproperty
 from six import add_metaclass
@@ -49,32 +49,32 @@ class BaseProperty(dict):
     def __init__(self, parent):
         self.parent = ref(parent)
         self._num_values_set = {}
-        
+
     def value_type(self, key=None):
         if key is not None:
             return super(BaseProperty, self).__getitem__(key)
         else:
-            return {k:super(BaseProperty, self).__getitem__(k) for k in self}
+            return {k: super(BaseProperty, self).__getitem__(k) for k in self}
 
     # redefine dict values/items to use the __getitem__ that will be
     # overwritten by the child classes
 
     def values(self):
-        return [ self[k] for k in self ]
-    
+        return [self[k] for k in self]
+
     def itervalues(self):
-        return ( self[k] for k in self )
-    
+        return (self[k] for k in self)
+
     def items(self):
-        return [ (k, self[k]) for k in self ]
-    
+        return [(k, self[k]) for k in self]
+
     def iteritems(self):
-        return ( (k, self[k]) for k in self )
+        return ((k, self[k]) for k in self)
 
 
-# --------- #
+# -------------- #
 # GraphInterface #
-# --------- #
+# -------------- #
 
 @add_metaclass(ABCMeta)
 class GraphInterface(nngt._config["graph"]):
@@ -308,7 +308,7 @@ class BaseGraph(GraphInterface):
     def __init__(self, nodes=0, weighted=True, directed=True,
                  g=None, **kwargs):
         ''' Initialized independent graph '''
-        self._nodes    = []
+        self._nodes    = set()
         self._out_deg  = []
         self._in_deg   = []
         self._edges    = OrderedDict()
@@ -409,7 +409,7 @@ class BaseGraph(GraphInterface):
                 [i for i in range(num_nodes, num_nodes + n)])
             self._in_deg.extend([0 for _ in range(n)])
             self._out_deg.extend([0 for _ in range(n)])
-        self._nodes.extend(nodes)
+        self._nodes.update(nodes)
 
         old_mat = self._adj_mat.tocoo()
         if self.edge_nb():
@@ -479,6 +479,12 @@ class BaseGraph(GraphInterface):
             attributes = {}
         # check that the edge does not already exist
         edge = (source, target)
+
+        if source not in self._nodes:
+            raise ValueError("There is no node {}.".format(source))
+        if target not in self._nodes:
+            raise ValueError("There is no node {}.".format(target))
+
         if edge not in self._edges:
             edge_id                = len(self._edges)
             self._edges[edge]      = edge_id
@@ -523,7 +529,7 @@ class BaseGraph(GraphInterface):
             for each connection (synaptic strength in NEST).
         check_edges : bool, optional (default: True)
             Check for duplicate edges and self-loops.
-            
+
         @todo: add example
 
         Returns
@@ -533,8 +539,13 @@ class BaseGraph(GraphInterface):
         #check attributes
         if attributes is None:
             attributes = {}
+
+        assert self._nodes.issuperset(np.ravel(edge_list)), \
+            "Some nodes in `edge_list` do not exist in the network."
+
         initial_edges = self.edge_nb()
-        new_attr = None
+        new_attr      = None
+
         if check_edges:
             new_attr = {key: [] for key in attributes}
             eweight_list = OrderedDict()
@@ -614,26 +625,26 @@ class BaseGraph(GraphInterface):
         When using MPI, returns only the degree related to local edges.
         '''
         if node_list is None:
-            node_list = self._nodes
+            node_list = slice(self.node_nb())
 
-        degrees = np.zeros(len(node_list))
+        degrees = np.zeros(self.node_nb())
 
         if "weight" in self._eattr and use_weights:
             if not self._directed:
-                degrees += self._adj_mat.sum(axis=1).A1
+                degrees += self._adj_mat.sum(axis=1).A1[node_list]
             else:
                 if deg_type in ("in", "total"):
-                    degrees += self._adj_mat.sum(axis=0).A1
+                    degrees += self._adj_mat.sum(axis=0).A1[node_list]
                 if deg_type in ("out", "total"):
-                    degrees += self._adj_mat.sum(axis=1).A1
+                    degrees += self._adj_mat.sum(axis=1).A1[node_list]
         else:
             if not self._directed:
-                degrees += self._in_deg
+                degrees += self._in_deg[node_list]
             else:
                 if deg_type in ("in", "total"):
-                    degrees += self._in_deg
+                    degrees += self._in_deg[node_list]
                 if deg_type in ("out", "total"):
-                    degrees += self._out_deg
+                    degrees += self._out_deg[node_list]
         return degrees
 
     def betweenness_list(self, btype="both", use_weights=False, as_prop=False,

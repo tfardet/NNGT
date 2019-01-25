@@ -64,8 +64,9 @@ db_name    = main
 
 # which messages are printed? (see logging module levels:
 # https://docs.python.org/2/library/logging.html#levels)
+# set to INFO or below to add the config messages on import
 # set to WARNING or above to remove the messages on import
-log_level = INFO
+log_level = WARNING
 
 # write log to file?
 log_to_file = True

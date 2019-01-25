@@ -775,7 +775,7 @@ class Graph(nngt.core.GraphObject):
         Note
         ----
         The attributes values are ordered as the edges in
-        :func:`~nngt.Graph.edges_array`.
+        :func:`~nngt.Graph.edges_array` if `edges` is None..
         '''
         if name is not None and edges is not None:
             if isinstance(edges, slice):
@@ -1075,8 +1075,9 @@ class SpatialGraph(Graph):
     #-------------------------------------------------------------------------#
     # Constructor, destructor, attributes    
     
-    def __init__(self, nodes=0, name="Graph", weighted=True, directed=True,
-                  from_graph=None, shape=None, positions=None, **kwargs):
+    def __init__(self, nodes=0, name="SpatialGraph", weighted=True,
+                 directed=True, from_graph=None, shape=None, positions=None,
+                 **kwargs):
         '''
         Initialize SpatialClass instance.
         .. todo::
@@ -1625,10 +1626,11 @@ class SpatialNetwork(Network, SpatialGraph):
     #-------------------------------------------------------------------------#
     # Constructor, destructor, and attributes
     
-    def __init__(self, population, name="Graph", weighted=True, directed=True,
-                 shape=None, from_graph=None, positions=None, **kwargs):
+    def __init__(self, population, name="SpatialNetwork", weighted=True,
+                 directed=True, shape=None, from_graph=None, positions=None,
+                 **kwargs):
         '''
-        Initialize Graph instance
+        Initialize SpatialNetwork instance
 
         Parameters
         ----------

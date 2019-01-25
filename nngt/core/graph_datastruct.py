@@ -407,6 +407,18 @@ class NeuralPop(OrderedDict):
         return self._size
 
     @property
+    def ids(self):
+        '''
+        Return all the ids of the nodes inside the population.
+
+        .. versionadded:: 1.2
+        '''
+        ids = []
+        for g in self.values():
+            ids.extend(g.ids)
+        return ids
+
+    @property
     def parent(self):
         '''
         Parent :class:`~nngt.Network`, if it exists, otherwise ``None``.

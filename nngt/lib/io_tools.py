@@ -24,6 +24,7 @@ import ast
 import codecs
 import logging
 import pickle
+import sys
 import weakref
 
 import numpy as np
@@ -396,7 +397,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
                               "`separator` and `secondary`.")
     # temporarily disable numpy cut threshold to save string
     old_threshold = np.get_printoptions()['threshold']
-    np.set_printoptions(threshold=np.NaN)
+    np.set_printoptions(threshold=sys.maxsize)
     # data
     if attributes is None:
         attributes = [a for a in graph.edges_attributes if a != "bweight"]
