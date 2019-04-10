@@ -324,7 +324,6 @@ class _SpikeAnimator(anim.TimedAnimation):
           type ``ffmpeg -codecs | grep EV`` for available codecs.
         * Imagemagick is required for 'imagemagick' encoder.
         '''
-        print(interval, num_frames)
         if interval is not None and num_frames is not None:
             raise InvalidArgument("Incompatible arguments `interval` and "
                                   "`num_frames` provided. Choose one.")

@@ -139,7 +139,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         for rec in lst_rec:
             gids.extend(nest.GetStatus([rec])[0]["events"]["senders"])
         gids = np.unique(gids)
-    num_group = len(network.population) if network is not None else 1
+    num_group = len(lst_rec) if network is None else len(network.population)
     # sorting
     sorted_neurons = np.array([])
     if len(gids):
@@ -168,7 +168,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         sorted_neurons, attr = _sort_neurons(
             "space", gids, network, data=None, return_attr=True)
     # spikes plotting
-    colors = palette(np.linspace(0, 1, num_group))
+    colors  = palette(np.linspace(0, 1, num_group))
     num_raster, num_detec, num_meter = 0, 0, 0
     fignums = fignum if isinstance(fignum, dict) else {}
     decim = []
@@ -469,6 +469,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                     old_ax.change_geometry(num_axes + 1, 1, i+1)
                 ax = fig.add_subplot(num_axes + 1, 1, num_axes + 1)
             if network is not None:
+                gg = [g for g in network.population.values()]
                 for m, (k, v) in zip(markers, network.population.items()):
                     keep = np.where(
                         np.in1d(senders, network.nest_gid[v.ids]))[0]

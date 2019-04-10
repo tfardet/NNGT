@@ -182,9 +182,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     nsize *= 0.01 * size[0]
     if isinstance(esize, str) and e:
         # @todo check why this "if" is here 
-        if isinstance(ecolor, str):
-            raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
-                               "and ecolor='{}'.".format(ecolor))
+        # ~ if isinstance(ecolor, str):
+            # ~ raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
+                               # ~ "and ecolor='{}'.".format(ecolor))
         esize  = _edge_size(network, esize)
         esize *= max_esize
         esize[esize < threshold] = 0.

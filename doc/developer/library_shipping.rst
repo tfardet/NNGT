@@ -20,7 +20,8 @@ provided by https://github.com/pypa/manylinux
     docker pull quay.io/pypa/manylinux1_x86_64
     docker start -i dockerID
 
-Once in the container, I wrote an automatic install file to build NNGT
+Once in the container, I wrote an automatic install file (``build_wheels.sh``)
+to build NNGT
 
     #!/bin/bash
     set -e -x
@@ -28,7 +29,7 @@ Once in the container, I wrote an automatic install file to build NNGT
     # Compile wheels
     for PYBIN in /opt/python/*/bin; do
         "${PYBIN}/pip" install -r requirements.txt
-        "${PYBIN}/pip" wheel .. -w wheelhouse/
+        "${PYBIN}/pip" wheel NNGT/ -w wheelhouse/
     done
 
     # Bundle external shared libraries into the wheels
@@ -36,9 +37,23 @@ Once in the container, I wrote an automatic install file to build NNGT
         auditwheel repair "$whl" -w wheelhouse/
     done
 
-save this as ``build_wheels.sh``, place it into a ``manylinux`` folder inside
-the main ``NNGT`` folder, cd into it and create a ``wheelhouse`` folder, then
+associated to a ``requirements.txt`` file
+
+    scipy
+    networkx
+    shapely
+    dxfgrabber
+    svg.path
+    matplotlib
+
+Save these as on the same level as the root ``NNGT`` folder (the one containing
+the ``setup.py``), and create a ``wheelhouse`` folder also next to it, then
 just run ``build_wheels.sh``.
+
+Once the "repaired" wheels have been saved, you can extract them from the
+docker container using
+
+    
 
 NB: unfortunately one must remove manually all unnecessary files from the
 wheels before running the build to prevent them from being included...
