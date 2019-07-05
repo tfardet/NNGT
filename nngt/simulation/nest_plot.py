@@ -4,17 +4,17 @@
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -48,15 +48,18 @@ logger = logging.getLogger(__name__)
 # --------------------- #
 
 def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
-                  axis=None, show=False, limits=None, hist=True, title=None,
-                  fignum=None, label=None, sort=None, average=False,
+                  axis=None, show=False, limits=None, histogram=False,
+                  title=None, fignum=None, label=None, sort=None, average=False,
                   normalize=1., decimate=None, transparent=True):
     '''
     Plot the monitored activity.
 
+    .. versionchanged:: 1.2
+        Switched `hist` to `histogram` and default value to False.
+
     .. versionchanged:: 1.0.1
         Added `axis` parameter, restored missing `fignum` parameter.
-    
+
     Parameters
     ----------
     gid_recorder : tuple or list of tuples, optional (default: None)
@@ -74,7 +77,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         over `fignum`.
     show : bool, optional (default: False)
         Whether to show the plot right away or to wait for the next plt.show().
-    hist : bool, optional (default: True)
+    histogram : bool, optional (default: False)
         Whether to display the histogram when plotting spikes rasters.
     limits : tuple, optional (default: None)
         Time limits of the plot (if not specified, times of first and last
@@ -215,7 +218,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             l = raster_plot(times, sorted_ids, color=c, show=False,
                             limits=limits, sort=sort, fignum=fnum, axis=axis,
                             decimate=decim[num_raster], sort_attribute=attr,
-                            network=network, transparent=transparent)
+                            network=network, histogram=histogram,
+                            transparent=transparent,
+                            hist_ax=axes.get('histogram', None))
             num_raster += 1
             if l:
                 fig_raster = l[0].figure.number
@@ -223,18 +228,22 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 axes['spike_detector'] = l[0].axes
                 labels["spike_detector"].append(lbl)
                 lines["spike_detector"].extend(l)
+                if histogram:
+                    axes['histogram'] = l[1].axes
         elif "detector" in str(info["model"]):
             c = colors[num_detec]
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
             l = raster_plot(times, sorted_ids, fignum=fnum, color=c, axis=axis,
-                            show=False, hist=hist, limits=limits)
+                            show=False, histogram=histogram, limits=limits)
             if l:
                 fig_detect = l[0].figure.number
                 num_detec += 1
                 fignums[info["model"]] = fig_detect
                 labels[info["model"]].append(lbl)
                 lines[info["model"]].extend(l)
+                if histogram:
+                    axes['histogram'] = l[1].axes
         else:
             da_time  = info["events"]["times"]
             # prepare axis setup
@@ -309,8 +318,10 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         dt   = t_max - t_min
         didx = idx_max - idx_min
         pc   = 0.02
-        ax.set_xlim([t_min - pc*dt, t_max + pc*dt])
-        ax.set_ylim([idx_min - pc*didx, idx_max + pc*didx])
+        if not np.any(np.isinf((t_max, t_min))):
+            ax.set_xlim([t_min - pc*dt, t_max + pc*dt])
+        if not np.any(np.isinf((idx_min, idx_max))):
+          ax.set_ylim([idx_min - pc*didx, idx_max + pc*didx])
     for recorder in fignums:
         fig = plt.figure(fignums[recorder])
         if title is not None:
@@ -322,17 +333,20 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     return lines
 
 
-def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
-                num_bins=1000, color="b", decimate=None, axis=None,
-                fignum=None, label=None, show=True, sort=None,
-                sort_attribute=None, network=None, transparent=True):
+def raster_plot(times, senders, limits=None, title="Spike raster",
+                histogram=False, num_bins=1000, color="b", decimate=None,
+                axis=None, fignum=None, label=None, show=True, sort=None,
+                sort_attribute=None, network=None, transparent=True, **kwargs):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
 
+    .. versionchanged:: 1.2
+        Switched `hist` to `histogram`.
+
     .. versionchanged:: 1.0.1
         Added `axis` parameter.
-    
+
     Parameters
     ----------
     times : list or :class:`numpy.ndarray`
@@ -344,7 +358,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         spike).
     title : string, optional (default: 'Spike raster')
         Title of the raster plot.
-    hist : bool, optional (default: True)
+    histogram : bool, optional (default: True)
         Whether to plot the raster's histogram.
     num_bins : int, optional (default: 1000)
         Number of bins for the histogram.
@@ -362,16 +376,21 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
         Label the current data.
     show : bool, optional (default: True)
         Whether to show the plot right away or to wait for the next plt.show().
-    
+
     Returns
     -------
     lines : list of :class:`matplotlib.lines.Line2D`
         Lines containing the data that was plotted.
     """
     import matplotlib.pyplot as plt
+
     num_neurons = len(np.unique(senders))
     lines = []
-    kwargs = {} if label is None else {'label': label}
+
+    mpl_kwargs = {k: v for k, v in kwargs.items() if k != 'hist_ax'}
+
+    if label is None:
+        mpl_kwargs['label'] = label
 
     # decimate if necessary
     if decimate is not None:
@@ -391,15 +410,20 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
 
         delta_t = 0.01*(times[-1]-times[0])
 
-        if hist:
-            num_axes = len(fig.axes)
-            for i, old_ax in enumerate(fig.axes):
-                old_ax.change_geometry(num_axes + 2, 1, i+1)
-            ax1 = fig.add_subplot(num_axes + 2, 1, num_axes + 1)
-            ax2 = fig.add_subplot(num_axes + 2, 1, num_axes + 2, sharex=ax1)
+        if histogram:
+            ax1, ax2 = None, None
+            if kwargs.get("hist_ax", None) is None:
+                num_axes = len(fig.axes)
+                for i, old_ax in enumerate(fig.axes):
+                    old_ax.change_geometry(num_axes + 2, 1, i+1)
+                ax1 = fig.add_subplot(num_axes + 2, 1, num_axes + 1)
+                ax2 = fig.add_subplot(num_axes + 2, 1, num_axes + 2, sharex=ax1)
+            else:
+                ax1 = axis
+                ax2 = kwargs["hist_ax"]
             lines.extend(ax1.plot(
                 times, senders, c=color, marker="o", linestyle='None',
-                mec="k", mew=0.5, ms=4, **kwargs))
+                mec="k", mew=0.5, ms=4, **mpl_kwargs))
             ax1_lines = ax1.lines
             if len(ax1_lines) > 1:
                 t_max = max(ax1_lines[0].get_xdata().max(),times[-1])
@@ -420,9 +444,9 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
             # height = rate in Hz, knowing that t is in ms
             heights = 1000*np.concatenate(([0],n,[0]))/(num_neurons*bin_width)
             height = np.repeat(0, len(heights)) if bin_width == 0. else heights
-            lines = ax2.patches
-            if lines:
-                data = lines[-1].get_xy()
+            hist_lines = ax2.patches
+            if hist_lines:
+                data = hist_lines[-1].get_xy()
                 bottom = data[:,1]
                 if limits is None:
                     old_bins = data[:,0]
@@ -449,11 +473,11 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                     bottom = bottom[:-1]
                 #~ x,y1,y2 = _fill_between_steps(t_bins,heights,bottom[::2], h_align='left')
                 #~ x,y1,y2 = _fill_between_steps(t_bins[:-1],heights+bottom[::2], bottom[::2], h_align='left')
-                ax2.fill_between(t_bins,heights+bottom, bottom, color=color)
+                lines.append(ax2.fill_between(t_bins, heights+bottom, bottom, color=color))
             else:
                 #~ x,y1,_ = _fill_between_steps(t_bins,heights, h_align='left')
                 #~ x,y1,_ = _fill_between_steps(t_bins[:-1],heights)
-                ax2.fill(t_bins,heights, color=color)
+                lines.append(ax2.fill_between(t_bins, heights, 0, color=color))
             yticks = [int(x) for x in np.linspace(0,int(max(heights)*1.1)+5,4)]
             ax2.set_yticks(yticks)
             ax2.set_ylabel("Rate (Hz)")
@@ -474,17 +498,17 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
                         np.in1d(senders, network.nest_gid[v.ids]))[0]
                     if len(keep):
                         if label is None:
-                            kwargs['label'] = k
+                            mpl_kwargs['label'] = k
                         lines.extend(ax.plot(
                             times[keep], senders[keep], c=color, marker=m,
-                            ls='None', mec='k', mew=0.5, ms=4, **kwargs))
+                            ls='None', mec='k', mew=0.5, ms=4, **mpl_kwargs))
                         if 'inh' in k:
                             c_rgba = ColorConverter().to_rgba(color, alpha=0.5)
                             lines[-1].set_markerfacecolor(c_rgba)
             else:
                 lines.extend(ax.plot(
                     times, senders, c=color, marker="o", linestyle='None',
-                    mec="k", mew=0.5, ms=4, **kwargs))
+                    mec="k", mew=0.5, ms=4, **mpl_kwargs))
             ax.set_ylabel(ylabel)
             ax.set_xlabel(xlabel)
             if limits is not None:
@@ -512,7 +536,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster", hist=False,
 def _fill_between_steps(x, y1, y2=0, h_align='mid'):
     '''
     Fills a hole in matplotlib: fill_between for step plots.
-    
+
     Parameters :
     ------------
     x : array-like
