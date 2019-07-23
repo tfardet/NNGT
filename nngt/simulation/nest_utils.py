@@ -4,17 +4,17 @@
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -59,7 +59,7 @@ __all__ = [
 def set_noise(gids, mean, std):
     '''
     Submit neurons to a current white noise.
-    
+
     Parameters
     ----------
     gids : tuple
@@ -68,7 +68,7 @@ def set_noise(gids, mean, std):
         Mean current value.
     std : float
         Standard deviation of the current
-    
+
     Returns
     -------
     noise : tuple
@@ -84,9 +84,9 @@ def set_poisson_input(gids, rate, syn_spec=None):
     '''
     Submit neurons to a Poissonian rate of spikes.
 
-    .. versionchanged :: 0.9
+    .. versionchanged:: 0.9
         Added `syn_spec` parameter.
-    
+
     Parameters
     ----------
     gids : tuple
@@ -96,7 +96,7 @@ def set_poisson_input(gids, rate, syn_spec=None):
     syn_spec : dict, optional (default: static synapse with weight 1)
         Properties of the connection between the ``poisson_generator`` object
         and the target neurons.
-    
+
     Returns
     -------
     poisson_input : tuple
@@ -196,7 +196,7 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
 def set_step_currents(gids, times, currents):
     '''
     Set step-current excitations
-    
+
     Parameters
     ----------
     gids : tuple
@@ -205,9 +205,9 @@ def set_step_currents(gids, times, currents):
         List of the times where the current will change (by default the current
         generator is initiated at I=0. for t=0.)
     currents : list or :class:`numpy.ndarray`
-        List of the new current value after the associated time value in 
+        List of the new current value after the associated time value in
         `times`.
-    
+
     Returns
     -------
     noise : tuple
@@ -241,7 +241,7 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
         If provided, only the neurons belonging to these groups will have their
         properties randomized.
     nodes : array-like, optional (default: all neurons)
-        NNGT ids of the neurons that will have their status randomized. 
+        NNGT ids of the neurons that will have their status randomized.
     make_nest : bool, optional (default: False)
         If ``True`` and network has not been converted to NEST, automatically
         generate the network, else raises an exception.
@@ -412,7 +412,7 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
     Plot the monitored activity.
 
     .. versionadded:: 0.7
-    
+
     Parameters
     ----------
     filename : str
@@ -473,4 +473,4 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
                 s = BytesIO()
                 np.savetxt(s, data, **kwargs)
                 f.write(s.getvalue())
-            
+

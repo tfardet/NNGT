@@ -4,17 +4,17 @@
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------- #
 
 class BaseProperty(dict):
-    
+
     def __init__(self, parent):
         self.parent = ref(parent)
         self._num_values_set = {}
@@ -78,13 +78,13 @@ class BaseProperty(dict):
 
 @add_metaclass(ABCMeta)
 class GraphInterface(nngt._config["graph"]):
-    
+
     #-------------------------------------------------------------------------#
     # Class methods and attributes
 
     nattr_class = None
     eattr_class = None
-    
+
     @classmethod
     def to_graph_object(cls, obj, weighted=True, directed=True):
         obj.__class__ = cls
@@ -97,7 +97,7 @@ class GraphInterface(nngt._config["graph"]):
         for i, edge in enumerate(edges):
             obj._edges[tuple(edge)] = i
         return obj
-    
+
     #-------------------------------------------------------------------------#
     # Shared properties methods
 
@@ -113,7 +113,7 @@ class GraphInterface(nngt._config["graph"]):
     @property
     def eproperties(self):
         return self._eattr
-         
+
     def remove_edge(self, edge):
         raise NotImplementedError(
             "This function has been removed because it makes using edge "
@@ -123,7 +123,7 @@ class GraphInterface(nngt._config["graph"]):
         raise NotImplementedError(
             "This function has been removed because it makes using node"
             "properties too complicated.")
-        
+
     def adjacency_matrix(self, types=True, weights=True):
         '''
         Return the graph adjacency matrix.
@@ -143,7 +143,7 @@ class GraphInterface(nngt._config["graph"]):
 
         Returns
         -------
-        mat : :class:`scipy.sparse.csr` matrix
+        mat : :class:`scipy.sparse.csr_matrix` matrix
             The adjacency matrix of the graph.
         '''
         weights = "weight" if weights is True else weights
@@ -155,14 +155,14 @@ class GraphInterface(nngt._config["graph"]):
         elif types and 'type' in self.edges_attributes:
             raise NotImplementedError()
         return mat
-    
+
     #-------------------------------------------------------------------------#
     # Properties and methods to implement
-    
+
     #~ @abstractmethod
     #~ def inhibitory_subgraph(self):
         #~ pass
-    #~ 
+    #~
     #~ @abstractmethod
     #~ def excitatory_subgraph(self, n=1, ntype=1):
         #~ pass
@@ -266,7 +266,7 @@ class GraphInterface(nngt._config["graph"]):
                         v = np.repeat(v, self.edge_nb())
                     self._eattr.new_attribute(attributes["names"][i],
                                               attributes["types"][i], values=v)
-        
+
     @abstractmethod
     def node_nb(self):
         pass
@@ -274,7 +274,7 @@ class GraphInterface(nngt._config["graph"]):
     @abstractmethod
     def edge_nb(self):
         pass
-    
+
     @abstractmethod
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         pass
@@ -282,7 +282,7 @@ class GraphInterface(nngt._config["graph"]):
     @abstractmethod
     def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
         pass
-    
+
     @abstractmethod
     def neighbours(self, node, mode="all"):
         pass
@@ -301,9 +301,9 @@ class BaseGraph(GraphInterface):
     Minimal implementation of the GraphObject, which does not rely on any
     graph-library.
     '''
-    
+
     #-------------------------------------------------------------------------#
-    # Constructor and instance properties        
+    # Constructor and instance properties
 
     def __init__(self, nodes=0, weighted=True, directed=True,
                  g=None, **kwargs):
@@ -370,7 +370,7 @@ class BaseGraph(GraphInterface):
         2-tuple.
         '''
         return np.array(list(self._edges.keys()), dtype=int)
-    
+
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''
@@ -455,7 +455,7 @@ class BaseGraph(GraphInterface):
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
         Adding a connection to the graph, with optional properties.
-        
+
         Parameters
         ----------
         source : :class:`int/node`
@@ -517,7 +517,7 @@ class BaseGraph(GraphInterface):
         .. warning ::
             This function currently does not check for duplicate edges between
             the existing edges and the added ones, but only inside `edge_list`!
-        
+
         Parameters
         ----------
         edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
@@ -590,7 +590,7 @@ class BaseGraph(GraphInterface):
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=new_attr)
         return edge_list
-    
+
     def clear_all_edges(self):
         self._edges   = OrderedDict()
         self._out_deg = [0 for _ in range(self.node_nb())]
@@ -600,7 +600,7 @@ class BaseGraph(GraphInterface):
 
     #-------------------------------------------------------------------------#
     # Getters
-    
+
     def node_nb(self):
         '''
         Returns the number of nodes.
@@ -616,7 +616,7 @@ class BaseGraph(GraphInterface):
         .. warning:: When using MPI, returns only the local number of edges.
         '''
         return len(self._edges)
-    
+
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         '''
         Returns the degree of the nodes.

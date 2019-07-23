@@ -26,17 +26,17 @@ from tools_testing import foreach_graph
 # ---------- #
 
 class TestGraphClasses(TestBasis):
-    
+
     '''
     Class testing the main methods of :class:`~nngt.Graph` and its subclasses.
     '''
-    
+
     matrices = {}
     mat_gen = {
         "from_scipy_sparse_rand": ssp.rand,
         "from_numpy_randint": np.random.randint
     }
-    
+
     @property
     def test_name(self):
         return "test_graphclasses"
@@ -54,7 +54,7 @@ class TestGraphClasses(TestBasis):
     def test_adj_mat(self, graph, **kwargs):
         '''
         When generating graphs from :class:`numpy.ndarray`s or
-        :class:`scipy.sparse` matrices, check that the result of
+        :mod:`scipy.sparse` matrices, check that the result of
         graph.adjacency_matrix() is the same as the initial matrix.
         '''
         ref_result = ssp.csr_matrix(self.matrices[graph.get_name()])
@@ -80,7 +80,7 @@ class TestGraphClasses(TestBasis):
         self.assertIsNot(copied, graph)
         computed_result = [copied.node_nb(), copied.edge_nb()]
         copied.clear_all_edges()
-        computed_result.extend((copied.node_nb(), copied.edge_nb())) 
+        computed_result.extend((copied.node_nb(), copied.edge_nb()))
         self.assertEqual(
             ref_result, tuple(computed_result),
             "Copy test failed for graph {}:\nref = {} vs exp {}\

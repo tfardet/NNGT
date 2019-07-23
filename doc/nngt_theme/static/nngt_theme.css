@@ -66,22 +66,25 @@ dl dd {
 }
 
 dl.function, dl.class, dl.exception {
-    padding-top: 0; 
+    padding-top: 0;
     clear: both;
     margin: 1em 0 1ex 0;
 }
 
 dl.function, dl.exception {
     border-top: 3px solid #cccccc;
+    border-radius: 3px;
 }
 
 dl.class {
     border-top: 3px solid #729fcf;
+    border-radius: 3px;
 }
 
 dl.function dt, dl.class dt, dl.exception dt {
     margin-bottom: 1ex;
     padding: 0.5ex 1ex 0.5ex 1ex;
+    border-radius: 3px;
 }
 
 dl.function dt, dl.exception dt {
@@ -89,5 +92,22 @@ dl.function dt, dl.exception dt {
 }
 
 dl.class dt {
-    background-color: #eeeeff;
+    background-color: #f3f3fb;
+    border-radius: 3px;
+}
+
+dl.field-list dt, dl.simple dt {
+    background-color: #ffffff;
+}
+
+dt.field-odd, dt.field-even {
+    background-color: #ffffff;
+}
+
+table.longtable {
+    font-size: 100%;
+}
+
+.admonition {
+    font-size: 100%;
 }
