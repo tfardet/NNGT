@@ -122,11 +122,9 @@ class ActivityRecord:
         return self._properties
 
 
-#-----------------------------------------------------------------------------#
-# analyse acitivity
-#------------------------
-#
-
+# ---------------- #
+# Analyse activity #
+# ---------------- #
 
 def get_recording(network, record, recorder=None, nodes=None):
     '''
