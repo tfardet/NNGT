@@ -417,7 +417,8 @@ class NeuralPop(OrderedDict):
         dic      = state[2]
         od_args  = state[1][0] if state[1] else state[1]
         args     = (dic.get("_size", None), dic.get("_parent", None),
-                    dic.get("_has_models", True), od_args)
+                    dic.get("_meta_groups", {}), dic.get("_has_models", True),
+                    od_args)
         newstate = (NeuralPop, args, dic, None, last)
         return newstate
 

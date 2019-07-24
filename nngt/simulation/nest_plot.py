@@ -476,7 +476,6 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
                     old_ax.change_geometry(num_axes + 2, 1, i+1)
                 ax1 = fig.add_subplot(num_axes + 2, 1, num_axes + 1)
                 ax2 = fig.add_subplot(num_axes + 2, 1, num_axes + 2, sharex=ax1)
-                print("ax1 and ax2 share x")
             else:
                 ax1 = axis
                 ax2 = kwargs["hist_ax"]

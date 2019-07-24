@@ -337,10 +337,8 @@ class Graph(nngt.core.GraphObject):
         # take care of the weights and delays
         # @todo: use those of the from_graph
         if weighted:
-            print("setting weights", kwargs.get("weights", None))
             self.new_edge_attribute('weight', 'double')
             self._w = _edge_prop(kwargs.get("weights", None))
-            print(self._w)
         if "delays" in kwargs:
             self.new_edge_attribute('delay', 'double')
             self._d = _edge_prop(kwargs.get("delays", None))
