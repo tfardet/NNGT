@@ -4,17 +4,17 @@
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -209,7 +209,7 @@ set_attribute to create it.")
                 val = None
         if values is None:
             values = np.repeat(val, self.parent().num_edges())
-        
+
         if len(values) != self.parent().num_edges():
             self._num_values_set[name] = 0
             raise ValueError("A list or a np.array with one entry per "
@@ -228,18 +228,18 @@ set_attribute to create it.")
 #
 
 class _GtGraph(GraphInterface):
-    
+
     '''
-    Subclass of :class:`gt.Graph` that (with 
+    Subclass of :class:`gt.Graph` that (with
     :class:`~nngt.core._SnapGraph`) unifies the methods to work with either
     `graph-tool` or `SNAP`.
     '''
 
     nattr_class = _GtNProperty
     eattr_class = _GtEProperty
-    
+
     #-------------------------------------------------------------------------#
-    # Constructor and instance properties        
+    # Constructor and instance properties
 
     def __init__(self, nodes=0, g=None, weighted=True, directed=True,
                  prune=False, vorder=None, **kwargs):
@@ -285,7 +285,7 @@ class _GtGraph(GraphInterface):
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or "
                                  "an array of 2-tuples of ints.")
-    
+
     @property
     def edges_array(self):
         '''
@@ -301,10 +301,10 @@ class _GtGraph(GraphInterface):
             return np.array(
                 [(int(e.source()), int(e.target())) for e in self.edges()])
         else:
-            edges = self.get_edges()
+            edges = self.get_edges([g.edge_index])
             order = np.argsort(edges[:, 2])
             return edges[order, :2]
-    
+
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''
@@ -365,7 +365,7 @@ class _GtGraph(GraphInterface):
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
         Adding a connection to the graph, with optional properties.
-        
+
         Parameters
         ----------
         source : :class:`int/node`
@@ -379,7 +379,7 @@ class _GtGraph(GraphInterface):
         ignore : bool, optional (default: False)
             If set to True, ignore attempts to add an existing edge, otherwise
             raises an error.
-            
+
         Returns
         -------
         The new connection.
@@ -412,7 +412,7 @@ class _GtGraph(GraphInterface):
         .. warning ::
             This function currently does not check for duplicate edges between
             the existing edges and the added ones, but only inside `edge_list`!
-        
+
         Parameters
         ----------
         edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
@@ -424,7 +424,7 @@ class _GtGraph(GraphInterface):
             for each connection (synaptic strength in NEST).
         check_edges : bool, optional (default: True)
             Check for duplicate edges and self-loops.
-            
+
         @todo: add example
 
         Returns
@@ -475,7 +475,7 @@ class _GtGraph(GraphInterface):
             # call parent function to set the attributes
             self.attr_new_edges(edge_list, attributes=new_attr)
         return edge_list
-    
+
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''
         super(_GtGraph, self).clear_edges()
@@ -483,7 +483,7 @@ class _GtGraph(GraphInterface):
 
     #-------------------------------------------------------------------------#
     # Getters
-    
+
     def node_nb(self):
         ''' Number of nodes in the graph '''
         return self.num_vertices()
@@ -491,7 +491,7 @@ class _GtGraph(GraphInterface):
     def edge_nb(self):
         ''' Number of edges in the graph '''
         return self.num_edges()
-    
+
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         w = 1.
         if not self._directed:
