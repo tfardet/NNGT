@@ -1,8 +1,7 @@
 language: generic
 
-#For Ubuntu Xenial (16.04 LTS)
 sudo: required
-dist: xenial
+dist: bionic
 
 # add toolchains for newer, C++14 supporting gcc-6
 addons:
@@ -26,14 +25,14 @@ matrix:
           env: GL="ig" PYVERSION="2.7"
         - python: "2.7"
           env: GL="nx" PYVERSION="2.7"
-        - python: "3.5"
+        - python: "3.7"
           env: GL="gt" PYVERSION="3.x"
-        - python: "3.5"
-          env: GL="ig" PYVERSION="3.5"
-        - python: "3.5"
-          env: GL="nx" PYVERSION="3.x"
-        - python: "3.5"
-          env: GL="nngt" PYVERSION="3.x"
+        - python: "3.7"
+          env: GL="ig" PYVERSION="3.7"
+        - python: "3.7"
+          env: GL="nx" PYVERSION="3.7"
+        - python: "3.7"
+          env: GL="nngt" PYVERSION="3.7"
     fast_finish: true
 
 cache:
@@ -41,12 +40,15 @@ cache:
     - pip
 
 before_install:
-    - if [[ "$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/xenial xenial universe\n" >> /etc/apt/sources.list'; fi
-    - if [[ "$GL" == "gt" ]]; then sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/xenial xenial universe\n" >> /etc/apt/sources.list'; fi
+    - if [[ "$GL" == "gt" ]]; then
+        sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
+        sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
+        sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
+      fi
     # update package repository status (-qq is more quiet)
     - sudo rm -rf /var/lib/apt/lists/*
     - ls /etc/apt/sources.list.d/
-    - sudo apt-get --allow-unauthenticated update -qq
+    - sudo apt-get update -qq
     # remove any obsolete libraries
     - sudo apt-get autoremove
     # requirements for building + installing scipy
@@ -66,9 +68,9 @@ before_install:
     - sudo pipv install mpi4py shapely numpy
     - sudo pipv install -U pyopenssl
     # install graph-tool, igraph, and networkx
-    - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get --allow-unauthenticated install -y python-graph-tool; fi
-    - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get --allow-unauthenticated install -y python3-graph-tool; fi
-    - if [[ "$PYVERSION" == "3.x" && "$GL" == "ig" ]]; then sudo apt-get install python3-cairo libxml2-dev; fi
+    - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
+    - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
+    - if [[ "$PYVERSION" == "3.7" && "$GL" == "ig" ]]; then sudo apt-get install python3-cairo libxml2-dev; fi
     - if [[ "$GL" == "ig" ]]; then sudo pipv install python-igraph; fi
     - if [[ "$GL" == "nx" ]]; then sudo pipv install networkx; fi
     # testing and coverage analysis
