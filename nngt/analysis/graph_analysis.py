@@ -312,7 +312,9 @@ def num_wcc(graph, listing=False):
         lst_histo = graph.clusters("WEAK")
         lst_histo = [cluster for cluster in lst_histo]
     else:
-        lst_histo = [comp for comp in nngt.analyze_graph["wcc"](graph)]
+        if listing:
+            raise RuntimeError("Not implemented for networkx.")
+        return nngt.analyze_graph["wcc"](graph)
     if listing:
         return len(lst_histo), lst_histo
     else:

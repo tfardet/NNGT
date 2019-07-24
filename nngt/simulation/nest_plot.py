@@ -137,7 +137,6 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     '''
     import matplotlib.pyplot as plt
     lst_rec, lst_labels, lines, axes, labels = [], [], {}, {}, {}
-    num_fig = np.max(plt.get_fignums()) if plt.get_fignums() else 0
     # normalize recorders and recordables
     if gid_recorder is not None:
         assert record is not None, "`record` must also be provided."
@@ -161,7 +160,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         for rec in lst_rec:
             gids.extend(nest.GetStatus([rec])[0]["events"]["senders"])
         gids = np.unique(gids)
-    num_group = len(network.population) if network is not None else 1
+    num_group = 1 if network is None else len(network.population)
     num_lines = max(num_group, len(lst_rec))
     # sorting
     sorted_neurons = np.array([])
@@ -245,7 +244,6 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             labels[info["model"]] = []
             lines[info["model"]] = []
         if str(info["model"]) == "spike_detector":
-            old_axis = axis
             if "spike_detector" in axes:
                 axis = axes["spike_detector"]
             c = colors[num_raster]
@@ -442,7 +440,6 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
     """
     import matplotlib.pyplot as plt
 
-    num_neurons = len(np.unique(senders))
     lines = []
 
     mpl_kwargs = {k: v for k, v in kwargs.items() if k != 'hist_ax'}

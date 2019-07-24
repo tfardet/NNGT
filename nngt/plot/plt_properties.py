@@ -547,7 +547,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
         w       = network.get_weights(edges=edges)
         fig, ax = _set_new_plot(fignum=fig.number, names=["weight"])
         counts, bins = _hist(
-            w, num_bins[i], norm, logx[i], attr, ax[0], **kwargs)
+            w, num_bins[idx], norm, logx[idx], "weight", ax[0], **kwargs)
         del attributes[idx]
         del num_bins[idx]
         del logx[idx]
@@ -559,7 +559,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
         d       = network.get_delays(edges=edges)
         fig, ax = _set_new_plot(fignum=fig.number, names=["delay"])
         counts, bins = _hist(
-            d, num_bins[i], norm, logx[i], attr, ax[0], **kwargs)
+            d, num_bins[idx], norm, logx[idx], "delay", ax[0], **kwargs)
         del attributes[idx]
         del num_bins[idx]
         del logx[idx]
