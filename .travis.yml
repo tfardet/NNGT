@@ -58,7 +58,7 @@ before_install:
     # install scipy from apt (much faster when possible) and pip if necessary
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev python-matplotlib; fi
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib; fi
-    - if [[ "$PYVERSION" == "3.5" ]]; then sudo pip install scipy matplotlib; fi
+    - if [[ "$PYVERSION" == "3.7" ]]; then sudo pip install scipy matplotlib; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo -H ' && alias pipv=pip3; else alias sudo='sudo -H ' && alias pipv=pip; fi
