@@ -301,7 +301,7 @@ class _GtGraph(GraphInterface):
             return np.array(
                 [(int(e.source()), int(e.target())) for e in self.edges()])
         else:
-            edges = self.get_edges([g.edge_index])
+            edges = self.get_edges([self.edge_index])
             order = np.argsort(edges[:, 2])
             return edges[order, :2]
 
