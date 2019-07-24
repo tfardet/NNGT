@@ -60,7 +60,7 @@ before_install:
     # Pip alias and additional libraries
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo -H ' && alias pipv=pip3; else alias sudo='sudo -H ' && alias pipv=pip; fi
-    - pipv install --upgrade pip
+    - sudo pipv install --upgrade pip
     - sudo pipv install -U setuptools
     - sudo pipv install --user cython
     - sudo pipv install mpi4py shapely numpy
