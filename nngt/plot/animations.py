@@ -4,17 +4,17 @@
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -40,7 +40,7 @@ from .plt_networks import draw_network
 # ----------------- #
 
 class _SpikeAnimator(anim.TimedAnimation):
-    
+
     '''
     Generic class to plot raster plot and firing-rate in time for a given
     network.
@@ -49,7 +49,7 @@ class _SpikeAnimator(anim.TimedAnimation):
         This class is not supposed to be instantiated directly, but only
         through Animation2d or AnimationNetwork.
     '''
-    
+
     steps = [
         1, 5, 10, 20, 25, 50, 100, 200, 250, 500,
         1000, 2000, 2500, 5000, 10000, 25000, 50000, 75000, 100000, 250000
@@ -61,7 +61,7 @@ class _SpikeAnimator(anim.TimedAnimation):
                  span_rate=(1, 2), make_rate=True, **kwargs):
         '''
         Generate a SubplotAnimation instance to plot a network activity.
-        
+
         Parameters
         ----------
         source : NEST gid tuple or str
@@ -76,7 +76,7 @@ class _SpikeAnimator(anim.TimedAnimation):
         import matplotlib.pyplot as plt
         import nest
         from nngt.simulation.nest_activity import _get_data
-        
+
         # organization
         self.grid = grid
         self.has_rate = make_rate
@@ -136,7 +136,7 @@ class _SpikeAnimator(anim.TimedAnimation):
         self.second = plt.subplot2grid(
             grid, pos_rate, rowspan=span_rate[0], colspan=span_rate[1],
             sharex=self.spks)
-        
+
         # lines
         self.line_spks_ = Line2D(
             [], [], ls='None', marker='o', color='black', ms=2, mew=0)
@@ -167,12 +167,12 @@ class _SpikeAnimator(anim.TimedAnimation):
 
     #-------------------------------------------------------------------------
     # Axis definition
-    
+
     def set_axis(self, axis, xlabel, ylabel, lines, xdata=None, ydata=None,
                  **kwargs):
         '''
         Setup an axis.
-        
+
         Parameters
         ----------
         axis : :class:`matplotlib.axes.Axes` object
@@ -201,7 +201,7 @@ class _SpikeAnimator(anim.TimedAnimation):
         else:
             ymin, ymax = np.min(ydata), np.max(ydata)
             axis.set_ylim(_min_axis(ymin, ymax), _max_axis(ymax, ymin))
-    
+
     def _draw(self, i, head, head_slice, spike_cum, spike_slice):
         self.line_spks_.set_data(
             self.spikes[spike_cum], self.senders[spike_cum])
@@ -216,7 +216,7 @@ class _SpikeAnimator(anim.TimedAnimation):
                 self.times[head_slice], self.firing_rate[head_slice])
             self.line_second_e.set_data(
                 self.times[head], self.firing_rate[head])
-        
+
         # set axis limits: 1. check user-defined
         current_window = np.diff(self.spks.get_xlim())
         default_window = (np.isclose(current_window, self.timewindow)
@@ -231,7 +231,7 @@ class _SpikeAnimator(anim.TimedAnimation):
                     self.times[i] - self.timewindow, self.times[i])
             elif self.times[i] <= xlims[0]:
                 self.spks.set_xlim(self.start, self.timewindow + self.start)
-    
+
     def _make_ticks(self, timewindow):
         target_num_ticks = np.ceil(self.duration / timewindow * 5)
         target_step = self.duration / target_num_ticks
@@ -352,7 +352,7 @@ class _SpikeAnimator(anim.TimedAnimation):
 
 
 class Animation2d(_SpikeAnimator, anim.FuncAnimation):
-    
+
     '''
     Class to plot the raster plot, firing-rate, and average trajectory in
     a 2D phase-space for a network activity.
@@ -363,7 +363,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
                  network=None, interval=50, vector_field=False, **kwargs):
         '''
         Generate a SubplotAnimation instance to plot a network activity.
-        
+
         Parameters
         ----------
         source : tuple
@@ -436,10 +436,10 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         # Data and axis for phase-space
         self.x = data_mm[x][idx_start:] / self.num_neurons
         self.y = data_mm[y][idx_start:] / self.num_neurons
-        
+
         self.ps = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
         self.ps.grid(False)
-        
+
         # lines
         self.line_ps_ = Line2D([], [], color='black')
         self.line_ps_a = Line2D([], [], color='red', linewidth=2)
@@ -450,7 +450,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.set_axis(
             self.ps, xlabel=_convert_axis(x), ylabel=_convert_axis(y),
             lines=lines, xdata=self.x, ydata=self.y, xlim=xlim)
-        
+
         # For quiver plot (vector field)
         nx = kwargs.get('num_xarrows', 20)
         ny = kwargs.get('num_yarrows', 20)
@@ -498,7 +498,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         spike_slice = ((self.spikes > (self.times[i] - self.trace))
                        & (self.spikes <= self.times[i]))
         spike_cum = self.spikes < self.times[i]
-        
+
         lines = []
         if self.vector_field:
             time_dep = [arr[i] for arr in self.time_dependent]
@@ -510,11 +510,11 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.line_ps_.set_data(self.x[:i], self.y[:i])
         self.line_ps_a.set_data(self.x[head_slice], self.y[head_slice])
         self.line_ps_e.set_data(self.x[i], self.y[i])
-        
+
         lines.extend([self.line_ps_, self.line_ps_a, self.line_ps_e,
              self.line_spks_, self.line_spks_a, self.line_second_,
              self.line_second_a, self.line_second_e])
-        
+
         super(Animation2d, self)._draw(
             i, head, head_slice, spike_cum, spike_slice)
 
@@ -557,7 +557,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
 
 
 class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
-    
+
     '''
     Class to plot the raster plot, firing-rate, and space-embedded spiking
     activity (neurons on the graph representation flash when spiking) in time.
@@ -624,7 +624,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
         super(AnimationNetwork, self).__init__(
             source, sort_neurons=sort_neurons, network=network,
             **kwargs)
-        
+
         self.env = plt.subplot2grid((2, 4), (0, 0), rowspan=2, colspan=2)
 
         # Data and axis for network representation
@@ -715,7 +715,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             y_dep = self.y[ids_dep]
             # get their out-neighbours
             #~ for d, a in zip(departures, arrivals):
-        
+
         super(AnimationNetwork, self)._draw(
             i, head, head_slice, spike_cum, spike_slice)
 
@@ -838,7 +838,7 @@ def _save_movie(animation, filename, fps, video_encoder, codec, bitrate,
         fig = animation.fig
         canvas_width, canvas_height = fig.get_size_inches()*fig.dpi
         # Open an ffmpeg process
-        cmdstring = ('ffmpeg', 
+        cmdstring = ('ffmpeg',
                      '-y', '-r', str(fps), # overwrite, 1fps
                      '-s', '%dx%d' % (canvas_width, canvas_height), # size of image string
                      '-pix_fmt', 'argb', # format
@@ -876,7 +876,7 @@ def _save_movie(animation, filename, fps, video_encoder, codec, bitrate,
 def _vector_field(q, dotx_func, doty_func, x, y, Is):
     '''
     Add the vector field of the x and y derivatives in phase space.
-    
+
     Parameters
     ----------
     q : :class:`matplotlib.quiver.Quiver`

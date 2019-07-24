@@ -29,6 +29,7 @@ import numpy as np
 
 import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
+from nngt.lib import is_iterable
 from nngt.lib.connect_tools import _set_options
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import mpi_checker, mpi_random
@@ -889,6 +890,10 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     Function to connect excitatory and inhibitory population with a given graph
     model.
 
+    .. versionchanged:: 1.2.0
+        Allow to use :class:`NeuralGroup` as `source_groups` and `target_groups`
+        arguments.
+
     .. versionchanged:: 0.8
         Model-specific arguments are now provided as keywords and not through a
         dict. It is now possible to provide different weights and delays at
@@ -901,10 +906,12 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
         The network to connect.
-    source_groups : str or tuple
-        Names of the source groups (which contain the pre-synaptic neurons)
-    target_groups : str or tuple
-        Names of the target groups (which contain the post-synaptic neurons)
+    source_groups : str, :class:`NeuralGroup`, or iterable
+        Names of the source groups (which contain the pre-synaptic neurons) or
+        directly the group objects themselves.
+    target_groups : str, :class:`NeuralGroup`, or iterable
+        Names of the target groups (which contain the post-synaptic neurons) or
+        directly the group objects themselves.
     graph_model : string
         The name of the connectivity model (among "erdos_renyi", 
         "random_scale_free", "price_scale_free", and "newman_watts").
@@ -913,20 +920,29 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         `weights` or `delays`.
     '''
     elist, source_ids, target_ids = None, [], []
-    if network.is_spatial() and 'positions' not in kwargs:
-        kwargs['positions'] = network.get_positions().astype(np.float32).T
-    if network.is_spatial() and 'shape' not in kwargs:
-        kwargs['shape'] = network.shape
 
-    if isinstance(source_groups, str):
+    if network.is_spatial():
+        if 'positions' not in kwargs:
+            kwargs['positions'] = network.get_positions().astype(np.float32).T
+        if 'shape' not in kwargs:
+            kwargs['shape'] = network.shape
+
+    if isinstance(source_groups, str) or not is_iterable(source_groups):
         source_groups = [source_groups]
-    if isinstance(target_groups, str):
+    if isinstance(target_groups, str) or not is_iterable(target_groups):
         target_groups = [target_groups]
-    for name, group in network.population.items():
-        if name in source_groups:
-            source_ids.extend(group.ids)
-        if name in target_groups:
-            target_ids.extend(group.ids)
+
+    for s in source_groups:
+        if isinstance(s, nngt.NeuralGroup):
+            source_ids.extend(s.ids)
+        else:
+            source_ids.extend(network.population[s].ids)
+
+    for t in target_groups:
+        if isinstance(t, nngt.NeuralGroup):
+            target_ids.extend(t.ids)
+        else:
+            target_ids.extend(network.population[t].ids)
 
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)

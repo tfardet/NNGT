@@ -4,17 +4,17 @@
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -77,7 +77,7 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         Symbol specifying the following as meaningfull information. Relevant
         information are formatted ``@info_name=info_value``, where
         ``info_name`` is in ("attributes", "directed", "name", "size") and
-        associated ``info_value``s are of type (``list``, ``bool``, ``str``,
+        associated ``info_value`` are of type (``list``, ``bool``, ``str``,
         ``int``).
         Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
         which must be followed by the relevant notifiers among ``@shape``,
@@ -113,7 +113,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         (gml format, default if `filename` ends with '.gml'), "graphml"
         (graphml format, default if `filename` ends with '.graphml' or '.xml'),
         "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
-        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
+        when using `graph_tool <http://graph-tool.skewed.de/>`_ as library,
         detected if `filename` ends with '.gt').
     separator : str, optional (default " ")
         separator used to separate inputs in the case of custom formats (namely
@@ -129,7 +129,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         Symbol specifying the following as meaningfull information. Relevant
         information are formatted ``@info_name=info_value``, where
         ``info_name`` is in ("attributes", "directed", "name", "size") and
-        associated ``info_value``s are of type (``list``, ``bool``, ``str``,
+        associated ``info_value`` are of type (``list``, ``bool``, ``str``,
         ``int``).
         Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
         which must be followed by the relevant notifiers among ``@shape``,
@@ -268,7 +268,7 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         (gml format, default if `filename` ends with '.gml'), "graphml"
         (graphml format, default if `filename` ends with '.graphml' or '.xml'),
         "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
-        when using `graph_tool`<http://graph-tool.skewed.de/>_ as library,
+        when using `graph_tool <http://graph-tool.skewed.de/>`_ as library,
         detected if `filename` ends with '.gt').
     separator : str, optional (default " ")
         separator used to separate inputs in the case of custom formats (namely
@@ -300,7 +300,7 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         comm = MPI.COMM_WORLD
         size = comm.Get_size()
         rank = comm.Get_rank()
-        # get the 
+        # get the
         str_local, di_notif = _as_string(
             graph, separator=separator, fmt=fmt, secondary=secondary,
             attributes=attributes, notifier=notifier, return_info=True)
@@ -357,8 +357,8 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     fmt : str, optional (default: "auto")
         The format used to save the graph. Supported formats are: "neighbour"
         (neighbour list, default if format cannot be deduced automatically),
-        "ssp" (:mod:`scipy.sparse`), "edge_list" (list of all the edges in the 
-        graph, one edge per line, represented by a ``source target``-pair), 
+        "ssp" (:mod:`scipy.sparse`), "edge_list" (list of all the edges in the
+        graph, one edge per line, represented by a ``source target``-pair),
         "gml" (gml format, default if `filename` ends with '.gml'), "graphml"
         (graphml format, default if `filename` ends with '.graphml' or '.xml'),
         "dot" (dot format, default if `filename` ends with '.dot'), "gt" (only
@@ -590,7 +590,7 @@ def _format_notif(notif_name, notif_val):
     elif notif_name == "directed":
         return False if notif_val == "False" else True
     else:
-        return notif_val    
+        return notif_val
 
 
 def _get_notif(lines, notifier):

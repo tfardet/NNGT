@@ -35,6 +35,7 @@ __all__ = [
     "gaussian_distrib",
     "InvalidArgument",
     "is_integer",
+    "is_iterable",
     "lin_correlated_distrib",
     "log_correlated_distrib",
     "lognormal_distrib",

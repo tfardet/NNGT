@@ -4,17 +4,17 @@
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2017  Tanguy Fardet
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -50,7 +50,7 @@ os.symlink(src, tgt)
 '''
 If on rtd, the graph libraries are not available so they need to be mocked
 '''
-        
+
 if on_rtd:
     import mock
     mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
@@ -255,6 +255,7 @@ todo_include_todos = False
 
 html_theme = 'nngt_theme'
 html_theme_path = ["."] + sphinx_bootstrap_theme.get_html_theme_path()
+html_use_smartypants = False
 
 html_theme_options = {
     # A list of tuples containing pages or urls to link to.
@@ -298,13 +299,10 @@ html_theme_options = {
 
     # Location of link to source.
     # Options are "nav" (default), "footer" or anything else to exclude.
-    'source_link_position': "nav",
+    'source_link_position': "",
 
     # Bootswatch (http://bootswatch.com/) theme.
-    #
-    # Options are nothing (default) or the name of a valid theme
-    # such as "amelia" or "cosmo".
-    'bootswatch_theme': "cosmo"
+    'bootswatch_theme': "yeti"
 }
 
 html_sidebars = {'**': ['customtoc.html', 'searchbox.html']}
@@ -501,5 +499,5 @@ intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy', None),
     'python': ('https://docs.python.org/3/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
-    'shapely': ('http://toblerity.org/shapely/', None),
+    'shapely': ('https://shapely.readthedocs.io/en/latest/', None),
 }
