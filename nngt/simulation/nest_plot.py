@@ -33,11 +33,13 @@ import numpy as np
 import nest
 
 import nngt
-from nngt.plot import palette, markers
-from nngt.plot.plt_properties import _set_new_plot, _set_ax_lims
+
+from nngt.analysis import total_firing_rate
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
 from nngt.lib.sorting import _sort_groups, _sort_neurons
 from nngt.lib.logger import _log_message
+from nngt.plot import palette, markers
+from nngt.plot.plt_properties import _set_new_plot, _set_ax_lims
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +52,9 @@ logger = logging.getLogger(__name__)
 def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                   axis=None, show=False, limits=None, histogram=False,
                   title=None, fignum=None, label=None, sort=None, average=False,
-                  normalize=1., decimate=None, transparent=True):
+                  normalize=1., decimate=None, transparent=True,
+                  kernel_center=0., kernel_std=None, resolution=None,
+                  cut_gaussian=5.):
     '''
     Plot the monitored activity.
 
@@ -105,6 +109,21 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         `decimate` will be represented (e.g. setting `decimate` to 5 will lead
         to only 20% of the neurons being represented). If a list is provided,
         it must have one entry per NeuralGroup in the population.
+    kernel_center : float, optional (default: 0.)
+        Temporal shift of the Gaussian kernel, in ms (for the histogram).
+    kernel_std : float, optional (default: 0.5% of simulation time)
+        Characteristic width of the Gaussian kernel (standard deviation) in ms
+        (for the histogram).
+    resolution : float or array, optional (default: `0.1*kernel_std`)
+        The resolution at which the firing rate values will be computed.
+        Choosing a value smaller than `kernel_std` is strongly advised.
+        If resolution is an array, it will be considered as the times were the
+        firing rate should be computed (for the histogram).
+    cut_gaussian : float, optional (default: 5.)
+        Range over which the Gaussian will be computed (for the histogram).
+        By default, we consider the 5-sigma range. Decreasing this value will
+        increase speed at the cost of lower fidelity; increasing it with
+        increase the fidelity at the cost of speed.
 
     Warning
     -------
@@ -143,6 +162,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             gids.extend(nest.GetStatus([rec])[0]["events"]["senders"])
         gids = np.unique(gids)
     num_group = len(network.population) if network is not None else 1
+    num_lines = max(num_group, len(lst_rec))
     # sorting
     sorted_neurons = np.array([])
     if len(gids):
@@ -171,17 +191,17 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         sorted_neurons, attr = _sort_neurons(
             "space", gids, network, data=None, return_attr=True)
     # spikes plotting
-    colors = palette(np.linspace(0, 1, num_group))
+    colors = palette(np.linspace(0, 1, num_lines))
     num_raster, num_detec, num_meter = 0, 0, 0
     fignums = fignum if isinstance(fignum, dict) else {}
     decim = []
     if decimate is None:
-        decim = [None for _ in range(num_group)]
+        decim = [None for _ in range(num_lines)]
     elif is_integer(decimate):
-        decim = [decimate for _ in range(num_group)]
+        decim = [decimate for _ in range(num_lines)]
     elif nonstring_container(decimate):
-        assert len(decimate) == num_group, "`decimate` should have one " +\
-                                           "entry per group in the population."
+        assert len(decimate) == num_lines, "`decimate` should have one " +\
+                                           "entry per plot."
         decim = decimate
     else:
         raise AttributeError(
@@ -201,9 +221,25 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                          '{}.\nIgnoring.'.format(len(lst_rec), len(label)))
             lst_labels = [None for _ in range(len(lst_rec))]
 
+    datasets = []
+    max_time = 0.
+
+    for rec in lst_rec:
+        info     = nest.GetStatus([rec])[0]
+
+        if len(info["events"]["times"]):
+            max_time = max(max_time, np.max(info["events"]["times"]))
+
+        datasets.append(info)
+
+    if kernel_std is None:
+        kernel_std = max_time*0.005
+
+    if resolution is None:
+        resolution = 0.5*kernel_std
+
     # plot
-    for rec, var, lbl in zip(lst_rec, record, lst_labels):
-        info = nest.GetStatus([rec])[0]
+    for info, var, lbl in zip(datasets, record, lst_labels):
         fnum = fignums.get(info["model"], fignum)
         if info["model"] not in labels:
             labels[info["model"]] = []
@@ -220,7 +256,10 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                             decimate=decim[num_raster], sort_attribute=attr,
                             network=network, histogram=histogram,
                             transparent=transparent,
-                            hist_ax=axes.get('histogram', None))
+                            hist_ax=axes.get('histogram', None),
+                            kernel_center=kernel_center,
+                            kernel_std=kernel_std, resolution=resolution,
+                            cut_gaussian=cut_gaussian)
             num_raster += 1
             if l:
                 fig_raster = l[0].figure.number
@@ -235,7 +274,10 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             times, senders = info["events"]["times"], info["events"]["senders"]
             sorted_ids = sorted_neurons[senders]
             l = raster_plot(times, sorted_ids, fignum=fnum, color=c, axis=axis,
-                            show=False, histogram=histogram, limits=limits)
+                            show=False, histogram=histogram, limits=limits,
+                            kernel_center=kernel_center,
+                            kernel_std=kernel_std, resolution=resolution,
+                            cut_gaussian=cut_gaussian)
             if l:
                 fig_detect = l[0].figure.number
                 num_detec += 1
@@ -336,7 +378,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
 def raster_plot(times, senders, limits=None, title="Spike raster",
                 histogram=False, num_bins=1000, color="b", decimate=None,
                 axis=None, fignum=None, label=None, show=True, sort=None,
-                sort_attribute=None, network=None, transparent=True, **kwargs):
+                sort_attribute=None, network=None, transparent=True,
+                kernel_center=0., kernel_std=30., resolution=None,
+                cut_gaussian=5., **kwargs):
     """
     Plotting routine that constructs a raster plot along with
     an optional histogram.
@@ -376,6 +420,20 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
         Label the current data.
     show : bool, optional (default: True)
         Whether to show the plot right away or to wait for the next plt.show().
+    kernel_center : float, optional (default: 0.)
+        Temporal shift of the Gaussian kernel, in ms.
+    kernel_std : float, optional (default: 30.)
+        Characteristic width of the Gaussian kernel (standard deviation) in ms.
+    resolution : float or array, optional (default: `0.1*kernel_std`)
+        The resolution at which the firing rate values will be computed.
+        Choosing a value smaller than `kernel_std` is strongly advised.
+        If resolution is an array, it will be considered as the times were the
+        firing rate should be computed.
+    cut_gaussian : float, optional (default: 5.)
+        Range over which the Gaussian will be computed (for the histogram).
+        By default, we consider the 5-sigma range. Decreasing this value will
+        increase speed at the cost of lower fidelity; increasing it with
+        increase the fidelity at the cost of speed.
 
     Returns
     -------
@@ -418,6 +476,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
                     old_ax.change_geometry(num_axes + 2, 1, i+1)
                 ax1 = fig.add_subplot(num_axes + 2, 1, num_axes + 1)
                 ax2 = fig.add_subplot(num_axes + 2, 1, num_axes + 2, sharex=ax1)
+                print("ax1 and ax2 share x")
             else:
                 ax1 = axis
                 ax2 = kwargs["hist_ax"]
@@ -433,53 +492,49 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
                 ax1.set_xlim(*limits)
             #~ ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
 
-            bin_width = ( np.amax(times) - np.amin(times) ) / float(num_bins)
-            t_bins = np.linspace(np.amin(times), np.amax(times), num_bins)
-            if limits is not None:
-                t_bins = np.linspace(limits[0], limits[1], num_bins)
-            n, bins = np.histogram(times, bins=t_bins)
-            #~ n = _moving_average(n,5)
-            t_bins = np.concatenate(([t_bins[0]], t_bins))
-            #~ heights = 1000 * n / (hist_binwidth * num_neurons)
-            # height = rate in Hz, knowing that t is in ms
-            heights = 1000*np.concatenate(([0],n,[0]))/(num_neurons*bin_width)
-            height = np.repeat(0, len(heights)) if bin_width == 0. else heights
-            hist_lines = ax2.patches
+            fr, fr_times = total_firing_rate(
+                data=np.array([senders, times]).T, kernel_center=kernel_center,
+                kernel_std=kernel_std, resolution=resolution,
+                cut_gaussian=cut_gaussian)
+
+            hist_lines = ax2.get_lines()
+
             if hist_lines:
-                data = hist_lines[-1].get_xy()
-                bottom = data[:,1]
+                data = hist_lines[-1].get_data()
+                bottom = data[1]
                 if limits is None:
-                    old_bins = data[:,0]
-                    old_start = int(old_bins[0] / (old_bins[2]-old_bins[0]))
-                    new_start = int(t_bins[0] / (t_bins[2]-t_bins[0]))
-                    old_end = int(old_bins[-2] / (old_bins[-2]-old_bins[-3]))
-                    new_end = int(t_bins[-1] / (t_bins[-1]-t_bins[-2]))
+                    dt = fr_times[1] - fr_times[0]
+                    old_times = data[0]
+                    old_start = int(old_times[0] / dt)
+                    new_start = int(fr_times[0] / dt)
+                    old_end = int(old_times[-1] / dt)
+                    new_end = int(fr_times[-1] / dt)
                     diff_start = new_start-old_start
                     diff_end = new_end-old_end
                     if diff_start > 0:
                         bottom = bottom[diff_start:]
                     else:
-                        bottom = np.concatenate((np.zeros(-diff_start),bottom))
+                        bottom = np.concatenate(
+                            (np.zeros(-diff_start), bottom))
                     if diff_end > 0:
-                        bottom = np.concatenate((bottom,np.zeros(diff_end)))
+                        bottom = np.concatenate((bottom, np.zeros(diff_end)))
                     else:
                         bottom = bottom[:diff_end-1]
-                    b_len, h_len = len(bottom), len(heights)
+                    b_len, h_len = len(bottom), len(fr)
                     if  b_len > h_len:
                         bottom = bottom[:h_len]
                     elif b_len < h_len:
-                        bottom = np.concatenate((bottom,np.zeros(h_len-b_len)))
+                        bottom = np.concatenate(
+                            (bottom, np.zeros(h_len-b_len)))
                 else:
                     bottom = bottom[:-1]
-                #~ x,y1,y2 = _fill_between_steps(t_bins,heights,bottom[::2], h_align='left')
-                #~ x,y1,y2 = _fill_between_steps(t_bins[:-1],heights+bottom[::2], bottom[::2], h_align='left')
-                lines.append(ax2.fill_between(t_bins, heights+bottom, bottom, color=color))
+
+                ax2.fill_between(fr_times, fr + bottom, bottom, color=color)
+                lines.extend(ax2.plot(fr_times, fr + bottom, ls="", marker=""))
             else:
-                #~ x,y1,_ = _fill_between_steps(t_bins,heights, h_align='left')
-                #~ x,y1,_ = _fill_between_steps(t_bins[:-1],heights)
-                lines.append(ax2.fill_between(t_bins, heights, 0, color=color))
-            yticks = [int(x) for x in np.linspace(0,int(max(heights)*1.1)+5,4)]
-            ax2.set_yticks(yticks)
+                ax2.fill_between(fr_times, fr, 0., color=color)
+                lines.extend(ax2.plot(fr_times, fr, ls="", marker=""))
+
             ax2.set_ylabel("Rate (Hz)")
             ax2.set_xlabel(xlabel)
             ax2.set_xlim(ax1.get_xlim())

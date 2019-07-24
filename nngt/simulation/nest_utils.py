@@ -76,7 +76,7 @@ def set_noise(gids, mean, std):
     '''
     noise = nest.Create("noise_generator", params={"mean": mean, "std": std },
                         _warn=False)
-    nest.Connect(noise, gids, _warn=False)
+    nest.Connect(noise, list(gids), _warn=False)
     return noise
 
 
@@ -104,7 +104,7 @@ def set_poisson_input(gids, rate, syn_spec=None):
     '''
     poisson_input = nest.Create(
         "poisson_generator", params={"rate": rate}, _warn=False)
-    nest.Connect(poisson_input, gids, syn_spec=syn_spec, _warn=False)
+    nest.Connect(poisson_input, list(gids), syn_spec=syn_spec, _warn=False)
     return poisson_input
 
 
@@ -218,7 +218,7 @@ def set_step_currents(gids, times, currents):
                               'same')
     params = { "amplitude_times": times, "amplitude_values":currents }
     scg = nest.Create("step_current_generator", 1, params, _warn=False)
-    nest.Connect(scg, gids, _warn=False)
+    nest.Connect(scg, list(gids), _warn=False)
     return scg
 
 

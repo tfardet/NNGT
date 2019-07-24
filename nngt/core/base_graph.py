@@ -581,7 +581,7 @@ class BaseGraph(GraphInterface):
             else:
                 ws = (new_attr["weight"] for _ in range(num_added))
         else:
-            ws = (1 for _ in range(num_added))
+            ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
         for i, (e, w) in enumerate(zip(edge_list, ws)):
             self._edges[tuple(e)]     = initial_edges + i
             self._out_deg[e[0]]  += 1

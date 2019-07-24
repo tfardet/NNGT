@@ -337,8 +337,10 @@ class Graph(nngt.core.GraphObject):
         # take care of the weights and delays
         # @todo: use those of the from_graph
         if weighted:
+            print("setting weights", kwargs.get("weights", None))
             self.new_edge_attribute('weight', 'double')
             self._w = _edge_prop(kwargs.get("weights", None))
+            print(self._w)
         if "delays" in kwargs:
             self.new_edge_attribute('delay', 'double')
             self._d = _edge_prop(kwargs.get("delays", None))
@@ -1147,7 +1149,7 @@ class SpatialGraph(Graph):
             shape.set_parent(self)
             self._shape = shape
         else:
-            if positions is None:
+            if positions is None or not np.any(positions):
                 if 'height' in kwargs and 'width' in kwargs:
                     self._shape = nngt.geometry.Shape.rectangle(
                         kwargs['height'], kwargs['width'], parent=self)
