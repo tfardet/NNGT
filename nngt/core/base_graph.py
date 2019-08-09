@@ -500,7 +500,8 @@ class BaseGraph(GraphInterface):
                 self._edges[e_recip]   = edge_id + 1
                 self._out_deg[target] += 1
                 self._in_deg[source]  += 1
-                _set_edge_attr(self, [e_recip], attributes)
+                for k, v in attributes.items():
+                    self.set_edge_attribute(k, val=v, edges=[e_recip])
                 self._adj_mat[source, target] = w
         else:
             if not ignore:
@@ -677,7 +678,7 @@ class BaseGraph(GraphInterface):
         elif mode in ("out", "all"):
             neighbours.extend(self._adj_mat[:, node])
         else:
-            raise ArgumentError('''Invalid `mode` argument {}; possible values
+            raise ValueError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
         return list(set(neighbours))
 
@@ -749,7 +750,7 @@ class _NProperty(BaseProperty):
         num_n = len(nodes) if nodes is not None else num_nodes
         if num_n == num_nodes:
             self[name] = list(values)
-            self._num_values_set[name] = num_edges
+            self._num_values_set[name] = num_nodes
         else:
             if num_n != len(values):
                 raise ValueError("`nodes` and `nodes` must have the same "
