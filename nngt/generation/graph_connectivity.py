@@ -5,18 +5,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -162,15 +162,15 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         The value of the constant degree.
     degree_type : str, optional (default: 'in')
         The type of the fixed degree, among ``'in'``, ``'out'`` or ``'total'``.
-        
+
         @todo
 			`'total'` not implemented yet.
-			
+
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     reciprocity : double, optional (default: -1 to let it free)
-        @todo: not implemented yet. Fraction of edges that are bidirectional 
-        (only for directed graphs -- undirected graphs have a reciprocity of 
+        @todo: not implemented yet. Fraction of edges that are bidirectional
+        (only for directed graphs -- undirected graphs have a reciprocity of
         1 by definition)
     weighted : bool, optional (default: True)
         Whether the graph edges have weights.
@@ -244,8 +244,8 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     reciprocity : double, optional (default: -1 to let it free)
-        @todo: not implemented yet. Fraction of edges that are bidirectional 
-        (only for directed graphs -- undirected graphs have a reciprocity of 
+        @todo: not implemented yet. Fraction of edges that are bidirectional
+        (only for directed graphs -- undirected graphs have a reciprocity of
         1 by definition)
     weighted : bool, optional (default: True)
         Whether the graph edges have weights.
@@ -388,13 +388,13 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
 
 def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
                       avg_deg=-1, reciprocity=0., weighted=True, directed=True,
-                      multigraph=False, name="RandomSF", shape=None, 
+                      multigraph=False, name="RandomSF", shape=None,
                       positions=None, population=None, from_graph=None,
                       **kwargs):
     """
     Generate a free-scale graph of given reciprocity and otherwise
     devoid of correlations.
-	
+
     Parameters
     ----------
     in_exp : float
@@ -434,7 +434,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
     Returns
     -------
     graph_fs : :class:`~nngt.Graph`
-    
+
     Note
     ----
 	As reciprocity increases, requested values of `in_exp` and `out_exp`
@@ -471,10 +471,10 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     """
     @todo
     make the algorithm.
-        
+
     Generate a Price graph model (Barabasi-Albert if undirected).
 
-    Parameters 
+    Parameters
     ----------
     m : int
         The number of edges each new node will make.
@@ -503,11 +503,11 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
         :class:`~nngt.Network`).
     from_graph : :class:`~nngt.Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
-    
+
     Returns
     -------
     graph_price : :class:`~nngt.Graph` or subclass.
-    
+
     Note
     ----
 	`nodes` is required unless `from_graph` or `population` is provided.
@@ -535,18 +535,18 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
                  positions=None, population=None, from_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
-    
+
     @todo
         generate the edges of a circular graph to not replace the graph of the
         `from_graph` and implement chosen reciprocity.
-    
+
     Parameters
     ----------
     coord_nb : int
-        The number of neighbours for each node on the initial topological 
+        The number of neighbours for each node on the initial topological
         lattice.
     proba_shortcut : double
-        Probability of adding a new random (shortcut) edge for each existing 
+        Probability of adding a new random (shortcut) edge for each existing
         edge on the initial lattice.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
@@ -575,11 +575,11 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
         :class:`~nngt.Network`).
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
-    
+
     Returns
     -------
     graph_nw : :class:`~nngt.Graph` or subclass
-    
+
     Note
     ----
 	`nodes` is required unless `from_graph` or `population` is provided.
@@ -729,7 +729,7 @@ def generate(di_instructions, **kwargs):
     '''
     Generate a :class:`~nngt.Graph` or one of its subclasses from a ``dict``
     containing all the relevant informations.
-    
+
     Parameters
     ----------
     di_instructions : ``dict``
@@ -739,7 +739,7 @@ def generate(di_instructions, **kwargs):
         "price_scale_free", "random_scale_free"``. Depending on the type,
         `di_instructions` should also contain at least all non-optional
         arguments of the generator function.
-    
+
     See also
     --------
     :mod:`~nngt.generation`
@@ -770,14 +770,14 @@ _di_gen_edges = {
 _one_pop_models = ("newman_watts",)
 
 
-def connect_nodes(network, sources, targets, graph_model, density=-1., 
+def connect_nodes(network, sources, targets, graph_model, density=-1.,
                   edges=-1, avg_deg=-1., unit='um', weighted=True,
                   directed=True, multigraph=False, **kwargs):
     '''
     Function to connect nodes with a given graph model.
 
     .. versionadded:: 1.0
-    
+
     Parameters
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
@@ -787,7 +787,7 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
     targets : list
         Ids of the target nodes.
     graph_model : string
-        The name of the connectivity model (among "erdos_renyi", 
+        The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
@@ -839,7 +839,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
 
     @todo
         make the modifications for only a set of edges
-    
+
     Parameters
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
@@ -850,7 +850,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     target_type : int
         The type of target neurons.
     graph_model : string
-        The name of the connectivity model (among "erdos_renyi", 
+        The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
@@ -913,7 +913,7 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
         Names of the target groups (which contain the post-synaptic neurons) or
         directly the group objects themselves.
     graph_model : string
-        The name of the connectivity model (among "erdos_renyi", 
+        The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as

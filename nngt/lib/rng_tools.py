@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -129,7 +129,7 @@ def _make_matrix(graph, ecount, values, elist=None):
 def delta_distrib(graph=None, elist=None, num=None, value=1., **kwargs):
     '''
     Delta distribution for edge attributes.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -137,7 +137,7 @@ def delta_distrib(graph=None, elist=None, num=None, value=1., **kwargs):
     elist : @todo
     value : float, optional (default: 1.)
         Value of the delta distribution.
-    
+
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
@@ -149,7 +149,7 @@ def uniform_distrib(graph, elist=None, num=None, lower=None, upper=None,
                     **kwargs):
     '''
     Uniform distribution for edge attributes.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -159,7 +159,7 @@ def uniform_distrib(graph, elist=None, num=None, lower=None, upper=None,
         Min value of the uniform distribution.
     upper : float, optional (default: 1.5)
         Max value of the uniform distribution.
-    
+
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''
@@ -171,7 +171,7 @@ def gaussian_distrib(graph, elist=None, num=None, avg=None, std=None,
                      **kwargs):
     '''
     Gaussian distribution for edge attributes.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -181,7 +181,7 @@ def gaussian_distrib(graph, elist=None, num=None, avg=None, std=None,
         Average of the Gaussian distribution.
     std : float, optional (default: 1.5)
         Standard deviation of the Gaussian distribution.
-    
+
     Returns : :class:`numpy.ndarray`
         Attribute value for each edge in `graph`.
     '''

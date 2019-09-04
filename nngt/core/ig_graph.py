@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -84,7 +84,7 @@ class _IgNProperty(BaseProperty):
     def set_attribute(self, name, values, nodes=None):
         '''
         Set the node attribute.
-        
+
         Parameters
         ----------
         name : str
@@ -173,7 +173,7 @@ class _IgEProperty(BaseProperty):
     def set_attribute(self, name, values, edges=None):
         '''
         Set the edge property.
-        
+
         Parameters
         ----------
         name : str
@@ -213,13 +213,13 @@ class _IGraph(GraphInterface):
     '''
     Subclass of :class:`igraph.Graph`.
     '''
-    
+
     nattr_class = _IgNProperty
     eattr_class = _IgEProperty
 
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
-    
+
     def __init__(self, nodes=0, g=None, directed=True, weighted=False):
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
@@ -273,25 +273,25 @@ class _IGraph(GraphInterface):
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or\
 an array of 2-tuples of ints.")
-    
+
     @property
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
         2-tuple. '''
         return np.array([(e.source, e.target) for e in self.es], dtype=int)
-    
+
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
-        
+
         Parameters
         ----------
         n : int, optional (default: 1)
             Number of nodes to add.
         ntype : int, optional (default: 1)
             Type of neuron (1 for excitatory, -1 for inhibitory)
-            
+
         Returns
         -------
         The node or an iterator over the nodes created.
@@ -337,7 +337,7 @@ an array of 2-tuples of ints.")
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
         Adding a connection to the graph, with optional properties.
-        
+
         Parameters
         ----------
         source : :class:`int/node`
@@ -351,7 +351,7 @@ an array of 2-tuples of ints.")
         ignore : bool, optional (default: False)
             If set to True, ignore attempts to add an existing edge, otherwise
             raises an error.
-            
+
         Returns
         -------
         The new connection.
@@ -370,7 +370,7 @@ an array of 2-tuples of ints.")
         .. warning ::
             This function currently does not check for duplicate edges between
             the existing edges and the added ones, but only inside `edge_list`!
-        
+
         Parameters
         ----------
         edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
@@ -382,7 +382,7 @@ an array of 2-tuples of ints.")
             for each connection (synaptic strength in NEST).
         check_edges : bool, optional (default: True)
             Check for duplicate edges and self-loops.
-            
+
         @todo: add example
 
         Returns
@@ -437,10 +437,10 @@ an array of 2-tuples of ints.")
         ''' Remove all edges from the graph '''
         self.delete_edges(None)
         self._eattr.clear()
-    
+
     #-------------------------------------------------------------------------#
     # Getters
-    
+
     def node_nb(self):
         ''' Number of nodes in the graph '''
         return self.vcount()
@@ -448,7 +448,7 @@ an array of 2-tuples of ints.")
     def edge_nb(self):
         ''' Number of edges in the graph '''
         return self.ecount()
-    
+
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         deg_type = 'all' if deg_type == 'total' else deg_type
         if use_weights:

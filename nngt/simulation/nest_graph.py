@@ -5,18 +5,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -117,7 +117,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
             ia_nngt_nest[idx_nest] = gids_tmp
             current_size += group_size
             gids.extend(gids_tmp)
-        
+
     # conversions ids/gids
     network.nest_gid = ia_nngt_nest
     network._id_from_nest_gid = {
@@ -143,7 +143,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
         if len(src_group.ids) > 0 and pop.syn_spec is not None:
             # check whether custom synapses should be used
             local_tgt_names = [name for name in send if pop[name].ids]
-            
+
             for tgt_name in send:
                 tgt_group = pop[tgt_name]
                 # get list of targets for each
@@ -193,7 +193,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
             if use_weights:
                 syn_spec[WEIGHT] *= csr_weights[src_group.ids, :].data
             syn_spec[DELAY] = csr_delays[src_group.ids, :].data
-            
+
             nest.Connect(src_ids, tgt_ids, syn_spec=syn_spec, conn_spec=cspec,
                          _warn=False)
 
@@ -243,7 +243,7 @@ def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
     '''
     Find the values of the connection weights that will give PSP responses of
     `min_weight` and `max_weight` in mV.
-    
+
     Parameters
     ----------
     weights : list of floats
@@ -260,7 +260,7 @@ def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
         Number of bins used to discretize the exact synaptic weights.
     log : bool, optional (default: False)
         Whether bins should use a logarithmic scale.
-    
+
     Note
     ----
     If the parameters used are not the default ones, they MUST be provided,
@@ -320,7 +320,7 @@ def _find_extremal_weights(min_weight, max_weight, neuron_model, di_param={},
     '''
     Find the values of the connection weights that will give PSP responses of
     `min_weight` and `max_weight` in mV.
-    
+
     Parameters
     ----------
     min_weight : float
@@ -338,7 +338,7 @@ def _find_extremal_weights(min_weight, max_weight, neuron_model, di_param={},
         Timestep of the simulation in ms.
     simtime : float, optional (default: 10.)
         Simulation time in ms (default: 10).
-    
+
     Note
     ----
     If the parameters used are not the default ones, they MUST be provided,

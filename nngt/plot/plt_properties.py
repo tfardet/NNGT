@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -49,7 +49,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
                         norm=False, show=False, title=None, **kwargs):
     '''
     Plotting the degree distribution of a graph.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -156,7 +156,7 @@ def attribute_distribution(network, attribute, num_bins='auto', logx=False,
     '''
     Plotting the distribution of a graph attribute (e.g. "weight", or
     "distance" is the graph is spatial).
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -222,7 +222,7 @@ def betweenness_distribution(network, btype="both", use_weights=True,
                              colors=None, norm=False, show=True, **kwargs):
     '''
     Plotting the betweenness distribution of a graph.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -344,7 +344,7 @@ def node_attributes_distribution(network, attributes, nodes=None,
                                  show=True, **kwargs):
     '''
     Return node `attributes` for a set of `nodes`.
-    
+
     Parameters
     ----------
     network : :class:`~nngt.Graph`
@@ -485,7 +485,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
     Return node `attributes` for a set of `nodes`.
 
     .. versionadded:: 1.0.3
-    
+
     Parameters
     ----------
     network : :class:`~nngt.Graph`
@@ -517,7 +517,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
     logx     = _format_arg(logx, num_attr, 'logx')
     logy     = _format_arg(logy, num_attr, 'logy')
     num_plot = 0
-    
+
     # kwargs that will not be passed:
     ignore = ["weight", "delay", "betweenness"] + attributes
     new_kwargs = {k: v for k, v in kwargs.items() if k not in ignore}
@@ -597,7 +597,7 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     '''
     For each node plot the value of `reference_attributes` against each of the
     `other_attributes` to check for correlations.
-    
+
     Parameters
     ----------
     network : :class:`~nngt.Graph`
@@ -661,7 +661,7 @@ def compare_population_attributes(network, attributes, nodes=None,
     '''
     Compare node `attributes` between two sets of nodes. Since number of nodes
     can vary, normalized distributions are used.
-    
+
     Parameters
     ----------
     network : :class:`~nngt.Graph`

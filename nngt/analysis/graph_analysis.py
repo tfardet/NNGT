@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -161,7 +161,7 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='bayes',
 def closeness(graph, nodes=None, use_weights=False):
     '''
     Return the closeness centrality for each node in `nodes`.
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` object
@@ -181,7 +181,7 @@ def local_clustering(graph, nodes=None):
 
     .. math::
         c_i = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
-    
+
     Parameters
     ----------
     graph : :class:`~nngt.Graph` object
@@ -455,7 +455,7 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
 def node_attributes(network, attributes, nodes=None, data=None):
     '''
     Return node `attributes` for a set of `nodes`.
-    
+
     Parameters
     ----------
     network : :class:`~nngt.Graph`
@@ -472,7 +472,7 @@ def node_attributes(network, attributes, nodes=None, data=None):
     data : :class:`numpy.array` of shape (N, 2), optional (default: None)
         Potential data on the spike events; if not None, it must contain the
         sender ids on the first column and the spike times on the second.
-    
+
     Returns
     -------
     values : array-like or dict
@@ -487,13 +487,13 @@ def node_attributes(network, attributes, nodes=None, data=None):
     else:
         return _get_attribute(network, attributes, nodes, data)
 
-    
+
 def find_nodes(network, attributes, equal=None, upper_bound=None,
                lower_bound=None, upper_fraction=None, lower_fraction=None,
                data=None):
     '''
     Return the nodes in the graph which fulfill the given conditions.
-    
+
     Parameters
     ----------
     network : :class:`~nngt.Graph`
@@ -524,16 +524,16 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
     lower_fraction : optional (default: None)
         Only the nodes that belong to the `lower_fraction` with the lowest
         values for `attributes` are kept.
-    
+
     Notes
     -----
     When combining both `*_fraction` and `*_bound` entries, their effects
     are cumulated, i.e. only the nodes belonging to the fraction AND
     displaying a value that is consistent with the boundary are kept.
-    
+
     Examples
     --------
-    
+
         nodes = g.find("in-degree", upper_bound=15, lower_bound=10)
         nodes2 = g.find(["total-degree", "clustering"], equal=[20, None],
             lower=[None, 0.1])
@@ -547,7 +547,7 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
         lower_fraction = [lower_fraction]
         assert not np.any([
             len(attributes)-len(equal), len(upper_bound)-len(equal),
-            len(lower_bound)-len(equal), len(upper_fraction)-len(equal), 
+            len(lower_bound)-len(equal), len(upper_fraction)-len(equal),
             len(lower_fraction)-len(equal)])
     nodes = set(range(self.node_nb()))
     # find the nodes
@@ -602,7 +602,7 @@ def binning(x, bins='bayes', log=False):
         Array of data to be histogrammed
     bins : int, list or 'auto', optional (default: 'bayes')
         If `bins` is 'bayes', in use bayesian blocks for dynamic bin widths; if
-        it is an int, the interval will be separated into 
+        it is an int, the interval will be separated into
     log : bool, optional (default: False)
         Whether the bins should be evenly spaced on a logarithmic scale.
     """

@@ -3,7 +3,7 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
+# Copyright (C) 2015-2019  Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -340,7 +340,7 @@ class NeuralPop(OrderedDict):
         Initialize NeuralPop instance.
 
         .. versionchanged:: 1.2
-            Added meta groups.
+            Added `meta groups` argument.
 
         Parameters
         ----------
@@ -579,6 +579,7 @@ class NeuralPop(OrderedDict):
             Whether to override previous exiting meta group with same name.
         '''
         assert isinstance(name, str), "Group `name` must be a string."
+        assert ntype in (-1, 1), "Valid neuron type must be -1 or 1."
 
         if self._to_nest:
             raise RuntimeError("Groups can no longer be created once the "
@@ -599,7 +600,7 @@ class NeuralPop(OrderedDict):
     def create_meta_group(self, name, neurons, neuron_param=None,
                           replace=False):
         '''
-        Create a new groupe from given properties.
+        Create a new meta group and add it to the population.
 
         .. versionadded:: 1.2
 
@@ -621,7 +622,8 @@ class NeuralPop(OrderedDict):
         '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
 
-        group = NeuralGroup(neurons, name=name, neuron_param=neuron_param)
+        group = NeuralGroup(neurons, ntype=None, name=name,
+                            neuron_param=neuron_param)
 
         self.add_meta_group(name, group, replace=replace)
 
@@ -629,7 +631,7 @@ class NeuralPop(OrderedDict):
 
     def add_meta_group(self, name, group, replace=False):
         '''
-        Add a meta group to the population.
+        Add an existing meta group to the population.
 
         .. versionadded:: 1.2
 
@@ -649,6 +651,10 @@ class NeuralPop(OrderedDict):
         if name in self._meta_groups and not replace:
             raise KeyError("Meta group with name '" + name + "' already " +\
                            "exists. Use `replace=True` to overwrite it.")
+
+        if group.neuron_type is not None:
+            raise AttributeError("Meta groups must have `neuron_type` "
+                                 "attribute set to None.")
 
         # check that meta_groups are compatible with the population size
         if group.ids:
@@ -890,6 +896,9 @@ class NeuralPop(OrderedDict):
                          "account; use the `set_model` method to change its "
                          "behaviour.")
 
+        if group.neuron_type not in (-1, 1):
+            raise AttributeError("Valid neuron type must be -1 or 1.")
+
         # check pairwise disjoint
         for n, g in self.items():
             assert set(g.ids).isdisjoint(group.ids), \
@@ -937,8 +946,8 @@ class NeuralGroup(object):
     that groups differing only by their ``ids`` will register as equal.
     """
 
-    def __init__ (self, nodes=None, ntype=1, neuron_model=None, neuron_param=None,
-                  name=None):
+    def __init__ (self, nodes=None, ntype=1, neuron_model=None,
+                  neuron_param=None, name=None):
         '''
         Create a group of neurons (empty group is default, but it is not a
         valid object for most use cases).
@@ -952,7 +961,8 @@ class NeuralGroup(object):
             Desired size of the group or, a posteriori, NNGT indices of the
             neurons in an existing graph.
         ntype : int, optional (default: 1)
-            Type of the neurons (1 for excitatory, -1 for inhibitory).
+            Type of the neurons (1 for excitatory, -1 for inhibitory) or None
+            if not relevant (only allowed for metag roups).
         neuron_model : str, optional (default: None)
             NEST model for the neuron.
         neuron_param : dict, optional (default: model defaults)
@@ -962,7 +972,7 @@ class NeuralGroup(object):
         -------
         A new :class:`~nngt.core.NeuralGroup` instance.
         '''
-        assert ntype in (1, -1), "`ntype` can either be 1 or -1."
+        assert ntype in (1, -1, None), "`ntype` can either be 1 or -1."
         neuron_param = {} if neuron_param is None else neuron_param.copy()
         self._has_model = False if neuron_model is None else True
         self._neuron_model = neuron_model
@@ -980,7 +990,7 @@ class NeuralGroup(object):
         self._name = "" if name is None else name
         self._nest_gids = None
         self._neuron_param = neuron_param if self._has_model else {}
-        self.neuron_type = ntype
+        self._neuron_type = ntype
         # whether the network this group belongs to was sent to NEST
         self._to_nest = False
         # parents
@@ -1013,6 +1023,11 @@ class NeuralGroup(object):
     @property
     def neuron_model(self):
         return self._neuron_model
+        return self._name
+
+    @property
+    def neuron_type(self):
+        return self._neuron_type
 
     @neuron_model.setter
     def neuron_model(self, value):

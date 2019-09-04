@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -68,7 +68,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     edges = np.sum(lst_deg)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
-    
+
     num_etotal = 0
     ia_edges   = np.zeros((edges, 2), dtype=int)
     idx        = 0 if b_out else 1  # differenciate source / target
@@ -278,7 +278,7 @@ price_network = _not_yet
 
 def _mpi_and_random_init():
     '''
-    Init MPI comm and information and seed the 
+    Init MPI comm and information and seed the
     '''
     comm = MPI.COMM_WORLD
     size = comm.Get_size()

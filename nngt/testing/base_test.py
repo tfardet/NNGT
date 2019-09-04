@@ -5,18 +5,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -62,7 +62,7 @@ xml_file = test_dir + "graph_tests.xml"
 class XmlHandler:
 
     ''' Class parsing the XML reference files. '''
-    
+
     di_type = {
         "float": float,
         "double": float,
@@ -71,15 +71,15 @@ class XmlHandler:
         "int": int,
         "bool": _bool_from_string
     }
-    
+
     def __init__(self):
         tree = xmlet.parse(xml_file)
         self.root = tree.getroot()
         self.graphs = self.root.find("graphs")
-    
+
     def result(self, elt):
         return self.di_type[elt.tag](elt.text)
-    
+
     def get_graph_list(self, test):
         elt_test = self.root.find('./test[@name="{}"]'.format(test))
         return [ child.text for child in elt_test.find("graph_list") ]
@@ -91,7 +91,7 @@ class XmlHandler:
             if child.tag in ("load_options", "generate_options"):
                 elt_options = child
         return _xml_to_dict(elt_options, self.di_type)
-    
+
     def get_result(self, graph, result_name):
         elt_test = self.graphs.find('./graph[@name="{}"]'.format(graph))
         elt_result = elt_test.find('./*[@name="{}"]'.format(result_name))
@@ -112,27 +112,27 @@ class TestBasis(unittest.TestCase):
 
     '''
     Class defining the graphs and the conditions in which they will be tested.
-    
+
     warning ::
         All test methods should be of the form:
         ``def test_method(self, graph, **kwargs)``
     '''
-    
+
     #-------------------------------------------------------------------------#
     # Class properties
-    
+
     @classmethod
     def setUpClass(cls):
         cls.graphs = []
-    
+
     tolerance = 1e-5
     parser = XmlHandler()
     graphs = []
     instructions = []
-    
+
     #-------------------------------------------------------------------------#
     # Instance
-    
+
     def setUp(self):
         if not self.graphs:
             for graph_name in self.parser.get_graph_list(self.test_name):
@@ -141,7 +141,7 @@ class TestBasis(unittest.TestCase):
     @abstractproperty
     def test_name(self):
         pass
-    
+
     def get_expected_result(self, graph, res_name):
         return self.parser.get_result(graph.get_name(), res_name)
 
@@ -152,4 +152,4 @@ class TestBasis(unittest.TestCase):
         the generation instructions (as a ``dict``) or ``None``.
         '''
         pass
-    
+

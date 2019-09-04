@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -87,7 +87,7 @@ class _NxNProperty(BaseProperty):
     def set_attribute(self, name, values, nodes=None):
         '''
         Set the node attribute.
-        
+
         Parameters
         ----------
         name : str
@@ -189,7 +189,7 @@ class _NxEProperty(BaseProperty):
     def set_attribute(self, name, values, edges=None):
         '''
         Set the edge property.
-        
+
         Parameters
         ----------
         name : str
@@ -234,12 +234,12 @@ class _NxGraph(GraphInterface):
 
     #-------------------------------------------------------------------------#
     # Class properties
-    
+
     di_value = { "string": "", "double": 0., "int": int(0) }
 
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
-    
+
     def __init__(self, nodes=0, g=None, directed=True, weighted=False):
         self._directed = directed
         self._weighted = weighted
@@ -277,7 +277,7 @@ class _NxGraph(GraphInterface):
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or "
                                  "an array of 2-tuples of ints.")
-    
+
     @property
     def edges_array(self):
         ''' Edges of the graph, sorted by order of creation, as an array of
@@ -286,19 +286,19 @@ class _NxGraph(GraphInterface):
         for weighted_edge in self.edges(data="eid"):
             edges[weighted_edge[2], :] = weighted_edge[:2]
         return edges
-    
+
     def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
-        
+
         Parameters
         ----------
         n : int, optional (default: 1)
             Number of nodes to add.
         ntype : int, optional (default: 1)
             Type of neuron (1 for excitatory, -1 for inhibitory)
-            
+
         Returns
         -------
         The node or a list of the nodes created.
@@ -347,7 +347,7 @@ class _NxGraph(GraphInterface):
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
         Adding a connection to the graph, with optional properties.
-        
+
         Parameters
         ----------
         source : :class:`int/node`
@@ -361,7 +361,7 @@ class _NxGraph(GraphInterface):
         ignore : bool, optional (default: False)
             If set to True, ignore attempts to add an existing edge, otherwise
             raises an error.
-            
+
         Returns
         -------
         The new connection.
@@ -398,7 +398,7 @@ class _NxGraph(GraphInterface):
         .. warning ::
             This function currently does not check for duplicate edges between
             the existing edges and the added ones, but only inside `edge_list`!
-        
+
         Parameters
         ----------
         edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
@@ -410,7 +410,7 @@ class _NxGraph(GraphInterface):
             for each connection (synaptic strength in NEST).
         check_edges : bool, optional (default: True)
             Check for duplicate edges and self-loops.
-            
+
         @todo: add example
 
         Returns
@@ -474,10 +474,10 @@ class _NxGraph(GraphInterface):
     def set_node_property(self):
         #@todo: do it...
         pass
-    
+
     #-------------------------------------------------------------------------#
     # Getters
-    
+
     def node_nb(self):
         ''' Number of nodes in the graph '''
         return self.number_of_nodes()
@@ -485,7 +485,7 @@ class _NxGraph(GraphInterface):
     def edge_nb(self):
         ''' Number of edges in the graph '''
         return self.size()
-    
+
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         weight = 'weight' if use_weights else None
         di_deg = None
