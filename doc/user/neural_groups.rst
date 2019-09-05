@@ -31,12 +31,12 @@ To create a useful group, one can therefore either just tell how many neurons it
 should contain:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 38
+   :lines: 39
 
 or directly pass it a list of ids
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 44
+   :lines: 45
 
 
 More realistic groups
@@ -49,12 +49,12 @@ By default, neural groups are created excitatory and the following lines are
 therefore equivalent:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 57-58
+   :lines: 58-59
 
 To create an inhibotory group, the neural type must be set to -1:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 59
+   :lines: 60
 
 Moving towards really realistic groups to run simulation on NEST afterwards,
 the last step is to associate a neuronal model and set the properties of these
