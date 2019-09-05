@@ -643,6 +643,11 @@ class NeuralPop(OrderedDict):
             Meta group.
         replace : bool, optional (default: False)
             Whether to override previous exiting meta group with same name.
+
+        Note
+        ----
+        The name of the group is automatically updated to match the `name`
+        argument.
         '''
         if name in self._meta_groups and not replace:
             raise KeyError("Cannot add meta group with name '" + name +\
@@ -660,6 +665,8 @@ class NeuralPop(OrderedDict):
         if group.ids:
             assert np.max(group.ids) <= self._max_id, \
                 "The meta group contains ids larger than the population size."
+
+        group._name = name
 
         self._meta_groups[name] = group
 

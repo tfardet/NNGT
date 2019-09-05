@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" Generation of multi-group networks """
+""" Generation of multi-group networks containing metagroups """
 
 import nngt
 import nngt.generation as ng
@@ -45,7 +45,7 @@ pop.add_meta_group("left", left)  # ... then add
 
 # right group is the complement
 right_nodes = list(set(pop.ids).difference(left_nodes))
-right = pop.create_meta_group("right", right_nodes)  # here we do both in one call
+right = pop.create_meta_group("right", right_nodes)  # here both in one call
 
 # create another pair of random metagroups
 
@@ -79,15 +79,41 @@ net = nngt.Network(population=pop, positions=positions)
 
 
 '''
+Access metagroups
+'''
+
+print(pop.meta_groups)
+print(pop["left"])
+
+
+'''
 Plot the graph
 '''
 
 if nngt.get_config("with_plot"):
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots()
+    # we plot the graph, setting the node shape from the left and right groups
+    # and the color from the neuronal type (exc. and inhib.)
 
-    nngt.plot.draw_network(net, restrict_nodes=left_nodes, axis=ax, show_environment=False, simple_nodes=True)
-    nngt.plot.draw_network(net, restrict_nodes=right_nodes, nshape="s", axis=ax, show_environment=False, simple_nodes=True)
+    nngt.plot.draw_network(net, nshape=[left, right], show_environment=False)
+
+    plt.show()
+
+    # further tests to make sure every configuration works
+
+    nngt.plot.draw_network(net, nshape=[left, right], show_environment=False,
+                           simple_nodes=True)
+
+    nngt.plot.draw_network(net, nshape=["o" for _ in range(net.node_nb())],
+                           show_environment=False, simple_nodes=True)
+
+    nngt.plot.draw_network(net, nshape=["o" for _ in range(net.node_nb())],
+                           show_environment=False)
+
+    nngt.plot.draw_network(net, nshape="s", show_environment=False,
+                           simple_nodes=True)
+
+    nngt.plot.draw_network(net, nshape="s", show_environment=False)
 
     plt.show()
