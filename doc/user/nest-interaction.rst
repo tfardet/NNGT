@@ -54,7 +54,7 @@ it into various groups.
 Neural groups can be created as follow: ::
 
     # 100 inhibitory neurons
-    basic_group = nngt.NeuralGroup(100, ntype=-1)
+    basic_group = nngt.NeuralGroup(100, neuron_type=-1)
     # 10 excitatory (default) aeif neurons
     aeif_group  = nngt.NeuralGroup(10, neuron_model="aeif_psc_alpha")
     # an unspecified number of aeif neurons with specific parameters
@@ -86,7 +86,7 @@ A population with excitatory and inhibitory neurons ::
 
     pop = nngt.NeuralPop(1000)
     pop.create_group("first", 800)
-    pop.create_group("second", 200, ntype=-1)
+    pop.create_group("second", 200, neuron_type=-1)
 
 or, more compact ::
 
@@ -134,7 +134,7 @@ which you pass the parameter dict and the name of the
 If you are dealing directly with :class:`~nngt.NeuralGroup` objects, you can
 access and modify their ``neuron_param` attribute as long as the network has
 not been sent to nest. Once sent, these parameters become unsettable and any
-wourkaround to circumvent this will not change the values inside NEST anyway. 
+wourkaround to circumvent this will not change the values inside NEST anyway.
 
 After sending the network to NEST, randomizing
 ----------------------------------------------

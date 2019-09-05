@@ -1,6 +1,11 @@
+.. _graph_gen:
+
 ================
 Graph generation
 ================
+
+.. contents::
+   :local:
 
 Principle
 =========

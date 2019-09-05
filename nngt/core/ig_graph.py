@@ -280,7 +280,7 @@ an array of 2-tuples of ints.")
         2-tuple. '''
         return np.array([(e.source, e.target) for e in self.es], dtype=int)
 
-    def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
+    def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
@@ -289,7 +289,7 @@ an array of 2-tuples of ints.")
         ----------
         n : int, optional (default: 1)
             Number of nodes to add.
-        ntype : int, optional (default: 1)
+        neuron_type : int, optional (default: 1)
             Type of neuron (1 for excitatory, -1 for inhibitory)
 
         Returns
@@ -307,7 +307,7 @@ an array of 2-tuples of ints.")
                 else:
                     v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=nodes)
-        self.vs[nodes[0]:nodes[-1] + 1]['type'] = ntype
+        self.vs[nodes[0]:nodes[-1] + 1]['type'] = neuron_type
 
         if self.is_spatial():
             old_pos      = self._pos

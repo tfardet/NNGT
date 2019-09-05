@@ -6,6 +6,8 @@ Multithreading
   When using ``graph-tool``, read carefully the `Graph-tool caveat`_ section
   before playing with multiple threads!
 
+.. contents::
+   :local:
 
 Principle
 =========

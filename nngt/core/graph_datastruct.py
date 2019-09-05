@@ -158,7 +158,7 @@ class NeuralPop(OrderedDict):
 
         # check groups and names
         for i, g in enumerate(groups):
-            assert g.is_valid(), "Group number " + str(i) + " is invalid."
+            assert g.is_valid, "Group number " + str(i) + " is invalid."
 
         gsize = len(groups)
         names = [str(i) for i in range(gsize)] if names is None else names
@@ -550,7 +550,7 @@ class NeuralPop(OrderedDict):
     #-------------------------------------------------------------------------#
     # Methods
 
-    def create_group(self, name, neurons, ntype=1, neuron_model=None,
+    def create_group(self, name, neurons, neuron_type=1, neuron_model=None,
                      neuron_param=None, replace=False):
         '''
         Create a new group in the population.
@@ -568,7 +568,7 @@ class NeuralPop(OrderedDict):
             Name of the group.
         neurons : int or array-like
             Desired number of neurons or list of the neurons indices.
-        ntype : int, optional (default: 1)
+        neuron_type : int, optional (default: 1)
             Type of the neurons : 1 for excitatory, -1 for inhibitory.
         neuron_model : str, optional (default: None)
             Name of a neuron model in NEST.
@@ -579,7 +579,7 @@ class NeuralPop(OrderedDict):
             Whether to override previous exiting meta group with same name.
         '''
         assert isinstance(name, str), "Group `name` must be a string."
-        assert ntype in (-1, 1), "Valid neuron type must be -1 or 1."
+        assert neuron_type in (-1, 1), "Valid neuron type must be -1 or 1."
 
         if self._to_nest:
             raise RuntimeError("Groups can no longer be created once the "
@@ -591,7 +591,7 @@ class NeuralPop(OrderedDict):
 
         neuron_param = {} if neuron_param is None else neuron_param.copy()
 
-        group        = NeuralGroup(neurons, ntype=ntype,
+        group        = NeuralGroup(neurons, neuron_type=neuron_type,
                                    neuron_model=neuron_model,
                                    neuron_param=neuron_param, name=name)
 
@@ -610,7 +610,7 @@ class NeuralPop(OrderedDict):
             Name of the group.
         neurons : int or array-like
             Desired number of neurons or list of the neurons indices.
-        ntype : int, optional (default: 1)
+        neuron_type : int, optional (default: 1)
             Type of the neurons : 1 for excitatory, -1 for inhibitory.
         neuron_model : str, optional (default: None)
             Name of a neuron model in NEST.
@@ -622,7 +622,7 @@ class NeuralPop(OrderedDict):
         '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
 
-        group = NeuralGroup(neurons, ntype=None, name=name,
+        group = NeuralGroup(neurons, neuron_type=None, name=name,
                             neuron_param=neuron_param)
 
         self.add_meta_group(name, group, replace=replace)
@@ -931,20 +931,17 @@ class NeuralGroup(object):
     """
     Class defining groups of neurons.
 
+    Its main variables are:
+
     :ivar ids: :obj:`list` of :obj:`int`
         the ids of the neurons in this group.
     :ivar neuron_type: :class:`int`
-        the default is ``1`` for excitatory neurons; ``-1`` is for interneurons
-    :ivar model: :class:`string`, optional (default: None)
+        the default is ``1`` for excitatory neurons; ``-1`` is for inhibitory
+        neurons; meta-groups must have `neuron_type` set to ``None``
+    :ivar neuron_model: :class:`string`, optional (default: None)
         the name of the model to use when simulating the activity of this group
     :ivar neuron_param: :class:`dict`, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
-
-    Note
-    ----
-    By default, synapses are registered as ``"static_synapse"`` in NEST;
-    because of this, only the ``neuron_model`` attribute is checked by the
-    ``has_model`` function.
 
     Warning
     -------
@@ -953,11 +950,12 @@ class NeuralGroup(object):
     that groups differing only by their ``ids`` will register as equal.
     """
 
-    def __init__ (self, nodes=None, ntype=1, neuron_model=None,
+    def __init__ (self, nodes=None, neuron_type=1, neuron_model=None,
                   neuron_param=None, name=None):
         '''
-        Create a group of neurons (empty group is default, but it is not a
-        valid object for most use cases).
+        Calling the class creates a group of neurons.
+        The default is an empty group but it is not a valid object for most use
+        cases.
 
         .. versionchanged:: 0.8
             Removed `syn_model` and `syn_param`.
@@ -967,7 +965,7 @@ class NeuralGroup(object):
         nodes : int or array-like, optional (default: None)
             Desired size of the group or, a posteriori, NNGT indices of the
             neurons in an existing graph.
-        ntype : int, optional (default: 1)
+        neuron_type : int, optional (default: 1)
             Type of the neurons (1 for excitatory, -1 for inhibitory) or None
             if not relevant (only allowed for metag roups).
         neuron_model : str, optional (default: None)
@@ -979,7 +977,7 @@ class NeuralGroup(object):
         -------
         A new :class:`~nngt.core.NeuralGroup` instance.
         '''
-        assert ntype in (1, -1, None), "`ntype` can either be 1 or -1."
+        assert neuron_type in (1, -1, None), "`neuron_type` can either be 1 or -1."
         neuron_param = {} if neuron_param is None else neuron_param.copy()
         self._has_model = False if neuron_model is None else True
         self._neuron_model = neuron_model
@@ -997,7 +995,7 @@ class NeuralGroup(object):
         self._name = "" if name is None else name
         self._nest_gids = None
         self._neuron_param = neuron_param if self._has_model else {}
-        self._neuron_type = ntype
+        self._neuron_type = neuron_type
         # whether the network this group belongs to was sent to NEST
         self._to_nest = False
         # parents
@@ -1018,7 +1016,7 @@ class NeuralGroup(object):
 
     def __str__(self):
         return "NeuralGroup({}size={})".format(
-            self._name + ": " if self._name else "", len(self._ids))
+            self._name + ": " if self._name else "", self.size)
 
     def _repr_pretty_(self, p, cycle):
         return p.text(str(self))
@@ -1101,6 +1099,7 @@ class NeuralGroup(object):
         }
         return dic
 
+    @property
     def is_valid(self):
         '''
         Whether the group can be used in a population: i.e. if it has either
@@ -1108,7 +1107,7 @@ class NeuralGroup(object):
 
         .. versionadded:: 1.0
         '''
-        return (self._desired_size is not None) or self._ids
+        return True if (self._desired_size is not None) or self._ids else False
 
 
 class GroupProperty:

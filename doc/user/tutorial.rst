@@ -152,6 +152,8 @@ also implemented: ::
                              logy=True, show=True)
     print("Clustering: {}".format(na.clustering(g)))
 
+For more details, see the full page on :ref:`graph_gen`.
+
 
 Using random numbers
 ====================
@@ -191,6 +193,8 @@ with specific connectivities using the
 
 .. literalinclude:: ../examples/multi_groups_network.py
    :lines: 32-63
+
+For more details, see the full page on :ref:`neural_groups`.
 
 
 Real neuronal culture and NEST interaction: the :class:`~nngt.Network`

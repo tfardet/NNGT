@@ -1267,7 +1267,7 @@ class Network(Graph):
         size = len(gids)
         nodes = [i for i in range(size)]
         group = nngt.NeuralGroup(
-            nodes, ntype=1, neuron_model=neuron_model, neuron_param=neuron_param)
+            nodes, neuron_type=1, neuron_model=neuron_model, neuron_param=neuron_param)
         pop = nngt.NeuralPop.from_groups([group])
         # create the network
         net = cls(population=pop, **kwargs)
@@ -1581,8 +1581,8 @@ class Network(Graph):
         '''
         if is_integer(neuron_ids):
             group_name = self._population._neuron_group[neuron_ids]
-            ntype = self._population[group_name].neuron_type
-            return ntype
+            neuron_type = self._population[group_name].neuron_type
+            return neuron_type
         else:
             groups = (self._population._neuron_group[i] for i in neuron_ids)
             types = tuple(self._population[gn].neuron_type for gn in groups)

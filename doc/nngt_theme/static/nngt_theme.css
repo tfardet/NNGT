@@ -46,6 +46,10 @@ ul.globaltoc {
     margin: 0;
 }
 
+ul.simple p {
+    margin-bottom: 0;
+}
+
 img.logo {
     margin: 1ex 0 1em 0;
     width: 150px;

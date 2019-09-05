@@ -305,7 +305,7 @@ class _GtGraph(GraphInterface):
             order = np.argsort(edges[:, 2])
             return edges[order, :2]
 
-    def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
+    def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
@@ -314,7 +314,7 @@ class _GtGraph(GraphInterface):
         ----------
         n : int, optional (default: 1)
             Number of nodes to add.
-        ntype : int, optional (default: 1)
+        neuron_type : int, optional (default: 1)
             Type of neuron (1 for excitatory, -1 for inhibitory)
         attributes : dict, optional (default: None)
             Dictionary containing the attributes of the nodes.
