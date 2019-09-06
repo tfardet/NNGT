@@ -2,9 +2,14 @@
 Main module
 ===========
 
+.. contents:: Overview
+   :local:
+
 For more details regarding the main classes, see:
 
 .. toctree::
+   :maxdepth: 1
+
    nngt/graph-classes
    nngt/main-functions
    nngt/side-classes
@@ -21,7 +26,6 @@ For more details regarding the main classes, see:
 
 .. toctree::
    :hidden:
-   :glob:
 
    analysis
    core

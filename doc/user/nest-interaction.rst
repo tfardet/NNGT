@@ -1,3 +1,5 @@
+.. _nest_int:
+
 ===================================
 Interacting with the NEST simulator
 ===================================
@@ -10,7 +12,7 @@ models, and how to create and setup NEST nodes.
 If this is not the case, please see the `NEST user doc`_ and the
 `PyNEST tutorials`_ first.
 
-NNGT tools with regard to NEST ca, be separated into
+NNGT tools with regard to NEST_ can be separated into
 
 * the structural tools (:class:`~nngt.Network`, :class:`~nngt.NeuralPop` ...)
   that are used to prepare the neuronal network and setup its properties and
@@ -30,6 +32,13 @@ NNGT tools with regard to NEST ca, be separated into
     :func:`~nngt.simulation.make_nest_network` or :func:`~nngt.Network.to_nest`.
 
 
+Example files associated to the interactions between NEST_ and NNGT can be
+found here: :source:`docs/examples/nest_network.py` /
+:source:`docs/examples/nest_receptor_ports.py`.
+
+
+**Content:**
+
 .. contents::
    :local:
 
@@ -48,6 +57,8 @@ network as an ensemble of groups.
 Depending on your perspective, you can either create the groups first, then
 build the population from them, or create the population first, then split
 it into various groups.
+
+For more details on groups and populations, see :ref:`neural_groups`.
 
 **Neuronal groups before the population**
 
@@ -132,7 +143,7 @@ which you pass the parameter dict and the name of the
 :class:`~nngt.NeuralGroup` you want to modify.
 
 If you are dealing directly with :class:`~nngt.NeuralGroup` objects, you can
-access and modify their ``neuron_param` attribute as long as the network has
+access and modify their ``neuron_param`` attribute as long as the network has
 not been sent to nest. Once sent, these parameters become unsettable and any
 wourkaround to circumvent this will not change the values inside NEST anyway.
 
@@ -147,7 +158,18 @@ This sets the parameters using a specified distribution and stores their
 values inside the network nodes' attributes.
 
 
+**Go to other tutorials:**
+
+* :ref:`intro`
+* :ref:`graph_gen`
+* :ref:`multithread`
+* :ref:`neural_groups`
+* :ref:`activ_analysis`
+* :ref:`graph-prop`
+
+
 .. References
 
 .. _`NEST user doc`: http://www.nest-simulator.org/documentation/
 .. _`PyNEST tutorials`: http://www.nest-simulator.org/introduction-to-pynest/
+.. _NEST: https://www.nest-simulator.org/

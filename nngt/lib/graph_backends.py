@@ -72,8 +72,11 @@ def use_backend(backend, reloading=True, silent=False):
         Name of a graph library among 'graph_tool', 'igraph', 'networkx', or
         'nngt'.
     reloading : bool, optional (default: True)
-        Whether the graph objects should be `reload_module`d (this should
-        always be set to True except when NNGT is first initiated!)
+        Whether the graph objects should be reloaded through `reload_module`
+        (this should always be set to True except when NNGT is first initiated!)
+    silent : bool, optional (default: False)
+        Whether the changes made to the configuration should be logged at the
+        DEBUG (True) or INFO (False) level.
     '''
     # save old config except for graph-library data
     old_config = nngt.get_config(detailed=True)

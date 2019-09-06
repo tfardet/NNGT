@@ -1,3 +1,5 @@
+.. _multithread:
+
 ==============
 Multithreading
 ==============
@@ -143,7 +145,7 @@ NNGT provides two different ways of using MPI:
   parallelism.
 - For "real" memory distribution, e.g. for people working on clusters, who
   require a balanced memory-load, NNGT provides a custom backend, that can be
-  set using ``nngt.set_config('backend', 'nngt'). In this case, each process
+  set using ``nngt.set_config('backend', 'nngt')``. In this case, each process
   stores only a fraction of all the edges. However, nodes and graph
   properties are fully available on all processes.
 
@@ -182,6 +184,16 @@ The file should then be executed using:
     Graph saving is available in parallel in the fully distributed setup
     through the :func:`~nngt.Graph.to_file` and :func:`~nngt.save_to_file`
     functions as in any other configuration.
+
+
+**Go to other tutorials:**
+
+* :ref:`intro`
+* :ref:`graph_gen`
+* :ref:`neural_groups`
+* :ref:`nest_int`
+* :ref:`activ_analysis`
+* :ref:`graph-prop`
 
 
 .. _MPI: https://en.wikipedia.org/wiki/Message_Passing_Interface

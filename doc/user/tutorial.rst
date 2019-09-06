@@ -18,6 +18,12 @@ Then, you will be able to use the help from IPython by typing, for instance:
 
 In Jupyter, the docstring can be viewed using Shift+Tab.
 
+
+.. note ::
+    For a list of example files, see the `'examples' directory on GitHub
+    <https://github.com/Silmathoron/NNGT/tree/master/doc/examples>`_.
+
+
 **Content:**
 
 .. contents::
@@ -47,14 +53,14 @@ Let's walk through this configuration:
 * the backend used here is ``igraph``, so all graph-theoretical tools will be
   derived from those of the igraph_ library and we're using version 0.7.1.
 * Multithreaded algorithms will be used, currently running on only one thread
-  (see :ref:`Multithreading` for more details)
+  (see :ref:`multithread` for more details)
 * MPI algorithms are not in use (you cannot use both MT and MPI at the same
   time)
 * Plotting is available because the matplotlib_ library is installed
 * NEST is installed on the machine (version 2.14), so NNGT automatically
   loaded it
 * Shapely_ is also available, which allows the creation of complex structures
-  for space-embedded networks (see :ref:`Geometry module` for more details)
+  for space-embedded networks (see :ref:`geometry` for more details)
 * Importing SVG files to generate spatial structures is possible, meaning that
   the `svg.path`_ module is installed.
 * Importing DXF files to generate spatial structures is not possible because
@@ -177,10 +183,10 @@ If needed, these sub-RNGs can also be seeded manually using (for 4 threads) ::
     nngt.set_config("seeds", [1, 2, 3, 4])
 
 .. warning ::
-When using NEST, the simulator's RNGs must be seeded separately using the NEST
-commands; see the
-`NEST user manual <http://www.nest-simulator.org/random-numbers/>`_ for
-details.
+    When using NEST, the simulator's RNGs must be seeded separately using the
+    NEST commands; see the
+    `NEST user manual <http://www.nest-simulator.org/random-numbers/>`_ for
+    details.
 
 
 Complex populations: :class:`~nngt.NeuralGroup` and :class:`~nngt.NeuralPop`
@@ -221,6 +227,7 @@ In order to access the gids from each group, you can do: ::
 
     oscill_gids = net.nest_gid[oscill.ids]
 
+For more details to use NNGT with NEST, see :ref:`nest_int`.
 
 
 Using the graph library of the NNGT object
@@ -283,6 +290,17 @@ Example using networkx
     This example is given voluntarily to remind you, when using these
     libraries, to check that they indeed compute what you think they do.
     And even when they compute it, check how they do it!
+
+
+**Go to other tutorials:**
+
+* :ref:`intro`
+* :ref:`graph_gen`
+* :ref:`multithread`
+* :ref:`neural_groups`
+* :ref:`nest_int`
+* :ref:`activ_analysis`
+* :ref:`graph-prop`
 
 
 .. References

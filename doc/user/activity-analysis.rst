@@ -1,3 +1,5 @@
+.. _activ_analysis:
+
 =================
 Activity analysis
 =================
@@ -61,8 +63,18 @@ Or from a spike detector gid ``sd``:
 
     a = analyze_raster(sd)
 
+**Additional information:**
 
 .. toctree::
    :maxdepth: 1
 
    ../modules/simulation
+
+**Go to other tutorials:**
+
+* :ref:`intro`
+* :ref:`graph_gen`
+* :ref:`multithread`
+* :ref:`neural_groups`
+* :ref:`nest_int`
+* :ref:`graph-prop`

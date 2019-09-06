@@ -4,6 +4,16 @@
 Graph generation
 ================
 
+This page gives example on how to generate increasingly complex network
+structures.
+The example files can be found at: :source:`docs/examples/simple_graphs.py`,
+:source:`docs/examples/multi_groups_network.py`,
+:source:`docs/examples/basic_nest_network.py`, and
+:source:`docs/examples/nest_receptor_ports.py`.
+
+
+**Content:**
+
 .. contents::
    :local:
 
@@ -62,9 +72,9 @@ Pre-defined distributions require the following variables:
 * a distribution name ("constant", "gaussian"...)
 * a dictionary containing the distribution properties
 * an optional attribute for distributions that are correlated to another (e.g.
-the distances between neurons)
+  the distances between neurons)
 * a optional value defining the variance of the Gaussian noise that should be
-applied on the weights
+  applied on the weights
 
 There are several ways of settings the weights of a graph which depend on the
 time at which you assign them.
@@ -97,15 +107,16 @@ Simple generation
 -----------------
 
 .. literalinclude:: ../examples/simple_graphs.py
-   :lines: 31-49
+   :lines: 36-57
 
 
 Networks composed of heterogeneous groups
 -----------------------------------------
 
 .. literalinclude:: ../examples/multi_groups_network.py
-   :lines: 30-64
+   :lines: 32-63
 
+.. _nest_net:
 
 Use with NEST
 -------------
@@ -113,12 +124,12 @@ Use with NEST
 Generating a network with excitatory and inhibitory neurons:
 
 .. literalinclude:: ../examples/basic_nest_network.py
-   :lines: 37-64
+   :lines: 36-68
 
 Send the network to NEST:
 
 .. literalinclude:: ../examples/basic_nest_network.py
-   :lines: 71-
+   :lines: 76-
 
 
 Advanced examples
@@ -138,4 +149,14 @@ of the **target** neuron is concerned.
 
 
 .. literalinclude:: ../examples/nest_receptor_ports.py
-   :lines: 27-
+   :lines: 31-
+
+
+**Go to other tutorials:**
+
+* :ref:`intro`
+* :ref:`multithread`
+* :ref:`neural_groups`
+* :ref:`nest_int`
+* :ref:`activ_analysis`
+* :ref:`graph-prop`

@@ -96,6 +96,9 @@ class NeuralPop(OrderedDict):
         .. versionchanged:: 0.8
             Added `syn_spec` parameter.
 
+        .. versionchanged:: 1.2
+            Added `meta_groups` parameter
+
         Parameters
         ----------
         groups : list of :class:`~nngt.NeuralGroup` objects
@@ -104,9 +107,10 @@ class NeuralPop(OrderedDict):
             pairwise disjoints complementary sets.
         names : list of str, optional (default: None)
             Names that can be used as keys to retreive a specific group. If not
-            provided, keys will be the position of the group in `groups`,
-            stored as a string. In this case, the first group in a population
-            named `pop` will be retreived by either `pop[0]` or `pop['0']`.
+            provided, keys will be the group name (if not empty) or the position
+            of the group in `groups`, stored as a string.
+            In the latter case, the first group in a population named `pop`
+            will be retreived by either `pop[0]` or `pop['0']`.
         parent : :class:`~nngt.Graph`, optional (default: None)
             Parent if the population is created from an exiting graph.
         syn_spec : dict, optional (default: static synapse)
@@ -115,10 +119,12 @@ class NeuralPop(OrderedDict):
             those of the second group) as value.
             If a 'default' entry is provided, all unspecified connections will
             be set to its value.
-        meta_groups : dict of str/:class:`~nngt.NeuralGroup` items
+        meta_groups : list or dict of str/:class:`~nngt.NeuralGroup` items
             Additional set of groups which can overlap: a neuron can belong to
             several different meta groups. Contrary to the primary groups, meta
             groups do therefore no need to be disjoint.
+            If all meta-groups have a name, they can be passed directly through
+            a list; otherwise a dict is necessary.
         with_model : bool, optional (default: True)
             Whether the groups require models (set to False to use populations
             for graph theoretical purposes, without NEST interaction)
@@ -158,10 +164,19 @@ class NeuralPop(OrderedDict):
 
         # check groups and names
         for i, g in enumerate(groups):
-            assert g.is_valid, "Group number " + str(i) + " is invalid."
+            name = " ('{}')".format(g.name) if g.name else ""
+            assert g.is_valid, "Group number " + str(i) + name + " is invalid."
 
         gsize = len(groups)
-        names = [str(i) for i in range(gsize)] if names is None else names
+        names = [] if names is None else names
+
+        if not names:
+            for i, g in enumerate(groups):
+                if g.name:
+                    names.append(g.name)
+                else:
+                    names.append(str(i))
+
         assert len(names) == gsize, "`names` and `groups` must have " +\
                                     "the same size."
 
@@ -193,17 +208,23 @@ class NeuralPop(OrderedDict):
         return pop
 
     @classmethod
-    def uniform(cls, size, neuron_model=default_neuron, neuron_param=None,
-                syn_model=default_synapse, syn_param=None, parent=None,
-                meta_groups=None):
+    def uniform(cls, size, neuron_type=1, neuron_model=default_neuron,
+                neuron_param=None, syn_model=default_synapse, syn_param=None,
+                parent=None, meta_groups=None):
         '''
         Make a NeuralPop of identical neurons belonging to a single "default"
         group.
+
+        .. versionchanged:: 1.2
+            Added `neuron_type` and `meta_groups` parameters
 
         Parameters
         ----------
         size : int
             Number of neurons in the population.
+        neuron_type : int, optional (default: 1)
+            Type of the neurons in the population: 1 for excitatory or -1 for
+            inhibitory.
         neuron_model : str, optional (default: default neuron model)
             Neuronal model for the simulator.
         neuron_param : dict, optional (default: default neuron parameters)
@@ -214,9 +235,11 @@ class NeuralPop(OrderedDict):
             Parameters associated to `syn_model`.
         parent : :class:`~nngt.Graph` object, optional (default: None)
             Parent graph described by the population.
-        meta_groups : dict of str/:class:`~nngt.NeuralGroup` items
+        meta_groups : list or dict of str/:class:`~nngt.NeuralGroup` items
             Set of groups which can overlap: a neuron can belong to
             several different meta groups, i.e. they do no need to be disjoint.
+            If all meta-groups have a name, they can be passed directly through
+            a list; otherwise a dict is necessary.
         '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
 
@@ -228,7 +251,8 @@ class NeuralPop(OrderedDict):
             syn_param = {}
 
         pop = cls(size, parent, meta_groups=meta_groups)
-        pop.create_group("default", range(size), 1, neuron_model, neuron_param)
+        pop.create_group("default", range(size), neuron_type, neuron_model,
+                         neuron_param)
 
         pop._syn_spec = {'model': syn_model}
 
@@ -247,6 +271,9 @@ class NeuralPop(OrderedDict):
 
         .. versionchanged:: 0.8
             Added `syn_spec` parameter.
+
+        .. versionchanged:: 1.2
+            Added `meta_groups` parameter
 
         Parameters
         ----------
@@ -276,11 +303,13 @@ class NeuralPop(OrderedDict):
                 - `('inhibitory', 'inhibitory')`
         parent : :class:`~nngt.Network`, optional (default: None)
             Network associated to this population.
-        meta_groups : dict of str/:class:`~nngt.NeuralGroup` items
+        meta_groups : list dict of str/:class:`~nngt.NeuralGroup` items
             Additional set of groups which can overlap: a neuron can belong to
             several different meta groups. Contrary to the primary 'excitatory'
             and 'inhibitory' groups, meta groups are therefore no necessarily
             disjoint.
+            If all meta-groups have a name, they can be passed directly through
+            a list; otherwise a dict is necessary.
 
         See also
         --------
@@ -340,7 +369,7 @@ class NeuralPop(OrderedDict):
         Initialize NeuralPop instance.
 
         .. versionchanged:: 1.2
-            Added `meta groups` argument.
+            Added `meta groups` parameter.
 
         Parameters
         ----------
@@ -361,8 +390,17 @@ class NeuralPop(OrderedDict):
         -------
         pop : :class:`~nngt.NeuralPop` object.
         '''
+        # check meta groups
         meta_groups = {} if meta_groups is None else meta_groups
 
+        if not isinstance(meta_groups, dict):
+            for g in meta_groups:
+                if not g.name:
+                    raise ValueError("When providing a list for `meta_groups`, "
+                                     "all meta groups should be named")
+            meta_groups = {g.name: g for g in meta_groups}
+
+        # set main properties
         self._is_valid = False
         self._desired_size = size if parent is None else parent.node_nb()
         self._size = 0
@@ -381,7 +419,7 @@ class NeuralPop(OrderedDict):
 
         # add meta groups
         for nmg, mg in meta_groups.items():
-            self.add_meta_group(nmg, mg)
+            self.add_meta_group(mg, nmg)
 
         if parent is not None and 'group_prop' in kwargs:
             dic = _make_groups(parent, kwargs["group_prop"])
@@ -625,11 +663,11 @@ class NeuralPop(OrderedDict):
         group = NeuralGroup(neurons, neuron_type=None, name=name,
                             neuron_param=neuron_param)
 
-        self.add_meta_group(name, group, replace=replace)
+        self.add_meta_group(group, replace=replace)
 
         return group
 
-    def add_meta_group(self, name, group, replace=False):
+    def add_meta_group(self, group, name=None, replace=False):
         '''
         Add an existing meta group to the population.
 
@@ -637,10 +675,10 @@ class NeuralPop(OrderedDict):
 
         Parameters
         ----------
-        name : str
-            Name of the meta group.
         group : :class:`NeuralGroup`
             Meta group.
+        name : str, optional (default: group name)
+            Name of the meta group.
         replace : bool, optional (default: False)
             Whether to override previous exiting meta group with same name.
 
@@ -649,6 +687,12 @@ class NeuralPop(OrderedDict):
         The name of the group is automatically updated to match the `name`
         argument.
         '''
+        name = name if name else group.name
+
+        if not name:
+            raise ValueError("Group is not named, but no `name` entry was "
+                             "provided.")
+
         if name in self._meta_groups and not replace:
             raise KeyError("Cannot add meta group with name '" + name +\
                            "': primary group with that name already exists.")
@@ -935,13 +979,16 @@ class NeuralGroup(object):
 
     :ivar ids: :obj:`list` of :obj:`int`
         the ids of the neurons in this group.
-    :ivar neuron_type: :class:`int`
+    :ivar neuron_type: :obj:`int`
         the default is ``1`` for excitatory neurons; ``-1`` is for inhibitory
         neurons; meta-groups must have `neuron_type` set to ``None``
     :ivar neuron_model: :class:`string`, optional (default: None)
         the name of the model to use when simulating the activity of this group
     :ivar neuron_param: :class:`dict`, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
+    :ivar is_metagroup: :obj:`bool`
+        whether the group is a meta-group or not (`neuron_type` is ``None``
+        for meta-groups)
 
     Warning
     -------
@@ -1028,7 +1075,6 @@ class NeuralGroup(object):
     @property
     def neuron_model(self):
         return self._neuron_model
-        return self._name
 
     @property
     def neuron_type(self):
@@ -1108,6 +1154,10 @@ class NeuralGroup(object):
         .. versionadded:: 1.0
         '''
         return True if (self._desired_size is not None) or self._ids else False
+
+    @property
+    def is_metagroup(self):
+        return self._neuron_type is None
 
 
 class GroupProperty:

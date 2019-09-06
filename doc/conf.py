@@ -33,6 +33,7 @@ import sphinx_bootstrap_theme
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 current_directory = os.path.abspath('.')
 sys.path.append(current_directory)
+sys.path.append(current_directory + "/extensions")  # custom extensions folder
 
 # Simlink to geometry.examples
 src = os.path.abspath('../nngt/geometry/examples')
@@ -117,6 +118,9 @@ for root, dirnames, filenames in os.walk('.'):
 ignore = {
     'nngt.core': ("Graph", "Network", "SpatialGraph", "SpatialNetwork",
                   "NeuralPop", "NeuralGroup"),
+    'nngt.lib': ("custom", "decorate", "deprecated", "graph_tool_check",
+                 "mpi_barrier", "mpi_checker", "mpi_random", "not_implemented",
+                 "num_mpi_processes", "on_master_process", "seed"),
 }
 
 for f in inputs:
@@ -131,13 +135,18 @@ for f in inputs:
 
 # Add nngt (functions)
 source = current_directory + "/modules/nngt/main-functions.rst.in"
+tmp    = current_directory + "/modules/nngt/main-functions.rst.tmp"
 target = current_directory + "/modules/nngt/main-functions.rst"
-gen_autosum(source, target, 'nngt', 'autofunction', dtype="func")
+gen_autosum(source, tmp, 'nngt', 'summary', dtype="func")
+gen_autosum(tmp, target, 'nngt', 'autofunction', dtype="func")
 
 # nngt (side classes)
 source = current_directory + "/modules/nngt/side-classes.rst.in"
+tmp    = current_directory + "/modules/nngt/side-classes.rst.tmp"
 target = current_directory + "/modules/nngt/side-classes.rst"
-gen_autosum(source, target, 'nngt', 'autoclass', dtype="class",
+gen_autosum(source, tmp, 'nngt', 'summary', dtype="class",
+            ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
+gen_autosum(tmp, target, 'nngt', 'autoclass', dtype="class",
             ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
 
 
@@ -170,6 +179,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.napoleon',
+    'linksourcecode'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -96,7 +96,7 @@ __all__ = [
 # ----------------------------- #
 
 def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
-               name="AlltoAll", shape=None, positions=None, population=None,
+               name="AllToAll", shape=None, positions=None, population=None,
                **kwargs):
     """
     Generate a graph where all nodes are connected.
@@ -137,15 +137,19 @@ def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
         A new generated graph.
     """
     nodes = nodes if population is None else population.size
-    matrix = np.ones((nodes, nodes))
+
     graph_all = nngt.Graph(name=name, nodes=nodes, directed=directed, **kwargs)
+
     _set_options(graph_all, population, shape, positions)
+
     # add edges
     if nodes > 1:
         ids = np.arange(nodes, dtype=np.uint)
-        edges = _all_to_all(ids, ids, directed, multigraph)
-        graph_all.new_edges(ia_edges, check_edges=False)
+        edges = _all_to_all(ids, ids, directed=directed, multigraph=multigraph)
+        graph_all.new_edges(edges, check_edges=False)
+
     graph_all._graph_type = "all_to_all"
+
     return graph_all
 
 

@@ -85,8 +85,9 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
 # ---------------------- #
 
 def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
-                cnp.ndarray[size_t, ndim=1] target_ids, list distance=None,
-                bool directed=True, bool multigraph=False, **kwargs):
+                cnp.ndarray[size_t, ndim=1] target_ids,
+                bool directed=True, bool multigraph=False,
+                list distance=None, **kwargs):
     ''' Generation of a fully connected graph '''
     cdef:
         size_t num_sources = len(source_ids)
@@ -221,7 +222,7 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
         _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
             idx, multigraph, directed, msd, omp)
     return ia_edges
-    
+
 
 def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
                        density=-1, edges=-1, avg_deg=-1, reciprocity=-1,
@@ -234,7 +235,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
                                 density, edges, avg_deg, directed, reciprocity)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
-    
+
     ia_edges = np.zeros((edges,2),dtype=int)
     num_ecurrent, num_test = 0, 0
 
@@ -264,7 +265,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
     ia_edges_tmp = np.array([ia_sources,ia_targets]).T
     ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                      b_one_pop, multigraph)
-        
+
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         num_desired = pre_recip_edges-num_ecurrent
         ia_sources_tmp = ia_sources[randint(0,pre_recip_edges,num_desired)]
@@ -273,7 +274,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          b_one_pop, multigraph)
         num_test += 1
-    
+
     if directed and reciprocity > 0:
         while num_ecurrent != edges and num_test < MAXTESTS:
             ia_indices = randint(0, pre_recip_edges,
@@ -286,7 +287,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
     return ia_edges
-    
+
 
 def _erdos_renyi(source_ids, target_ids, float density=-1, int edges=-1,
                  float avg_deg=-1, float reciprocity=-1, bool directed=True,
@@ -301,13 +302,13 @@ def _erdos_renyi(source_ids, target_ids, float density=-1, int edges=-1,
     num_source, num_target = len(source_ids), len(target_ids)
     edges, pre_recip_edges = _compute_connections(num_source, num_target,
                                 density, edges, avg_deg, directed, reciprocity)
-    
+
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
-    
+
     ia_edges = np.zeros((edges,2), dtype=int)
     num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
-    
+
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         ia_sources = source_ids[randint(0, num_source,
                                         pre_recip_edges-num_ecurrent)]
@@ -317,7 +318,7 @@ def _erdos_renyi(source_ids, target_ids, float density=-1, int edges=-1,
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          b_one_pop, multigraph)
         num_test += 1
-    
+
     if directed and reciprocity > 0:
         while num_ecurrent != edges and num_test < MAXTESTS:
             ia_indices = randint(0, pre_recip_edges,
@@ -357,7 +358,7 @@ def _newman_watts(source_ids, target_ids, int coord_nb=-1,
                   float proba_shortcut=-1, directed=True, multigraph=False,
                   **kwargs):
     '''
-    Returns a numpy array of dimension (num_edges,2) that describes the edge 
+    Returns a numpy array of dimension (num_edges,2) that describes the edge
     list of a Newmaan-Watts graph.
     '''
     node_ids = np.array(source_ids, dtype=int)

@@ -3,7 +3,7 @@ Generation module
 =================
 
 Functions that generates the underlying connectivity of graphs, as well
-as the synaptic properties (weight/strength and delay).
+as the connection properties (weight/strength and delay).
 
 
 Content

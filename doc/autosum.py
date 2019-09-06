@@ -47,10 +47,12 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
         Names of the objects that should not be included in the summary.
     '''
     # load module and get content
-    mod = importlib.import_module(module)
+    mod     = importlib.import_module(module)
     mod_dir = dir(mod)
+
     # set ignored classes
     ignore = [] if ignore is None else ignore
+
     # list classes and functions
     str_autosum = ''
     for member in mod_dir:
@@ -68,11 +70,15 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
                     str_autosum += '    ' + module + '.' + member + '\n'
                 else:
                     str_autosum += '\n.. ' + autotype + ':: ' + member + '\n'
+
     # write to file
+    done = False
+
     with open(source, "r") as rst_input:
         with open(target, "w") as main_rst:
             for line in rst_input:
-                if line.find("@autosum@") != -1:
+                if line.find("@autosum@") != -1 and not done:
                     main_rst.write(str_autosum)
+                    done = True
                 else:
                     main_rst.write(line)

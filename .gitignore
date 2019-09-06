@@ -16,6 +16,8 @@ doc/modules/simulation.rst
 doc/modules/nngt/main-functions.rst
 doc/modules/nngt/side-classes.rst
 
+*.tmp
+
 nngt/testing/Ref/*
 
 # python stuff
@@ -27,3 +29,6 @@ build
 dist/
 nngt.egg-info/
 *.so
+
+# visualcode
+*.vscode

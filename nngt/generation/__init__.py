@@ -27,8 +27,10 @@ from .graph_connectivity import *
 
 
 __all__ = [
+	'all_to_all',
     'connect_neural_groups',
     'connect_neural_types',
+	'connect_nodes',
 	'distance_rule',
 	'erdos_renyi',
     'fixed_degree',

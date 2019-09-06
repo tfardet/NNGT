@@ -1,5 +1,13 @@
 Side classes
 ============
 
+.. autosummary::
+
+@autosum@
+
+
+Details
+-------
+
 .. currentmodule:: nngt
 @autosum@
