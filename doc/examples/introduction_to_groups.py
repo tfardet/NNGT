@@ -84,11 +84,11 @@ fsi = NeuralGroup(200, neuron_type=-1, neuron_model="iaf_psc_alpha",
 
 # making populations from scratch
 pop = nngt.NeuralPop(with_models=False)              # empty population
-pop.create_group("first_group", 200)                 # create excitatory group
-pop.create_group("second_group", 5, neuron_type=-1)  # create inhibitory group
+pop.create_group(200, "first_group")                 # create excitatory group
+pop.create_group(5, "second_group", neuron_type=-1)  # create inhibitory group
 
 print("E/I population has size", pop.size, "and contains",
-      len(pop), "groups:", *pop.keys(), "\n")
+      len(pop), "groups:", pop.keys(), "\n")
 
 # the two default populations
 unif_pop = NeuralPop.uniform(1000)                     # only excitatory
@@ -96,9 +96,9 @@ ei_pop   = NeuralPop.exc_and_inhib(1000, iratio=0.25)  # 25% inhibitory
 
 # check the groups inside
 print("Uniform population has size", unif_pop.size, "and contains",
-      len(unif_pop), "group:", *unif_pop.keys(), "\n")
+      len(unif_pop), "group:", unif_pop.keys(), "\n")
 print("E/I population has size", ei_pop.size, "and contains",
-      len(ei_pop), "groups:", *ei_pop.keys(), "\n")
+      len(ei_pop), "groups:", ei_pop.keys(), "\n")
 
 # A population can also be created from existing groups.
 # Here we pass ``with_models=False`` to the population because these groups do
@@ -109,7 +109,7 @@ ei_pop2 = NeuralPop.from_groups([exc, exc2, inhib], ["e1", "e2", "i"],
 
 print("E/I population has size", ei_pop2.size,
       "({} + {} + {}) and contains".format(exc.size, exc2.size, inhib.size),
-      len(ei_pop2), "groups:", *ei_pop2.keys(), "\n")
+      len(ei_pop2), "groups:", ei_pop2.keys(), "\n")
 
 
 ''' --------------------- #
@@ -173,8 +173,8 @@ pop_column = NeuralPop.from_groups(
 pyr = NeuralGroup(L3Py.ids + L5Py.ids, neuron_type=None, name="pyramidal")
 pop_column.add_meta_group(pyr)  # add from existing meta-group
 
-pop_column.create_meta_group("interneurons", L3I.ids + L5I.ids)  # single line
+pop_column.create_meta_group(L3I.ids + L5I.ids, "interneurons")  # single line
 
-pop_column.create_meta_group("granule", L2GC.ids + L4GC.ids)
+pop_column.create_meta_group(L2GC.ids + L4GC.ids, "granule")
 
-print("Column has meta-groups:", *pop_column.meta_groups.keys())
+print("Column has meta-groups:", pop_column.meta_groups.keys())

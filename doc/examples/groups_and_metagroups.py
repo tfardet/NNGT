@@ -41,17 +41,17 @@ pop = nngt.NeuralPop.exc_and_inhib(num_neurons)
 left_nodes = np.random.choice([i for i in range(num_neurons)],
                               500, replace=False)
 left = nngt.NeuralGroup(left_nodes, neuron_type=None)  # here we first create...
-pop.add_meta_group("left", left)  # ... then add
+pop.add_meta_group(left, "left")  # ... then add
 
 # right group is the complement
 right_nodes = list(set(pop.ids).difference(left_nodes))
-right = pop.create_meta_group("right", right_nodes)  # here both in one call
+right = pop.create_meta_group(right_nodes, "right")  # here both in one call
 
 # create another pair of random metagroups
 
 # we select 500 random nodes for the left group
-group1 = pop.create_meta_group("g1", [i for i in range(500)])
-group2 = pop.create_meta_group("g2", [i for i in range(500, num_neurons)])
+group1 = pop.create_meta_group([i for i in range(500)], "g1")
+group2 = pop.create_meta_group([i for i in range(500, num_neurons)], "g2")
 
 
 '''

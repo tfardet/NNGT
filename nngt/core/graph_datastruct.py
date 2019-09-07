@@ -251,7 +251,7 @@ class NeuralPop(OrderedDict):
             syn_param = {}
 
         pop = cls(size, parent, meta_groups=meta_groups)
-        pop.create_group("default", range(size), neuron_type, neuron_model,
+        pop.create_group(range(size), "default", neuron_type, neuron_model,
                          neuron_param)
 
         pop._syn_spec = {'model': syn_model}
@@ -321,9 +321,9 @@ class NeuralPop(OrderedDict):
         pop = cls(size, parent, meta_groups=meta_groups)
 
         pop.create_group(
-            "excitatory", range(num_exc_neurons), 1, en_model, en_param)
+            range(num_exc_neurons), "excitatory", 1, en_model, en_param)
         pop.create_group(
-            "inhibitory", range(num_exc_neurons, size), -1, in_model, in_param)
+            range(num_exc_neurons, size), "inhibitory", -1, in_model, in_param)
 
         if syn_spec is not None:
             _check_syn_spec(
@@ -342,7 +342,7 @@ class NeuralPop(OrderedDict):
 
         for name, group in pop.items():
             new_pop.create_group(
-                name, group.ids, group.model, group.neuron_param)
+                group.ids, name, group.model, group.neuron_param)
             new_pop._syn_spec = pop.syn_spec
 
         return new_pop
@@ -588,7 +588,7 @@ class NeuralPop(OrderedDict):
     #-------------------------------------------------------------------------#
     # Methods
 
-    def create_group(self, name, neurons, neuron_type=1, neuron_model=None,
+    def create_group(self, neurons, name, neuron_type=1, neuron_model=None,
                      neuron_param=None, replace=False):
         '''
         Create a new group in the population.
@@ -602,10 +602,10 @@ class NeuralPop(OrderedDict):
 
         Parameters
         ----------
-        name : str
-            Name of the group.
         neurons : int or array-like
             Desired number of neurons or list of the neurons indices.
+        name : str
+            Name of the group.
         neuron_type : int, optional (default: 1)
             Type of the neurons : 1 for excitatory, -1 for inhibitory.
         neuron_model : str, optional (default: None)
@@ -635,7 +635,7 @@ class NeuralPop(OrderedDict):
 
         self[name]   = group
 
-    def create_meta_group(self, name, neurons, neuron_param=None,
+    def create_meta_group(self, neurons, name, neuron_param=None,
                           replace=False):
         '''
         Create a new meta group and add it to the population.
@@ -644,10 +644,10 @@ class NeuralPop(OrderedDict):
 
         Parameters
         ----------
-        name : str
-            Name of the group.
         neurons : int or array-like
             Desired number of neurons or list of the neurons indices.
+        name : str
+            Name of the group.
         neuron_type : int, optional (default: 1)
             Type of the neurons : 1 for excitatory, -1 for inhibitory.
         neuron_model : str, optional (default: None)

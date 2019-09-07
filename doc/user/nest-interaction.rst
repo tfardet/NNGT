@@ -96,8 +96,8 @@ created groups.
 A population with excitatory and inhibitory neurons ::
 
     pop = nngt.NeuralPop(1000)
-    pop.create_group("first", 800)
-    pop.create_group("second", 200, neuron_type=-1)
+    pop.create_group(800, "first")
+    pop.create_group(200, "second", neuron_type=-1)
 
 or, more compact ::
 
