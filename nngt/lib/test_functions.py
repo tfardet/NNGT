@@ -173,10 +173,12 @@ def nonstring_container(obj):
 
 
 def is_integer(obj):
+    ''' Return whether the object is an integer '''
     return isinstance(obj, (int, np.integer))
 
 
 def is_iterable(obj):
+    ''' Return whether the object is iterable '''
     return isinstance(obj, _iterable)
 
 

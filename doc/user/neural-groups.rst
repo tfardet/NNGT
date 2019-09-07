@@ -4,8 +4,8 @@
 Neural groups and populations
 =============================
 
-One of the key features of NNGT is to enable users to group nodes (neurons) into
-groups sharing common properties in order to facilitate the generation of
+One of the key features of NNGT is to enable users to group nodes (neurons)
+into groups sharing common properties in order to facilitate the generation of
 network, the analysis of its properties, or complex simulations with NEST_.
 
 The complete example file containing the code discussed here, as well as
@@ -30,8 +30,8 @@ all neurons in the network once and only once.
 When creating a group, it is therefore important to make sure that it forms a
 coherent set of neurons, as this will make network handling easier.
 
-For more versatile grouping, where neurons can belong to multiple ensembles, see
-the section about meta-groups below: `Complex populations and metagroups`_.
+For more versatile grouping, where neurons can belong to multiple ensembles,
+see the section about meta-groups below: `Complex populations and metagroups`_.
 
 
 Creating simple groups
@@ -46,8 +46,8 @@ creates a single empty group (nothing very interesting).
 Minimally, any useful group requires at least neuron ids and a type (excitatory
 or inhibitory) to be useful.
 
-To create a useful group, one can therefore either just tell how many neurons it
-should contain:
+To create a useful group, one can therefore either just tell how many neurons
+it should contain:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
    :lines: 40
@@ -62,8 +62,8 @@ the time, we do ``from nngt import NeuralGroup`` at the beginning)
 More realistic groups
 ---------------------
 
-When designing neuronal networks, one usually cares about their type (excitatory
-or inhibitory for instance), their properties, etc.
+When designing neuronal networks, one usually cares about their type
+(excitatory or inhibitory for instance), their properties, etc.
 
 By default, neural groups are created excitatory and the following lines are
 therefore equivalent:
@@ -144,7 +144,7 @@ properties, e.g. the previous ``pyr`` and ``fsi`` groups:
 .. literalinclude:: ../examples/introduction_to_groups.py
    :lines: 125-131
 
-.. warning ::
+.. warning::
     `syn_spec` can contain any synaptic model and parameters associated to the
     NEST model; however, neither the synaptic weight nor the synaptic delay
     can be set there. For details on how to set synaptic weight and delays
@@ -157,8 +157,8 @@ to NEST_, see :ref:`nest_net`.
 Complex populations and metagroups
 ==================================
 
-When building complex neuronal networks, it may be useful to have neurons belong
-to multiple groups at the same time.
+When building complex neuronal networks, it may be useful to have neurons
+belong to multiple groups at the same time.
 Because standard groups can contain a neuron only once, meta-groups were
 introduced to provide this additional functionality.
 

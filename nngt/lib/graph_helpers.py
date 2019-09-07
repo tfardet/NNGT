@@ -125,3 +125,17 @@ def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec,
         return deepcopy(key_prop)
     else:
         return deepcopy(dict_prop)
+
+
+def _to_np_array(data, dtype):
+    '''
+    Transform data to a numpy array, preserving nested lists as lists if dtype
+    is "object".
+    '''
+    if dtype in (object, "object"):
+        # preserve potential list entries
+        arr    = np.empty(len(data), dtype=object)
+        arr[:] = data
+        return arr
+
+    return np.array(data, dtype=dtype)

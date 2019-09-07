@@ -29,11 +29,11 @@ separately in the following pages:
    :maxdepth: 1
 
    graph-generation
+   component-properties
    multithreading
    neural-groups
    nest-interaction
    activity-analysis
-   component-properties
 
 .. note ::
   This library provides many tools which will (or not) be loaded on startup

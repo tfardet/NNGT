@@ -21,6 +21,7 @@
 """ iGraph subclassing """
 
 from collections import OrderedDict
+from copy import deepcopy
 import logging
 
 import numpy as np
@@ -28,6 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT, is_integer
+from nngt.lib.graph_helpers import _to_np_array
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .base_graph import GraphInterface, BaseProperty
@@ -48,7 +50,7 @@ class _IgNProperty(BaseProperty):
 
     def __getitem__(self, name):
         dtype = _np_dtype(super(_IgNProperty, self).__getitem__(name))
-        return np.array(np.array(self.parent().vs[name]), dtype=dtype)
+        return _to_np_array(self.parent().vs[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         size = self.parent().vcount()
@@ -73,8 +75,10 @@ class _IgNProperty(BaseProperty):
             else:
                 val = None
                 value_type = "object"
+
         if values is None:
-            values = [val for _ in range(self.parent().vcount())]
+            values = [deepcopy(val) for _ in range(self.parent().vcount())]
+
         # store name and value type in the dict
         super(_IgNProperty,self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -101,9 +105,9 @@ class _IgNProperty(BaseProperty):
             self[name] = values
         elif num_n:
             if num_n != len(values):
-                raise ValueError("`nodes` and `nodes` must have the same "
+                raise ValueError("`nodes` and `values` must have the same "
                                  "size; got respectively " + str(num_n) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             if self._num_values_set[name] == num_nodes - num_n:
                 self.parent().vs[-num_n:][name] = values
             else:
@@ -122,7 +126,7 @@ class _IgEProperty(BaseProperty):
             eprop = {}
             for k in self.keys():
                 dtype = _np_dtype(super(_IgEProperty, self).__getitem__(k))
-                eprop[k] = np.array(self.parent().es[k], dtype=dtype)[name]
+                eprop[k] = _to_np_array(self.parent().es[k], dtype=dtype)[name]
             return eprop
         elif nonstring_container(name):
             eprop = {}
@@ -130,14 +134,15 @@ class _IgEProperty(BaseProperty):
                 eids = [self.parent().get_eid(*e) for e in name]
                 for k in self.keys():
                     dtype = _np_dtype(super(_IgEProperty, self).__getitem__(k))
-                    eprop[k] = np.array(self.parent().es[k], dtype=dtype)[eids]
+                    eprop[k] = _to_np_array(self.parent().es[k], dtype=dtype)[eids]
             else:
                 eid = self.parent().get_eid(*name)
                 for k in self.keys():
                     eprop[k] = self.parent().es[k][eid]
             return eprop
+
         dtype = _np_dtype(super(_IgEProperty, self).__getitem__(name))
-        return np.array(self.parent().es[name], dtype=dtype)
+        return _to_np_array(self.parent().es[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -162,8 +167,10 @@ class _IgEProperty(BaseProperty):
             else:
                 val = None
                 value_type = 'object'
+
         if values is None:
-            values = np.repeat(val, self.parent().ecount())
+            values = [deepcopy(val) for _ in range(self.parent().ecount())]
+
         # store name and value type in the dict
         super(_IgEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -192,7 +199,7 @@ class _IgEProperty(BaseProperty):
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             if self._num_values_set[name] == num_edges - num_e:
                 self.parent().es[-num_e:][name] = values
             else:
@@ -467,7 +474,8 @@ an array of 2-tuples of ints.")
             if "bweight" in self.es:
                 w = self.es['bweight']
             else:
-                w = np.max(self.get_weights()) - self.get_weights() + 1e-5
+                w  = np.max(self.get_weights()) - self.get_weights()
+                w += 1e-5*np.min(w)
         if btype in ("both", "node"):
             nbetw = np.array(self.betweenness(weights=w))
         if btype in ("both", "edge"):

@@ -21,6 +21,7 @@
 """ Networkx subclassing """
 
 from collections import OrderedDict
+from copy import deepcopy
 import logging
 
 import numpy as np
@@ -28,6 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
+from nngt.lib.graph_helpers import _to_np_array
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .base_graph import GraphInterface, BaseProperty
@@ -49,8 +51,10 @@ class _NxNProperty(BaseProperty):
     def __getitem__(self, name):
         lst = [self.parent().node[i][name]
                for i in range(self.parent().node_nb())]
+
         dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
-        return np.array(lst, dtype=dtype)
+
+        return _to_np_array(lst, dtype=dtype)
 
     def __setitem__(self, name, value):
         size = self.parent().number_of_nodes()
@@ -76,8 +80,11 @@ class _NxNProperty(BaseProperty):
             else:
                 val = None
                 value_type = "object"
+
         if values is None:
-            values = [val for _ in range(self.parent().number_of_nodes())]
+            values = [deepcopy(val)
+                      for _ in range(self.parent().number_of_nodes())]
+
         # store name and value type in the dict
         super(_NxNProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -104,9 +111,9 @@ class _NxNProperty(BaseProperty):
             self[name] = values
         else:
             if num_n != len(values):
-                raise ValueError("`nodes` and `nodes` must have the same "
+                raise ValueError("`nodes` and `values` must have the same "
                                  "size; got respectively " + str(num_n) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             else:
                 for n, val in zip(nodes, values):
                     self.parent().node[n][name] = val
@@ -146,9 +153,10 @@ class _NxEProperty(BaseProperty):
                 for k, v in data.items():
                     if k != "eid":
                         eprop[k].append(v)
+            dtype = None
             for k, v in eprop.items():
-                dtype = _np_dtype(super(_NxEProperty, self).__getitem__(k))
-                eprop[k] = np.array(v, dtype)
+                dtype    = _np_dtype(super(_NxEProperty, self).__getitem__(k))
+                eprop[k] = _to_np_array(v, dtype)
             return eprop
 
     def __setitem__(self, name, value):
@@ -178,8 +186,11 @@ class _NxEProperty(BaseProperty):
             else:
                 val = None
                 value_type = "object"
+
         if values is None:
-            values = [val for _ in range(self.parent().number_of_edges())]
+            values = [deepcopy(val)
+                      for _ in range(self.parent().number_of_edges())]
+
         # store name and value type in the dict
         super(_NxEProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -208,7 +219,7 @@ class _NxEProperty(BaseProperty):
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             for i, e in enumerate(edges):
                 try:
                     edict = self.parent()[e[0]][e[1]]
@@ -500,14 +511,15 @@ class _NxGraph(GraphInterface):
     def betweenness_list(self, btype="both", use_weights=False, **kwargs):
         nx = nngt._config["library"]
         di_nbetw, di_ebetw = None, None
-        w = BWEIGHT if use_weights else None
+
+        w = self.get_weights()
+        w = w.max() - w if use_weights else None
+
         if btype in ("both", "node"):
-            di_nbetw = nx.betweenness_centrality(self, weight=BWEIGHT)
+            di_nbetw = nx.betweenness_centrality(self, weight=w)
         if btype in ("both", "edge"):
-            di_ebetw = nx.edge_betweenness_centrality(self, weight=BWEIGHT)
-        else:
-            di_nbetw = nx.betweenness_centrality(self)
-            di_ebetw = nx.edge_betweenness_centrality(self)
+            di_ebetw = nx.edge_betweenness_centrality(self, weight=w)
+
         if btype == "node":
             return np.array(tuple(di_nbetw.values()))
         elif btype == "edge":

@@ -1326,7 +1326,6 @@ class Connections:
                 parameters={}, noise_scale=None):
         '''
         Compute the weights of the graph's edges.
-        @todo: take elist into account
 
         Parameters
         ----------
@@ -1362,21 +1361,18 @@ class Connections:
         else:
             wlist = _eprop_distribution(graph, distribution, elist=elist,
                                         **parameters)
-        # for normalize by the inhibitory weight factor
+
+        # normalize by the inhibitory weight factor
         if graph is not None and graph.is_network():
             if not np.isclose(graph._iwf, 1.):
                 adj = graph.adjacency_matrix(types=True, weights=False)
                 keep = (adj[elist[:, 0], elist[:, 1]] < 0).A1
                 wlist[keep] *= graph._iwf
 
-        # add to the graph container
-        bwlist = (np.max(wlist) - wlist if np.any(wlist)
-                  else np.repeat(0., len(wlist)))
         if graph is not None:
             graph.set_edge_attribute(
                 WEIGHT, value_type="double", values=wlist, edges=elist)
-            graph.set_edge_attribute(
-                BWEIGHT, value_type="double", values=bwlist, edges=elist)
+
         return wlist
 
     @staticmethod

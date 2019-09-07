@@ -21,6 +21,7 @@
 """ iGraph subclassing """
 
 from collections import OrderedDict
+from copy import deepcopy
 import logging
 
 import numpy as np
@@ -28,6 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
+from nngt.lib.graph_helpers import _to_np_array
 from nngt.lib.logger import _log_message
 from .base_graph import GraphInterface, BaseProperty
 
@@ -44,12 +46,8 @@ class _GtNProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __getitem__(self, name):
-        if super(_GtNProperty, self).__getitem__(name) in ('string', 'object'):
-            return np.array(
-                [v for v in self.parent().vertex_properties[name]],
-                dtype=object)
-        else:
-            return np.array(self.parent().vertex_properties[name].a)
+        dtype = super(_GtNProperty, self).__getitem__(name)
+        return _to_np_array(self.parent().vertex_properties[name].a, dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -77,13 +75,19 @@ class _GtNProperty(BaseProperty):
             else:
                 val = None
                 value_type = "object"
+
         if values is None:
-            values = np.full(self.parent().num_vertices(), val, dtype=dtype)
+            values = _to_np_array(
+                [deepcopy(val) for _ in range(self.parent().num_vertices())],
+                value_type)
+
         if len(values) != self.parent().num_vertices():
             raise ValueError("A list or a np.array with one entry per "
                              "node in the graph is required")
+
         # store name and value type in the dict
         super(_GtNProperty, self).__setitem__(name, value_type)
+
         # store the real values in the attribute
         nprop = self.parent().new_vertex_property(value_type, vals=values)
         self.parent().vertex_properties[name] = nprop
@@ -110,9 +114,9 @@ class _GtNProperty(BaseProperty):
             self._num_values_set[name] = num_nodes
         elif num_n:
             if num_n != len(values):
-                raise ValueError("`nodes` and `nodes` must have the same "
+                raise ValueError("`nodes` and `values` must have the same "
                                  "size; got respectively " + str(num_n) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             non_obj = (super(_GtNProperty, self).__getitem__(name)
                        not in ('string', 'object'))
             if self._num_values_set[name] == num_nodes - num_n and non_obj:
@@ -147,7 +151,10 @@ class _GtEProperty(BaseProperty):
                 for k in self.keys():
                     eprop[k] = self.parent().edge_properties[k][name]
             return eprop
-        return np.array(self.parent().edge_properties[name].a)
+
+        dtype = _np_dtype(super(_GtEProperty, self).__getitem__(name))
+
+        return _to_np_array(self.parent().edge_properties[name].a, dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -155,11 +162,11 @@ class _GtEProperty(BaseProperty):
             if len(value) == size:
                 self.parent().edge_properties[name].a = np.array(value)
             else:
-                raise ValueError("A list or a np.array with one entry per \
-edge in the graph is required")
+                raise ValueError("A list or a np.array with one entry per "
+                                 "edge in the graph is required")
         else:
-            raise InvalidArgument("Attribute does not exist yet, use \
-set_attribute to create it.")
+            raise InvalidArgument("Attribute does not exist yet, use "
+                                  "set_attribute to create it.")
         self._num_values_set[name] = len(value)
 
     def set_attribute(self, name, values, edges=None):
@@ -185,7 +192,7 @@ set_attribute to create it.")
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             if self._num_values_set[name] == num_edges - num_e:
                 self.parent().edge_properties[name].a[-num_e:] = values
                 self._num_values_set[name] = num_edges
@@ -198,6 +205,7 @@ set_attribute to create it.")
     def new_attribute(self, name, value_type, values=None, val=None):
         if values is None and val is None:
             self._num_values_set[name] = self.parent().num_edges()
+
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -207,15 +215,20 @@ set_attribute to create it.")
                 val = ""
             else:
                 val = None
+
         if values is None:
-            values = np.repeat(val, self.parent().num_edges())
+            values = _to_np_array(
+                [deepcopy(val) for _ in range(self.parent().num_edges())],
+                value_type)
 
         if len(values) != self.parent().num_edges():
             self._num_values_set[name] = 0
             raise ValueError("A list or a np.array with one entry per "
                              "edge in the graph is required")
+
         # store name and value type in the dict
         super(_GtEProperty, self).__setitem__(name, value_type)
+
         # store the real values in the attribute
         eprop = self.parent().new_edge_property(value_type, vals=values)
         self.parent().edge_properties[name] = eprop
@@ -509,14 +522,16 @@ class _GtGraph(GraphInterface):
                          norm=True):
         if self.num_edges():
             w_p = None
+
             if "weight" in self.edge_properties.keys() and use_weights:
                 ws = self.get_weights()
                 self.set_edge_attribute(
                     BWEIGHT, values=ws.max() - ws, value_type="double")
                 w_p = self.edge_properties[BWEIGHT]
+
             tpl = nngt.analyze_graph["betweenness"](
                 self, weight=w_p, norm=norm)
-            lst_return = []
+
             if btype == "node":
                 return tpl[0] if as_prop else np.array(tpl[0].a)
             elif btype == "edge":

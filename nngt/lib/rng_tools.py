@@ -134,7 +134,8 @@ def delta_distrib(graph=None, elist=None, num=None, value=1., **kwargs):
     ----------
     graph : :class:`~nngt.Graph` or subclass
         Graph for which an edge attribute will be generated.
-    elist : @todo
+    elist : list of edges, optional (default: all edges)
+        Generate values for only a subset of edges.
     value : float, optional (default: 1.)
         Value of the delta distribution.
 
@@ -154,7 +155,8 @@ def uniform_distrib(graph, elist=None, num=None, lower=None, upper=None,
     ----------
     graph : :class:`~nngt.Graph` or subclass
         Graph for which an edge attribute will be generated.
-    elist : @todo
+    elist : list of edges, optional (default: all edges)
+        Generate values for only a subset of edges.
     lower : float, optional (default: 0.)
         Min value of the uniform distribution.
     upper : float, optional (default: 1.5)
@@ -176,7 +178,8 @@ def gaussian_distrib(graph, elist=None, num=None, avg=None, std=None,
     ----------
     graph : :class:`~nngt.Graph` or subclass
         Graph for which an edge attribute will be generated.
-    elist : @todo
+    elist : list of edges, optional (default: all edges)
+        Generate values for only a subset of edges.
     avg : float, optional (default: 0.)
         Average of the Gaussian distribution.
     std : float, optional (default: 1.5)
@@ -191,6 +194,24 @@ def gaussian_distrib(graph, elist=None, num=None, avg=None, std=None,
 
 def lognormal_distrib(graph, elist=None, num=None, position=None, scale=None,
                       **kwargs):
+    '''
+    Lognormal distribution for edge attributes.
+
+    Parameters
+    ----------
+    graph : :class:`~nngt.Graph` or subclass
+        Graph for which an edge attribute will be generated.
+    elist : list of edges, optional (default: all edges)
+        Generate values for only a subset of edges.
+    position : float, optional (default: 0.)
+        Average of the normal distribution (i.e. log of the actual mean of the
+        lognormal distribution).
+    scale : float, optional (default: 1.5)
+        Standard deviation of the normal distribution.
+
+    Returns : :class:`numpy.ndarray`
+        Attribute value for each edge in `graph`.
+    '''
     num = _compute_num_prop(elist, graph, num)
     return np.random.lognormal(position, scale, num)
 

@@ -32,7 +32,7 @@ from scipy.sparse import coo_matrix, csr_matrix, lil_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param
+from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param, _to_np_array
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 
@@ -693,7 +693,7 @@ class _NProperty(BaseProperty):
 
     def __getitem__(self, name):
         dtype = _np_dtype(super(_NProperty, self).__getitem__(name))
-        return np.array(self.prop[name], dtype=dtype)
+        return _to_np_array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -721,11 +721,16 @@ class _NProperty(BaseProperty):
             else:
                 val = None
                 value_type = "object"
+
         if values is None:
-            values = np.full(self.parent().node_nb(), val, dtype=dtype)
+            values = _to_np_array(
+                [deepcopy(val) for _ in range(self.parent().node_nb())],
+                value_type)
+
         if len(values) != self.parent().node_nb():
             raise ValueError("A list or a np.array with one entry per "
                              "node in the graph is required")
+
         # store name and value type in the dict
         super(_NProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -753,9 +758,9 @@ class _NProperty(BaseProperty):
             self._num_values_set[name] = num_nodes
         else:
             if num_n != len(values):
-                raise ValueError("`nodes` and `nodes` must have the same "
+                raise ValueError("`nodes` and `values` must have the same "
                                  "size; got respectively " + str(num_n) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             non_obj = (super(_NProperty, self).__getitem__(name)
                        not in ('string', 'object'))
             if self._num_values_set[name] == num_nodes - num_n and non_obj:
@@ -782,21 +787,23 @@ class _EProperty(BaseProperty):
         if isinstance(name, slice):
             for k in self.keys():
                 dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
-                eprop[k] = np.array(self.prop[k][name], dtype=dtype)
+                eprop[k] = _to_np_array(self.prop[k], dtype)[name]
             return eprop
         elif nonstring_container(name):
             if nonstring_container(name[0]):
                 eids = [self.parent().edge_id(e) for e in name]
                 for k in self.keys():
                     dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
-                    eprop[k] = np.array(self.prop[k][eids], dtype=dtype)
+                    eprop[k] = _to_np_array(self.prop[k], dtype=dtype)[eids]
             else:
+                eid = self.parent().get_eid(*name)
                 for k in self.keys():
-                    dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
-                    eprop[k] = np.array(self.prop[k][name], dtype=dtype)
+                    eprop[k] = self.prop[k][eid]
             return eprop
+
         dtype = _np_dtype(super(_EProperty, self).__getitem__(name))
-        return np.array(self.prop[name], dtype=dtype)
+
+        return _to_np_array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -834,7 +841,7 @@ class _EProperty(BaseProperty):
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             if self._num_values_set[name] == num_edges - num_e:
                 self.prop[name].extend(values)
                 self._num_values_set[name] = num_edges
@@ -856,8 +863,11 @@ class _EProperty(BaseProperty):
                 val = ""
             else:
                 val = None
+
         if values is None:
-            values = np.repeat(val, self.parent().edge_nb())
+            values = _to_np_array(
+                [deepcopy(val) for _ in range(self.parent().edge_nb())],
+                value_type)
 
         if len(values) != self.parent().edge_nb():
             self._num_values_set[name] = 0
