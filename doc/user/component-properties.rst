@@ -125,11 +125,33 @@ possible edges are present in a graph.
 To easily access the desired edges, it is thus recommended to use the
 :func:`~nngt.Graph.get_edges` function.
 
-Let us see how this function can be use to facilitate the creation of edge
-properties:
+
+Weights and delays
+------------------
+
+By default, graphs in NNGT are weighted: each edge is associated a "weight"
+value (this behavior can be changed by setting ``weighted=False`` upon
+creation).
+
+Similarly, :class:`~nngt.Network` objects always have a "delay" associated to
+their connections.
+
+Both attributes can either be set upon graph creation, through the ``weights``
+and ``delays`` keyword arguments, or any any time using
+:func:`~nngt.Graph.set_weights` and :func:`~nngt.Graph.set_delays`.
+
+Let us see how the :func:`~nngt.Graph.get_edges` function can be used to
+facilitate the creation of various weight patterns:
 
 .. literalinclude:: ../examples/attributes.py
-   :lines: 119-148
+   :lines: 119-149
+
+
+Custom edge attributes
+----------------------
+
+Non-default edge attributes (besides "weights" or "delays") can also be created
+through smilar functions as node attributes:
 
 
 **Go to other tutorials:**

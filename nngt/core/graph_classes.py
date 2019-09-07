@@ -140,8 +140,7 @@ class Graph(nngt.core.GraphObject):
                   from_string=False):
         '''
         Import a saved graph from a file.
-        @todo: implement population and shape loading, implement gml, dot, xml,
-        gt
+        @todo: implement gml, dot, xml, gt
 
         Parameters
         ----------
@@ -335,7 +334,6 @@ class Graph(nngt.core.GraphObject):
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
         # take care of the weights and delays
-        # @todo: use those of the from_graph
         if weighted:
             self.new_edge_attribute('weight', 'double')
             self._w = _edge_prop(kwargs.get("weights", None))
@@ -713,8 +711,6 @@ class Graph(nngt.core.GraphObject):
                    parameters=None, noise_scale=None):
         '''
         Set the delay for spike propagation between neurons.
-        ..todo ::
-        take elist into account in Connections.delays
 
         Parameters
         ----------
@@ -1244,8 +1240,6 @@ class SpatialGraph(Graph):
                  **kwargs):
         '''
         Initialize SpatialClass instance.
-        .. todo::
-        see what we do with the from_graph argument
 
         Parameters
         ----------

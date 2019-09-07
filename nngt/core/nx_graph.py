@@ -482,10 +482,6 @@ class _NxGraph(GraphInterface):
         self.remove_edges_from(ebunch)
         self._eattr.clear()
 
-    def set_node_property(self):
-        #@todo: do it...
-        pass
-
     #-------------------------------------------------------------------------#
     # Getters
 

@@ -416,7 +416,6 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
     avg_deg : double, optional
         Average degree of the neurons given by `edges / nodes`.
     weighted : bool, optional (default: True)
-        @todo
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
@@ -489,8 +488,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     weighted : bool, optional (default: True)
-        @todo
-			Whether the graph edges have weights.
+        Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -561,7 +559,6 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
     avg_deg : double, optional
         Average degree of the neurons given by `edges` / `nodes`.
     weighted : bool, optional (default: True)
-        @todo
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
@@ -653,7 +650,6 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
         Unit for the length `scale` among 'um' (:math:`\mu m`), 'mm', 'cm',
         'dm', 'm'.
     weighted : bool, optional (default: True)
-        @todo
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
@@ -895,8 +891,8 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     model.
 
     .. versionchanged:: 1.2.0
-        Allow to use :class:`NeuralGroup` as `source_groups` and `target_groups`
-        arguments.
+        Allow to use :class:`NeuralGroup` as `source_groups` and
+        `target_groups` arguments.
 
     .. versionchanged:: 0.8
         Model-specific arguments are now provided as keywords and not through a

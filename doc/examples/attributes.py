@@ -145,7 +145,8 @@ graph.set_weights(elist=cd_edges, distribution="constant",
                   parameters={"value": -5})
 
 # Let's check the distribution (you should clearly see 4 separate shapes)
-nngt.plot.edge_attributes_distribution(graph, "weight")
+if nngt.get_config("with_plot"):
+    nngt.plot.edge_attributes_distribution(graph, "weight")
 
 
 ''' ------------------- #
