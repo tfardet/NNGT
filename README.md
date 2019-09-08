@@ -27,9 +27,11 @@ NNGT.
 Eventually, NNGT is also able to import neuronal networks generated using the
 [DeNSE](https://dense.readthedocs.io/) simulator for neuronal growth.
 
-# Install and use the library
+## Install and use the library
 
-``pip install --user nngt``
+```
+pip install --user nngt
+```
 
 Then in a python terminal or script type
 
