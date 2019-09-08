@@ -132,6 +132,8 @@ def _to_np_array(data, dtype):
     Transform data to a numpy array, preserving nested lists as lists if dtype
     is "object".
     '''
+    dtype = object if dtype == "string" else dtype
+
     if dtype in (object, "object"):
         # preserve potential list entries
         arr    = np.empty(len(data), dtype=object)

@@ -30,6 +30,7 @@ import scipy.sparse as ssp
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.graph_helpers import _to_np_array
+from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .base_graph import GraphInterface, BaseProperty
 
@@ -47,6 +48,14 @@ class _GtNProperty(BaseProperty):
 
     def __getitem__(self, name):
         dtype = super(_GtNProperty, self).__getitem__(name)
+
+        if dtype == "string":
+            return self.parent().vertex_properties[name].get_2d_array([0])[0]
+        elif dtype == "object":
+            vprop = self.parent().vertex_properties[name]
+            return _to_np_array(
+                [vprop[i] for i in range(self.parent().node_nb())], dtype)
+
         return _to_np_array(self.parent().vertex_properties[name].a, dtype)
 
     def __setitem__(self, name, value):
@@ -74,12 +83,11 @@ class _GtNProperty(BaseProperty):
                 val = ""
             else:
                 val = None
-                value_type = "object"
 
         if values is None:
             values = _to_np_array(
                 [deepcopy(val) for _ in range(self.parent().num_vertices())],
-                value_type)
+                dtype)
 
         if len(values) != self.parent().num_vertices():
             raise ValueError("A list or a np.array with one entry per "
@@ -144,9 +152,19 @@ class _GtEProperty(BaseProperty):
         elif nonstring_container(name):
             eprop = {}
             if nonstring_container(name[0]):
-                eids = [self.parent().edge_index[e] for e in name]
+                Edge = self.parent().edge
+                eids = [self.parent().edge_index[Edge(*e)] for e in name]
                 for k in self.keys():
-                    eprop[k] = self.parent().edge_properties[k].a[eids]
+                    dtype = super(_GtEProperty, self).__getitem__(k)
+                    if dtype == "string":
+                        eprop[k] = (self.parent()
+                            .edge_properties[k].get_2d_array([0])[0])[eids]
+                    elif dtype == "object":
+                        tmp = self.parent().edge_properties[k]
+                        eprop[k] = _to_np_array(
+                            [tmp[Edge(*e)] for e in name], dtype)
+                    else:
+                        eprop[k] = self.parent().edge_properties[k].a[eids]
             else:
                 for k in self.keys():
                     eprop[k] = self.parent().edge_properties[k][name]
