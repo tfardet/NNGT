@@ -12,6 +12,8 @@ Welcome to NNGT's documentation!
     :target: https://coveralls.io/github/Silmathoron/NNGT?branch=master
     :height: 20px
     :width: 99px
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3402494.svg
+   :target: https://doi.org/10.5281/zenodo.3402494
 
 
 Overview
