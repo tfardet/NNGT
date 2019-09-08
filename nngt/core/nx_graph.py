@@ -395,11 +395,12 @@ class _NxGraph(GraphInterface):
 
         # set default values for attributes that were not passed
         for k in self.edges_attributes:
-            dtype = self.get_attribute_type(k)
-            if dtype == "string":
-                attributes[k] = [""]
-            elif dtype == "double" and k != "weight":
-                attributes[k] = [np.NaN]
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    attributes[k] = [""]
+                elif dtype == "double" and k != "weight":
+                    attributes[k] = [np.NaN]
 
         if self.has_edge(source, target):
             if not ignore:
@@ -463,11 +464,12 @@ class _NxGraph(GraphInterface):
 
         # set default values for attributes that were not passed
         for k in self.edges_attributes:
-            dtype = self.get_attribute_type(k)
-            if dtype == "string":
-                attributes[k] = ["" for _ in range(num_edges)]
-            elif dtype == "double" and k != "weight":
-                attributes[k] = [np.NaN for _ in range(num_edges)]
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    attributes[k] = ["" for _ in range(num_edges)]
+                elif dtype == "double" and k != "weight":
+                    attributes[k] = [np.NaN for _ in range(num_edges)]
 
         initial_edges = self.number_of_edges()
         new_attr = None

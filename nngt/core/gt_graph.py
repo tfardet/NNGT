@@ -433,10 +433,10 @@ class _GtGraph(GraphInterface):
         -------
         The new connection.
         '''
-        if attributes is None:
-            attributes = {}
+        attributes = {} if attributes is None else deepcopy(attributes)
 
-            for k in self.edges_attributes:
+        for k in self.edges_attributes:
+            if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
                     attributes[k] = [""]
@@ -495,11 +495,12 @@ class _GtGraph(GraphInterface):
         # set default values for attributes that were not passed
         # (only string and double, others are handled correctly by default)
         for k in self.edges_attributes:
-            dtype = self.get_attribute_type(k)
-            if dtype == "string":
-                attributes[k] = ["" for _ in range(num_edges)]
-            elif dtype == "double" and k != "weight":
-                attributes[k] = [np.NaN for _ in range(num_edges)]
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    attributes[k] = ["" for _ in range(num_edges)]
+                elif dtype == "double" and k != "weight":
+                    attributes[k] = [np.NaN for _ in range(num_edges)]
 
         new_attr = None
         if check_edges:

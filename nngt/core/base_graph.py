@@ -317,12 +317,14 @@ class BaseGraph(GraphInterface):
         # test if copying graph
         if g is not None:
             # create nodes and node attributes
-            self.new_node(g.node_nb())
-            self._nattr    = deepcopy(g._nattr)
-            self._eattr    = _EProperty(self)
             self._directed = g.is_directed()
             self._weighted = g.is_weighted()
             self._edges    = OrderedDict()
+            self._nattr    = deepcopy(g._nattr)
+            self._eattr    = _EProperty(self)
+
+            self.new_node(g.node_nb())
+
             self._adj_mat  = lil_matrix((g.node_nb(), g.node_nb()))
             # create edges and edge attributes
             attributes = g.get_edge_attributes()
@@ -498,15 +500,16 @@ class BaseGraph(GraphInterface):
 
         # set default values for attributes that were not passed
         for k in self.edges_attributes:
-            dtype = self.get_attribute_type(k)
-            if dtype == "string":
-                attributes[k] = [""]
-            elif dtype == "double" and k != "weight":
-                attributes[k] = [np.NaN]
-            elif dtype == "int":
-                attributes[k] = [0]
-            else:
-                attributes[k] = [None]
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    attributes[k] = [""]
+                elif dtype == "double" and k != "weight":
+                    attributes[k] = [np.NaN]
+                elif dtype == "int":
+                    attributes[k] = [0]
+                else:
+                    attributes[k] = [None]
 
         # check that the edge does not already exist
         edge = (source, target)
@@ -573,15 +576,16 @@ class BaseGraph(GraphInterface):
 
         # set default values for attributes that were not passed
         for k in self.edges_attributes:
-            dtype = self.get_attribute_type(k)
-            if dtype == "string":
-                attributes[k] = ["" for _ in range(num_edges)]
-            elif dtype == "double" and k != "weight":
-                attributes[k] = [np.NaN for _ in range(num_edges)]
-            elif dtype == "int":
-                attributes[k] = [0 for _ in range(num_edges)]
-            else:
-                attributes[k] = [None for _ in range(num_edges)]
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    attributes[k] = ["" for _ in range(num_edges)]
+                elif dtype == "double" and k != "weight":
+                    attributes[k] = [np.NaN for _ in range(num_edges)]
+                elif dtype == "int":
+                    attributes[k] = [0 for _ in range(num_edges)]
+                else:
+                    attributes[k] = [None for _ in range(num_edges)]
 
         assert self._nodes.issuperset(np.ravel(edge_list)), \
             "Some nodes in `edge_list` do not exist in the network."
