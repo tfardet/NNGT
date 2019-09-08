@@ -1,3 +1,5 @@
+.. _nest_int:
+
 ===================================
 Interacting with the NEST simulator
 ===================================
@@ -10,7 +12,7 @@ models, and how to create and setup NEST nodes.
 If this is not the case, please see the `NEST user doc`_ and the
 `PyNEST tutorials`_ first.
 
-NNGT tools with regard to NEST ca, be separated into
+NNGT tools with regard to NEST_ can be separated into
 
 * the structural tools (:class:`~nngt.Network`, :class:`~nngt.NeuralPop` ...)
   that are used to prepare the neuronal network and setup its properties and
@@ -29,6 +31,13 @@ NNGT tools with regard to NEST ca, be separated into
     be changed until the next invocation of
     :func:`~nngt.simulation.make_nest_network` or :func:`~nngt.Network.to_nest`.
 
+
+Example files associated to the interactions between NEST_ and NNGT can be
+found here: :source:`docs/examples/nest_network.py` /
+:source:`docs/examples/nest_receptor_ports.py`.
+
+
+**Content:**
 
 .. contents::
    :local:
@@ -49,12 +58,14 @@ Depending on your perspective, you can either create the groups first, then
 build the population from them, or create the population first, then split
 it into various groups.
 
+For more details on groups and populations, see :ref:`neural_groups`.
+
 **Neuronal groups before the population**
 
 Neural groups can be created as follow: ::
 
     # 100 inhibitory neurons
-    basic_group = nngt.NeuralGroup(100, ntype=-1)
+    basic_group = nngt.NeuralGroup(100, neuron_type=-1)
     # 10 excitatory (default) aeif neurons
     aeif_group  = nngt.NeuralGroup(10, neuron_model="aeif_psc_alpha")
     # an unspecified number of aeif neurons with specific parameters
@@ -85,8 +96,8 @@ created groups.
 A population with excitatory and inhibitory neurons ::
 
     pop = nngt.NeuralPop(1000)
-    pop.create_group("first", 800)
-    pop.create_group("second", 200, ntype=-1)
+    pop.create_group(800, "first")
+    pop.create_group(200, "second", neuron_type=-1)
 
 or, more compact ::
 
@@ -132,9 +143,9 @@ which you pass the parameter dict and the name of the
 :class:`~nngt.NeuralGroup` you want to modify.
 
 If you are dealing directly with :class:`~nngt.NeuralGroup` objects, you can
-access and modify their ``neuron_param` attribute as long as the network has
+access and modify their ``neuron_param`` attribute as long as the network has
 not been sent to nest. Once sent, these parameters become unsettable and any
-wourkaround to circumvent this will not change the values inside NEST anyway. 
+wourkaround to circumvent this will not change the values inside NEST anyway.
 
 After sending the network to NEST, randomizing
 ----------------------------------------------
@@ -147,7 +158,18 @@ This sets the parameters using a specified distribution and stores their
 values inside the network nodes' attributes.
 
 
+**Go to other tutorials:**
+
+* :ref:`intro`
+* :ref:`graph_gen`
+* :ref:`multithread`
+* :ref:`neural_groups`
+* :ref:`activ_analysis`
+* :ref:`graph-prop`
+
+
 .. References
 
 .. _`NEST user doc`: http://www.nest-simulator.org/documentation/
 .. _`PyNEST tutorials`: http://www.nest-simulator.org/introduction-to-pynest/
+.. _NEST: https://www.nest-simulator.org/

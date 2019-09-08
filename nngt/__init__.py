@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -81,7 +81,7 @@ import sys as _sys
 import logging as _logging
 
 
-__version__ = '1.1.1'
+__version__ = '1.2.0'
 ''' :obj:`str`, current NNGT version '''
 
 
@@ -253,7 +253,6 @@ from . import lib
 __all__ = [
     "analysis",
     "analyze_graph",
-    "Connections",
     "core",
     "generate",
     "generation",

@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -35,7 +35,7 @@ from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string, _load_from_file
 from nngt.lib.logger import _log_message
-from nngt.lib.test_functions import graph_tool_check, deprecated
+from nngt.lib.test_functions import graph_tool_check, deprecated, is_integer
 
 if nngt._config['with_nest']:
     from nngt.simulation import make_nest_network
@@ -51,10 +51,10 @@ logger = logging.getLogger(__name__)
 # ----- #
 
 class Graph(nngt.core.GraphObject):
-    
+
     """
     The basic graph class, which inherits from a library class such as
-    :class:`gt.Graph`, :class:`networkx.DiGraph`, or `igraph.Graph`.
+    :class:`graph_tool.Graph`, :class:`networkx.DiGraph`, or ``igraph.Graph``.
 
     The objects provides several functions to easily access some basic
     properties.
@@ -65,7 +65,7 @@ class Graph(nngt.core.GraphObject):
 
     __num_graphs = 0
     __max_id = 0
-    
+
     @classmethod
     def num_graphs(cls):
         ''' Returns the number of alive instances. '''
@@ -77,29 +77,29 @@ class Graph(nngt.core.GraphObject):
         library_graph = nngt.core.GraphObject.to_graph_object(library_graph)
         library_graph.__class__ = cls
         if weighted:
-            library_graph._w = _edge_prop("weights", kwargs)
-        library_graph._d = _edge_prop("delays", kwargs)
+            library_graph._w = _edge_prop(kwargs.get("weights", 1.))
+        library_graph._d = _edge_prop(kwargs.get("delays", 1.))
         library_graph.__id = cls.__max_id
         library_graph._name = "Graph" + str(cls.__num_graphs)
         cls.__max_id += 1
         cls.__num_graphs += 1
         return library_graph
-    
+
     @classmethod
     def from_matrix(cls, matrix, weighted=True, directed=True):
         '''
-        Creates a :class:`~nngt.Graph` from a :class:`scipy.sparse` matrix or
+        Creates a :class:`~nngt.Graph` from a :mod:`scipy.sparse` matrix or
         a dense matrix.
-        
+
         Parameters
         ----------
-        matrix : :class:`scipy.sparse` matrix or :class:`numpy.array`
+        matrix : :mod:`scipy.sparse` matrix or :class:`numpy.ndarray`
             Adjacency matrix.
         weighted : bool, optional (default: True)
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        
+
         Returns
         -------
         :class:`~nngt.Graph`
@@ -132,7 +132,7 @@ class Graph(nngt.core.GraphObject):
                 weights = matrix[edges[:, 0], edges[:, 1]]
         graph.new_edges(edges, {"weight": weights}, check_edges=False)
         return graph
-    
+
     @staticmethod
     @graph_tool_check('2.22')
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
@@ -140,8 +140,7 @@ class Graph(nngt.core.GraphObject):
                   from_string=False):
         '''
         Import a saved graph from a file.
-        @todo: implement population and shape loading, implement gml, dot, xml,
-        gt
+        @todo: implement gml, dot, xml, gt
 
         Parameters
         ----------
@@ -174,7 +173,7 @@ class Graph(nngt.core.GraphObject):
             Symbol specifying the following as meaningfull information.
             Relevant information is formatted ``@info_name=info_value``, where
             ``info_name`` is in ("attributes", "directed", "name", "size") and
-            associated ``info_value``s are of type (``list``, ``bool``,
+            associated ``info_value`` are of type (``list``, ``bool``,
             ``str``, ``int``).
             Additional notifiers are ``@type=SpatialGraph/Network/
             SpatialNetwork``, which must be followed by the relevant notifiers
@@ -299,7 +298,7 @@ class Graph(nngt.core.GraphObject):
 
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
-    
+
     def __init__(self, nodes=0, name="Graph", weighted=True, directed=True,
                  from_graph=None, **kwargs):
         '''
@@ -323,7 +322,7 @@ class Graph(nngt.core.GraphObject):
             (``weights={"distribution": "constant", "value": 2.3}`` which is
             equivalent to ``weights=2.3``), the synaptic `delays`, or a
             ``type`` information.
-        
+
         Returns
         -------
         self : :class:`~nngt.Graph`
@@ -335,7 +334,6 @@ class Graph(nngt.core.GraphObject):
         super(Graph, self).__init__(nodes=nodes, g=from_graph,
                                     directed=directed, weighted=weighted)
         # take care of the weights and delays
-        # @todo: use those of the from_graph
         if weighted:
             self.new_edge_attribute('weight', 'double')
             self._w = _edge_prop(kwargs.get("weights", None))
@@ -374,7 +372,7 @@ class Graph(nngt.core.GraphObject):
     def graph_id(self):
         ''' Unique :class:`int` identifying the instance. '''
         return self.__id
-    
+
     @property
     def name(self):
         ''' Name of the graph. '''
@@ -387,7 +385,7 @@ class Graph(nngt.core.GraphObject):
 
     #-------------------------------------------------------------------------#
     # Graph actions
-    
+
     def copy(self):
         '''
         Returns a deepcopy of the current :class:`~nngt.Graph`
@@ -448,7 +446,7 @@ class Graph(nngt.core.GraphObject):
 
     #-------------------------------------------------------------------------#
     # Setters
-        
+
     def set_name(self, name=""):
         ''' set graph name '''
         if name != "":
@@ -467,7 +465,7 @@ class Graph(nngt.core.GraphObject):
         name : str
             The name of the new attribute.
         value_type : str
-            Type of the attribute, among 'int', 'double', 'string'
+            Type of the attribute, among 'int', 'double', 'string', or 'object'
         values : array, optional (default: None)
             Values with which the edge attribute should be initialized.
             (must have one entry per node in the graph)
@@ -487,12 +485,20 @@ class Graph(nngt.core.GraphObject):
         name : str
             The name of the new attribute.
         value_type : str
-            Type of the attribute, among 'int', 'double', 'string'
+            Type of the attribute, among 'int', 'double', 'string', or 'object'
         values : array, optional (default: None)
             Values with which the node attribute should be initialized.
             (must have one entry per node in the graph)
         val : int, float or str , optional (default: None)
             Identical value for all nodes.
+        
+        See also
+        --------
+        :func:`~nngt.Graph.new_edge_attribute`,
+        :func:`~nngt.Graph.set_node_attribute`,
+        :func:`~nngt.Graph.get_node_attributes`,
+        :func:`~nngt.Graph.set_edge_attribute`,
+        :func:`~nngt.Graph.get_edge_attributes`
         '''
         self._nattr.new_attribute(name, value_type, values=values, val=val)
 
@@ -524,6 +530,14 @@ class Graph(nngt.core.GraphObject):
             if the attribute does not exist and must be created.
         edges : list of edges or array of shape (E, 2), optional (default: all)
             Edges whose attributes should be set. Others will remain unchanged.
+        
+        See also
+        --------
+        :func:`~nngt.Graph.set_node_attribute`,
+        :func:`~nngt.Graph.get_edge_attributes`,
+        :func:`~nngt.Graph.new_edge_attribute`,
+        :func:`~nngt.Graph.new_node_attribute`,
+        :func:`~nngt.Graph.get_node_attributes`
         '''
         if attribute not in self.edges_attributes:
             assert value_type is not None, "`value_type` is necessary for " +\
@@ -534,7 +548,12 @@ class Graph(nngt.core.GraphObject):
             num_edges = self.edge_nb() if edges is None else len(edges)
             if values is None:
                 if val is not None:
-                    values = np.repeat(val, num_edges)
+                    # preserve list and avoid conversion to array
+                    # if isinstance(val, list):
+                    #     values    = np.full(num_edges, None, dtype=object)
+                    #     for k in range(num_edges):
+                    #         values[k] = val.copy()
+                    values = [deepcopy(val) for _ in range(num_edges)]
                 else:
                     raise InvalidArgument("At least one of the `values` and "
                         "`val` arguments should not be ``None``.")
@@ -563,6 +582,14 @@ class Graph(nngt.core.GraphObject):
             if the attribute does not exist and must be created.
         nodes : list of nodes, optional (default: all)
             Nodes whose attributes should be set. Others will remain unchanged.
+
+        See also
+        --------
+        :func:`~nngt.Graph.set_edge_attribute`,
+        :func:`~nngt.Graph.new_node_attribute`,
+        :func:`~nngt.Graph.get_node_attributes`,
+        :func:`~nngt.Graph.new_edge_attribute`,
+        :func:`~nngt.Graph.get_edge_attributes`,
         '''
         if attribute not in self.nodes_attributes:
             assert value_type is not None, "`value_type` is necessary for " +\
@@ -573,20 +600,17 @@ class Graph(nngt.core.GraphObject):
             num_nodes = self.node_nb() if nodes is None else len(nodes)
             if values is None:
                 if val is not None:
-                    values = np.repeat(val, num_nodes)
+                    values = [deepcopy(val) for _ in  range(num_nodes)]
                 else:
                     raise InvalidArgument("At least one of the `values` and "
                         "`val` arguments should not be ``None``.")
             self._nattr.set_attribute(attribute, values, nodes=nodes)
-    
+
     def set_weights(self, weight=None, elist=None, distribution=None,
                     parameters=None, noise_scale=None):
         '''
         Set the synaptic weights.
 
-        ..todo ::
-        take elist into account in Connections.weights
-        
         Parameters
         ----------
         weight : float or class:`numpy.array`, optional (default: None)
@@ -594,18 +618,28 @@ class Graph(nngt.core.GraphObject):
         elist : class:`numpy.array`, optional (default: None)
             List of the edges (for user defined weights).
         distribution : class:`string`, optional (default: None)
-            Type of distribution (choose among "constant", "uniform", 
+            Type of distribution (choose among "constant", "uniform",
             "gaussian", "lognormal", "lin_corr", "log_corr").
         parameters : dict, optional (default: {})
             Dictionary containing the properties of the weight distribution.
             Properties are as follow for the distributions
-               - 'constant': 'value'
-               - 'uniform': 'lower', 'upper'
-               - 'gaussian': 'avg', 'std'
-               - 'lognormal': 'position', 'scale'
+
+            - 'constant': 'value'
+            - 'uniform': 'lower', 'upper'
+            - 'gaussian': 'avg', 'std'
+            - 'lognormal': 'position', 'scale'
+
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
+        
+        Note
+        ----
+        If `distribution` and `parameters` are provided and the weights are set
+        for the whole graph (`elist` is None), then the distribution properties
+        will be kept as the new default for subsequent edges. That is, if new
+        edges are created without specifying their weights, then these new
+        weights will automatically be drawn from this previous distribution.
         '''
         if isinstance(weight, float):
             size = self.edge_nb() if elist is None else len(elist)
@@ -616,12 +650,12 @@ class Graph(nngt.core.GraphObject):
                                  "float, array-like or None.")
         elif weight is not None:
             self._w = {"distribution": "custom"}
-        elif None not in (distribution, parameters):
+        elif None not in (distribution, parameters) and elist is None:
             self._w = {"distribution": distribution}
             self._w.update(parameters)
 
         if distribution is None:
-            distribution = self._w["distribution"]
+            distribution = self._w.get("distribution", None)
         if parameters is None:
             parameters = self._w
         nngt.core.Connections.weights(
@@ -663,22 +697,20 @@ class Graph(nngt.core.GraphObject):
         inhib_nodes = nodes
         if syn_type == 'excitatory' or syn_type == 1:
             if is_integer(nodes):
-                inhib_nodes = graph.node_nb() - nodes
+                inhib_nodes = self.node_nb() - nodes
             elif isinstance(nodes, np.float):
                 inhib_nodes = 1. / nodes
             elif nonstring_container(nodes):
-                inhib_nodes = list(range(graph.node_nb()))
+                inhib_nodes = list(range(self.node_nb()))
                 nodes.sort()
                 for node in nodes[::-1]:
                     del inhib_nodes[node]
         return nngt.core.Connections.types(self, inhib_nodes, fraction)
-        
+
     def set_delays(self, delay=None, elist=None, distribution=None,
                    parameters=None, noise_scale=None):
         '''
         Set the delay for spike propagation between neurons.
-        ..todo ::
-        take elist into account in Connections.delays
 
         Parameters
         ----------
@@ -687,7 +719,7 @@ class Graph(nngt.core.GraphObject):
         elist : class:`numpy.array`, optional (default: None)
             List of the edges (for user defined delays).
         distribution : class:`string`, optional (default: None)
-            Type of distribution (choose among "constant", "uniform", 
+            Type of distribution (choose among "constant", "uniform",
             "gaussian", "lognormal", "lin_corr", "log_corr").
         parameters : dict, optional (default: {})
             Dictionary containing the properties of the delay distribution.
@@ -729,16 +761,23 @@ class Graph(nngt.core.GraphObject):
 
     #-------------------------------------------------------------------------#
     # Getters
-    
+
     @property
     def nodes_attributes(self):
         '''
         Access node attributes
 
         .. versionadded:: 0.7
+        
+        See also
+        --------
+        :attr:`~nngt.Graph.edge_attributes`,
+        :attr:`~nngt.Graph.get_node_attributes`,
+        :attr:`~nngt.Graph.new_node_attribute`,
+        :attr:`~nngt.Graph.set_node_attribute`,
         '''
         return self._nattr
-    
+
     @property
     def edges_attributes(self):
         '''
@@ -747,6 +786,107 @@ class Graph(nngt.core.GraphObject):
         .. versionadded:: 0.7
         '''
         return self._eattr
+
+    def get_nodes(self, attribute=None, value=None):
+        '''
+        Return the nodes in the network fulfilling a given condition.
+
+        .. versionadded:: 1.2
+
+        Parameters
+        ----------
+        attribute : str, optional (default: all nodes)
+            Whether the `attribute` of the returned nodes should have a specific
+            value.
+        value : object, optional (default : None)
+            If an `attribute` name is passed, then only nodes with `attribute`
+            being equal to `value` will be returned.
+        
+        See also
+        --------
+        :func:`~nngt.Graph.get_edges`, :attr:`~nngt.Graph.nodes_attributes`
+        '''
+        if attribute is None:
+            return [i for i in range(self.node_nb())]
+
+        if value is None and self._nattr.value_type(attribute) != "object":
+            raise ValueError("`value` cannot be None for attribute '" +
+                             attribute + "'.")
+
+        return np.where(
+            self.get_node_attributes(name=attribute) == value)[0]
+
+    def get_edges(self, attribute=None, value=None, source_node=None,
+                  target_node=None):
+        '''
+        Return the edges in the network fulfilling a given condition.
+
+        .. versionadded:: 1.2
+
+        Parameters
+        ----------
+        attribute : str, optional (default: all nodes)
+            Whether the `attribute` of the returned edges should have a specific
+            value.
+        value : object, optional (default : None)
+            If an `attribute` name is passed, then only edges with `attribute`
+            being equal to `value` will be returned.
+        source_node : int or list of ints, optional (default: all nodes)
+            Retrict the edges to those stemming from `source_node`.
+        target_node : int or list of ints, optional (default: all nodes)
+            Retrict the edges to those arriving at `target_node`.
+        
+        See also
+        --------
+        :func:`~nngt.Graph.get_nodes`, :attr:`~nngt.Graph.edges_attributes`
+        '''
+        edges = None
+
+        if source_node is None and target_node is None:
+            edges = self.edges_array
+        elif is_integer(source_node) and is_integer(target_node):
+            # check that the edge exists, throw error otherwise
+            self.edge_id((source_node, target_node))
+            edges = np.array([[source_node, target_node]])
+        else:
+            # we need to use the adjacency matrix, get its subparts,
+            # then use the list of nodes to get the original ids back
+            # to do that we first convert source/target_node to lists
+            # (note that this has no significant speed impact)
+            mat = self.adjacency_matrix()
+
+            if source_node is None:
+                source_node = np.array(
+                    [i for i in range(self.node_nb())], dtype=int)
+            elif is_integer(source_node):
+                source_node = np.array([source_node], dtype=int)
+            else:
+                source_node = np.sort(source_node)
+
+            if target_node is None:
+                target_node = np.array(
+                    [i for i in range(self.node_nb())], dtype=int)
+            elif is_integer(target_node):
+                target_node = np.array([target_node], dtype=int)
+            else:
+                target_node = np.sort(target_node)
+
+            nnz = mat[source_node].tocsc()[:, target_node].nonzero()
+            
+            edges = np.array(
+                [source_node[nnz[0]], target_node[nnz[1]]], dtype=int).T
+
+        # check attributes
+        if attribute is None:
+            return edges
+
+        if value is None and self._eattr.value_type(attribute) != "object":
+            raise ValueError("`value` cannot be None for attribute '" +
+                             attribute + "'.")
+
+        desired = (self.get_edge_attributes(edges, attribute) == value)
+        
+        return self.edges_array[desired]
 
     def get_edge_attributes(self, edges=None, name=None):
         '''
@@ -775,7 +915,15 @@ class Graph(nngt.core.GraphObject):
         Note
         ----
         The attributes values are ordered as the edges in
-        :func:`~nngt.Graph.edges_array` if `edges` is None..
+        :func:`~nngt.Graph.edges_array` if `edges` is None.
+        
+        See also
+        --------
+        :func:`~nngt.Graph.get_node_attributes`,
+        :func:`~nngt.Graph.new_edge_attribute`,
+        :func:`~nngt.Graph.set_edge_attribute`,
+        :func:`~nngt.Graph.new_node_attribute`,
+        :func:`~nngt.Graph.set_node_attribute`
         '''
         if name is not None and edges is not None:
             if isinstance(edges, slice):
@@ -813,20 +961,32 @@ class Graph(nngt.core.GraphObject):
         nodes. If `name` is specified, returns a list containing the values of
         the specific attribute for the required nodes (or all nodes if
         unspecified).
+
+        See also
+        --------
+        :func:`~nngt.Graph.get_edge_attributes`,
+        :func:`~nngt.Graph.new_node_attribute`,
+        :func:`~nngt.Graph.set_node_attribute`,
+        :func:`~nngt.Graph.new_edge_attributes`,
+        :func:`~nngt.Graph.set_edge_attribute`
         '''
         res = None
+
         if name is None:
             res = {k: self._nattr[k] for k in self._nattr.keys()}
         else:
             res = self._nattr[name]
+
         if nodes is None:
             return res
+
+        if isinstance(nodes, (slice, int)) or nonstring_container(nodes):
+            if isinstance(res, dict):
+                return {k: v[nodes] for k, v in res.items()}
+            return res[nodes]
         else:
-            if isinstance(nodes, (slice, int)) or nonstring_container(nodes):
-                return res[nodes]
-            else:
-                raise ValueError("Invalid `nodes`: "
-                                 "{}, use slice, int, or list".format(nodes))
+            raise ValueError("Invalid `nodes`: "
+                             "{}, use slice, int, or list".format(nodes))
 
     def get_attribute_type(self, attribute_name, attribute_class=None):
         '''
@@ -866,7 +1026,7 @@ class Graph(nngt.core.GraphObject):
             else:
                 raise InvalidArgument(
                     "Unknown attribute class '{}'.".format(attribute_class))
-    
+
     def get_name(self):
         ''' Get the name of the graph '''
         return self._name
@@ -874,7 +1034,7 @@ class Graph(nngt.core.GraphObject):
     def get_graph_type(self):
         ''' Return the type of the graph (see nngt.generation) '''
         return self._graph_type
-    
+
     def get_density(self):
         '''
         Density of the graph: :math:`\\frac{E}{N^2}`, where `E` is the number of
@@ -895,9 +1055,9 @@ class Graph(nngt.core.GraphObject):
         '''
         Degree sequence of all the nodes.
 
-        ..versionchanged :: 0.9
+        .. versionchanged:: 0.9
             Added `syn_type` keyword.
-        
+
         Parameters
         ----------
         deg_type : string, optional (default: "total")
@@ -909,7 +1069,7 @@ class Graph(nngt.core.GraphObject):
         syn_type : int or str, optional (default: all)
             Restrict to a given synaptic type ("excitatory", 1, or
             "inhibitory", -1).
-        
+
         Returns
         -------
         :class:`numpy.array` or None (if an invalid type is asked).
@@ -951,7 +1111,7 @@ class Graph(nngt.core.GraphObject):
     def get_betweenness(self, btype="both", use_weights=False):
         '''
         Betweenness centrality sequence of all nodes and edges.
-        
+
         Parameters
         ----------
         btype : str, optional (default: ``"both"``)
@@ -959,7 +1119,7 @@ class Graph(nngt.core.GraphObject):
             or ``"both"``).
         use_weights : bool, optional (default: False)
             Whether to use weighted (True) or simple degrees (False).
-        
+
         Returns
         -------
         node_betweenness : :class:`numpy.array`
@@ -990,7 +1150,7 @@ class Graph(nngt.core.GraphObject):
         else:
             size = self.edge_nb() if edges is None else len(edges)
             return np.ones(size)
-    
+
     def get_weights(self, edges=None):
         '''
         Returns the weights of all or a subset of the edges.
@@ -1015,7 +1175,7 @@ class Graph(nngt.core.GraphObject):
         else:
             size = self.edge_nb() if edges is None else len(edges)
             return np.ones(size)
-    
+
     def get_delays(self, edges=None):
         '''
         Returns the delays of all or a subset of the edges.
@@ -1059,9 +1219,9 @@ class Graph(nngt.core.GraphObject):
 # ------------ #
 
 class SpatialGraph(Graph):
-    
+
     """
-    The detailed class that inherits from :class:`Graph` and implements
+    The detailed class that inherits from :class:`~nngt.Graph` and implements
     additional properties to describe spatial graphs (i.e. graph where the
     structure is embedded in space.
     """
@@ -1073,15 +1233,13 @@ class SpatialGraph(Graph):
     __max_id = 0
 
     #-------------------------------------------------------------------------#
-    # Constructor, destructor, attributes    
-    
+    # Constructor, destructor, attributes
+
     def __init__(self, nodes=0, name="SpatialGraph", weighted=True,
                  directed=True, from_graph=None, shape=None, positions=None,
                  **kwargs):
         '''
         Initialize SpatialClass instance.
-        .. todo::
-        see what we do with the from_graph argument
 
         Parameters
         ----------
@@ -1102,7 +1260,7 @@ class SpatialGraph(Graph):
             :class:`~nngt.geometry.Shape` object of the instance.
         **kwargs : keyword arguments for :class:`~nngt.Graph` or
             :class:`~nngt.geometry.Shape` if no shape was given.
-        
+
         Returns
         -------
         self : :class:`~nggt.SpatialGraph`
@@ -1117,7 +1275,7 @@ class SpatialGraph(Graph):
         self._init_spatial_properties(shape, positions, **kwargs)
         if "population" in kwargs:
             self.make_network(self, kwargs["population"])
-        
+
     def __del__(self):
         if hasattr(self, '_shape'):
             if self._shape is not None:
@@ -1132,7 +1290,7 @@ class SpatialGraph(Graph):
 
     #-------------------------------------------------------------------------#
     # Init tool
-    
+
     def _init_spatial_properties(self, shape, positions=None, **kwargs):
         '''
         Create the positions of the neurons from the graph `shape` attribute
@@ -1145,7 +1303,7 @@ class SpatialGraph(Graph):
             shape.set_parent(self)
             self._shape = shape
         else:
-            if positions is None:
+            if positions is None or not np.any(positions):
                 if 'height' in kwargs and 'width' in kwargs:
                     self._shape = nngt.geometry.Shape.rectangle(
                         kwargs['height'], kwargs['width'], parent=self)
@@ -1178,11 +1336,11 @@ class SpatialGraph(Graph):
 
     #-------------------------------------------------------------------------#
     # Getters
-    
+
     def get_positions(self, neurons=None):
         '''
         Returns the neurons' positions as a (N, 2) array.
-        
+
         Parameters
         ----------
         neurons : int or array-like, optional (default: all neurons)
@@ -1198,9 +1356,9 @@ class SpatialGraph(Graph):
 # ------- #
 
 class Network(Graph):
-    
+
     """
-    The detailed class that inherits from :class:`Graph` and implements
+    The detailed class that inherits from :class:`~nngt.Graph` and implements
     additional properties to describe various biological functions
     and interact with the NEST simulator.
     """
@@ -1210,7 +1368,7 @@ class Network(Graph):
 
     __num_networks = 0
     __max_id       = 0
-        
+
     @classmethod
     def num_networks(cls):
         ''' Returns the number of alive instances. '''
@@ -1232,7 +1390,7 @@ class Network(Graph):
         To prevent conflicts the :func:`~nngt.Network.to_nest` function is not
         available. If you know what you are doing, you should be able to find a
         workaround...
-        
+
         Parameters
         ----------
         gids : array-like
@@ -1250,7 +1408,7 @@ class Network(Graph):
         syn_param : dict, optional (default: {})
             Dictionary containing the synaptic parameters; the default value
             will make NEST use the default parameters of the model.
-        
+
         Returns
         -------
         net : :class:`~nngt.Network` or subclass
@@ -1265,7 +1423,7 @@ class Network(Graph):
         size = len(gids)
         nodes = [i for i in range(size)]
         group = nngt.NeuralGroup(
-            nodes, ntype=1, neuron_model=neuron_model, neuron_param=neuron_param)
+            nodes, neuron_type=1, neuron_model=neuron_model, neuron_param=neuron_param)
         pop = nngt.NeuralPop.from_groups([group])
         # create the network
         net = cls(population=pop, **kwargs)
@@ -1301,7 +1459,7 @@ class Network(Graph):
         Generate a network containing only one type of neurons.
 
         .. versionadded:: 1.0
-        
+
         Parameters
         ----------
         size : int
@@ -1316,7 +1474,7 @@ class Network(Graph):
         syn_param : dict, optional (default: {})
             Dictionary containing the synaptic parameters; the default value
             will make NEST use the default parameters of the model.
-        
+
         Returns
         -------
         net : :class:`~nngt.Network` or subclass
@@ -1347,7 +1505,7 @@ class Network(Graph):
             `syn_spec` parameter.
             Renamed `ei_ratio` to `iratio` to match
             :func:`~nngt.NeuralPop.exc_and_inhib`.
-        
+
         Parameters
         ----------
         size : int
@@ -1368,11 +1526,12 @@ class Network(Graph):
             those of the second group) as value. If provided, all connections
             between groups will be set according to the values contained in
             `syn_spec`. Valid keys are:
-                - `('excitatory', 'excitatory')`
-                - `('excitatory', 'inhibitory')`
-                - `('inhibitory', 'excitatory')`
-                - `('inhibitory', 'inhibitory')`
-        
+
+            - `('excitatory', 'excitatory')`
+            - `('excitatory', 'inhibitory')`
+            - `('inhibitory', 'excitatory')`
+            - `('inhibitory', 'inhibitory')`
+
         Returns
         -------
         net : :class:`~nngt.Network` or subclass
@@ -1390,7 +1549,7 @@ class Network(Graph):
 
     #-------------------------------------------------------------------------#
     # Constructor, destructor and attributes
-    
+
     def __init__(self, name="Network", weighted=True, directed=True,
                  from_graph=None, population=None, inh_weight_factor=1.,
                  **kwargs):
@@ -1417,7 +1576,7 @@ class Network(Graph):
             Factor to apply to inhibitory synapses, to compensate for example
             the strength difference due to timescales between excitatory and
             inhibitory synapses.
-        
+
         Returns
         -------
         self : :class:`~nggt.Network`
@@ -1443,7 +1602,7 @@ class Network(Graph):
         if "shape" in kwargs or "positions" in kwargs:
             self.make_spatial(self, shape=kwargs.get("shape", None),
                               positions=kwargs.get("positions", None))
-    
+
     def __del__(self):
         super(Network, self).__del__()
         self.__class__.__num_networks -= 1
@@ -1471,11 +1630,11 @@ class Network(Graph):
         else:
             raise AttributeError("Expecting NeuralPop but received \
                     {}".format(pop.__class__.__name__))
-    
+
     @property
     def nest_gid(self):
         return self._nest_gid
-    
+
     @nest_gid.setter
     def nest_gid(self, gids):
         self._nest_gid = gids
@@ -1494,7 +1653,7 @@ class Network(Graph):
         for i, e in enumerate(self.edges_array):
             if e[0] in inhib_neurons:
                 types[i] = -1
-        
+
         return types
 
     def id_from_nest_gid(self, gids):
@@ -1521,7 +1680,7 @@ class Network(Graph):
     def to_nest(self, send_only=None, use_weights=True):
         '''
         Send the network to NEST.
-        
+
         .. seealso::
             :func:`~nngt.simulation.make_nest_network` for parameters
         '''
@@ -1534,7 +1693,7 @@ class Network(Graph):
 
     #-------------------------------------------------------------------------#
     # Init tool
-    
+
     def _init_bioproperties(self, population):
         ''' Set the population attribute and link each neuron to its group. '''
         self._population = None
@@ -1578,8 +1737,8 @@ class Network(Graph):
         '''
         if is_integer(neuron_ids):
             group_name = self._population._neuron_group[neuron_ids]
-            ntype = self._population[group_name].neuron_type
-            return ntype
+            neuron_type = self._population[group_name].neuron_type
+            return neuron_type
         else:
             groups = (self._population._neuron_group[i] for i in neuron_ids)
             types = tuple(self._population[gn].neuron_type for gn in groups)
@@ -1610,11 +1769,12 @@ class Network(Graph):
 # -------------- #
 
 class SpatialNetwork(Network, SpatialGraph):
-    
+
     """
-    Class that inherits from :class:`~nngt.Network` and :class:`SpatialGraph`
-    to provide a detailed description of a real neural network in space, i.e.
-    with positions and biological properties to interact with NEST.
+    Class that inherits from :class:`~nngt.Network` and
+    :class:`~nngt.SpatialGraph` to provide a detailed description of a real
+    neural network in space, i.e. with positions and biological properties to
+    interact with NEST.
     """
 
     #-------------------------------------------------------------------------#
@@ -1625,7 +1785,7 @@ class SpatialNetwork(Network, SpatialGraph):
 
     #-------------------------------------------------------------------------#
     # Constructor, destructor, and attributes
-    
+
     def __init__(self, population, name="SpatialNetwork", weighted=True,
                  directed=True, shape=None, from_graph=None, positions=None,
                  **kwargs):
@@ -1649,7 +1809,7 @@ class SpatialNetwork(Network, SpatialGraph):
             :class:`~nngt.geometry.Shape` object of the instance.
         population : class:`~nngt.NeuralPop`, optional (default: None)
             Population from which the network will be built.
-        
+
         Returns
         -------
         self : :class:`~nngt.SpatialNetwork`

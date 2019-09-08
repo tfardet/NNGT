@@ -36,13 +36,10 @@ Additionnal dependencies
 
 .. note::
     If they are not present on your computer, `pip` will directly try to
-    install scipy and numpy, however:
-
-    * `lapack <http://www.netlib.org/lapack/>`_ is necessary for `scipy` and
-      `pip` cannot install it on its own
-    * if you want advanced network analysis features, you will have to install
-      the graph library yourself (only `networkx` can be installed directly
-      using `pip`)
+    install scipy and numpy.
+    However, if you want advanced network analysis features, you will have to
+    install the graph library yourself (only `networkx` can be installed
+    directly using `pip`)
 
 
 Simple install
@@ -130,7 +127,8 @@ you can install VisualStudio) before you make the installation.
 
 In case of problems with `msvc`:
 
-* install `MinGW <http://mingw.org/>` or `MinGW-W64 <https://mingw-w64.org/doku.php>`
+* install `MinGW <http://mingw.org/>`_ or
+  `MinGW-W64 <https://mingw-w64.org/doku.php>`_
 * use it to install gcc with g++ support
 * open a terminal, add the compiler to your `PATH` and set it as default:
   e.g. ::
@@ -175,7 +173,7 @@ The configuration file is created in ``~/.nngt/nngt.conf`` after you first run
 
 It can be necessary to modify this file to use the desired graph library, but
 mostly to correct problems with GTK and matplotlib (if the `plot` module
-complains, try ``Gtk3Agg`` and ``Qt4Agg``).
+complains, try ``Gtk3Agg`` and ``Qt4Agg``/``Qt5Agg``).
 
 
 Using NEST

@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -48,7 +48,7 @@ class ActivityRecord:
     '''
     Class to record the properties of the simulated activity.
     '''
-    
+
     def __init__(self, spike_data, phases, properties, parameters=None):
         '''
         Initialize the instance using `spike_data` (store proxy to an optional
@@ -66,7 +66,7 @@ class ActivityRecord:
             "firing_rate", "IBI"...).
         parameters : dict, optional (default: None)
             Parameters used to compute the phases.
-        
+
         Note
         ----
         The firing rate is computed as num_spikes / total simulation time,
@@ -91,14 +91,14 @@ class ActivityRecord:
     def phases(self):
         '''
         Return the phases detected:
-        
+
         - "bursting" for periods of high activity where a large fraction
           of the network is recruited.
         - "quiescent" for periods of low activity
         - "mixed" for firing rate in between "quiescent" and "bursting".
         - "localized" for periods of high activity but where only a small
           fraction of the network is recruited.
-        
+
         Note
         ----
         See `parameters` for details on the conditions used to
@@ -122,11 +122,9 @@ class ActivityRecord:
         return self._properties
 
 
-#-----------------------------------------------------------------------------#
-# analyse acitivity
-#------------------------
-#
-
+# ---------------- #
+# Analyse activity #
+# ---------------- #
 
 def get_recording(network, record, recorder=None, nodes=None):
     '''
@@ -199,7 +197,7 @@ def activity_types(spike_detector, limits, network=None,
     Analyze the spiking pattern of a neural network.
 
     @todo:
-      think about inserting t=0. and t=simtime at the beginning and at the 
+      think about inserting t=0. and t=simtime at the beginning and at the
       end of ``times``.
 
     Parameters
@@ -211,10 +209,10 @@ def activity_types(spike_detector, limits, network=None,
     network : :class:`~nngt.Network`, optional (default: None)
         Neural network that was analyzed
     phase_coeff : tuple of floats, optional (default: (0.2, 5.))
-        A phase is considered `bursting' when the interspike between all spikes
+        A phase is considered 'bursting' when the interspike between all spikes
         that compose it is smaller than ``phase_coeff[0] / avg_rate`` (where
-        ``avg_rate`` is the average firing rate), `quiescent' when it is
-        greater that ``phase_coeff[1] / avg_rate``, `mixed' otherwise.
+        ``avg_rate`` is the average firing rate), 'quiescent' when it is
+        greater that ``phase_coeff[1] / avg_rate``, 'mixed' otherwise.
     mbis : float, optional (default: 0.5)
         Maximum interspike interval allowed for two spikes to be considered in
         the same burst (in ms).
@@ -222,17 +220,17 @@ def activity_types(spike_detector, limits, network=None,
         Minimal fraction of the neurons that should participate for a burst to
         be validated (i.e. if the interspike is smaller that the limit BUT the
         number of participating neurons is too small, the phase will be
-        considered as `localized`).
+        considered as 'localized').
     mflb : float, optional (default: 0.05)
-        Minimal fraction of the neurons that should participate for a local 
+        Minimal fraction of the neurons that should participate for a local
         burst to be validated (i.e. if the interspike is smaller that the limit
         BUT the number of participating neurons is too small, the phase will be
-        considered as `mixed`).
+        considered as 'mixed').
     skip_bursts : int, optional (default: 0)
         Skip the `skip_bursts` first bursts to consider only the permanent
         regime.
     simplify: bool, optional (default: False)
-        If ``True``, `mixed` phases that are contiguous to a burst are
+        If ``True``, 'mixed' phases that are contiguous to a burst are
         incorporated to it.
     return_steps : bool, optional (default: False)
         If ``True``, a second dictionary, `phases_steps` will also be returned.
@@ -247,7 +245,7 @@ def activity_types(spike_detector, limits, network=None,
     Effects of `skip_bursts` and `limits[0]` are cumulative: the `limits[0]`
     first milliseconds are ignored, then the `skip_bursts` first bursts of the
     remaining activity are ignored.
-    
+
     Returns
     -------
     phases : dict
@@ -321,7 +319,7 @@ def analyze_raster(raster=None, limits=None, network=None,
         number of participating neurons is too small, the phase will be
         considered as 'localized').
     mflb : float, optional (default: 0.05)
-        Minimal fraction of the neurons that should participate for a local 
+        Minimal fraction of the neurons that should participate for a local
         burst to be validated (i.e. if the interspike is smaller that the limit
         BUT the number of participating neurons is too small, the phase will be
         considered as 'mixed').
@@ -335,10 +333,10 @@ def analyze_raster(raster=None, limits=None, network=None,
         Indices of figures on which the periods can be drawn.
     show : bool, optional (default: False)
         Whether the figures should be displayed.
-    
+
     Note
     ----
-    Effects of `skip_bursts` and `limits[0]` are cumulative: the 
+    Effects of `skip_bursts` and `limits[0]` are cumulative: the
     `limits[0]` first milliseconds are ignored, then the `skip_bursts`
     first bursts of the remaining activity are ignored.
 
@@ -391,7 +389,7 @@ def _get_data(source):
     ----------
     source : list or str
         Indices of spike detectors or path to the .gdf files.
-    
+
     Returns
     -------
     data : 2D array of shape (N, 2)
@@ -553,7 +551,7 @@ def _analysis(times, senders, limits, network=None,
 def _compute_properties(data, phases, fr, skip_bursts):
     '''
     Compute the properties from the spike times and phases.
-    
+
     Parameters
     ----------
     data : 2D array, shape (N, 2)

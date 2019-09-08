@@ -1,3 +1,5 @@
+.. _intro:
+
 ===================
 Intro & user manual
 ===================
@@ -15,6 +17,7 @@ build various networks from efficient and verified algorithms.
 Moreover, it also acts as an interface between those graph libraries and the
 `NEST simulator`_.
 
+
 Documentation structure
 -----------------------
 
@@ -24,12 +27,13 @@ separately in the following pages:
 
 .. toctree::
    :maxdepth: 1
-   
+
    graph-generation
    component-properties
-   activity-analysis
    multithreading
+   neural-groups
    nest-interaction
+   activity-analysis
 
 .. note ::
   This library provides many tools which will (or not) be loaded on startup
@@ -100,7 +104,7 @@ procedures are detailed in the documentation.
 
 .. toctree::
    :maxdepth: 1
-   
+
    graph-generation
    ../modules/nngt
 

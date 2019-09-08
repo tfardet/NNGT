@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -61,7 +61,7 @@ analyze_graph = {
 def use_backend(backend, reloading=True, silent=False):
     '''
     Allows the user to switch to a specific graph library as backend.
-    
+
     .. warning ::
         If :class:`~nngt.Graph` objects have already been created, they will no
         longer be compatible with NNGT methods.
@@ -72,8 +72,11 @@ def use_backend(backend, reloading=True, silent=False):
         Name of a graph library among 'graph_tool', 'igraph', 'networkx', or
         'nngt'.
     reloading : bool, optional (default: True)
-        Whether the graph objects should be `reload_module`d (this should
-        always be set to True except when NNGT is first initiated!)
+        Whether the graph objects should be reloaded through `reload_module`
+        (this should always be set to True except when NNGT is first initiated!)
+    silent : bool, optional (default: False)
+        Whether the changes made to the configuration should be logged at the
+        DEBUG (True) or INFO (False) level.
     '''
     # save old config except for graph-library data
     old_config = nngt.get_config(detailed=True)
@@ -154,7 +157,7 @@ def use_backend(backend, reloading=True, silent=False):
 
 def _set_graph_tool():
     '''
-    Set graph-tool as graph library, store relevant items in config and 
+    Set graph-tool as graph library, store relevant items in config and
     analyze graph dictionaries.
     '''
     import graph_tool as glib
@@ -210,7 +213,7 @@ def _set_graph_tool():
 
 def _set_igraph():
     '''
-    Set igraph as graph library, store relevant items in config and 
+    Set igraph as graph library, store relevant items in config and
     analyze graph dictionaries.
     '''
     import igraph as glib
@@ -270,7 +273,7 @@ def _set_networkx():
     nngt._config["library"] = glib
     nngt._config["graph"]   = GraphLib
     # analysis functions
-    from networkx.algorithms import ( diameter, 
+    from networkx.algorithms import ( diameter,
         strongly_connected_components, weakly_connected_components,
         degree_assortativity_coefficient )
     def _closeness(graph, nodes, weights):

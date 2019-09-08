@@ -1,6 +1,17 @@
 Graph classes
 =============
 
+.. autosummary::
+
+    nngt.Graph
+    nngt.SpatialGraph
+    nngt.Network
+    nngt.SpatialNetwork
+
+
+Details
+-------
+
 .. currentmodule:: nngt
 .. autoclass:: Graph
    :inherited-members:

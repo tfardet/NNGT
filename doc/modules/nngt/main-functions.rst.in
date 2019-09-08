@@ -1,5 +1,13 @@
 Main functions
 ==============
 
+.. autosummary::
+
+@autosum@
+
+
+Details
+-------
+
 .. currentmodule:: nngt
 @autosum@

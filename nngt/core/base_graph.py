@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -32,7 +32,7 @@ from scipy.sparse import coo_matrix, csr_matrix, lil_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param
+from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param, _to_np_array
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------- #
 
 class BaseProperty(dict):
-    
+
     def __init__(self, parent):
         self.parent = ref(parent)
         self._num_values_set = {}
@@ -78,13 +78,13 @@ class BaseProperty(dict):
 
 @add_metaclass(ABCMeta)
 class GraphInterface(nngt._config["graph"]):
-    
+
     #-------------------------------------------------------------------------#
     # Class methods and attributes
 
     nattr_class = None
     eattr_class = None
-    
+
     @classmethod
     def to_graph_object(cls, obj, weighted=True, directed=True):
         obj.__class__ = cls
@@ -97,7 +97,7 @@ class GraphInterface(nngt._config["graph"]):
         for i, edge in enumerate(edges):
             obj._edges[tuple(edge)] = i
         return obj
-    
+
     #-------------------------------------------------------------------------#
     # Shared properties methods
 
@@ -113,7 +113,7 @@ class GraphInterface(nngt._config["graph"]):
     @property
     def eproperties(self):
         return self._eattr
-         
+
     def remove_edge(self, edge):
         raise NotImplementedError(
             "This function has been removed because it makes using edge "
@@ -123,7 +123,7 @@ class GraphInterface(nngt._config["graph"]):
         raise NotImplementedError(
             "This function has been removed because it makes using node"
             "properties too complicated.")
-        
+
     def adjacency_matrix(self, types=True, weights=True):
         '''
         Return the graph adjacency matrix.
@@ -143,7 +143,7 @@ class GraphInterface(nngt._config["graph"]):
 
         Returns
         -------
-        mat : :class:`scipy.sparse.csr` matrix
+        mat : :class:`scipy.sparse.csr_matrix` matrix
             The adjacency matrix of the graph.
         '''
         weights = "weight" if weights is True else weights
@@ -155,16 +155,16 @@ class GraphInterface(nngt._config["graph"]):
         elif types and 'type' in self.edges_attributes:
             raise NotImplementedError()
         return mat
-    
+
     #-------------------------------------------------------------------------#
     # Properties and methods to implement
-    
+
     #~ @abstractmethod
     #~ def inhibitory_subgraph(self):
         #~ pass
-    #~ 
+    #~
     #~ @abstractmethod
-    #~ def excitatory_subgraph(self, n=1, ntype=1):
+    #~ def excitatory_subgraph(self, n=1, neuron_type=1):
         #~ pass
 
     @abstractmethod
@@ -172,7 +172,7 @@ class GraphInterface(nngt._config["graph"]):
         pass
 
     @abstractmethod
-    def new_node(self, n=1, ntype=1, attributes=None):
+    def new_node(self, n=1, neuron_type=1, attributes=None):
         pass
 
     @abstractmethod
@@ -266,7 +266,7 @@ class GraphInterface(nngt._config["graph"]):
                         v = np.repeat(v, self.edge_nb())
                     self._eattr.new_attribute(attributes["names"][i],
                                               attributes["types"][i], values=v)
-        
+
     @abstractmethod
     def node_nb(self):
         pass
@@ -274,7 +274,7 @@ class GraphInterface(nngt._config["graph"]):
     @abstractmethod
     def edge_nb(self):
         pass
-    
+
     @abstractmethod
     def degree_list(self, node_list=None, deg_type="total", use_weights=True):
         pass
@@ -282,7 +282,7 @@ class GraphInterface(nngt._config["graph"]):
     @abstractmethod
     def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
         pass
-    
+
     @abstractmethod
     def neighbours(self, node, mode="all"):
         pass
@@ -301,9 +301,9 @@ class BaseGraph(GraphInterface):
     Minimal implementation of the GraphObject, which does not rely on any
     graph-library.
     '''
-    
+
     #-------------------------------------------------------------------------#
-    # Constructor and instance properties        
+    # Constructor and instance properties
 
     def __init__(self, nodes=0, weighted=True, directed=True,
                  g=None, **kwargs):
@@ -317,12 +317,14 @@ class BaseGraph(GraphInterface):
         # test if copying graph
         if g is not None:
             # create nodes and node attributes
-            self.new_node(g.node_nb())
-            self._nattr    = deepcopy(g._nattr)
-            self._eattr    = _EProperty(self)
             self._directed = g.is_directed()
             self._weighted = g.is_weighted()
             self._edges    = OrderedDict()
+            self._nattr    = deepcopy(g._nattr)
+            self._eattr    = _EProperty(self)
+
+            self.new_node(g.node_nb())
+
             self._adj_mat  = lil_matrix((g.node_nb(), g.node_nb()))
             # create edges and edge attributes
             attributes = g.get_edge_attributes()
@@ -370,8 +372,8 @@ class BaseGraph(GraphInterface):
         2-tuple.
         '''
         return np.array(list(self._edges.keys()), dtype=int)
-    
-    def new_node(self, n=1, ntype=1, attributes=None, value_types=None,
+
+    def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''
         Adding a node to the graph, with optional properties.
@@ -380,7 +382,7 @@ class BaseGraph(GraphInterface):
         ----------
         n : int, optional (default: 1)
             Number of nodes to add.
-        ntype : int, optional (default: 1)
+        neuron_type : int, optional (default: 1)
             Type of neuron (1 for excitatory, -1 for inhibitory)
         attributes : dict, optional (default: None)
             Dictionary containing the attributes of the nodes.
@@ -399,6 +401,7 @@ class BaseGraph(GraphInterface):
         The node or a tuple of the nodes created.
         '''
         nodes = []
+
         if n == 1:
             nodes.append(len(self._nodes))
             self._in_deg.append(0)
@@ -419,13 +422,32 @@ class BaseGraph(GraphInterface):
         else:
             self._adj_mat = lil_matrix((len(self._nodes), len(self._nodes)))
 
-        if attributes is not None:
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        if attributes:
             for k, v in attributes.items():
                 if k not in self._nattr:
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
                     v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=nodes)
+
+        # set default values for all attributes that were not set
+        for k in self.nodes_attributes:
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "double":
+                    values = [np.NaN for _ in nodes]
+                    self._nattr.set_attribute(k, values, nodes=nodes)
+                elif dtype == "int":
+                    values = [0 for _ in nodes]
+                    self._nattr.set_attribute(k, values, nodes=nodes)
+                elif dtype == "string":
+                    values = ["" for _ in nodes]
+                    self._nattr.set_attribute(k, values, nodes=nodes)
+                else:
+                    values = [None for _ in nodes]
+                    self._nattr.set_attribute(k, values, nodes=nodes)
 
         if self.is_spatial():
             old_pos      = self._pos
@@ -455,7 +477,7 @@ class BaseGraph(GraphInterface):
     def new_edge(self, source, target, attributes=None, ignore=False):
         '''
         Adding a connection to the graph, with optional properties.
-        
+
         Parameters
         ----------
         source : :class:`int/node`
@@ -474,9 +496,21 @@ class BaseGraph(GraphInterface):
         -------
         The new connection.
         '''
-        #check attributes
-        if attributes is None:
-            attributes = {}
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        # set default values for attributes that were not passed
+        for k in self.edges_attributes:
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    attributes[k] = [""]
+                elif dtype == "double" and k != "weight":
+                    attributes[k] = [np.NaN]
+                elif dtype == "int":
+                    attributes[k] = [0]
+                else:
+                    attributes[k] = [None]
+
         # check that the edge does not already exist
         edge = (source, target)
 
@@ -500,7 +534,8 @@ class BaseGraph(GraphInterface):
                 self._edges[e_recip]   = edge_id + 1
                 self._out_deg[target] += 1
                 self._in_deg[source]  += 1
-                _set_edge_attr(self, [e_recip], attributes)
+                for k, v in attributes.items():
+                    self.set_edge_attribute(k, val=v, edges=[e_recip])
                 self._adj_mat[source, target] = w
         else:
             if not ignore:
@@ -517,7 +552,7 @@ class BaseGraph(GraphInterface):
         .. warning ::
             This function currently does not check for duplicate edges between
             the existing edges and the added ones, but only inside `edge_list`!
-        
+
         Parameters
         ----------
         edge_list : list of 2-tuples or np.array of shape (edge_nb, 2)
@@ -536,9 +571,22 @@ class BaseGraph(GraphInterface):
         -------
         Returns new edges only.
         '''
-        #check attributes
-        if attributes is None:
-            attributes = {}
+        attributes = {} if attributes is None else deepcopy(attributes)
+        num_edges  = len(edge_list)
+
+        # set default values for attributes that were not passed
+        for k in self.edges_attributes:
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    attributes[k] = ["" for _ in range(num_edges)]
+                elif dtype == "double":
+                    if k != "weight":
+                        attributes[k] = [np.NaN for _ in range(num_edges)]
+                elif dtype == "int":
+                    attributes[k] = [0 for _ in range(num_edges)]
+                else:
+                    attributes[k] = [None for _ in range(num_edges)]
 
         assert self._nodes.issuperset(np.ravel(edge_list)), \
             "Some nodes in `edge_list` do not exist in the network."
@@ -581,7 +629,7 @@ class BaseGraph(GraphInterface):
             else:
                 ws = (new_attr["weight"] for _ in range(num_added))
         else:
-            ws = (1 for _ in range(num_added))
+            ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
         for i, (e, w) in enumerate(zip(edge_list, ws)):
             self._edges[tuple(e)]     = initial_edges + i
             self._out_deg[e[0]]  += 1
@@ -590,7 +638,7 @@ class BaseGraph(GraphInterface):
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=new_attr)
         return edge_list
-    
+
     def clear_all_edges(self):
         self._edges   = OrderedDict()
         self._out_deg = [0 for _ in range(self.node_nb())]
@@ -600,7 +648,7 @@ class BaseGraph(GraphInterface):
 
     #-------------------------------------------------------------------------#
     # Getters
-    
+
     def node_nb(self):
         '''
         Returns the number of nodes.
@@ -616,7 +664,7 @@ class BaseGraph(GraphInterface):
         .. warning:: When using MPI, returns only the local number of edges.
         '''
         return len(self._edges)
-    
+
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         '''
         Returns the degree of the nodes.
@@ -677,7 +725,7 @@ class BaseGraph(GraphInterface):
         elif mode in ("out", "all"):
             neighbours.extend(self._adj_mat[:, node])
         else:
-            raise ArgumentError('''Invalid `mode` argument {}; possible values
+            raise ValueError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
         return list(set(neighbours))
 
@@ -692,7 +740,7 @@ class _NProperty(BaseProperty):
 
     def __getitem__(self, name):
         dtype = _np_dtype(super(_NProperty, self).__getitem__(name))
-        return np.array(self.prop[name], dtype=dtype)
+        return _to_np_array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -720,11 +768,16 @@ class _NProperty(BaseProperty):
             else:
                 val = None
                 value_type = "object"
+
         if values is None:
-            values = np.full(self.parent().node_nb(), val, dtype=dtype)
+            values = _to_np_array(
+                [deepcopy(val) for _ in range(self.parent().node_nb())],
+                value_type)
+
         if len(values) != self.parent().node_nb():
             raise ValueError("A list or a np.array with one entry per "
                              "node in the graph is required")
+
         # store name and value type in the dict
         super(_NProperty, self).__setitem__(name, value_type)
         # store the real values in the attribute
@@ -749,15 +802,14 @@ class _NProperty(BaseProperty):
         num_n = len(nodes) if nodes is not None else num_nodes
         if num_n == num_nodes:
             self[name] = list(values)
-            self._num_values_set[name] = num_edges
+            self._num_values_set[name] = num_nodes
         else:
             if num_n != len(values):
-                raise ValueError("`nodes` and `nodes` must have the same "
+                raise ValueError("`nodes` and `values` must have the same "
                                  "size; got respectively " + str(num_n) + \
-                                 " and " + str(len(values)) + "entries.")
-            non_obj = (super(_NProperty, self).__getitem__(name)
-                       not in ('string', 'object'))
-            if self._num_values_set[name] == num_nodes - num_n and non_obj:
+                                 " and " + str(len(values)) + " entries.")
+
+            if self._num_values_set[name] == num_nodes - num_n:
                 self.prop[name].extend(values)
             else:
                 for n, val in zip(nodes, values):
@@ -781,21 +833,23 @@ class _EProperty(BaseProperty):
         if isinstance(name, slice):
             for k in self.keys():
                 dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
-                eprop[k] = np.array(self.prop[k][name], dtype=dtype)
+                eprop[k] = _to_np_array(self.prop[k], dtype)[name]
             return eprop
         elif nonstring_container(name):
             if nonstring_container(name[0]):
                 eids = [self.parent().edge_id(e) for e in name]
                 for k in self.keys():
                     dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
-                    eprop[k] = np.array(self.prop[k][eids], dtype=dtype)
+                    eprop[k] = _to_np_array(self.prop[k], dtype=dtype)[eids]
             else:
+                eid = self.parent().get_eid(*name)
                 for k in self.keys():
-                    dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
-                    eprop[k] = np.array(self.prop[k][name], dtype=dtype)
+                    eprop[k] = self.prop[k][eid]
             return eprop
+
         dtype = _np_dtype(super(_EProperty, self).__getitem__(name))
-        return np.array(self.prop[name], dtype=dtype)
+
+        return _to_np_array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
         if name in self:
@@ -825,7 +879,8 @@ class _EProperty(BaseProperty):
             is not None, it must be an array of shape `(len(values), 2)`.
         '''
         num_edges = self.parent().edge_nb()
-        num_e = len(edges) if edges is not None else num_edges
+        num_e     = len(edges) if edges is not None else num_edges
+
         if num_e == num_edges:
             self[name] = list(values)
             self._num_values_set[name] = num_edges
@@ -833,7 +888,7 @@ class _EProperty(BaseProperty):
             if num_e != len(values):
                 raise ValueError("`edges` and `values` must have the same "
                                  "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + "entries.")
+                                 " and " + str(len(values)) + " entries.")
             if self._num_values_set[name] == num_edges - num_e:
                 self.prop[name].extend(values)
                 self._num_values_set[name] = num_edges
@@ -841,7 +896,6 @@ class _EProperty(BaseProperty):
                 for e, val in zip(edges, values):
                     idx = self.parent().edge_id(e)
                     self.prop[name][idx] = val
-                self._num_values_set[name] += num_e
 
     def new_attribute(self, name, value_type, values=None, val=None):
         if values is None and val is None:
@@ -855,8 +909,11 @@ class _EProperty(BaseProperty):
                 val = ""
             else:
                 val = None
+
         if values is None:
-            values = np.repeat(val, self.parent().edge_nb())
+            values = _to_np_array(
+                [deepcopy(val) for _ in range(self.parent().edge_nb())],
+                value_type)
 
         if len(values) != self.parent().edge_nb():
             self._num_values_set[name] = 0

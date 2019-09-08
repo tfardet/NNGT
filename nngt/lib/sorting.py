@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -128,7 +128,7 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             yboxes = np.digitize(ys, ybins)
 
             attribute  = xboxes*num_boxes + yboxes
-            sorted_ids = np.lexsort((xboxes, yboxes))
+            sorted_ids = np.argsort(attribute)
         elif sort == "x":
             xs, _ = network.get_positions().T
             x_min, x_max = np.min(xs), np.max(xs)
@@ -155,15 +155,8 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
         attribute  = sort[sorted_ids]
 
     if network.is_network():
-        neuron_groups = list(network.population.values())
-        avg_attr = []
-        for group in neuron_groups:
-            ids = np.array(group.ids, dtype=int)
-            avg_attr.append(np.average(attribute[ids - min_nest_gid]))
-        idx_srt = np.argsort(avg_attr)
-        neuron_groups = [neuron_groups[i] for i in idx_srt]
         num_sorted = 1
-        for group in neuron_groups:
+        for group in network.population.values():
             gids = network.nest_gid[group.ids]
             order = np.argsort(np.argsort(np.argsort(sorted_ids)[group.ids]))
             sorting[gids] = num_sorted + order

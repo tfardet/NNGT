@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -109,14 +109,14 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
     edges = num_source*degree if degree_type == "out" else num_target*degree
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
-    
+
     existing = 0 if existing_edges is None else existing_edges.shape[0]
     ia_edges = np.zeros((existing+edges, 2), dtype=int)
     if existing:
         ia_edges[:existing,:] = existing_edges
     idx = 0 if b_out else 1 # differenciate source / target
     variables  = target_ids if b_out else source_ids  # nodes picked randomly
-    
+
     for i,v in enumerate(target_ids):
         edges_i, ecurrent, variables_i = np.zeros((degree,2)), 0, []
         if existing_edges is not None:
@@ -162,14 +162,14 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     edges = np.sum(lst_deg)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
-    
+
     num_etotal = 0 if existing_edges is None else existing_edges.shape[0]
     ia_edges = np.zeros((num_etotal+edges, 2), dtype=int)
     if num_etotal:
         ia_edges[:num_etotal,:] = existing_edges
     idx = 0 if b_out else 1 # differenciate source / target
     variables = target_ids if b_out else source_ids  # nodes picked randomly
-    
+
     for i,v in enumerate(target_ids):
         degree_i = lst_deg[i]
         edges_i, ecurrent, variables_i = np.zeros((degree_i,2)), 0, []
@@ -192,7 +192,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
         ia_edges[num_etotal:num_etotal+ecurrent, int(not idx)] = variables_i
         num_etotal += ecurrent
     return ia_edges
-    
+
 
 def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
                        density=-1, edges=-1, avg_deg=-1, reciprocity=-1,
@@ -205,7 +205,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
                                 density, edges, avg_deg, directed, reciprocity)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
-    
+
     ia_edges = np.zeros((edges,2),dtype=int)
     num_ecurrent, num_test = 0, 0
     edges_hash = {}
@@ -236,7 +236,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
     ia_edges_tmp = np.array([ia_sources,ia_targets]).T
     ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                      edges_hash, b_one_pop, multigraph)
-        
+
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         num_desired = pre_recip_edges-num_ecurrent
         ia_sources_tmp = ia_sources[randint(0,pre_recip_edges,num_desired)]
@@ -245,7 +245,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          edges_hash, b_one_pop, multigraph)
         num_test += 1
-    
+
     if directed and reciprocity > 0:
         while num_ecurrent != edges and num_test < MAXTESTS:
             ia_indices = randint(0, pre_recip_edges,
@@ -258,7 +258,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
     return ia_edges
-    
+
 
 def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
                  reciprocity=-1, directed=True, multigraph=False, **kwargs):
@@ -272,14 +272,14 @@ def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     num_source, num_target = len(source_ids), len(target_ids)
     edges, pre_recip_edges = _compute_connections(num_source, num_target,
                                 density, edges, avg_deg, directed, reciprocity)
-    
+
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
-    
+
     ia_edges = np.zeros((edges,2), dtype=int)
     num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
     edges_hash = {}
-    
+
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         ia_sources = source_ids[randint(0, num_source,
                                         pre_recip_edges-num_ecurrent)]
@@ -289,7 +289,7 @@ def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          edges_hash, b_one_pop, multigraph)
         num_test += 1
-    
+
     if directed and reciprocity > 0:
         while num_ecurrent != edges and num_test < MAXTESTS:
             ia_indices = randint(0, pre_recip_edges,
@@ -328,7 +328,7 @@ def _circular_graph(node_ids, coord_nb):
 def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
                   directed=True, multigraph=False, **kwargs):
     '''
-    Returns a numpy array of dimension (num_edges,2) that describes the edge 
+    Returns a numpy array of dimension (num_edges,2) that describes the edge
     list of a Newmaan-Watts graph.
     '''
     node_ids = np.array(source_ids, dtype=int)
@@ -338,7 +338,7 @@ def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
     num_edges = int(circular_edges*(1+proba_shortcut))
     num_edges, circular_edges = (num_edges, circular_edges if directed
                              else (int(num_edges/2), int(circular_edges/2)))
-    
+
     b_one_pop = _check_num_edges(
         source_ids, target_ids, num_edges, directed, multigraph)
     if not b_one_pop:

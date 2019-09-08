@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -41,6 +41,7 @@ from nngt.lib.logger import _log_message
 
 __all__ = [
     'GroupProperty',
+    'NeuralGroup',
     'NeuralPop',
 ]
 
@@ -77,19 +78,6 @@ class NeuralPop(OrderedDict):
     # Class attributes and methods
 
     @classmethod
-    def _nest_reset(cls):
-        '''
-        Reset the _to_nest bool and potential parent networks.
-        '''
-        for pop in cls.__pops.valuerefs():
-            if pop() is not None:
-                pop()._to_nest = False
-                for g in pop().values():
-                    g._to_nest = False
-                if pop().parent is not None:
-                    pop().parent._nest_gids = None
-
-    @classmethod
     def from_network(cls, graph, *args):
         '''
         Make a NeuralPop object from a network. The groups of neurons are
@@ -97,10 +85,10 @@ class NeuralPop(OrderedDict):
         :class:`~nngt.properties.GroupProperties`.
         '''
         return cls(parent=graph, graph=graph, group_prop=args)
-    
+
     @classmethod
     def from_groups(cls, groups, names=None, syn_spec=None, parent=None,
-                    with_models=True):
+                    meta_groups=None, with_models=True):
         '''
         Make a NeuralPop object from a (list of) :class:`~nngt.NeuralGroup`
         object(s).
@@ -108,15 +96,21 @@ class NeuralPop(OrderedDict):
         .. versionchanged:: 0.8
             Added `syn_spec` parameter.
 
+        .. versionchanged:: 1.2
+            Added `meta_groups` parameter
+
         Parameters
         ----------
         groups : list of :class:`~nngt.NeuralGroup` objects
-            Groups that will be used to form the population.
+            Groups that will be used to form the population. Note that a given
+            neuron can only belong to a single group, so the groups should form
+            pairwise disjoints complementary sets.
         names : list of str, optional (default: None)
             Names that can be used as keys to retreive a specific group. If not
-            provided, keys will be the position of the group in `groups`,
-            stored as a string. In this case, the first group in a population
-            named `pop` will be retreived by either `pop[0]` or `pop['0']`.
+            provided, keys will be the group name (if not empty) or the position
+            of the group in `groups`, stored as a string.
+            In the latter case, the first group in a population named `pop`
+            will be retreived by either `pop[0]` or `pop['0']`.
         parent : :class:`~nngt.Graph`, optional (default: None)
             Parent if the population is created from an exiting graph.
         syn_spec : dict, optional (default: static synapse)
@@ -125,6 +119,12 @@ class NeuralPop(OrderedDict):
             those of the second group) as value.
             If a 'default' entry is provided, all unspecified connections will
             be set to its value.
+        meta_groups : list or dict of str/:class:`~nngt.NeuralGroup` items
+            Additional set of groups which can overlap: a neuron can belong to
+            several different meta groups. Contrary to the primary groups, meta
+            groups do therefore no need to be disjoint.
+            If all meta-groups have a name, they can be passed directly through
+            a list; otherwise a dict is necessary.
         with_model : bool, optional (default: True)
             Whether the groups require models (set to False to use populations
             for graph theoretical purposes, without NEST interaction)
@@ -162,14 +162,27 @@ class NeuralPop(OrderedDict):
         if not nonstring_container(groups):
             groups = [groups]
 
+        # check groups and names
         for i, g in enumerate(groups):
-            assert g.is_valid(), "Group number " + str(i) + " is invalid."
+            name = " ('{}')".format(g.name) if g.name else ""
+            assert g.is_valid, "Group number " + str(i) + name + " is invalid."
 
         gsize = len(groups)
-        neurons = []
-        names = [str(i) for i in range(gsize)] if names is None else names
+        names = [] if names is None else names
+
+        if not names:
+            for i, g in enumerate(groups):
+                if g.name:
+                    names.append(g.name)
+                else:
+                    names.append(str(i))
+
         assert len(names) == gsize, "`names` and `groups` must have " +\
                                     "the same size."
+
+        for n in names:
+            assert isinstance(n, str), "Group names must be strings."
+
         if syn_spec is not None:
             _check_syn_spec(syn_spec, names, groups)
 
@@ -181,9 +194,10 @@ class NeuralPop(OrderedDict):
                 ids = list(range(current_size, current_size + g.size))
                 g.ids = ids
             current_size += len(ids)
-            neurons.extend(ids)
-        neurons = list(set(neurons))
-        pop = cls(current_size, parent=parent, with_models=with_models)
+
+        pop = cls(current_size, parent=parent, meta_groups=meta_groups,
+                  with_models=with_models)
+
         for name, g in zip(names, groups):
             pop[name] = g
             g._pop    = weakref.ref(pop)
@@ -194,33 +208,72 @@ class NeuralPop(OrderedDict):
         return pop
 
     @classmethod
-    def uniform(cls, size, neuron_model=default_neuron, neuron_param=None,
-                syn_model=default_synapse, syn_param=None, parent=None):
-        ''' Make a NeuralPop of identical neurons '''
+    def uniform(cls, size, neuron_type=1, neuron_model=default_neuron,
+                neuron_param=None, syn_model=default_synapse, syn_param=None,
+                parent=None, meta_groups=None):
+        '''
+        Make a NeuralPop of identical neurons belonging to a single "default"
+        group.
+
+        .. versionchanged:: 1.2
+            Added `neuron_type` and `meta_groups` parameters
+
+        Parameters
+        ----------
+        size : int
+            Number of neurons in the population.
+        neuron_type : int, optional (default: 1)
+            Type of the neurons in the population: 1 for excitatory or -1 for
+            inhibitory.
+        neuron_model : str, optional (default: default neuron model)
+            Neuronal model for the simulator.
+        neuron_param : dict, optional (default: default neuron parameters)
+            Parameters associated to `neuron_model`.
+        syn_model : str, optional (default: default static synapse)
+            Synapse model for the simulator.
+        syn_param : dict, optional (default: default synaptic parameters)
+            Parameters associated to `syn_model`.
+        parent : :class:`~nngt.Graph` object, optional (default: None)
+            Parent graph described by the population.
+        meta_groups : list or dict of str/:class:`~nngt.NeuralGroup` items
+            Set of groups which can overlap: a neuron can belong to
+            several different meta groups, i.e. they do no need to be disjoint.
+            If all meta-groups have a name, they can be passed directly through
+            a list; otherwise a dict is necessary.
+        '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
+
         if syn_param is not None:
             assert 'weight' not in syn_param, '`weight` cannot be set here.'
             assert 'delay' not in syn_param, '`delay` cannot be set here.'
             syn_param = syn_param.copy()
         else:
             syn_param = {}
-        pop = cls(size, parent)
-        pop.create_group("default", range(size), 1, neuron_model, neuron_param)
+
+        pop = cls(size, parent, meta_groups=meta_groups)
+        pop.create_group(range(size), "default", neuron_type, neuron_model,
+                         neuron_param)
+
         pop._syn_spec = {'model': syn_model}
+
         if syn_param is not None:
             pop._syn_spec.update(syn_param)
+
         return pop
 
     @classmethod
     def exc_and_inhib(cls, size, iratio=0.2, en_model=default_neuron,
                       en_param=None, in_model=default_neuron, in_param=None,
-                      syn_spec=None, parent=None):
+                      syn_spec=None, parent=None, meta_groups=None):
         '''
         Make a NeuralPop with a given ratio of inhibitory and excitatory
         neurons.
 
         .. versionchanged:: 0.8
             Added `syn_spec` parameter.
+
+        .. versionchanged:: 1.2
+            Added `meta_groups` parameter
 
         Parameters
         ----------
@@ -250,6 +303,13 @@ class NeuralPop(OrderedDict):
                 - `('inhibitory', 'inhibitory')`
         parent : :class:`~nngt.Network`, optional (default: None)
             Network associated to this population.
+        meta_groups : list dict of str/:class:`~nngt.NeuralGroup` items
+            Additional set of groups which can overlap: a neuron can belong to
+            several different meta groups. Contrary to the primary 'excitatory'
+            and 'inhibitory' groups, meta groups are therefore no necessarily
+            disjoint.
+            If all meta-groups have a name, they can be passed directly through
+            a list; otherwise a dict is necessary.
 
         See also
         --------
@@ -257,36 +317,59 @@ class NeuralPop(OrderedDict):
         as values for the `syn_spec` parameter.
         '''
         num_exc_neurons = int(size*(1-iratio))
-        pop = cls(size, parent)
-        gExc = pop.create_group(
-            "excitatory", range(num_exc_neurons), 1, en_model, en_param)
-        gInh = pop.create_group(
-            "inhibitory", range(num_exc_neurons, size), -1, in_model, in_param)
+
+        pop = cls(size, parent, meta_groups=meta_groups)
+
+        pop.create_group(
+            range(num_exc_neurons), "excitatory", 1, en_model, en_param)
+        pop.create_group(
+            range(num_exc_neurons, size), "inhibitory", -1, in_model, in_param)
+
         if syn_spec is not None:
             _check_syn_spec(
                 syn_spec, ["excitatory", "inhibitory"], pop.values())
             pop._syn_spec = deepcopy(syn_spec)
         else:
             pop._syn_spec = {}
+
         return pop
 
     @classmethod
     def copy(cls, pop):
         ''' Copy an existing NeuralPop '''
-        new_pop = cls.__init__(parent=pop.parent, with_models=pop.has_models)
+        new_pop = cls(parent=pop.parent, with_models=pop.has_models,
+                      meta_groups=pop.meta_groups)
+
         for name, group in pop.items():
             new_pop.create_group(
-                name, group.ids, group.model, group.neuron_param)
+                group.ids, name, group.model, group.neuron_param)
             new_pop._syn_spec = pop.syn_spec
+
         return new_pop
+
+    @classmethod
+    def _nest_reset(cls):
+        '''
+        Reset the _to_nest bool and potential parent networks.
+        '''
+        for pop in cls.__pops.valuerefs():
+            if pop() is not None:
+                pop()._to_nest = False
+                for g in pop().values():
+                    g._to_nest = False
+                if pop().parent is not None:
+                    pop().parent._nest_gids = None
 
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
 
-    def __init__(self, size=None, parent=None, with_models=True, *args,
-                 **kwargs):
+    def __init__(self, size=None, parent=None, meta_groups=None,
+                 with_models=True, *args, **kwargs):
         '''
-        Initialize NeuralPop instance
+        Initialize NeuralPop instance.
+
+        .. versionchanged:: 1.2
+            Added `meta groups` parameter.
 
         Parameters
         ----------
@@ -294,6 +377,10 @@ class NeuralPop(OrderedDict):
             Number of neurons that the population will contain.
         parent : :class:`~nngt.Network`, optional (default: None)
             Network associated to this population.
+        meta_groups : dict of str/:class:`~nngt.NeuralGroup` items
+            Optional set of groups. Contrary to the primary groups which define
+            the population and must be disjoint, meta groups can overlap: a
+            neuron can belong to several different meta groups.
         with_models : :class:`bool`
             whether the population's groups contain models to use in NEST
         *args : items for OrderedDict parent
@@ -303,28 +390,51 @@ class NeuralPop(OrderedDict):
         -------
         pop : :class:`~nngt.NeuralPop` object.
         '''
+        # check meta groups
+        meta_groups = {} if meta_groups is None else meta_groups
+
+        if not isinstance(meta_groups, dict):
+            for g in meta_groups:
+                if not g.name:
+                    raise ValueError("When providing a list for `meta_groups`, "
+                                     "all meta groups should be named")
+            meta_groups = {g.name: g for g in meta_groups}
+
+        # set main properties
         self._is_valid = False
         self._desired_size = size if parent is None else parent.node_nb()
         self._size = 0
         self._parent = None if parent is None else weakref.ref(parent)
-        # array of strings containing the name of the group where each neuron
-        # belongs
+        self._meta_groups = {}
+
+        # create `_neuron_group`: an array containing the id of the group
+        # associated to the index of each neuron, which 'maps' neurons to the
+        # primary group they belong to
         if self._desired_size is None:
             self._neuron_group = None
             self._max_id       = 0
         else:
             self._neuron_group = np.repeat(-1, self._desired_size)
             self._max_id       = len(self._neuron_group) - 1
+
+        # add meta groups
+        for nmg, mg in meta_groups.items():
+            self.add_meta_group(mg, nmg)
+
         if parent is not None and 'group_prop' in kwargs:
             dic = _make_groups(parent, kwargs["group_prop"])
             self._is_valid = True
             self.update(dic)
+
         self._syn_spec = {}
         self._has_models = with_models
+
         # whether the network this population represents was sent to NEST
         self._to_nest = False
+
         # init the OrderedDict
         super(NeuralPop, self).__init__(*args)
+
         # update class properties
         self.__id = self.__class__.__num_created
         self.__class__.__num_created += 1
@@ -345,7 +455,8 @@ class NeuralPop(OrderedDict):
         dic      = state[2]
         od_args  = state[1][0] if state[1] else state[1]
         args     = (dic.get("_size", None), dic.get("_parent", None),
-                    dic.get("_has_models", True), od_args)
+                    dic.get("_meta_groups", {}), dic.get("_has_models", True),
+                    od_args)
         newstate = (NeuralPop, args, dic, None, last)
         return newstate
 
@@ -355,13 +466,19 @@ class NeuralPop(OrderedDict):
             new_key = tuple(self.keys())[key]
             return OrderedDict.__getitem__(self, new_key)
         else:
-            return OrderedDict.__getitem__(self, key)
+            if key in self:
+                return OrderedDict.__getitem__(self, key)
+            elif key in self._meta_groups:
+                return self._meta_groups[key]
+            else:
+                raise KeyError("Not (meta) group named '{}'.".format(key))
 
     def __setitem__(self, key, value):
         if self._to_nest:
             raise RuntimeError("Populations items can no longer be modified "
                                "once the network has been sent to NEST!")
         self._validity_check(key, value)
+
         int_key = None
         if is_integer(key):
             new_key = tuple(self.keys())[key]
@@ -379,8 +496,11 @@ class NeuralPop(OrderedDict):
         # update pop size/max_id
         group_size = len(value.ids)
         max_id     = np.max(value.ids) if group_size != 0 else 0
+
         _update_max_id_and_size(self, max_id)
+
         self._neuron_group[value.ids] = int_key
+
         if -1 in list(self._neuron_group):
             self._is_valid = False
         else:
@@ -388,16 +508,6 @@ class NeuralPop(OrderedDict):
                 self._is_valid = (self._desired_size == self._size)
             else:
                 self._is_valid = True
-
-    def _sent_to_nest(self):
-        '''
-        Signify to the population and its groups that the network was sent
-        to NEST and that therefore properties and groups should no longer
-        be modified.
-        '''
-        self._to_nest = True
-        for g in self.values():
-            g._to_nest = True
 
     @property
     def size(self):
@@ -461,6 +571,10 @@ class NeuralPop(OrderedDict):
         raise NotImplementedError('`syn_spec` is not settable yet.')
 
     @property
+    def meta_groups(self):
+        return self._meta_groups.copy()
+
+    @property
     def has_models(self):
         return self._has_models
 
@@ -474,10 +588,10 @@ class NeuralPop(OrderedDict):
     #-------------------------------------------------------------------------#
     # Methods
 
-    def create_group(self, name, neurons, ntype=1, neuron_model=None,
-                     neuron_param=None):
+    def create_group(self, neurons, name, neuron_type=1, neuron_model=None,
+                     neuron_param=None, replace=False):
         '''
-        Create a new groupe from given properties.
+        Create a new group in the population.
 
         .. versionchanged:: 0.8
             Removed `syn_model` and `syn_param`.
@@ -485,31 +599,120 @@ class NeuralPop(OrderedDict):
         .. versionchanged:: 1.0
             `neurons` can be an int to signify a desired size for the group
             without actually setting the indices.
-        
+
         Parameters
         ----------
-        name : str
-            Name of the group.
         neurons : int or array-like
             Desired number of neurons or list of the neurons indices.
-        ntype : int, optional (default: 1)
+        name : str
+            Name of the group.
+        neuron_type : int, optional (default: 1)
             Type of the neurons : 1 for excitatory, -1 for inhibitory.
         neuron_model : str, optional (default: None)
             Name of a neuron model in NEST.
         neuron_param : dict, optional (default: None)
             Parameters for `neuron_model` in the NEST simulator. If None,
             default parameters will be used.
+        replace : bool, optional (default: False)
+            Whether to override previous exiting meta group with same name.
         '''
+        assert isinstance(name, str), "Group `name` must be a string."
+        assert neuron_type in (-1, 1), "Valid neuron type must be -1 or 1."
+
         if self._to_nest:
             raise RuntimeError("Groups can no longer be created once the "
                                "network has been sent to NEST!")
+
+        if name in self and not replace:
+            raise KeyError("Group with name '" + name + "' already " +\
+                           "exists. Use `replace=True` to overwrite it.")
+
         neuron_param = {} if neuron_param is None else neuron_param.copy()
-        group        = NeuralGroup(neurons, ntype=ntype,
+
+        group        = NeuralGroup(neurons, neuron_type=neuron_type,
                                    neuron_model=neuron_model,
                                    neuron_param=neuron_param, name=name)
-        group._pop   = weakref.ref(self)
-        group._net   = self._parent
+
         self[name]   = group
+
+    def create_meta_group(self, neurons, name, neuron_param=None,
+                          replace=False):
+        '''
+        Create a new meta group and add it to the population.
+
+        .. versionadded:: 1.2
+
+        Parameters
+        ----------
+        neurons : int or array-like
+            Desired number of neurons or list of the neurons indices.
+        name : str
+            Name of the group.
+        neuron_type : int, optional (default: 1)
+            Type of the neurons : 1 for excitatory, -1 for inhibitory.
+        neuron_model : str, optional (default: None)
+            Name of a neuron model in NEST.
+        neuron_param : dict, optional (default: None)
+            Parameters for `neuron_model` in the NEST simulator. If None,
+            default parameters will be used.
+        replace : bool, optional (default: False)
+            Whether to override previous exiting meta group with same name.
+        '''
+        neuron_param = {} if neuron_param is None else neuron_param.copy()
+
+        group = NeuralGroup(neurons, neuron_type=None, name=name,
+                            neuron_param=neuron_param)
+
+        self.add_meta_group(group, replace=replace)
+
+        return group
+
+    def add_meta_group(self, group, name=None, replace=False):
+        '''
+        Add an existing meta group to the population.
+
+        .. versionadded:: 1.2
+
+        Parameters
+        ----------
+        group : :class:`NeuralGroup`
+            Meta group.
+        name : str, optional (default: group name)
+            Name of the meta group.
+        replace : bool, optional (default: False)
+            Whether to override previous exiting meta group with same name.
+
+        Note
+        ----
+        The name of the group is automatically updated to match the `name`
+        argument.
+        '''
+        name = name if name else group.name
+
+        if not name:
+            raise ValueError("Group is not named, but no `name` entry was "
+                             "provided.")
+
+        if name in self._meta_groups and not replace:
+            raise KeyError("Cannot add meta group with name '" + name +\
+                           "': primary group with that name already exists.")
+
+        if name in self._meta_groups and not replace:
+            raise KeyError("Meta group with name '" + name + "' already " +\
+                           "exists. Use `replace=True` to overwrite it.")
+
+        if group.neuron_type is not None:
+            raise AttributeError("Meta groups must have `neuron_type` "
+                                 "attribute set to None.")
+
+        # check that meta_groups are compatible with the population size
+        if group.ids:
+            assert np.max(group.ids) <= self._max_id, \
+                "The meta group contains ids larger than the population size."
+
+        group._name = name
+
+        self._meta_groups[name] = group
 
     def set_model(self, model, group=None):
         '''
@@ -677,7 +880,7 @@ class NeuralPop(OrderedDict):
     def get_group(self, neurons, numbers=False):
         '''
         Return the group of the neurons.
-        
+
         Parameters
         ----------
         neurons : int or array-like
@@ -731,7 +934,7 @@ class NeuralPop(OrderedDict):
                 self._is_valid = False
             else:
                 self._is_valid = True
-    
+
     def _validity_check(self, name, group):
         if self._has_models and not group.has_model:
             raise AttributeError(
@@ -744,6 +947,24 @@ class NeuralPop(OrderedDict):
                          "account; use the `set_model` method to change its "
                          "behaviour.")
 
+        if group.neuron_type not in (-1, 1):
+            raise AttributeError("Valid neuron type must be -1 or 1.")
+
+        # check pairwise disjoint
+        for n, g in self.items():
+            assert set(g.ids).isdisjoint(group.ids), \
+                "New group overlaps with existing group '{}'".format(n)
+
+    def _sent_to_nest(self):
+        '''
+        Signify to the population and its groups that the network was sent
+        to NEST and that therefore properties and groups should no longer
+        be modified.
+        '''
+        self._to_nest = True
+        for g in self.values():
+            g._to_nest = True
+
 
 # ----------------------------- #
 # NeuralGroup and GroupProperty #
@@ -754,20 +975,20 @@ class NeuralGroup(object):
     """
     Class defining groups of neurons.
 
+    Its main variables are:
+
     :ivar ids: :obj:`list` of :obj:`int`
         the ids of the neurons in this group.
-    :ivar neuron_type: :class:`int`
-        the default is ``1`` for excitatory neurons; ``-1`` is for interneurons
-    :ivar model: :class:`string`, optional (default: None)
+    :ivar neuron_type: :obj:`int`
+        the default is ``1`` for excitatory neurons; ``-1`` is for inhibitory
+        neurons; meta-groups must have `neuron_type` set to ``None``
+    :ivar neuron_model: :class:`string`, optional (default: None)
         the name of the model to use when simulating the activity of this group
     :ivar neuron_param: :class:`dict`, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
-
-    Note
-    ----
-    By default, synapses are registered as ``"static_synapse"`` in NEST;
-    because of this, only the ``neuron_model`` attribute is checked by the
-    ``has_model`` function.
+    :ivar is_metagroup: :obj:`bool`
+        whether the group is a meta-group or not (`neuron_type` is ``None``
+        for meta-groups)
 
     Warning
     -------
@@ -776,11 +997,12 @@ class NeuralGroup(object):
     that groups differing only by their ``ids`` will register as equal.
     """
 
-    def __init__ (self, nodes=None, ntype=1, neuron_model=None, neuron_param=None,
-                  name=None):
+    def __init__ (self, nodes=None, neuron_type=1, neuron_model=None,
+                  neuron_param=None, name=None):
         '''
-        Create a group of neurons (empty group is default, but it is not a
-        valid object for most use cases).
+        Calling the class creates a group of neurons.
+        The default is an empty group but it is not a valid object for most use
+        cases.
 
         .. versionchanged:: 0.8
             Removed `syn_model` and `syn_param`.
@@ -790,8 +1012,9 @@ class NeuralGroup(object):
         nodes : int or array-like, optional (default: None)
             Desired size of the group or, a posteriori, NNGT indices of the
             neurons in an existing graph.
-        ntype : int, optional (default: 1)
-            Type of the neurons (1 for excitatory, -1 for inhibitory).
+        neuron_type : int, optional (default: 1)
+            Type of the neurons (1 for excitatory, -1 for inhibitory) or None
+            if not relevant (only allowed for metag roups).
         neuron_model : str, optional (default: None)
             NEST model for the neuron.
         neuron_param : dict, optional (default: model defaults)
@@ -801,7 +1024,7 @@ class NeuralGroup(object):
         -------
         A new :class:`~nngt.core.NeuralGroup` instance.
         '''
-        assert ntype in (1, -1), "`ntype` can either be 1 or -1."
+        assert neuron_type in (1, -1, None), "`neuron_type` can either be 1 or -1."
         neuron_param = {} if neuron_param is None else neuron_param.copy()
         self._has_model = False if neuron_model is None else True
         self._neuron_model = neuron_model
@@ -819,7 +1042,7 @@ class NeuralGroup(object):
         self._name = "" if name is None else name
         self._nest_gids = None
         self._neuron_param = neuron_param if self._has_model else {}
-        self.neuron_type = ntype
+        self._neuron_type = neuron_type
         # whether the network this group belongs to was sent to NEST
         self._to_nest = False
         # parents
@@ -838,6 +1061,13 @@ class NeuralGroup(object):
     def __len__(self):
         return self.size
 
+    def __str__(self):
+        return "NeuralGroup({}size={})".format(
+            self._name + ": " if self._name else "", self.size)
+
+    def _repr_pretty_(self, p, cycle):
+        return p.text(str(self))
+
     @property
     def name(self):
         return self._name
@@ -845,6 +1075,10 @@ class NeuralGroup(object):
     @property
     def neuron_model(self):
         return self._neuron_model
+
+    @property
+    def neuron_type(self):
+        return self._neuron_type
 
     @neuron_model.setter
     def neuron_model(self, value):
@@ -911,6 +1145,7 @@ class NeuralGroup(object):
         }
         return dic
 
+    @property
     def is_valid(self):
         '''
         Whether the group can be used in a population: i.e. if it has either
@@ -918,7 +1153,11 @@ class NeuralGroup(object):
 
         .. versionadded:: 1.0
         '''
-        return (self._desired_size is not None) or self._ids
+        return True if (self._desired_size is not None) or self._ids else False
+
+    @property
+    def is_metagroup(self):
+        return self._neuron_type is None
 
 
 class GroupProperty:
@@ -1014,8 +1253,8 @@ class Connections:
         new_dist : class:`numpy.array`
             Array containing *ONLY* the newly-computed distances.
         '''
-        n = graph.node_nb()
         elist = graph.edges_array if elist is None else elist
+
         if dlist is not None:
             assert isinstance(dlist, np.ndarray), "numpy.ndarray required in "\
                                                   "Connections.distances"
@@ -1087,7 +1326,6 @@ class Connections:
                 parameters={}, noise_scale=None):
         '''
         Compute the weights of the graph's edges.
-        @todo: take elist into account
 
         Parameters
         ----------
@@ -1123,21 +1361,18 @@ class Connections:
         else:
             wlist = _eprop_distribution(graph, distribution, elist=elist,
                                         **parameters)
-        # for normalize by the inhibitory weight factor
+
+        # normalize by the inhibitory weight factor
         if graph is not None and graph.is_network():
             if not np.isclose(graph._iwf, 1.):
                 adj = graph.adjacency_matrix(types=True, weights=False)
                 keep = (adj[elist[:, 0], elist[:, 1]] < 0).A1
                 wlist[keep] *= graph._iwf
-            
-        # add to the graph container
-        bwlist = (np.max(wlist) - wlist if np.any(wlist)
-                  else np.repeat(0., len(wlist)))
+
         if graph is not None:
             graph.set_edge_attribute(
                 WEIGHT, value_type="double", values=wlist, edges=elist)
-            graph.set_edge_attribute(
-                BWEIGHT, value_type="double", values=bwlist, edges=elist)
+
         return wlist
 
     @staticmethod
@@ -1199,7 +1434,7 @@ class Connections:
                         raise InvalidArgument(
                             "Inhibitory ratio (float value for `inhib_nodes`) "
                             "must be smaller than 1.")
-                        num_inhib_nodes = int(inhib_nodes*n)
+                    num_inhib_nodes = int(inhib_nodes*n)
                 if is_integer(inhib_nodes):
                     num_inhib_nodes = int(inhib_nodes)
                 while len(idx_nodes) != num_inhib_nodes:
@@ -1284,3 +1519,12 @@ def _update_max_id_and_size(neural_pop, max_id):
         ngroup_tmp = np.repeat(-1, neural_pop._max_id + 1)
         ngroup_tmp[:old_max_id + 1] = neural_pop._neuron_group
         neural_pop._neuron_group = ngroup_tmp
+
+
+def _disjoint(groups):
+    ''' Check that groups form pairwise disjoint sets '''
+    ids = []
+    for g in groups:
+        ids.extend(g.ids)
+
+    return len(ids) == len(set(ids))

@@ -1,5 +1,6 @@
 # doc
 doc/.build/
+doc/_build/
 doc/examples/sp_graph
 doc/examples/.ipynb_checkpoints/
 
@@ -15,6 +16,8 @@ doc/modules/simulation.rst
 doc/modules/nngt/main-functions.rst
 doc/modules/nngt/side-classes.rst
 
+*.tmp
+
 nngt/testing/Ref/*
 
 # python stuff
@@ -26,3 +29,6 @@ build
 dist/
 nngt.egg-info/
 *.so
+
+# visualcode
+*.vscode

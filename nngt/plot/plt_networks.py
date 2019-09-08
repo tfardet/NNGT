@@ -3,26 +3,30 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from itertools import cycle
+
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
-from matplotlib.patches import Arc, RegularPolygon
+from matplotlib.patches import Arc, RegularPolygon, PathPatch
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import ListedColormap, Normalize, cnames, ColorConverter
+from matplotlib.markers import MarkerStyle
+from matplotlib.transforms import Affine2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import nngt
@@ -64,9 +68,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
                  threshold=0.5, decimate=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
-                 show_environment=True, fast=False, size=(600,600), xlims=None,
-                 ylims=None, dpi=75, axis=None, colorbar=False, show=False,
-                 **kwargs):
+                 restrict_nodes=None, show_environment=True, fast=False,
+                 size=(600, 600), xlims=None, ylims=None, dpi=75, axis=None,
+                 colorbar=False, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -82,9 +86,11 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Color of the nodes; if a float in [0, 1], position of the color in the
         current palette, otherwise a string that correlates the color to a node
         attribute among "in/out/total-degree", "betweenness" or "group".
-    nshape : char or array of chars, optional (default: "o")
+    nshape : char, array of chars, or groups, optional (default: "o")
         Shape of the nodes (see `Matplotlib markers <http://matplotlib.org/api/
         markers_api.html?highlight=marker#module-matplotlib.markers>`_).
+        When using groups, they must be pairwise disjoint; markers will be
+        selected iteratively from the matplotlib default markers.
     nborder_color : char, float or array, optional (default: "k")
         Color of the node's border using predefined `Matplotlib colors
         <http://matplotlib.org/api/colors_api.html?highlight=color
@@ -102,14 +108,18 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     max_esize : float, optional (default: 5.)
         If a custom property is entered as `esize`, this normalizes the edge
         width between 0. and `max_esize`.
+    threshold : float, optional (default: 0.5)
+        Size under which edges are not plotted.
     decimate : int, optional (default: keep all connections)
         Plot only one connection every `decimate`. Use -1 to hide all edges.
     spatial : bool, optional (default: True)
         If True, use the neurons' positions to draw them.
-    restrict_sources : str or list, optional (default: all)
+    restrict_sources : str, group, or list, optional (default: all)
         Only draw edges starting from a restricted set of source nodes.
-    restrict_targets : str or list, optional (default: all)
+    restrict_targets : str, group, or list, optional (default: all)
         Only draw edges ending on a restricted set of target nodes.
+    restrict_nodes : str, group, or list, optional (default: plot all nodes)
+        Only draw a subset of nodes.
     show_environment : bool, optional (default: True)
         Plot the environment if the graph is spatial.
     fast : bool, optional (default: False)
@@ -125,10 +135,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Whether to display a colorbar for the node colors or not.
     show : bool, optional (default: True)
         Display the plot immediately.
+    axis : matplotlib axis, optional (default: create new axis)
+        Axis on which the network will be plotted.
     '''
     from matplotlib.cm import get_cmap
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     import matplotlib.pyplot as plt
+
     # figure and axes
     size_inches = (size[0]/float(dpi), size[1]/float(dpi))
     if axis is None:
@@ -136,6 +149,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         axis = fig.add_subplot(111, frameon=0, aspect=1)
     axis.set_axis_off()
     pos, layout = None, None
+
     # restrict sources and targets
     if nonstring_container(restrict_sources):
         if isinstance(restrict_sources[0], str):
@@ -145,10 +159,21 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             for name in restrict_sources:
                 sources.extend(network.population[name].ids)
             restrict_sources = sources
+        elif isinstance(restrict_sources[0], nngt.NeuralGroup):
+            sources = []
+            for g in restrict_sources:
+                sources.extend(g.ids)
+            restrict_sources = sources
     elif isinstance(restrict_sources, str):
         assert network.is_network(), \
             "`restrict_sources` canbe string only for Network."
         restrict_sources = network.population[restrict_sources].ids
+    elif isinstance(restrict_sources, nngt.NeuralGroup):
+        restrict_sources = restrict_sources.ids
+    elif restrict_sources is not None:
+        raise ValueError(
+            "Invalid restrict_sources: '{}'".format(restrict_sources))
+
     if nonstring_container(restrict_targets):
         if isinstance(restrict_targets[0], str):
             assert network.is_network(), \
@@ -157,10 +182,57 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             for name in restrict_targets:
                 targets.extend(network.population[name].ids)
             restrict_targets = targets
+        elif isinstance(restrict_targets[0], nngt.NeuralGroup):
+            targets = []
+            for g in restrict_targets:
+                targets.extend(g.ids)
+            restrict_targets = targets
     elif isinstance(restrict_targets, str):
         assert network.is_network(), \
             "`restrict_sources` canbe string only for Network."
         restrict_targets = network.population[restrict_targets].ids
+    elif isinstance(restrict_targets, nngt.NeuralGroup):
+        restrict_targets = restrict_targets.ids
+    elif restrict_targets is not None:
+        raise ValueError(
+            "Invalid restrict_sources: '{}'".format(restrict_targets))
+
+    # restrict nodes
+    if nonstring_container(restrict_nodes):
+        if isinstance(restrict_nodes[0], str):
+            assert network.is_network(), \
+                "`restrict_targets` canbe string only for Network."
+            targets = []
+            for name in restrict_nodes:
+                targets.extend(network.population[name].ids)
+            restrict_nodes = targets
+        elif isinstance(restrict_nodes[0], nngt.NeuralGroup):
+            nodes = []
+            for g in restrict_nodes:
+                nodes.extend(g.ids)
+            restrict_nodes = nodes
+    elif isinstance(restrict_nodes, str):
+        assert network.is_network(), \
+            "`restrict_sources` canbe string only for Network."
+        restrict_nodes = network.population[restrict_nodes].ids
+    elif isinstance(restrict_nodes, nngt.NeuralGroup):
+        restrict_nodes = restrict_nodes.ids
+    elif restrict_nodes is not None:
+        raise ValueError(
+            "Invalid restrict_sources: '{}'".format(restrict_nodes))
+
+    if restrict_nodes is not None and restrict_sources is not None:
+        restrict_sources = list(
+            set(restrict_nodes).intersection(restrict_sources))
+    elif restrict_nodes is not None:
+        restrict_sources = restrict_nodes
+
+    if restrict_nodes is not None and restrict_targets is not None:
+        restrict_targets = list(
+            set(restrict_nodes).intersection(restrict_targets))
+    elif restrict_nodes is not None:
+        restrict_targets = restrict_nodes
+
     # get nodes and edges
     n = network.node_nb()
     adj_mat = network.adjacency_matrix(weights=None)
@@ -169,8 +241,32 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     if restrict_targets is not None:
         adj_mat = adj_mat[:, restrict_targets]
     e = adj_mat.nnz
+
     # compute properties
     decimate = 1 if decimate is None else decimate
+
+    markers = nshape
+    if nonstring_container(nshape):
+        if isinstance(nshape[0], nngt.NeuralGroup):
+            # check disjunction
+            for i, g in enumerate(nshape):
+                for j in range(i + 1, len(nshape)):
+                    if not set(g.ids).isdisjoint(nshape[j].ids):
+                        raise ValueError("Groups passed to `nshape` must be "
+                                         "disjoint.")
+
+            mm = cycle(MarkerStyle.filled_markers)
+            shapes  = np.full(network.node_nb(), "", dtype=object)
+            for g, m in zip(nshape, mm):
+                shapes[g.ids] = m
+            markers = list(shapes)
+        elif len(nshape) != network.node_nb():
+            raise ValueError("When passing an array of markers to `nshape`, "
+                             "one entry per node in the network must be "
+                             "provided.")
+    else:
+        markers = [nshape for _ in range(network.node_nb())]
+
     if isinstance(nsize, str):
         if e:
             nsize = _node_size(network, nsize)
@@ -179,28 +275,34 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             nsize = np.ones(n, dtype=float)
     elif isinstance(nsize, (float, int, np.number)):
         nsize = np.repeat(nsize, n)
+
     nsize *= 0.01 * size[0]
+
     if isinstance(esize, str) and e:
-        # @todo check why this "if" is here 
-        if isinstance(ecolor, str):
-            raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
-                               "and ecolor='{}'.".format(ecolor))
+        # @todo check why this "if" is here
+        # ~ if isinstance(ecolor, str):
+            # ~ raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
+                               # ~ "and ecolor='{}'.".format(ecolor))
         esize  = _edge_size(network, esize)
         esize *= max_esize
         esize[esize < threshold] = 0.
     #~ elif isinstance(esize, float):
         #~ esize = np.repeat(esize, e)
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
+
     # node color information
     ncmap = get_cmap(kwargs.get("node_cmap", palette()))
     node_color, nticks, ntickslabels, nlabel = _node_color(network, ncolor)
+
     if nonstring_container(ncolor):
-        assert len(ncolor) == network.node_nb(), "For color arrays, one " +\
+        assert len(ncolor) == n, "For color arrays, one " +\
             "color per node is required."
         ncolor = "custom"
     c = node_color
+
     if not nonstring_container(nborder_color):
         nborder_color = np.repeat(nborder_color, n)
+
     # check edge color
     group_based = False
     if isinstance(ecolor, float):
@@ -209,8 +311,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         if not network.is_network():
             raise TypeError(
                 "The graph must be a Network to use `ecolor='groups'`.")
+
         group_based = True
         ecolor      = {}
+
         for i, src in enumerate(network.population):
             if network.population[src].ids:
                 idx1 = network.population[src].ids[0]
@@ -223,8 +327,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                             ecolor[(src, tgt)] = \
                                 np.abs(0.8*node_color[idx1]
                                        - 0.2*node_color[idx2])
+
     # draw
-    pos = np.zeros((n, 2))
+    pos = np.zeros((network.node_nb(), 2))
     if spatial and network.is_spatial():
         if show_environment:
             nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
@@ -232,6 +337,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     else:
         pos[:, 0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)
+
     # make nodes
     nodes = []
     if nonstring_container(c):
@@ -271,23 +377,60 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             minc = np.min(node_color)
             c    = ncmap((node_color - minc)/(np.max(node_color) - minc))
         c = np.array([c for _ in range(n)])
+
+    # plot nodes
     if kwargs.get("simple_nodes", False):
-        axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize))
-    if network.is_network():
-        for group in network.population.values():
-            idx = group.ids
-            for i, fc in zip(idx, c[idx]):
-                nodes.append(
-                    Circle(pos[i], 0.5*nsize[i], fc=fc, ec=nborder_color[i]))
+        if nonstring_container(nshape):
+            # matplotlib scatter does not support marker arrays
+            if isinstance(nshape[0], nngt.NeuralGroup):
+                for g in nshape:
+                    ids = g.ids if restrict_nodes is None \
+                          else list(set(g.ids).intersection(restrict_nodes))
+                    axis.scatter(pos[ids, 0], pos[ids, 1], c=c[ids],
+                                 s=0.5*np.array(nsize)[ids],
+                                 marker=markers[ids[0]])
+            else:
+                ids = range(network.node_nb()) if restrict_nodes is None \
+                      else restrict_nodes
+                for i in ids:
+                    axis.plot(pos[i, 0], pos[i, 1], c=c[i], ms=0.5*nsize[i],
+                              marker=markers[ids[0]], ls="")
+        else:
+            clist = c if restrict_nodes is None else c[restrict_nodes]
+            xlist = pos[:, 0] if restrict_nodes is None \
+                    else pos[restrict_nodes, 0]
+            ylist = pos[:, 1] if restrict_nodes is None \
+                    else pos[restrict_nodes, 1]
+
+            axis.scatter(xlist, ylist, c=clist, s=0.5*np.array(nsize),
+                         marker=nshape)
     else:
-        for i, ci in enumerate(c):
-            nodes.append(
-                Circle(pos[i], 0.5*nsize[i], fc=ci, ec=nborder_color[i]))
-    nodes = PatchCollection(nodes, match_original=True)
-    nodes.set_zorder(2)
-    axis.add_collection(nodes)
+        if network.is_network():
+            for group in network.population.values():
+                idx = group.ids if restrict_nodes is None \
+                      else list(set(restrict_nodes).intersection(group.ids))
+                for i, fc in zip(idx, c[idx]):
+                    m = MarkerStyle(markers[i]).get_path()
+                    transform = Affine2D().scale(0.5*nsize[i]).translate(pos[i][0], pos[i][1])
+                    patch = PathPatch(m.transformed(transform), facecolor=fc,
+                                      edgecolor=nborder_color[i])
+                    nodes.append(patch)
+        else:
+            for i, ci in enumerate(c):
+                m = MarkerStyle(nshape[i]).get_path()
+                transform = Affine2D().scale(0.5*nsize[i]).translate(pos[i][0], pos[i][1])
+                patch = PathPatch(m.transformed(transform), facecolor=ci,
+                                  edgecolor=nborder_color[i])
+                nodes.append(patch)
+
+        nodes = PatchCollection(nodes, match_original=True)
+        nodes.set_zorder(2)
+        axis.add_collection(nodes)
+
     if not show_environment or not spatial or not network.is_spatial():
+        # axis.get_data()
         _set_ax_lim(axis, pos[:, 0], pos[:, 1], xlims, ylims)
+
     # use quiver to draw the edges
     if e and decimate != -1:
         adj_mat = network.adjacency_matrix(weights=None)
@@ -514,7 +657,8 @@ def _node_color(network, ncolor):
 
                 nlabel       = "Neuron groups"
                 nticks       = list(range(len(network.population)))
-                ntickslabels = [s.replace("_", " ") for s in network.population.keys()]
+                ntickslabels = [s.replace("_", " ")
+                                for s in network.population.keys()]
         else:
             values = None
             if "degree" in ncolor:
@@ -601,7 +745,7 @@ def _custom_arrows(sources, targets, angle):
     # compute the distances between the points
     pass
     #~ # compute the radius and the position of the center of the circle
-    
+
     #~ #========Line
     #~ arc = Arc([centX,centY],radius,radius,angle=angle_,
           #~ theta1=0,theta2=theta2_,capstyle='round',linestyle='-',lw=10,color=color_)

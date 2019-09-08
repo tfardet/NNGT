@@ -3,18 +3,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -33,6 +33,7 @@ import sphinx_bootstrap_theme
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 current_directory = os.path.abspath('.')
 sys.path.append(current_directory)
+sys.path.append(current_directory + "/extensions")  # custom extensions folder
 
 # Simlink to geometry.examples
 src = os.path.abspath('../nngt/geometry/examples')
@@ -50,7 +51,7 @@ os.symlink(src, tgt)
 '''
 If on rtd, the graph libraries are not available so they need to be mocked
 '''
-        
+
 if on_rtd:
     import mock
     mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
@@ -117,6 +118,9 @@ for root, dirnames, filenames in os.walk('.'):
 ignore = {
     'nngt.core': ("Graph", "Network", "SpatialGraph", "SpatialNetwork",
                   "NeuralPop", "NeuralGroup"),
+    'nngt.lib': ("custom", "decorate", "deprecated", "graph_tool_check",
+                 "mpi_barrier", "mpi_checker", "mpi_random", "not_implemented",
+                 "num_mpi_processes", "on_master_process", "seed"),
 }
 
 for f in inputs:
@@ -131,13 +135,18 @@ for f in inputs:
 
 # Add nngt (functions)
 source = current_directory + "/modules/nngt/main-functions.rst.in"
+tmp    = current_directory + "/modules/nngt/main-functions.rst.tmp"
 target = current_directory + "/modules/nngt/main-functions.rst"
-gen_autosum(source, target, 'nngt', 'autofunction', dtype="func")
+gen_autosum(source, tmp, 'nngt', 'summary', dtype="func")
+gen_autosum(tmp, target, 'nngt', 'autofunction', dtype="func")
 
 # nngt (side classes)
 source = current_directory + "/modules/nngt/side-classes.rst.in"
+tmp    = current_directory + "/modules/nngt/side-classes.rst.tmp"
 target = current_directory + "/modules/nngt/side-classes.rst"
-gen_autosum(source, target, 'nngt', 'autoclass', dtype="class",
+gen_autosum(source, tmp, 'nngt', 'summary', dtype="class",
+            ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
+gen_autosum(tmp, target, 'nngt', 'autoclass', dtype="class",
             ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
 
 
@@ -170,6 +179,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.napoleon',
+    'linksourcecode'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -255,6 +265,7 @@ todo_include_todos = False
 
 html_theme = 'nngt_theme'
 html_theme_path = ["."] + sphinx_bootstrap_theme.get_html_theme_path()
+html_use_smartypants = False
 
 html_theme_options = {
     # A list of tuples containing pages or urls to link to.
@@ -298,13 +309,10 @@ html_theme_options = {
 
     # Location of link to source.
     # Options are "nav" (default), "footer" or anything else to exclude.
-    'source_link_position': "nav",
+    'source_link_position': "",
 
     # Bootswatch (http://bootswatch.com/) theme.
-    #
-    # Options are nothing (default) or the name of a valid theme
-    # such as "amelia" or "cosmo".
-    'bootswatch_theme': "cosmo"
+    'bootswatch_theme': "yeti"
 }
 
 html_sidebars = {'**': ['customtoc.html', 'searchbox.html']}
@@ -501,5 +509,5 @@ intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy', None),
     'python': ('https://docs.python.org/3/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
-    'shapely': ('http://toblerity.org/shapely/', None),
+    'shapely': ('https://shapely.readthedocs.io/en/latest/', None),
 }

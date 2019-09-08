@@ -5,18 +5,18 @@
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
-# Copyright (C) 2015-2017  Tanguy Fardet
-# 
+# Copyright (C) 2015-2019  Tanguy Fardet
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -29,6 +29,7 @@ import numpy as np
 
 import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
+from nngt.lib import is_iterable
 from nngt.lib.connect_tools import _set_options
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import mpi_checker, mpi_random
@@ -95,7 +96,7 @@ __all__ = [
 # ----------------------------- #
 
 def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
-               name="AlltoAll", shape=None, positions=None, population=None,
+               name="AllToAll", shape=None, positions=None, population=None,
                **kwargs):
     """
     Generate a graph where all nodes are connected.
@@ -136,15 +137,19 @@ def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
         A new generated graph.
     """
     nodes = nodes if population is None else population.size
-    matrix = np.ones((nodes, nodes))
+
     graph_all = nngt.Graph(name=name, nodes=nodes, directed=directed, **kwargs)
+
     _set_options(graph_all, population, shape, positions)
+
     # add edges
     if nodes > 1:
         ids = np.arange(nodes, dtype=np.uint)
-        edges = _all_to_all(ids, ids, directed, multigraph)
-        graph_all.new_edges(ia_edges, check_edges=False)
+        edges = _all_to_all(ids, ids, directed=directed, multigraph=multigraph)
+        graph_all.new_edges(edges, check_edges=False)
+
     graph_all._graph_type = "all_to_all"
+
     return graph_all
 
 
@@ -161,15 +166,15 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         The value of the constant degree.
     degree_type : str, optional (default: 'in')
         The type of the fixed degree, among ``'in'``, ``'out'`` or ``'total'``.
-        
+
         @todo
 			`'total'` not implemented yet.
-			
+
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     reciprocity : double, optional (default: -1 to let it free)
-        @todo: not implemented yet. Fraction of edges that are bidirectional 
-        (only for directed graphs -- undirected graphs have a reciprocity of 
+        @todo: not implemented yet. Fraction of edges that are bidirectional
+        (only for directed graphs -- undirected graphs have a reciprocity of
         1 by definition)
     weighted : bool, optional (default: True)
         Whether the graph edges have weights.
@@ -243,8 +248,8 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     reciprocity : double, optional (default: -1 to let it free)
-        @todo: not implemented yet. Fraction of edges that are bidirectional 
-        (only for directed graphs -- undirected graphs have a reciprocity of 
+        @todo: not implemented yet. Fraction of edges that are bidirectional
+        (only for directed graphs -- undirected graphs have a reciprocity of
         1 by definition)
     weighted : bool, optional (default: True)
         Whether the graph edges have weights.
@@ -387,13 +392,13 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
 
 def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
                       avg_deg=-1, reciprocity=0., weighted=True, directed=True,
-                      multigraph=False, name="RandomSF", shape=None, 
+                      multigraph=False, name="RandomSF", shape=None,
                       positions=None, population=None, from_graph=None,
                       **kwargs):
     """
     Generate a free-scale graph of given reciprocity and otherwise
     devoid of correlations.
-	
+
     Parameters
     ----------
     in_exp : float
@@ -411,7 +416,6 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
     avg_deg : double, optional
         Average degree of the neurons given by `edges / nodes`.
     weighted : bool, optional (default: True)
-        @todo
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
@@ -433,7 +437,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
     Returns
     -------
     graph_fs : :class:`~nngt.Graph`
-    
+
     Note
     ----
 	As reciprocity increases, requested values of `in_exp` and `out_exp`
@@ -470,10 +474,10 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     """
     @todo
     make the algorithm.
-        
+
     Generate a Price graph model (Barabasi-Albert if undirected).
 
-    Parameters 
+    Parameters
     ----------
     m : int
         The number of edges each new node will make.
@@ -484,8 +488,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     weighted : bool, optional (default: True)
-        @todo
-			Whether the graph edges have weights.
+        Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
@@ -502,11 +505,11 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
         :class:`~nngt.Network`).
     from_graph : :class:`~nngt.Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
-    
+
     Returns
     -------
     graph_price : :class:`~nngt.Graph` or subclass.
-    
+
     Note
     ----
 	`nodes` is required unless `from_graph` or `population` is provided.
@@ -534,18 +537,18 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
                  positions=None, population=None, from_graph=None, **kwargs):
     """
     Generate a small-world graph using the Newman-Watts algorithm.
-    
+
     @todo
         generate the edges of a circular graph to not replace the graph of the
         `from_graph` and implement chosen reciprocity.
-    
+
     Parameters
     ----------
     coord_nb : int
-        The number of neighbours for each node on the initial topological 
+        The number of neighbours for each node on the initial topological
         lattice.
     proba_shortcut : double
-        Probability of adding a new random (shortcut) edge for each existing 
+        Probability of adding a new random (shortcut) edge for each existing
         edge on the initial lattice.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
@@ -556,7 +559,6 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
     avg_deg : double, optional
         Average degree of the neurons given by `edges` / `nodes`.
     weighted : bool, optional (default: True)
-        @todo
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
@@ -574,11 +576,11 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
         :class:`~nngt.Network`).
     from_graph : :class:`Graph` or subclass, optional (default: None)
         Initial graph whose nodes are to be connected.
-    
+
     Returns
     -------
     graph_nw : :class:`~nngt.Graph` or subclass
-    
+
     Note
     ----
 	`nodes` is required unless `from_graph` or `population` is provided.
@@ -648,7 +650,6 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
         Unit for the length `scale` among 'um' (:math:`\mu m`), 'mm', 'cm',
         'dm', 'm'.
     weighted : bool, optional (default: True)
-        @todo
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
         Whether the graph is directed or not.
@@ -728,7 +729,7 @@ def generate(di_instructions, **kwargs):
     '''
     Generate a :class:`~nngt.Graph` or one of its subclasses from a ``dict``
     containing all the relevant informations.
-    
+
     Parameters
     ----------
     di_instructions : ``dict``
@@ -738,7 +739,7 @@ def generate(di_instructions, **kwargs):
         "price_scale_free", "random_scale_free"``. Depending on the type,
         `di_instructions` should also contain at least all non-optional
         arguments of the generator function.
-    
+
     See also
     --------
     :mod:`~nngt.generation`
@@ -769,14 +770,14 @@ _di_gen_edges = {
 _one_pop_models = ("newman_watts",)
 
 
-def connect_nodes(network, sources, targets, graph_model, density=-1., 
+def connect_nodes(network, sources, targets, graph_model, density=-1.,
                   edges=-1, avg_deg=-1., unit='um', weighted=True,
                   directed=True, multigraph=False, **kwargs):
     '''
     Function to connect nodes with a given graph model.
 
     .. versionadded:: 1.0
-    
+
     Parameters
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
@@ -786,7 +787,7 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
     targets : list
         Ids of the target nodes.
     graph_model : string
-        The name of the connectivity model (among "erdos_renyi", 
+        The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
@@ -838,7 +839,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
 
     @todo
         make the modifications for only a set of edges
-    
+
     Parameters
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
@@ -849,7 +850,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     target_type : int
         The type of target neurons.
     graph_model : string
-        The name of the connectivity model (among "erdos_renyi", 
+        The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
@@ -889,6 +890,10 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     Function to connect excitatory and inhibitory population with a given graph
     model.
 
+    .. versionchanged:: 1.2.0
+        Allow to use :class:`NeuralGroup` as `source_groups` and
+        `target_groups` arguments.
+
     .. versionchanged:: 0.8
         Model-specific arguments are now provided as keywords and not through a
         dict. It is now possible to provide different weights and delays at
@@ -901,32 +906,43 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
         The network to connect.
-    source_groups : str or tuple
-        Names of the source groups (which contain the pre-synaptic neurons)
-    target_groups : str or tuple
-        Names of the target groups (which contain the post-synaptic neurons)
+    source_groups : str, :class:`NeuralGroup`, or iterable
+        Names of the source groups (which contain the pre-synaptic neurons) or
+        directly the group objects themselves.
+    target_groups : str, :class:`NeuralGroup`, or iterable
+        Names of the target groups (which contain the post-synaptic neurons) or
+        directly the group objects themselves.
     graph_model : string
-        The name of the connectivity model (among "erdos_renyi", 
+        The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
     '''
     elist, source_ids, target_ids = None, [], []
-    if network.is_spatial() and 'positions' not in kwargs:
-        kwargs['positions'] = network.get_positions().astype(np.float32).T
-    if network.is_spatial() and 'shape' not in kwargs:
-        kwargs['shape'] = network.shape
 
-    if isinstance(source_groups, str):
+    if network.is_spatial():
+        if 'positions' not in kwargs:
+            kwargs['positions'] = network.get_positions().astype(np.float32).T
+        if 'shape' not in kwargs:
+            kwargs['shape'] = network.shape
+
+    if isinstance(source_groups, str) or not is_iterable(source_groups):
         source_groups = [source_groups]
-    if isinstance(target_groups, str):
+    if isinstance(target_groups, str) or not is_iterable(target_groups):
         target_groups = [target_groups]
-    for name, group in network.population.items():
-        if name in source_groups:
-            source_ids.extend(group.ids)
-        if name in target_groups:
-            target_ids.extend(group.ids)
+
+    for s in source_groups:
+        if isinstance(s, nngt.NeuralGroup):
+            source_ids.extend(s.ids)
+        else:
+            source_ids.extend(network.population[s].ids)
+
+    for t in target_groups:
+        if isinstance(t, nngt.NeuralGroup):
+            target_ids.extend(t.ids)
+        else:
+            target_ids.extend(network.population[t].ids)
 
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)
