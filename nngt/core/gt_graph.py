@@ -30,7 +30,6 @@ import scipy.sparse as ssp
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.graph_helpers import _to_np_array
-from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .base_graph import GraphInterface, BaseProperty
 
@@ -144,6 +143,8 @@ class _GtEProperty(BaseProperty):
         '''
         Return the attributes of an edge or a list of edges.
         '''
+        Edge = self.parent().edge
+
         if isinstance(name, slice):
             eprop = {}
             for k in self.keys():
@@ -152,7 +153,6 @@ class _GtEProperty(BaseProperty):
         elif nonstring_container(name):
             eprop = {}
             if nonstring_container(name[0]):
-                Edge = self.parent().edge
                 eids = [self.parent().edge_index[Edge(*e)] for e in name]
                 for k in self.keys():
                     dtype = super(_GtEProperty, self).__getitem__(k)
@@ -170,15 +170,15 @@ class _GtEProperty(BaseProperty):
                     eprop[k] = self.parent().edge_properties[k][name]
             return eprop
 
-        dtype = _np_dtype(super(_GtEProperty, self).__getitem__(name))
+        dtype = super(_GtEProperty, self).__getitem__(name)
 
         if dtype == "string":
             return (self.parent()
-                .edge_properties[name].get_2d_array([0])[0])[eids]
+                .edge_properties[name].get_2d_array([0])[0])
         elif dtype == "object":
-            tmp = self.parent().edge_properties[k]
+            tmp = self.parent().edge_properties[name]
             return _to_np_array(
-                [tmp[Edge(*e)] for e in name], dtype)
+                [tmp[Edge(*e)] for e in self.parent().edges()], dtype)
 
         return _to_np_array(self.parent().edge_properties[name].a, dtype)
 
