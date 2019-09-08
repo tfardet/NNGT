@@ -390,6 +390,8 @@ an array of 2-tuples of ints.")
                     attributes[k] = [""]
                 elif dtype == "double" and k != "weight":
                     attributes[k] = [np.NaN]
+                elif dtype == "int":
+                    attributes[k] = [0]
 
         self.new_edges(((source, target),), attributes)
 
@@ -433,6 +435,8 @@ an array of 2-tuples of ints.")
                     attributes[k] = ["" for _ in range(num_edges)]
                 elif dtype == "double" and k != "weight":
                     attributes[k] = [np.NaN for _ in range(num_edges)]
+                elif dtype == "int":
+                    attributes[k] = [0 for _ in range(num_edges)]
 
         new_attr = None
         if check_edges:

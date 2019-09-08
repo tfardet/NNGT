@@ -236,8 +236,10 @@ class TestAttributes(TestBasis):
         are indeed obtained.
         '''
         ref_result = _results_theo(instructions)
-        weights = graph.get_weights()
+
+        weights    = graph.get_weights()
         computed_result = _results_exp(weights, instructions)
+
         self.assertTrue(np.allclose(
             ref_result, computed_result, self.tolerance),
             '''Error on graph {}: unequal weights for tolerance {}.

@@ -149,14 +149,14 @@ NNGT implements some fast generation tools to create several of the standard
 networks, such as Erdős-Rényi:
 
 .. literalinclude:: ../examples/introductory_tutorial.py
-   :lines: 115-118
+   :lines: 115-117,119
 
 More heterogeneous networks, with scale-free degree distribution (but no
 correlations like in Barabasi-Albert networks and user-defined exponents) are
 also implemented:
 
 .. literalinclude:: ../examples/introductory_tutorial.py
-   :lines: 121-124
+   :lines: 122-125,127
 
 For more details, see the full page on :ref:`graph_gen`.
 

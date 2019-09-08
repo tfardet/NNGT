@@ -580,8 +580,9 @@ class BaseGraph(GraphInterface):
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
                     attributes[k] = ["" for _ in range(num_edges)]
-                elif dtype == "double" and k != "weight":
-                    attributes[k] = [np.NaN for _ in range(num_edges)]
+                elif dtype == "double":
+                    if k != "weight":
+                        attributes[k] = [np.NaN for _ in range(num_edges)]
                 elif dtype == "int":
                     attributes[k] = [0 for _ in range(num_edges)]
                 else:

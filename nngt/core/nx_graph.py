@@ -401,6 +401,8 @@ class _NxGraph(GraphInterface):
                     attributes[k] = [""]
                 elif dtype == "double" and k != "weight":
                     attributes[k] = [np.NaN]
+                elif dtype == "int":
+                    attributes[k] = [0]
 
         if self.has_edge(source, target):
             if not ignore:
@@ -470,6 +472,8 @@ class _NxGraph(GraphInterface):
                     attributes[k] = ["" for _ in range(num_edges)]
                 elif dtype == "double" and k != "weight":
                     attributes[k] = [np.NaN for _ in range(num_edges)]
+                elif dtype == "int":
+                    attributes[k] = [0 for _ in range(num_edges)]
 
         initial_edges = self.number_of_edges()
         new_attr = None
