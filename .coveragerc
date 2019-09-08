@@ -13,8 +13,12 @@ exclude_lines =
     raise AttributeError
     raise InvalidArgument
     if __name__ == .__main__.:
+
 include = nngt/*
+
 omit =
     **/setup.py
     nngt/database/*
     nngt/testing/*
+    nngt/simulation/*
+    nngt/lib/db_tools.py

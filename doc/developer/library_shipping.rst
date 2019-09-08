@@ -17,8 +17,19 @@ The manylinux wheels
 To prepare the ``manylinux`` wheels, one must use the docker containers
 provided by https://github.com/pypa/manylinux
 
+.. note::
+    Reminder for docker: dockerd must be running, for issue on archlinux,
+    see https://unix.stackexchange.com/questions/478387/running-a-centos-docker-image-on-arch-linux-exits-with-code-139
+
     docker pull quay.io/pypa/manylinux1_x86_64
-    docker start -i dockerID
+
+Run the container and give it a name
+
+    docker run -it --name=manylinux quay.io/pypa/manylinux1_x86_64
+
+It can also be started afterwards with
+
+    docker start -i manylinux
 
 Once in the container, I wrote an automatic install file (``build_wheels.sh``)
 to build NNGT
@@ -53,7 +64,7 @@ just run ``build_wheels.sh``.
 Once the "repaired" wheels have been saved, you can extract them from the
 docker container using
 
-    
+    docker cp manylinux:/home/wheelhouse/* /where/you/want/them
 
 NB: unfortunately one must remove manually all unnecessary files from the
 wheels before running the build to prevent them from being included...
