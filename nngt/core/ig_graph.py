@@ -161,7 +161,7 @@ class _IgEProperty(BaseProperty):
             if value_type == "int":
                 val = int(0)
             elif value_type == "double":
-                val = 0.
+                val = np.NaN
             elif value_type == "string":
                 val = ""
             else:
@@ -307,13 +307,30 @@ an array of 2-tuples of ints.")
         super(_IGraph, self).add_vertices(n)
         nodes = list(range(first_node_idx, first_node_idx + n))
 
-        if attributes is not None:
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        if attributes:
             for k, v in attributes.items():
                 if k not in self._nattr:
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
                     v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=nodes)
+
+        # set default values for all attributes that were not set
+        for k in self.nodes_attributes:
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    self._nattr.set_attribute(k, ["" for _ in nodes],
+                                              nodes=nodes)
+                elif dtype == "int":
+                    self._nattr.set_attribute(k, [0 for _ in nodes],
+                                              nodes=nodes)
+                elif dtype == "double":
+                    self._nattr.set_attribute(k, [np.NaN for _ in nodes],
+                                              nodes=nodes)
+
         self.vs[nodes[0]:nodes[-1] + 1]['type'] = neuron_type
 
         if self.is_spatial():
@@ -363,8 +380,16 @@ an array of 2-tuples of ints.")
         -------
         The new connection.
         '''
-        if attributes is not None:
-            attributes = {k: [v] for k, v in attributes.items()}
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        # set default values for attributes that were not passed
+        for k in self.edges_attributes:
+            dtype = self.get_attribute_type(k)
+            if dtype == "string":
+                attributes[k] = [""]
+            elif dtype == "double" and k != "weight":
+                attributes[k] = [np.NaN]
+
         self.new_edges(((source, target),), attributes)
 
     def new_edges(self, edge_list, attributes=None, check_edges=True):
@@ -396,9 +421,17 @@ an array of 2-tuples of ints.")
         -------
         Returns new edges only.
         '''
-        if attributes is None:
-            attributes = {}
-        initial_ecount = self.ecount()
+        attributes = {} if attributes is None else deepcopy(attributes)
+        num_edges  = len(edge_list)
+
+        # set default values for attributes that were not passed
+        for k in self.edges_attributes:
+            dtype = self.get_attribute_type(k)
+            if dtype == "string":
+                attributes[k] = ["" for _ in range(num_edges)]
+            elif dtype == "double" and k != "weight":
+                attributes[k] = [np.NaN for _ in range(num_edges)]
+
         new_attr = None
         if check_edges:
             new_attr = {key: [] for key in attributes}
@@ -409,7 +442,7 @@ an array of 2-tuples of ints.")
                     eweight_list[tpl_e] += 1
                 elif e[0] == e[1]:
                     _log_message(logger, "WARNING",
-                    "Self-loop on {} ignored.".format(e[0]))
+                                 "Self-loop on {} ignored.".format(e[0]))
                 else:
                     eweight_list[tpl_e] = 1
                     for k, vv in attributes.items():
@@ -426,10 +459,12 @@ an array of 2-tuples of ints.")
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in new_attr.items():
                 new_attr[key] = np.concatenate((val, val[unique]))
-        first_eid = self.ecount()
+
         super(_IGraph, self).add_edges(edge_list)
+
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=new_attr)
+
         return edge_list
 
     def remove_edge(self, edge):

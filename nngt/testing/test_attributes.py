@@ -85,6 +85,52 @@ class TestAttributes(TestBasis):
         self.assertTrue(np.allclose(ref_result, computed_result),
             '''Error on graph {}: unequal 'nud' attribute for tolerance {}.
             '''.format(g.name, self.tolerance))
+    
+    def test_nattr_default_values(self):
+        g2 = nngt.Graph()
+
+        # add a new node with attributes
+        attributes = {
+            'size': 2.,
+            'color': 'blue',
+            'a': 5,
+            'blob': []
+        }
+
+        attribute_types = {
+            'size': 'double',
+            'color': 'string',
+            'a': 'int',
+            'blob': 'object'
+        }
+
+        g2.new_node(attributes=attributes, value_types=attribute_types)
+        g2.new_node(2)
+        g2.new_node(3, attributes={'size': [4., 5., 1.],
+                    'color': ['r', 'g', 'b']},
+                    value_types={'size': 'double', 'color': 'string'})
+
+        # check all values
+        # for the doubles:
+        # NaN == NaN is false, so we need to check separately equality between
+        # non-NaN entries and position of NaN entries
+        double_res = np.array([2., np.NaN, np.NaN, 4., 5., 1.])
+        isnan1     = np.isnan(g2.nodes_attributes['size'])
+        isnan2     = np.isnan(double_res)
+        self.assertTrue(np.all(isnan1 == isnan2))
+        self.assertTrue(
+            np.all(np.isclose(
+                g2.nodes_attributes['size'][~isnan1], double_res[~isnan2]))
+        )
+        # for the others, just compare the lists
+        self.assertEqual(
+            g2.nodes_attributes['color'].tolist(),
+            ['blue', '', '', 'r', 'g', 'b'])
+        self.assertEqual(
+            g2.nodes_attributes['a'].tolist(), [5, 0, 0, 0, 0, 0])
+        self.assertEqual(
+            g2.nodes_attributes['blob'].tolist(),
+            [[], None, None, None, None, None])
 
     def test_user_defined(self):
         '''

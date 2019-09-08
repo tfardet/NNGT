@@ -176,9 +176,9 @@ class _GtEProperty(BaseProperty):
             return (self.parent()
                 .edge_properties[name].get_2d_array([0])[0])
         elif dtype == "object":
-            tmp = self.parent().edge_properties[name]
-            return _to_np_array(
-                [tmp[Edge(*e)] for e in self.parent().edges()], dtype)
+            tmp   = self.parent().edge_properties[name]
+            edges = self.parent().get_edges()
+            return _to_np_array([tmp[Edge(*e)] for e in edges], dtype)
 
         return _to_np_array(self.parent().edge_properties[name].a, dtype)
 
@@ -368,13 +368,22 @@ class _GtGraph(GraphInterface):
         nodes = super(_GtGraph, self).add_vertex(n)
         nodes = [int(nodes)] if n == 1 else [int(node) for node in nodes]
 
-        if attributes is not None:
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        if attributes:
             for k, v in attributes.items():
+                v = deepcopy(v)
                 if k not in self._nattr:
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
                     v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=nodes)
+
+        # set default values for double attributes that were not set
+        # (others are properly handled automatically)
+        for k in self.nodes_attributes:
+            if k not in attributes and self.get_attribute_type(k) == "double":
+                self.set_node_attribute(k, nodes=nodes, val=np.NaN)
 
         if self.is_spatial():
             old_pos      = self._pos
@@ -382,6 +391,7 @@ class _GtGraph(GraphInterface):
             num_existing = len(old_pos) if old_pos is not None else 0
             if num_existing != 0:
                 self._pos[:num_existing, :] = old_pos
+
         if positions is not None:
             assert self.is_spatial(), \
                 "`positions` argument requires a SpatialGraph/SpatialNetwork."
@@ -425,11 +435,19 @@ class _GtGraph(GraphInterface):
         '''
         if attributes is None:
             attributes = {}
+
+            for k in self.edges_attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "string":
+                    attributes[k] = [""]
+                elif dtype == "double" and k != "weight":
+                    attributes[k] = [np.NaN]
+
         # check that the edge does not already exist
         edge = self.edge(source, target)
+
         if edge is None:
-            connection = super(_GtGraph, self).add_edge(source, target,
-                                                        add_missing=True)
+            super(_GtGraph, self).add_edge(source, target, add_missing=True)
             # call parent function to set the attributes
             self.attr_new_edges([(source, target)], attributes=attributes)
             if not self._directed:
@@ -439,7 +457,8 @@ class _GtGraph(GraphInterface):
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
-        return connection
+
+        return (source, target)
 
     def new_edges(self, edge_list, attributes=None, check_edges=True):
         '''
@@ -470,9 +489,18 @@ class _GtGraph(GraphInterface):
         -------
         Returns new edges only.
         '''
-        if attributes is None:
-            attributes = {}
-        initial_edges = self.num_edges()
+        attributes = {} if attributes is None else deepcopy(attributes)
+        num_edges  = len(edge_list)
+
+        # set default values for attributes that were not passed
+        # (only string and double, others are handled correctly by default)
+        for k in self.edges_attributes:
+            dtype = self.get_attribute_type(k)
+            if dtype == "string":
+                attributes[k] = ["" for _ in range(num_edges)]
+            elif dtype == "double" and k != "weight":
+                attributes[k] = [np.NaN for _ in range(num_edges)]
+
         new_attr = None
         if check_edges:
             new_attr = {key: [] for key in attributes}

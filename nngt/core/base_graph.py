@@ -399,6 +399,7 @@ class BaseGraph(GraphInterface):
         The node or a tuple of the nodes created.
         '''
         nodes = []
+
         if n == 1:
             nodes.append(len(self._nodes))
             self._in_deg.append(0)
@@ -419,13 +420,32 @@ class BaseGraph(GraphInterface):
         else:
             self._adj_mat = lil_matrix((len(self._nodes), len(self._nodes)))
 
-        if attributes is not None:
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        if attributes:
             for k, v in attributes.items():
                 if k not in self._nattr:
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
                     v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=nodes)
+
+        # set default values for all attributes that were not set
+        for k in self.nodes_attributes:
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                if dtype == "double":
+                    values = [np.NaN for _ in nodes]
+                    self._nattr.set_attribute(k, values, nodes=nodes)
+                elif dtype == "int":
+                    values = [0 for _ in nodes]
+                    self._nattr.set_attribute(k, values, nodes=nodes)
+                elif dtype == "string":
+                    values = ["" for _ in nodes]
+                    self._nattr.set_attribute(k, values, nodes=nodes)
+                else:
+                    values = [None for _ in nodes]
+                    self._nattr.set_attribute(k, values, nodes=nodes)
 
         if self.is_spatial():
             old_pos      = self._pos
@@ -474,9 +494,20 @@ class BaseGraph(GraphInterface):
         -------
         The new connection.
         '''
-        #check attributes
-        if attributes is None:
-            attributes = {}
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        # set default values for attributes that were not passed
+        for k in self.edges_attributes:
+            dtype = self.get_attribute_type(k)
+            if dtype == "string":
+                attributes[k] = [""]
+            elif dtype == "double" and k != "weight":
+                attributes[k] = [np.NaN]
+            elif dtype == "int":
+                attributes[k] = [0]
+            else:
+                attributes[k] = [None]
+
         # check that the edge does not already exist
         edge = (source, target)
 
@@ -537,9 +568,20 @@ class BaseGraph(GraphInterface):
         -------
         Returns new edges only.
         '''
-        #check attributes
-        if attributes is None:
-            attributes = {}
+        attributes = {} if attributes is None else deepcopy(attributes)
+        num_edges  = len(edge_list)
+
+        # set default values for attributes that were not passed
+        for k in self.edges_attributes:
+            dtype = self.get_attribute_type(k)
+            if dtype == "string":
+                attributes[k] = ["" for _ in range(num_edges)]
+            elif dtype == "double" and k != "weight":
+                attributes[k] = [np.NaN for _ in range(num_edges)]
+            elif dtype == "int":
+                attributes[k] = [0 for _ in range(num_edges)]
+            else:
+                attributes[k] = [None for _ in range(num_edges)]
 
         assert self._nodes.issuperset(np.ravel(edge_list)), \
             "Some nodes in `edge_list` do not exist in the network."
@@ -761,9 +803,8 @@ class _NProperty(BaseProperty):
                 raise ValueError("`nodes` and `values` must have the same "
                                  "size; got respectively " + str(num_n) + \
                                  " and " + str(len(values)) + " entries.")
-            non_obj = (super(_NProperty, self).__getitem__(name)
-                       not in ('string', 'object'))
-            if self._num_values_set[name] == num_nodes - num_n and non_obj:
+
+            if self._num_values_set[name] == num_nodes - num_n:
                 self.prop[name].extend(values)
             else:
                 for n, val in zip(nodes, values):
@@ -833,7 +874,8 @@ class _EProperty(BaseProperty):
             is not None, it must be an array of shape `(len(values), 2)`.
         '''
         num_edges = self.parent().edge_nb()
-        num_e = len(edges) if edges is not None else num_edges
+        num_e     = len(edges) if edges is not None else num_edges
+
         if num_e == num_edges:
             self[name] = list(values)
             self._num_values_set[name] = num_edges
@@ -849,7 +891,6 @@ class _EProperty(BaseProperty):
                 for e, val in zip(edges, values):
                     idx = self.parent().edge_id(e)
                     self.prop[name][idx] = val
-                self._num_values_set[name] += num_e
 
     def new_attribute(self, name, value_type, values=None, val=None):
         if values is None and val is None:

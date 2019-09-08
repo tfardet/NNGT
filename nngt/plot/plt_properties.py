@@ -46,7 +46,7 @@ __all__ = [
 def degree_distribution(network, deg_type="total", nodes=None,
                         num_bins='doane', use_weights=False, logx=False,
                         logy=False, axis=None, axis_num=None, colors=None,
-                        norm=False, show=False, title=None, **kwargs):
+                        norm=False, show=True, title=None, **kwargs):
     '''
     Plotting the degree distribution of a graph.
 

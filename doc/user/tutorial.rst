@@ -18,6 +18,8 @@ Then, you will be able to use the help from IPython by typing, for instance:
 
 In Jupyter, the docstring can be viewed using Shift+Tab.
 
+The source file for the tutorial can be found here:
+:source:`doc/examples/introductory_tutorial.py`.
 
 .. note ::
     For a list of example files, see the `'examples' directory on GitHub
@@ -80,53 +82,55 @@ Basic functions
 
 Let's create an empty :class:`~nngt.Graph`:
 
->>> g = nngt.Graph()
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 33
 
 We can then add some nodes to it
 
->>> g.new_node(10)  # create nodes 0, 1, ... to 9
->>> g.node_nb()     # returns 10
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 36-37
 
 And create edges between these nodes:
 
->>> g.new_edge(1, 4)  # create on connection going from 11 to 56
->>> g.edge_nb()       # returns 1
->>> g.new_edges([(0, 3), (5, 9), (9, 3)])
->>> g.edge_nb()       # returns 4
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 40-43
 
 
 Node and edge attributes
 ------------------------
 
-Adding a node with specific attributes: ::
+Adding a node with specific attributes:
 
-    g2 = nngt.Graph()
-    g2.new_node(attributes={'size': 2., 'color': 'blue'},
-                value_types={'size': 'double', 'color': 'string'})
-    print(g2.node_attributes)
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 50-68
 
-Adding several: ::
+By default, nodes that are added without specifying attribute values will get
+their attributes filled with default values which depend on the type:
 
-    g2.new_node(3, attributes={'size': [4., 5., 1.], 'color': ['r', 'g', 'b']},
-                value_types={'size': 'double', 'color': 'string'})
-    print(g2.node_attributes)
+* ``NaN`` for "double"
+* 0 for "int"
+* ``""`` for "string"
+* ``None`` for "object"
 
-Attributes can also be created afterwards: ::
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 71-79
 
-    import numpy as np
-    g3 = nngt.Graph(nodes=100)
-    g3.new_node_attribute('size', 'double',
-                          values=np.random.uniform(0, 20, 100))
-    g3.node_attributes
+Adding several nodes and attributes at the same time:
+
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 82-85
+
+Attributes can also be created afterwards:
+
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 88-92
 
 All the previous techniques can also be used with :func:`~nngt.Graph.new_edge`
 or :func:`~nngt.Graph.new_edges`, and :func:`~nngt.Graph.new_edge_attribute`.
-Note that attributes can also be set selectively: ::
+Note that attributes can also be set selectively:
 
-    edges = g3.new_edges(np.random.randint(0, 100, (50, 2)))
-    g3.new_edge_attribute('rank', 'int', val=0)
-    g3.set_edge_attribute('rank', val=2, edges=edges[:3, :])
-    g3.edge_attributes
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 95-98
 
 
 Generating and analyzing more complex networks
@@ -136,27 +140,23 @@ NNGT provides a whole set of methods to connect nodes in specific fashions
 inside a graph.
 These methods are present in the :mod:`nngt.generation` module, and the network
 properties can then be plotted and analyzed via the tools present in the
-:mod:`nngt.plot` and :mod:`nngt.analysis` modules. ::
+:mod:`nngt.plot` and :mod:`nngt.analysis` modules.
 
-    from nngt import generation as ng
-    from nngt import analysis as na
-    from nngt import plot as nplt
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 110-112
 
 NNGT implements some fast generation tools to create several of the standard
-networks, such as Erdős-Rényi ::
+networks, such as Erdős-Rényi:
 
-    g = ng.erdos_renyi(nodes=1000, avg_deg=100)
-    nplt.degree_distribution(g, ('in', 'total'))
-    print(na.clustering(g))
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 115-118
 
 More heterogeneous networks, with scale-free degree distribution (but no
 correlations like in Barabasi-Albert networks and user-defined exponents) are
-also implemented: ::
+also implemented:
 
-    g = ng.random_scale_free(1.8, 3.2, nodes=1000, avg_deg=100)
-    nplt.degree_distribution(g, ('in', 'out'), num_bins=30, logx=True,
-                             logy=True, show=True)
-    print("Clustering: {}".format(na.clustering(g)))
+.. literalinclude:: ../examples/introductory_tutorial.py
+   :lines: 121-124
 
 For more details, see the full page on :ref:`graph_gen`.
 

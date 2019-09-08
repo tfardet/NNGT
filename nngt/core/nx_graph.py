@@ -318,16 +318,30 @@ class _NxGraph(GraphInterface):
         for v in new_nodes:
             super(_NxGraph, self).add_node(v)
 
-        if attributes is not None:
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        if attributes:
             for k, v in attributes.items():
                 if k not in self._nattr:
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
                     v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=new_nodes)
-        else:
-            filler = [None for _ in new_nodes]
-            for k in self._nattr:
+
+        # set default values for all attributes that were not set
+        for k in self.nodes_attributes:
+            if k not in attributes:
+                dtype = self.get_attribute_type(k)
+                filler = [None for _ in new_nodes]
+
+                # change for strings, doubles and ints
+                if dtype == "string":
+                    filler = ["" for _ in new_nodes]
+                elif dtype == "double":
+                    filler = [np.NaN for _ in new_nodes]
+                elif dtype == "int":
+                    filler = [0 for _ in new_nodes]
+
                 self._nattr.set_attribute(k, filler, nodes=new_nodes)
 
         if self.is_spatial():
@@ -377,6 +391,16 @@ class _NxGraph(GraphInterface):
         -------
         The new connection.
         '''
+        attributes = {} if attributes is None else deepcopy(attributes)
+
+        # set default values for attributes that were not passed
+        for k in self.edges_attributes:
+            dtype = self.get_attribute_type(k)
+            if dtype == "string":
+                attributes[k] = [""]
+            elif dtype == "double" and k != "weight":
+                attributes[k] = [np.NaN]
+
         if self.has_edge(source, target):
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
@@ -388,15 +412,16 @@ class _NxGraph(GraphInterface):
             if self._weighted and "weight" not in attributes:
                 attributes["weight"] = 1.
             self.add_edge(source, target)
-            self[source][target]["eid"] = self.number_of_edges()
+            self[source][target]["eid"] = self.number_of_edges() - 1
             # call parent function to set the attributes
             self.attr_new_edges([(source, target)], attributes=attributes)
             if not self._directed:
                 self.add_edge(target,source)
-                self[source][target]["eid"] = self.number_of_edges()
+                self[source][target]["eid"] = self.number_of_edges() - 1
                 for key, val in attributes.items():
                     self[target][source][key] = val
                 self.attr_new_edges([(target, source)], attributes=attributes)
+
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None, check_edges=True):
@@ -428,14 +453,25 @@ class _NxGraph(GraphInterface):
         -------
         Returns new edges only.
         '''
-        if attributes is None:
-            attributes = {}
+        attributes = {} if attributes is None else deepcopy(attributes)
+        num_edges  = len(edge_list)
+
         for attr in attributes:
             if "_corr" in attr:
                 raise NotImplementedError("Correlated attributes are not "
                                           "available with networkx.")
+
+        # set default values for attributes that were not passed
+        for k in self.edges_attributes:
+            dtype = self.get_attribute_type(k)
+            if dtype == "string":
+                attributes[k] = ["" for _ in range(num_edges)]
+            elif dtype == "double" and k != "weight":
+                attributes[k] = [np.NaN for _ in range(num_edges)]
+
         initial_edges = self.number_of_edges()
         new_attr = None
+
         if check_edges:
             new_attr = {key: [] for key in attributes}
             eweight_list = OrderedDict()
