@@ -172,6 +172,14 @@ class _GtEProperty(BaseProperty):
 
         dtype = _np_dtype(super(_GtEProperty, self).__getitem__(name))
 
+        if dtype == "string":
+            return (self.parent()
+                .edge_properties[name].get_2d_array([0])[0])[eids]
+        elif dtype == "object":
+            tmp = self.parent().edge_properties[k]
+            return _to_np_array(
+                [tmp[Edge(*e)] for e in name], dtype)
+
         return _to_np_array(self.parent().edge_properties[name].a, dtype)
 
     def __setitem__(self, name, value):
