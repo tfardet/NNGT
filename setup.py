@@ -149,12 +149,11 @@ setup_params = dict(
 
     package_dir = {'': '.'},
     packages = find_packages('.'),
-    include_package_data = False,
+    include_package_data = True,
 
     cmdclass = {'build_ext': CustomBuildExt},
 
     # Include the non python files:
-    include_package_data = True,
     package_data = {'': [
         '*.txt', '*.rst', '*.md', '*.default', '*.pyx', '*.pxd',
         'nngt/generation/func_connect.cpp',
