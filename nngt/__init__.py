@@ -290,10 +290,10 @@ except ImportError as e:
 
 
 # look for nest
+_old_nest_func = {}
 
 if _config['load_nest']:
     try:
-        _old_nest_func = {}
         # silence nest
         _sys.argv.append('--quiet')
         import nest as _nest
