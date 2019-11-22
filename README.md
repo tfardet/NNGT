@@ -1,7 +1,8 @@
-# NNGT [![Build Status](https://travis-ci.org/Silmathoron/NNGT.svg?branch=master)](https://travis-ci.org/Silmathoron/NNGT) [![Coverage Status](https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master)](https://coveralls.io/github/Silmathoron/NNGT?branch=master) [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3402494.svg)](https://doi.org/10.5281/zenodo.3402494)
+# NNGT: a unified interface for networks in python
 
+[![Build Status](https://travis-ci.org/Silmathoron/NNGT.svg?branch=master)](https://travis-ci.org/Silmathoron/NNGT) [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html) [![Coverage Status](https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master)](https://coveralls.io/github/Silmathoron/NNGT?branch=master)<br>[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3402494.svg)](https://doi.org/10.5281/zenodo.3402494) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Silmathoron/NNGT) ![PyPI](https://img.shields.io/pypi/v/nngt)
 
-![NNGT logo](doc/_static/nngt_logo.png)
+<img align="left" style="padding-top: 5px; margin-right: 15px;" src="doc/_static/nngt_logo.png" />
 
 The Neural Network Growth and Topology (NNGT) module provides tools to grow and
 study detailed biological networks by interfacing efficient graph libraries with
@@ -14,7 +15,7 @@ libraries in Python: [networkx](https://networkx.github.io/),
 [igraph](https://igraph.org/python/), and
 [graph-tool](https://graph-tool.skewed.de/).
 
-Use them same code, run it at home on the latest linux with graph-tool, then
+Use the same code, run it at home on the latest linux with graph-tool, then
 on your collaborator's laptop with networkx on Windows, no changes required!
 
 In addition to this common interface, NNGT provides additional tools and
