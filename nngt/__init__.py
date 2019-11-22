@@ -117,6 +117,10 @@ _config = {
     'with_plot': False,
 }
 
+# tools for nest interactions (can be used in config)
+
+_old_nest_func = {}
+
 # database (predeclare here, can be used in config)
 
 _db      = None
@@ -290,7 +294,6 @@ except ImportError as e:
 
 
 # look for nest
-_old_nest_func = {}
 
 if _config['load_nest']:
     try:
