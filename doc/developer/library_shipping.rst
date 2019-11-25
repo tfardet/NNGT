@@ -68,3 +68,13 @@ docker container using
 
 NB: unfortunately one must remove manually all unnecessary files from the
 wheels before running the build to prevent them from being included...
+
+
+Test
+====
+
+    twine upload --repository-url https://test.pypi.org/legacy/ dist/the-version
+
+then
+
+    pip install -i https://test.pypi.org/simple/ nngt==the-version

@@ -66,7 +66,7 @@ __all__ = ["draw_network"]
 def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
                  ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
-                 threshold=0.5, decimate=None, spatial=True,
+                 threshold=0.5, decimate_connections=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
                  restrict_nodes=None, show_environment=True, fast=False,
                  size=(600, 600), xlims=None, ylims=None, dpi=75, axis=None,
@@ -110,8 +110,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         width between 0. and `max_esize`.
     threshold : float, optional (default: 0.5)
         Size under which edges are not plotted.
-    decimate : int, optional (default: keep all connections)
-        Plot only one connection every `decimate`. Use -1 to hide all edges.
+    decimate_connections : int, optional (default: keep all connections)
+        Plot only one connection every `decimate_connections`.
+        Use -1 to hide all edges.
     spatial : bool, optional (default: True)
         If True, use the neurons' positions to draw them.
     restrict_sources : str, group, or list, optional (default: all)
@@ -243,7 +244,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     e = adj_mat.nnz
 
     # compute properties
-    decimate = 1 if decimate is None else decimate
+    decimate_connections = 1 if decimate_connections is None\
+                           else decimate_connections
 
     markers = nshape
     if nonstring_container(nshape):
@@ -432,7 +434,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         _set_ax_lim(axis, pos[:, 0], pos[:, 1], xlims, ylims)
 
     # use quiver to draw the edges
-    if e and decimate != -1:
+    if e and decimate_connections != -1:
         adj_mat = network.adjacency_matrix(weights=None)
         avg_size = np.average(nsize)
         arr_style = ArrowStyle.Simple(head_length=0.15*avg_size,
@@ -460,10 +462,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                             keep = (esize > 0)
                             edges = edges[:, keep]
                             esize = esize[keep]
-                        if decimate > 1:
-                            edges = edges[:, ::decimate]
+                        if decimate_connections > 1:
+                            edges = edges[:, ::decimate_connections]
                             if nonstring_container(esize):
-                                esize = esize[::decimate]
+                                esize = esize[::decimate_connections]
                         # plot
                         ec = palette(ecolor[(src_name, tgt_name)])
                         if fast:
@@ -521,14 +523,14 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 if nonstring_container(ecolor):
                     ecolor = ecolor[keep]
                 esize = esize[keep]
-            if decimate > 1:
-                edges = edges[:, ::decimate]
+            if decimate_connections > 1:
+                edges = edges[:, ::decimate_connections]
                 if nonstring_container(esize):
-                    esize = esize[::decimate]
+                    esize = esize[::decimate_connections]
                 if nonstring_container(ecolor):
-                    ecolor = ecolor[::decimate]
+                    ecolor = ecolor[::decimate_connections]
             if isinstance(ecolor, str):
-                ecolor = [ecolor for i in range(0, e, decimate)]
+                ecolor = [ecolor for i in range(0, e, decimate_connections)]
 
             if fast:
                 dl       = 0.5*np.max(nsize)
