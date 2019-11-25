@@ -18,6 +18,9 @@ doc/modules/nngt/side-classes.rst
 
 *.tmp
 
+# generated cpp
+nngt/generation/cconnect.cpp
+
 nngt/testing/Ref/*
 
 # python stuff
