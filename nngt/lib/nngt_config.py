@@ -160,10 +160,13 @@ def set_config(config, value=None, silent=False):
                         "This functionality is not available")
     # update nest
     if nngt._config["load_nest"] or nngt._config["with_nest"]:
-        import nest as _nest
-        from .. import simulation
-        sys.modules["nngt.simulation"] = simulation
-        nngt._config["with_nest"] = _nest.version()
+        try:
+            import nest as _nest
+            from .. import simulation
+            sys.modules["nngt.simulation"] = simulation
+            nngt._config["with_nest"] = _nest.version()
+        except:
+            nngt._config["with_nest"] = False
     # log changes
     _configure_logger(nngt._logger)
     glib = (nngt._config["library"] if nngt._config["library"] is not None
