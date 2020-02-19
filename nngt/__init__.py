@@ -81,7 +81,7 @@ import sys as _sys
 import logging as _logging
 
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 ''' :obj:`str`, current NNGT version '''
 
 
@@ -116,6 +116,10 @@ _config = {
     'with_nest': False,
     'with_plot': False,
 }
+
+# tools for nest interactions (can be used in config)
+
+_old_nest_func = {}
 
 # database (predeclare here, can be used in config)
 
@@ -293,7 +297,6 @@ except ImportError as e:
 
 if _config['load_nest']:
     try:
-        _old_nest_func = {}
         # silence nest
         _sys.argv.append('--quiet')
         import nest as _nest

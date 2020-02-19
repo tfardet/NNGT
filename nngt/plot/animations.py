@@ -30,6 +30,7 @@ import matplotlib as mpl
 from matplotlib.lines import Line2D
 import matplotlib.animation as anim
 
+from nngt.lib import InvalidArgument
 from nngt.lib.sorting import _sort_neurons
 from nngt.analysis import total_firing_rate
 from .plt_networks import draw_network
@@ -281,7 +282,7 @@ class _SpikeAnimator(anim.TimedAnimation):
                 self.event_source.stop()  # pause again
             self.event = None
 
-    def save_movie(self, filename, fps=30, video_encoder='html5', codec=None,
+    def save_movie(self, filename, fps=30, video_encoder='html5', codec="h264",
                    bitrate=-1, start=None, stop=None, interval=None,
                    num_frames=None, metadata=None):
         '''
@@ -295,7 +296,7 @@ class _SpikeAnimator(anim.TimedAnimation):
             Frame per second.
         video_encoder : :obj:`str`, optional (default 'html5')
             Movie encoding format; either 'ffmpeg', 'html5', or 'imagemagick'.
-        codec : :obj:`str`, optional (default: None)
+        codec : :obj:`str`, optional (default: "h264")
             Codec to use for writing movie; if None, default `animation.codec`
             from `matplotlib` will be used.
         bitrate : int, optional (default: -1)
@@ -411,6 +412,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
         self.times = data_mm["times"]
 
         self.num_frames = len(self.times)
+
         idx_start = np.where(self.times >= start)[0][0]
         self.idx_start = idx_start
         self.times = self.times[idx_start:]
@@ -757,7 +759,8 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             l.set_data([], [])
         # initialize the neurons and connections between neurons
         draw_network(self.network(), ncolor='k', axis=self.env, show=False,
-                     simple_nodes=True, decimate=-1, tight=False, **self.kwargs)
+                     simple_nodes=True, decimate_connections=-1, tight=False,
+                     **self.kwargs)
         if self.network().is_spatial():
             shape = self.network().shape
             xmin, ymin, xmax, ymax = shape.bounds

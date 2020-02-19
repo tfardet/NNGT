@@ -13,6 +13,10 @@ recursive-include . *.pyxbld
 recursive-include doc *
 prune doc/.build
 
+# Exclude build and generated files
+recursive-exclude * build
+recursive-exclude * __pycache__
+
 # include setup.py (this makes no sense to me)
 # but without it, sdist does not include it...
 include setup.py
