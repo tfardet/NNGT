@@ -41,7 +41,7 @@ Build a network with two populations:
 num_nodes = 1000
 
 # 800 excitatory neurons, 200 inhibitory
-net = nngt.Network.ei_network(num_nodes, ei_ratio=0.2)
+net = nngt.Network.exc_and_inhib(num_nodes, ei_ratio=0.2)
 
 '''
 Connect the populations.

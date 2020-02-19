@@ -1112,6 +1112,8 @@ class Graph(nngt.core.GraphObject):
         '''
         Betweenness centrality sequence of all nodes and edges.
 
+        @todo add node/edge list
+
         Parameters
         ----------
         btype : str, optional (default: ``"both"``)
