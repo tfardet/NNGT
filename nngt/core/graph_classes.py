@@ -491,7 +491,7 @@ class Graph(nngt.core.GraphObject):
             (must have one entry per node in the graph)
         val : int, float or str , optional (default: None)
             Identical value for all nodes.
-        
+
         See also
         --------
         :func:`~nngt.Graph.new_edge_attribute`,
@@ -530,7 +530,7 @@ class Graph(nngt.core.GraphObject):
             if the attribute does not exist and must be created.
         edges : list of edges or array of shape (E, 2), optional (default: all)
             Edges whose attributes should be set. Others will remain unchanged.
-        
+
         See also
         --------
         :func:`~nngt.Graph.set_node_attribute`,
@@ -632,7 +632,7 @@ class Graph(nngt.core.GraphObject):
         noise_scale : class:`int`, optional (default: None)
             Scale of the multiplicative Gaussian noise that should be applied
             on the weights.
-        
+
         Note
         ----
         If `distribution` and `parameters` are provided and the weights are set
@@ -768,7 +768,7 @@ class Graph(nngt.core.GraphObject):
         Access node attributes
 
         .. versionadded:: 0.7
-        
+
         See also
         --------
         :attr:`~nngt.Graph.edge_attributes`,
@@ -801,7 +801,7 @@ class Graph(nngt.core.GraphObject):
         value : object, optional (default : None)
             If an `attribute` name is passed, then only nodes with `attribute`
             being equal to `value` will be returned.
-        
+
         See also
         --------
         :func:`~nngt.Graph.get_edges`, :attr:`~nngt.Graph.nodes_attributes`
@@ -835,7 +835,7 @@ class Graph(nngt.core.GraphObject):
             Retrict the edges to those stemming from `source_node`.
         target_node : int or list of ints, optional (default: all nodes)
             Retrict the edges to those arriving at `target_node`.
-        
+
         See also
         --------
         :func:`~nngt.Graph.get_nodes`, :attr:`~nngt.Graph.edges_attributes`
@@ -872,7 +872,7 @@ class Graph(nngt.core.GraphObject):
                 target_node = np.sort(target_node)
 
             nnz = mat[source_node].tocsc()[:, target_node].nonzero()
-            
+
             edges = np.array(
                 [source_node[nnz[0]], target_node[nnz[1]]], dtype=int).T
 
@@ -885,7 +885,7 @@ class Graph(nngt.core.GraphObject):
                              attribute + "'.")
 
         desired = (self.get_edge_attributes(edges, attribute) == value)
-        
+
         return self.edges_array[desired]
 
     def get_edge_attributes(self, edges=None, name=None):
@@ -916,7 +916,7 @@ class Graph(nngt.core.GraphObject):
         ----
         The attributes values are ordered as the edges in
         :func:`~nngt.Graph.edges_array` if `edges` is None.
-        
+
         See also
         --------
         :func:`~nngt.Graph.get_node_attributes`,
@@ -1444,12 +1444,14 @@ class Network(Graph):
         return net
 
     @classmethod
-    @deprecated("1.0", reason="of a redondant name", alternative="uniform")
+    @deprecated("1.0", reason="of a redondant name", alternative="uniform",
+                removal="2.0")
     def uniform_network(cls, *args, **kwargs):
         return cls.uniform(*args, **kwargs)
 
     @classmethod
-    @deprecated("1.0", reason="redondant name", alternative="exc_and_inhib")
+    @deprecated("1.0", reason="redondant name", alternative="exc_and_inhib",
+                removal="2.0")
     def ei_network(cls, *args, **kwargs):
         return cls.exc_and_inhib(*args, **kwargs)
 
@@ -1634,12 +1636,24 @@ class Network(Graph):
                     {}".format(pop.__class__.__name__))
 
     @property
+    @deprecated("1.3", alternative="nest_gids", removal="2.0")
     def nest_gid(self):
-        return self._nest_gid
+        return self._nest_gids
 
     @nest_gid.setter
+    @deprecated("1.3", alternative="nest_gids", removal="2.0")
     def nest_gid(self, gids):
-        self._nest_gid = gids
+        self._nest_gids = gids
+        for group in self.population.values():
+            group._nest_gids = gids[group.ids]
+
+    @property
+    def nest_gids(self):
+        return self._nest_gids
+
+    @nest_gids.setter
+    def nest_gids(self, gids):
+        self._nest_gids = gids
         for group in self.population.values():
             group._nest_gids = gids[group.ids]
 
@@ -1699,7 +1713,7 @@ class Network(Graph):
     def _init_bioproperties(self, population):
         ''' Set the population attribute and link each neuron to its group. '''
         self._population = None
-        self._nest_gid = None
+        self._nest_gids = None
         self._id_from_nest_gid = None
         if not hasattr(self, '_iwf'):
             self._iwf = 1.
