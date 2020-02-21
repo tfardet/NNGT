@@ -49,7 +49,7 @@ class _NxNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
-        lst = [self.parent().node[i][name]
+        lst = [self.parent().nodes[i][name]
                for i in range(self.parent().node_nb())]
 
         dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
@@ -61,7 +61,7 @@ class _NxNProperty(BaseProperty):
         if name in self:
             if len(value) == size:
                 for i in range(size):
-                    self.parent().node[i][name] = value[i]
+                    self.parent().nodes[i][name] = value[i]
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "node in the graph is required")
@@ -116,7 +116,7 @@ class _NxNProperty(BaseProperty):
                                  " and " + str(len(values)) + " entries.")
             else:
                 for n, val in zip(nodes, values):
-                    self.parent().node[n][name] = val
+                    self.parent().nodes[n][name] = val
         self._num_values_set[name] = num_nodes
 
 
@@ -550,13 +550,21 @@ class _NxGraph(GraphInterface):
         nx = nngt._config["library"]
         di_nbetw, di_ebetw = None, None
 
-        w = self.get_weights()
-        w = w.max() - w if use_weights else None
+        wattr = None
+
+        if use_weights:
+            wattr = "bweight"
+
+            if "bweight" not in self._eattr:
+                w = self.get_weights()
+                w = w.max() - w if use_weights else None
+                self.new_edge_attribute("bweight", "double", values=w)
 
         if btype in ("both", "node"):
-            di_nbetw = nx.betweenness_centrality(self, weight=w)
+            di_nbetw = nx.betweenness_centrality(self, weight=wattr)
         if btype in ("both", "edge"):
-            di_ebetw = nx.edge_betweenness_centrality(self, weight=w)
+            di_ebetw = nx.edge_betweenness_centrality(self,
+                                                      weight=wattr)
 
         if btype == "node":
             return np.array(tuple(di_nbetw.values()))
