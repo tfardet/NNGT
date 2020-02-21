@@ -193,7 +193,6 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
              for node in range(n)],
             dtype=bool)
         adj_mat[remove] = 0
-        adj_mat.eliminate_zeros()
 
     if restrict_targets is not None:
         remove = np.array(
@@ -201,9 +200,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
              for node in range(n)],
             dtype=bool)
         adj_mat[:, remove] = 0
-        adj_mat.eliminate_zeros()
 
-    e = adj_mat.nnz
+    e = len(adj_mat.nonzero()[0]))  # avoid calling `eliminate_zeros`
 
     # compute properties
     decimate_connections = 1 if decimate_connections is None\
@@ -299,7 +297,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 
     if spatial and network.is_spatial():
         if show_environment:
-            nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
+            nngt.geometry.plot.plot_shape(network.shape, axis=axis,
+                                          show=False)
         pos = network.get_positions(neurons=restrict_nodes)
     else:
         pos[:, 0] = size[0]*(np.random.uniform(size=n)-0.5)

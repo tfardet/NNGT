@@ -68,7 +68,7 @@ def test_draw_network_options():
                            show=False)
 
     nngt.plot.draw_network(net, restrict_sources=[4, 5, 6, 7, 8],
-                           show=True)
+                           show=False)
 
 
 
@@ -78,6 +78,6 @@ def test_draw_network_options():
 
 if not nngt.get_config('mpi'):
     if __name__ == "__main__":
-        test_plot_prop()
-        test_plot_net()
+        # ~ test_plot_prop()
+        # ~ test_plot_net()
         test_draw_network_options()
