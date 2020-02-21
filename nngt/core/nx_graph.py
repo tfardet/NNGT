@@ -49,7 +49,7 @@ class _NxNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
-        lst = [self.parent().node[i][name]
+        lst = [self.parent().nodes[i][name]
                for i in range(self.parent().node_nb())]
 
         dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
@@ -61,7 +61,7 @@ class _NxNProperty(BaseProperty):
         if name in self:
             if len(value) == size:
                 for i in range(size):
-                    self.parent().node[i][name] = value[i]
+                    self.parent().nodes[i][name] = value[i]
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "node in the graph is required")
@@ -116,7 +116,7 @@ class _NxNProperty(BaseProperty):
                                  " and " + str(len(values)) + " entries.")
             else:
                 for n, val in zip(nodes, values):
-                    self.parent().node[n][name] = val
+                    self.parent().nodes[n][name] = val
         self._num_values_set[name] = num_nodes
 
 
