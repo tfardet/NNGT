@@ -138,6 +138,11 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Display the plot immediately.
     axis : matplotlib axis, optional (default: create new axis)
         Axis on which the network will be plotted.
+    **kwargs : dict
+        Optional keyword arguments including `node_cmap` to set the
+        nodes colormap (default is "magma" for continuous variables and
+        "Set1" for groups) and the boolean `simple_nodes` to make node
+        plotting faster.
     '''
     from matplotlib.cm import get_cmap
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -145,9 +150,12 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 
     # figure and axes
     size_inches = (size[0]/float(dpi), size[1]/float(dpi))
+
     if axis is None:
-        fig = plt.figure(facecolor='white', figsize=size_inches, dpi=dpi)
+        fig = plt.figure(facecolor='white', figsize=size_inches,
+                         dpi=dpi)
         axis = fig.add_subplot(111, frameon=0, aspect=1)
+
     axis.set_axis_off()
     pos, layout = None, None
 
@@ -162,25 +170,39 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                                        "restrict_nodes", network)
 
     if restrict_nodes is not None and restrict_sources is not None:
-        restrict_sources = list(
-            set(restrict_nodes).intersection(restrict_sources))
+        restrict_sources = \
+            set(restrict_nodes).intersection(restrict_sources)
     elif restrict_nodes is not None:
-        restrict_sources = restrict_nodes
+        restrict_sources = set(restrict_nodes)
 
     if restrict_nodes is not None and restrict_targets is not None:
-        restrict_targets = list(
-            set(restrict_nodes).intersection(restrict_targets))
+        restrict_targets = \
+            set(restrict_nodes).intersection(restrict_targets)
     elif restrict_nodes is not None:
-        restrict_targets = restrict_nodes
+        restrict_targets = set(restrict_nodes)
 
     # get nodes and edges
     n = network.node_nb() if restrict_nodes is None \
                           else len(restrict_nodes)
+
     adj_mat = network.adjacency_matrix(weights=None)
+
     if restrict_sources is not None:
-        adj_mat = adj_mat[restrict_sources, :]
+        remove = np.array(
+            [1 if node not in restrict_sources else 0
+             for node in range(n)],
+            dtype=bool)
+        adj_mat[remove] = 0
+        adj_mat.eliminate_zeros()
+
     if restrict_targets is not None:
-        adj_mat = adj_mat[:, restrict_targets]
+        remove = np.array(
+            [1 if node not in restrict_targets else 0
+             for node in range(n)],
+            dtype=bool)
+        adj_mat[:, remove] = 0
+        adj_mat.eliminate_zeros()
+
     e = adj_mat.nnz
 
     # compute properties
@@ -216,7 +238,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         else:
             nsize = np.ones(n, dtype=float)
     elif isinstance(nsize, (float, int, np.number)):
-        nsize = np.repeat(nsize, n)
+        nsize = np.full(n, nsize, dtype=float)
 
     nsize *= 0.01 * size[0]
 
@@ -233,7 +255,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
 
     # node color information
-    ncmap = get_cmap(kwargs.get("node_cmap", palette()))
+    default_cmap = palette() if ncolor == "group" else "magma"
+    ncmap = get_cmap(kwargs.get("node_cmap", default_cmap))
     node_color, nticks, ntickslabels, nlabel = \
         _node_color(network, restrict_nodes, ncolor)
 
@@ -448,11 +471,11 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         else:
             s_min, s_max, t_min, t_max = 0, n, 0, n
             if restrict_sources is not None:
-                s_min = np.min(restrict_sources)
-                s_max = min(np.max(restrict_sources) + 1, n)
+                s_min = min(restrict_sources)
+                s_max = min(max(restrict_sources) + 1, n)
             if restrict_targets is not None:
-                t_min = np.min(restrict_targets)
-                t_max = min(np.max(restrict_targets) + 1, n)
+                t_min = min(restrict_targets)
+                t_max = min(max(restrict_targets) + 1, n)
             edges = np.array(
                 adj_mat[s_min:s_max, t_min:t_max].nonzero(), dtype=int)
             edges[0, :] += s_min
@@ -725,21 +748,23 @@ def _convert_to_nodes(node_restriction, name, network):
         if isinstance(node_restriction[0], str):
             assert network.is_network(), \
                 "`" + name + "` can be string only for Network."
-            ids = []
+            ids = set()
             for name in node_restriction:
-                ids.extend(network.population[name].ids)
+                ids.update(network.population[name].ids)
             return ids
         elif isinstance(node_restriction[0], nngt.NeuralGroup):
-            ids = []
+            ids = set()
             for g in node_restriction:
-                ids.extend(g.ids)
+                ids.update(g.ids)
             return ids
+
+        return set(node_restriction) 
     elif isinstance(node_restriction, str):
         assert network.is_network(), \
             "`" + name + "` can be string only for Network."
-        return network.population[node_restriction].ids
+        return set(network.population[node_restriction].ids)
     elif isinstance(node_restriction, nngt.NeuralGroup):
-        return node_restriction.ids
+        return set(node_restriction.ids)
     elif node_restriction is not None:
         raise ValueError(
             "Invalid `" + name + "`: '{}'".format(node_restriction))
