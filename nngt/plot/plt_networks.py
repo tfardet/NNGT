@@ -152,77 +152,14 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     pos, layout = None, None
 
     # restrict sources and targets @todo make helper function
-    if nonstring_container(restrict_sources):
-        if isinstance(restrict_sources[0], str):
-            assert network.is_network(), \
-                "`restrict_sources` can be string only for Network."
-            sources = []
-            for name in restrict_sources:
-                sources.extend(network.population[name].ids)
-            restrict_sources = sources
-        elif isinstance(restrict_sources[0], nngt.NeuralGroup):
-            sources = []
-            for g in restrict_sources:
-                sources.extend(g.ids)
-            restrict_sources = sources
-    elif isinstance(restrict_sources, str):
-        assert network.is_network(), \
-            "`restrict_sources` can be string only for Network."
-        restrict_sources = network.population[restrict_sources].ids
-    elif isinstance(restrict_sources, nngt.NeuralGroup):
-        restrict_sources = restrict_sources.ids
-    elif restrict_sources is not None:
-        raise ValueError(
-            "Invalid restrict_sources: '{}'".format(restrict_sources))
+    restrict_sources = _convert_to_nodes(restrict_sources,
+                                         "restrict_sources", network)
 
-    if nonstring_container(restrict_targets):
-        if isinstance(restrict_targets[0], str):
-            assert network.is_network(), \
-                "`restrict_targets` canbe string only for Network."
-            targets = []
-            for name in restrict_targets:
-                targets.extend(network.population[name].ids)
-            restrict_targets = targets
-        elif isinstance(restrict_targets[0], nngt.NeuralGroup):
-            targets = []
-            for g in restrict_targets:
-                targets.extend(g.ids)
-            restrict_targets = targets
-    elif isinstance(restrict_targets, str):
-        assert network.is_network(), \
-            "`restrict_sources` can be string only for Network."
-        restrict_targets = network.population[restrict_targets].ids
-    elif isinstance(restrict_targets, nngt.NeuralGroup):
-        restrict_targets = restrict_targets.ids
-    elif restrict_targets is not None:
-        raise ValueError(
-            "Invalid restrict_sources: '{}'".format(restrict_targets))
+    restrict_targets = _convert_to_nodes(restrict_targets,
+                                         "restrict_targets", network)
 
-    # restrict nodes
-    if nonstring_container(restrict_nodes):
-        if isinstance(next(iter(restrict_nodes)), str):
-            assert network.is_network(), \
-                "`restrict_targets` can be string only for Network."
-            targets = []
-            for name in restrict_nodes:
-                targets.extend(network.population[name].ids)
-            restrict_nodes = targets
-        elif isinstance(next(iter(restrict_nodes)), nngt.NeuralGroup):
-            nodes = []
-            for g in restrict_nodes:
-                nodes.extend(g.ids)
-            restrict_nodes = nodes
-        else:
-            restrict_nodes = np.array(restrict_nodes, dtype=int)
-    elif isinstance(restrict_nodes, str):
-        assert network.is_network(), \
-            "`restrict_sources` can be string only for Network."
-        restrict_nodes = network.population[restrict_nodes].ids
-    elif isinstance(restrict_nodes, nngt.NeuralGroup):
-        restrict_nodes = restrict_nodes.ids
-    elif restrict_nodes is not None:
-        raise ValueError(
-            "Invalid restrict_sources: '{}'".format(restrict_nodes))
+    restrict_nodes = _convert_to_nodes(restrict_nodes,
+                                       "restrict_nodes", network)
 
     if restrict_nodes is not None and restrict_sources is not None:
         restrict_sources = list(
@@ -237,7 +174,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         restrict_targets = restrict_nodes
 
     # get nodes and edges
-    n = network.node_nb() if restrict_nodes is None else len(restrict_nodes)
+    n = network.node_nb() if restrict_nodes is None \
+                          else len(restrict_nodes)
     adj_mat = network.adjacency_matrix(weights=None)
     if restrict_sources is not None:
         adj_mat = adj_mat[restrict_sources, :]
@@ -256,8 +194,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             for i, g in enumerate(nshape):
                 for j in range(i + 1, len(nshape)):
                     if not set(g.ids).isdisjoint(nshape[j].ids):
-                        raise ValueError("Groups passed to `nshape` must be "
-                                         "disjoint.")
+                        raise ValueError("Groups passed to `nshape` "
+                                         "must be disjoint.")
 
             mm = cycle(MarkerStyle.filled_markers)
             shapes  = np.full(network.node_nb(), "", dtype=object)
@@ -265,9 +203,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 shapes[g.ids] = m
             markers = list(shapes)
         elif len(nshape) != network.node_nb():
-            raise ValueError("When passing an array of markers to `nshape`, "
-                             "one entry per node in the network must be "
-                             "provided.")
+            raise ValueError("When passing an array of markers to "
+                             "`nshape`, one entry per node in the "
+                             "network must be provided.")
     else:
         markers = [nshape for _ in range(network.node_nb())]
 
@@ -780,6 +718,33 @@ def _discrete_cmap(N, base_cmap=None, clist=None):
         return base.from_list(cmap_name, color_list, N)
     except:
         return ListedColormap(color_list, cmap_name, N=N)
+
+
+def _convert_to_nodes(node_restriction, name, network):
+    if nonstring_container(node_restriction):
+        if isinstance(node_restriction[0], str):
+            assert network.is_network(), \
+                "`" + name + "` can be string only for Network."
+            ids = []
+            for name in node_restriction:
+                ids.extend(network.population[name].ids)
+            return ids
+        elif isinstance(node_restriction[0], nngt.NeuralGroup):
+            ids = []
+            for g in node_restriction:
+                ids.extend(g.ids)
+            return ids
+    elif isinstance(node_restriction, str):
+        assert network.is_network(), \
+            "`" + name + "` can be string only for Network."
+        return network.population[node_restriction].ids
+    elif isinstance(node_restriction, nngt.NeuralGroup):
+        return node_restriction.ids
+    elif node_restriction is not None:
+        raise ValueError(
+            "Invalid `" + name + "`: '{}'".format(node_restriction))
+
+    return node_restriction
 
 
 def _custom_arrows(sources, targets, angle):
