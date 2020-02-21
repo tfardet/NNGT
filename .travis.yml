@@ -12,6 +12,9 @@ addons:
     - gcc-8
     - g++-8
 
+services:
+- xvfb
+
 env:
     - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 
@@ -59,6 +62,7 @@ before_install:
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev python-matplotlib python-tk; fi
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib python3-tk; fi
     - if [[ "$PYVERSION" == "3.7" ]]; then sudo pip install scipy matplotlib; fi
+    - if [[ "$PYVERSION" == "3.7" ]]; then sudo apt-get install -y python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo -H ' && alias pipv=pip3; else alias sudo='sudo -H ' && alias pipv=pip; fi
