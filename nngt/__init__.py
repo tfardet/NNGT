@@ -151,6 +151,15 @@ _init_logger(_logger)
 if _sys.hexversion < 0x02070000:
     _log_message(_logger, 'CRITICAL', 'NNGT requires Python 2.7 or higher.')
     raise ImportError('NNGT requires Python 2.7 or higher.')
+elif _sys.hexversion < 0x03040000:
+    import warnings
+    # turn off filter temporarily
+    warnings.simplefilter('always', DeprecationWarning)
+    message  = "Version 1.3 will be the last NNGT version to support Python 2."
+    message += " Please upgrade to Python >= 3.4 to continue using NNGT in the"
+    message += " future."
+    warnings.warn(message, category=DeprecationWarning)
+    warnings.simplefilter('default', DeprecationWarning)
 
 # IMPORTANT: afterwards, import config
 from .lib.nngt_config import (get_config, set_config, _load_config, _convert,

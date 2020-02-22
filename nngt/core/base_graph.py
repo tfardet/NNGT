@@ -183,7 +183,8 @@ class GraphInterface(nngt._config["graph"]):
     def new_edges(self, edge_list, attributes=None):
         pass
 
-    def attr_new_edges(self, edge_list, attributes=None):
+    def attr_new_edges(self, edge_list, attributes=None,
+                       check_edges=True):
         num_edges = len(edge_list)
         if num_edges:
             attributes = {} if attributes is None else attributes

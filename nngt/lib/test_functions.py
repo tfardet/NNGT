@@ -39,7 +39,7 @@ import nngt
 from .decorator import decorate
 
 
-def deprecated(version, reason=None, alternative=None):
+def deprecated(version, reason=None, alternative=None, removal=None):
     '''
     Decorator to mark deprecated functions.
     '''
@@ -53,6 +53,8 @@ def deprecated(version, reason=None, alternative=None):
                 message += " because " + reason + "."
             else:
                 message += "."
+            if removal is not None:
+                message += " It will be removed in version {}.".format(removal)
             if alternative is not None:
                 message += " Use " + alternative + " instead."
             warnings.warn(message, category=DeprecationWarning)

@@ -257,7 +257,7 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
         }
     '''
     # check whether network is in NEST
-    if network._nest_gid is None:
+    if network._nest_gids is None:
         if make_nest:
             network.to_nest()
         else:

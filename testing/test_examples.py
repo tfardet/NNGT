@@ -23,8 +23,8 @@ import nngt
 
 # set example dir
 current_dir = dirname(abspath(__file__))
-idx_nngt    = current_dir.find('nngt/testing')
-example_dir = current_dir[:idx_nngt] + 'doc/examples/'
+idx_testing = current_dir.find('testing')
+example_dir = current_dir[:idx_testing] + 'doc/examples/'
 
 # remove plotting and NEST
 nngt.set_config("with_plot", False)

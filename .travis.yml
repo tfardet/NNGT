@@ -12,6 +12,9 @@ addons:
     - gcc-8
     - g++-8
 
+services:
+- xvfb
+
 env:
     - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 
@@ -56,16 +59,17 @@ before_install:
     # Geos for shapely
     - sudo apt-get install libgeos-dev
     # install scipy from apt (much faster when possible) and pip if necessary
-    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev python-matplotlib; fi
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib; fi
+    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev python-matplotlib python-tk; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib python3-tk; fi
     - if [[ "$PYVERSION" == "3.7" ]]; then sudo pip install scipy matplotlib; fi
+    - if [[ "$PYVERSION" == "3.7" ]]; then sudo apt-get install -y python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "3.x" ]]; then alias sudo='sudo -H ' && alias pipv=pip3; else alias sudo='sudo -H ' && alias pipv=pip; fi
     - sudo pipv install --upgrade pip
     - sudo pipv install -U setuptools
     - sudo pipv install --user cython
-    - sudo pipv install mpi4py shapely numpy svg.path dxfgrabber
+    - sudo pipv install mpi4py shapely numpy svg.path dxfgrabber pytest
     - sudo pipv install -U pyopenssl
     # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
@@ -74,13 +78,13 @@ before_install:
     - if [[ "$GL" == "ig" ]]; then sudo pipv install python-igraph; fi
     - if [[ "$GL" == "nx" ]]; then sudo pipv install networkx; fi
     # testing and coverage analysis
-    - sudo pipv install nose2 cov-core coverage coveralls
+    - sudo pipv install cov-core coverage coveralls
 
 install: sudo pipv install -e .
 
 script:
-    - coverage run -m nose2.__main__ -F
-    - export OMP=4 && coverage run -m nose2.__main__ -F
-    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -m nose2.__main__ -F
+    - coverage run -m pytest testing
+    - export OMP=4 && coverage run -m pytest testing
+    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest testing
 
 after_success: coveralls
