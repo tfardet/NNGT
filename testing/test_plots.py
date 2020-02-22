@@ -42,7 +42,8 @@ def test_plot_prop():
 
     nngt.plot.node_attributes_distribution(net, "attr", show=False)
 
-    nngt.plot.betweenness_distribution(net, show=False)
+    if nngt.get_config("backend") != "nngt":
+        nngt.plot.betweenness_distribution(net, show=False)
 
 
 def test_plot_net():
