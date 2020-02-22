@@ -201,7 +201,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             dtype=bool)
         adj_mat[:, remove] = 0
 
-    e = len(adj_mat.nonzero()[0]))  # avoid calling `eliminate_zeros`
+    e = len(adj_mat.nonzero()[0])  # avoid calling `eliminate_zeros`
 
     # compute properties
     decimate_connections = 1 if decimate_connections is None\
