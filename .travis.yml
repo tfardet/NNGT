@@ -83,8 +83,9 @@ before_install:
 install: sudo pipv install -e .
 
 script:
-    - coverage run -m pytest testing
-    - export OMP=4 && coverage run -m pytest testing
+    - coverage run -p -m pytest testing
+    - export OMP=4 && coverage run -p -m pytest testing
     - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest testing
+    - coverage combine
 
 after_success: coveralls

@@ -3,7 +3,6 @@
 
 # test_attributes.py
 
-
 """
 Test the validity of the plotting functions.
 """
@@ -11,8 +10,15 @@ Test the validity of the plotting functions.
 import os
 
 import numpy as np
+import pytest
 
 import nngt
+
+
+# skip with MPI
+
+if nngt.get_config('mpi'):
+    pytest.skip("Skip plot with MPI", allow_module_level=True)
 
 
 # absolute directory path
@@ -41,6 +47,7 @@ def test_plot_prop():
 
 def test_plot_net():
     fname = dirpath + "/Networks/p2p-Gnutella04.txt"
+
     net = nngt.load_from_file(fname, fmt="edge_list", separator="\t")
 
     nngt.plot.draw_network(net, show=False)
@@ -48,8 +55,6 @@ def test_plot_net():
 
 def test_draw_network_options():
     net = nngt.generation.erdos_renyi(nodes=100, avg_deg=10)
-
-    nngt.plot.draw_network(net, show=False)
 
     nngt.plot.draw_network(net, ncolor="in-degree", nsize=3, esize=2,
                            show=False)
@@ -71,13 +76,7 @@ def test_draw_network_options():
                            show=False)
 
 
-
-# ---------- #
-# Test suite #
-# ---------- #
-
-if not nngt.get_config('mpi'):
-    if __name__ == "__main__":
-        # ~ test_plot_prop()
-        # ~ test_plot_net()
-        test_draw_network_options()
+if __name__ == "__main__":
+    test_plot_prop()
+    test_plot_net()
+    test_draw_network_options()

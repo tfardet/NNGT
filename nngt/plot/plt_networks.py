@@ -159,7 +159,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     axis.set_axis_off()
     pos, layout = None, None
 
-    # restrict sources and targets @todo make helper function
+    # restrict sources and targets
     restrict_sources = _convert_to_nodes(restrict_sources,
                                          "restrict_sources", network)
 
