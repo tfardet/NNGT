@@ -61,7 +61,7 @@ before_install:
     # install scipy from apt (much faster when possible) and pip if necessary
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev python-matplotlib python-tk; fi
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib python3-tk; fi
-    - if [[ "$PYVERSION" == "3.7" ]]; then sudo apt-get install -y python3-tk; fi
+    - if [[ "$PYVERSION" == "3.7" ]]; then sudo apt-get install -y python3-tk python3-pip; fi
     - if [[ "$PYVERSION" == "3.7" ]]; then sudo pip install scipy matplotlib; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
@@ -85,7 +85,7 @@ install: sudo pipv install -e .
 script:
     - coverage run -p -m pytest testing
     - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest testing
+    - export OMP=1 && export MPI=1 && mpirun -mca btl ^openib -n 4 coverage run -p -m pytest testing
     - coverage combine
 
 after_success: coveralls
