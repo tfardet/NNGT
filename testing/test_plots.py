@@ -14,6 +14,8 @@ import pytest
 
 import nngt
 
+nngt.use_backend("igraph")
+
 
 # skip with MPI
 

@@ -508,27 +508,35 @@ an array of 2-tuples of ints.")
                          **kwargs):
         n = self.vcount()
         e = self.ecount()
+
         ncoeff_norm = (n-1)*(n-2)
         ecoeff_norm = (e-1)*(e-2)/2.
+
         w, nbetw, ebetw = None, None, None
+
         if use_weights:
             if "bweight" in self.es:
                 w = self.es['bweight']
             else:
-                w  = np.max(self.get_weights()) - self.get_weights()
-                w += 1e-5*np.min(w)
+                w  = self.get_weights()
+                w  = np.max(w) - w
+                minw = np.min(w)
+                w += 1e-5*minw if minw > 0 else 1e-5
+
         if btype in ("both", "node"):
             nbetw = np.array(self.betweenness(weights=w))
+
         if btype in ("both", "edge"):
             ebetw = np.array(self.edge_betweenness(weights=w))
+
         if btype == "node":
             return nbetw/ncoeff_norm if norm else nbetw
         elif btype == "edge":
             return ebetw/ecoeff_norm if norm else ebetw
         elif norm:
             return nbetw/ncoeff_norm, ebetw/ecoeff_norm
-        else:
-            return nbetw, ebetw
+
+        return nbetw, ebetw
 
     def neighbours(self, node, mode="all"):
         '''
