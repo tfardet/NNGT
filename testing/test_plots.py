@@ -60,9 +60,10 @@ def test_draw_network_options():
     nngt.plot.draw_network(net, ncolor="in-degree", nsize=3, esize=2,
                            show=False)
 
-    nngt.plot.draw_network(net, ncolor="betweenness",
-                           nsize="total-degree", decimate_connections=3,
-                           curved_edges=True, show=False)
+    if nngt.get_config("backend") != "nngt":
+        nngt.plot.draw_network(net, ncolor="betweenness",
+                               nsize="total-degree", decimate_connections=3,
+                               curved_edges=True, show=False)
 
     nngt.plot.draw_network(net, ncolor="g", nshape='s', ecolor="b",
                            restrict_targets=[1, 2, 3], show=False)
