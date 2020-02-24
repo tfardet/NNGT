@@ -80,7 +80,6 @@ install: sudo pipv install -e .
 script:
     - coverage run -p -m pytest testing
     - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun -x LD_PRELOAD=libmpi.so -mca btl ^openib -n 4 coverage run -p -m pytest testing
-    - coverage combine
+    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest testing
 
 after_success: coveralls

@@ -675,6 +675,8 @@ class BaseGraph(GraphInterface):
         '''
         if node_list is None:
             node_list = slice(self.node_nb())
+        else:
+            node_list = list(node_list)
 
         degrees = np.zeros(self.node_nb())
 

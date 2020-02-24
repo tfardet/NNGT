@@ -14,6 +14,8 @@ import pytest
 
 import nngt
 
+nngt.use_backend("graph-tool")
+
 
 # skip with MPI
 
