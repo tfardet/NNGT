@@ -66,6 +66,7 @@ before_install:
     - sudo pipv install -U setuptools
     - sudo pipv install --user cython
     - sudo pipv install numpy scipy mpi4py shapely numpy svg.path dxfgrabber pytest
+    - sudo pipv install -U pyopenssl
     # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
