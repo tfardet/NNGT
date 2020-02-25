@@ -28,13 +28,13 @@ matrix:
           env: GL="ig" PYVERSION="2.7"
         - python: "2.7"
           env: GL="nx" PYVERSION="2.7"
-        - python: "3.7"
+        - python: "3.x"
           env: GL="gt" PYVERSION="3.x"
-        - python: "3.7"
+        - python: "3.x"
           env: GL="ig" PYVERSION="3.x"
-        - python: "3.7"
+        - python: "3.x"
           env: GL="nx" PYVERSION="3.x"
-        - python: "3.7"
+        - python: "3.x"
           env: GL="nngt" PYVERSION="3.x"
     fast_finish: true
 
@@ -56,16 +56,19 @@ before_install:
     - sudo apt-get autoremove
     # requirements for building + installing scipy
     - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev
+    # Geos for shapely
+    - sudo apt-get install libgeos-dev
     # install scipy from apt (much faster when possible) and pip if necessary
-    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-gtk2-dev python-matplotlib python-tk; fi
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-tk; fi
+    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-scipy python-gtk2-dev python-matplotlib python-tk; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-scipy python3-pip python3-matplotlib python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo -H ' && alias pipv=pip; else alias sudo='sudo -H ' && alias pipv=pip3; fi
     - sudo pipv install --upgrade pip
     - sudo pipv install -U setuptools
     - sudo pipv install --user cython
-    - sudo pipv install numpy scipy mpi4py shapely numpy svg.path dxfgrabber pytest
+    - sudo pipv install scipy matplotlib
+    - sudo pipv install mpi4py shapely numpy svg.path dxfgrabber pytest
     - sudo pipv install -U pyopenssl
     # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
@@ -79,8 +82,8 @@ before_install:
 install: sudo pipv install -e .
 
 script:
-    - coverage run -p -m pytest testing
-    - export OMP=4 && coverage run -p -m pytest testing
+    - coverage run -m pytest testing
+    - export OMP=4 && coverage run -m pytest testing
     - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest testing
 
 after_success: coveralls
