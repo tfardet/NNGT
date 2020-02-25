@@ -524,8 +524,40 @@ class NeuralPop(OrderedDict):
         .. versionadded:: 1.2
         '''
         ids = []
+
         for g in self.values():
             ids.extend(g.ids)
+
+        return ids
+
+    @property
+    def excitatory(self):
+        '''
+        Return the ids of all excitatory nodes inside the population.
+
+        .. versionadded:: 1.3
+        '''
+        ids = []
+
+        for g in self.values():
+            if g.neuron_type == 1:
+                ids.extend(g.ids)
+
+        return ids
+
+    @property
+    def inhibitory(self):
+        '''
+        Return the ids of all inhibitory nodes inside the population.
+
+        .. versionadded:: 1.3
+        '''
+        ids = []
+
+        for g in self.values():
+            if g.neuron_type == -1:
+                ids.extend(g.ids)
+
         return ids
 
     @property
@@ -993,11 +1025,14 @@ class NeuralGroup(object):
     Warning
     -------
     Equality between :class:`~nngt.properties.NeuralGroup`s only compares
-    the  size and neuronal ``model`` and ``param`` attributes. This means
-    that groups differing only by their ``ids`` will register as equal.
+    the  size and neuronal type, ``model`` and ``param`` attributes.
+    This means that groups differing only by their ``ids`` will register as
+    equal.
     """
 
-    def __init__ (self, nodes=None, neuron_type=1, neuron_model=None,
+    __num_created = 0
+
+    def __init__(self, nodes=None, neuron_type=1, neuron_model=None,
                   neuron_param=None, name=None):
         '''
         Calling the class creates a group of neurons.
@@ -1024,10 +1059,14 @@ class NeuralGroup(object):
         -------
         A new :class:`~nngt.core.NeuralGroup` instance.
         '''
-        assert neuron_type in (1, -1, None), "`neuron_type` can either be 1 or -1."
+        assert neuron_type in (1, -1, None), \
+            "`neuron_type` can either be 1 or -1."
+
         neuron_param = {} if neuron_param is None else neuron_param.copy()
+
         self._has_model = False if neuron_model is None else True
         self._neuron_model = neuron_model
+
         if nodes is None:
             self._desired_size = None
             self._ids = []
@@ -1039,24 +1078,32 @@ class NeuralGroup(object):
             self._ids = []
         else:
             raise InvalidArgument('`nodes` must be either array-like or int.')
-        self._name = "" if name is None else name
+
+        test = self.__class__.__num_created + 1
+        self._name = "Group {}".format(test) if name is None else name
         self._nest_gids = None
         self._neuron_param = neuron_param if self._has_model else {}
         self._neuron_type = neuron_type
+
         # whether the network this group belongs to was sent to NEST
         self._to_nest = False
+
         # parents
         self._pop = None
         self._net = None
+
+        self.__class__.__num_created += 1
 
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
             same_size = self.size == other.size
             same_nmodel = ((self.neuron_model == other.neuron_model)
                            * (self.neuron_param == other.neuron_param))
-            return same_size*same_nmodel
-        else:
-            return False
+            same_type = self.neuron_type == other.neuron_type
+
+            return same_size*same_nmodel*same_type
+
+        return False
 
     def __len__(self):
         return self.size
@@ -1086,7 +1133,7 @@ class NeuralGroup(object):
             raise RuntimeError("Models cannot be changed after the "
                                "network has been sent to NEST!")
         self._neuron_model = value
-        self._has_model = False if value is None else self._has_model
+        self._has_model = False if value is None else True
 
     @property
     def neuron_param(self):
