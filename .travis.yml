@@ -65,8 +65,7 @@ before_install:
     - sudo pipv install --upgrade pip
     - sudo pipv install -U setuptools
     - sudo pipv install --user cython
-    - sudo pipv install numpy scipy mpi4py shapely numpy svg.path dxfgrabber pytest
-    - sudo pipv install -U pyopenssl
+    - sudo pipv install numpy scipy mpi4py shapely numpy svg.path dxfgrabber pytest pytest-mpi
     # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
@@ -81,6 +80,6 @@ install: sudo pipv install -e .
 script:
     - coverage run -p -m pytest testing
     - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest testing
+    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest --with-mpi testing
 
 after_success: coveralls
