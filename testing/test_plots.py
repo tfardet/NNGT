@@ -15,12 +15,6 @@ import pytest
 import nngt
 
 
-# skip with MPI
-
-if nngt.get_config('mpi'):
-    pytest.skip("Skip plot with MPI", allow_module_level=True)
-
-
 # absolute directory path
 
 dirpath = os.path.abspath(os.path.dirname(__file__))
@@ -28,6 +22,7 @@ dirpath = os.path.abspath(os.path.dirname(__file__))
 
 # tests
 
+@pytest.mark.mpi_skip
 def test_plot_prop():
     net = nngt.generation.erdos_renyi(nodes=100, avg_deg=10)
     net.set_weights(distribution="gaussian",
@@ -46,6 +41,7 @@ def test_plot_prop():
         nngt.plot.betweenness_distribution(net, show=False)
 
 
+@pytest.mark.mpi_skip
 def test_plot_net():
     fname = dirpath + "/Networks/p2p-Gnutella04.txt"
 
@@ -54,6 +50,7 @@ def test_plot_net():
     nngt.plot.draw_network(net, show=False)
 
 
+@pytest.mark.mpi_skip
 def test_draw_network_options():
     net = nngt.generation.erdos_renyi(nodes=100, avg_deg=10)
 
