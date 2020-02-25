@@ -57,15 +57,15 @@ before_install:
     # requirements for building + installing scipy
     - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev
     # install scipy from apt (much faster when possible) and pip if necessary
-    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-gtk2-dev python-matplotlib python-tk; fi
-    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-tk; fi
+    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-gtk2-dev python-matplotlib python-mpi4py python-tk; fi
+    - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-mpi4py python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo -H ' && alias pipv=pip; else alias sudo='sudo -H ' && alias pipv=pip3; fi
     - sudo pipv install --upgrade pip
     - sudo pipv install -U setuptools
     - sudo pipv install --user cython
-    - sudo pipv install numpy scipy mpi4py shapely numpy svg.path dxfgrabber pathlib pytest pytest-mpi
+    - sudo pipv install numpy scipy shapely numpy svg.path dxfgrabber pathlib pytest pytest-mpi
     # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
