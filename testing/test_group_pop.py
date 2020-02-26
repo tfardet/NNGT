@@ -27,11 +27,12 @@ def test_groups():
     g2 = nngt.NeuralGroup(ids, neuron_type=None)
 
     assert g1 == g2
-    assert g1.name != g2.name
-    assert g1.name == "Group 1"
+    assert g1.name.startswith("Group ")
+    assert int(g1.name[6:]) + 1 == int(g2.name[6:])
 
-    g3 = nngt.NeuralGroup(ids, neuron_type=1)
+    g3 = nngt.NeuralGroup(ids, neuron_type=1, name="test")
     assert g1 != g3
+    assert g3.name == "test"
 
 
 def test_population():
