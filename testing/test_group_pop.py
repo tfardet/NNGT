@@ -27,8 +27,8 @@ def test_groups():
     g2 = nngt.NeuralGroup(ids, neuron_type=None)
 
     assert g1 == g2
-    assert g1.name.startswith("Group ")
-    assert int(g1.name[6:]) + 1 == int(g2.name[6:])
+    assert g1.name.startswith("MetaGroup ")
+    assert int(g1.name[9:]) + 1 == int(g2.name[9:])
 
     g3 = nngt.NeuralGroup(ids, neuron_type=1, name="test")
     assert g1 != g3
@@ -57,10 +57,17 @@ def test_population():
     g3  = nngt.NeuralGroup(ids1[::2] + ids2[::2], neuron_type=None)
     pop.add_meta_group(g3)
 
-    g4 = pop.create_meta_group([i for i in range(pop.size) if i % 3], "mg2")
+    g4 = pop.create_meta_group([i for i in range(pop.size) if i % 3],
+                               "mg2")
 
     assert g3 in pop.meta_groups.values()
     assert g4 in pop.meta_groups.values()
+
+    assert set(g2.ids).issuperset(g3.inhibitory)
+    assert set(g1.ids).issuperset(g3.excitatory)
+
+    assert set(g2.ids).issuperset(g4.inhibitory)
+    assert set(g1.ids).issuperset(g4.excitatory)
 
     # build population from empty one
     pop = nngt.NeuralPop()

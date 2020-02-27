@@ -32,8 +32,8 @@ import scipy.spatial as sptl
 
 import nngt
 from nngt.lib import (InvalidArgument, nonstring_container, is_integer,
-                      default_neuron, default_synapse, POS, WEIGHT, DELAY,
-                      DIST, TYPE, BWEIGHT)
+                      default_neuron, default_synapse, POS, WEIGHT,
+                      DELAY, DIST, TYPE, BWEIGHT)
 from nngt.lib._frozendict import _frozendict
 from nngt.lib.rng_tools import _eprop_distribution
 from nngt.lib.logger import _log_message
@@ -41,6 +41,7 @@ from nngt.lib.logger import _log_message
 
 __all__ = [
     'GroupProperty',
+    'MetaGroup',
     'NeuralGroup',
     'NeuralPop',
 ]
@@ -71,6 +72,7 @@ class NeuralPop(OrderedDict):
 
     # number of created populations
     __num_created = 0
+
     # store weakrefs to created populations
     __pops = weakref.WeakValueDictionary()
 
@@ -369,7 +371,7 @@ class NeuralPop(OrderedDict):
         Initialize NeuralPop instance.
 
         .. versionchanged:: 1.2
-            Added `meta groups` parameter.
+            Added `meta_groups` parameter.
 
         Parameters
         ----------
@@ -378,9 +380,10 @@ class NeuralPop(OrderedDict):
         parent : :class:`~nngt.Network`, optional (default: None)
             Network associated to this population.
         meta_groups : dict of str/:class:`~nngt.NeuralGroup` items
-            Optional set of groups. Contrary to the primary groups which define
-            the population and must be disjoint, meta groups can overlap: a
-            neuron can belong to several different meta groups.
+            Optional set of groups. Contrary to the primary groups which
+            define the population and must be disjoint, meta groups can
+            overlap: a neuron can belong to several different meta
+            groups.
         with_models : :class:`bool`
             whether the population's groups contain models to use in NEST
         *args : items for OrderedDict parent
@@ -396,8 +399,9 @@ class NeuralPop(OrderedDict):
         if not isinstance(meta_groups, dict):
             for g in meta_groups:
                 if not g.name:
-                    raise ValueError("When providing a list for `meta_groups`, "
-                                     "all meta groups should be named")
+                    raise ValueError(
+                        "When providing a list for `meta_groups`, "
+                        "all meta groups should be named")
             meta_groups = {g.name: g for g in meta_groups}
 
         # set main properties
@@ -1032,12 +1036,43 @@ class NeuralGroup(object):
 
     __num_created = 0
 
+    def __new__(cls, *args, **kwargs):
+        obj = super(NeuralGroup, NeuralGroup).__new__(NeuralGroup)
+
+        # check neuron type for MetaGroup
+        neuron_type = kwargs.get("neuron_type", None)
+
+        if neuron_type is None and len(args) > 1:
+            if is_integer(args[1]):
+                neuron_type = arg[1]
+
+        if neuron_type is None:
+            # will need to remove all but nodes and name from args
+
+            nodes = kwargs.get("nodes", args[0] if args else None)
+            name  = kwargs.get("name",
+                               args[4] if len(args) == 5 else None)
+
+            if "nodes" in kwargs:
+                args = []
+
+            if "name" in kwargs:
+                if args:
+                    args = [args[0]]
+
+            if len(args) > 2:
+                args = args[:2]
+
+            obj.__class__ = nngt.MetaGroup
+
+        return obj
+
     def __init__(self, nodes=None, neuron_type=1, neuron_model=None,
-                  neuron_param=None, name=None):
+                 neuron_param=None, name=None):
         '''
         Calling the class creates a group of neurons.
-        The default is an empty group but it is not a valid object for most use
-        cases.
+        The default is an empty group but it is not a valid object for
+        most use cases.
 
         .. versionchanged:: 0.8
             Removed `syn_model` and `syn_param`.
@@ -1079,8 +1114,10 @@ class NeuralGroup(object):
         else:
             raise InvalidArgument('`nodes` must be either array-like or int.')
 
-        test = self.__class__.__num_created + 1
-        self._name = "Group {}".format(test) if name is None else name
+        group_num  = NeuralGroup.__num_created + 1
+        self._name = "Group {}".format(group_num) if name is None \
+                                                  else name
+
         self._nest_gids = None
         self._neuron_param = neuron_param if self._has_model else {}
         self._neuron_type = neuron_type
@@ -1092,7 +1129,7 @@ class NeuralGroup(object):
         self._pop = None
         self._net = None
 
-        self.__class__.__num_created += 1
+        NeuralGroup.__num_created += 1
 
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
@@ -1195,16 +1232,99 @@ class NeuralGroup(object):
     @property
     def is_valid(self):
         '''
-        Whether the group can be used in a population: i.e. if it has either
-        a size or some ids associated to it.
+        Whether the group can be used in a population: i.e. if it has
+        either a size or some ids associated to it.
 
         .. versionadded:: 1.0
         '''
-        return True if (self._desired_size is not None) or self._ids else False
+        return (True if (self._desired_size is not None)
+                or self._ids else False)
 
     @property
     def is_metagroup(self):
         return self._neuron_type is None
+
+
+class MetaGroup(NeuralGroup):
+
+    """
+    Class defining a meta-group of neurons.
+
+    .. versionadded:: 1.3
+
+    Its main variables are:
+
+    :ivar ids: :obj:`list` of :obj:`int`
+        the ids of the neurons in this group.
+    :ivar is_metagroup: :obj:`bool`
+        whether the group is a meta-group or not (`neuron_type` is
+        ``None`` for meta-groups)
+    """
+
+    __num_created = 0
+
+    def __init__(self, nodes=None, name=None, **kwargs):
+        '''
+        Calling the class creates a group of neurons.
+        The default is an empty group but it is not a valid object for
+        most use cases.
+
+        Parameters
+        ----------
+        nodes : int or array-like, optional (default: None)
+            Desired size of the group or, a posteriori, NNGT indices of
+            the neurons in an existing graph.
+        name : str, optional (default: "Group N")
+            Name of the meta-group.
+
+        Returns
+        -------
+        A new :class:`~nngt.MetaGroup` object.
+        '''
+        group_num = MetaGroup.__num_created + 1
+        name = "MetaGroup {}".format(group_num) if name is None \
+                                                else name
+
+        super(MetaGroup, self).__init__(nodes=nodes, neuron_type=None,
+                                        name=name)
+
+        MetaGroup.__num_created += 1
+
+    @property
+    def excitatory(self):
+        '''
+        Return the ids of all excitatory nodes inside the meta-group.
+        '''
+        if self._pop is not None:
+            gtype = np.array(
+                [g.neuron_type for g in self._pop.values()],
+                dtype=int)
+
+            ids = np.array(self.ids, dtype=int)
+
+            parents = self._pop.get_group(ids, numbers=True)
+
+            return ids[parents == 1]
+
+        return []
+
+    @property
+    def inhibitory(self):
+        '''
+        Return the ids of all inhibitory nodes inside the meta-group.
+        '''
+        if self._pop is not None:
+            gtype = np.array(
+                [g.neuron_type for g in self._pop.values()],
+                dtype=int)
+
+            ids = np.array(self.ids, dtype=int)
+
+            parents = self._pop.get_group(ids, numbers=True)
+
+            return ids[parents == -1]
+
+        return []
 
 
 class GroupProperty:
