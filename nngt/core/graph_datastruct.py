@@ -747,6 +747,8 @@ class NeuralPop(OrderedDict):
                 "The meta group contains ids larger than the population size."
 
         group._name = name
+        group._pop  = weakref.ref(self)
+        group._net  = self._parent
 
         self._meta_groups[name] = group
 
@@ -1040,11 +1042,18 @@ class NeuralGroup(object):
         obj = super(NeuralGroup, NeuralGroup).__new__(NeuralGroup)
 
         # check neuron type for MetaGroup
-        neuron_type = kwargs.get("neuron_type", None)
+        neuron_type = None
 
-        if neuron_type is None and len(args) > 1:
-            if is_integer(args[1]):
-                neuron_type = arg[1]
+        if "neuron_type" in kwargs:
+            neuron_type = kwargs["neuron_type"]
+        elif len(args) > 1 and is_integer(args[1]):
+            neuron_type = arg[1]
+        else:
+            neuron_type = 1
+            _log_message(logger, "WARNING",
+                "In version 2.0, default behavior for NeuralGroup will "
+                "change: if `neuron_type` is not provided then it will "
+                "be set to None and a MetaGroup will be generated.")
 
         if neuron_type is None:
             # will need to remove all but nodes and name from args
@@ -1155,6 +1164,18 @@ class NeuralGroup(object):
     @property
     def name(self):
         return self._name
+
+    @property
+    def parent(self):
+        '''
+        Return the parent :class:`~nngt.NeuralPop` of the group
+
+        .. versionadded: 1.3
+        '''
+        if self._pop is not None:
+            return self._pop()
+
+        return None
 
     @property
     def neuron_model(self):
@@ -1295,16 +1316,16 @@ class MetaGroup(NeuralGroup):
         '''
         Return the ids of all excitatory nodes inside the meta-group.
         '''
-        if self._pop is not None:
+        if self.parent is not None:
             gtype = np.array(
-                [g.neuron_type for g in self._pop.values()],
+                [g.neuron_type for g in self.parent.values()],
                 dtype=int)
 
             ids = np.array(self.ids, dtype=int)
 
-            parents = self._pop.get_group(ids, numbers=True)
+            parents = self.parent.get_group(ids, numbers=True)
 
-            return ids[parents == 1]
+            return ids[gtype[parents] == 1]
 
         return []
 
@@ -1313,16 +1334,16 @@ class MetaGroup(NeuralGroup):
         '''
         Return the ids of all inhibitory nodes inside the meta-group.
         '''
-        if self._pop is not None:
+        if self.parent is not None:
             gtype = np.array(
-                [g.neuron_type for g in self._pop.values()],
+                [g.neuron_type for g in self.parent.values()],
                 dtype=int)
 
             ids = np.array(self.ids, dtype=int)
 
-            parents = self._pop.get_group(ids, numbers=True)
+            parents = self.parent.get_group(ids, numbers=True)
 
-            return ids[parents == -1]
+            return ids[gtype[parents] == -1]
 
         return []
 
