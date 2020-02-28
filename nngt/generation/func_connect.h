@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <tuple>
-#include <unordered_map>
+#include <unordered_set>
 
 #include <cmath>
 #include <algorithm>
@@ -16,7 +16,7 @@
 namespace generation {
 
 /*
- * Typedefs and struct for edge unordered map definition.
+ * Typedefs and struct for edge unordered set definition.
  */
 
 typedef std::tuple<size_t, size_t> edge_t;
@@ -38,8 +38,7 @@ struct key_equal : public std::binary_function<edge_t, edge_t, bool>
    }
 };
 
-typedef std::unordered_map<edge_t, size_t, key_hash, key_equal> map_t;
-//~ typedef std::unordered_map<size_t, std::unordered_map<size_t, int>> map_t;
+typedef std::unordered_set<edge_t, key_hash, key_equal> set_t;
 
 
 /*
@@ -53,7 +52,7 @@ typedef std::unordered_map<edge_t, size_t, key_hash, key_equal> map_t;
  * \return num_unique - Number of unique entries.
  */
 size_t _unique_1d(std::vector<int>& a,
-                  std::unordered_map<size_t, size_t>& hash_map);
+                  std::unordered_set<size_t>& hash_set);
 
 
 /*
@@ -66,10 +65,10 @@ size_t _unique_1d(std::vector<int>& a,
  *
  * \return num_unique - Number of unique entries.
  */
-size_t _unique_2d(std::vector< std::vector<int> >& a, map_t& hash_map);
+size_t _unique_2d(std::vector< std::vector<int> >& a, set_t& hash_set);
 
 
-size_t _unique_2d(std::vector< std::vector<int> >& a, map_t& hash_map,
+size_t _unique_2d(std::vector< std::vector<int> >& a, set_t& hash_set,
                   std::vector<float>& dist,
                   const std::vector<float>& dist_tmp);
 

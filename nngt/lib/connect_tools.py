@@ -109,34 +109,6 @@ def _no_self_loops(array, return_test=False):
     return array[test, :].astype(int)
 
 
-#~ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop, multigraph,
-            #~ distance=None, dist_tmp=None):
-    #~ '''
-    #~ Filter the edges: remove self loops and multiple connections if the graph
-    #~ is not a multigraph.
-    #~ '''
-    #~ if b_one_pop:
-        #~ ia_edges_tmp = _no_self_loops(ia_edges_tmp)
-    #~ num_added = ia_edges_tmp.shape[0]
-    #~ ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
-    #~ old_ecurrent  = num_ecurrent
-    #~ num_ecurrent += num_added
-    #~ if not multigraph:
-        #~ ia_edges_tmp = None
-        #~ if distance is not None:
-            #~ # get indices to keep only remaining distances
-            #~ ia_edges_tmp, idx = _unique_rows(
-                #~ ia_edges[:num_ecurrent,:], return_index=True)
-            #~ valid_idx = np.array(idx[old_ecurrent:num_ecurrent] - old_ecurrent,
-                                 #~ dtype=int)
-            #~ distance.extend(np.array(dist_tmp)[valid_idx])
-        #~ else:
-            #~ ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent,:])
-        #~ num_ecurrent = ia_edges_tmp.shape[0]
-        #~ ia_edges[:num_ecurrent,:] = ia_edges_tmp
-    #~ return ia_edges, num_ecurrent
-
-
 def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
             multigraph, distance=None, dist_tmp=None):
     '''
@@ -156,14 +128,14 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
                 if tpl_e not in edges_hash:
                     ia_edges[num_ecurrent, :] = e
                     distance.append(d)
-                    edges_hash[tpl_e] = None
+                    edges_hash.add(tpl_e)
                     num_ecurrent += 1
         else:
             for e in ia_edges_tmp:
                 tpl_e = tuple(e)
                 if tpl_e not in edges_hash:
                     ia_edges[num_ecurrent, :] = e
-                    edges_hash[tpl_e] = None
+                    edges_hash.add(tpl_e)
                     num_ecurrent += 1
     else:
         num_added = len(ia_edges_tmp)

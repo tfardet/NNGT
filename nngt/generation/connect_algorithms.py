@@ -208,7 +208,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
 
     ia_edges = np.zeros((edges,2),dtype=int)
     num_ecurrent, num_test = 0, 0
-    edges_hash = {}
+    edges_hash = set()
 
     # lists containing the in/out-degrees for all nodes
     ia_in_deg = np.random.pareto(in_exp,num_target)+1
@@ -278,7 +278,7 @@ def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
 
     ia_edges = np.zeros((edges,2), dtype=int)
     num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
-    edges_hash = {}
+    edges_hash = set()
 
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         ia_sources = source_ids[randint(0, num_source,
@@ -349,7 +349,8 @@ def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
     ia_edges[:circular_edges,:] = _circular_graph(node_ids, coord_nb)
     # add the random connections
     num_test, num_ecurrent = 0, circular_edges
-    edges_hash = {}
+    edges_hash = set()
+
     while num_ecurrent != num_edges and num_test < MAXTESTS:
         ia_sources = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
         ia_targets = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
@@ -357,7 +358,9 @@ def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          edges_hash, b_one_pop, multigraph)
         num_test += 1
+
     ia_edges = _no_self_loops(ia_edges)
+
     return ia_edges
 
 
@@ -369,7 +372,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     Returns a distance-rule graph
     '''
     distance = [] if distance is None else distance
-    edges_hash = {}
+    edges_hash = set()
     # compute the required values
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
