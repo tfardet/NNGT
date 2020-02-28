@@ -31,19 +31,19 @@ void _init_seeds(std::vector<long>& seeds, unsigned int omp, long msd)
 
 
 size_t _unique_1d(std::vector<size_t>& a,
-                  std::unordered_map<size_t, size_t>& hash_map)
+                  std::unordered_set<size_t>& hash_set)
 {
     size_t number;
-    size_t total_unique = hash_map.size();
+    size_t total_unique = hash_set.size();
 
     for (size_t i = 0; i < a.size(); i++)
     {
         number = a[i];
-        // check if this number is already in the map
-        if (hash_map.find(number) == hash_map.end())
+        // check if this number is already in the set
+        if (hash_set.find(number) == hash_set.end())
         {
             // it's not in there yet so add it and set the count to 1
-            hash_map.insert({number, 1});
+            hash_set.insert(number);
             a[total_unique] = a[i];
             total_unique += 1;
         }
@@ -53,9 +53,9 @@ size_t _unique_1d(std::vector<size_t>& a,
 }
 
 
-size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
+size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set)
 {
-    size_t total_unique = hash_map.size();
+    size_t total_unique = hash_set.size();
     size_t num_edges = a[0].size();
     size_t s, t;
     edge_t edge;
@@ -65,11 +65,11 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
         s = a[0][i];
         t = a[1][i];
         edge = edge_t(s, t);
-        // check if this number is already in the map
-        if (hash_map.find(edge) == hash_map.end())
+        // check if this number is already in the set
+        if (hash_set.find(edge) == hash_set.end())
         {
             // it's not in there yet so add it and set the count to 1
-            hash_map.insert({edge, 1});
+            hash_set.insert(edge);
             a[0][total_unique] = s;
             a[1][total_unique] = t;
             total_unique += 1;
@@ -80,10 +80,10 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map)
 }
 
 
-size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map,
+size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set,
                   std::vector<float>& dist, const std::vector<float>& dist_tmp)
 {
-    size_t total_unique = hash_map.size();
+    size_t total_unique = hash_set.size();
     size_t num_edges = a[0].size();
     size_t s, t, initial_enum(total_unique);
     edge_t edge;
@@ -93,11 +93,11 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, map_t& hash_map,
         s = a[0][i];
         t = a[1][i];
         edge = edge_t(s, t);
-        // check if this number is already in the map
-        if (hash_map.find(edge) == hash_map.end())
+        // check if this number is already in the set
+        if (hash_set.find(edge) == hash_set.end())
         {
             // it's not in there yet so add it and set the count to 1
-            hash_map.insert({edge, 1});
+            hash_set.insert(edge);
             a[0][total_unique] = s;
             a[1][total_unique] = t;
             dist.push_back(dist_tmp[i-initial_enum]);
@@ -139,7 +139,7 @@ std::vector<size_t> _gen_edge_complement(
     size_t remaining = degree;
     size_t cplt, j;
     const size_t target_degree = ecurrent + degree;
-    std::unordered_map<size_t, size_t> hash_map;
+    std::unordered_set<size_t> hash_set;
     
     assert(target_degree == degree);
     
@@ -157,7 +157,7 @@ std::vector<size_t> _gen_edge_complement(
             }
         }
         // update ecurrent and (potentially) the results
-        ecurrent = multigraph ? target_degree : _unique_1d(result, hash_map);
+        ecurrent = multigraph ? target_degree : _unique_1d(result, hash_set);
     }
 
     return result;
@@ -277,7 +277,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             std::vector<size_t> local_tgts;
             std::mt19937 generator_(seeds[omp_get_thread_num()]);
             // thread local edges
-            map_t hash_map;
+            set_t hash_set;
             size_t num_elocal = 0;
             std::vector< std::vector<size_t> > local_edges(
                 2, std::vector<size_t>());
@@ -341,8 +341,8 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                                       elocal_tmp[1].end());
                 num_elocal = multigraph
                              ? local_edges[0].size()
-                             : _unique_2d(local_edges, hash_map, local_dist,
-                                          dist_tmp);
+                             : _unique_2d(local_edges, hash_set,
+                                          local_dist, dist_tmp);
 
                 local_edges[0].resize(num_elocal);
                 local_edges[1].resize(num_elocal);

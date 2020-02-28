@@ -54,29 +54,35 @@ cdef bytes _to_bytes(string):
         return bytes(string, "UTF-8")
     return string
 
+
 def _unique_rows(arr):
     b = np.ascontiguousarray(arr).view(np.dtype((np.void,
         arr.dtype.itemsize * arr.shape[1])))
     return np.unique(b).view(arr.dtype).reshape(-1,arr.shape[1])
 
+
 def _no_self_loops(array):
     return array[array[:,0] != array[:,1],:]
 
+
 def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
-                            multigraph):
+            multigraph):
     '''
     Filter the edges: remove self loops and multiple connections if the graph
     is not a multigraph.
     '''
     if b_one_pop:
         ia_edges_tmp = _no_self_loops(ia_edges_tmp)
+
     num_added = ia_edges_tmp.shape[0]
     ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
     num_ecurrent += num_added
+
     if not multigraph:
         ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent,:])
         num_ecurrent = ia_edges_tmp.shape[0]
         ia_edges[:num_ecurrent,:] = ia_edges_tmp
+
     return ia_edges, num_ecurrent
 
 
@@ -98,6 +104,7 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
     # find common nodes
     edges  = None
     common = set(source_ids).intersection(target_ids)
+
     if common:
         num_edges     = num_sources*num_targets - len(common)
         edges         = np.empty((num_edges, 2), dtype=DTYPE)
@@ -248,6 +255,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
     ia_out_deg = np.around(np.multiply(pre_recip_edges/sum_out,
                                        ia_out_deg)).astype(int)
     sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
+
     while sum_in != pre_recip_edges or sum_out != pre_recip_edges:
         diff_in = sum_in-pre_recip_edges
         diff_out = sum_out-pre_recip_edges
@@ -258,6 +266,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
         sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
         ia_in_deg[ia_in_deg<0] = 0
         ia_out_deg[ia_out_deg<0] = 0
+
     # make the edges
     ia_sources = np.repeat(source_ids,ia_out_deg)
     ia_targets = np.repeat(target_ids,ia_in_deg)
@@ -286,6 +295,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
+
     return ia_edges
 
 
@@ -325,11 +335,13 @@ def _erdos_renyi(source_ids, target_ids, float density=-1, int edges=-1,
                                            edges-num_ecurrent)
             ia_edges[num_ecurrent:,:] = ia_edges[ia_indices,::-1]
             num_ecurrent = edges
+
             if not multigraph:
                 ia_edges_tmp = _unique_rows(ia_edges)
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
+
     return ia_edges
 
 

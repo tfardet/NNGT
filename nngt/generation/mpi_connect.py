@@ -126,7 +126,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     assert max_proba <= 0, "MPI distance_rule cannot use `max_proba` yet."
     distance     = [] if distance is None else distance
     distance_tmp = []
-    edges_hash   = {}
+    edges_hash   = set()
     # mpi-related stuff
     comm, size, rank = _mpi_and_random_init()
 
@@ -215,18 +215,16 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
             edges_tmp = np.concatenate(edges_tmp, axis=1).T
             dist_local = np.concatenate(dist_local)
 
-            # if we're at the end, we'll make too many edges, so we keep only
-            # the necessary fraction that we pick randomly
+            # if we're at the end, we'll make too many edges, so we keep
+            # only the necessary fraction that we pick randomly
             num_desired = num_edges - num_ecurrent
-            if num_desired < len(edges_tmp):
-                chosen = {}
-                while len(chosen) != num_desired:
-                    idx = np.random.randint(
-                        0, len(edges_tmp), num_desired - len(chosen))
-                    for i in idx:
-                        chosen[i] = None
-                edges_tmp = edges_tmp[list(chosen.keys())]
-                dist_local = np.array(dist_local)[list(chosen.keys())]
+            num_tmp     = len(edges_tmp)
+
+            if num_desired < num_tmp:
+                chosen = np.random.choice(num_tmp, num_desired,
+                                          replace=False)
+                edges_tmp = edges_tmp[chosen]
+                dist_local = np.array(dist_local)[chosen]
 
             ia_edges, num_ecurrent = _filter(
                 ia_edges, edges_tmp, num_ecurrent, edges_hash, b_one_pop,
