@@ -47,7 +47,7 @@ before_install:
         sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
         sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
-      finest
+      fi
     # update package repository status (-qq is more quiet)
     - sudo add-apt-repository ppa:nest-simulator/nest
     - sudo rm -rf /var/lib/apt/lists/*
