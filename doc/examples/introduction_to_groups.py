@@ -104,6 +104,7 @@ print("E/I population has size", ei_pop.size, "and contains",
 # Here we pass ``with_models=False`` to the population because these groups do
 # not contain the information necessary to create a network in NEST (a valid
 # neuron model).
+print(exc.neuron_type, exc2.neuron_type, inhib.neuron_type)
 ei_pop2 = NeuralPop.from_groups([exc, exc2, inhib], ["e1", "e2", "i"],
                                 with_models=False)
 

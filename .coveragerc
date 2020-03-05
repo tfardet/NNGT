@@ -13,6 +13,7 @@ exclude_lines =
     raise AttributeError
     raise InvalidArgument
     if __name__ == .__main__.:
+    def _repr_pretty_
 
 include = nngt/*
 
