@@ -1039,7 +1039,7 @@ class NeuralGroup(object):
     __num_created = 0
 
     def __new__(cls, *args, **kwargs):
-        obj = super(NeuralGroup, NeuralGroup).__new__(NeuralGroup)
+        obj = super(NeuralGroup, cls).__new__(cls)
 
         # check neuron type for MetaGroup
         neuron_type = None
@@ -1048,7 +1048,7 @@ class NeuralGroup(object):
             neuron_type = kwargs["neuron_type"]
         elif len(args) > 1 and is_integer(args[1]):
             neuron_type = arg[1]
-        else:
+        elif cls == NeuralGroup:
             neuron_type = 1
             _log_message(logger, "WARNING",
                 "In version 2.0, default behavior for NeuralGroup will "
@@ -1284,6 +1284,11 @@ class MetaGroup(NeuralGroup):
 
     __num_created = 0
 
+    # ~ def __new__(cls, *args, **kwargs):
+        # ~ obj = super(MetaGroup, cls).__new__(cls)
+
+        # ~ return obj
+
     def __init__(self, nodes=None, name=None, **kwargs):
         '''
         Calling the class creates a group of neurons.
@@ -1310,6 +1315,10 @@ class MetaGroup(NeuralGroup):
                                         name=name)
 
         MetaGroup.__num_created += 1
+
+    def __str__(self):
+        return "MetaGroup({}size={})".format(
+            self._name + ": " if self._name else "", self.size)
 
     @property
     def excitatory(self):
