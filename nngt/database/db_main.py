@@ -160,7 +160,7 @@ class NNGTdb:
             New neuron entry.
         '''
         nngt_id = group.ids[0]
-        gid = network.nest_gid[nngt_id]
+        gid = network.nest_gids[nngt_id]
         # get the dictionary
         neuron_prop = nest.GetStatus((gid,))[0]
         # update Neuron class accordingly
@@ -192,8 +192,8 @@ class NNGTdb:
             syn_model = network.population.syn_spec[(pre, post)]
             if isinstance(syn_model, dict):
                 syn_model = syn_model.get("model", "static_synapse")
-        source_gids = tuple(network.nest_gid[group_pre.ids])
-        target_gids = tuple(network.nest_gid[group_post.ids])
+        source_gids = tuple(network.nest_gids[group_pre.ids])
+        target_gids = tuple(network.nest_gids[group_post.ids])
         connections = nest.GetConnections(
             synapse_model=syn_model, source=source_gids, target=target_gids)
         # get the dictionary

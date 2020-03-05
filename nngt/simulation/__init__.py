@@ -56,7 +56,13 @@ __all__.extend(_nu.__all__)
 
 # test import of simulation plotting tools
 
-if _nngt._config['with_plot']:
+try:
+    import matplotlib
+    _with_plot = True
+except ImportError:
+    _with_plot = False
+
+if _with_plot:
     from .nest_plot import plot_activity, raster_plot
     __all__.extend(("plot_activity", "raster_plot"))
 

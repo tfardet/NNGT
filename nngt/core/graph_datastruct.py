@@ -535,6 +535,20 @@ class NeuralPop(OrderedDict):
         return ids
 
     @property
+    def nest_gids(self):
+        '''
+        Return the NEST gids of the nodes inside the population.
+
+        .. versionadded:: 1.3
+        '''
+        gids = []
+
+        for g in self.values():
+            gids.extend(g.nest_gids)
+
+        return gids
+
+    @property
     def excitatory(self):
         '''
         Return the ids of all excitatory nodes inside the population.

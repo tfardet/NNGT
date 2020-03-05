@@ -153,8 +153,11 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         lst_rec = nest.GetNodes(
             (0,), properties={'model': 'spike_detector'})[0]
         record = tuple("spikes" for _ in range(len(lst_rec)))
+
     # get gids and groups
-    gids = network.nest_gid if (gids is None and network is not None) else gids
+    gids = network.nest_gids if (gids is None and network is not None) \
+                             else gids
+
     if gids is None:
         gids = []
         for rec in lst_rec:
@@ -546,7 +549,7 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
             if network is not None:
                 for m, (k, v) in zip(markers, network.population.items()):
                     keep = np.where(
-                        np.in1d(senders, network.nest_gid[v.ids]))[0]
+                        np.in1d(senders, network.nest_gids[v.ids]))[0]
                     if len(keep):
                         if label is None:
                             mpl_kwargs['label'] = k

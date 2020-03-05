@@ -47,8 +47,9 @@ before_install:
         sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
         sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
-      fi
+      finest
     # update package repository status (-qq is more quiet)
+    - sudo add-apt-repository ppa:nest-simulator/nest
     - sudo rm -rf /var/lib/apt/lists/*
     - ls /etc/apt/sources.list.d/
     - sudo apt-get update -qq
@@ -56,6 +57,8 @@ before_install:
     - sudo apt-get autoremove
     # requirements for building + installing scipy
     - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev
+    # install nest
+    - sudo apt-get install -y nest
     # install scipy from apt (much faster when possible) and pip if necessary
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-gtk2-dev python-matplotlib python-mpi4py python-tk; fi
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-mpi4py python3-tk; fi

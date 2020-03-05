@@ -79,7 +79,7 @@ if nngt.get_config('with_nest'):
     '''
     Prepare the network and devices.
     '''
-    # send to NEST,
+    # send to NEST
     gids = net.to_nest()
     # excite
     ns.set_poisson_input(gids, rate=100000.)
@@ -95,5 +95,24 @@ if nngt.get_config('with_nest'):
 
     if nngt.get_config('with_plot'):
         ns.plot_activity(
-            recorder, record, network=net, show=True, hist=False,
-            limits=(0,simtime))
+            recorder, record, network=net, show=True, limits=(0,simtime))
+
+    '''
+    A reminder about weights of inhibitory connections
+    '''
+
+    # sign of NNGT versus NEST inhibitory connections
+    igroup = net.population["inhibitory"]
+    # in NNGT
+    iedges = net.get_edges(source_node=igroup.ids)
+    w_nngt = set(net.get_weights(edges=iedges))
+    # in NEST
+    iconn  = nest.GetConnections(
+        source=list(net.population["inhibitory"].nest_gids),
+        target=list(net.population.nest_gids))
+    w_nest = set(nest.GetStatus(iconn, "weight"))
+    # in NNGT, inhibitory weights are positive to work with graph analysis
+    # methods; they are automatically converted to negative weights in NEST
+    print("NNGT weights:", w_nngt, "versus NEST weights", w_nest)
+
+    assert w_nngt == {1} and w_nest == {-1}

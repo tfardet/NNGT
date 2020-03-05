@@ -160,7 +160,6 @@ L6c  = NeuralGroup(idsL6,   neuron_model=nmod, name="L6c",  neuron_type=1)
 # We can also group them by layers using metagroups (for L2/L3/L6 it is not
 # really useful but it gives a coherent notation)
 L2 = MetaGroup(idsL2gc, name="L2")
-print("L2 done")
 L3 = MetaGroup(L3Py.ids + L3I.ids, name="L3")
 L4 = MetaGroup(idsL4gc, name="L4")
 L5 = MetaGroup(L5Py.ids + L5I.ids, name="L5")

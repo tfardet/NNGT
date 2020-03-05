@@ -135,7 +135,15 @@ Generating a network with excitatory and inhibitory neurons:
 Send the network to NEST:
 
 .. literalinclude:: ../examples/basic_nest_network.py
-   :lines: 76-
+   :lines: 76-99
+
+You can check that connections from neurons that are marked as inhibitory are
+automatically assigned a negative sign in NEST:
+
+.. literalinclude:: ../examples/basic_nest_network.py
+   :lines: 104-116
+
+Returns: ``NNGT weights: {1.0} versus NEST weights {-1.0}``.
 
 
 Advanced examples

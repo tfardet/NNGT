@@ -119,7 +119,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
             gids.extend(gids_tmp)
 
     # conversions ids/gids
-    network.nest_gid = ia_nngt_nest
+    network.nest_gids = ia_nngt_nest
     network._id_from_nest_gid = {
         gid: idx for (idx, gid) in zip(ia_nngt_ids, ia_nest_gids)
     }
@@ -170,22 +170,24 @@ def make_nest_network(network, send_only=None, use_weights=True):
                     if nngt.get_config("backend") == "nngt" and with_mpi:
                         comm = nngt.get_config("mpi_comm")
                         for i in range(comm.Get_size()):
-                            sources = comm.bcast(network.nest_gid[local_src_ids], i)
-                            targets = comm.bcast(network.nest_gid[local_tgt_ids], i)
+                            sources = \
+                                comm.bcast(network.nest_gids[local_src_ids], i)
+                            targets = \
+                                comm.bcast(network.nest_gids[local_tgt_ids], i)
                             sspec   = comm.bcast(syn_spec, i)
                             nest.Connect(sources, targets, syn_spec=sspec,
                                          conn_spec=cspec, _warn=False)
                             comm.Barrier()
                     else:
                         nest.Connect(
-                            network.nest_gid[local_src_ids],
-                            network.nest_gid[local_tgt_ids], syn_spec=syn_spec,
-                            conn_spec=cspec, _warn=False)
+                            network.nest_gids[local_src_ids],
+                            network.nest_gids[local_tgt_ids],
+                            syn_spec=syn_spec, conn_spec=cspec, _warn=False)
 
         elif len(src_group.ids) > 0:
             # get NEST gids of sources and targets for each edge
-            src_ids = network.nest_gid[local_csr.nonzero()[0] + min_sidx]
-            tgt_ids = network.nest_gid[local_csr.nonzero()[1]]
+            src_ids = network.nest_gids[local_csr.nonzero()[0] + min_sidx]
+            tgt_ids = network.nest_gids[local_csr.nonzero()[1]]
             # prepare weights
             syn_spec = {
                 WEIGHT: np.repeat(syn_sign, len(src_ids)).astype(float)
