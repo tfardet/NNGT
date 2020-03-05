@@ -81,7 +81,7 @@ There are several ways of settings the weights of a graph which depend on the
 time at which you assign them.
 
 At graph creation
-    You can define the weights by entering a ``weight_prop`` argument to the
+    You can define the weights by entering a ``weights`` argument to the
     constructor; this should be a dictionary containing at least the name of
     the weight distribution: ``{"distrib": "distribution_name"}``.
     If entered, this will be stored as a graph property and used to assign the
@@ -97,7 +97,7 @@ At any given time
     graph.set_weights(elist=edges_to_weigh, distrib="distrib_of_choice", ...)
 
 For more details on weights, other attributes, and available distributions, see
-:ref:`graph_prop`.
+:ref:`graph-prop`.
 
 
 Examples
@@ -113,7 +113,7 @@ Simple generation
 -----------------
 
 .. literalinclude:: ../examples/simple_graphs.py
-   :lines: 36-57
+   :lines: 36-58
 
 
 Networks composed of heterogeneous groups

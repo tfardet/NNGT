@@ -23,7 +23,7 @@
 import numpy as np
 
 import nngt
-from nngt import NeuralGroup, NeuralPop
+from nngt import MetaGroup, NeuralGroup, NeuralPop
 
 
 ''' ------------- #
@@ -158,11 +158,11 @@ L6c  = NeuralGroup(idsL6,   neuron_model=nmod, name="L6c")
 
 # We can also group them by layers using metagroups (for L2/L3/L6 it is not
 # really useful but it gives a coherent notation)
-L2 = NeuralGroup(idsL2gc, neuron_type=None, name="L2")
-L3 = NeuralGroup(L3Py.ids + L3I.ids, neuron_type=None, name="L3")
-L4 = NeuralGroup(idsL4gc, neuron_type=None, name="L4")
-L5 = NeuralGroup(L5Py.ids + L5I.ids, neuron_type=None, name="L5")
-L6 = NeuralGroup(idsL6, neuron_type=None, name="L6")
+L2 = MetaGroup(idsL2gc, name="L2")
+L3 = MetaGroup(L3Py.ids + L3I.ids, name="L3")
+L4 = MetaGroup(idsL4gc, name="L4")
+L5 = MetaGroup(L5Py.ids + L5I.ids, name="L5")
+L6 = MetaGroup(idsL6, name="L6")
 
 # Then we create the population from the groups
 pop_column = NeuralPop.from_groups(
@@ -170,7 +170,7 @@ pop_column = NeuralPop.from_groups(
 
 # We can also add additional meta-groups for pyramidal, granule, and
 # interneurons
-pyr = NeuralGroup(L3Py.ids + L5Py.ids, neuron_type=None, name="pyramidal")
+pyr = MetaGroup(L3Py.ids + L5Py.ids, name="pyramidal")
 pop_column.add_meta_group(pyr)  # add from existing meta-group
 
 pop_column.create_meta_group(L3I.ids + L5I.ids, "interneurons")  # single line

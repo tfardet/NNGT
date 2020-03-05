@@ -39,16 +39,17 @@ avg_deg_sf = 100
 
 # random graphs
 g1 = ng.erdos_renyi(nodes=num_nodes, avg_deg=avg_deg_er)
+
 # the same graph but undirected
 g2 = ng.erdos_renyi(nodes=num_nodes, avg_deg=avg_deg_er, directed=False)
 
 # 2-step generation of a scale-free with Gaussian weight distribution
-
 w = {
     "distribution": "gaussian",
     "avg": 60.,
     "std": 5.
 }
+
 g3 = nngt.Graph(num_nodes, weights=w)
 ng.random_scale_free(2.2, 2.9, avg_deg=avg_deg_sf, from_graph=g3)
 
