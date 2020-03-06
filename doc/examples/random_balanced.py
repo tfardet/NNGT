@@ -38,7 +38,7 @@ import nngt.generation as ng
 Simulation parameters
 '''
 
-num_omp = os.environ.get("OMP", 8)
+num_omp = int(os.environ.get("OMP", 8))
 nngt.set_config("omp", num_omp)
 nngt.set_config("seeds", [10 + i for i in range(num_omp)])
 
