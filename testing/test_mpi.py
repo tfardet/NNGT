@@ -24,6 +24,7 @@
 Test the main methods of the :mod:`~nngt.generation` module.
 """
 
+import os
 import unittest
 
 import numpy as np
@@ -35,6 +36,10 @@ from nngt.lib.connect_tools import _compute_connections
 from base_test import TestBasis, XmlHandler, network_dir
 from test_generation import _distance_rule_theo, _distance_rule_exp
 from tools_testing import foreach_graph
+
+
+if os.environ.get("MPI"):
+    nngt.set_config("mpi", True)
 
 
 # -------- #
@@ -63,10 +68,13 @@ class TestMPI(TestBasis):
 
     @unittest.skipIf(not nngt.get_config('mpi'), "Not using MPI.")
     def gen_graph(self, graph_name):
+        if nngt.on_master_process():
+            print("generating", graph_name)
         di_instructions = self.parser.get_graph_options(graph_name)
         graph = nngt.generate(di_instructions)
         if nngt.on_master_process():
             graph.set_name(graph_name)
+            print(graph.get_name(), "generated")
         return graph, di_instructions
 
     @foreach_graph
@@ -75,6 +83,7 @@ class TestMPI(TestBasis):
         When generating graphs from on of the preconfigured models, check that
         the expected properties are indeed obtained.
         '''
+        print(graph.get_name())
         if nngt.get_config("backend") != "nngt" and nngt.on_master_process():
             print("start graph:", graph.get_name())
             graph_type = instructions["graph_type"]
