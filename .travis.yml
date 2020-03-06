@@ -1,6 +1,6 @@
 language: generic
 
-sudo: required
+os: linux
 dist: bionic
 
 # add toolchains for newer, C++14 supporting gcc-6
@@ -18,7 +18,7 @@ services:
 env:
     - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 
-matrix:
+jobs:
     include:
         - python: "2.7"
           env: GL="gt" PYVERSION="2.7"
