@@ -8,12 +8,10 @@ Test the population and group functions.
 """
 
 import numpy as np
-import pytest
 
 import nngt
 
 
-@pytest.mark.mpi_skip
 def test_groups():
     ids = [i for i in range(10)]
     g1 = nngt.NeuralGroup(ids, neuron_type=None)
@@ -37,7 +35,6 @@ def test_groups():
     assert g3.name == "test"
 
 
-@pytest.mark.mpi_skip
 def test_population():
     # basic population
     ids1 = [i for i in range(10)]
@@ -98,7 +95,6 @@ def test_population():
     assert pop["inhibitory"].ids == pop.inhibitory
 
 
-@pytest.mark.mpi_skip
 def test_failed_pop():
     ids1 = [i for i in range(10)]
     g1   = nngt.NeuralGroup(ids1, neuron_type=None)

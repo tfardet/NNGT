@@ -68,22 +68,19 @@ before_install:
     - sudo pipv install --upgrade pip
     - sudo pipv install -U setuptools
     - sudo pipv install --user cython
-    - sudo pipv install numpy scipy shapely numpy svg.path dxfgrabber pathlib pytest pytest-mpi
+    - sudo pipv install numpy scipy shapely numpy svg.path dxfgrabber pathlib pytest pytest-mpi pytest-cov coveralls
     # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "ig" ]]; then sudo apt-get install python3-cairo libxml2-dev; fi
     - if [[ "$GL" == "ig" ]]; then sudo pipv install python-igraph; fi
     - if [[ "$GL" == "nx" ]]; then sudo pipv install networkx; fi
-    # testing and coverage analysis
-    - sudo pipv install cov-core coverage coveralls
 
 install: sudo pipv install -e .
 
 script:
-    - coverage run -p -m pytest testing
-    - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest --with-mpi testing
-    - coverage combine
+    - pytest --cov-config=.coveragerc --cov=nngt testing
+    - export OMP=4 && pytest --cov-config=.coveragerc --cov=nngt --cov-append testing
+    - export OMP=1 && export MPI=1 && mpirun -n 4 pytest --cov-config=.coveragerc --cov=nngt --cov-append --with-mpi testing
 
 after_success: coveralls
