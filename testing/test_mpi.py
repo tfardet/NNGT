@@ -76,6 +76,7 @@ class TestMPI(TestBasis):
         the expected properties are indeed obtained.
         '''
         if nngt.get_config("backend") != "nngt" and nngt.on_master_process():
+            print("start graph:", graph.get_name())
             graph_type = instructions["graph_type"]
             ref_result = self.theo_prop[graph_type](instructions)
             computed_result = self.exp_prop[graph_type](graph, instructions)
@@ -95,6 +96,7 @@ class TestMPI(TestBasis):
                 self.assertTrue(err <= tolerance,
                     "Distance distribution for graph {} failed:\nerr = {} > {}\
                     ".format(graph.name, err, tolerance))
+            print(graph.get_name(), "done")
         elif nngt.get_config("backend") == "nngt":
             from mpi4py import MPI
             comm       = MPI.COMM_WORLD

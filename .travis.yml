@@ -81,6 +81,6 @@ install: sudo pipv install -e .
 script:
     - pytest --cov-config=.coveragerc --cov=nngt testing
     - export OMP=4 && pytest --cov-config=.coveragerc --cov=nngt --cov-append testing
-    - export OMP=1 && export MPI=1 && mpirun -n 4 pytest --cov-config=.coveragerc --cov=nngt --cov-append --with-mpi testing
+    - export OMP=1 && export MPI=1 && mpirun -n 4 pytest -s --cov-config=.coveragerc --cov=nngt --cov-append --with-mpi testing
 
 after_success: coveralls
