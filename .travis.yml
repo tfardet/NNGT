@@ -58,7 +58,7 @@ before_install:
     # requirements for building + installing scipy
     - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev
     # install nest
-    - sudo apt-get install -y nest
+    - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y nest; fi
     # install scipy from apt (much faster when possible) and pip if necessary
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-gtk2-dev python-matplotlib python-mpi4py python-tk; fi
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-mpi4py python3-tk; fi

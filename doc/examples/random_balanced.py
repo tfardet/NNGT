@@ -22,6 +22,8 @@
 Use NNGT to analyze NEST-simulated activity of a random balanced network.
 """
 
+import os
+
 import numpy as np
 from scipy.special import lambertw
 
@@ -36,8 +38,9 @@ import nngt.generation as ng
 Simulation parameters
 '''
 
-nngt.set_config("omp", 8)
-nngt.set_config("seeds", [11, 12, 13, 14, 15, 16, 17, 18])
+num_omp = os.environ.get("OMP", 8)
+nngt.set_config("omp", num_omp)
+nngt.set_config("seeds", [10 + i for i in range(num_omp)])
 
 dt = 0.1         # the resolution in ms
 simtime = 1000.  # Simulation time in ms
