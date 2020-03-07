@@ -81,7 +81,7 @@ install: sudo pythonv setup.py install
 script:
     - coverage run -p -m pytest testing
     - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest --with-mpi testing
+    - export OMP=1 && export MPI=1 && mpirun -n 2 coverage run -p -m pytest --with-mpi testing
     - coverage combine
 
 after_success: coveralls
