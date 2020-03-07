@@ -68,13 +68,10 @@ class TestMPI(TestBasis):
 
     @unittest.skipIf(not nngt.get_config('mpi'), "Not using MPI.")
     def gen_graph(self, graph_name):
-        if nngt.on_master_process():
-            print("generating", graph_name)
         di_instructions = self.parser.get_graph_options(graph_name)
         graph = nngt.generate(di_instructions)
         if nngt.on_master_process():
             graph.set_name(graph_name)
-            print(graph.get_name(), "generated")
         return graph, di_instructions
 
     @foreach_graph
@@ -83,18 +80,18 @@ class TestMPI(TestBasis):
         When generating graphs from on of the preconfigured models, check that
         the expected properties are indeed obtained.
         '''
-        print(graph.get_name())
         if nngt.get_config("backend") != "nngt" and nngt.on_master_process():
-            print("start graph:", graph.get_name())
             graph_type = instructions["graph_type"]
             ref_result = self.theo_prop[graph_type](instructions)
             computed_result = self.exp_prop[graph_type](graph, instructions)
+
             if graph_type == 'distance_rule':
                 # average degree
                 self.assertTrue(
                     ref_result[0] == computed_result[0],
                     "Avg. deg. for graph {} failed:\nref = {} vs exp {}\
                     ".format(graph.name, ref_result[0], computed_result[0]))
+
                 # average error on distance distribution
                 sqd = np.square(
                     np.subtract(ref_result[1:], computed_result[1:]))
@@ -102,10 +99,10 @@ class TestMPI(TestBasis):
                 err = np.sqrt(avg_sqd).mean()
                 tolerance = (self.tolerance if instructions['rule'] == 'lin'
                              else 0.25)
+
                 self.assertTrue(err <= tolerance,
                     "Distance distribution for graph {} failed:\nerr = {} > {}\
                     ".format(graph.name, err, tolerance))
-            print(graph.get_name(), "done")
         elif nngt.get_config("backend") == "nngt":
             from mpi4py import MPI
             comm       = MPI.COMM_WORLD

@@ -56,9 +56,22 @@ if nngt.get_config("multithreading"):
             import cython
             import pyximport
 
-            # barrier in case of first dynamic load with MPI
+            try:
+                from mpi4py import MPI
+                comm = MPI.COMM_WORLD
+                comm.bcast(pyximport.install())
+            except:
+                if nngt.get_config("mpi"):
+                    raise RuntimeError("Cannot safely compile with MPI.")
+
+                pyximport.install()
+
+            # wait for compilation to finish
+            nngt.lib.mpi_barrier()
+
             if nngt.on_master_process():
                 from .cconnect import *
+    
             nngt.lib.mpi_barrier()
 
             from .cconnect import *
