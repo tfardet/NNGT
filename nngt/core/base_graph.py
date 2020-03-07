@@ -23,6 +23,7 @@
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 from abc import ABCMeta, abstractmethod, abstractproperty
+from six import add_metaclass
 from weakref import ref
 import logging
 
@@ -75,9 +76,8 @@ class BaseProperty(dict):
 # GraphInterface #
 # -------------- #
 
-class GraphInterface(nngt._config["graph"], metaclass=ABCMeta):
-
-    __metaclass__ = ABCMeta
+@add_metaclass(ABCMeta)
+class GraphInterface(nngt._config["graph"]):
 
     #------------------------------------------------------------------#
     # Class methods and attributes
