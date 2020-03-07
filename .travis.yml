@@ -64,7 +64,7 @@ before_install:
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-mpi4py python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
-    - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo -H ' && alias pipv=pip; else alias sudo='sudo -H ' && alias pipv=pip3; fi
+    - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo -H ' && alias pipv=pip && alias pythonv=python2; else alias sudo='sudo -H ' && alias pipv=pip3 && alias pythonv=python3; fi
     - sudo pipv install --upgrade pip
     - sudo pipv install -U setuptools
     - sudo pipv install --user cython
@@ -76,12 +76,11 @@ before_install:
     - if [[ "$GL" == "ig" ]]; then sudo pipv install python-igraph; fi
     - if [[ "$GL" == "nx" ]]; then sudo pipv install networkx; fi
 
-install: sudo pipv install -e .
+install: sudo pythonv setup.py install
 
 script:
-    #~ - pytest --cov-config=.coveragerc --cov=nngt testing
-    #~ - export OMP=4 && pytest --cov-config=.coveragerc --cov=nngt --cov-append testing
-    #~ - export OMP=1 && export MPI=1 && mpirun -n 4 pytest -s --cov-config=.coveragerc --cov=nngt --cov-append --with-mpi testing
-    - export OMP=1 && export MPI=1 && mpirun -n 4 python testing/test_mpi.py
+    - pytest --cov-config=.coveragerc --cov=nngt testing
+    - export OMP=4 && pytest --cov-config=.coveragerc --cov=nngt --cov-append testing
+    - export OMP=1 && export MPI=1 && mpirun -n 4 pytest -s --cov-config=.coveragerc --cov=nngt --cov-append --with-mpi testing
 
 after_success: coveralls
