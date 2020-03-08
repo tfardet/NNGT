@@ -66,9 +66,9 @@ before_install:
     - shopt -s expand_aliases
     - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo -H ' && alias pipv=pip && alias pythonv=python2; else alias sudo='sudo -H ' && alias pipv=pip3 && alias pythonv=python3; fi
     - sudo pipv install --upgrade pip
-    - sudo pipv install -U setuptools
-    - sudo pipv install --user cython
-    - sudo pipv install six numpy scipy shapely numpy svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
+    - sudo pipv install --upgrade setuptools
+    - sudo pipv install --user --upgrade cython
+    - sudo pipv install --upgrade six numpy scipy shapely numpy svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
     # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
