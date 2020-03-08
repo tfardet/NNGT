@@ -16,6 +16,7 @@ from os import environ
 from os.path import dirname, abspath, isfile, join
 import unittest
 
+import pytest
 from scipy.special import lambertw
 
 import nngt
@@ -38,6 +39,7 @@ glob = {"lambertw": lambertw}
 # Test class #
 # ---------- #
 
+@pytest.mark.mpi_skip
 class TestExamples(unittest.TestCase):
     
     '''
@@ -61,7 +63,6 @@ class TestExamples(unittest.TestCase):
         return "test_examples"
 
     @unittest.skipIf(int(environ.get("OMP", 1)) == 1, 'Check only with OMP')
-    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     def test_examples(self):
         '''
         Test that the example files execute correctly.

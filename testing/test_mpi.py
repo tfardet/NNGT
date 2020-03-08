@@ -28,6 +28,7 @@ import os
 import unittest
 
 import numpy as np
+import pytest
 
 import nngt
 from nngt.analysis import *
@@ -46,6 +47,7 @@ if os.environ.get("MPI"):
 # Test MPI #
 # -------- #
 
+@pytest.mark.mpi_skip
 class TestMPI(TestBasis):
 
     '''

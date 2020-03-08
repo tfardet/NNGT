@@ -1298,11 +1298,6 @@ class MetaGroup(NeuralGroup):
 
     __num_created = 0
 
-    # ~ def __new__(cls, *args, **kwargs):
-        # ~ obj = super(MetaGroup, cls).__new__(cls)
-
-        # ~ return obj
-
     def __init__(self, nodes=None, name=None, **kwargs):
         '''
         Calling the class creates a group of neurons.
