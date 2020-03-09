@@ -21,5 +21,4 @@ omit =
     **/setup.py
     nngt/database/*
     nngt/testing/*
-    nngt/simulation/*
     nngt/lib/db_tools.py
