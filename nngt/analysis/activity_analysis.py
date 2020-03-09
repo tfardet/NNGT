@@ -294,9 +294,9 @@ def _set_data_nodes(network, data, nodes):
     if data is None:
         data = [[], []]
     if nodes is None:
-        nodes = network.nest_gid
+        nodes = network.nest_gids
     else:
-        nodes = network.nest_gid[nodes]
+        nodes = network.nest_gids[nodes]
     return data, nodes
 
 

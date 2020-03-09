@@ -249,8 +249,8 @@ from .lib.io_tools import load_from_file, save_to_file
 from .lib.rng_tools import seed
 from .lib.test_functions import on_master_process, num_mpi_processes
 
-from .core.graph_datastruct import (NeuralPop, NeuralGroup, MetaGroup,
-                                    GroupProperty)
+from .core.graph_datastruct import (GroupProperty, MetaGroup, NeuralGroup,
+                                    NeuralPop)
 from .core.graph_classes import (Graph, SpatialGraph, Network,
                                  SpatialNetwork)
 from .generation.graph_connectivity import generate

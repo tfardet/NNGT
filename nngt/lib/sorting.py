@@ -86,8 +86,8 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
     the neurons, i.e. an integer between 1 and N.
     '''
     from nngt.analysis import node_attributes, get_b2
-    min_nest_gid = network.nest_gid.min()
-    max_nest_gid = network.nest_gid.max()
+    min_nest_gid = network.nest_gids.min()
+    max_nest_gid = network.nest_gids.max()
     sorting = np.zeros(max_nest_gid + 1)
     attribute = None
     sorted_ids = None
@@ -157,7 +157,7 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
     if network.is_network():
         num_sorted = 1
         for group in network.population.values():
-            gids = network.nest_gid[group.ids]
+            gids = network.nest_gids[group.ids]
             order = np.argsort(np.argsort(np.argsort(sorted_ids)[group.ids]))
             sorting[gids] = num_sorted + order
             num_sorted += len(group.ids)

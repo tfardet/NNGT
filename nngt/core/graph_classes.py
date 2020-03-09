@@ -1429,7 +1429,7 @@ class Network(Graph):
         pop = nngt.NeuralPop.from_groups([group])
         # create the network
         net = cls(population=pop, **kwargs)
-        net.nest_gid = np.array(gids)
+        net.nest_gids = np.array(gids)
         net._id_from_nest_gid = {gid: i for i, gid in enumerate(gids)}
         net.to_nest = not_implemented
         if get_connections:

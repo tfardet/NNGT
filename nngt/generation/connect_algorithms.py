@@ -124,7 +124,7 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
             variables_i.extend(ia_edge[with_v:int(not idx)])
             ecurrent = len(variables_i)
         ia_edges[i*degree:(i+1)*degree, idx] = v
-        rm = np.argwhere(variables == v)[0]
+        rm = np.where(variables == v)[0]
         rm = rm[0] if len(rm) else -1
         var_tmp = ( np.array(variables, copy=True) if rm == -1 else
                     np.concatenate((variables[:rm], variables[rm+1:])) )
@@ -177,7 +177,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
             with_v = np.where(ia_edge[:,idx] == v)
             variables_i.extend(ia_edge[with_v:int(not idx)])
             ecurrent = len(variables_i)
-        rm = np.argwhere(variables == v)[0]
+        rm = np.where(variables == v)[0]
         rm = rm[0] if len(rm) else -1
         var_tmp = ( np.array(variables, copy=True) if rm == -1 else
                     np.concatenate((variables[:rm], variables[rm+1:])) )

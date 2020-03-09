@@ -96,7 +96,7 @@ def num_mpi_processes():
         return 1
 
 
-def mpi_barrier(func):
+def mpi_barrier(func=None):
     def wrapper(func, *args, **kwargs):
         try:
             from mpi4py import MPI
@@ -104,8 +104,16 @@ def mpi_barrier(func):
             comm.Barrier()
         except ImportError:
             pass
-        return func(*args, **kwargs)
-    return decorate(func, wrapper)
+
+        if func is not None:
+            return func(*args, **kwargs)
+
+    # act as a real decorator
+    if func is not None:
+        return decorate(func, wrapper)
+
+    # otherwise just execute the barrier
+    wrapper(None)
 
 
 def mpi_checker(logging=False):

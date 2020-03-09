@@ -38,7 +38,6 @@ try:
     version = setuptools.__version__
     version = int(version[:version.index(".")])
     with_cython = (version >= 18)
-    from _cpp_cleaner import clean_cpp
 except ImportError as e:
     with_cython = False
 
@@ -123,7 +122,6 @@ extensions = Extension(
 
 if with_cython:
     extensions = cythonize(extensions)
-    clean_cpp(dirname + 'cconnect.cpp')
 else:
     extensions = [extensions]
 

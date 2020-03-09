@@ -535,6 +535,20 @@ class NeuralPop(OrderedDict):
         return ids
 
     @property
+    def nest_gids(self):
+        '''
+        Return the NEST gids of the nodes inside the population.
+
+        .. versionadded:: 1.3
+        '''
+        gids = []
+
+        for g in self.values():
+            gids.extend(g.nest_gids)
+
+        return gids
+
+    @property
     def excitatory(self):
         '''
         Return the ids of all excitatory nodes inside the population.
@@ -1039,7 +1053,7 @@ class NeuralGroup(object):
     __num_created = 0
 
     def __new__(cls, *args, **kwargs):
-        obj = super(NeuralGroup, NeuralGroup).__new__(NeuralGroup)
+        obj = super(NeuralGroup, cls).__new__(cls)
 
         # check neuron type for MetaGroup
         neuron_type = None
@@ -1048,7 +1062,7 @@ class NeuralGroup(object):
             neuron_type = kwargs["neuron_type"]
         elif len(args) > 1 and is_integer(args[1]):
             neuron_type = arg[1]
-        else:
+        elif cls == NeuralGroup:
             neuron_type = 1
             _log_message(logger, "WARNING",
                 "In version 2.0, default behavior for NeuralGroup will "
@@ -1310,6 +1324,10 @@ class MetaGroup(NeuralGroup):
                                         name=name)
 
         MetaGroup.__num_created += 1
+
+    def __str__(self):
+        return "MetaGroup({}size={})".format(
+            self._name + ": " if self._name else "", self.size)
 
     @property
     def excitatory(self):

@@ -84,7 +84,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
             degree_i += len(variables_i)
             assert degree_i < max_degree, "Required degree is greater that " +\
                 "maximum possible degree {}.".format(max_degree)
-        rm = np.argwhere(variables == v)[0]
+        rm = np.where(variables == v)[0]
         rm = rm[0] if len(rm) else -1
         var_tmp = (np.array(variables, copy=True) if rm == -1 else
                    np.concatenate((variables[:rm], variables[rm+1:])))

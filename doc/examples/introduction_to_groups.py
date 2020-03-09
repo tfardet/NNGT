@@ -23,7 +23,7 @@
 import numpy as np
 
 import nngt
-from nngt import NeuralGroup, NeuralPop
+from nngt import MetaGroup, NeuralGroup, NeuralPop
 
 
 ''' ------------- #
@@ -56,8 +56,8 @@ named_group = NeuralGroup(500, name="named_group")
 print("I'm a named group!", named_group, "\n")
 
 # more importantly, they can store whether neurons are excitatory or inhibitory
-exc   = NeuralGroup(800, neuron_type=1)   # excitatory group (optional)
-exc2  = NeuralGroup(800)                  # also excitatory
+exc   = NeuralGroup(800, neuron_type=1)   # excitatory group
+exc2  = NeuralGroup(800, neuron_type=1)   # also excitatory
 inhib = NeuralGroup(200, neuron_type=-1)  # inhibitory group
 print("'exc2' is an excitatory group:", exc2.neuron_type == 1,
       "/ 'inhib' is an inhibitory group:", inhib.neuron_type == -1, "\n")
@@ -67,7 +67,7 @@ print("'exc2' is an excitatory group:", exc2.neuron_type == 1,
 # Complete groups for NEST simulations #
 # ---------------------------------- '''
 
-# to make a complete group, one must include a valid neuronal model and
+# to make a complete group, one must include a valid neuronal type, model and
 # (optionally) associated parameters
 
 pyr = NeuralGroup(800, neuron_type=1, neuron_model="iaf_psc_alpha",
@@ -149,21 +149,21 @@ idsL4gc = range(300, 400)
 idsL5py, idsL5i = range(400, 500), range(500, 600)
 idsL6 = range(600, 700)
 
-L2GC = NeuralGroup(idsL2gc, neuron_model=nmod, name="L2GC")
-L3Py = NeuralGroup(idsL3py, neuron_model=nmod, name="L3Py")
-L3I  = NeuralGroup(idsL3i,  neuron_model=nmod, name="L3I", neuron_type=-1)
-L4GC = NeuralGroup(idsL4gc, neuron_model=nmod, name="L4GC")
-L5Py = NeuralGroup(idsL5py, neuron_model=nmod, name="L5Py")
-L5I  = NeuralGroup(idsL5i,  neuron_model=nmod, name="L5I", neuron_type=-1)
-L6c  = NeuralGroup(idsL6,   neuron_model=nmod, name="L6c")
+L2GC = NeuralGroup(idsL2gc, neuron_model=nmod, name="L2GC", neuron_type=1)
+L3Py = NeuralGroup(idsL3py, neuron_model=nmod, name="L3Py", neuron_type=1)
+L3I  = NeuralGroup(idsL3i,  neuron_model=nmod, name="L3I",  neuron_type=-1)
+L4GC = NeuralGroup(idsL4gc, neuron_model=nmod, name="L4GC", neuron_type=1)
+L5Py = NeuralGroup(idsL5py, neuron_model=nmod, name="L5Py", neuron_type=1)
+L5I  = NeuralGroup(idsL5i,  neuron_model=nmod, name="L5I",  neuron_type=-1)
+L6c  = NeuralGroup(idsL6,   neuron_model=nmod, name="L6c",  neuron_type=1)
 
 # We can also group them by layers using metagroups (for L2/L3/L6 it is not
 # really useful but it gives a coherent notation)
-L2 = NeuralGroup(idsL2gc, neuron_type=None, name="L2")
-L3 = NeuralGroup(L3Py.ids + L3I.ids, neuron_type=None, name="L3")
-L4 = NeuralGroup(idsL4gc, neuron_type=None, name="L4")
-L5 = NeuralGroup(L5Py.ids + L5I.ids, neuron_type=None, name="L5")
-L6 = NeuralGroup(idsL6, neuron_type=None, name="L6")
+L2 = MetaGroup(idsL2gc, name="L2")
+L3 = MetaGroup(L3Py.ids + L3I.ids, name="L3")
+L4 = MetaGroup(idsL4gc, name="L4")
+L5 = MetaGroup(L5Py.ids + L5I.ids, name="L5")
+L6 = MetaGroup(idsL6, name="L6")
 
 # Then we create the population from the groups
 pop_column = NeuralPop.from_groups(
@@ -171,7 +171,7 @@ pop_column = NeuralPop.from_groups(
 
 # We can also add additional meta-groups for pyramidal, granule, and
 # interneurons
-pyr = NeuralGroup(L3Py.ids + L5Py.ids, neuron_type=None, name="pyramidal")
+pyr = MetaGroup(L3Py.ids + L5Py.ids, name="pyramidal")
 pop_column.add_meta_group(pyr)  # add from existing meta-group
 
 pop_column.create_meta_group(L3I.ids + L5I.ids, "interneurons")  # single line

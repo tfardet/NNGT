@@ -1,6 +1,6 @@
 language: generic
 
-sudo: required
+os: linux
 dist: bionic
 
 # add toolchains for newer, C++14 supporting gcc-6
@@ -18,7 +18,7 @@ services:
 env:
     - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 
-matrix:
+jobs:
     include:
         - python: "2.7"
           env: GL="gt" PYVERSION="2.7"
@@ -49,6 +49,7 @@ before_install:
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
       fi
     # update package repository status (-qq is more quiet)
+    - sudo add-apt-repository -y ppa:nest-simulator/nest
     - sudo rm -rf /var/lib/apt/lists/*
     - ls /etc/apt/sources.list.d/
     - sudo apt-get update -qq
@@ -56,31 +57,32 @@ before_install:
     - sudo apt-get autoremove
     # requirements for building + installing scipy
     - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev
+    # install nest (segfaulting)
+    # - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y nest; fi
     # install scipy from apt (much faster when possible) and pip if necessary
     - if [[ "$PYVERSION" == "2.7" ]]; then sudo apt-get install -y python-gtk2-dev python-matplotlib python-mpi4py python-tk; fi
     - if [[ "$PYVERSION" == "3.x" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-mpi4py python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
-    - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo -H ' && alias pipv=pip; else alias sudo='sudo -H ' && alias pipv=pip3; fi
+    - if [[ "$PYVERSION" == "2.7" ]]; then alias sudo='sudo -H ' && alias pipv=pip && alias pythonv=python2; else alias sudo='sudo -H ' && alias pipv=pip3 && alias pythonv=python3; fi
     - sudo pipv install --upgrade pip
-    - sudo pipv install -U setuptools
-    - sudo pipv install --user cython
-    - sudo pipv install numpy scipy shapely numpy svg.path dxfgrabber pathlib pytest pytest-mpi
+    - sudo pipv install --upgrade setuptools
+    - sudo pipv install --user --upgrade cython
+    - sudo pipv install --upgrade six numpy scipy shapely numpy svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
     # install graph-tool, igraph, and networkx
     - if [[ "$PYVERSION" == "2.7" && "$GL" == "gt" ]]; then sudo apt-get install -y python-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
     - if [[ "$PYVERSION" == "3.x" && "$GL" == "ig" ]]; then sudo apt-get install python3-cairo libxml2-dev; fi
     - if [[ "$GL" == "ig" ]]; then sudo pipv install python-igraph; fi
     - if [[ "$GL" == "nx" ]]; then sudo pipv install networkx; fi
-    # testing and coverage analysis
-    - sudo pipv install cov-core coverage coveralls
 
-install: sudo pipv install -e .
+install: sudo pythonv setup.py install
 
 script:
     - coverage run -p -m pytest testing
     - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun -n 4 coverage run -p -m pytest --with-mpi testing
+    # MPI works only for py3
+    - if [[ "$PYVERSION" == "3.x" ]]; then export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing; fi
     - coverage combine
 
 after_success: coveralls

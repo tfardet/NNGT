@@ -126,7 +126,15 @@ command: ``gids = net.to_nest()``, and the NEST gids are returned.
 
 In order to access the gids from each group, you can do: ::
 
-    oscill_gids = net.nest_gid[oscill.ids]
+    oscill_gids = net.nest_gids[oscill.ids]
+
+or directly::
+
+    oscill_gids = oscill.nest_gids
+
+As shown in ":ref:`nest_net`", synaptic strength from inhibitory neurons in
+NNGT are positive (for compatibility with graph analysis tools) but they are
+automatically converted to negative values when the network is created in NEST.
 
 
 Changing the parameters of neurons
@@ -157,6 +165,7 @@ It is possible to randomize the neuronal parameters through the
 This sets the parameters using a specified distribution and stores their
 values inside the network nodes' attributes.
 
+----
 
 **Go to other tutorials:**
 

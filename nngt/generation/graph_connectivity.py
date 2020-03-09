@@ -54,12 +54,34 @@ if nngt.get_config("multithreading"):
     except Exception as e:
         try:
             import cython
-            import pyximport; pyximport.install()
+            import pyximport
+
+            try:
+                from mpi4py import MPI
+                comm = MPI.COMM_WORLD
+                comm.bcast(pyximport.install())
+            except:
+                if nngt.get_config("mpi"):
+                    raise RuntimeError("Cannot safely compile with MPI.")
+
+                pyximport.install()
+
+            # wait for compilation to finish
+            nngt.lib.mpi_barrier()
+
+            if nngt.on_master_process():
+                from .cconnect import *
+    
+            nngt.lib.mpi_barrier()
+
             from .cconnect import *
             from .connect_algorithms import price_network
+
             using_mt_algorithms = True
+
             _log_message(logger, "DEBUG", str(e) + "\n\tCompiled "
                          "multithreaded algorithms on-the-run.")
+
             nngt.set_config('multithreading', True, silent=True)
         except Exception as e2:
             _log_message(

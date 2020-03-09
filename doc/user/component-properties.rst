@@ -125,6 +125,11 @@ possible edges are present in a graph.
 To easily access the desired edges, it is thus recommended to use the
 :func:`~nngt.Graph.get_edges` function.
 
+Edge attributes can then be created and recovered using similar functions as
+node attributes, namely :func:`~nngt.Graph.new_edge_attribute`,
+:func:`~nngt.Graph.set_edge_attribute`, and
+:func:`~nngt.Graph.get_edge_attributes`.
+
 
 Weights and delays
 ------------------
@@ -140,11 +145,28 @@ Both attributes can either be set upon graph creation, through the ``weights``
 and ``delays`` keyword arguments, or any any time using
 :func:`~nngt.Graph.set_weights` and :func:`~nngt.Graph.set_delays`.
 
+.. note::
+    When working with NEST and using excitatory and inhibitory neurons via
+    groups (see :ref:`neural_groups`), the weight of all connections
+    (including inhibitory connections) should be positive: the excitatory or
+    inhibitory type of the synapses will be set automatically when the NEST
+    network is created based on the type of the source neuron.
+
+    In general, it is also not a good idea to use negative weights directly
+    since standard graph analysis methods cannot handle them.
+    If you are not working with biologically realistic neurons and want to
+    set some inhibitory connections that do not depend on a "neuronal type",
+    use the :func:`~nngt.Graph.set_types` method.
+
 Let us see how the :func:`~nngt.Graph.get_edges` function can be used to
 facilitate the creation of various weight patterns:
 
 .. literalinclude:: ../examples/attributes.py
    :lines: 119-149
+
+Note that here, the weights were generated randomly from specific
+distributions; for more details on the available distributions and their
+parameters, see `Attributes and distributions`_.
 
 
 Custom edge attributes
@@ -153,6 +175,40 @@ Custom edge attributes
 Non-default edge attributes (besides "weights" or "delays") can also be created
 through smilar functions as node attributes:
 
+.. literalinclude:: ../examples/attributes.py
+   :lines: 84-89,157-184
+
+
+Attributes and distributions
+============================
+
+Node and edge attributes can be generated based on the following
+distributions:
+
+uniform
+   - a flat distribution with identical probability for all values,
+   - parameters: ``"lower"`` and ``"upper"`` values.
+
+delta
+   - the Dirac delta "distribution", where a single value can be drawn,
+   - parameters: ``"value"``.
+
+Gaussian
+   - the normal distribution :math:`P(x) = P_0 e^{(x - \mu)^2/(2\sigma^2)}`
+   - parameters: ``"avg"`` (:math:`\mu`) and ``"std"`` (:math:`\sigma`).
+
+lognormal
+   - :math:`P(x) = P_0 e^{(\log(x) - \mu)^2/(2\sigma^2)}`
+   - parameters: ``"position"`` (:math:`\mu`) and ``"scale"`` (:math:`\sigma`).
+
+linearly correlated
+   - a distribution which evolves linearly between two values depending on the
+     value of a reference variable
+   - parameters: ``"correl_attribute"`` (the reference variable, usually
+     another attribute), ``"lower"`` and ``"upper"``, the minimum and maximum
+     values.
+
+----
 
 **Go to other tutorials:**
 

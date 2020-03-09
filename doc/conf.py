@@ -502,12 +502,12 @@ napoleon_use_rtype = False
 imported_members = True
 
 intersphinx_mapping = {
-    'gt': ('http://graph-tool.skewed.de/static/doc/', None),
-    'ipython': ('http://ipython.org/ipython-doc/stable/', None),
-    'matplotlib': ('http://matplotlib.org/', None),
+    'gt': ('https://graph-tool.skewed.de/static/doc/', None),
+    'ipython': ('https://ipython.org/ipython-doc/stable/', None),
+    'matplotlib': ('https://matplotlib.org/', None),
     'networkx': ('https://networkx.github.io/documentation/stable/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'python': ('https://docs.python.org/3/', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'shapely': ('https://shapely.readthedocs.io/en/latest/', None),
 }

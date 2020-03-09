@@ -155,7 +155,7 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
     `nodes` and `gids` are not compatible, only one one the two arguments can
     be used in any given call to `set_minis`.
     '''
-    assert network.nest_gid is not None, \
+    assert network.nest_gids is not None, \
         "Create the NEST network before calling `set_minis`."
 
     # find the target nodes' gids
@@ -163,11 +163,11 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
         raise InvalidArgument('Only one of `nodes` and `gids` can be set.')
     elif nodes is None and gids is None:
         nodes = range(0, network.node_nb())
-        gids = network.nest_gid
+        gids = network.nest_gids
     elif gids is not None:
         nodes = [network.id_from_nest_gid(gid) for gid in gids]
     elif nodes is not None:
-        gids = network.nest_gid[nodes]
+        gids = network.nest_gids[nodes]
 
     if nonstring_container(weight):
         assert len(weight) == len(gids)
@@ -272,7 +272,7 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
         gids = list(set(gids))
     else:
         gids.extend(
-            network.nest_gid if nodes is None else network.nest_gid[nodes])
+            network.nest_gids if nodes is None else network.nest_gids[nodes])
     num_neurons = len(gids)
     for key, val in instructions.items():
         state = _generate_random(num_neurons, val)
