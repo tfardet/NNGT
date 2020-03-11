@@ -138,7 +138,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
     axis.set_ylabel("Node count")
     title_start = (deg_type[0].upper() + deg_type[1:] + '-d'
                    if isinstance(deg_type, str) else 'D')
-    if title is not "":
+    if title != "":
         str_title = title
         if title is None:
             str_title = "{}egree distribution for {}".format(

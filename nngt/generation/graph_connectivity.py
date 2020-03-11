@@ -256,6 +256,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
                     from_graph=None, **kwargs):
     """
     Generate a random graph with constant in- or out-degree.
+
     @todo: adapt it for undirected graphs!
 
     Parameters
@@ -814,6 +815,12 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
+
+    Note
+    ----
+    For graph generation methods which set the properties of a
+    specific degree (e.g. :func:`~nngt.generation.gaussian_degree`), the
+    nodes which have their property sets are the `sources`.
     '''
     if network.is_spatial() and 'positions' not in kwargs:
         kwargs['positions'] = network.get_positions().astype(np.float32).T
@@ -831,12 +838,14 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
 
     # Attributes are not set by subfunctions
     attr = {}
+
     if 'weights' in kwargs:
         attr['weight'] = kwargs['weights']
     if 'delays' in kwargs:
         attr['delay'] = kwargs['delays']
     if network.is_spatial():
         attr['distance'] = distance
+
     network.new_edges(elist, attributes=attr, check_edges=False)
 
     if not network._graph_type.endswith('_connect'):
@@ -877,6 +886,12 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
+
+    Note
+    ----
+    For graph generation methods which set the properties of a
+    specific degree (e.g. :func:`~nngt.generation.gaussian_degree`), the
+    nodes which have their property sets are the `source_type`.
     '''
     elist, source_ids, target_ids = None, [], []
     if network.is_spatial() and 'positions' not in kwargs:
@@ -940,8 +955,14 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
+
+    Note
+    ----
+    For graph generation methods which set the properties of a
+    specific degree (e.g. :func:`~nngt.generation.gaussian_degree`), the
+    groups which have their property sets are the `source_groups`.
     '''
-    elist, source_ids, target_ids = None, [], []
+    source_ids, target_ids = [], []
 
     if network.is_spatial():
         if 'positions' not in kwargs:

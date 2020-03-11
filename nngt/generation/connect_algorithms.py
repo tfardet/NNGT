@@ -146,19 +146,22 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     # switch values to float
     avg = float(avg)
     std = float(std)
+
     assert avg >= 0, "A positive value is required for `avg`."
     assert std >= 0, "A positive value is required for `std`."
 
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
+
     # type of degree
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
-    # edges
-    num_degrees = num_target if degree_type == "in" else num_source
+
+    # edges (we set the in, out, or total degree of the source neurons)
     lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_degrees), 0.)).astype(int)
+        np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
+
     edges = np.sum(lst_deg)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
@@ -167,30 +170,36 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     ia_edges = np.zeros((num_etotal+edges, 2), dtype=int)
     if num_etotal:
         ia_edges[:num_etotal,:] = existing_edges
-    idx = 0 if b_out else 1 # differenciate source / target
-    variables = target_ids if b_out else source_ids  # nodes picked randomly
 
-    for i,v in enumerate(target_ids):
+    idx = 0 if b_out else 1  # differenciate source / target
+
+    for i, v in enumerate(source_ids):
         degree_i = lst_deg[i]
-        edges_i, ecurrent, variables_i = np.zeros((degree_i,2)), 0, []
+        edges_i, ecurrent, variables_i = np.zeros((degree_i, 2)), 0, []
+
         if existing_edges is not None:
             with_v = np.where(ia_edge[:,idx] == v)
             variables_i.extend(ia_edge[with_v:int(not idx)])
             ecurrent = len(variables_i)
-        rm = np.where(variables == v)[0]
+
+        rm = np.where(target_ids == v)[0]
         rm = rm[0] if len(rm) else -1
-        var_tmp = ( np.array(variables, copy=True) if rm == -1 else
-                    np.concatenate((variables[:rm], variables[rm+1:])) )
+        var_tmp = (target_ids if rm == -1 else
+                   np.concatenate((target_ids[:rm], target_ids[rm+1:])))
+
         num_var_i = len(var_tmp)
         ia_edges[num_etotal:num_etotal+degree_i, idx] = v
+
         while len(variables_i) != degree_i:
-            var = var_tmp[randint(0, num_var_i, degree_i-ecurrent)]
+            var = np.random.choice(var_tmp, degree_i-ecurrent, replace=False)
             variables_i.extend(var)
             if not multigraph:
                 variables_i = list(set(variables_i))
             ecurrent = len(variables_i)
-        ia_edges[num_etotal:num_etotal+ecurrent, int(not idx)] = variables_i
+
+        ia_edges[num_etotal:num_etotal+ecurrent, 1 - idx] = variables_i
         num_etotal += ecurrent
+
     return ia_edges
 
 
