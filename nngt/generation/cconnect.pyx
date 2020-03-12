@@ -58,7 +58,7 @@ cdef bytes _to_bytes(string):
 def _unique_rows(arr):
     b = np.ascontiguousarray(arr).view(np.dtype((np.void,
         arr.dtype.itemsize * arr.shape[1])))
-    return np.unique(b).view(arr.dtype).reshape(-1,arr.shape[1])
+    return np.unique(b).view(arr.dtype).reshape(-1, arr.shape[1])
 
 
 def _no_self_loops(array):
@@ -146,14 +146,15 @@ def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
     degree = int(degree)
     assert degree >= 0, "A positive value is required for `degree`."
 
+    degree_type = _set_degree_type(degree_type)
+
     cdef:
         # type of degree
         bool b_out = (degree_type == "out")
         bool b_total = (degree_type == "total")
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
-        size_t edges = (num_source * degree
-                        if degree_type == "out" else num_target * degree)
+        size_t edges = num_source * degree
         bool b_one_pop = _check_num_edges(
             source_ids, target_ids, edges, directed, multigraph)
         unsigned int existing = \
@@ -165,17 +166,12 @@ def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
     cdef:
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt._config["omp"]
-        unsigned int num_degrees = num_source if b_out else num_target
         long msd = np.random.randint(0, edges + 1)
-        vector[unsigned int] degrees = np.repeat(degree, num_degrees)
+        vector[unsigned int] degrees = np.repeat(degree, num_source)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
-    if b_out:
-        _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
-            idx, multigraph, directed, msd, omp)
-    else:
-        _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
-            idx, multigraph, directed, msd, omp)
+    _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
+              idx, multigraph, directed, msd, omp)
 
     return ia_edges
 
@@ -192,20 +188,22 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
     # switch values to float
     avg = float(avg)
     std = float(std)
+
     assert avg >= 0, "A positive value is required for `avg`."
     assert std >= 0, "A positive value is required for `std`."
 
+    degree_type = _set_degree_type(degree_type)
+
     cdef:
         # type of degree
-        b_out = (degree_type == "out")
-        b_total = (degree_type == "total")
+        bool b_out = (degree_type == "out")
+        bool b_total = (degree_type == "total")
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt._config["omp"]
-        unsigned int num_degrees = num_source if b_out else num_target
         vector[unsigned int] degrees = np.around(np.maximum(
-            np.random.normal(avg, std, num_degrees), 0.)).astype(DTYPE)
+            np.random.normal(avg, std, num_source), 0.)).astype(DTYPE)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
     # edges
@@ -219,15 +217,13 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
             0 if existing_edges is None else existing_edges.shape[0]
         cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edges, 2), dtype=DTYPE)
+
     if existing:
         ia_edges[:existing,:] = existing_edges
 
-    if b_out:
-        _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
-            idx, multigraph, directed, msd, omp)
-    else:
-        _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
-            idx, multigraph, directed, msd, omp)
+    _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
+               idx, multigraph, directed, msd, omp)
+
     return ia_edges
 
 

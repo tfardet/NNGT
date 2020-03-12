@@ -102,9 +102,13 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
     num_source, num_target = len(source_ids), len(target_ids)
+
     # type of degree
+    degree_type = _set_degree_type(degree_type)
+
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
+
     # edges
     edges = num_source*degree if degree_type == "out" else num_target*degree
     b_one_pop = _check_num_edges(
@@ -114,28 +118,34 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
     ia_edges = np.zeros((existing+edges, 2), dtype=int)
     if existing:
         ia_edges[:existing,:] = existing_edges
-    idx = 0 if b_out else 1 # differenciate source / target
-    variables  = target_ids if b_out else source_ids  # nodes picked randomly
+    idx = 0 if b_out else 1  # differenciate source / target
 
-    for i,v in enumerate(target_ids):
+    for i, v in enumerate(source_ids):
         edges_i, ecurrent, variables_i = np.zeros((degree,2)), 0, []
+
         if existing_edges is not None:
-            with_v = np.where(ia_edge[:,idx] == v)
-            variables_i.extend(ia_edge[with_v:int(not idx)])
+            with_v = np.where(ia_edge[:, idx] == v)
+            variables_i.extend(ia_edge[with_v, 1 - idx])
             ecurrent = len(variables_i)
+
         ia_edges[i*degree:(i+1)*degree, idx] = v
-        rm = np.where(variables == v)[0]
+        rm = np.where(target_ids == v)[0]
         rm = rm[0] if len(rm) else -1
-        var_tmp = ( np.array(variables, copy=True) if rm == -1 else
-                    np.concatenate((variables[:rm], variables[rm+1:])) )
+        var_tmp = ( np.array(target_ids, copy=True) if rm == -1 else
+                    np.concatenate((target_ids[:rm], target_ids[rm+1:])) )
         num_var_i = len(var_tmp)
+
         while ecurrent != degree:
-            var = var_tmp[randint(0, num_var_i, degree-ecurrent)]
-            variables_i.extend(var)
+            variables_i.extend(np.random.choice(var_tmp, degree-ecurrent,
+                               replace=multigraph))
+
             if not multigraph:
                 variables_i = list(set(variables_i))
+
             ecurrent = len(variables_i)
+
         ia_edges[i*degree:(i+1)*degree, int(not idx)] = variables_i
+
     return ia_edges
 
 
@@ -155,6 +165,8 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     num_source, num_target = len(source_ids), len(target_ids)
 
     # type of degree
+    degree_type = _set_degree_type(degree_type)
+
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
 
@@ -191,10 +203,13 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
         ia_edges[num_etotal:num_etotal+degree_i, idx] = v
 
         while len(variables_i) != degree_i:
-            var = np.random.choice(var_tmp, degree_i-ecurrent, replace=False)
+            var = np.random.choice(var_tmp, degree_i-ecurrent,
+                                   replace=multigraph)
             variables_i.extend(var)
+
             if not multigraph:
                 variables_i = list(set(variables_i))
+
             ecurrent = len(variables_i)
 
         ia_edges[num_etotal:num_etotal+ecurrent, 1 - idx] = variables_i
@@ -222,12 +237,16 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
     # lists containing the in/out-degrees for all nodes
     ia_in_deg = np.random.pareto(in_exp,num_target)+1
     ia_out_deg = np.random.pareto(out_exp,num_source)+1
+
     sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
+
     ia_in_deg = np.around(np.multiply(pre_recip_edges/sum_in,
                                       ia_in_deg)).astype(int)
     ia_out_deg = np.around(np.multiply(pre_recip_edges/sum_out,
                                        ia_out_deg)).astype(int)
+
     sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
+
     while sum_in != pre_recip_edges or sum_out != pre_recip_edges:
         diff_in = sum_in-pre_recip_edges
         diff_out = sum_out-pre_recip_edges
@@ -238,9 +257,10 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
         sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
         ia_in_deg[ia_in_deg<0] = 0
         ia_out_deg[ia_out_deg<0] = 0
+
     # make the edges
-    ia_sources = np.repeat(source_ids,ia_out_deg)
-    ia_targets = np.repeat(target_ids,ia_in_deg)
+    ia_sources = np.repeat(source_ids, ia_out_deg)
+    ia_targets = np.repeat(target_ids, ia_in_deg)
     np.random.shuffle(ia_targets)
     ia_edges_tmp = np.array([ia_sources,ia_targets]).T
     ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
@@ -248,24 +268,25 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
 
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         num_desired = pre_recip_edges-num_ecurrent
-        ia_sources_tmp = ia_sources[randint(0,pre_recip_edges,num_desired)]
-        ia_targets_tmp = ia_targets[randint(0,pre_recip_edges,num_desired)]
-        ia_edges_tmp = np.array([ia_sources_tmp,ia_targets_tmp]).T
+        ia_sources_tmp = np.random.choice(ia_sources, num_desired)
+        ia_targets_tmp = np.random.choice(ia_targets, num_desired)
+        ia_edges_tmp = np.array([ia_sources_tmp, ia_targets_tmp]).T
         ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
                                          edges_hash, b_one_pop, multigraph)
         num_test += 1
 
     if directed and reciprocity > 0:
         while num_ecurrent != edges and num_test < MAXTESTS:
-            ia_indices = randint(0, pre_recip_edges,
-                                           edges-num_ecurrent)
-            ia_edges[num_ecurrent:,:] = ia_edges[ia_indices,::-1]
+            keep = np.random.choice(num_ecurrent, edges-num_ecurrent,
+                                    replace=multigraph)
+            ia_edges[num_ecurrent:] = ia_edges[keep]
             num_ecurrent = edges
             if not multigraph:
                 ia_edges_tmp = _unique_rows(ia_edges)
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
+
     return ia_edges
 
 
@@ -303,7 +324,7 @@ def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         while num_ecurrent != edges and num_test < MAXTESTS:
             ia_indices = randint(0, pre_recip_edges,
                                            edges-num_ecurrent)
-            ia_edges[num_ecurrent:,:] = ia_edges[ia_indices,::-1]
+            ia_edges[num_ecurrent:] = ia_edges[ia_indices]
             num_ecurrent = edges
             if not multigraph:
                 ia_edges_tmp = _unique_rows(ia_edges)
