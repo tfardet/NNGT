@@ -850,7 +850,9 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
     if network.is_spatial():
         attr['distance'] = distance
 
-    network.new_edges(elist, attributes=attr, check_edges=False)
+    # call only on root process (for mpi) unless using distributed backend
+    if nngt.on_master_process() or nngt.get_config("backend") == "nngt":
+        network.new_edges(elist, attributes=attr, check_edges=False)
 
     if not network._graph_type.endswith('_connect'):
         network._graph_type += "_nodes_connect"
