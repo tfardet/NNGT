@@ -11,12 +11,15 @@
 Test the connect group and type methods.
 """
 
+import pytest
+
 import numpy as np
 
 import nngt
 import nngt.generation as ng
 
 
+@pytest.mark.mpi_skip
 def test_fixed():
     ''' Fixed degree with type '''
     pop = nngt.NeuralPop.exc_and_inhib(1000)
