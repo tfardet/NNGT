@@ -51,20 +51,20 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     assert std >= 0, "A positive value is required for `std`."
 
     # use only local sources
-    if degree_type == "in":
-        source_ids = np.array(source_ids, dtype=int)
-        target_ids = np.array(target_ids, dtype=int)[rank::size]
-    else:
-        source_ids = np.array(source_ids, dtype=int)[rank::size]
-        target_ids = np.array(target_ids, dtype=int)
+    source_ids = np.array(source_ids, dtype=int)[rank::size]
+    target_ids = np.array(target_ids, dtype=int)
+        
     num_source, num_target = len(source_ids), len(target_ids)
+
     # type of degree
+    degree_type = _set_degree_type(degree_type)
+
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
+
     # compute the local number of edges
-    num_degrees = num_target if degree_type == "in" else num_source
     lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_degrees), 0.)).astype(int)
+        np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
     edges = np.sum(lst_deg)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
@@ -72,30 +72,36 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     num_etotal = 0
     ia_edges   = np.zeros((edges, 2), dtype=int)
     idx        = 0 if b_out else 1  # differenciate source / target
-    variables  = targets_id if b_out else source_ids  # nodes picked randomly
-    max_degree = np.inf if multigraph else len(variables)
+    max_degree = np.inf if multigraph else len(target_ids)
 
-    for i, v in enumerate(target_ids):
+    for i, v in enumerate(source_ids):
         degree_i = lst_deg[i]
         edges_i, ecurrent, variables_i = np.zeros((degree_i, 2)), 0, []
+
         if existing_edges is not None:
             with_v = np.where(existing_edges[:, idx] == v)
-            variables_i.extend(existing_edges[with_v:int(not idx)])
+            variables_i.extend(existing_edges[with_v, 1 - idx])
             degree_i += len(variables_i)
             assert degree_i < max_degree, "Required degree is greater that " +\
                 "maximum possible degree {}.".format(max_degree)
-        rm = np.where(variables == v)[0]
+
+        rm = np.where(target_ids == v)[0]
         rm = rm[0] if len(rm) else -1
-        var_tmp = (np.array(variables, copy=True) if rm == -1 else
-                   np.concatenate((variables[:rm], variables[rm+1:])))
+        var_tmp = (np.array(target_ids, copy=True) if rm == -1 else
+                   np.concatenate((target_ids[:rm], target_ids[rm+1:])))
+
         num_var_i = len(var_tmp)
-        ia_edges[num_etotal:num_etotal+degree_i, idx] = v
+        ia_edges[num_etotal:num_etotal + degree_i, idx] = v
+
         while len(variables_i) != degree_i:
-            var = var_tmp[randint(0, num_var_i, degree_i-ecurrent)]
-            variables_i.extend(var)
+            variables_i.extend(np.random.choice(var_tmp, degree_i-ecurrent,
+                                                replace=multigraph))
+
             if not multigraph:
                 variables_i = list(set(variables_i))
+
             ecurrent = len(variables_i)
+
         ia_edges[num_etotal:num_etotal+ecurrent, int(not idx)] = variables_i
         num_etotal += ecurrent
 
@@ -222,7 +228,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
 
             if num_desired < num_tmp:
                 chosen = np.random.choice(num_tmp, num_desired,
-                                          replace=False)
+                                          replace=multigraph)
                 edges_tmp = edges_tmp[chosen]
                 dist_local = np.array(dist_local)[chosen]
 

@@ -29,10 +29,11 @@ import numpy as np
 
 import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
-from nngt.lib import is_iterable
+from nngt.lib import is_iterable, nonstring_container
 from nngt.lib.connect_tools import _set_options
 from nngt.lib.logger import _log_message
-from nngt.lib.test_functions import mpi_checker, mpi_random
+from nngt.lib.test_functions import mpi_checker, mpi_random, deprecated
+
 
 # do default import
 
@@ -101,6 +102,7 @@ if nngt.get_config("mpi"):
 __all__ = [
     'all_to_all',
     'connect_neural_groups',
+    'connect_groups',
     'connect_neural_types',
     'connect_nodes',
 	'distance_rule',
@@ -256,6 +258,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
                     from_graph=None, **kwargs):
     """
     Generate a random graph with constant in- or out-degree.
+
     @todo: adapt it for undirected graphs!
 
     Parameters
@@ -265,7 +268,8 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     std : float
 		The standard deviation of the Gaussian distribution.
     degree_type : str, optional (default: 'in')
-        The type of the fixed degree, among 'in', 'out' or 'total'
+        The type of the fixed degree, among 'in', 'out' or 'total' (or the
+        full version: 'in-degree'...)
         @todo: Implement 'total' degree
     nodes : int, optional (default: None)
         The number of nodes in the graph.
@@ -306,6 +310,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     """
     # set node number and library graph
     graph_gd = from_graph
+
     if graph_gd is not None:
         nodes = graph_gd.node_nb()
         graph_gd.clear_all_edges()
@@ -814,6 +819,12 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
+
+    Note
+    ----
+    For graph generation methods which set the properties of a
+    specific degree (e.g. :func:`~nngt.generation.gaussian_degree`), the
+    nodes which have their property sets are the `sources`.
     '''
     if network.is_spatial() and 'positions' not in kwargs:
         kwargs['positions'] = network.get_positions().astype(np.float32).T
@@ -831,13 +842,17 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
 
     # Attributes are not set by subfunctions
     attr = {}
+
     if 'weights' in kwargs:
         attr['weight'] = kwargs['weights']
     if 'delays' in kwargs:
         attr['delay'] = kwargs['delays']
     if network.is_spatial():
         attr['distance'] = distance
-    network.new_edges(elist, attributes=attr, check_edges=False)
+
+    # call only on root process (for mpi) unless using distributed backend
+    if nngt.on_master_process() or nngt.get_config("backend") == "nngt":
+        network.new_edges(elist, attributes=attr, check_edges=False)
 
     if not network._graph_type.endswith('_connect'):
         network._graph_type += "_nodes_connect"
@@ -866,10 +881,10 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     ----------
     network : :class:`Network` or :class:`SpatialNetwork`
         The network to connect.
-    source_type : int
+    source_type : int or list
         The type of source neurons (``1`` for excitatory, ``-1`` for
         inhibitory neurons).
-    target_type : int
+    target_type : int or list
         The type of target neurons.
     graph_model : string
         The name of the connectivity model (among "erdos_renyi",
@@ -877,17 +892,29 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
+
+    Note
+    ----
+    For graph generation methods which set the properties of a
+    specific degree (e.g. :func:`~nngt.generation.gaussian_degree`), the
+    nodes which have their property sets are the `source_type`.
     '''
     elist, source_ids, target_ids = None, [], []
+
     if network.is_spatial() and 'positions' not in kwargs:
         kwargs['positions'] = network.get_positions().astype(np.float32).T
     if network.is_spatial() and 'shape' not in kwargs:
         kwargs['shape'] = network.shape
 
-    for group in iter(network._population.values()):
-        if group.neuron_type == source_type:
+    if not nonstring_container(source_type):
+        source_type = [source_type]
+    if not nonstring_container(target_type):
+        target_type = [target_type]
+
+    for group in network._population.values():
+        if group.neuron_type in source_type:
             source_ids.extend(group.ids)
-        if group.neuron_type == target_type:
+        if group.neuron_type in target_type:
             target_ids.extend(group.ids)
 
     source_ids = np.array(source_ids, dtype=np.uint)
@@ -904,10 +931,15 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     return elist
 
 
-def connect_neural_groups(network, source_groups, target_groups, graph_model,
-                          density=-1., edges=-1, avg_deg=-1., unit='um',
-                          weighted=True, directed=True, multigraph=False,
-                          **kwargs):
+@deprecated("1.3.1", reason="the library is moving to more generic names",
+            alternative="connect_groups", removal="a later version")
+def connect_neural_groups(*args, **kwargs):
+    return connect_groups(*args, **kwargs)
+
+
+def connect_groups(network, source_groups, target_groups, graph_model,
+                   density=-1., edges=-1, avg_deg=-1., unit='um',
+                   weighted=True, directed=True, multigraph=False, **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
@@ -940,8 +972,14 @@ def connect_neural_groups(network, source_groups, target_groups, graph_model,
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
+
+    Note
+    ----
+    For graph generation methods which set the properties of a
+    specific degree (e.g. :func:`~nngt.generation.gaussian_degree`), the
+    groups which have their property sets are the `source_groups`.
     '''
-    elist, source_ids, target_ids = None, [], []
+    source_ids, target_ids = [], []
 
     if network.is_spatial():
         if 'positions' not in kwargs:

@@ -350,29 +350,41 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             labels[info["model"]].extend(labels_tmp)
             lines[info["model"]].extend(lines_tmp)
             num_meter += 1
+
     if "spike_detector" in axes:
         ax = axes['spike_detector']
-        t_min, t_max, idx_min, idx_max = np.inf, -np.inf, np.inf, -np.inf
-        for l in ax.lines:
-            t_max = max(l.get_xdata().max(), t_max)
-            t_min = min(l.get_xdata().min(), t_max)
-            idx_min = min(l.get_ydata().min(), idx_min)
-            idx_max = max(l.get_ydata().max(), idx_max)
-        dt   = t_max - t_min
-        didx = idx_max - idx_min
-        pc   = 0.02
-        if not np.any(np.isinf((t_max, t_min))):
-            ax.set_xlim([t_min - pc*dt, t_max + pc*dt])
-        if not np.any(np.isinf((idx_min, idx_max))):
-          ax.set_ylim([idx_min - pc*didx, idx_max + pc*didx])
+
+        if limits is not None:
+            ax.set_xlim(limits[0], limits[1])
+        else:
+            t_min, t_max, idx_min, idx_max = np.inf, -np.inf, np.inf, -np.inf
+
+            for l in ax.lines:
+                t_max = max(l.get_xdata().max(), t_max)
+                t_min = min(l.get_xdata().min(), t_max)
+                idx_min = min(l.get_ydata().min(), idx_min)
+                idx_max = max(l.get_ydata().max(), idx_max)
+
+            dt   = t_max - t_min
+            didx = idx_max - idx_min
+            pc   = 0.02
+
+            if not np.any(np.isinf((t_max, t_min))):
+                ax.set_xlim([t_min - pc*dt, t_max + pc*dt])
+
+            if not np.any(np.isinf((idx_min, idx_max))):
+              ax.set_ylim([idx_min - pc*didx, idx_max + pc*didx])
+
     for recorder in fignums:
         fig = plt.figure(fignums[recorder])
         if title is not None:
             fig.suptitle(title)
         if label is not None:
             fig.legend(lines[recorder], labels[recorder])
+
     if show:
         plt.show()
+
     return lines
 
 

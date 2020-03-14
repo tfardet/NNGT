@@ -17,6 +17,7 @@ __all__ = [
     "_compute_connections",
     "_filter",
     "_no_self_loops",
+    "_set_degree_type",
     "_set_options",
     "_unique_rows",
     "dist_rule",
@@ -67,8 +68,10 @@ def _compute_connections(num_source, num_target, density, edges, avg_deg,
 
 def _check_num_edges(source_ids, target_ids, num_edges, directed, multigraph):
     num_source, num_target = len(source_ids), len(target_ids)
+
     has_only_one_population = (False if num_source != num_target
                                else not np.all(source_ids - target_ids))
+
     if not has_only_one_population and not multigraph:
         b_d = (num_edges > num_source*num_target)
         b_nd = (num_edges > int(0.5*num_source*num_target))
@@ -79,7 +82,24 @@ def _check_num_edges(source_ids, target_ids, num_edges, directed, multigraph):
         b_nd = (num_edges > int((0.5*num_source-1)*num_target))
         if (not directed and b_nd) or (directed and b_d):
             raise InvalidArgument("Required number of edges is too high")
+
     return has_only_one_population
+
+
+def _set_degree_type(degree_type):
+    deg_map = {
+        "in-degree": "in", "out-degree": "out", "total-degree": "total",
+        "in": "in", "out": "out", "total": "total"
+    }
+
+    try:
+        degree_type = deg_map[degree_type]
+    except KeyError:
+        raise ValueError("`degree_type` must be either 'in', 'out', 'total', "
+                         "or the full version 'in-degree', 'out-degree', "
+                         "'total-degree'.")
+
+    return degree_type
 
 
 # ------------------------- #

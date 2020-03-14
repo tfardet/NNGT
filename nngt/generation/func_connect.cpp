@@ -189,13 +189,13 @@ void _gen_edges(
         {
             // generate the vector of complementary nodes
             std::vector<size_t> res_tmp = _gen_edge_complement(
-              generator_, second_nodes, node, degrees[node], &existing_edges,
-              multigraph);
+                generator_, second_nodes, node, degrees[node], &existing_edges,
+                multigraph);
             // fill the edges
             size_t idx_start = cum_degrees[node] - degrees[node];
             for (unsigned int j = 0; j < degrees[node]; j++)
             {
-                ia_edges[2*(idx_start + j) + idx] = node;
+                ia_edges[2*(idx_start + j) + idx] = first_nodes[node];
                 ia_edges[2*(idx_start + j) + 1 - idx] = res_tmp[j];
             }
         }
