@@ -14,8 +14,6 @@ Test the connect group and type methods.
 import numpy as np
 
 import nngt
-# ~ nngt.set_config("backend", "networkx")
-nngt.set_config("multithreading", False)
 import nngt.generation as ng
 
 
