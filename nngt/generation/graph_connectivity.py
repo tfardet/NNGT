@@ -909,7 +909,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     if not nonstring_container(target_type):
         target_type = [target_type]
 
-    for group in iter(network._population.values()):
+    for group in network._population.values():
         if group.neuron_type in source_type:
             source_ids.extend(group.ids)
         if group.neuron_type in target_type:

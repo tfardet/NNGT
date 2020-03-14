@@ -14,6 +14,8 @@ Test the connect group and type methods.
 import numpy as np
 
 import nngt
+# ~ nngt.set_config("backend", "networkx")
+nngt.set_config("multithreading", False)
 import nngt.generation as ng
 
 
@@ -99,17 +101,17 @@ def test_group_vs_type():
 
     net1 = nngt.Network(population=pop)
 
+    all_groups = list(pop.keys())  # necessary to have same order as types
+
     avg_e = 50
     std_e = 5
-    ng.connect_groups(net1, egroup, [igroup, egroup],
-                      graph_model="gaussian_degree", avg=avg_e, std=std_e,
-                      degree_type="out-degree")
+    ng.connect_groups(net1, egroup, all_groups, graph_model="gaussian_degree",
+                      avg=avg_e, std=std_e, degree_type="out-degree")
 
     avg_i = 100
     std_i = 5
-    ng.connect_groups(net1, igroup, [igroup, egroup],
-                      graph_model="gaussian_degree", avg=avg_i, std=std_i,
-                      degree_type="out-degree")
+    ng.connect_groups(net1, igroup, all_groups, graph_model="gaussian_degree",
+                      avg=avg_i, std=std_i, degree_type="out-degree")
 
     # then with types
     nngt.seed(0)
