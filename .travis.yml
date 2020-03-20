@@ -58,13 +58,13 @@ before_install:
     - shopt -s expand_aliases
     - if [[ "$GL" == "gt" ]]; then alias sudo='sudo -H ' && alias pipv='sudo pip3' && alias pythonv=python3; else alias pipv=pip && alias pythonv=python; fi
     - pipv install --upgrade pip
-    - pipv install --upgrade setuptools
+    - pipv install --user --upgrade setuptools
     - pipv install --user --upgrade cython
-    - pipv install --upgrade numpy scipy shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
+    - pipv install --user --upgrade numpy scipy shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
     # install graph-tool, igraph, and networkx
     - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
-    - if [[ "$GL" == "ig" ]]; then sudo pipv install python-igraph; fi
-    - if [[ "$GL" == "nx" ]]; then sudo pipv install networkx; fi
+    - if [[ "$GL" == "ig" ]]; then pipv install --user python-igraph; fi
+    - if [[ "$GL" == "nx" ]]; then pipv install --user networkx; fi
 
 install: sudo pythonv setup.py install
 
