@@ -97,16 +97,11 @@ class XmlHandler:
         return self.result(elt_result)
 
 
-#-----------------------------------------------------------------------------#
-# TestBasis class
-#------------------------
-#
+# --------------- #
+# TestBasis class #
+# --------------- #
 
-class MetaAbcCompat(ABCMeta, type):
-    pass
-
-
-class TestBasis(unittest.TestCase, metaclass=MetaAbcCompat):
+class TestBasis(unittest.TestCase):
 
     '''
     Class defining the graphs and the conditions in which they will be tested.
