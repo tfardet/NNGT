@@ -22,6 +22,8 @@
 Use NNGT to analyze NEST-simulated activity of a random balanced network.
 """
 
+import os
+
 import numpy as np
 from scipy.special import lambertw
 
@@ -36,8 +38,9 @@ import nngt.generation as ng
 Simulation parameters
 '''
 
-nngt.set_config("omp", 8)
-nngt.set_config("seeds", [11, 12, 13, 14, 15, 16, 17, 18])
+num_omp = int(os.environ.get("OMP", 8))
+nngt.set_config("omp", num_omp)
+nngt.set_config("seeds", [10 + i for i in range(num_omp)])
 
 dt = 0.1         # the resolution in ms
 simtime = 1000.  # Simulation time in ms
@@ -96,7 +99,7 @@ neuron_params = {"C_m": CMem,
                  "V_th": theta}
 
 J_unit = ComputePSPnorm(tauMem, CMem, tauSyn)
-J = 0.1            # postsynaptic amplitude in mV
+J = 0.2            # postsynaptic amplitude in mV
 J_ex = J / J_unit  # amplitude of excitatory postsynaptic current
 J_in = g * J_ex    # amplitude of inhibitory postsynaptic current
 
@@ -122,6 +125,33 @@ ng.connect_neural_groups(net, "excitatory", ["excitatory", "inhibitory"],
 ng.connect_neural_groups(net, "inhibitory", ["excitatory", "inhibitory"],
                          "gaussian_degree", avg=CI, std=0.2*CI, weights=J_in,
                          delays=delay)
+
+
+'''
+Tools to analyze the activity
+'''
+
+def coefficient_of_variation(spikes):
+    from scipy.stats import variation
+    times = np.array(spikes["times"])
+    nrns  = np.array(spikes["senders"])
+
+    return np.nanmean([variation(np.diff(times[nrns == i])) for i in np.unique(nrns)])
+
+
+def cross_correlation(spikes, time, numbins=1000):
+    times = np.array(spikes["times"])
+    nrns  = np.array(spikes["senders"])
+
+    a = [np.histogram(times[nrns == x], numbins, range=[0, time])[0]
+         for x in np.unique(nrns)]
+
+    c = np.cov(a)
+    std = np.sqrt(np.diag(c))
+    c = np.divide(c, std[:,np.newaxis])
+    c = np.divide(c, std[:,np.newaxis].T)
+
+    return np.nanmean(c)
 
 
 '''
@@ -176,3 +206,14 @@ if nngt.get_config('with_nest'):
         nngt.plot.correlation_to_attribute(
             net, (edeg-ideg)[inh_nodes], "firing_rate", nodes=inh_nodes,
             show=True)
+
+        # print the CV and CC
+        data_exc = nest.GetStatus(recorders[0], "events")[0]
+        data_inh = nest.GetStatus(recorders[1], "events")[0]
+
+        spikes = {
+            "times": list(data_exc["times"]) + list(data_inh["times"]),
+            "senders": list(data_exc["senders"]) + list(data_inh["senders"]),
+        }
+
+        print(coefficient_of_variation(spikes), cross_correlation(spikes, simtime))

@@ -33,7 +33,7 @@ import nngt
 from .decorator import decorate
 
 
-def deprecated(version, reason=None, alternative=None):
+def deprecated(version, reason=None, alternative=None, removal=None):
     '''
     Decorator to mark deprecated functions.
     '''
@@ -47,6 +47,8 @@ def deprecated(version, reason=None, alternative=None):
                 message += " because " + reason + "."
             else:
                 message += "."
+            if removal is not None:
+                message += " It will be removed in version {}.".format(removal)
             if alternative is not None:
                 message += " Use " + alternative + " instead."
             warnings.warn(message, category=DeprecationWarning)
@@ -88,7 +90,7 @@ def num_mpi_processes():
         return 1
 
 
-def mpi_barrier(func):
+def mpi_barrier(func=None):
     def wrapper(func, *args, **kwargs):
         try:
             from mpi4py import MPI
@@ -96,8 +98,16 @@ def mpi_barrier(func):
             comm.Barrier()
         except ImportError:
             pass
-        return func(*args, **kwargs)
-    return decorate(func, wrapper)
+
+        if func is not None:
+            return func(*args, **kwargs)
+
+    # act as a real decorator
+    if func is not None:
+        return decorate(func, wrapper)
+
+    # otherwise just execute the barrier
+    wrapper(None)
 
 
 def mpi_checker(logging=False):

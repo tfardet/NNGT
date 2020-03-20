@@ -25,6 +25,15 @@ The source file for the tutorial can be found here:
     For a list of example files, see the `'examples' directory on GitHub
     <https://github.com/Silmathoron/NNGT/tree/master/doc/examples>`_.
 
+    For specific tutorials see also:
+
+    * :ref:`graph_gen`
+    * :ref:`multithread`
+    * :ref:`neural_groups`
+    * :ref:`nest_int`
+    * :ref:`activ_analysis`
+    * :ref:`graph-prop`
+
 
 **Content:**
 
@@ -149,14 +158,14 @@ NNGT implements some fast generation tools to create several of the standard
 networks, such as Erdős-Rényi:
 
 .. literalinclude:: ../examples/introductory_tutorial.py
-   :lines: 115-117,119
+   :lines: 115-118,121
 
 More heterogeneous networks, with scale-free degree distribution (but no
 correlations like in Barabasi-Albert networks and user-defined exponents) are
 also implemented:
 
 .. literalinclude:: ../examples/introductory_tutorial.py
-   :lines: 122-125,127
+   :lines: 124-128,131
 
 For more details, see the full page on :ref:`graph_gen`.
 
@@ -232,6 +241,12 @@ For more details to use NNGT with NEST, see :ref:`nest_int`.
 
 Using the graph library of the NNGT object
 ==========================================
+
+.. warning::
+    This behavior will change in the next major release (NNGT 2.0) where
+    the specific library graph object will be handled through composition
+    instead of direct inheritance. It will then be accessible via a ``graph``
+    property of the :class:`~nngt.Graph` instance.
 
 As mentionned in the installation and introduction, NNGT uses existing graph
 library objects to store the graph.

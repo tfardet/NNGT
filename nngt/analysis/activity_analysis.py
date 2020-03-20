@@ -163,8 +163,8 @@ def total_firing_rate(network=None, spike_detector=None, nodes=None, data=None,
                                             'times.'
         times = np.array(resolution)
         resolution = dt[0]
-    bin_std = kernel_std / float(resolution)
-    kernel_size = 2. * cut_gaussian * bin_std
+    bin_std = int(kernel_std / float(resolution))
+    kernel_size = int(2. * cut_gaussian * bin_std)
     if times is None:
         delta_T = resolution * 0.5 * kernel_size
         times = np.arange(np.min(data[:, 1]) - delta_T,
@@ -294,9 +294,9 @@ def _set_data_nodes(network, data, nodes):
     if data is None:
         data = [[], []]
     if nodes is None:
-        nodes = network.nest_gid
+        nodes = network.nest_gids
     else:
-        nodes = network.nest_gid[nodes]
+        nodes = network.nest_gids[nodes]
     return data, nodes
 
 

@@ -54,29 +54,35 @@ cdef bytes _to_bytes(string):
         return bytes(string, "UTF-8")
     return string
 
+
 def _unique_rows(arr):
     b = np.ascontiguousarray(arr).view(np.dtype((np.void,
         arr.dtype.itemsize * arr.shape[1])))
-    return np.unique(b).view(arr.dtype).reshape(-1,arr.shape[1])
+    return np.unique(b).view(arr.dtype).reshape(-1, arr.shape[1])
+
 
 def _no_self_loops(array):
     return array[array[:,0] != array[:,1],:]
 
+
 def _filter(ia_edges, ia_edges_tmp, num_ecurrent, b_one_pop,
-                            multigraph):
+            multigraph):
     '''
     Filter the edges: remove self loops and multiple connections if the graph
     is not a multigraph.
     '''
     if b_one_pop:
         ia_edges_tmp = _no_self_loops(ia_edges_tmp)
+
     num_added = ia_edges_tmp.shape[0]
     ia_edges[num_ecurrent:num_ecurrent+num_added,:] = ia_edges_tmp
     num_ecurrent += num_added
+
     if not multigraph:
         ia_edges_tmp = _unique_rows(ia_edges[:num_ecurrent,:])
         num_ecurrent = ia_edges_tmp.shape[0]
         ia_edges[:num_ecurrent,:] = ia_edges_tmp
+
     return ia_edges, num_ecurrent
 
 
@@ -98,6 +104,7 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
     # find common nodes
     edges  = None
     common = set(source_ids).intersection(target_ids)
+
     if common:
         num_edges     = num_sources*num_targets - len(common)
         edges         = np.empty((num_edges, 2), dtype=DTYPE)
@@ -139,14 +146,15 @@ def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
     degree = int(degree)
     assert degree >= 0, "A positive value is required for `degree`."
 
+    degree_type = _set_degree_type(degree_type)
+
     cdef:
         # type of degree
         bool b_out = (degree_type == "out")
         bool b_total = (degree_type == "total")
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
-        size_t edges = (num_source * degree
-                        if degree_type == "out" else num_target * degree)
+        size_t edges = num_source * degree
         bool b_one_pop = _check_num_edges(
             source_ids, target_ids, edges, directed, multigraph)
         unsigned int existing = \
@@ -158,17 +166,12 @@ def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
     cdef:
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt._config["omp"]
-        unsigned int num_degrees = num_source if b_out else num_target
         long msd = np.random.randint(0, edges + 1)
-        vector[unsigned int] degrees = np.repeat(degree, num_degrees)
+        vector[unsigned int] degrees = np.repeat(degree, num_source)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
-    if b_out:
-        _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
-            idx, multigraph, directed, msd, omp)
-    else:
-        _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
-            idx, multigraph, directed, msd, omp)
+    _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
+              idx, multigraph, directed, msd, omp)
 
     return ia_edges
 
@@ -185,20 +188,22 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
     # switch values to float
     avg = float(avg)
     std = float(std)
+
     assert avg >= 0, "A positive value is required for `avg`."
     assert std >= 0, "A positive value is required for `std`."
 
+    degree_type = _set_degree_type(degree_type)
+
     cdef:
         # type of degree
-        b_out = (degree_type == "out")
-        b_total = (degree_type == "total")
+        bool b_out = (degree_type == "out")
+        bool b_total = (degree_type == "total")
         size_t num_source = source_ids.shape[0]
         size_t num_target = target_ids.shape[0]
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt._config["omp"]
-        unsigned int num_degrees = num_source if b_out else num_target
         vector[unsigned int] degrees = np.around(np.maximum(
-            np.random.normal(avg, std, num_degrees), 0.)).astype(DTYPE)
+            np.random.normal(avg, std, num_source), 0.)).astype(DTYPE)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
     # edges
@@ -212,15 +217,13 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
             0 if existing_edges is None else existing_edges.shape[0]
         cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edges, 2), dtype=DTYPE)
+
     if existing:
         ia_edges[:existing,:] = existing_edges
 
-    if b_out:
-        _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
-            idx, multigraph, directed, msd, omp)
-    else:
-        _gen_edges(&ia_edges[0,0], target_ids, degrees, source_ids, old_edges,
-            idx, multigraph, directed, msd, omp)
+    _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
+               idx, multigraph, directed, msd, omp)
+
     return ia_edges
 
 
@@ -248,6 +251,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
     ia_out_deg = np.around(np.multiply(pre_recip_edges/sum_out,
                                        ia_out_deg)).astype(int)
     sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
+
     while sum_in != pre_recip_edges or sum_out != pre_recip_edges:
         diff_in = sum_in-pre_recip_edges
         diff_out = sum_out-pre_recip_edges
@@ -258,6 +262,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
         sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
         ia_in_deg[ia_in_deg<0] = 0
         ia_out_deg[ia_out_deg<0] = 0
+
     # make the edges
     ia_sources = np.repeat(source_ids,ia_out_deg)
     ia_targets = np.repeat(target_ids,ia_in_deg)
@@ -286,6 +291,7 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
+
     return ia_edges
 
 
@@ -325,11 +331,13 @@ def _erdos_renyi(source_ids, target_ids, float density=-1, int edges=-1,
                                            edges-num_ecurrent)
             ia_edges[num_ecurrent:,:] = ia_edges[ia_indices,::-1]
             num_ecurrent = edges
+
             if not multigraph:
                 ia_edges_tmp = _unique_rows(ia_edges)
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
+
     return ia_edges
 
 

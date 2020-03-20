@@ -142,7 +142,7 @@ Otherwise, one can build the population from groups that already contain these
 properties, e.g. the previous ``pyr`` and ``fsi`` groups:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 125-131
+   :lines: 126-132
 
 .. warning::
     `syn_spec` can contain any synaptic model and parameters associated to the
@@ -174,23 +174,24 @@ and same with pyramidal neurons or interneurons.
 First create the normal groups:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 143-157
+   :lines: 144-158
 
 Then make the metagroups for the layers:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 161-165
+   :lines: 162-166
 
 Create the population:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 168-169
+   :lines: 169-170
 
 Then add additional metagroups for cell types:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 173-178
+   :lines: 174-179
 
+----
 
 **Go to other tutorials:**
 

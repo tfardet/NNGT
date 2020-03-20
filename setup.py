@@ -38,7 +38,6 @@ try:
     version = setuptools.__version__
     version = int(version[:version.index(".")])
     with_cython = (version >= 18)
-    from _cpp_cleaner import clean_cpp
 except ImportError as e:
     with_cython = False
 
@@ -55,7 +54,7 @@ omp_lib     = [] if os_name == "Windows" else ["gomp"]
 omp_pos     = sys.argv.index("--omp") if "--omp" in sys.argv else -1
 omp_lib_dir = "/usr/lib" if omp_pos == -1 else sys.argv[omp_pos + 1]
 
-dirname = os.path.abspath(__file__)[:-8]
+dirname = "."
 dirname += ("/" if dirname[-1] != "/" else "") + "nngt/generation/"
 
 
@@ -123,7 +122,6 @@ extensions = Extension(
 
 if with_cython:
     extensions = cythonize(extensions)
-    clean_cpp(dirname + 'cconnect.cpp')
 else:
     extensions = [extensions]
 
@@ -149,13 +147,14 @@ setup_params = dict(
 
     package_dir = {'': '.'},
     packages = find_packages('.'),
-    include_package_data = False,
+    include_package_data = True,
 
     cmdclass = {'build_ext': CustomBuildExt},
 
     # Include the non python files:
     package_data = {'': [
-        '*.txt', '*.rst', '*.md', '*.default', '*.pyx', '*.pxd', '*.cpp',
+        '*.txt', '*.rst', '*.md', '*.default', '*.pyx', '*.pxd',
+        'nngt/generation/func_connect.cpp',
         '*.h', '*.pyxbld',
     ]},
 

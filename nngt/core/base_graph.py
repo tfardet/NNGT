@@ -71,7 +71,7 @@ class BaseProperty(dict):
 
 class GraphInterface(nngt._config["graph"], metaclass=ABCMeta):
 
-    #-------------------------------------------------------------------------#
+    #------------------------------------------------------------------#
     # Class methods and attributes
 
     nattr_class = None
@@ -90,7 +90,7 @@ class GraphInterface(nngt._config["graph"], metaclass=ABCMeta):
             obj._edges[tuple(edge)] = i
         return obj
 
-    #-------------------------------------------------------------------------#
+    #------------------------------------------------------------------#
     # Shared properties methods
 
     @property
@@ -148,7 +148,7 @@ class GraphInterface(nngt._config["graph"], metaclass=ABCMeta):
             raise NotImplementedError()
         return mat
 
-    #-------------------------------------------------------------------------#
+    #------------------------------------------------------------------#
     # Properties and methods to implement
 
     #~ @abstractmethod
@@ -175,7 +175,8 @@ class GraphInterface(nngt._config["graph"], metaclass=ABCMeta):
     def new_edges(self, edge_list, attributes=None):
         pass
 
-    def attr_new_edges(self, edge_list, attributes=None):
+    def attr_new_edges(self, edge_list, attributes=None,
+                       check_edges=True):
         num_edges = len(edge_list)
         if num_edges:
             attributes = {} if attributes is None else attributes
@@ -294,7 +295,7 @@ class BaseGraph(GraphInterface):
     graph-library.
     '''
 
-    #-------------------------------------------------------------------------#
+    #------------------------------------------------------------------#
     # Constructor and instance properties
 
     def __init__(self, nodes=0, weighted=True, directed=True,
@@ -329,7 +330,7 @@ class BaseGraph(GraphInterface):
             self._weighted = weighted
             self.new_node(nodes)
 
-    #-------------------------------------------------------------------------#
+    #------------------------------------------------------------------#
     # Graph manipulation
 
     def edge_id(self, edge):
@@ -638,7 +639,7 @@ class BaseGraph(GraphInterface):
         self._adj_mat = lil_matrix((self.node_nb(), self.node_nb()))
         self._eattr.clear()
 
-    #-------------------------------------------------------------------------#
+    #------------------------------------------------------------------#
     # Getters
 
     def node_nb(self):
@@ -664,10 +665,16 @@ class BaseGraph(GraphInterface):
         .. warning::
         When using MPI, returns only the degree related to local edges.
         '''
-        if node_list is None:
-            node_list = slice(self.node_nb())
+        num_nodes = None
 
-        degrees = np.zeros(self.node_nb())
+        if node_list is None:
+            num_nodes = self.node_nb()
+            node_list = slice(num_nodes)
+        else:
+            node_list = list(node_list)
+            num_nodes = len(node_list)
+
+        degrees = np.zeros(num_nodes)
 
         if "weight" in self._eattr and use_weights:
             if not self._directed:
@@ -678,17 +685,22 @@ class BaseGraph(GraphInterface):
                 if deg_type in ("out", "total"):
                     degrees += self._adj_mat.sum(axis=1).A1[node_list]
         else:
-            if not self._directed:
-                degrees += self._in_deg[node_list]
-            else:
-                if deg_type in ("in", "total"):
+            if not self._directed or deg_type in ("in", "total"):
+                if isinstance(node_list, slice):
                     degrees += self._in_deg[node_list]
-                if deg_type in ("out", "total"):
+                else:
+                    degrees += [self._in_deg[i] for i in node_list]
+
+            if self._directed and deg_type in ("out", "total"):
+                if isinstance(node_list, slice):
                     degrees += self._out_deg[node_list]
+                else:
+                    degrees += [self._out_deg[i] for i in node_list]
+
         return degrees
 
-    def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
-                         norm=True):
+    def betweenness_list(self, btype="both", use_weights=False,
+                         as_prop=False, norm=True):
         raise NotImplementedError("BaseGraph does not support betweenness, "
                                   "install a graph library to use it.")
 

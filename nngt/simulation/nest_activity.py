@@ -157,7 +157,7 @@ def get_recording(network, record, recorder=None, nodes=None):
         import nest
 
         rec, _ = monitor_nodes(
-            net.nest_gid, "multimeter", {"record_from": ["V_m"]}, net)
+            net.nest_gids, "multimeter", {"record_from": ["V_m"]}, net)
         nest.Simulate(100.)
         recording = nngt.simulation.get_recording(net, "V_m")
 
@@ -166,8 +166,8 @@ def get_recording(network, record, recorder=None, nodes=None):
         times = recording["times"]
     '''
     if nodes is None:
-        nodes = [network.id_from_nest_gid(n) for n in network.nest_gid]
-    gids = [network.nest_gid[n] for n in nodes]
+        nodes = [network.id_from_nest_gid(n) for n in network.nest_gids]
+    gids = [network.nest_gids[n] for n in nodes]
     if not nonstring_container(record):
         record = [record]
     values = {rec: {} for rec in record}

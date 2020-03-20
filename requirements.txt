@@ -1,0 +1,8 @@
+cython
+setuptools
+six
+numpy
+scipy
+shapely
+svg.path >= 4
+dxfgrabber

@@ -562,16 +562,21 @@ class _GtGraph(GraphInterface):
 
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         w = 1.
+
         if not self._directed:
             deg_type = "total"
             w = 0.5
+
         if node_list is None:
             node_list = slice(0, self.num_vertices() + 1)
-        if "weight" in self.edge_properties.keys() and use_weights:
+        else:
+            node_list = list(node_list)
+
+        if "weight" in self.edge_properties and use_weights:
             return w*self.degree_property_map(
                 deg_type, self.edge_properties["weight"]).a[node_list]
-        else:
-            return w*np.array(self.degree_property_map(deg_type).a[node_list])
+
+        return w*np.array(self.degree_property_map(deg_type).a[node_list])
 
     def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
                          norm=True):

@@ -15,7 +15,7 @@ graph_tool_, igraph_, networkx_, and possibly soon
 build various networks from efficient and verified algorithms.
 
 Moreover, it also acts as an interface between those graph libraries and the
-`NEST simulator`_.
+NEST_ and DeNSE_ simulators.
 
 
 Documentation structure
@@ -117,9 +117,10 @@ Known bugs
 * Plotting :class:`SpatialGraph` with `networkx` does not work.
 
 
+.. _DeNSE: https://dense.readthedocs.io
 .. _graph_tool: http://graph-tool.skewed.de
 .. _igraph: http://igraph.org/
-.. _`NEST simulator`: http://www.nest-simulator.org/
+.. _NEST: http://www.nest-simulator.org/
 .. _networkx: https://networkx.github.io/
 
 .. _Configuration: install#configuration

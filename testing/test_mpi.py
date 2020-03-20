@@ -24,6 +24,7 @@
 Test the main methods of the :mod:`~nngt.generation` module.
 """
 
+import os
 import unittest
 
 import numpy as np
@@ -35,6 +36,10 @@ from nngt.lib.connect_tools import _compute_connections
 from base_test import TestBasis, XmlHandler, network_dir
 from test_generation import _distance_rule_theo, _distance_rule_exp
 from tools_testing import foreach_graph
+
+
+if os.environ.get("MPI"):
+    nngt.set_config("mpi", True)
 
 
 # -------- #
@@ -79,12 +84,14 @@ class TestMPI(TestBasis):
             graph_type = instructions["graph_type"]
             ref_result = self.theo_prop[graph_type](instructions)
             computed_result = self.exp_prop[graph_type](graph, instructions)
+
             if graph_type == 'distance_rule':
                 # average degree
                 self.assertTrue(
                     ref_result[0] == computed_result[0],
                     "Avg. deg. for graph {} failed:\nref = {} vs exp {}\
                     ".format(graph.name, ref_result[0], computed_result[0]))
+
                 # average error on distance distribution
                 sqd = np.square(
                     np.subtract(ref_result[1:], computed_result[1:]))
@@ -92,6 +99,7 @@ class TestMPI(TestBasis):
                 err = np.sqrt(avg_sqd).mean()
                 tolerance = (self.tolerance if instructions['rule'] == 'lin'
                              else 0.25)
+
                 self.assertTrue(err <= tolerance,
                     "Distance distribution for graph {} failed:\nerr = {} > {}\
                     ".format(graph.name, err, tolerance))

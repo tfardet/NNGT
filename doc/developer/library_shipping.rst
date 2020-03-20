@@ -51,12 +51,9 @@ to build NNGT
 
 associated to a ``requirements.txt`` file
 
-    scipy
-    networkx
-    shapely
-    dxfgrabber
-    svg.path
-    matplotlib
+scipy
+numpy
+cython
 
 Save these as on the same level as the root ``NNGT`` folder (the one containing
 the ``setup.py``), and create a ``wheelhouse`` folder also next to it, then
@@ -83,3 +80,4 @@ First test it:
 Then upload "for real"
 
     twine upload dist/*
+

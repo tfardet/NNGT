@@ -192,7 +192,7 @@ class TestAttributes(TestBasis):
             np.all(np.unique(nlists) == np.unique([[], [1], [2], [1, 2]])))
 
         # check that all nodes from 0 to 48 were updated
-        self.assertTrue([] not in nlists[:49])
+        self.assertTrue([] not in nlists[:49].tolist())
 
         # --------------- #
         # edge attributes #
@@ -223,11 +223,10 @@ class TestAttributes(TestBasis):
             np.all(np.unique(elists) == np.unique([[], [1], [2], [1, 2]])))
 
         # check that all edges where updated
-        self.assertTrue(
-            [] not in graph.get_edge_attributes(name="elist", edges=edges)
-            and
-            [] not in graph.get_edge_attributes(name="elist", edges=edges2)
-        )
+        eattr1 = graph.get_edge_attributes(name="elist", edges=edges).tolist()
+        eattr2 = graph.get_edge_attributes(name="elist", edges=edges2).tolist()
+
+        self.assertTrue([] not in eattr1 and [] not in eattr2)
 
     @foreach_graph
     def test_weights(self, graph, instructions, **kwargs):

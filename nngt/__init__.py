@@ -82,7 +82,6 @@ import logging as _logging
 
 
 __version__ = '2.0.dev'
-''' :obj:`str`, current NNGT version '''
 
 
 # ----------------------- #
@@ -117,6 +116,10 @@ _config = {
     'with_plot': False,
 }
 
+# tools for nest interactions (can be used in config)
+
+_old_nest_func = {}
+
 # database (predeclare here, can be used in config)
 
 _db      = None
@@ -147,6 +150,15 @@ _init_logger(_logger)
 if _sys.hexversion < 0x02070000:
     _log_message(_logger, 'CRITICAL', 'NNGT requires Python 2.7 or higher.')
     raise ImportError('NNGT requires Python 2.7 or higher.')
+elif _sys.hexversion < 0x03040000:
+    import warnings
+    # turn off filter temporarily
+    warnings.simplefilter('always', DeprecationWarning)
+    message  = "Version 1.3 will be the last NNGT version to support Python 2."
+    message += " Please upgrade to Python >= 3.4 to continue using NNGT in the"
+    message += " future."
+    warnings.warn(message, category=DeprecationWarning)
+    warnings.simplefilter('default', DeprecationWarning)
 
 # IMPORTANT: afterwards, import config
 from .lib.nngt_config import (get_config, set_config, _load_config, _convert,
@@ -236,8 +248,10 @@ from .lib.io_tools import load_from_file, save_to_file
 from .lib.rng_tools import seed
 from .lib.test_functions import on_master_process, num_mpi_processes
 
-from .core.graph_datastruct import NeuralPop, NeuralGroup, GroupProperty
-from .core.graph_classes import Graph, SpatialGraph, Network, SpatialNetwork
+from .core.graph_datastruct import (GroupProperty, MetaGroup, NeuralGroup,
+                                    NeuralPop)
+from .core.graph_classes import (Graph, SpatialGraph, Network,
+                                 SpatialNetwork)
 from .generation.graph_connectivity import generate
 
 
@@ -293,7 +307,6 @@ except ImportError as e:
 
 if _config['load_nest']:
     try:
-        _old_nest_func = {}
         # silence nest
         _sys.argv.append('--quiet')
         import nest as _nest
