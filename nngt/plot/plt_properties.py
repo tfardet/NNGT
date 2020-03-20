@@ -26,7 +26,7 @@ import nngt
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.analysis import (degree_distrib, betweenness_distrib,
                            node_attributes, binning)
-from .custom_plt import palette, format_exponent
+from .custom_plt import palette_continuous, palette_discrete, format_exponent
 
 
 __all__ = [
@@ -106,7 +106,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
             bins[:-1], counts, np.diff(bins), bottom=bottom_count, **kwargs)
     else:
         if colors is None:
-            colors = palette(np.linspace(0.,0.5, len(deg_type)))
+            colors = palette_continuous(np.linspace(0.,0.5, len(deg_type)))
         if not nonstring_container(num_bins):
             num_bins = [num_bins for _ in range(len(deg_type))]
         for i, s_type in enumerate(deg_type):
@@ -290,7 +290,7 @@ def betweenness_distribution(network, btype="both", use_weights=True,
         ecounts = ecounts / np.sum(ecounts)
     # plot
     if colors is None:
-        colors = palette(np.linspace(0., 0.5, 2))
+        colors = palette_continuous(np.linspace(0., 0.5, 2))
     if btype in ("node", "both"):
         ax1.bar(
             nbins[:-1], ncounts, np.diff(nbins), color=colors[0], **kwargs)
