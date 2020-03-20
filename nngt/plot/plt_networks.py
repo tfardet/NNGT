@@ -32,7 +32,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import nngt
 from nngt.lib import POS, nonstring_container
 from nngt.analysis import num_wcc
-from .custom_plt import palette, format_exponent
+from .custom_plt import palette_continuous, palette_discrete, format_exponent
 
 
 
@@ -253,8 +253,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
 
     # node color information
-    default_cmap = palette() if ncolor == "group" else "magma"
-    ncmap = get_cmap(kwargs.get("node_cmap", default_cmap))
+    default_ncmap = (palette_discrete() if ncolor == "group"
+                     else palette_continuous())
+    ncmap = get_cmap(kwargs.get("node_cmap", default_ncmap))
     node_color, nticks, ntickslabels, nlabel = \
         _node_color(network, restrict_nodes, ncolor)
 
@@ -269,6 +270,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 
     # check edge color
     group_based = False
+    default_ecmap = (palette_discrete() if ecolor == "group"
+                     else palette_continuous())
     if isinstance(ecolor, float):
         ecolor = np.repeat(ecolor, e)
     elif ecolor == "groups" or ecolor == "group":
@@ -431,7 +434,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                             if nonstring_container(esize):
                                 esize = esize[::decimate_connections]
                         # plot
-                        ec = palette(ecolor[(src_name, tgt_name)])
+                        ec = default_ecmap(ecolor[(src_name, tgt_name)])
                         if fast:
                             dl       = 0.5*np.max(nsize)
                             arrow_x  = pos[edges[1], 0] - pos[edges[0], 0]
