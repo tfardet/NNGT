@@ -36,37 +36,37 @@ cache:
 
 before_install:
     - if [[ "$GL" == "gt" ]]; then
-        sh -c 'echo -n "deb http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
-        sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
-        apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
+        sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
+        sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
+        sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
       fi
     # update package repository status (-qq is more quiet)
-    - add-apt-repository -y ppa:nest-simulator/nest
-    - rm -rf /var/lib/apt/lists/*
+    - sudo add-apt-repository -y ppa:nest-simulator/nest
+    - sudo rm -rf /var/lib/apt/lists/*
     - ls /etc/apt/sources.list.d/
-    - apt-get update -qq
+    - sudo apt-get update -qq
     # remove any obsolete libraries
-    - apt-get autoremove
+    - sudo apt-get autoremove
     # requirements for building + installing scipy and igraph
-    - apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev libgmp-dev
+    - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev libgmp-dev
     if [[ "$GL" == "ig" ]]; then apt-get install -y libigraph0v5 libigraph0-dev; fi
     # install nest (segfaulting)
     # - apt install -y nest
     # install scipy from apt (much faster when possible) and pip if necessary
-    - if [[ "$GL" == "gt" ]]; then apt-get install -y python3-pip python3-matplotlib python3-tk; fi
+    - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
-    - if [[ "$GL" == "gt" ]]; then alias sudo='-H ' && alias pipv=pip3 && alias pythonv=python3; fi
+    - if [[ "$GL" == "gt" ]]; then alias sudo='sudo -H ' && alias pipv=pip3 && alias pythonv=python3; fi
     - pipv install --upgrade pip
     - pipv install --upgrade setuptools
     - pipv install --user --upgrade cython
     - pipv install --upgrade numpy scipy shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
     # install graph-tool, igraph, and networkx
-    - if [[ "$GL" == "gt" ]]; then apt-get install -y python3-graph-tool; fi
-    - if [[ "$GL" == "ig" ]]; then pipv install python-igraph; fi
-    - if [[ "$GL" == "nx" ]]; then pipv install networkx; fi
+    - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
+    - if [[ "$GL" == "ig" ]]; then sudo pipv install python-igraph; fi
+    - if [[ "$GL" == "nx" ]]; then sudo pipv install networkx; fi
 
-install: pythonv setup.py install
+install: sudo pythonv setup.py install
 
 script:
     - coverage run -p -m pytest testing
