@@ -36,6 +36,7 @@ __all__ = [
     "_distance_rule",
     "_erdos_renyi",
     "_fixed_degree",
+    "_from_degree_list",
     "_gaussian_degree",
     "_newman_watts",
     "_price_scale_free",
@@ -93,11 +94,11 @@ def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
     return edges
 
 
-def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
-                  reciprocity=-1, directed=True, multigraph=False,
-                  existing_edges=None, **kwargs):
-    degree = int(degree)
-    assert degree >= 0, "A positive value is required for `degree`."
+def _from_degree_list(source_ids, target_ids, degree_list, degree_type="in",
+                      directed=True, multigraph=False, existing_edges=None,
+                      **kwargs):
+    assert len(degree_list) == len(source_ids), \
+        "One degree per source neuron must be provided."
 
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
@@ -109,84 +110,24 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
 
-    # edges
-    edges = num_source*degree if degree_type == "out" else num_target*degree
-    b_one_pop = _check_num_edges(
-        source_ids, target_ids, edges, directed, multigraph)
+    if b_total:
+        raise NotImplementedError("Total degree is not supported yet.")
 
-    existing = 0 if existing_edges is None else existing_edges.shape[0]
-    ia_edges = np.zeros((existing+edges, 2), dtype=int)
-    if existing:
-        ia_edges[:existing,:] = existing_edges
-    idx = 0 if b_out else 1  # differenciate source / target
-
-    for i, v in enumerate(source_ids):
-        edges_i, ecurrent, variables_i = np.zeros((degree,2)), 0, []
-
-        if existing_edges is not None:
-            with_v = np.where(ia_edge[:, idx] == v)
-            variables_i.extend(ia_edge[with_v, 1 - idx])
-            ecurrent = len(variables_i)
-
-        ia_edges[i*degree:(i+1)*degree, idx] = v
-        rm = np.where(target_ids == v)[0]
-        rm = rm[0] if len(rm) else -1
-        var_tmp = ( np.array(target_ids, copy=True) if rm == -1 else
-                    np.concatenate((target_ids[:rm], target_ids[rm+1:])) )
-        num_var_i = len(var_tmp)
-
-        while ecurrent != degree:
-            variables_i.extend(np.random.choice(var_tmp, degree-ecurrent,
-                               replace=multigraph))
-
-            if not multigraph:
-                variables_i = list(set(variables_i))
-
-            ecurrent = len(variables_i)
-
-        ia_edges[i*degree:(i+1)*degree, int(not idx)] = variables_i
-
-    return ia_edges
-
-
-def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
-                     reciprocity=-1, directed=True, multigraph=False,
-                     existing_edges=None, **kwargs):
-    ''' Connect nodes with a Gaussian distribution '''
-    # switch values to float
-    avg = float(avg)
-    std = float(std)
-
-    assert avg >= 0, "A positive value is required for `avg`."
-    assert std >= 0, "A positive value is required for `std`."
-
-    source_ids = np.array(source_ids).astype(int)
-    target_ids = np.array(target_ids).astype(int)
-    num_source, num_target = len(source_ids), len(target_ids)
-
-    # type of degree
-    degree_type = _set_degree_type(degree_type)
-
-    b_out = (degree_type == "out")
-    b_total = (degree_type == "total")
-
-    # edges (we set the in, out, or total degree of the source neurons)
-    lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
-
-    edges = np.sum(lst_deg)
+    edges = np.sum(degree_list)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
 
     num_etotal = 0 if existing_edges is None else existing_edges.shape[0]
-    ia_edges = np.zeros((num_etotal+edges, 2), dtype=int)
+
+    ia_edges = np.zeros((num_etotal + edges, 2), dtype=int)
+
     if num_etotal:
         ia_edges[:num_etotal,:] = existing_edges
 
     idx = 0 if b_out else 1  # differenciate source / target
 
     for i, v in enumerate(source_ids):
-        degree_i = lst_deg[i]
+        degree_i = degree_list[i]
         edges_i, ecurrent, variables_i = np.zeros((degree_i, 2)), 0, []
 
         if existing_edges is not None:
@@ -216,6 +157,46 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
         num_etotal += ecurrent
 
     return ia_edges
+
+
+def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
+                  reciprocity=-1, directed=True, multigraph=False,
+                  existing_edges=None, **kwargs):
+    degree = int(degree)
+    assert degree >= 0, "A positive value is required for `degree`."
+
+    num_source = len(source_ids)
+
+    # edges (we set the in, out, or total degree of the source neurons)
+    lst_deg = np.full(num_source, degree, dtype=int)
+
+    return _from_degree_list(
+        source_ids, target_ids, lst_deg, degree_type=degree_type,
+        directed=directed, multigraph=multigraph,
+        existing_edges=existing_edges, **kwargs)
+
+
+def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
+                     directed=True, multigraph=False, existing_edges=None,
+                     **kwargs):
+    ''' Connect nodes with a Gaussian distribution '''
+    # switch values to float
+    avg = float(avg)
+    std = float(std)
+
+    assert avg >= 0, "A positive value is required for `avg`."
+    assert std >= 0, "A positive value is required for `std`."
+
+    num_source = len(source_ids)
+
+    # edges (we set the in, out, or total degree of the source neurons)
+    lst_deg = np.around(
+        np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
+
+    return _from_degree_list(
+        source_ids, target_ids, lst_deg, degree_type=degree_type,
+        directed=directed, multigraph=multigraph,
+        existing_edges=existing_edges, **kwargs)
 
 
 def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
@@ -331,6 +312,7 @@ def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
                 num_ecurrent = ia_edges_tmp.shape[0]
                 ia_edges[:num_ecurrent,:] = ia_edges_tmp
             num_test += 1
+
     return ia_edges
 
 
