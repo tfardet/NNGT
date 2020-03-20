@@ -49,14 +49,14 @@ before_install:
     - sudo apt-get autoremove
     # requirements for building + installing scipy and igraph
     - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev libgmp-dev
-    - if [[ "$GL" == "ig" ]]; then apt-get install -y libigraph0v5 libigraph0-dev; fi
+    - if [[ "$GL" == "ig" ]]; then sudo apt-get install -y libigraph0v5 libigraph0-dev; fi
     # install nest (segfaulting)
     # - apt install -y nest
     # install scipy from apt (much faster when possible) and pip if necessary
     - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
-    - if [[ "$GL" == "gt" ]]; then alias sudo='sudo -H ' && alias pipv=pip3 && alias pythonv=python3; fi
+    - if [[ "$GL" == "gt" ]]; then alias sudo='sudo -H ' && alias pipv='sudo pip3' && alias pythonv=python3; else alias pipv=pip && alias pythonv=python; fi
     - pipv install --upgrade pip
     - pipv install --upgrade setuptools
     - pipv install --user --upgrade cython
