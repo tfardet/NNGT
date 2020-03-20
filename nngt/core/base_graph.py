@@ -23,7 +23,6 @@
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 from abc import ABCMeta, abstractmethod, abstractproperty
-from six import add_metaclass
 from weakref import ref
 import logging
 
@@ -62,22 +61,15 @@ class BaseProperty(dict):
     def values(self):
         return [self[k] for k in self]
 
-    def itervalues(self):
-        return (self[k] for k in self)
-
     def items(self):
         return [(k, self[k]) for k in self]
-
-    def iteritems(self):
-        return ((k, self[k]) for k in self)
 
 
 # -------------- #
 # GraphInterface #
 # -------------- #
 
-@add_metaclass(ABCMeta)
-class GraphInterface(nngt._config["graph"]):
+class GraphInterface(nngt._config["graph"], metaclass=ABCMeta):
 
     #-------------------------------------------------------------------------#
     # Class methods and attributes

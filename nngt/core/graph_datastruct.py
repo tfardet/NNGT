@@ -759,11 +759,15 @@ class NeuralPop(OrderedDict):
             if model is not None:
                 raise InvalidArgument(
                     "Invalid model dict or group; see docstring.")
+
         b_has_models = True
+
         if model is None:
             b_has_models = False
-        for group in iter(self.values()):
+
+        for group in self.values():
             b_has_models *= group.has_model
+
         self._has_models = b_has_models
 
     def set_neuron_param(self, params, neurons=None, group=None):

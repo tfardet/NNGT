@@ -23,14 +23,8 @@
 import collections
 import warnings
 
-try:
-    from collections.abc import Container as _container
-except:
-    from collections import Container as _container
-try:
-    from collections.abc import Iterable as _iterable
-except:
-    from collections import Iterable as _iterable
+from collections.abc import Container as _container
+from collections.abc import Iterable as _iterable
 
 import numpy as np
 

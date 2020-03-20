@@ -604,13 +604,16 @@ def _compute_properties(data, phases, fr, skip_bursts):
             if num_spikes:
                 prop["ISI"] += num_neurons * (burst[1] - burst[0])\
                                / float(num_spikes)
-    for key in iter(prop.keys()):
+    for key in prop.keys():
         if key not in ("bursting", "firing_rate") and num_bursts > skip_bursts:
             prop[key] /= float(num_bursts - skip_bursts)
+
     if num_bursts > skip_bursts:
         prop["period"] = prop["IBI"] + prop["burst_duration"]
+
     if num_bursts and prop["SpB"] < 2.:
         prop["ISI"] = np.NaN
+
     return prop
 
 
