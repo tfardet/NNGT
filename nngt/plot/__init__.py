@@ -35,7 +35,7 @@ import nngt as _nngt
 
 # module import
 
-from .custom_plt import palette, markers
+from .custom_plt import palette_continuous, palette_discrete, markers
 from .animations import Animation2d, AnimationNetwork
 from .plt_networks import draw_network
 from .plt_properties import *
@@ -46,7 +46,8 @@ __all__ = [
     "Animation2d",
     "AnimationNetwork",
     "draw_network",
-    "palette",
+    "palette_continuous",
+    "palette_discrete",
     "markers",
 ]
 

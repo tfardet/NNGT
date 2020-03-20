@@ -80,12 +80,12 @@ def set_noise(gids, mean, std):
     return noise
 
 
-def set_poisson_input(gids, rate, syn_spec=None):
+def set_poisson_input(gids, rate, syn_spec=None, **kwargs):
     '''
     Submit neurons to a Poissonian rate of spikes.
 
-    .. versionchanged:: 0.9
-        Added `syn_spec` parameter.
+    .. versionchanged:: 2.0
+        Added `kwargs`.
 
     Parameters
     ----------
@@ -96,15 +96,22 @@ def set_poisson_input(gids, rate, syn_spec=None):
     syn_spec : dict, optional (default: static synapse with weight 1)
         Properties of the connection between the ``poisson_generator`` object
         and the target neurons.
+    **kwargs : dict
+        Other optional parameters for the `poisson_generator`.
 
     Returns
     -------
     poisson_input : tuple
         The NEST gid of the ``poisson_generator``.
     '''
+    params = {"rate": rate}
+    params.update(kwargs)
+
     poisson_input = nest.Create(
-        "poisson_generator", params={"rate": rate}, _warn=False)
+        "poisson_generator", params=params, _warn=False)
+
     nest.Connect(poisson_input, list(gids), syn_spec=syn_spec, _warn=False)
+
     return poisson_input
 
 
