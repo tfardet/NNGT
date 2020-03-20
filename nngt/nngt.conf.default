@@ -39,7 +39,8 @@ use_tex = False
 color_lib = matplotlib
 
 # palette to use
-palette = Set1
+palette_continuous = magma
+palette_discrete = Set1
 
 
 #-----------------------------

@@ -38,7 +38,7 @@ from nngt.analysis import total_firing_rate
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
 from nngt.lib.sorting import _sort_groups, _sort_neurons
 from nngt.lib.logger import _log_message
-from nngt.plot import palette, markers
+from nngt.plot import palette_discrete, markers
 from nngt.plot.plt_properties import _set_new_plot, _set_ax_lims
 
 
@@ -51,8 +51,8 @@ logger = logging.getLogger(__name__)
 
 def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                   axis=None, show=False, limits=None, histogram=False,
-                  title=None, fignum=None, label=None, sort=None, average=False,
-                  normalize=1., decimate=None, transparent=True,
+                  title=None, fignum=None, label=None, sort=None,
+                  average=False, normalize=1., decimate=None, transparent=True,
                   kernel_center=0., kernel_std=None, resolution=None,
                   cut_gaussian=5.):
     '''
@@ -137,6 +137,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     '''
     import matplotlib.pyplot as plt
     lst_rec, lst_labels, lines, axes, labels = [], [], {}, {}, {}
+
     # normalize recorders and recordables
     if gid_recorder is not None:
         assert record is not None, "`record` must also be provided."
@@ -163,14 +164,19 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         for rec in lst_rec:
             gids.extend(nest.GetStatus([rec])[0]["events"]["senders"])
         gids = np.unique(gids)
+
     num_group = 1 if network is None else len(network.population)
     num_lines = max(num_group, len(lst_rec))
+
     # sorting
     sorted_neurons = np.array([])
+
     if len(gids):
         sorted_neurons = np.arange(
             np.max(gids) + 1).astype(int) - np.min(gids) + 1
+
     attr = None
+
     if sort is not None:
         assert network is not None, "`network` is required for sorting."
         if nonstring_container(sort):
@@ -192,8 +198,9 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
     elif network is not None and network.is_spatial():
         sorted_neurons, attr = _sort_neurons(
             "space", gids, network, data=None, return_attr=True)
+
     # spikes plotting
-    colors = palette(np.linspace(0, 1, num_lines))
+    colors = palette_discrete(np.linspace(0, 1, num_lines))
     num_raster, num_detec, num_meter = 0, 0, 0
     fignums = fignum if isinstance(fignum, dict) else {}
     decim = []
@@ -246,6 +253,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         if info["model"] not in labels:
             labels[info["model"]] = []
             lines[info["model"]] = []
+
         if str(info["model"]) == "spike_detector":
             if "spike_detector" in axes:
                 axis = axes["spike_detector"]
@@ -298,7 +306,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 fig = axis.get_figure()
             lines_tmp, labels_tmp = [], []
             if nonstring_container(var):
-                m_colors = palette(np.linspace(0, 1, len(var)))
+                m_colors = palette_discrete(np.linspace(0, 1, len(var)))
                 axes = fig.axes
                 if axis is not None:
                     # multiple y axes on a single subplot, adapted from
@@ -487,21 +495,25 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
                 for i, old_ax in enumerate(fig.axes):
                     old_ax.change_geometry(num_axes + 2, 1, i+1)
                 ax1 = fig.add_subplot(num_axes + 2, 1, num_axes + 1)
-                ax2 = fig.add_subplot(num_axes + 2, 1, num_axes + 2, sharex=ax1)
+                ax2 = fig.add_subplot(num_axes + 2, 1, num_axes + 2,
+                                      sharex=ax1)
             else:
                 ax1 = axis
                 ax2 = kwargs["hist_ax"]
             lines.extend(ax1.plot(
                 times, senders, c=color, marker="o", linestyle='None',
                 mec="k", mew=0.5, ms=4, **mpl_kwargs))
+
             ax1_lines = ax1.lines
+
             if len(ax1_lines) > 1:
                 t_max = max(ax1_lines[0].get_xdata().max(),times[-1])
                 ax1.set_xlim([-delta_t, t_max+delta_t])
+
             ax1.set_ylabel(ylabel)
+
             if limits is not None:
                 ax1.set_xlim(*limits)
-            #~ ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3)
 
             fr, fr_times = total_firing_rate(
                 data=np.array([senders, times]).T, kernel_center=kernel_center,
@@ -558,19 +570,19 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
                 for i, old_ax in enumerate(fig.axes):
                     old_ax.change_geometry(num_axes + 1, 1, i+1)
                 ax = fig.add_subplot(num_axes + 1, 1, num_axes + 1)
+
             if network is not None:
-                for m, (k, v) in zip(markers, network.population.items()):
+                pop = network.population
+                colors = palette_discrete(np.linspace(0, 1, len(pop)))
+                for m, (k, v), c in zip(markers, pop.items(), colors):
                     keep = np.where(
                         np.in1d(senders, network.nest_gids[v.ids]))[0]
                     if len(keep):
                         if label is None:
                             mpl_kwargs['label'] = k
                         lines.extend(ax.plot(
-                            times[keep], senders[keep], c=color, marker=m,
+                            times[keep], senders[keep], c=c, marker=m,
                             ls='None', mec='k', mew=0.5, ms=4, **mpl_kwargs))
-                        if 'inh' in k:
-                            c_rgba = ColorConverter().to_rgba(color, alpha=0.5)
-                            lines[-1].set_markerfacecolor(c_rgba)
             else:
                 lines.extend(ax.plot(
                     times, senders, c=color, marker="o", linestyle='None',
