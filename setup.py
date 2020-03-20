@@ -176,23 +176,22 @@ setup_params = dict(
     # Metadata
     url = 'https://github.com/Silmathoron/NNGT',
     author = 'Tanguy Fardet',
-    author_email = 'tanguy.fardet@univ-paris-diderot.fr',
+    author_email = 'tanguy.fardet@tuebingen.mpg.de',
     license = 'GPL3',
-    keywords = 'neuronal network graph structure simulation NEST ' +\
-               'topology growth',
+    keywords = 'network graph structure simulation neuron NEST DeNSE topology '
+               'growth',
     long_description = long_descr,
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Natural Language :: English',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Operating System :: OS Independent',
-        'Programming Language :: C++',
         'Programming Language :: Cython',
-        'Programming Language :: Python',
+        'Programming Language :: C++',
+        'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Bio-Informatics'
+        'Topic :: Scientific/Engineering :: Physics'
     ]
 )
 

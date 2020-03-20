@@ -30,7 +30,7 @@ import numpy as np
 import nngt
 from .errors import InvalidArgument
 from .logger import _configure_logger, _init_logger, _log_message
-from .reloading import reload_module
+from importlib import reload
 from .rng_tools import seed as nngt_seed
 from .test_functions import mpi_checker, num_mpi_processes, mpi_barrier
 
@@ -328,7 +328,7 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
     # reload for omp
     new_multithreading = new_config.get("multithreading", old_mt)
     if new_multithreading != old_mt:
-        reload_module(sys.modules["nngt"].generation.graph_connectivity)
+        reload(sys.modules["nngt"].generation.graph_connectivity)
     # if multithreading loading failed, set omp back to 1
     if not nngt._config['multithreading']:
         nngt._config['omp'] = 1
@@ -356,7 +356,7 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
                                           "all MPI processes.")
     # reload for mpi
     if new_config.get('mpi', old_mpi) != old_mpi:
-        reload_module(sys.modules["nngt"].generation.graph_connectivity)
+        reload(sys.modules["nngt"].generation.graph_connectivity)
     # set graph-tool config
     _set_gt_config(old_gl, new_config)
     # seed python RNGs
