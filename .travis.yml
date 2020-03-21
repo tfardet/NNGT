@@ -66,7 +66,7 @@ before_install:
     - if [[ "$GL" == "ig" ]]; then pipv install python-igraph; fi
     - if [[ "$GL" == "nx" ]]; then pipv install networkx; fi
 
-install:  if [[ "$GL" == "gt" ]]; sudo python3 setup.py install; else python setup.py install --user; fi
+install: if [[ "$GL" == "gt" ]]; then sudo python3 setup.py install; else python setup.py install --user; fi
 
 script:
     - coverage run -p -m pytest testing
