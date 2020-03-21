@@ -60,12 +60,12 @@ if nngt.get_config("multithreading"):
             try:
                 from mpi4py import MPI
                 comm = MPI.COMM_WORLD
-                comm.bcast(pyximport.install())
+                comm.bcast(pyximport.install(language_level=3))
             except:
                 if nngt.get_config("mpi"):
                     raise RuntimeError("Cannot safely compile with MPI.")
 
-                pyximport.install()
+                pyximport.install(language_level=3)
 
             # wait for compilation to finish
             nngt.lib.mpi_barrier()

@@ -56,7 +56,7 @@ before_install:
     - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
-    - if [[ "$GL" == "gt" ]]; then alias sudo='sudo -H ' && alias pipv='sudo pip3' && alias pythonv=python3; else alias pipv='sudo pip' && alias pythonv='python'; fi
+    - if [[ "$GL" == "gt" ]]; then alias sudo='sudo -H ' && alias pipv='sudo pip3'; else alias pipv='sudo pip'; fi
     - pipv install --upgrade pip
     - pipv install --upgrade setuptools
     - pipv install --upgrade cython
@@ -66,12 +66,12 @@ before_install:
     - if [[ "$GL" == "ig" ]]; then pipv install python-igraph; fi
     - if [[ "$GL" == "nx" ]]; then pipv install networkx; fi
 
-install: sudo pythonv setup.py install
+install:  if [[ "$GL" == "gt" ]]; sudo python3 setup.py install; else python setup.py install --user; fi
 
 script:
     - coverage run -p -m pytest testing
     - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing; fi
+    - export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest -s --with-mpi testing; fi
     - coverage combine
 
 after_success: coveralls
