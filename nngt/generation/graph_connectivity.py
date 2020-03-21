@@ -177,6 +177,77 @@ def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
     return graph_all
 
 
+@mpi_random
+def from_degree_list(degrees, degree_type='in', weighted=True,
+                     directed=True, multigraph=False, name="DL",
+                     shape=None, positions=None, population=None,
+                     from_graph=None, **kwargs):
+    """
+    Generate a random graph from a given list of degrees.
+
+    Parameters
+    ----------
+    degrees : list
+        The list of degrees for each node in the graph.
+    degree_type : str, optional (default: 'in')
+        The type of the fixed degree, among ``'in'``, ``'out'`` or ``'total'``.
+        @todo `'total'` not implemented yet.
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    weighted : bool, optional (default: True)
+        Whether the graph edges have weights.
+    directed : bool, optional (default: True)
+        @todo: only for directed graphs for now. Whether the graph is directed
+        or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+        Shape of the neurons' environment.
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
+    from_graph : :class:`Graph` or subclass, optional (default: None)
+        Initial graph whose nodes are to be connected.
+
+    Returns
+    -------
+    graph_dl : :class:`~nngt.Graph`, or subclass
+        A new generated graph or the modified `from_graph`.
+    """
+    # set node number and library graph
+    graph_dl = from_graph
+    nodes    = len(degrees)
+
+    if graph_dl is not None:
+        nodes = graph_dl.node_nb()
+        graph_dl.clear_all_edges()
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_dl = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
+
+    _set_options(graph_dl, population, shape, positions)
+
+    # add edges
+    ia_edges = None
+
+    if nodes > 1:
+        ids = np.arange(nodes, dtype=np.uint)
+        ia_edges = _from_degree_list(ids, ids, degrees, degree_type,
+                                     directed=directed, multigraph=multigraph)
+        graph_dl.new_edges(ia_edges, check_edges=False)
+
+    graph_dl._graph_type = "from_{}_degree_list".format(degree_type)
+
+    return graph_dl
+
+
+@mpi_random
 def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
                  weighted=True, directed=True, multigraph=False, name="FD",
                  shape=None, positions=None, population=None, from_graph=None,
@@ -233,6 +304,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
     """
     # set node number and library graph
     graph_fd = from_graph
+
     if graph_fd is not None:
         nodes = graph_fd.node_nb()
         graph_fd.clear_all_edges()
@@ -240,18 +312,25 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         nodes = population.size if population is not None else nodes
         graph_fd = nngt.Graph(
             name=name, nodes=nodes, directed=directed, **kwargs)
+
     _set_options(graph_fd, population, shape, positions)
+
     # add edges
     ia_edges = None
+
     if nodes > 1:
         ids = np.arange(nodes, dtype=np.uint)
-        ia_edges = _fixed_degree(ids, ids, degree, degree_type, reciprocity,
-                                 directed, multigraph)
+        ia_edges = _fixed_degree(
+            ids, ids, degree, degree_type, reciprocity=reciprocity,
+            directed=directed, multigraph=multigraph)
         graph_fd.new_edges(ia_edges, check_edges=False)
+
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
+
     return graph_fd
 
 
+@mpi_random
 def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
                     weighted=True, directed=True, multigraph=False, name="GD",
                     shape=None, positions=None, population=None,
@@ -324,8 +403,9 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     ia_edges = None
     if nodes > 1:
         ids = np.arange(nodes, dtype=np.uint)
-        ia_edges = _gaussian_degree(ids, ids, avg, std, degree_type,
-                                    reciprocity, directed, multigraph)
+        ia_edges = _gaussian_degree(
+            ids, ids, avg, std, degree_type, reciprocity=reciprocity,
+            directed=directed, multigraph=multigraph)
         # check for None if MPI
         if ia_edges is not None:
             graph_gd.new_edges(ia_edges, check_edges=False)
@@ -333,10 +413,9 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     return graph_gd
 
 
-#-----------------------------------------------------------------------------#
-# Erdos-Renyi
-#------------------------
-#
+# ----------- #
+# Erdos-Renyi #
+# ----------- #
 
 def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
                 weighted=True, directed=True, multigraph=False, name="ER",
@@ -412,10 +491,9 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
     return graph_er
 
 
-#
-#---
-# Scale-free models
-#------------------------
+# ----------------- #
+# Scale-free models #
+# ----------------- #
 
 def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
                       avg_deg=-1, reciprocity=0., weighted=True, directed=True,
@@ -777,10 +855,9 @@ def generate(di_instructions, **kwargs):
     return _di_generator[graph_type](**instructions)
 
 
-#-----------------------------------------------------------------------------#
-# Connecting groups
-#------------------------
-#
+# ----------------- #
+# Connecting groups #
+# ----------------- #
 
 _di_gen_edges = {
     "all_to_all": _all_to_all,

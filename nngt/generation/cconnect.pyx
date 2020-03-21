@@ -25,6 +25,7 @@ __all__ = [
     "_erdos_renyi",
     "_filter",
     "_fixed_degree",
+    "_from_degree_list",
     "_gaussian_degree",
     "_newman_watts",
     "_no_self_loops",
@@ -43,10 +44,9 @@ cdef float EPS = 0.00001
 DTYPE = np.uint
 
 
-#-----------------------------------------------------------------------------#
-# Simple tools
-#------------------------
-#
+# ------------ #
+# Simple tools #
+# ------------ #
 
 cdef bytes _to_bytes(string):
     ''' Convert string to bytes '''
@@ -138,13 +138,65 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
     return edges
 
 
+def _from_degree_list(cnp.ndarray[size_t, ndim=1] source_ids,
+                      cnp.ndarray[size_t, ndim=1] target_ids, degrees,
+                      degree_type="in", bool directed=True,
+                      bool multigraph=False, existing_edges=None, **kwargs):
+    ''' Generation of the degree list through the C++ function '''
+
+    assert len(degrees) == len(source_ids), \
+        "One degree per source neuron must be provided."
+
+    degree_type = _set_degree_type(degree_type)
+
+    cdef:
+        # type of degree
+        bool b_out = (degree_type == "out")
+        bool b_total = (degree_type == "total")
+        size_t num_source = source_ids.shape[0]
+        size_t edges = np.sum(degrees)
+        bool b_one_pop = _check_num_edges(
+            source_ids, target_ids, edges, directed, multigraph)
+        unsigned int existing = \
+            0 if existing_edges is None else existing_edges.shape[0]
+        cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
+            (existing+edges, 2), dtype=DTYPE)
+
+    if b_total:
+        raise NotImplementedError("Total degree is not supported yet.")
+
+    if not directed:
+        raise NotImplementedError("This function is not yet implemented for "
+                                  "undirected graphs.")
+
+    if existing:
+        ia_edges[:existing,:] = existing_edges
+
+    cdef:
+        unsigned int idx = 0 if b_out else 1 # differenciate source / target
+        unsigned int omp = nngt._config["omp"]
+        long msd = np.random.randint(0, edges + 1)
+        vector[unsigned int] cdegrees = degrees
+        vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
+
+    _gen_edges(&ia_edges[0,0], source_ids, cdegrees, target_ids, old_edges,
+               idx, multigraph, directed, msd, omp)
+
+    return ia_edges
+
+
 def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
                   cnp.ndarray[size_t, ndim=1] target_ids, degree=-1,
                   degree_type="in", float reciprocity=-1, bool directed=True,
                   bool multigraph=False, existing_edges=None, **kwargs):
     ''' Generation of the edges through the C++ function '''
     degree = int(degree)
+
     assert degree >= 0, "A positive value is required for `degree`."
+
+    if not directed:
+        raise NotImplementedError("This function is not yet implemented for "
+                                  "undirected graphs.")
 
     degree_type = _set_degree_type(degree_type)
 
@@ -161,8 +213,13 @@ def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
             0 if existing_edges is None else existing_edges.shape[0]
         cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing+edges, 2), dtype=DTYPE)
+
+    if b_total:
+        raise NotImplementedError("Total degree is not supported yet.")
+
     if existing:
         ia_edges[:existing,:] = existing_edges
+
     cdef:
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt._config["omp"]
@@ -171,7 +228,7 @@ def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
     _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
-              idx, multigraph, directed, msd, omp)
+               idx, multigraph, directed, msd, omp)
 
     return ia_edges
 
@@ -192,6 +249,10 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
     assert avg >= 0, "A positive value is required for `avg`."
     assert std >= 0, "A positive value is required for `std`."
 
+    if not directed:
+        raise NotImplementedError("This function is not yet implemented for "
+                                  "undirected graphs.")
+
     degree_type = _set_degree_type(degree_type)
 
     cdef:
@@ -205,6 +266,9 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
         vector[unsigned int] degrees = np.around(np.maximum(
             np.random.normal(avg, std, num_source), 0.)).astype(DTYPE)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
+
+    if b_total:
+        raise NotImplementedError("Total degree is not supported yet.")
 
     # edges
     edges = np.sum(degrees)

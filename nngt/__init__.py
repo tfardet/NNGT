@@ -198,7 +198,13 @@ else:                                 # if it does check it is up-to-date
             _log_message(_logger, "WARNING",
                          "Updating the configuration file, your previous "
                          "settings have be overwritten.")
+
+# state of master seed (already seeded or not)
 _seeded = False
+
+# state of local seeds for multithreading or MPI (already used or not)
+_seeded_local = False
+
 _load_config(_new_config)
 
 # multithreading

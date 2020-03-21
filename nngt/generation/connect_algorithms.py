@@ -113,6 +113,10 @@ def _from_degree_list(source_ids, target_ids, degree_list, degree_type="in",
     if b_total:
         raise NotImplementedError("Total degree is not supported yet.")
 
+    if not directed:
+        raise NotImplementedError("This function is not yet implemented for "
+                                  "undirected graphs.")
+
     edges = np.sum(degree_list)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)

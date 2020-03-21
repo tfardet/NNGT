@@ -38,17 +38,16 @@ from .connect_algorithms import *
 __all__ = connect_algorithms.__all__
 
 
-def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
-                     reciprocity=-1, directed=True, multigraph=False,
-                     existing_edges=None, **kwargs):
-    ''' Connect nodes with a Gaussian distribution '''
+def _from_degree_list(source_ids, target_ids, degrees, degree_type="in",
+                      directed=True, multigraph=False, existing_edges=None,
+                      **kwargs):
+    ''' Connect nodes from a list of degrees '''
+    if not directed:
+        raise NotImplementedError("This function is not yet implemented for "
+                                  "undirected graphs.")
+
     # mpi-related stuff
     comm, size, rank = _mpi_and_random_init()
-    # switch values to float
-    avg = float(avg)
-    std = float(std)
-    assert avg >= 0, "A positive value is required for `avg`."
-    assert std >= 0, "A positive value is required for `std`."
 
     # use only local sources
     source_ids = np.array(source_ids, dtype=int)[rank::size]
@@ -62,10 +61,11 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
 
+    if b_total:
+        raise NotImplementedError("Total degree is not supported yet.")
+
     # compute the local number of edges
-    lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
-    edges = np.sum(lst_deg)
+    edges = np.sum(degrees)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
 
@@ -75,7 +75,7 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     max_degree = np.inf if multigraph else len(target_ids)
 
     for i, v in enumerate(source_ids):
-        degree_i = lst_deg[i]
+        degree_i = degrees[i]
         edges_i, ecurrent, variables_i = np.zeros((degree_i, 2)), 0, []
 
         if existing_edges is not None:
@@ -122,6 +122,60 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
             return None
 
 
+def _fixed_degree(source_ids, target_ids, degree, degree_type="in",
+                  reciprocity=-1, directed=True, multigraph=False,
+                  existing_edges=None, **kwargs):
+    ''' Connect nodes with a delta distribution '''
+    # mpi-related stuff (finalized in _from_degree_list)
+    comm, size, rank = _mpi_and_random_init()
+
+    assert degree >= 0, "A positive value is required for `degree`."
+
+    # use only local sources
+    source_ids = np.array(source_ids, dtype=int)[rank::size]
+    target_ids = np.array(target_ids, dtype=int)
+        
+    num_source = len(source_ids)
+
+    # compute the local number of edges
+    lst_deg = np.full(num_source, degree, dtype=int)
+
+    return _from_degree_list(
+        source_ids, target_ids, lst_deg, degree_type=degree_type,
+        directed=directed, multigraph=multigraph,
+        existing_edges=existing_edges, **kwargs)
+
+
+def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
+                     reciprocity=-1, directed=True, multigraph=False,
+                     existing_edges=None, **kwargs):
+    ''' Connect nodes with a Gaussian distribution '''
+    # mpi-related stuff (finalized in _from_degree_list)
+    comm, size, rank = _mpi_and_random_init()
+
+    # switch values to float
+    avg = float(avg)
+    std = float(std)
+
+    assert avg >= 0, "A positive value is required for `avg`."
+    assert std >= 0, "A positive value is required for `std`."
+
+    # use only local sources
+    source_ids = np.array(source_ids, dtype=int)[rank::size]
+    target_ids = np.array(target_ids, dtype=int)
+        
+    num_source = len(source_ids)
+
+    # compute the local number of edges
+    lst_deg = np.around(
+        np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
+
+    return _from_degree_list(
+        source_ids, target_ids, lst_deg, degree_type=degree_type,
+        directed=directed, multigraph=multigraph,
+        existing_edges=existing_edges, **kwargs)
+
+
 def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
                    scale=-1, rule="exp", max_proba=-1., shape=None,
                    positions=None, directed=True, multigraph=False,
@@ -130,9 +184,11 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     Returns a distance-rule graph
     '''
     assert max_proba <= 0, "MPI distance_rule cannot use `max_proba` yet."
+
     distance     = [] if distance is None else distance
     distance_tmp = []
     edges_hash   = set()
+
     # mpi-related stuff
     comm, size, rank = _mpi_and_random_init()
 
@@ -282,20 +338,25 @@ price_network = _not_yet
 
 def _mpi_and_random_init():
     '''
-    Init MPI comm and information and seed the
+    Init MPI comm and information and seed the RNGs
     '''
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
     rank = comm.Get_rank()
+
     # Random number generation seeding
     if rank == 0:
-        msd = nngt.get_config('msd')
+        msd = np.random.randint(0, 2**32 - size - 1)
     else:
         msd = None
+
     msd   = comm.bcast(msd, root=0)
     seeds = nngt.get_config('seeds')
-    seed  = seeds[rank] if seeds is not None else msd + rank + 1
+    seed  = seeds[rank] if seeds is not None and not nngt._seeded_local \
+                        else msd + rank + 1
     np.random.seed(seed)
+
+    nngt._seeded_local = True
 
     return comm, size, rank
 
@@ -305,9 +366,12 @@ def _finalize_random(rank):
     Make sure everyone gets same seed back.
     '''
     comm = MPI.COMM_WORLD
+
     if rank == 0:
         new_seed = np.random.randint(0, 2**32 - 1)
     else:
         new_seed = None
+
     new_seed = comm.bcast(new_seed, root=0)
+
     np.random.seed(new_seed)
