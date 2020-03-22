@@ -54,7 +54,7 @@ before_install:
     - shopt -s expand_aliases
     - if [[ "$GL" == "gt" ]]; then
         sudo apt-get install -y python3-pip python3-matplotlib python3-tk;
-        alias pip3='sudo pip3';
+        alias pip3='sudo -H pip3';
       fi    
     # Pip install dependencies
     - pip3 install --upgrade pip
@@ -66,7 +66,7 @@ before_install:
     - if [[ "$GL" == "ig" ]]; then pip3 install python-igraph; fi
     - if [[ "$GL" == "nx" ]]; then pip3 install networkx; fi
 
-install: if [[ "$GL" == "gt" ]]; then sudo python3 setup.py install; else python setup.py install; fi
+install: if [[ "$GL" == "gt" ]]; then sudo -H python3 setup.py install; else python setup.py install; fi
 
 script:
     - coverage run -p -m pytest testing
