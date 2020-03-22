@@ -3,7 +3,9 @@ language: generic
 os: linux
 dist: bionic
 
-# add toolchains for newer, C++14 supporting gcc-6+
+python: "3.8"
+
+# add toolchains for newer, C++14 supporting gcc-8
 addons:
   apt:
     sources:
@@ -20,14 +22,10 @@ env:
 
 jobs:
     include:
-        - python: "3.x"
-          env: GL="gt"
-        - python: 3.8
-          env: GL="ig"
-        - python: 3.8
-          env: GL="nx"
-        - python: 3.8
-          env: GL="nngt"
+        - env: GL="gt"
+        - env: GL="ig"
+        - env: GL="nx"
+        - env: GL="nngt"
     fast_finish: true
 
 cache:
@@ -71,7 +69,7 @@ install: if [[ "$GL" == "gt" ]]; then sudo python3 setup.py install; else python
 script:
     - coverage run -p -m pytest testing
     - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest -s --with-mpi testing; fi
+    - export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
     - coverage combine
 
 after_success: coveralls
