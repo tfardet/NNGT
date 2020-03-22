@@ -1,9 +1,9 @@
-language: generic
+language: python
 
 os: linux
 dist: bionic
 
-python: "3.8"
+python: 3.8
 
 # add toolchains for newer, C++14 supporting gcc-8
 addons:
