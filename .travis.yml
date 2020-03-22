@@ -54,17 +54,17 @@ before_install:
     - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-tk; fi
     # Pip alias and additional libraries
     - shopt -s expand_aliases
-    - if [[ "$GL" == "gt" ]]; then alias sudo='sudo -H ' && alias pipv='sudo pip3'; else alias pipv='sudo pip'; fi
-    - pipv install --upgrade pip
-    - pipv install --upgrade setuptools
-    - pipv install --upgrade cython
-    - pipv install --upgrade numpy scipy shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
+    - if [[ "$GL" == "gt" ]]; then alias pipv='pip3'; else alias pipv='pip'; fi
+    - pipv install --upgrade --user pip
+    - pipv install --upgrade --user setuptools
+    - pipv install --upgrade --user cython
+    - pipv install --upgrade --user numpy scipy shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
     # install graph-tool, igraph, and networkx
     - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
-    - if [[ "$GL" == "ig" ]]; then pipv install python-igraph; fi
-    - if [[ "$GL" == "nx" ]]; then pipv install networkx; fi
+    - if [[ "$GL" == "ig" ]]; then pipv install --user python-igraph; fi
+    - if [[ "$GL" == "nx" ]]; then pipv install --user networkx; fi
 
-install: if [[ "$GL" == "gt" ]]; then sudo python3 setup.py install; else python setup.py install --user; fi
+install: if [[ "$GL" == "gt" ]]; then python3 setup.py install --user; else python setup.py install --user; fi
 
 script:
     - coverage run -p -m pytest testing
