@@ -50,13 +50,17 @@ before_install:
     - if [[ "$GL" == "ig" ]]; then sudo apt-get install -y libigraph0v5 libigraph0-dev; fi
     # install nest (segfaulting)
     # - apt install -y nest
-    # install scipy from apt (much faster when possible) and pip if necessary
-    - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-pip python3-matplotlib python3-tk; fi
-    # Pip alias and additional libraries
+    # setup pip, libraries, and aliases for graph-tool
+    - shopt -s expand_aliases
+    - if [[ "$GL" == "gt" ]]; then
+        sudo apt-get install -y python3-pip python3-matplotlib python3-tk;
+        alias pip3='sudo pip3';
+      fi    
+    # Pip install dependencies
     - pip3 install --upgrade pip
     - pip3 install --upgrade setuptools
     - pip3 install --upgrade cython
-    - pip3 install --upgrade numpy scipy shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
+    - pip3 install --upgrade numpy scipy matplotlib shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
     # install graph-tool, igraph, and networkx
     - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
     - if [[ "$GL" == "ig" ]]; then pip3 install python-igraph; fi
