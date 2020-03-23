@@ -148,7 +148,7 @@ properties, e.g. the previous ``pyr`` and ``fsi`` groups:
     `syn_spec` can contain any synaptic model and parameters associated to the
     NEST model; however, neither the synaptic weight nor the synaptic delay
     can be set there. For details on how to set synaptic weight and delays
-    between groups, see :func:`~nngt.generation.connect_neural_groups`.
+    between groups, see :func:`~nngt.generation.connect_groups`.
 
 To see how to use a population to create a :class:`~nngt.Network` and send it
 to NEST_, see :ref:`nest_net`.

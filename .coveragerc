@@ -19,6 +19,7 @@ include = nngt/*
 
 omit =
     **/setup.py
+    nngt/geometry/*
     nngt/database/*
     nngt/testing/*
     nngt/simulation/*

@@ -20,6 +20,7 @@
 
 """ Tools to interact with the graph libraries backends """
 
+from importlib import reload
 import logging
 import sys
 
@@ -29,7 +30,6 @@ import scipy.sparse as ssp
 import nngt
 from .errors import not_implemented
 from .logger import _log_message
-from .reloading import reload_module
 from .test_functions import nonstring_container, mpi_barrier
 
 
@@ -72,7 +72,7 @@ def use_backend(backend, reloading=True, silent=False):
         Name of a graph library among 'graph_tool', 'igraph', 'networkx', or
         'nngt'.
     reloading : bool, optional (default: True)
-        Whether the graph objects should be reloaded through `reload_module`
+        Whether the graph objects should be reloaded through `reload`
         (this should always be set to True except when NNGT is first initiated!)
     silent : bool, optional (default: False)
         Whether the changes made to the configuration should be logged at the
@@ -108,20 +108,20 @@ def use_backend(backend, reloading=True, silent=False):
     else:
         raise ValueError("Invalid graph library requested.")
     if reloading:
-        reload_module(sys.modules["nngt"].core.base_graph)
-        reload_module(sys.modules["nngt"].core.gt_graph)
-        reload_module(sys.modules["nngt"].core.ig_graph)
-        reload_module(sys.modules["nngt"].core.nx_graph)
-        reload_module(sys.modules["nngt"].core)
-        reload_module(sys.modules["nngt"].generation)
-        reload_module(sys.modules["nngt"].generation.graph_connectivity)
+        reload(sys.modules["nngt"].core.base_graph)
+        reload(sys.modules["nngt"].core.gt_graph)
+        reload(sys.modules["nngt"].core.ig_graph)
+        reload(sys.modules["nngt"].core.nx_graph)
+        reload(sys.modules["nngt"].core)
+        reload(sys.modules["nngt"].generation)
+        reload(sys.modules["nngt"].generation.graph_connectivity)
         if nngt._config['with_plot']:
-            reload_module(sys.modules["nngt"].plot)
+            reload(sys.modules["nngt"].plot)
         if nngt._config['with_nest']:
-            reload_module(sys.modules["nngt"].simulation)
-        reload_module(sys.modules["nngt"].lib)
-        reload_module(sys.modules["nngt"].core.graph_classes)
-        reload_module(sys.modules["nngt"].analysis)
+            reload(sys.modules["nngt"].simulation)
+        reload(sys.modules["nngt"].lib)
+        reload(sys.modules["nngt"].core.graph_classes)
+        reload(sys.modules["nngt"].analysis)
         from nngt.core.graph_classes import (Graph, SpatialGraph, Network,
                                              SpatialNetwork)
         sys.modules["nngt"].Graph = Graph

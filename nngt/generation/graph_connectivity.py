@@ -60,12 +60,12 @@ if nngt.get_config("multithreading"):
             try:
                 from mpi4py import MPI
                 comm = MPI.COMM_WORLD
-                comm.bcast(pyximport.install())
+                comm.bcast(pyximport.install(language_level=3))
             except:
                 if nngt.get_config("mpi"):
                     raise RuntimeError("Cannot safely compile with MPI.")
 
-                pyximport.install()
+                pyximport.install(language_level=3)
 
             # wait for compilation to finish
             nngt.lib.mpi_barrier()
@@ -903,17 +903,20 @@ def connect_neural_types(network, source_type, target_type, graph_model,
 
     if network.is_spatial() and 'positions' not in kwargs:
         kwargs['positions'] = network.get_positions().astype(np.float32).T
+
     if network.is_spatial() and 'shape' not in kwargs:
         kwargs['shape'] = network.shape
 
     if not nonstring_container(source_type):
         source_type = [source_type]
+
     if not nonstring_container(target_type):
         target_type = [target_type]
 
     for group in network._population.values():
         if group.neuron_type in source_type:
             source_ids.extend(group.ids)
+
         if group.neuron_type in target_type:
             target_ids.extend(group.ids)
 
