@@ -37,7 +37,7 @@ References
 import numpy as np
 
 
-class FitnessFunc(object):
+class FitnessFunc:
 
     """
     Base class for fitness functions

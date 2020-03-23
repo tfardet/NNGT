@@ -51,7 +51,7 @@ Connect the groups
 
 # inter-groups (Erdos-Renyi)
 prop_er1 = {"density": 0.005}
-ng.connect_neural_groups(net, "left", "right", "erdos_renyi", **prop_er1)
+ng.connect_groups(net, "left", "right", "erdos_renyi", **prop_er1)
 
 # intra-groups (Newman-Watts)
 prop_nw = {
@@ -59,8 +59,8 @@ prop_nw = {
     "proba_shortcut": 0.1
 }
 
-ng.connect_neural_groups(net, "left", "left", "newman_watts", **prop_nw)
-ng.connect_neural_groups(net, "right", "right", "newman_watts", **prop_nw)
+ng.connect_groups(net, "left", "left", "newman_watts", **prop_nw)
+ng.connect_groups(net, "right", "right", "newman_watts", **prop_nw)
 
 
 '''

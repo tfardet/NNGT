@@ -81,8 +81,7 @@ import sys as _sys
 import logging as _logging
 
 
-__version__ = '1.3.1'
-''' :obj:`str`, current NNGT version '''
+__version__ = '2.0.dev'
 
 
 # ----------------------- #
@@ -109,7 +108,8 @@ _config = {
     'msd': None,
     'multithreading': True,
     'omp': 1,
-    'palette': 'Set1',
+    'palette_continuous': 'magma',
+    'palette_discrete': 'Set1',
     'use_database': False,
     'use_tex': False,
     'seeds': None,

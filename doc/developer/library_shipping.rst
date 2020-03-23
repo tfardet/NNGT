@@ -21,6 +21,7 @@ provided by https://github.com/pypa/manylinux
     Reminder for docker: dockerd must be running, for issue on archlinux,
     see https://unix.stackexchange.com/questions/478387/running-a-centos-docker-image-on-arch-linux-exits-with-code-139
 
+
     docker pull quay.io/pypa/manylinux1_x86_64
 
 Run the container and give it a name
@@ -66,12 +67,17 @@ docker container using
 NB: unfortunately one must remove manually all unnecessary files from the
 wheels before running the build to prevent them from being included...
 
+Pushing to PyPi
+===============
 
-Test
-====
+https://twine.readthedocs.io/en/latest/
 
-    twine upload --repository-url https://test.pypi.org/legacy/ dist/the-version
+First test it:
 
-then
+    twine upload --repository-url https://test.pypi.org/simple/ dist/*
+    pip install --user --index-url https://test.pypi.org/simple/ nngt
 
-    pip install -i https://test.pypi.org/simple/ nngt==the-version
+Then upload "for real"
+
+    twine upload dist/*
+

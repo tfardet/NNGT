@@ -1,3 +1,4 @@
+#cython: language_level=3
 #!/usr/bin/env cython
 #-*- coding:utf-8 -*-
 

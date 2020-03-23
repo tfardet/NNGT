@@ -118,13 +118,13 @@ pop = nngt.NeuralPop.exc_and_inhib(
 
 net = nngt.Network(population=pop)
 
-ng.connect_neural_groups(net, "excitatory", ["excitatory", "inhibitory"],
-                         "gaussian_degree", avg=CE, std=0.2*CE, weights=J_ex,
-                         delays=delay)
+ng.connect_groups(net, "excitatory", ["excitatory", "inhibitory"],
+                  "gaussian_degree", avg=CE, std=0.2*CE, weights=J_ex,
+                  delays=delay)
 
-ng.connect_neural_groups(net, "inhibitory", ["excitatory", "inhibitory"],
-                         "gaussian_degree", avg=CI, std=0.2*CI, weights=J_in,
-                         delays=delay)
+ng.connect_groups(net, "inhibitory", ["excitatory", "inhibitory"],
+                  "gaussian_degree", avg=CI, std=0.2*CI, weights=J_in,
+                  delays=delay)
 
 
 '''

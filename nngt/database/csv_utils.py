@@ -31,7 +31,7 @@ from peewee import Database
 from peewee import Function
 
 
-class _CSVReader(object):
+class _CSVReader:
     @contextmanager
     def get_reader(self, file_or_name, **reader_kwargs):
         is_file = False

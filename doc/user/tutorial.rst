@@ -204,7 +204,7 @@ Complex populations: :class:`~nngt.NeuralGroup` and :class:`~nngt.NeuralPop`
 The :class:`~nngt.NeuralGroup` allows the creation of nodes that belong
 together. You can then make a population from these groups and connect them
 with specific connectivities using the
-:func:`~nngt.generation.connect_neural_groups` function.
+:func:`~nngt.generation.connect_groups` function.
 
 .. literalinclude:: ../examples/multi_groups_network.py
    :lines: 32-63

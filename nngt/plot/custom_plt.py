@@ -23,8 +23,15 @@ logger = logging.getLogger(__name__)
 
 with_seaborn = False
 
-def palette(numbers=None):
-    pal = cm.get_cmap(nngt._config["palette"])
+def palette_continuous(numbers=None):
+    pal = cm.get_cmap(nngt._config["palette_continuous"])
+    if numbers is None:
+        return pal
+    else:
+        return pal(numbers)
+
+def palette_discrete(numbers=None):
+    pal = cm.get_cmap(nngt._config["palette_discrete"])
     if numbers is None:
         return pal
     else:
@@ -37,15 +44,16 @@ if nngt._config["color_lib"] == "seaborn":
     try:
         import seaborn as sns
         with_seaborn = True
-        #~ sns.set(style='ticks', palette='Set2')
         sns.set_style("whitegrid")
+
         def sns_palette(c):
             if isinstance(c, float):
                 pal = sns.color_palette(nngt._config["palette"], 100)
                 return pal[int(c*100)]
             else:
                 return sns.color_palette(nngt._config["palette"], len(c))
-        palette = sns_palette
+
+        palette_continuous = sns_palette
     except ImportError as e:
         _log_message(logger, "WARNING",
                      "`seaborn` requested but could not set it: {}.".format(e))
