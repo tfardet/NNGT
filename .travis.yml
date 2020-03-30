@@ -34,8 +34,7 @@ cache:
 
 before_install:
     - if [[ "$GL" == "gt" ]]; then
-        sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
-        sudo sh -c 'echo -n "deb-src http://downloads.skewed.de/apt/bionic bionic universe\n" >> /etc/apt/sources.list';
+        sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt bionic main\n" >> /etc/apt/sources.list';
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
       fi
     # update package repository status (-qq is more quiet)
