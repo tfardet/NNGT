@@ -39,7 +39,7 @@ before_install:
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
       fi
     # update package repository status (-qq is more quiet)
-    - sudo add-apt-repository -y ppa:nest-simulator/nest
+    # - sudo add-apt-repository -y ppa:nest-simulator/nest
     - sudo rm -rf /var/lib/apt/lists/*
     - ls /etc/apt/sources.list.d/
     - sudo apt-get update -qq
