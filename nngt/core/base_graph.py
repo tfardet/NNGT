@@ -140,12 +140,14 @@ class GraphInterface(nngt._config["graph"], metaclass=ABCMeta):
         '''
         weights = "weight" if weights is True else weights
         mat = nngt.analyze_graph["adjacency"](self, weights)
+
         if types and 'type' in self.nodes_attributes:
             tarray = np.where(self.nodes_attributes['type'] < 0)[0]
             if np.any(tarray):
                 mat[tarray] *= -1.
         elif types and 'type' in self.edges_attributes:
             raise NotImplementedError()
+
         return mat
 
     #------------------------------------------------------------------#
@@ -305,8 +307,9 @@ class BaseGraph(GraphInterface):
         self._out_deg  = []
         self._in_deg   = []
         self._edges    = OrderedDict()
-        self._adj_mat  = lil_matrix((nodes, nodes))
+
         super(BaseGraph, self).__init__()
+
         # test if copying graph
         if g is not None:
             # create nodes and node attributes
@@ -318,7 +321,6 @@ class BaseGraph(GraphInterface):
 
             self.new_node(g.node_nb())
 
-            self._adj_mat  = lil_matrix((g.node_nb(), g.node_nb()))
             # create edges and edge attributes
             attributes = g.get_edge_attributes()
             self.new_edges(g.edges_array, attributes=attributes,
@@ -405,15 +407,8 @@ class BaseGraph(GraphInterface):
                 [i for i in range(num_nodes, num_nodes + n)])
             self._in_deg.extend([0 for _ in range(n)])
             self._out_deg.extend([0 for _ in range(n)])
-        self._nodes.update(nodes)
 
-        old_mat = self._adj_mat.tocoo()
-        if self.edge_nb():
-            tmp = coo_matrix((old_mat.data, (old_mat.row, old_mat.col)),
-                             shape=(len(self._nodes), len(self._nodes)))
-            self._adj_mat = tmp.tolil()
-        else:
-            self._adj_mat = lil_matrix((len(self._nodes), len(self._nodes)))
+        self._nodes.update(nodes)
 
         attributes = {} if attributes is None else deepcopy(attributes)
 
@@ -517,19 +512,18 @@ class BaseGraph(GraphInterface):
             self._edges[edge]      = edge_id
             self._out_deg[source] += 1
             self._in_deg[target]  += 1
+
             # attributes
             self.attr_new_edges([(source, target)], attributes=attributes)
-            # update matrix
-            w = _get_edge_attr(self, [edge], "weight", last_edges=True)
-            self._adj_mat[source, target] = w
+
             if not self._directed:
                 e_recip                = (target, source)
                 self._edges[e_recip]   = edge_id + 1
                 self._out_deg[target] += 1
                 self._in_deg[source]  += 1
+
                 for k, v in attributes.items():
                     self.set_edge_attribute(k, val=v, edges=[e_recip])
-                self._adj_mat[source, target] = w
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
@@ -616,6 +610,7 @@ class BaseGraph(GraphInterface):
         # create the edges
         ws        = None
         num_added = len(edge_list)
+
         if "weight" in new_attr:
             if nonstring_container(new_attr["weight"]):
                 ws = new_attr["weight"]
@@ -623,20 +618,21 @@ class BaseGraph(GraphInterface):
                 ws = (new_attr["weight"] for _ in range(num_added))
         else:
             ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
+
         for i, (e, w) in enumerate(zip(edge_list, ws)):
             self._edges[tuple(e)]     = initial_edges + i
             self._out_deg[e[0]]  += 1
             self._in_deg[e[1]]   += 1
-            self._adj_mat[e[0], e[1]] = w
+
         # call parent function to set the attributes
         self.attr_new_edges(edge_list, attributes=new_attr)
+
         return edge_list
 
     def clear_all_edges(self):
         self._edges   = OrderedDict()
         self._out_deg = [0 for _ in range(self.node_nb())]
         self._out_deg = [0 for _ in range(self.node_nb())]
-        self._adj_mat = lil_matrix((self.node_nb(), self.node_nb()))
         self._eattr.clear()
 
     #------------------------------------------------------------------#
@@ -677,13 +673,15 @@ class BaseGraph(GraphInterface):
         degrees = np.zeros(num_nodes)
 
         if "weight" in self._eattr and use_weights:
+            adj_mat = self.adjacency_matrix()
+
             if not self._directed:
-                degrees += self._adj_mat.sum(axis=1).A1[node_list]
+                degrees += adj_mat.sum(axis=1).A1[node_list]
             else:
                 if deg_type in ("in", "total"):
-                    degrees += self._adj_mat.sum(axis=0).A1[node_list]
+                    degrees += adj_mat.sum(axis=0).A1[node_list]
                 if deg_type in ("out", "total"):
-                    degrees += self._adj_mat.sum(axis=1).A1[node_list]
+                    degrees += adj_mat.sum(axis=1).A1[node_list]
         else:
             if not self._directed or deg_type in ("in", "total"):
                 if isinstance(node_list, slice):
@@ -724,10 +722,11 @@ class BaseGraph(GraphInterface):
             The neighbours of `node`.
         '''
         neighbours = []
+        edges = self.edges_array
         if mode in ("in", "all"):
-            neighbours.extend(self._adj_mat[node])
+            neighbours.extend(edges[edges[1] == node, 1])
         elif mode in ("out", "all"):
-            neighbours.extend(self._adj_mat[:, node])
+            neighbours.extend(edges[edges[0] == node, 1])
         else:
             raise ValueError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))

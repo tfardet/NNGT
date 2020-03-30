@@ -328,25 +328,29 @@ def _set_nngt():
     nngt._config["backend"] = "nngt"
     nngt._config["library"] = nngt
     nngt._config["graph"]   = object
+
     # analysis functions
     def _notimplemented(*args, **kwargs):
         raise NotImplementedError("Install a graph library to use.")
+
     def adj_mat(graph, weight=None):
-        if weight in graph.edges_attributes and weight != "weight":
-            edges     = graph.edges_array
-            prop      = graph.get_edge_attributes(name=weight)
-            num_nodes = graph.node_nb()
-            mat       = ssp.coo_matrix((prop, (edges[:, 0], edges[:, 1])),
-                                       shape=(num_nodes, num_nodes))
-            return mat.tocsr()
-        elif weight is False:
-            mat = graph._adj_mat.tocsr()
-            mat.data = np.ones(len(mat.data))
-            return mat
+        data = None
+
+        if weight in graph.edges_attributes:
+            data = graph.get_edge_attributes(name=weight)
         else:
-            return graph._adj_mat.tocsr()
+            data = np.ones(graph.edge_nb())
+            
+        edges     = graph.edges_array
+        num_nodes = graph.node_nb()
+        mat       = ssp.coo_matrix((data, (edges[:, 0], edges[:, 1])),
+                                   shape=(num_nodes, num_nodes))
+
+        return mat.tocsr()
+
     def get_edges(graph):
         return graph.edges_array()
+
     # store functions
     nngt.analyze_graph["assortativity"] = _notimplemented
     nngt.analyze_graph["diameter"] = _notimplemented
