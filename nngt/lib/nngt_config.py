@@ -24,13 +24,13 @@ import os
 import sys
 import logging
 from copy import deepcopy
+from importlib import reload
 
 import numpy as np
 
 import nngt
 from .errors import InvalidArgument
 from .logger import _configure_logger, _init_logger, _log_message
-from importlib import reload
 from .rng_tools import seed as nngt_seed
 from .test_functions import mpi_checker, num_mpi_processes, mpi_barrier
 
