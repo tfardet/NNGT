@@ -73,6 +73,19 @@ For instance, with 4 threads: ::
     master_seed = 0
     nngt.set_config({"msd": master_seed, "seeds": [1, 2, 3, 4]})
 
+.. note ::
+    If the seeds are not provided, then they are generated automatically,
+    from the master seed for the first call to a graph-generation method
+    (using :math:`\{MSD + 1 + i\}_{i \in {0.. N}}`, with N the number of
+    threads), then using a random number generated through numpy. This means
+    that all previous calls to :mod:`numpy.random` will affect the
+    random seeds used for the second or later calls to graph-generation
+    methods unless new seeds are manually set by the user befor each new
+    call (this does not mean that the code will not be reproducible, only
+    that changes in the random calls in the code that occur before calls to
+    graph-generation methods would affect the random structure of the
+    generated graphs).
+
 .. warning ::
     This is also how you should initialize random numbers when using MPI!
 

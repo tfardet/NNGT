@@ -75,6 +75,9 @@ def seed(msd=None, seeds=None):
             assert num_omp == len(seeds), err.format(num_omp)
             nngt._config['seeds'] = seeds
 
+        nngt._seeded_local = True
+        nngt._used_local   = False
+
 
 # ----------------------------- #
 # Return the right distribution #

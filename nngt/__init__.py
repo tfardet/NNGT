@@ -204,6 +204,7 @@ _seeded = False
 
 # state of local seeds for multithreading or MPI (already used or not)
 _seeded_local = False
+_used_local   = False
 
 _load_config(_new_config)
 

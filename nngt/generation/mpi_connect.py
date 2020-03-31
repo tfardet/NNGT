@@ -357,6 +357,7 @@ def _mpi_and_random_init():
     np.random.seed(seed)
 
     nngt._seeded_local = True
+    nngt._used_local   = True
 
     return comm, size, rank
 

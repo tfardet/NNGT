@@ -479,6 +479,7 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
     """
     # set node number and library graph
     graph_er = from_graph
+
     if graph_er is not None:
         nodes = graph_er.node_nb()
         graph_er.clear_all_edges()
@@ -486,15 +487,20 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
         nodes = population.size if population is not None else nodes
         graph_er = nngt.Graph(
             name=name, nodes=nodes, directed=directed, **kwargs)
+
     _set_options(graph_er, population, shape, positions)
+
     # add edges
     ia_edges = None
+
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                                 directed, multigraph)
         graph_er.new_edges(ia_edges, check_edges=False)
+
     graph_er._graph_type = "erdos_renyi"
+
     return graph_er
 
 

@@ -19,7 +19,7 @@ cdef extern from "func_connect.h" namespace "generation":
       size_t* ia_edges, const vector[size_t]& first_nodes,
       const vector[unsigned int]& degrees, const vector[size_t]& second_nodes,
       const vector[ vector[size_t] ]& existing_edges, unsigned int idx,
-      bool multigraph, bool directed, long msd, unsigned int omp) except +
+      bool multigraph, bool directed, vector[long]& seeds) except +
 
     cdef void _cdistance_rule(
       size_t* ia_edges, const vector[size_t]& source_nodes,
@@ -27,4 +27,4 @@ cdef extern from "func_connect.h" namespace "generation":
       float scale, float norm, const vector[float]& x, const vector[float]& y,
       size_t num_neurons, size_t num_edges,
       const vector[ vector[size_t] ]& existing_edges, vector[float]& dist,
-      bool multigraph, long msd, unsigned int omp) except +
+      bool multigraph, vector[long]& seeds) except +
