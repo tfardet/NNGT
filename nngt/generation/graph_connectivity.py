@@ -108,6 +108,7 @@ __all__ = [
 	'distance_rule',
 	'erdos_renyi',
     'fixed_degree',
+    'from_degree_list',
     'gaussian_degree',
 	'newman_watts',
 	'random_scale_free',
@@ -222,6 +223,12 @@ def from_degree_list(degrees, degree_type='in', weighted=True,
     # set node number and library graph
     graph_dl = from_graph
     nodes    = len(degrees)
+
+    if "nodes" in kwargs:
+        assert kwargs["nodes"] == nodes, \
+            "Invalid `nodes` entry: the number of nodes should " \
+            "be ``len(degrees)``."
+        del kwargs["nodes"]
 
     if graph_dl is not None:
         nodes = graph_dl.node_nb()
