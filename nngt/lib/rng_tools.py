@@ -25,49 +25,45 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument
+from .test_functions import mpi_random
 
 
 # ----------- #
 # Random seed #
 # ----------- #
 
+@mpi_random
 def seed(msd=None, seeds=None):
     '''
-    Seed the random generator used by NNGT (i.e. the numpy `RandomState`: for
-    details, see :class:`numpy.random.RandomState`).
-
-    ..versionchanged:: 0.8
-        Renamed `seed` to `msd`, added `seeds` for multithreading.
+    Seed the random generator used by NNGT
+    (i.e. the numpy `RandomState`: for details, see
+    :class:`numpy.random.RandomState`).
 
     Parameters
     ----------
     msd : int, optional
         Master seed for numpy `RandomState`.
         Must be convertible to 32-bit unsigned integers.
-    seeds : array of ints, optional
-        Seeds for  for `RandomState`.
-        Must be convertible to 32-bit unsigned integers.
+    seeds : list of ints, optional
+        Seeds for `RandomState` (when using MPI).
+        Must be convertible to 32-bit unsigned integers, one entry per MPI
+        process.
     '''
-    if msd is None and nngt.get_config("mpi"):
-        # when using MPI we need to sync the seeds
-        msd_tmp = np.random.randint(0, 2**32 - 1)
-        msd_tmp = nngt.get_config("mpi_comm").bcast(msd_tmp, root=0)
-        np.random.seed(msd_tmp)
-    else:
-        np.random.seed(msd)
-
-    if msd is None:
-        nngt._config['msd'] = np.random.get_state()[1][0]
-    else:
-        nngt._config['msd'] = msd
+    # when using MPI numpy seeeds are sync-ed via the mpi_random decorator
+    msd = np.random.randint(0, 2**32 - 1) if msd is None else msd
+    np.random.seed(msd)
+    nngt._config['msd'] = msd
 
     nngt._seeded = True
+
+    nngt._seeded_local = False
 
     # check subseeds
     if seeds is not None:
         with_mt = nngt.get_config('multithreading')
         with_mpi = nngt.get_config('mpi')
         err = 'Expected {} seeds.'
+
         if with_mpi:
             from mpi4py import MPI
             comm = MPI.COMM_WORLD
@@ -78,6 +74,9 @@ def seed(msd=None, seeds=None):
             num_omp = nngt.get_config('omp')
             assert num_omp == len(seeds), err.format(num_omp)
             nngt._config['seeds'] = seeds
+
+        nngt._seeded_local = True
+        nngt._used_local   = False
 
 
 # ----------------------------- #

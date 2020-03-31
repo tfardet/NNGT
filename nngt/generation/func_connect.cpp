@@ -21,15 +21,6 @@
 
 namespace generation {
 
-void _init_seeds(std::vector<long>& seeds, unsigned int omp, long msd)
-{
-    for (size_t i=0; i < omp; i++)
-    {
-        seeds[i] = msd + i + 1;
-    }
-}
-
-
 size_t _unique_1d(std::vector<size_t>& a,
                   std::unordered_set<size_t>& hash_set)
 {
@@ -169,15 +160,13 @@ void _gen_edges(
   const std::vector<unsigned int>& degrees,
   const std::vector<size_t>& second_nodes,
   const std::vector< std::vector<size_t> >& existing_edges, unsigned int idx,
-  bool multigraph, bool directed, long msd, unsigned int omp)
+  bool multigraph, bool directed, std::vector<long>& seeds)
 {
-    // Initialize secondary seeds
-    std::vector<long> seeds(omp);
-    _init_seeds(seeds, omp, msd);
-
     // compute the cumulated sum of the degrees
     std::vector<size_t> cum_degrees(degrees.size());
     std::partial_sum(degrees.begin(), degrees.end(), cum_degrees.begin());
+
+    int omp = seeds.size();
 
     // generate the edges
     #pragma omp parallel num_threads(omp)
@@ -212,12 +201,10 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
   const std::string& rule, float scale, float norm,
   const std::vector<float>& x, const std::vector<float>& y, size_t num_neurons,
   size_t num_edges, const std::vector< std::vector<size_t> >& existing_edges,
-  std::vector<float>& dist, bool multigraph, long msd, unsigned int num_omp)
+  std::vector<float>& dist, bool multigraph, std::vector<long>& seeds)
 {
     float inv_scale = 1. / scale;
-    // Initialize secondary seeds and RNGs
-    std::vector<long> seeds(num_omp);
-    _init_seeds(seeds, num_omp, msd);
+    int num_omp = seeds.size();
 
     std::uniform_real_distribution<float> rnd_uniform(0., 1.);
 

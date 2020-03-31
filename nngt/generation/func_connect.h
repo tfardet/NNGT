@@ -112,7 +112,7 @@ void _gen_edges(
   const std::vector<unsigned int>& degrees,
   const std::vector<size_t>& second_nodes,
   const std::vector< std::vector<size_t> >& existing_edges, unsigned int idx,
-  bool multigraph, bool directed, long msd, unsigned int omp);
+  bool multigraph, bool directed, std::vector<long>& seeds);
 
 
 /*
@@ -139,7 +139,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
   const std::string& rule, float scale, float norm,
   const std::vector<float>& x, const std::vector<float>& y, size_t num_neurons,
   size_t num_edges, const std::vector< std::vector<size_t> >& existing_edges,
-  std::vector<float>& dist, bool multigraph, long msd, unsigned int omp);
+  std::vector<float>& dist, bool multigraph, std::vector<long>& seeds);
 
 
 static inline float _proba(

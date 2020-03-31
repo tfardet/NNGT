@@ -24,13 +24,13 @@ import os
 import sys
 import logging
 from copy import deepcopy
+from importlib import reload
 
 import numpy as np
 
 import nngt
 from .errors import InvalidArgument
 from .logger import _configure_logger, _init_logger, _log_message
-from importlib import reload
 from .rng_tools import seed as nngt_seed
 from .test_functions import mpi_checker, num_mpi_processes, mpi_barrier
 
@@ -295,6 +295,7 @@ def _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi):
                          'to switch to mpi algorithms.')
     with_mt  = new_config.get(mt, old_mt)
     with_mpi = new_config.get('mpi', old_mpi)
+
     # check that seeds are correct
     if new_config.get('seeds', None) is not None:
         seeds = new_config['seeds']
@@ -318,6 +319,7 @@ def _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi):
         reset_seeds += (with_mpi and old_mt)
         # - because we switched from MPI to OpenMP
         reset_seeds += (with_mt and old_mpi)
+
         if reset_seeds:
             new_config['seeds'] = None
             new_config['msd']   = None
@@ -327,12 +329,15 @@ def _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi):
 def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
     # reload for omp
     new_multithreading = new_config.get("multithreading", old_mt)
+
     if new_multithreading != old_mt:
         reload(sys.modules["nngt"].generation.graph_connectivity)
+
     # if multithreading loading failed, set omp back to 1
     if not nngt._config['multithreading']:
         nngt._config['omp'] = 1
         nngt._config['seeds'] = None
+
     # if MPI is on, set mpi_comm and check random numbers
     if new_config.get('mpi', old_mpi):
         from mpi4py import MPI
@@ -354,15 +359,17 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
                 if np.any(differs):
                     raise InvalidArgument("'msd' entry must be the same on "
                                           "all MPI processes.")
+
     # reload for mpi
     if new_config.get('mpi', old_mpi) != old_mpi:
         reload(sys.modules["nngt"].generation.graph_connectivity)
+
     # set graph-tool config
     _set_gt_config(old_gl, new_config)
+
     # seed python RNGs
     if old_msd != nngt._config['msd'] or not nngt._seeded:
         nngt_seed(msd=nngt._config['msd'])
-
 
 
 config_info = '''

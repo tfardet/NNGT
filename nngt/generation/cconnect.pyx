@@ -26,6 +26,7 @@ __all__ = [
     "_erdos_renyi",
     "_filter",
     "_fixed_degree",
+    "_from_degree_list",
     "_gaussian_degree",
     "_newman_watts",
     "_no_self_loops",
@@ -44,10 +45,9 @@ cdef float EPS = 0.00001
 DTYPE = np.uint
 
 
-#-----------------------------------------------------------------------------#
-# Simple tools
-#------------------------
-#
+# ------------ #
+# Simple tools #
+# ------------ #
 
 cdef bytes _to_bytes(string):
     ''' Convert string to bytes '''
@@ -102,6 +102,7 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
         cnp.ndarray[float, ndim=2, mode="c"] vectors
         cnp.ndarray[float, ndim=1] x, y
         size_t s
+
     # find common nodes
     edges  = None
     common = set(source_ids).intersection(target_ids)
@@ -139,13 +140,65 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
     return edges
 
 
+def _from_degree_list(cnp.ndarray[size_t, ndim=1] source_ids,
+                      cnp.ndarray[size_t, ndim=1] target_ids, degrees,
+                      degree_type="in", bool directed=True,
+                      bool multigraph=False, existing_edges=None, **kwargs):
+    ''' Generation of the degree list through the C++ function '''
+
+    assert len(degrees) == len(source_ids), \
+        "One degree per source neuron must be provided."
+
+    degree_type = _set_degree_type(degree_type)
+
+    cdef:
+        # type of degree
+        bool b_out = (degree_type == "out")
+        bool b_total = (degree_type == "total")
+        size_t num_source = source_ids.shape[0]
+        size_t edges = np.sum(degrees)
+        bool b_one_pop = _check_num_edges(
+            source_ids, target_ids, edges, directed, multigraph)
+        unsigned int existing = \
+            0 if existing_edges is None else existing_edges.shape[0]
+        cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
+            (existing+edges, 2), dtype=DTYPE)
+
+    if b_total:
+        raise NotImplementedError("Total degree is not supported yet.")
+
+    if not directed:
+        raise NotImplementedError("This function is not yet implemented for "
+                                  "undirected graphs.")
+
+    if existing:
+        ia_edges[:existing,:] = existing_edges
+
+    cdef:
+        unsigned int idx = 0 if b_out else 1 # differenciate source / target
+        unsigned int omp = nngt._config["omp"]
+        vector[unsigned int] cdegrees = degrees
+        vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
+        vector[long] seeds = _random_init(omp)
+
+    _gen_edges(&ia_edges[0,0], source_ids, cdegrees, target_ids, old_edges,
+               idx, multigraph, directed, seeds)
+
+    return ia_edges
+
+
 def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
                   cnp.ndarray[size_t, ndim=1] target_ids, degree=-1,
                   degree_type="in", float reciprocity=-1, bool directed=True,
                   bool multigraph=False, existing_edges=None, **kwargs):
     ''' Generation of the edges through the C++ function '''
     degree = int(degree)
+
     assert degree >= 0, "A positive value is required for `degree`."
+
+    if not directed:
+        raise NotImplementedError("This function is not yet implemented for "
+                                  "undirected graphs.")
 
     degree_type = _set_degree_type(degree_type)
 
@@ -162,17 +215,22 @@ def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
             0 if existing_edges is None else existing_edges.shape[0]
         cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing+edges, 2), dtype=DTYPE)
+
+    if b_total:
+        raise NotImplementedError("Total degree is not supported yet.")
+
     if existing:
         ia_edges[:existing,:] = existing_edges
+
     cdef:
         unsigned int idx = 0 if b_out else 1 # differenciate source / target
         unsigned int omp = nngt._config["omp"]
-        long msd = np.random.randint(0, edges + 1)
         vector[unsigned int] degrees = np.repeat(degree, num_source)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
+        vector[long] seeds = _random_init(omp)
 
     _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
-              idx, multigraph, directed, msd, omp)
+               idx, multigraph, directed, seeds)
 
     return ia_edges
 
@@ -193,6 +251,10 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
     assert avg >= 0, "A positive value is required for `avg`."
     assert std >= 0, "A positive value is required for `std`."
 
+    if not directed:
+        raise NotImplementedError("This function is not yet implemented for "
+                                  "undirected graphs.")
+
     degree_type = _set_degree_type(degree_type)
 
     cdef:
@@ -207,23 +269,26 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
             np.random.normal(avg, std, num_source), 0.)).astype(DTYPE)
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
 
+    if b_total:
+        raise NotImplementedError("Total degree is not supported yet.")
+
     # edges
     edges = np.sum(degrees)
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
 
     cdef:
-        long msd = np.random.randint(0, edges + 1)
         unsigned int existing = \
             0 if existing_edges is None else existing_edges.shape[0]
         cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edges, 2), dtype=DTYPE)
+        vector[long] seeds = _random_init(omp)
 
     if existing:
         ia_edges[:existing,:] = existing_edges
 
     _gen_edges(&ia_edges[0,0], source_ids, degrees, target_ids, old_edges,
-               idx, multigraph, directed, msd, omp)
+               idx, multigraph, directed, seeds)
 
     return ia_edges
 
@@ -451,17 +516,16 @@ def _distance_rule(cnp.ndarray[size_t, ndim=1] source_ids,
         local_targets.push_back(target_ids[keep].tolist())
     # create the edges
     cdef:
-        long msd = np.random.randint(0, edge_num + 1)
-        #~ float area = shape.area * conversion_factor
         size_t cedges = edge_num
         cnp.ndarray[size_t, ndim=2, mode="c"] ia_edges = np.zeros(
             (existing + edge_num, 2), dtype=DTYPE)
         vector[float] dist = vector[float]()
+        vector[long] seeds = _random_init(omp)
 
     if max_proba <= 0.:
         _cdistance_rule(&ia_edges[0,0], source_ids, local_targets, crule,
                         cscale, 1., x, y, cnum_neurons, cedges, old_edges,
-                        dist, multigraph, msd, omp)
+                        dist, multigraph, seeds)
         distance.extend(dist)
         return ia_edges
     else:
@@ -483,3 +547,36 @@ def _distance_rule(cnp.ndarray[size_t, ndim=1] source_ids,
 def price_network():
     #@todo: do it for other libraries
     pass
+
+
+# ------------ #
+# Random seeds #
+# ------------ #
+
+
+def _random_init(omp):
+    '''
+    Init the local random seeds
+    '''
+    # compute local random seeds
+    seeds = None
+
+    if not nngt._seeded_local:
+        # generate the local seeds for the first time
+        msd   = nngt._config["msd"]
+        seeds = [msd + i + 1 for i in range(omp)]
+
+        nngt._config["seeds"] = seeds
+    elif nngt._used_local:
+        # the initial seeds have already been used so we generate new ones
+        msd   = np.random.randint(0, 2**32 - omp - 1)
+        seeds = [msd + i + 1 for i in range(omp)]
+    else:
+        seeds = nngt.get_config('seeds')
+
+    assert len(seeds) == omp, "Wrong number of seeds, need one per thread."
+
+    nngt._seeded_local = True
+    nngt._used_local   = True
+
+    return seeds

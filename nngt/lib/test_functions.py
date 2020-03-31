@@ -146,15 +146,19 @@ def mpi_random(func):
             from mpi4py import MPI
             comm = MPI.COMM_WORLD
             rank = comm.Get_rank()
+
             if rank == 0:
                 state = np.random.get_state()
             else:
                 state = None
+
             state = comm.bcast(state, root=0)
             np.random.set_state(state)
         except ImportError:
             pass
+
         return func(*args, **kwargs)
+
     return decorate(func, wrapper)
 
 
