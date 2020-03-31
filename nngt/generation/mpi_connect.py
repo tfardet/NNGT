@@ -49,11 +49,20 @@ def _from_degree_list(source_ids, target_ids, degrees, degree_type="in",
     # mpi-related stuff
     comm, size, rank = _mpi_and_random_init()
 
-    # use only local sources
-    source_ids = np.array(source_ids, dtype=int)[rank::size]
+    # use only local sources and degrees unless already_local=True
+    if not kwargs.get("already_local", False):
+        source_ids = np.array(source_ids, dtype=int)[rank::size]
+
+        if rank != 0:
+            degrees = None
+
+        degrees = comm.bcast(degrees, root=0)
+        degrees = degrees[rank::size]
+
+    source_ids = np.array(source_ids, dtype=int)
     target_ids = np.array(target_ids, dtype=int)
-        
-    num_source, num_target = len(source_ids), len(target_ids)
+
+    num_source = len(source_ids)
 
     # type of degree
     degree_type = _set_degree_type(degree_type)
@@ -66,6 +75,7 @@ def _from_degree_list(source_ids, target_ids, degrees, degree_type="in",
 
     # compute the local number of edges
     edges = np.sum(degrees)
+
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
 
@@ -140,10 +150,12 @@ def _fixed_degree(source_ids, target_ids, degree, degree_type="in",
     # compute the local number of edges
     lst_deg = np.full(num_source, degree, dtype=int)
 
+    # !IMPORTANT! use `already_local` to tell _from_degree_list that only
+    # local sources and degrees have been sent
     return _from_degree_list(
         source_ids, target_ids, lst_deg, degree_type=degree_type,
         directed=directed, multigraph=multigraph,
-        existing_edges=existing_edges, **kwargs)
+        existing_edges=existing_edges, already_local=True, **kwargs)
 
 
 def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
@@ -170,10 +182,12 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
     lst_deg = np.around(
         np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
 
+    # !IMPORTANT! use `already_local` to tell _from_degree_list that only
+    # local sources and degrees have been sent
     return _from_degree_list(
         source_ids, target_ids, lst_deg, degree_type=degree_type,
         directed=directed, multigraph=multigraph,
-        existing_edges=existing_edges, **kwargs)
+        existing_edges=existing_edges, already_local=True, **kwargs)
 
 
 def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
@@ -345,15 +359,27 @@ def _mpi_and_random_init():
     rank = comm.Get_rank()
 
     # Random number generation seeding
-    if rank == 0:
-        msd = np.random.randint(0, 2**32 - size - 1)
-    else:
-        msd = None
+    seeds = None
 
-    msd   = comm.bcast(msd, root=0)
-    seeds = nngt.get_config('seeds')
-    seed  = seeds[rank] if seeds is not None and not nngt._seeded_local \
-                        else msd + rank + 1
+    if not nngt._seeded_local:
+        # no local seeds were generated, set them from initial msd
+        msd   = nngt.get_config("msd")
+        seeds = [msd + i + 1 for i in range(size)]
+        nngt._config['seeds'] = seeds
+    elif not nngt._used_local:
+        # local seeds were generated but not used, use them
+        seeds = nngt.get_config('seeds')
+    else:
+        # local seeds were generated and used, generate new ones from new msd
+        if rank == 0:
+            msd = np.random.randint(0, 2**32 - size - 1)
+        else:
+            msd = None
+
+        msd   = comm.bcast(msd, root=0)
+        seeds = [msd + i + 1 for i in range(size)]
+
+    seed  = seeds[rank]
     np.random.seed(seed)
 
     nngt._seeded_local = True

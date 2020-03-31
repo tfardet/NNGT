@@ -247,7 +247,9 @@ def from_degree_list(degrees, degree_type='in', weighted=True,
         ids = np.arange(nodes, dtype=np.uint)
         ia_edges = _from_degree_list(ids, ids, degrees, degree_type,
                                      directed=directed, multigraph=multigraph)
-        graph_dl.new_edges(ia_edges, check_edges=False)
+        # check for None if MPI
+        if ia_edges is not None:
+            graph_dl.new_edges(ia_edges, check_edges=False)
 
     graph_dl._graph_type = "from_{}_degree_list".format(degree_type)
 
@@ -330,7 +332,9 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         ia_edges = _fixed_degree(
             ids, ids, degree, degree_type, reciprocity=reciprocity,
             directed=directed, multigraph=multigraph)
-        graph_fd.new_edges(ia_edges, check_edges=False)
+        # check for None if MPI
+        if ia_edges is not None:
+            graph_fd.new_edges(ia_edges, check_edges=False)
 
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
 
@@ -406,6 +410,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
             name=name, nodes=nodes, directed=directed, **kwargs)
 
     _set_options(graph_gd, population, shape, positions)
+
     # add edges
     ia_edges = None
     if nodes > 1:
@@ -416,7 +421,9 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
         # check for None if MPI
         if ia_edges is not None:
             graph_gd.new_edges(ia_edges, check_edges=False)
+
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
+
     return graph_gd
 
 
