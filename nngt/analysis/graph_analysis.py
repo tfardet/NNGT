@@ -357,25 +357,19 @@ def spectral_radius(graph, typed=True, weighted=True):
     -------
     the spectral radius as a float.
     '''
-    weights = None
-    if typed and "type" in graph.eproperties.keys():
-        weights = graph.eproperties["type"].copy()
-    if weighted and "weight" in graph.eproperties.keys():
-        if weights is not None:
-            weights = np.multiply(weights,
-                                  graph.eproperties["weight"])
-        else:
-            weights = graph.eproperties["weight"].copy()
-    mat_adj = nngt.analyze_graph["adjacency"](graph,weights)
-    eigenval = [0]
+    mat_adj  = graph.adjacency_matrix(types=typed, weights=weighted)
+
+    eigenval = []
+
     try:
         eigenval = spl.eigs(mat_adj,return_eigenvectors=False)
     except spl.eigen.arpack.ArpackNoConvergence as err:
         eigenval = err.eigenvalues
+
     if len(eigenval):
         return np.amax(np.absolute(eigenval))
-    else:
-        raise spl.eigen.arpack.ArpackNoConvergence()
+
+    raise spl.eigen.arpack.ArpackNoConvergence()
 
 
 def adjacency_matrix(graph, types=True, weights=True):

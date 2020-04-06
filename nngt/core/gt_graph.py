@@ -31,7 +31,7 @@ import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.graph_helpers import _to_np_array
 from nngt.lib.logger import _log_message
-from .base_graph import GraphInterface, BaseProperty
+from .graph_interface import GraphInterface, BaseProperty
 
 
 logger = logging.getLogger(__name__)
@@ -48,20 +48,24 @@ class _GtNProperty(BaseProperty):
     def __getitem__(self, name):
         dtype = super(_GtNProperty, self).__getitem__(name)
 
-        if dtype == "string":
-            return self.parent().vertex_properties[name].get_2d_array([0])[0]
-        elif dtype == "object":
-            vprop = self.parent().vertex_properties[name]
-            return _to_np_array(
-                [vprop[i] for i in range(self.parent().node_nb())], dtype)
+        g = self.parent()._graph
 
-        return _to_np_array(self.parent().vertex_properties[name].a, dtype)
+        if dtype == "string":
+            return g.vertex_properties[name].get_2d_array([0])[0]
+        elif dtype == "object":
+            vprop = g.vertex_properties[name]
+            return _to_np_array(
+                [vprop[i] for i in range(g.num_vertices())], dtype)
+
+        return _to_np_array(g.vertex_properties[name].a, dtype)
 
     def __setitem__(self, name, value):
+        g = self.parent()._graph
+
         if name in self:
-            size = self.parent().num_vertices()
+            size = g.num_vertices()
             if len(value) == size:
-                self.parent().vertex_properties[name].a = np.array(value)
+                g.vertex_properties[name].a = np.array(value)
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "node in the graph is required")
@@ -71,6 +75,8 @@ class _GtNProperty(BaseProperty):
 
     def new_attribute(self, name, value_type, values=None, val=None):
         dtype = object
+        g     = self.parent()._graph
+
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -84,11 +90,10 @@ class _GtNProperty(BaseProperty):
                 val = None
 
         if values is None:
-            values = _to_np_array(
-                [deepcopy(val) for _ in range(self.parent().num_vertices())],
-                dtype)
+            values = _to_np_array([deepcopy(val)
+                                   for _ in range(g.num_vertices())], dtype)
 
-        if len(values) != self.parent().num_vertices():
+        if len(values) != g.num_vertices():
             raise ValueError("A list or a np.array with one entry per "
                              "node in the graph is required")
 
@@ -96,8 +101,8 @@ class _GtNProperty(BaseProperty):
         super(_GtNProperty, self).__setitem__(name, value_type)
 
         # store the real values in the attribute
-        nprop = self.parent().new_vertex_property(value_type, vals=values)
-        self.parent().vertex_properties[name] = nprop
+        nprop = g.new_vertex_property(value_type, vals=values)
+        g.vertex_properties[name] = nprop
         self._num_values_set[name] = len(values)
 
     def set_attribute(self, name, values, nodes=None):
@@ -114,8 +119,11 @@ class _GtNProperty(BaseProperty):
             Nodes for which the value of the property should be set. If `nodes`
             is not None, it must be an array of size N.
         '''
-        num_nodes = self.parent().num_vertices()
+        g = self.parent()._graph
+
+        num_nodes = g.num_vertices()
         num_n = len(nodes) if nodes is not None else num_nodes
+
         if num_n == num_nodes:
             self[name] = values
             self._num_values_set[name] = num_nodes
@@ -124,13 +132,15 @@ class _GtNProperty(BaseProperty):
                 raise ValueError("`nodes` and `values` must have the same "
                                  "size; got respectively " + str(num_n) + \
                                  " and " + str(len(values)) + " entries.")
+
             non_obj = (super(_GtNProperty, self).__getitem__(name)
                        not in ('string', 'object'))
+
             if self._num_values_set[name] == num_nodes - num_n and non_obj:
-                self.parent().vertex_properties[name].a[-num_n:] = values
+                g.vertex_properties[name].a[-num_n:] = values
             else:
                 for n, val in zip(nodes, values):
-                    self.parent().vertex_properties[name][n] = val
+                    g.vertex_properties[name][n] = val
         if num_n:
             self._num_values_set[name] = num_nodes
 
@@ -143,50 +153,53 @@ class _GtEProperty(BaseProperty):
         '''
         Return the attributes of an edge or a list of edges.
         '''
-        Edge = self.parent().edge
+        g = self.parent()._graph
+
+        Edge = g.edge
 
         if isinstance(name, slice):
             eprop = {}
             for k in self.keys():
-                eprop[k] = self.parent().edge_properties[k].a[name]
+                eprop[k] = g.edge_properties[k].a[name]
             return eprop
         elif nonstring_container(name):
             eprop = {}
             if nonstring_container(name[0]):
-                eids = [self.parent().edge_index[Edge(*e)] for e in name]
+                eids = [g.edge_index[Edge(*e)] for e in name]
                 for k in self.keys():
                     dtype = super(_GtEProperty, self).__getitem__(k)
                     if dtype == "string":
-                        eprop[k] = (self.parent()
-                            .edge_properties[k].get_2d_array([0])[0])[eids]
+                        eprop[k] = \
+                            g.edge_properties[k].get_2d_array([0])[0][eids]
                     elif dtype == "object":
-                        tmp = self.parent().edge_properties[k]
+                        tmp = g.edge_properties[k]
                         eprop[k] = _to_np_array(
                             [tmp[Edge(*e)] for e in name], dtype)
                     else:
-                        eprop[k] = self.parent().edge_properties[k].a[eids]
+                        eprop[k] = g.edge_properties[k].a[eids]
             else:
                 for k in self.keys():
-                    eprop[k] = self.parent().edge_properties[k][name]
+                    eprop[k] = g.edge_properties[k][name]
             return eprop
 
         dtype = super(_GtEProperty, self).__getitem__(name)
 
         if dtype == "string":
-            return (self.parent()
-                .edge_properties[name].get_2d_array([0])[0])
+            return g.edge_properties[name].get_2d_array([0])[0]
         elif dtype == "object":
-            tmp   = self.parent().edge_properties[name]
-            edges = self.parent().get_edges()
+            tmp   = g.edge_properties[name]
+            edges = g.get_edges()
             return _to_np_array([tmp[Edge(*e)] for e in edges], dtype)
 
-        return _to_np_array(self.parent().edge_properties[name].a, dtype)
+        return _to_np_array(g.edge_properties[name].a, dtype)
 
     def __setitem__(self, name, value):
+        g = self.parent()._graph
+
         if name in self:
-            size = self.parent().num_edges()
+            size = g.num_edges()
             if len(value) == size:
-                self.parent().edge_properties[name].a = np.array(value)
+                g.edge_properties[name].a = np.array(value)
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "edge in the graph is required")
@@ -209,8 +222,11 @@ class _GtEProperty(BaseProperty):
             Edges for which the value of the property should be set. If `edges`
             is not None, it must be an array of shape `(len(values), 2)`.
         '''
-        num_edges = self.parent().num_edges()
-        num_e = len(edges) if edges is not None else num_edges
+        g = self.parent()._graph
+
+        num_edges = g.num_edges()
+        num_e     = len(edges) if edges is not None else num_edges
+
         if num_e == num_edges:
             self[name] = values
             self._num_values_set[name] = num_edges
@@ -220,17 +236,21 @@ class _GtEProperty(BaseProperty):
                                  "size; got respectively " + str(num_e) + \
                                  " and " + str(len(values)) + " entries.")
             if self._num_values_set[name] == num_edges - num_e:
-                self.parent().edge_properties[name].a[-num_e:] = values
+                g.edge_properties[name].a[-num_e:] = values
                 self._num_values_set[name] = num_edges
             else:
                 for e, val in zip(edges, values):
-                    gt_e = self.parent().edge(*e)
-                    self.parent().edge_properties[name][gt_e] = val
+                    gt_e = g.edge(*e)
+                    g.edge_properties[name][gt_e] = val
                 self._num_values_set[name] += num_e
 
     def new_attribute(self, name, value_type, values=None, val=None):
+        g = self.parent()._graph
+
+        num_edges = g.num_edges()
+
         if values is None and val is None:
-            self._num_values_set[name] = self.parent().num_edges()
+            self._num_values_set[name] = num_edges
 
         if val is None:
             if value_type == "int":
@@ -244,10 +264,10 @@ class _GtEProperty(BaseProperty):
 
         if values is None:
             values = _to_np_array(
-                [deepcopy(val) for _ in range(self.parent().num_edges())],
+                [deepcopy(val) for _ in range(num_edges)],
                 value_type)
 
-        if len(values) != self.parent().num_edges():
+        if len(values) != num_edges:
             self._num_values_set[name] = 0
             raise ValueError("A list or a np.array with one entry per "
                              "edge in the graph is required")
@@ -256,15 +276,14 @@ class _GtEProperty(BaseProperty):
         super(_GtEProperty, self).__setitem__(name, value_type)
 
         # store the real values in the attribute
-        eprop = self.parent().new_edge_property(value_type, vals=values)
-        self.parent().edge_properties[name] = eprop
+        eprop = g.new_edge_property(value_type, vals=values)
+        g.edge_properties[name] = eprop
         self._num_values_set[name] = len(values)
 
 
-#-----------------------------------------------------------------------------#
-# Graph
-#------------------------
-#
+# ----- #
+# Graph #
+# ----- #
 
 class _GtGraph(GraphInterface):
 
@@ -274,8 +293,8 @@ class _GtGraph(GraphInterface):
     `graph-tool` or `SNAP`.
     '''
 
-    nattr_class = _GtNProperty
-    eattr_class = _GtEProperty
+    _nattr_class = _GtNProperty
+    _eattr_class = _GtEProperty
 
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
@@ -289,13 +308,29 @@ class _GtGraph(GraphInterface):
         self._eattr = _GtEProperty(self)
         self._directed = directed
         self._weighted = weighted
-        super(_GtGraph, self).__init__(g=g, directed=True, prune=prune,
-                                       vorder=vorder)
+
+        self._graph = nngt._config["graph"](g=g, directed=True, prune=prune,
+                                            vorder=vorder)
+
         if g is None:
-            super(_GtGraph, self).add_vertex(nodes)
+            self._graph.add_vertex(nodes)
         else:
-            if g.__class__ is nngt._config["graph"]:
-                edges = nngt.analyze_graph["get_edges"](g)
+            nodes = g.num_vertices()
+            edges = g.num_edges()
+
+            # get attributes names and "types" and initialize them
+            if nodes:
+                for key, val in g.vertex_properties.items():
+                    try:
+                        super(type(self._nattr), self._nattr).__setitem__(
+                            key, _get_dtype(val.a[0]))
+                    except:
+                        pass
+
+            if edges:
+                for key, val in g.edge_properties.items():
+                    super(type(self._eattr), self._eattr).__setitem__(
+                        key, _get_dtype(val.a[0]))
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -316,14 +351,32 @@ class _GtGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
+        g = self._graph
+
         if is_integer(edge[0]):
-            return self.edge_index[edge]
+            return g.edge_index[edge]
         elif nonstring_container(edge[0]):
-            idx = [self.edge_index[e] for e in edge]
+            idx = [g.edge_index[e] for e in edge]
             return idx
-        else:
-            raise AttributeError("`edge` must be either a 2-tuple of ints or "
-                                 "an array of 2-tuples of ints.")
+
+        raise AttributeError("`edge` must be either a 2-tuple of ints or "
+                             "an array of 2-tuples of ints.")
+
+    def has_edge(self, edge):
+        '''
+        Whether `edge` is present in the graph.
+
+        .. versionadded:: 2.0
+        '''
+        try:
+            e = self._graph.edge(*edge)
+
+            if e is None:
+                return False
+
+            return True
+        except:
+            return False
 
     @property
     def edges_array(self):
@@ -331,18 +384,11 @@ class _GtGraph(GraphInterface):
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        # this dirty check is necessary to work with old versions of graph-tool
-        gt = nngt.get_config('library')
-        gt_major_version = int(gt.__version__[0])
-        gt_minor_version = int(gt.__version__[2:4])
-        edges = None
-        if gt_major_version == 2 and gt_minor_version < 22:
-            return np.array(
-                [(int(e.source()), int(e.target())) for e in self.edges()])
-        else:
-            edges = super(_GtGraph, self).get_edges([self.edge_index])
-            order = np.argsort(edges[:, 2])
-            return edges[order, :2]
+        g = self._graph
+        edges = g.get_edges([g.edge_index])
+        order = np.argsort(edges[:, 2])
+
+        return edges[order, :2]
 
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
@@ -365,7 +411,7 @@ class _GtGraph(GraphInterface):
         -------
         The node or a list of the nodes created.
         '''
-        nodes = super(_GtGraph, self).add_vertex(n)
+        nodes = self._graph.add_vertex(n)
         nodes = [int(nodes)] if n == 1 else [int(node) for node in nodes]
 
         attributes = {} if attributes is None else deepcopy(attributes)
@@ -447,13 +493,13 @@ class _GtGraph(GraphInterface):
         edge = self.edge(source, target)
 
         if edge is None:
-            super(_GtGraph, self).add_edge(source, target, add_missing=True)
+            self._graph.add_edge(source, target, add_missing=True)
             # call parent function to set the attributes
-            self.attr_new_edges([(source, target)], attributes=attributes)
+            self._attr_new_edges([(source, target)], attributes=attributes)
             if not self._directed:
-                c2 = super(_GtGraph, self).add_edge(target, source)
+                c2 = self._graph.add_edge(target, source)
                 # call parent function to set the attributes
-                self.attr_new_edges([(target, source)], attributes=attributes)
+                self._attr_new_edges([(target, source)], attributes=attributes)
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
@@ -503,9 +549,11 @@ class _GtGraph(GraphInterface):
                     attributes[k] = [np.NaN for _ in range(num_edges)]
 
         new_attr = None
+
         if check_edges:
             new_attr = {key: [] for key in attributes}
             eweight_list = OrderedDict()
+
             for i, e in enumerate(edge_list):
                 tpl_e = tuple(e)
                 if tpl_e in eweight_list:
@@ -517,18 +565,22 @@ class _GtGraph(GraphInterface):
                     eweight_list[tpl_e] = 1
                     for k, vv in attributes.items():
                         new_attr[k].append(vv[i])
+
             edge_list = np.array(list(eweight_list.keys()))
         else:
             edge_list = np.array(edge_list)
             new_attr = attributes
+
         if not self._directed:
             recip_edges = edge_list[:,::-1]
             # slow but works
             unique = ~(recip_edges[..., np.newaxis]
                        == edge_list[..., np.newaxis].T).all(1).any(1)
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
+
             for key, val in new_attr.items():
                 new_attr[key] = np.concatenate((val, val[unique]))
+
         # create the edges
         if len(edge_list):
             if not self._directed:
@@ -539,14 +591,17 @@ class _GtGraph(GraphInterface):
                 edge_list = np.concatenate((edge_list, recip_edges[unique]))
                 for key, val in new_attr.items():
                     new_attr[key] = np.concatenate((val, val[unique]))
-            super(_GtGraph, self).add_edge_list(edge_list)
+
+            self._graph.add_edge_list(edge_list)
+
             # call parent function to set the attributes
-            self.attr_new_edges(edge_list, attributes=new_attr)
+            self._attr_new_edges(edge_list, attributes=new_attr)
+
         return edge_list
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''
-        super(_GtGraph, self).clear_edges()
+        self._graph.clear_edges()
         self._eattr.clear()
 
     #-------------------------------------------------------------------------#
@@ -554,11 +609,11 @@ class _GtGraph(GraphInterface):
 
     def node_nb(self):
         ''' Number of nodes in the graph '''
-        return self.num_vertices()
+        return self._graph.num_vertices()
 
     def edge_nb(self):
         ''' Number of edges in the graph '''
-        return self.num_edges()
+        return self._graph.num_edges()
 
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         w = 1.
@@ -568,26 +623,30 @@ class _GtGraph(GraphInterface):
             w = 0.5
 
         if node_list is None:
-            node_list = slice(0, self.num_vertices() + 1)
+            node_list = slice(0, self.node_nb() + 1)
         else:
             node_list = list(node_list)
 
-        if "weight" in self.edge_properties and use_weights:
-            return w*self.degree_property_map(
-                deg_type, self.edge_properties["weight"]).a[node_list]
+        g = self._graph
 
-        return w*np.array(self.degree_property_map(deg_type).a[node_list])
+        if "weight" in g.edge_properties and use_weights:
+            return w*g.degree_property_map(
+                deg_type, g.edge_properties["weight"]).a[node_list]
+
+        return w*np.array(g.degree_property_map(deg_type).a[node_list])
 
     def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
                          norm=True):
-        if self.num_edges():
+        g = self._graph
+
+        if g.num_edges():
             w_p = None
 
-            if "weight" in self.edge_properties.keys() and use_weights:
+            if "weight" in g.edge_properties and use_weights:
                 ws = self.get_weights()
                 self.set_edge_attribute(
                     BWEIGHT, values=ws.max() - ws, value_type="double")
-                w_p = self.edge_properties[BWEIGHT]
+                w_p = g.edge_properties[BWEIGHT]
 
             tpl = nngt.analyze_graph["betweenness"](
                 self, weight=w_p, norm=norm)
@@ -627,7 +686,8 @@ class _GtGraph(GraphInterface):
         neighbours : tuple
             The neighbours of `node`.
         '''
-        v = self.vertex(node)
+        v = self._graph.vertex(node)
+
         if mode == "all":
             return (int(n) for n in v.all_neighbours())
         elif mode == "in":
@@ -637,46 +697,3 @@ class _GtGraph(GraphInterface):
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
-
-    #-------------------------------------------------------------------------
-    # Prevent users from calling graph_tool functions
-
-    def add_vertex(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for vertex "
-                           "creation have been disabled.")
-
-    def add_edge(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for edge "
-                           "creation have been disabled.")
-
-    def add_edge_list(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for edge "
-                           "creation have been disabled.")
-
-    def remove_vertex(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for vertex "
-                           "deletion have been disabled.")
-
-    def clear_vertex(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for vertex "
-                           "deletion have been disabled.")
-
-    def purge_vertices(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for vertex "
-                           "deletion have been disabled.")
-
-    def remove_edge(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for edge "
-                           "deletion have been disabled.")
-
-    def clear_edges(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for edge "
-                           "deletion have been disabled.")
-
-    def purge_edges(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for edge "
-                           "deletion have been disabled.")
-
-    def clear(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool `clear` function has been "
-                           "disabled.")

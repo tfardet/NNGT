@@ -168,15 +168,10 @@ def nonstring_container(obj):
     '''
     if not isinstance(obj, _container):
         return False
-    try:
-        if isinstance(obj, unicode):
-            return False
-    except NameError:
-        pass
-    if isinstance(obj, bytes):
+
+    if isinstance(obj, (bytes, str)):
         return False
-    if isinstance(obj, str):
-        return False
+
     return True
 
 

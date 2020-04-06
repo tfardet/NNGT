@@ -29,10 +29,10 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT, is_integer
-from nngt.lib.graph_helpers import _to_np_array
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
-from .base_graph import GraphInterface, BaseProperty
+from .graph_interface import GraphInterface, BaseProperty
 
 
 logger = logging.getLogger(__name__)
@@ -49,14 +49,17 @@ class _IgNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
+        g = self.parent()._graph
         dtype = _np_dtype(super(_IgNProperty, self).__getitem__(name))
-        return _to_np_array(self.parent().vs[name], dtype=dtype)
+        return _to_np_array(g.vs[name], dtype=dtype)
 
     def __setitem__(self, name, value):
-        size = self.parent().vcount()
+        g    = self.parent()._graph
+        size = g.vcount()
+
         if name in self:
             if len(value) == size:
-                self.parent().vs[name] = value
+                g.vs[name] = value
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "node in the graph is required")
@@ -65,6 +68,8 @@ class _IgNProperty(BaseProperty):
                                   "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
+        g = self.parent()._graph
+
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -77,7 +82,7 @@ class _IgNProperty(BaseProperty):
                 value_type = "object"
 
         if values is None:
-            values = [deepcopy(val) for _ in range(self.parent().vcount())]
+            values = [deepcopy(val) for _ in range(g.vcount())]
 
         # store name and value type in the dict
         super(_IgNProperty,self).__setitem__(name, value_type)
@@ -99,8 +104,11 @@ class _IgNProperty(BaseProperty):
             Nodes for which the value of the property should be set. If `nodes`
             is not None, it must be an array of size N.
         '''
-        num_nodes = self.parent().vcount()
+        g = self.parent()._graph
+
+        num_nodes = g.vcount()
         num_n = len(nodes) if nodes is not None else num_nodes
+
         if num_n == num_nodes:
             self[name] = values
         elif num_n:
@@ -109,10 +117,10 @@ class _IgNProperty(BaseProperty):
                                  "size; got respectively " + str(num_n) + \
                                  " and " + str(len(values)) + " entries.")
             if self._num_values_set[name] == num_nodes - num_n:
-                self.parent().vs[-num_n:][name] = values
+                g.vs[-num_n:][name] = values
             else:
                 for n, val in zip(nodes, values):
-                    self.parent().vs[n][name] = val
+                    g.vs[n][name] = val
         if num_n:
             self._num_values_set[name] = num_nodes
 
@@ -122,33 +130,38 @@ class _IgEProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (igraph) '''
 
     def __getitem__(self, name):
+        g = self.parent()._graph
+
         if isinstance(name, slice):
             eprop = {}
             for k in self.keys():
                 dtype = _np_dtype(super(_IgEProperty, self).__getitem__(k))
-                eprop[k] = _to_np_array(self.parent().es[k], dtype=dtype)[name]
+                eprop[k] = _to_np_array(g.es[k], dtype=dtype)[name]
             return eprop
         elif nonstring_container(name):
             eprop = {}
             if nonstring_container(name[0]):
-                eids = [self.parent().get_eid(*e) for e in name]
+                eids = [g.get_eid(*e) for e in name]
                 for k in self.keys():
                     dtype = _np_dtype(super(_IgEProperty, self).__getitem__(k))
-                    eprop[k] = _to_np_array(self.parent().es[k], dtype=dtype)[eids]
+                    eprop[k] = _to_np_array(g.es[k], dtype=dtype)[eids]
             else:
-                eid = self.parent().get_eid(*name)
+                eid = g.get_eid(*name)
                 for k in self.keys():
-                    eprop[k] = self.parent().es[k][eid]
+                    eprop[k] = g.es[k][eid]
             return eprop
 
         dtype = _np_dtype(super(_IgEProperty, self).__getitem__(name))
-        return _to_np_array(self.parent().es[name], dtype=dtype)
+
+        return _to_np_array(g.es[name], dtype=dtype)
 
     def __setitem__(self, name, value):
+        g = self.parent()._graph
+
         if name in self:
-            size = self.parent().edge_nb()
+            size = g.ecount()
             if len(value) == size:
-                self.parent().es[name] = value
+                g.es[name] = value
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "edge in the graph is required")
@@ -157,6 +170,8 @@ class _IgEProperty(BaseProperty):
                                   "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
+        g = self.parent()._graph
+
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -169,7 +184,7 @@ class _IgEProperty(BaseProperty):
                 value_type = 'object'
 
         if values is None:
-            values = [deepcopy(val) for _ in range(self.parent().ecount())]
+            values = [deepcopy(val) for _ in range(g.ecount())]
 
         # store name and value type in the dict
         super(_IgEProperty, self).__setitem__(name, value_type)
@@ -191,8 +206,11 @@ class _IgEProperty(BaseProperty):
             Edges for which the value of the property should be set. If `edges`
             is not None, it must be an array of shape `(len(values), 2)`.
         '''
-        num_edges = self.parent().ecount()
+        g = self.parent()._graph
+
+        num_edges = g.ecount()
         num_e = len(edges) if edges is not None else num_edges
+
         if num_e == num_edges:
             self[name] = values
         elif num_e:
@@ -201,19 +219,19 @@ class _IgEProperty(BaseProperty):
                                  "size; got respectively " + str(num_e) + \
                                  " and " + str(len(values)) + " entries.")
             if self._num_values_set[name] == num_edges - num_e:
-                self.parent().es[-num_e:][name] = values
+                g.es[-num_e:][name] = values
             else:
                 for e, val in zip(edges, values):
-                    eid = self.parent().get_eid(*e)
-                    self.parent().es[eid][name] = val
+                    eid = g.get_eid(*e)
+                    g.es[eid][name] = val
+
         if num_e:
             self._num_values_set[name] = num_edges
 
 
-#-----------------------------------------------------------------------------#
-# Graph
-#------------------------
-#
+# ----- #
+# Graph #
+# ----- #
 
 class _IGraph(GraphInterface):
 
@@ -221,8 +239,8 @@ class _IGraph(GraphInterface):
     Subclass of :class:`igraph.Graph`.
     '''
 
-    nattr_class = _IgNProperty
-    eattr_class = _IgEProperty
+    _nattr_class = _IgNProperty
+    _eattr_class = _IgEProperty
 
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
@@ -232,27 +250,26 @@ class _IGraph(GraphInterface):
         self._eattr = _IgEProperty(self)
         self._weighted = weighted
         self._directed = directed
+
         if g is None:
-            super(_IGraph,self).__init__(n=nodes, directed=True)
+            self._graph = nngt._config["graph"](n=nodes, directed=True)
         else:
             nodes = g.vcount()
             edges = g.ecount()
-            di_node_attr = {}
-            di_edge_attr = {}
-            super(_IGraph, self).__init__(n=nodes, directed=True)
+
+            self._graph = g.copy()
+
+            # get attributes names and "types" and initialize them
             if nodes:
-                nattr = g.vs[0].attributes().keys()
+                for key, val in g.vs[0].attributes().item():
+                    super(type(self._nattr), self._nattr).__setitem__(
+                        key, _get_dtype(val))
+
             if edges:
-                eattr = g.es[0].attributes().keys()
-            for attr in nattr:
-                self._nattr.new_attribute(
-                    attr, value_type="double", values=g.vs[:][attr])
-            for attr in eattr:
-                di_edge_attr[attr] = np.array(g.es[:][attr])
-                self._eattr.new_attribute(attr, value_type="double")
-            lst_edges = nngt.analyze_graph["get_edges"](g)
-            self.new_edges(lst_edges, attributes=di_edge_attr,
-                           check_edges=False)
+                for key, val in g.es[0].attributes().items():
+                    super(type(self._eattr), self._eattr).__setitem__(
+                        key, _get_dtype(val))
+
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -274,18 +291,33 @@ class _IGraph(GraphInterface):
             Index of the given `edge`.
         '''
         if is_integer(edge[0]):
-            return self.get_eid(*edge)
+            return self._graph.get_eid(*edge)
         elif nonstring_container(edge[0]):
-            return self.get_eids(edge)
+            return self._graph.get_eids(edge)
         else:
-            raise AttributeError("`edge` must be either a 2-tuple of ints or\
-an array of 2-tuples of ints.")
+            raise AttributeError("`edge` must be either a 2-tuple of ints or "
+                                 "an array of 2-tuples of ints.")
+
+    def has_edge(self, edge):
+        '''
+        Whether `edge` is present in the graph.
+
+        .. versionadded:: 2.0
+        '''
+        try:
+            self._graph.get_eid(*edge)
+            return True
+        except:
+            return False
 
     @property
     def edges_array(self):
-        ''' Edges of the graph, sorted by order of creation, as an array of
-        2-tuple. '''
-        return np.array([(e.source, e.target) for e in self.es], dtype=int)
+        '''
+        Edges of the graph, sorted by order of creation, as an array of
+        2-tuple.
+        '''
+        g = self._graph
+        return np.array([(e.source, e.target) for e in g.es], dtype=int)
 
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
@@ -303,8 +335,12 @@ an array of 2-tuples of ints.")
         -------
         The node or an iterator over the nodes created.
         '''
-        first_node_idx = self.vcount()
-        super(_IGraph, self).add_vertices(n)
+        g = self._graph
+
+        first_node_idx = g.vcount()
+
+        g.add_vertices(n)
+
         nodes = list(range(first_node_idx, first_node_idx + n))
 
         attributes = {} if attributes is None else deepcopy(attributes)
@@ -331,7 +367,7 @@ an array of 2-tuples of ints.")
                     self._nattr.set_attribute(k, [np.NaN for _ in nodes],
                                               nodes=nodes)
 
-        self.vs[nodes[0]:nodes[-1] + 1]['type'] = neuron_type
+        g.vs[nodes[0]:nodes[-1] + 1]['type'] = neuron_type
 
         if self.is_spatial():
             old_pos      = self._pos
@@ -356,6 +392,7 @@ an array of 2-tuples of ints.")
 
         if n == 1:
             return nodes[0]
+
         return nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
@@ -399,9 +436,6 @@ an array of 2-tuples of ints.")
         '''
         Add a list of edges to the graph.
 
-        .. versionchanged:: 1.0
-            new_edges checks for duplicate edges and self-loops
-
         .. warning ::
             This function currently does not check for duplicate edges between
             the existing edges and the added ones, but only inside `edge_list`!
@@ -439,7 +473,9 @@ an array of 2-tuples of ints.")
                     attributes[k] = [0 for _ in range(num_edges)]
 
         new_attr = None
+
         if check_edges:
+            # @todo: speed this up
             new_attr = {key: [] for key in attributes}
             eweight_list = OrderedDict()
             for i, e in enumerate(edge_list):
@@ -457,33 +493,27 @@ an array of 2-tuples of ints.")
         else:
             edge_list = np.array(edge_list)
             new_attr = attributes
+
         if not self._directed:
             recip_edges = edge_list[:,::-1]
             # slow but works
             unique = ~(recip_edges[..., np.newaxis]
                       == edge_list[..., np.newaxis].T).all(1).any(1)
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
+
             for key, val in new_attr.items():
                 new_attr[key] = np.concatenate((val, val[unique]))
 
-        super(_IGraph, self).add_edges(edge_list)
+        self._graph.add_edges(edge_list)
 
         # call parent function to set the attributes
-        self.attr_new_edges(edge_list, attributes=new_attr)
+        self._attr_new_edges(edge_list, attributes=new_attr)
 
         return edge_list
 
-    def remove_edge(self, edge):
-        raise NotImplementedError("This function has been removed because it \
-            makes using edge properties too complicated")
-
-    def remove_vertex(self, node, fast=False):
-        raise NotImplementedError("This function has been removed because it \
-            makes using node properties too complicated")
-
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''
-        self.delete_edges(None)
+        self._graph.delete_edges(None)
         self._eattr.clear()
 
     #-------------------------------------------------------------------------#
@@ -491,23 +521,29 @@ an array of 2-tuples of ints.")
 
     def node_nb(self):
         ''' Number of nodes in the graph '''
-        return self.vcount()
+        return self._graph.vcount()
 
     def edge_nb(self):
         ''' Number of edges in the graph '''
-        return self.ecount()
+        return self._graph.ecount()
 
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+        g = self._graph
+    
         deg_type = 'all' if deg_type == 'total' else deg_type
+
         if use_weights:
-            return np.array(self.strength(node_list, mode=deg_type, weights='weight'))
+            return np.array(g.strength(node_list, mode=deg_type,
+                            weights='weight'))
         else:
-            return np.array(self.degree(node_list, mode=deg_type))
+            return np.array(g.degree(node_list, mode=deg_type))
 
     def betweenness_list(self, btype="both", use_weights=False, norm=True,
                          **kwargs):
-        n = self.vcount()
-        e = self.ecount()
+        g = self._graph
+
+        n = g.vcount()
+        e = g.ecount()
 
         ncoeff_norm = (n-1)*(n-2)
         ecoeff_norm = (e-1)*(e-2)/2.
@@ -515,8 +551,8 @@ an array of 2-tuples of ints.")
         w, nbetw, ebetw = None, None, None
 
         if use_weights:
-            if "bweight" in self.es:
-                w = self.es['bweight']
+            if "bweight" in g.es:
+                w = g.es['bweight']
             else:
                 w  = self.get_weights()
                 w  = np.max(w) - w
@@ -524,10 +560,10 @@ an array of 2-tuples of ints.")
                 w += 1e-5*minw if minw > 0 else 1e-5
 
         if btype in ("both", "node"):
-            nbetw = np.array(self.betweenness(weights=w))
+            nbetw = np.array(g.betweenness(weights=w))
 
         if btype in ("both", "edge"):
-            ebetw = np.array(self.edge_betweenness(weights=w))
+            ebetw = np.array(g.edge_betweenness(weights=w))
 
         if btype == "node":
             return nbetw/ncoeff_norm if norm else nbetw
@@ -557,35 +593,14 @@ an array of 2-tuples of ints.")
         neighbours : tuple
             The neighbours of `node`.
         '''
+        g = self._graph
+
         if mode == "all":
-            return (n for n in self.neighbors(node, mode=3))
+            return (n for n in g.neighbors(node, mode=3))
         elif mode == "in":
-            return (n for n in self.neighbors(node, mode=2))
+            return (n for n in g.neighbors(node, mode=2))
         elif mode == "out":
-            return (n for n in self.neighbors(node, mode=1))
-        else:
-            raise ArgumentError('''Invalid `mode` argument {}; possible values
-                                are "all", "out" or "in".'''.format(mode))
+            return (n for n in g.neighbors(node, mode=1))
 
-    #-------------------------------------------------------------------------
-    # Prevent users from calling igraph functions
-
-    def add_vertex(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic igraph functions for vertex "
-                           "creation have been disabled.")
-
-    def add_vertices(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic igraph functions for vertex "
-                           "creation have been disabled.")
-
-    def add_edge(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic igraph functions for edge "
-                           "creation have been disabled.")
-
-    def add_edges(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic igraph functions for edge "
-                           "creation have been disabled.")
-
-    def clear_edges(self, *args, **kwargs):
-        raise RuntimeError("Intrinsic graph_tool functions for edge "
-                           "deletion have been disabled.")
+        raise ArgumentError('Invalid `mode` argument {}; possible values are '
+                            '"all", "out" or "in".'.format(mode))

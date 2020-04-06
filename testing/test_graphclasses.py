@@ -57,7 +57,7 @@ class TestGraphClasses(TestBasis):
         :mod:`scipy.sparse` matrices, check that the result of
         graph.adjacency_matrix() is the same as the initial matrix.
         '''
-        ref_result = ssp.csr_matrix(self.matrices[graph.get_name()])
+        ref_result = ssp.csr_matrix(self.matrices[graph.name])
         computed_result = graph.adjacency_matrix()
         self.assertTrue(
             (ref_result != computed_result).nnz == 0,

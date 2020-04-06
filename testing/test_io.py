@@ -77,10 +77,10 @@ class TestIO(TestBasis):
         Test that the generated graph and the one loaded from the saved file
         are indeed identical.
         '''
-        err = error.format(graph=graph.get_name())
+        err = error.format(graph=graph.name)
         if instructions is not None:  # working with generated graph
             # load graph
-            h = nngt.Graph.from_file(current_dir + graph.get_name() + '.el')
+            h = nngt.Graph.from_file(current_dir + graph.name + '.el')
             attributes = h.edges_attributes
             # test properties
             self.assertTrue(h.node_nb() == graph.node_nb(),

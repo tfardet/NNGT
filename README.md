@@ -30,11 +30,14 @@ Eventually, NNGT is also able to import neuronal networks generated using the
 
 ## Install and use the library
 
+NNGT requires Python 3.4+, make sure you have a valid Python installation, then
+do:
+
 ```
 pip install --user nngt
 ```
 
-Then in a python terminal or script type
+Then in a Python terminal or script type
 
 ```python
 import nngt
@@ -63,8 +66,9 @@ To update your local repository, do:
 ## Features
 
 **Compatibility**
-* Currently supports graph-tool, igraph, and networkx.
-* Interactions with NEST and DeNSE.
+* Currently supports graph-tool (> 2.22), igraph, and networkx (>= 2.4).
+* Interactions with [NEST](https://nest-simulator.readthedocs.io/) and
+  [DeNSE](https://dense.readthedocs.io/).
 
 **Status**
 * Standard functions and graph generation algorithms implemented.

@@ -412,7 +412,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         "edge_attr_types": [
             graph.get_attribute_type(attr, "edge") for attr in attributes
         ],
-        "name": graph.get_name(),
+        "name": graph.name,
         "size": graph.node_nb()
     }
     # add node attributes to the notifications
