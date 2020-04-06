@@ -371,11 +371,12 @@ class _NxGraph(GraphInterface):
         The node or a list of the nodes created.
         '''
         g = self._graph
+        num_nodes = g.number_of_nodes()
 
-        new_nodes = list(range(len(self), len(self) + n))
+        new_nodes = list(range(num_nodes, num_nodes + n))
 
         for v in new_nodes:
-            self._graph.add_node(v)
+            g.add_node(v)
 
         attributes = {} if attributes is None else deepcopy(attributes)
 
