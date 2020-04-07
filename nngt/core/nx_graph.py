@@ -20,19 +20,20 @@
 
 """ Networkx subclassing """
 
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from copy import deepcopy
 import logging
+import sys
 
 import numpy as np
 import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _to_np_array
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
-from .base_graph import GraphInterface, BaseProperty
+from .graph_interface import GraphInterface, BaseProperty
 
 
 logger = logging.getLogger(__name__)
@@ -49,19 +50,22 @@ class _NxNProperty(BaseProperty):
     '''
 
     def __getitem__(self, name):
-        lst = [self.parent().nodes[i][name]
-               for i in range(self.parent().node_nb())]
+        g = self.parent()._graph
+
+        lst = [g.nodes[i][name] for i in range(g.number_of_nodes())]
 
         dtype = _np_dtype(super(_NxNProperty, self).__getitem__(name))
 
         return _to_np_array(lst, dtype=dtype)
 
     def __setitem__(self, name, value):
-        size = self.parent().number_of_nodes()
+        g    = self.parent()._graph
+        size = g.number_of_nodes()
+
         if name in self:
             if len(value) == size:
                 for i in range(size):
-                    self.parent().nodes[i][name] = value[i]
+                    g.nodes[i][name] = value[i]
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "node in the graph is required")
@@ -70,6 +74,8 @@ class _NxNProperty(BaseProperty):
                                   "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
+        g = self.parent()._graph
+
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -83,7 +89,7 @@ class _NxNProperty(BaseProperty):
 
         if values is None:
             values = [deepcopy(val)
-                      for _ in range(self.parent().number_of_nodes())]
+                      for _ in range(g.number_of_nodes())]
 
         # store name and value type in the dict
         super(_NxNProperty, self).__setitem__(name, value_type)
@@ -105,8 +111,11 @@ class _NxNProperty(BaseProperty):
             Nodes for which the value of the property should be set. If `nodes`
             is not None, it must be an array of size N.
         '''
-        num_nodes = self.parent().number_of_nodes()
+        g = self.parent()._graph
+
+        num_nodes = g.number_of_nodes()
         num_n = len(nodes) if nodes is not None else num_nodes
+
         if num_n == num_nodes:
             self[name] = values
         else:
@@ -116,7 +125,7 @@ class _NxNProperty(BaseProperty):
                                  " and " + str(len(values)) + " entries.")
             else:
                 for n, val in zip(nodes, values):
-                    self.parent().nodes[n][name] = val
+                    g.nodes[n][name] = val
         self._num_values_set[name] = num_nodes
 
 
@@ -125,7 +134,9 @@ class _NxEProperty(BaseProperty):
     ''' Class for generic interactions with edge properties (networkx)  '''
 
     def __getitem__(self, name):
+        g     = self.parent()._graph
         edges = None
+
         if isinstance(name, slice):
             edges = self.parent().edges_array[name]
         elif nonstring_container(name):
@@ -136,35 +147,42 @@ class _NxEProperty(BaseProperty):
                     raise InvalidArgument(
                         "key for edge attribute must be one of the following: "
                         "slice, list of edges, edges or attribute name.")
-                return self.parent()[name[0]][name[1]]
+                return g[name[0]][name[1]]
+
         if isinstance(name, str):
             dtype = _np_dtype(super(_NxEProperty, self).__getitem__(name))
-            eprop = np.empty(self.parent().edge_nb(), dtype=dtype)
-            g = self.parent()
+            eprop = np.empty(g.number_of_edges(), dtype=dtype)
+
             for d, eid in zip(g.edges(data=name), g.edges(data="eid")):
                 eprop[eid[2]] = d[2]
-            return eprop
-        else:
-            eprop = {k: [] for k in self.keys()}
-            for edge in edges:
-                data = self.parent().get_edge_data(edge[0], edge[1])
-                if data is None:
-                    raise ValueError("Edge {} does not exist.".format(edge))
-                for k, v in data.items():
-                    if k != "eid":
-                        eprop[k].append(v)
-            dtype = None
-            for k, v in eprop.items():
-                dtype    = _np_dtype(super(_NxEProperty, self).__getitem__(k))
-                eprop[k] = _to_np_array(v, dtype)
+
             return eprop
 
+        eprop = {k: [] for k in self.keys()}
+
+        for edge in edges:
+            data = g.get_edge_data(edge[0], edge[1])
+            if data is None:
+                raise ValueError("Edge {} does not exist.".format(edge))
+            for k, v in data.items():
+                if k != "eid":
+                    eprop[k].append(v)
+        dtype = None
+
+        for k, v in eprop.items():
+            dtype    = _np_dtype(super(_NxEProperty, self).__getitem__(k))
+            eprop[k] = _to_np_array(v, dtype)
+
+        return eprop
+
     def __setitem__(self, name, value):
+        g = self.parent()._graph
+
         if name in self:
-            size = self.parent().number_of_edges()
+            size = g.number_of_edges()
             if len(value) == size:
-                for e in self.parent().edges(data="eid"):
-                    self.parent().edges[e[0], e[1]][name] = value[e[2]]
+                for e in g.edges(data="eid"):
+                    g.edges[e[0], e[1]][name] = value[e[2]]
             else:
                 raise ValueError(
                     "A list or a np.array with one entry per edge in the "
@@ -176,6 +194,8 @@ class _NxEProperty(BaseProperty):
                                   "set_attribute to create it.")
 
     def new_attribute(self, name, value_type, values=None, val=None):
+        g = self.parent()._graph
+
         if val is None:
             if value_type == "int":
                 val = int(0)
@@ -189,10 +209,11 @@ class _NxEProperty(BaseProperty):
 
         if values is None:
             values = [deepcopy(val)
-                      for _ in range(self.parent().number_of_edges())]
+                      for _ in range(g.number_of_edges())]
 
         # store name and value type in the dict
         super(_NxEProperty, self).__setitem__(name, value_type)
+
         # store the real values in the attribute
         self[name] = values
         self._num_values_set[name] = len(values)
@@ -211,8 +232,11 @@ class _NxEProperty(BaseProperty):
             Edges for which the value of the property should be set. If `edges`
             is not None, it must be an array of shape `(len(values), 2)`.
         '''
-        num_edges = self.parent().number_of_edges()
+        g = self.parent()._graph
+
+        num_edges = g.number_of_edges()
         num_e = len(edges) if edges is not None else num_edges
+
         if num_e == num_edges:
             self[name] = values
         else:
@@ -222,11 +246,11 @@ class _NxEProperty(BaseProperty):
                                  " and " + str(len(values)) + " entries.")
             for i, e in enumerate(edges):
                 try:
-                    edict = self.parent()[e[0]][e[1]]
+                    edict = g[e[0]][e[1]]
                 except:
                     edict = {}
                 edict[name] = values[i]
-                self.parent().add_edge(e[0], e[1], **edict)
+                g.add_edge(e[0], e[1], **edict)
         self._num_values_set[name] = num_edges
 
 
@@ -240,8 +264,8 @@ class _NxGraph(GraphInterface):
     Subclass of networkx Graph
     '''
 
-    nattr_class = _NxNProperty
-    eattr_class = _NxEProperty
+    _nattr_class = _NxNProperty
+    _eattr_class = _NxEProperty
 
     #-------------------------------------------------------------------------#
     # Class properties
@@ -251,16 +275,22 @@ class _NxGraph(GraphInterface):
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
 
-    def __init__(self, nodes=0, g=None, directed=True, weighted=False):
+    def __init__(self, nodes=0, copy_graph=None, directed=True, weighted=False,
+                 **kwargs):
         self._directed = directed
         self._weighted = weighted
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
-        super(_NxGraph, self).__init__(g)
+
+        g = copy_graph.graph if copy_graph is not None else None
+
         if g is not None:
-            edges = nngt.analyze_graph["get_edges"](g)
-        elif nodes:
-            self.add_nodes_from(range(nodes))
+            self._from_library_graph(g, copy=True)
+        else:
+            self._graph = nngt._config["graph"]()
+
+            if nodes:
+                self._graph.add_nodes_from(range(nodes))
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -281,21 +311,39 @@ class _NxGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
+        g = self._graph
+
         if is_integer(edge[0]):
-            return self[edge[0]][edge[1]]["eid"]
+            return g[edge[0]][edge[1]]["eid"]
         elif nonstring_container(edge[0]):
-            return [self[e[0]][e[1]]["eid"] for e in edge]
-        else:
-            raise AttributeError("`edge` must be either a 2-tuple of ints or "
-                                 "an array of 2-tuples of ints.")
+            return [g[e[0]][e[1]]["eid"] for e in edge]
+
+        raise AttributeError("`edge` must be either a 2-tuple of ints or "
+                             "an array of 2-tuples of ints.")
+
+    def has_edge(self, edge):
+        '''
+        Whether `edge` is present in the graph.
+
+        .. versionadded:: 2.0
+        '''
+        return self._graph.has_edge(edge)
 
     @property
     def edges_array(self):
-        ''' Edges of the graph, sorted by order of creation, as an array of
-        2-tuple. '''
-        edges = np.zeros((self.edge_nb(), 2), dtype=int)
-        for weighted_edge in self.edges(data="eid"):
-            edges[weighted_edge[2], :] = weighted_edge[:2]
+        '''
+        Edges of the graph, sorted by order of creation, as an array of
+        2-tuple.
+        '''
+        g     = self._graph
+        edges = np.zeros((g.number_of_edges(), 2), dtype=int)
+
+        # fast iteration using list comprehension
+        # could also be done with deque and map (deque forces lazy map to run)
+        # deque(map(lambda x: _gen_edges(edges, x), g.edges(data="eid")))
+
+        [_gen_edges(edges, x) for x in g.edges(data="eid")]
+
         return edges
 
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
@@ -314,9 +362,13 @@ class _NxGraph(GraphInterface):
         -------
         The node or a list of the nodes created.
         '''
-        new_nodes = list(range(len(self), len(self)+n))
+        g = self._graph
+        num_nodes = g.number_of_nodes()
+
+        new_nodes = list(range(num_nodes, num_nodes + n))
+
         for v in new_nodes:
-            super(_NxGraph, self).add_node(v)
+            g.add_node(v)
 
         attributes = {} if attributes is None else deepcopy(attributes)
 
@@ -350,6 +402,7 @@ class _NxGraph(GraphInterface):
             num_existing = len(old_pos) if old_pos is not None else 0
             if num_existing != 0:
                 self._pos[:num_existing, :] = old_pos
+
         if positions is not None and len(positions):
             assert self.is_spatial(), \
                 "`positions` argument requires a SpatialGraph/SpatialNetwork."
@@ -367,6 +420,7 @@ class _NxGraph(GraphInterface):
 
         if len(new_nodes) == 1:
             return new_nodes[0]
+
         return new_nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
@@ -391,6 +445,8 @@ class _NxGraph(GraphInterface):
         -------
         The new connection.
         '''
+        g = self._graph
+
         attributes = {} if attributes is None else deepcopy(attributes)
 
         # set default values for attributes that were not passed
@@ -404,7 +460,7 @@ class _NxGraph(GraphInterface):
                 elif dtype == "int":
                     attributes[k] = [0]
 
-        if self.has_edge(source, target):
+        if g.has_edge(source, target):
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
         else:
@@ -414,25 +470,25 @@ class _NxGraph(GraphInterface):
                                               "available with networkx.")
             if self._weighted and "weight" not in attributes:
                 attributes["weight"] = 1.
-            self.add_edge(source, target)
-            self[source][target]["eid"] = self.number_of_edges() - 1
+
+            g.add_edge(source, target)
+            g[source][target]["eid"] = g.number_of_edges() - 1
+
             # call parent function to set the attributes
-            self.attr_new_edges([(source, target)], attributes=attributes)
+            self._attr_new_edges([(source, target)], attributes=attributes)
+
             if not self._directed:
-                self.add_edge(target,source)
-                self[source][target]["eid"] = self.number_of_edges() - 1
+                g.add_edge(target,source)
+                g[source][target]["eid"] = g.number_of_edges() - 1
                 for key, val in attributes.items():
-                    self[target][source][key] = val
-                self.attr_new_edges([(target, source)], attributes=attributes)
+                    g[target][source][key] = val
+                self._attr_new_edges([(target, source)], attributes=attributes)
 
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None, check_edges=True):
         '''
         Add a list of edges to the graph.
-
-        .. versionchanged:: 1.0
-            new_edges checks for duplicate edges and self-loops
 
         .. warning ::
             This function currently does not check for duplicate edges between
@@ -456,6 +512,8 @@ class _NxGraph(GraphInterface):
         -------
         Returns new edges only.
         '''
+        g = self._graph
+
         attributes = {} if attributes is None else deepcopy(attributes)
         num_edges  = len(edge_list)
 
@@ -475,9 +533,10 @@ class _NxGraph(GraphInterface):
                 elif dtype == "int":
                     attributes[k] = [0 for _ in range(num_edges)]
 
-        initial_edges = self.number_of_edges()
+        initial_edges = g.number_of_edges()
         new_attr = None
 
+        # @todo use map for speedup
         if check_edges:
             new_attr = {key: [] for key in attributes}
             eweight_list = OrderedDict()
@@ -496,13 +555,17 @@ class _NxGraph(GraphInterface):
         else:
             edge_list = np.array(edge_list)
             new_attr = attributes
+
         # create the edges
         num_added = len(edge_list)
+
         if num_added:
             arr_edges = np.zeros((num_added, 3), dtype=int)
+
             arr_edges[:, :2] = edge_list
             arr_edges[:, 2]  = np.arange(initial_edges,
                 initial_edges + num_added)
+
             if not self._directed:
                 recip_edges = edge_list[:, ::-1]
                 # slow but works
@@ -511,17 +574,19 @@ class _NxGraph(GraphInterface):
                 edge_list = np.concatenate((edge_list, recip_edges[unique]))
                 for key, val in new_attr.items():
                     new_attr[key] = np.concatenate((val, val[unique]))
+
             # create the edges with an eid attribute
-            super(_NxGraph, self).add_weighted_edges_from(
-                arr_edges, weight="eid")
+            g.add_weighted_edges_from(arr_edges, weight="eid")
+
             # call parent function to set the attributes
-            self.attr_new_edges(edge_list, attributes=new_attr)
+            self._attr_new_edges(edge_list, attributes=new_attr)
+
         return edge_list
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''
-        ebunch = [e for e in self.edges()]
-        self.remove_edges_from(ebunch)
+        g = self._graph
+        g.remove_edges_from(tuple(g.edges()))
         self._eattr.clear()
 
     #-------------------------------------------------------------------------#
@@ -529,25 +594,31 @@ class _NxGraph(GraphInterface):
 
     def node_nb(self):
         ''' Number of nodes in the graph '''
-        return self.number_of_nodes()
+        return self._graph.number_of_nodes()
 
     def edge_nb(self):
         ''' Number of edges in the graph '''
-        return self.size()
+        return self._graph.number_of_edges()
 
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+        g = self._graph
+
         weight = 'weight' if use_weights else None
         di_deg = None
+
         if deg_type == 'total':
-            di_deg = self.degree(node_list, weight=weight)
+            di_deg = g.degree(node_list, weight=weight)
         elif deg_type == 'in':
-            di_deg = self.in_degree(node_list, weight=weight)
+            di_deg = g.in_degree(node_list, weight=weight)
         else:
-            di_deg = self.out_degree(node_list, weight=weight)
+            di_deg = g.out_degree(node_list, weight=weight)
+
         return np.array([d[1] for d in di_deg])
 
     def betweenness_list(self, btype="both", use_weights=False, **kwargs):
+        g  = self._graph
         nx = nngt._config["library"]
+
         di_nbetw, di_ebetw = None, None
 
         wattr = None
@@ -561,18 +632,17 @@ class _NxGraph(GraphInterface):
                 self.new_edge_attribute("bweight", "double", values=w)
 
         if btype in ("both", "node"):
-            di_nbetw = nx.betweenness_centrality(self, weight=wattr)
+            di_nbetw = nx.betweenness_centrality(g, weight=wattr)
         if btype in ("both", "edge"):
-            di_ebetw = nx.edge_betweenness_centrality(self,
-                                                      weight=wattr)
+            di_ebetw = nx.edge_betweenness_centrality(g, weight=wattr)
 
         if btype == "node":
             return np.array(tuple(di_nbetw.values()))
         elif btype == "edge":
             return np.array(tuple(di_ebetw.values()))
-        else:
-            return (np.array(tuple(di_nbetw.values())),
-                    np.array(tuple(di_ebetw.values())))
+
+        return (np.array(tuple(di_nbetw.values())),
+                np.array(tuple(di_ebetw.values())))
 
     def neighbours(self, node, mode="all"):
         '''
@@ -590,17 +660,45 @@ class _NxGraph(GraphInterface):
 
         Returns
         -------
-        neighbours : tuple
+        neighbours : numpy array
             The neighbours of `node`.
         '''
+        g = self._graph
+
         if mode == "all":
-            neighbours = list(self.successors(node))
-            neighbours.extend(self.predecessors(node))
-            return neighbours
+            return np.fromiter(
+                chain(g.successors(node), g.predecessors(node)), dtype=int)
         elif mode == "in":
-            return self.predecessors(node)
+            return np.fromiter(self.predecessors(node), dtype=int)
         elif mode == "out":
-            return self.successors(node)
-        else:
-            raise ArgumentError('''Invalid `mode` argument {}; possible values
-                                are "all", "out" or "in".'''.format(mode))
+            return np.fromiter(self.successors(node), dtype=int)
+
+        raise ArgumentError('Invalid `mode` argument {}; possible values are '
+                            '"all", "out" or "in".'.format(mode))
+
+    def _from_library_graph(self, graph, copy=True):
+        ''' Initialize `self._graph` from existing library object. '''
+        # @todo check if nodes start from 0 and are continuous
+        nodes = graph.number_of_nodes()
+        edges = graph.number_of_edges()
+
+        self._graph = nngt._config["graph"](graph) if copy else graph
+
+        # get attributes names and "types" and initialize them
+        if nodes:
+            for key, val in graph[0].items():
+                super(type(self._nattr), self._nattr).__setitem__(
+                    key, _get_dtype(val))
+
+        if edges:
+            e0 = next(iter(graph.edges))
+            for key, val in graph.edges[e0].items():
+                super(type(self._eattr), self._eattr).__setitem__(
+                    key, _get_dtype(val))
+
+
+# tool function to generate the edges_array
+
+def _gen_edges(array, edata):
+    source, target, eid = edata
+    array[eid] = (source, target)

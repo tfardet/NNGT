@@ -103,10 +103,6 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='bayes',
     '''
     Betweenness distribution of a graph.
 
-    .. versionchanged:: 0.7
-
-    Inclusion of automatic binning.
-
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
@@ -137,6 +133,7 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='bayes',
     '''
     ia_nbetw, ia_ebetw = graph.get_betweenness(
         btype="both", use_weights=use_weights)
+
     if nodes is not None:
         ia_nbetw = ia_nbetw[nodes]
     ra_nbins, ra_ebins = None, None
@@ -148,9 +145,12 @@ def betweenness_distrib(graph, use_weights=True, nodes=None, num_nbins='bayes',
         ra_nbins = binning(ia_nbetw, bins=num_nbins, log=log)
     else:
         ra_nbins = num_nbins
+
     ra_ebins = binning(ia_ebetw, bins=num_ebins, log=log)
+
     ncounts, nbetw = np.histogram(ia_nbetw, ra_nbins)
     ecounts, ebetw = np.histogram(ia_ebetw, ra_ebins)
+
     return ncounts, nbetw, ecounts, ebetw
 
 
@@ -190,9 +190,8 @@ def local_clustering(graph, nodes=None):
         Nodes for which the local clustering coefficient should be computed.
     '''
     if nngt._config["backend"] == "igraph":
-        return np.array(graph.transitivity_local_undirected(nodes))
-    elif nngt._config["backend"] == "networkx":
-        raise NotImplementedError("Will soon be available for NX.")
+        return np.array(graph.graph.transitivity_local_undirected(nodes))
+
     return nngt.analyze_graph["local_clustering"](graph, nodes)
 
 
@@ -217,8 +216,8 @@ def assortativity(graph, deg_type="in"):
     '''
     if nngt._config["backend"] == "igraph":
         deg_list = graph.get_degrees(deg_type=deg_type)
-        return graph.assortativity(deg_list, directed=graph.is_directed())
-        #~ return graph.assortativity(deg_type, directed=graph.is_directed())
+        return graph.graph.assortativity(deg_list,
+                                         directed=graph.is_directed())
     elif nngt._config["backend"] == "graph-tool":
         return nngt.analyze_graph["assortativity"](graph, deg_type)[0]
     else:
@@ -240,7 +239,7 @@ def reciprocity(graph):
     a float quantifying the reciprocity.
     '''
     if nngt._config["backend"] == "igraph":
-        return graph.reciprocity()
+        return graph.graph.reciprocity()
     else:
         return nngt.analyze_graph["reciprocity"](graph)
 
@@ -254,7 +253,7 @@ def clustering(graph):
         c = 3 \\times \\frac{\\text{triangles}}{\\text{connected triples}}
     '''
     if nngt._config["backend"] == "igraph":
-        return graph.transitivity_undirected()
+        return graph.graph.transitivity_undirected()
     else:
         return nngt.analyze_graph["clustering"](graph)
 
@@ -268,8 +267,12 @@ def transitivity(graph):
 
 def num_iedges(graph):
     ''' Returns the number of inhibitory connections. '''
-    num_einhib = len(graph["type"].a < 0)
-    return float(num_einhib)/graph.edge_nb()
+    if graph.is_network():
+        inhib_nodes = graph.population.inhibitory
+
+        return np.sum(graph.get_degrees("out", node_list=inhib_nodes))
+
+    return np.sum(graph.get_edge_attributes(name="type") < 0)
 
 
 def num_scc(graph, listing=False):
@@ -283,17 +286,19 @@ def num_scc(graph, listing=False):
     num_wcc
     '''
     lst_histo = None
+
     if nngt._config["backend"] == "graph-tool":
         vprop_comp, lst_histo = nngt.analyze_graph["scc"](graph, directed=True)
     elif nngt._config["backend"] == "igraph":
-        lst_histo = graph.clusters()
+        lst_histo = graph.graph.clusters()
         lst_histo = [cluster for cluster in lst_histo]
     else:
         lst_histo = [comp for comp in nngt.analyze_graph["scc"](graph)]
+
     if listing:
         return len(lst_histo), lst_histo
-    else:
-        return len(lst_histo)
+
+    return len(lst_histo)
 
 
 def num_wcc(graph, listing=False):
@@ -306,19 +311,21 @@ def num_wcc(graph, listing=False):
     num_scc
     '''
     lst_histo = None
+
     if nngt._config["backend"] == "graph-tool":
         _, lst_histo = nngt.analyze_graph["wcc"](graph, directed=False)
     elif nngt._config["backend"] == "igraph":
-        lst_histo = graph.clusters("WEAK")
+        lst_histo = graph.graph.clusters("WEAK")
         lst_histo = [cluster for cluster in lst_histo]
     else:
         if listing:
             raise RuntimeError("Not implemented for networkx.")
         return nngt.analyze_graph["wcc"](graph)
+
     if listing:
         return len(lst_histo), lst_histo
-    else:
-        return len(lst_histo)
+
+    return len(lst_histo)
 
 
 def diameter(graph):
@@ -328,11 +335,12 @@ def diameter(graph):
     @todo: weighted diameter
     '''
     if nngt._config["backend"] == "igraph":
-        return graph.diameter()
+        return graph.graph.diameter()
     elif nngt._config["backend"] == "networkx":
         return nngt.analyze_graph["diameter"](graph)
-    else:
-        return nngt.analyze_graph["diameter"](graph)[0]
+
+    # graph-tool
+    return nngt.analyze_graph["diameter"](graph)[0]
 
 
 # ------------------- #
@@ -357,25 +365,18 @@ def spectral_radius(graph, typed=True, weighted=True):
     -------
     the spectral radius as a float.
     '''
-    weights = None
-    if typed and "type" in graph.eproperties.keys():
-        weights = graph.eproperties["type"].copy()
-    if weighted and "weight" in graph.eproperties.keys():
-        if weights is not None:
-            weights = np.multiply(weights,
-                                  graph.eproperties["weight"])
-        else:
-            weights = graph.eproperties["weight"].copy()
-    mat_adj = nngt.analyze_graph["adjacency"](graph,weights)
-    eigenval = [0]
+    mat_adj  = graph.adjacency_matrix(types=typed, weights=weighted)
+    eigenval = []
+
     try:
-        eigenval = spl.eigs(mat_adj,return_eigenvectors=False)
+        eigenval = spl.eigs(mat_adj, return_eigenvectors=False)
     except spl.eigen.arpack.ArpackNoConvergence as err:
         eigenval = err.eigenvalues
+
     if len(eigenval):
         return np.amax(np.absolute(eigenval))
-    else:
-        raise spl.eigen.arpack.ArpackNoConvergence()
+
+    raise spl.eigen.arpack.ArpackNoConvergence()
 
 
 def adjacency_matrix(graph, types=True, weights=True):
@@ -435,7 +436,9 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
         The subgraph centrality of each node.
     '''
     adj_mat = graph.adjacency_matrix(types=False, weights=weights).tocsc()
+
     centralities = None
+
     if normalize == "max_centrality":
         centralities = spl.expm(adj_mat / adj_mat.max()).diagonal()
         centralities /= centralities.max()
@@ -481,11 +484,13 @@ def node_attributes(network, attributes, nodes=None, data=None):
     '''
     if nonstring_container(attributes):
         values = {}
+
         for attr in attributes:
             values[attr] = _get_attribute(network, attr, nodes, data)
+
         return values
-    else:
-        return _get_attribute(network, attributes, nodes, data)
+
+    return _get_attribute(network, attributes, nodes, data)
 
 
 def find_nodes(network, attributes, equal=None, upper_bound=None,
@@ -549,10 +554,13 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
             len(attributes)-len(equal), len(upper_bound)-len(equal),
             len(lower_bound)-len(equal), len(upper_fraction)-len(equal),
             len(lower_fraction)-len(equal)])
+
     nodes = set(range(self.node_nb()))
+
     # find the nodes
     di_attr = node_attributes(self, attributes)
     keep = np.ones(self.node_nb(), dtype=bool)
+
     for i in range(len(attributes)):
         attr, eq = attributes[i], equal[i]
         ub, lb = upper_bound[i], lower_bound[i]
@@ -581,7 +589,9 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
             keep_tmp = np.zeros(self.node_nb(), dtype=bool)
             keep_tmp[sort] = 1
             keep *= keep_tmp
+
     nodes = nodes.intersection_update(np.array(nodes)[keep])
+
     return nodes
 
 
@@ -619,8 +629,8 @@ def binning(x, bins='bayes', log=False):
                                np.log10(x.max()), bins)
         else:
             return np.linspace(x.min(), x.max(), bins)
-    else:
-        raise ValueError("unrecognized bin code: '" + str(bins) + "'.")
+
+    raise ValueError("unrecognized bin code: '" + str(bins) + "'.")
 
 
 def _get_attribute(network, attribute, nodes=None, data=None):
@@ -654,6 +664,5 @@ def _get_attribute(network, attribute, nodes=None, data=None):
         return sc
     elif attribute in network.nodes_attributes:
         return network.get_node_attributes(nodes=nodes, name=attribute)
-    else:
-        raise RuntimeError(
-            "Attribute '{}' is not available.".format(attribute))
+
+    raise RuntimeError("Attribute '{}' is not available.".format(attribute))

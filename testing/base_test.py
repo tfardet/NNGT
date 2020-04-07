@@ -136,7 +136,7 @@ class TestBasis(unittest.TestCase):
         pass
 
     def get_expected_result(self, graph, res_name):
-        return self.parser.get_result(graph.get_name(), res_name)
+        return self.parser.get_result(graph.name, res_name)
 
     @abstractmethod
     def gen_graph(self, graph_name):

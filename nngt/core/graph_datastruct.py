@@ -95,12 +95,6 @@ class NeuralPop(OrderedDict):
         Make a NeuralPop object from a (list of) :class:`~nngt.NeuralGroup`
         object(s).
 
-        .. versionchanged:: 0.8
-            Added `syn_spec` parameter.
-
-        .. versionchanged:: 1.2
-            Added `meta_groups` parameter
-
         Parameters
         ----------
         groups : list of :class:`~nngt.NeuralGroup` objects
@@ -170,7 +164,7 @@ class NeuralPop(OrderedDict):
             assert g.is_valid, "Group number " + str(i) + name + " is invalid."
 
         gsize = len(groups)
-        names = [] if names is None else names
+        names = [] if names is None else list(names)
 
         if not names:
             for i, g in enumerate(groups):
@@ -185,7 +179,7 @@ class NeuralPop(OrderedDict):
         for n in names:
             assert isinstance(n, str), "Group names must be strings."
 
-        if syn_spec is not None:
+        if syn_spec:
             _check_syn_spec(syn_spec, names, groups)
 
         current_size = 0
@@ -323,11 +317,13 @@ class NeuralPop(OrderedDict):
         pop = cls(size, parent, meta_groups=meta_groups)
 
         pop.create_group(
-            range(num_exc_neurons), "excitatory", 1, en_model, en_param)
+            range(num_exc_neurons), "excitatory", neuron_type=1,
+            neuron_model=en_model, neuron_param=en_param)
         pop.create_group(
-            range(num_exc_neurons, size), "inhibitory", -1, in_model, in_param)
+            range(num_exc_neurons, size), "inhibitory", neuron_type=-1,
+            neuron_model=in_model, neuron_param=in_param)
 
-        if syn_spec is not None:
+        if syn_spec:
             _check_syn_spec(
                 syn_spec, ["excitatory", "inhibitory"], pop.values())
             pop._syn_spec = deepcopy(syn_spec)
@@ -339,15 +335,7 @@ class NeuralPop(OrderedDict):
     @classmethod
     def copy(cls, pop):
         ''' Copy an existing NeuralPop '''
-        new_pop = cls(parent=pop.parent, with_models=pop.has_models,
-                      meta_groups=pop.meta_groups)
-
-        for name, group in pop.items():
-            new_pop.create_group(
-                group.ids, name, group.model, group.neuron_param)
-            new_pop._syn_spec = pop.syn_spec
-
-        return new_pop
+        return new_pop.copy()
 
     @classmethod
     def _nest_reset(cls):
@@ -369,9 +357,6 @@ class NeuralPop(OrderedDict):
                  with_models=True, *args, **kwargs):
         '''
         Initialize NeuralPop instance.
-
-        .. versionchanged:: 1.2
-            Added `meta_groups` parameter.
 
         Parameters
         ----------
@@ -513,6 +498,21 @@ class NeuralPop(OrderedDict):
             else:
                 self._is_valid = True
 
+    def copy(self):
+        '''
+        Return a deep copy of the population.
+        '''
+        # copy groups and metagroups
+        groups = {k: v.copy() for k, v in self.items()}
+        metagroups = {k: v.copy() for k, v in self._meta_groups.items()}
+
+        # generate new population
+        copy = NeuralPop.from_groups(
+            groups.values(), groups.keys(), syn_spec=self._syn_spec,
+            parent=None, meta_groups=metagroups, with_models=self._has_models)
+
+        return copy
+
     @property
     def size(self):
         '''
@@ -643,13 +643,6 @@ class NeuralPop(OrderedDict):
         '''
         Create a new group in the population.
 
-        .. versionchanged:: 0.8
-            Removed `syn_model` and `syn_param`.
-
-        .. versionchanged:: 1.0
-            `neurons` can be an int to signify a desired size for the group
-            without actually setting the indices.
-
         Parameters
         ----------
         neurons : int or array-like
@@ -690,8 +683,6 @@ class NeuralPop(OrderedDict):
         '''
         Create a new meta group and add it to the population.
 
-        .. versionadded:: 1.2
-
         Parameters
         ----------
         neurons : int or array-like
@@ -710,8 +701,7 @@ class NeuralPop(OrderedDict):
         '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
 
-        group = NeuralGroup(neurons, neuron_type=None, name=name,
-                            neuron_param=neuron_param)
+        group = MetaGroup(neurons, name=name, neuron_param=neuron_param)
 
         self.add_meta_group(group, replace=replace)
 
@@ -720,8 +710,6 @@ class NeuralPop(OrderedDict):
     def add_meta_group(self, group, name=None, replace=False):
         '''
         Add an existing meta group to the population.
-
-        .. versionadded:: 1.2
 
         Parameters
         ----------
@@ -1178,6 +1166,16 @@ class NeuralGroup:
 
     def _repr_pretty_(self, p, cycle):
         return p.text(str(self))
+
+    def copy(self):
+        '''
+        Return a deep copy of the group.
+        '''
+        copy = NeuralGroup(nodes=self._ids, neuron_type=self._neuron_type,
+                           neuron_model=self._neuron_model,
+                           neuron_param=self._neuron_param, name=self._name)
+
+        return copy
 
     @property
     def name(self):

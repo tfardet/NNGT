@@ -33,11 +33,11 @@ nngt.set_config("multithreading", False)
 # ---------- #
 
 class TestIO(TestBasis):
-    
+
     '''
     Class testing saving and loading functions.
     '''
-    
+
     @classmethod
     def tearDownClass(cls):
         for graphname in cls.graphs:
@@ -55,7 +55,6 @@ class TestIO(TestBasis):
         return "test_io"
 
     @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
-    @unittest.skipIf(_old_graph_tool('2.22'), 'Skip for graph-tool < 2.22.')
     def gen_graph(self, graph_name):
         # check whether we are loading from file
         if "." in graph_name:
@@ -69,6 +68,7 @@ class TestIO(TestBasis):
             graph = nngt.generate(di_instructions)
             graph.set_name(graph_name)
             graph.to_file(current_dir + graph_name + '.el')
+
             return graph, di_instructions
 
     @foreach_graph
@@ -77,10 +77,10 @@ class TestIO(TestBasis):
         Test that the generated graph and the one loaded from the saved file
         are indeed identical.
         '''
-        err = error.format(graph=graph.get_name())
+        err = error.format(graph=graph.name)
         if instructions is not None:  # working with generated graph
             # load graph
-            h = nngt.Graph.from_file(current_dir + graph.get_name() + '.el')
+            h = nngt.Graph.from_file(current_dir + graph.name + '.el')
             attributes = h.edges_attributes
             # test properties
             self.assertTrue(h.node_nb() == graph.node_nb(),
@@ -113,7 +113,6 @@ class TestIO(TestBasis):
                 edges, graph.edge_nb(), err.format(val='edge number'))
 
     @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
-    @unittest.skipIf(_old_graph_tool('2.22'), 'Skip for graph-tool < 2.22.')
     def test_custom_attributes(self):
         '''
         Test that custom attributes are saved and loaded correctly
@@ -125,7 +124,7 @@ class TestIO(TestBasis):
         g.new_edge_attribute("test_attr", "int")
 
         for i in range(num_nodes):
-            targets = np.unique(np.random.randint(0, num_nodes, avg_deg))
+            targets = np.random.choice(num_nodes, size=avg_deg, replace=False)
             elist = np.zeros((len(targets), 2), dtype=int)
             elist[:, 0] = i
             elist[:, 1] = targets
@@ -134,8 +133,8 @@ class TestIO(TestBasis):
             g.new_edges(elist, attributes={"test_attr": ids},
                         check_edges=False)
 
-        g.to_file('test.el')
-        h = nngt.Graph.from_file('test.el')
+        g.to_file(current_dir + 'test.el')
+        h = nngt.Graph.from_file(current_dir + 'test.el')
 
         allclose = np.allclose(g.get_edge_attributes(name="test_attr"),
                                h.get_edge_attributes(name="test_attr"))
@@ -143,7 +142,7 @@ class TestIO(TestBasis):
             print("Results differed for '{}'.".format(g.name))
             print(g.get_edge_attributes(name="test_attr"))
             print(h.get_edge_attributes(name="test_attr"))
-            with open('test.el', 'r') as f:
+            with open(current_dir + 'test.el', 'r') as f:
                 for line in f.readlines():
                     print(line.strip())
 

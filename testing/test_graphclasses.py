@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
 # test_graphclasses.py
@@ -57,7 +56,7 @@ class TestGraphClasses(TestBasis):
         :mod:`scipy.sparse` matrices, check that the result of
         graph.adjacency_matrix() is the same as the initial matrix.
         '''
-        ref_result = ssp.csr_matrix(self.matrices[graph.get_name()])
+        ref_result = ssp.csr_matrix(self.matrices[graph.name])
         computed_result = graph.adjacency_matrix()
         self.assertTrue(
             (ref_result != computed_result).nnz == 0,
@@ -65,10 +64,6 @@ class TestGraphClasses(TestBasis):
             ".format(graph.name, ref_result, computed_result))
 
     @foreach_graph
-    @unittest.skipIf(
-        nngt._config["backend"] == "graph-tool"
-        and nngt._config["library"].__version__.startswith("2.22"),
-        "Known bug with graph-tool 2.22.")
     def test_copy_clear(self, graph, **kwargs):
         '''
         Test that the copied graph is indeed the same as the original, but that

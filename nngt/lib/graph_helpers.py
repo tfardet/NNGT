@@ -141,3 +141,14 @@ def _to_np_array(data, dtype):
         return arr
 
     return np.array(data, dtype=dtype)
+
+
+def _get_dtype(value):
+    if is_integer(value):
+        return "int"
+    elif isinstance(value, float):
+        return "double"
+    if isinstance(value, (bytes, str)):
+        return "string"
+
+    return "object"

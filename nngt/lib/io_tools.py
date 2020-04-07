@@ -242,15 +242,10 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             positions)
 
 
-@graph_tool_check('2.22')
 def save_to_file(graph, filename, fmt="auto", separator=" ",
                  secondary=";", attributes=None, notifier="@"):
     '''
     Save a graph to file.
-
-    .. versionchanged:: 0.7
-        Added support to write position and Shape when saving
-        :class:`~nngt.SpatialGraph`. Note that saving Shape requires shapely.
 
     @todo: implement gml, dot, xml, gt formats
 
@@ -412,7 +407,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         "edge_attr_types": [
             graph.get_attribute_type(attr, "edge") for attr in attributes
         ],
-        "name": graph.get_name(),
+        "name": graph.name,
         "size": graph.node_nb()
     }
     # add node attributes to the notifications
