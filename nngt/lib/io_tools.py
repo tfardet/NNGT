@@ -242,15 +242,10 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             positions)
 
 
-@graph_tool_check('2.22')
 def save_to_file(graph, filename, fmt="auto", separator=" ",
                  secondary=";", attributes=None, notifier="@"):
     '''
     Save a graph to file.
-
-    .. versionchanged:: 0.7
-        Added support to write position and Shape when saving
-        :class:`~nngt.SpatialGraph`. Note that saving Shape requires shapely.
 
     @todo: implement gml, dot, xml, gt formats
 

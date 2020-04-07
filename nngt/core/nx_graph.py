@@ -20,9 +20,10 @@
 
 """ Networkx subclassing """
 
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from copy import deepcopy
 import logging
+import sys
 
 import numpy as np
 import scipy.sparse as ssp
@@ -347,10 +348,11 @@ class _NxGraph(GraphInterface):
         g     = self._graph
         edges = np.zeros((g.number_of_edges(), 2), dtype=int)
 
-        map(lambda x: _gen_edges(edges, x), g.edges(data="eid"))
+        # fast iteration using list comprehension
+        # could also be done with deque and map (deque forces lazy map to run)
+        # deque(map(lambda x: _gen_edges(edges, x), g.edges(data="eid")))
 
-        # ~ for weighted_edge in g.edges(data="eid"):
-            # ~ edges[weighted_edge[2], :] = weighted_edge[:2]
+        [_gen_edges(edges, x) for x in g.edges(data="eid")]
 
         return edges
 

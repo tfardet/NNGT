@@ -214,8 +214,8 @@ class _EProperty(BaseProperty):
                 eid  = self.parent().edge_id
                 prop = self.prop[name]
 
-                map(lambda e, val: _set_prop(prop, eid(e), val),
-                    zip(edges, values))
+                # using list comprehension for fast loop
+                [_set_prop(prop, eid(e), val) for e, val in zip(edges, values)]
 
     def new_attribute(self, name, value_type, values=None, val=None):
         num_edge = self.parent().edge_nb()
