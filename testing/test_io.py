@@ -134,7 +134,7 @@ class TestIO(TestBasis):
                         check_edges=False)
 
         g.to_file(current_dir + 'test.el')
-        h = nngt.Graph.from_file('test.el')
+        h = nngt.Graph.from_file(current_dir + 'test.el')
 
         allclose = np.allclose(g.get_edge_attributes(name="test_attr"),
                                h.get_edge_attributes(name="test_attr"))

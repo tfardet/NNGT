@@ -25,6 +25,8 @@ import warnings
 
 from collections.abc import Container as _container
 from collections.abc import Iterable as _iterable
+from collections.abc import KeysView as _key_view
+from collections.abc import ValuesView as _value_view
 
 import numpy as np
 
@@ -166,6 +168,9 @@ def nonstring_container(obj):
     '''
     Returns true for any iterable which is not a string or byte sequence.
     '''
+    if isinstance(obj, (_key_view, _value_view)):
+        return True
+
     if not isinstance(obj, _container):
         return False
 
