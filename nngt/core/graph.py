@@ -68,23 +68,26 @@ class Graph(nngt.core.GraphObject):
         return cls.__num_graphs
 
     @classmethod
-    def from_library(cls, library_graph, weighted=True, directed=True,
-                     **kwargs):
-        library_graph = nngt.core.GraphObject.to_graph_object(library_graph)
-        library_graph.__class__ = cls
+    def from_library(cls, library_graph, name="ImportedGraph", weighted=True,
+                     directed=True, **kwargs):
+        '''
+        Create a :class:`~nngt.Graph` by wrapping a graph object from one of
+        the supported libraries.
 
-        if weighted:
-            library_graph._w = _edge_prop(kwargs.get("weights", 1.))
+        Parameters
+        ----------
+        library_graph : object
+            Graph object from one of the supported libraries (graph-tool,
+            igraph, networkx).
+        name : str, optional (default: "ImportedGraph")
+        **kwargs
+            Other standard arguments (see :func:`~nngt.Graph.__init__`)
+        '''
+        graph = cls(name=name, **kwargs)
 
-        library_graph._d = _edge_prop(kwargs.get("delays", 1.))
+        graph._from_library_graph(library_graph, copy=False)
 
-        library_graph.__id = cls.__max_id
-        library_graph._name = "Graph" + str(cls.__num_graphs)
-
-        cls.__max_id += 1
-        cls.__num_graphs += 1
-
-        return library_graph
+        return graph
 
     @classmethod
     def from_matrix(cls, matrix, weighted=True, directed=True):
@@ -320,9 +323,12 @@ class Graph(nngt.core.GraphObject):
     # Constructor/destructor and properties
 
     def __init__(self, nodes=0, name="Graph", weighted=True, directed=True,
-                 from_graph=None, **kwargs):
+                 copy_graph=None, **kwargs):
         '''
         Initialize Graph instance
+
+        .. versionchanged:: 2.0
+            Renamed `from_graph` to `copy_graph`.
 
         Parameters
         ----------
@@ -334,14 +340,21 @@ class Graph(nngt.core.GraphObject):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        from_graph : :class:`~nngt.Graph`, optional
-            An optional :class:`~nngt.Graph` to serve as base.
+        copy_graph : :class:`~nngt.Graph`, optional
+            An optional :class:`~nngt.Graph` that will be copied.
         kwargs : optional keywords arguments
             Optional arguments that can be passed to the graph, e.g. a dict
             containing information on the synaptic weights
             (``weights={"distribution": "constant", "value": 2.3}`` which is
             equivalent to ``weights=2.3``), the synaptic `delays`, or a
             ``type`` information.
+
+        Note
+        ----
+        When using `copy_graph`, only the topological properties are
+        copied (nodes, edges, and attributes), spatial and biological
+        properties are ignored.
+        To copy a graph exactly, use :func:`~nngt.Graph.copy`.
 
         Returns
         -------
@@ -352,7 +365,7 @@ class Graph(nngt.core.GraphObject):
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
 
         # Init the core.GraphObject
-        super().__init__(nodes=nodes, g=from_graph,
+        super().__init__(nodes=nodes, copy_graph=copy_graph,
                          directed=directed, weighted=weighted)
 
         # take care of the weights and delays
@@ -420,7 +433,7 @@ class Graph(nngt.core.GraphObject):
         instance
         '''
         gc_instance = Graph(name=self._name + '_copy', weighted=self._weighted,
-                            from_graph=self)
+                            copy_graph=self)
 
         if self.is_spatial():
             nngt.SpatialGraph.make_spatial(

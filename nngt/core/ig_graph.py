@@ -240,36 +240,24 @@ class _IGraph(GraphInterface):
     '''
 
     _nattr_class = _IgNProperty
-    _eattr_class = _IgEProperty
+    _eattr_class = _IgEProperty    
 
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
 
-    def __init__(self, nodes=0, g=None, directed=True, weighted=False):
+    def __init__(self, nodes=0, copy_graph=None, directed=True, weighted=False,
+                 **kwargs):
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
         self._weighted = weighted
         self._directed = directed
 
+        g = copy_graph.graph if copy_graph is not None else None
+
         if g is None:
             self._graph = nngt._config["graph"](n=nodes, directed=True)
         else:
-            nodes = g.vcount()
-            edges = g.ecount()
-
-            self._graph = g.copy()
-
-            # get attributes names and "types" and initialize them
-            if nodes:
-                for key, val in g.vs[0].attributes().item():
-                    super(type(self._nattr), self._nattr).__setitem__(
-                        key, _get_dtype(val))
-
-            if edges:
-                for key, val in g.es[0].attributes().items():
-                    super(type(self._eattr), self._eattr).__setitem__(
-                        key, _get_dtype(val))
-
+            self._from_library_graph(g, copy=True)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -604,3 +592,21 @@ class _IGraph(GraphInterface):
 
         raise ArgumentError('Invalid `mode` argument {}; possible values are '
                             '"all", "out" or "in".'.format(mode))
+
+    def _from_library_graph(self, graph, copy=True):
+        ''' Initialize `self._graph` from existing library object. '''
+        nodes = graph.vcount()
+        edges = graph.ecount()
+
+        self._graph = graph.copy() if copy else graph
+
+        # get attributes names and "types" and initialize them
+        if nodes:
+            for key, val in graph.vs[0].attributes().items():
+                super(type(self._nattr), self._nattr).__setitem__(
+                    key, _get_dtype(val))
+
+        if edges:
+            for key, val in graph.es[0].attributes().items():
+                super(type(self._eattr), self._eattr).__setitem__(
+                    key, _get_dtype(val))

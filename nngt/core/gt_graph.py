@@ -29,7 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _to_np_array
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
 
@@ -299,8 +299,8 @@ class _GtGraph(GraphInterface):
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
 
-    def __init__(self, nodes=0, g=None, weighted=True, directed=True,
-                 prune=False, vorder=None, **kwargs):
+    def __init__(self, nodes=0, copy_graph=None, weighted=True, directed=True,
+                 **kwargs):
         '''
         @todo: document that
         see :class:`gt.Graph`'s constructor '''
@@ -309,28 +309,15 @@ class _GtGraph(GraphInterface):
         self._directed = directed
         self._weighted = weighted
 
-        self._graph = nngt._config["graph"](g=g, directed=True, prune=prune,
-                                            vorder=vorder)
+        g = copy_graph.graph if copy_graph is not None else None
 
-        if g is None:
-            self._graph.add_vertex(nodes)
+        if g is not None:
+            self._from_library_graph(g, copy=True)
         else:
-            nodes = g.num_vertices()
-            edges = g.num_edges()
+            self._graph = nngt._config["graph"](directed=True)
 
-            # get attributes names and "types" and initialize them
             if nodes:
-                for key, val in g.vertex_properties.items():
-                    try:
-                        super(type(self._nattr), self._nattr).__setitem__(
-                            key, _get_dtype(val.a[0]))
-                    except:
-                        pass
-
-            if edges:
-                for key, val in g.edge_properties.items():
-                    super(type(self._eattr), self._eattr).__setitem__(
-                        key, _get_dtype(val.a[0]))
+                self._graph.add_vertex(nodes)
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -697,3 +684,27 @@ class _GtGraph(GraphInterface):
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
+
+    def _from_library_graph(self, graph, copy=True):
+        ''' Initialize `self._graph` from existing library object. '''
+        nodes = graph.num_vertices()
+        edges = graph.num_edges()
+
+        if copy:
+            self._graph = nngt._config["graph"](g=graph, directed=True)
+        else:
+            self._graph = graph
+
+        # get attributes names and "types" and initialize them
+        if nodes:
+            for key, val in graph.vertex_properties.items():
+                try:
+                    super(type(self._nattr), self._nattr).__setitem__(
+                        key, _get_dtype(val.a[0]))
+                except:
+                    pass
+
+        if edges:
+            for key, val in graph.edge_properties.items():
+                super(type(self._eattr), self._eattr).__setitem__(
+                    key, _get_dtype(val.a[0]))

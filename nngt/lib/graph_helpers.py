@@ -148,7 +148,7 @@ def _get_dtype(value):
         return "int"
     elif isinstance(value, float):
         return "double"
-    if isinstance(obj, (bytes, str)):
+    if isinstance(value, (bytes, str)):
         return "string"
 
     return "object"

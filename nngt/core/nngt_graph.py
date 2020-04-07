@@ -30,7 +30,7 @@ from scipy.sparse import coo_matrix, lil_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _get_edge_attr, _to_np_array
+from nngt.lib.graph_helpers import _get_edge_attr, _to_np_array, _get_dtype
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
@@ -48,11 +48,11 @@ class _NProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __init__(self, *args, **kwargs):
-        super(_NProperty, self).__init__(*args, **kwargs)
+        super(type(self), self).__init__(*args, **kwargs)
         self.prop = OrderedDict()
 
     def __getitem__(self, name):
-        dtype = _np_dtype(super(_NProperty, self).__getitem__(name))
+        dtype = _np_dtype(super(type(self), self).__getitem__(name))
         return _to_np_array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
@@ -92,7 +92,8 @@ class _NProperty(BaseProperty):
                              "node in the graph is required")
 
         # store name and value type in the dict
-        super(_NProperty, self).__setitem__(name, value_type)
+        super(type(self), self).__setitem__(name, value_type)
+
         # store the real values in the attribute
         self.prop[name] = list(values)
         self._num_values_set[name] = len(values)
@@ -135,7 +136,7 @@ class _EProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __init__(self, *args, **kwargs):
-        super(_EProperty, self).__init__(*args, **kwargs)
+        super(type(self), self).__init__(*args, **kwargs)
         self.prop = OrderedDict()
 
     def __getitem__(self, name):
@@ -146,7 +147,7 @@ class _EProperty(BaseProperty):
 
         if isinstance(name, slice):
             for k in self.keys():
-                dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
+                dtype = _np_dtype(super(type(self), self).__getitem__(k))
                 eprop[k] = _to_np_array(self.prop[k], dtype)[name]
 
             return eprop
@@ -155,7 +156,7 @@ class _EProperty(BaseProperty):
                 eids = [self.parent().edge_id(e) for e in name]
 
                 for k in self.keys():
-                    dtype = _np_dtype(super(_EProperty, self).__getitem__(k))
+                    dtype = _np_dtype(super(type(self), self).__getitem__(k))
                     eprop[k] = _to_np_array(self.prop[k], dtype=dtype)[eids]
             else:
                 eid = self.parent().get_eid(*name)
@@ -165,7 +166,7 @@ class _EProperty(BaseProperty):
 
             return eprop
 
-        dtype = _np_dtype(super(_EProperty, self).__getitem__(name))
+        dtype = _np_dtype(super(type(self), self).__getitem__(name))
 
         return _to_np_array(self.prop[name], dtype=dtype)
 
@@ -218,7 +219,7 @@ class _EProperty(BaseProperty):
                 [_set_prop(prop, eid(e), val) for e, val in zip(edges, values)]
 
     def new_attribute(self, name, value_type, values=None, val=None):
-        num_edge = self.parent().edge_nb()
+        num_edges = self.parent().edge_nb()
 
         if values is None and val is None:
             self._num_values_set[name] = num_edges
@@ -244,7 +245,7 @@ class _EProperty(BaseProperty):
                              "edge in the graph is required")
 
         # store name and value type in the dict
-        super(_EProperty, self).__setitem__(name, value_type)
+        super(type(self), self).__setitem__(name, value_type)
 
         # store the real values in the attribute
         self.prop[name] = list(values)
@@ -265,39 +266,29 @@ class _NNGTGraph(GraphInterface):
     # Constructor and instance properties
 
     def __init__(self, nodes=0, weighted=True, directed=True,
-                 g=None, **kwargs):
+                 copy_graph=None, **kwargs):
         ''' Initialized independent graph '''
         self._nodes    = set()
         self._out_deg  = []
         self._in_deg   = []
         self._edges    = OrderedDict()
 
-        # empty graph for default backend
-        self._graph = None
+        self._nattr    = _NProperty(self)
+        self._eattr    = _EProperty(self)
+        self._directed = directed
+        self._weighted = weighted
 
-        super().__init__()
+        # _graph is self for default backend
+        self._graph = self
 
         # test if copying graph
-        if g is not None:
-            # create nodes and node attributes
-            self._directed = g.is_directed()
-            self._weighted = g.is_weighted()
-            self._edges    = OrderedDict()
-            self._nattr    = deepcopy(g._nattr)
-            self._eattr    = _EProperty(self)
-
-            self.new_node(g.node_nb())
-
-            # create edges and edge attributes
-            attributes = g.get_edge_attributes()
-            self.new_edges(g.edges_array, attributes=attributes,
-                           check_edges=False)
+        if copy_graph is not None:
+            self._from_library_graph(copy_graph, copy=True)
         else:
-            self._nattr    = _NProperty(self)
-            self._eattr    = _EProperty(self)
-            self._directed = directed
-            self._weighted = weighted
             self.new_node(nodes)
+
+    def __del__(self):
+        self._graph = None
 
     #------------------------------------------------------------------#
     # Graph manipulation
@@ -436,6 +427,7 @@ class _NNGTGraph(GraphInterface):
 
         if n == 1:
             return nodes[0]
+
         return nodes
 
     def new_edge(self, source, target, attributes=None, ignore=False):
@@ -575,6 +567,7 @@ class _NNGTGraph(GraphInterface):
         else:
             edge_list = np.array(edge_list)
             new_attr = attributes
+
         if not self._directed:
             recip_edges = edge_list[:,::-1]
             # slow but works
@@ -583,6 +576,7 @@ class _NNGTGraph(GraphInterface):
             edge_list = np.concatenate((edge_list, recip_edges[unique]))
             for key, val in new_attr.items():
                 new_attr[key] = np.concatenate((val, val[unique]))
+
         # create the edges
         ws        = None
         num_added = len(edge_list)
@@ -708,6 +702,25 @@ class _NNGTGraph(GraphInterface):
             raise ValueError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
         return list(set(neighbours))
+
+    def _from_library_graph(self, graph, copy=True):
+        ''' Initialize `self._graph` from existing library object. '''
+        self._directed = graph.is_directed()
+        self._weighted = graph.is_weighted()
+
+        self._nodes    = graph._nodes.copy()
+        self._edges    = graph._edges.copy()
+
+        self._out_deg  = graph._out_deg.copy()
+        self._in_deg   = graph._in_deg.copy()
+
+        for key, val in graph._nattr.items():
+            dtype = graph._nattr.value_type(key)
+            self._nattr.new_attribute(key, dtype, values=val)
+
+        for key, val in graph._eattr.items():
+            dtype = graph._eattr.value_type(key)
+            self._eattr.new_attribute(key, dtype, values=val)
 
 
 # tool function to set edge properties

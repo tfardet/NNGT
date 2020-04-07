@@ -30,7 +30,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _to_np_array
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
@@ -275,32 +275,22 @@ class _NxGraph(GraphInterface):
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
 
-    def __init__(self, nodes=0, g=None, directed=True, weighted=False):
+    def __init__(self, nodes=0, copy_graph=None, directed=True, weighted=False,
+                 **kwargs):
         self._directed = directed
         self._weighted = weighted
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
 
-        self._graph = nngt._config["graph"](g)
+        g = copy_graph.graph if copy_graph is not None else None
 
         if g is not None:
-            # @todo check if nodes start from 0 and are continuous
-            nodes = g.number_of_nodes()
-            edges = g.number_of_edges()
+            self._from_library_graph(g, copy=True)
+        else:
+            self._graph = nngt._config["graph"]()
 
-            # get attributes names and "types" and initialize them
             if nodes:
-                for key, val in g[0].items():
-                    super(type(self._nattr), self._nattr).__setitem__(
-                        key, _get_dtype(val))
-
-            if edges:
-                e0 = next(iter(g.edges))
-                for key, val in g.edges[e0].items():
-                    super(type(self._eattr), self._eattr).__setitem__(
-                        key, _get_dtype(val))
-        elif nodes:
-            self._graph.add_nodes_from(range(nodes))
+                self._graph.add_nodes_from(range(nodes))
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -596,7 +586,7 @@ class _NxGraph(GraphInterface):
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''
         g = self._graph
-        g.remove_edges_from(g.edges())
+        g.remove_edges_from(tuple(g.edges()))
         self._eattr.clear()
 
     #-------------------------------------------------------------------------#
@@ -685,6 +675,26 @@ class _NxGraph(GraphInterface):
 
         raise ArgumentError('Invalid `mode` argument {}; possible values are '
                             '"all", "out" or "in".'.format(mode))
+
+    def _from_library_graph(self, graph, copy=True):
+        ''' Initialize `self._graph` from existing library object. '''
+        # @todo check if nodes start from 0 and are continuous
+        nodes = graph.number_of_nodes()
+        edges = graph.number_of_edges()
+
+        self._graph = nngt._config["graph"](graph) if copy else graph
+
+        # get attributes names and "types" and initialize them
+        if nodes:
+            for key, val in graph[0].items():
+                super(type(self._nattr), self._nattr).__setitem__(
+                    key, _get_dtype(val))
+
+        if edges:
+            e0 = next(iter(graph.edges))
+            for key, val in graph.edges[e0].items():
+                super(type(self._eattr), self._eattr).__setitem__(
+                    key, _get_dtype(val))
 
 
 # tool function to generate the edges_array

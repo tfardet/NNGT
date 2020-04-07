@@ -53,9 +53,9 @@ class BaseProperty(dict):
 
     def value_type(self, key=None):
         if key is not None:
-            return super(BaseProperty, self).__getitem__(key)
+            return super(type(self), self).__getitem__(key)
         else:
-            return {k: super(BaseProperty, self).__getitem__(k) for k in self}
+            return {k: super(type(self), self).__getitem__(k) for k in self}
 
     # redefine dict values/items to use the __getitem__ that will be
     # overwritten by the child classes
@@ -74,25 +74,10 @@ class BaseProperty(dict):
 class GraphInterface:
 
     #------------------------------------------------------------------#
-    # Class methods and attributes
+    # Class attributes
 
     _nattr_class = None
     _eattr_class = None
-
-    @classmethod
-    def to_graph_object(cls, obj, weighted=True, directed=True):
-        obj.__class__ = cls
-        edges = nngt.analyze_graph["get_edges"](obj)
-        obj._nattr = cls._nattr_class(obj)
-        obj._eattr = cls._eattr_class(obj)
-        obj._edges = OrderedDict()
-        obj._directed = directed
-        obj._weighted = weighted
-
-        for i, edge in enumerate(edges):
-            obj._edges[tuple(edge)] = i
-
-        return obj
 
     #------------------------------------------------------------------#
     # Shared properties methods
@@ -170,6 +155,10 @@ class GraphInterface:
 
     @abstractmethod
     def clear_all_edges(self):
+        pass
+
+    @abstractmethod
+    def _from_library_graph(self, graph, copy=True):
         pass
 
     def _attr_new_edges(self, edge_list, attributes=None, check_edges=True):

@@ -65,10 +65,6 @@ class TestGraphClasses(TestBasis):
             ".format(graph.name, ref_result, computed_result))
 
     @foreach_graph
-    @unittest.skipIf(
-        nngt._config["backend"] == "graph-tool"
-        and nngt._config["library"].__version__.startswith("2.22"),
-        "Known bug with graph-tool 2.22.")
     def test_copy_clear(self, graph, **kwargs):
         '''
         Test that the copied graph is indeed the same as the original, but that
