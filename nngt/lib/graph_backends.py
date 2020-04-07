@@ -321,6 +321,7 @@ def _set_networkx():
             c = [glib.closeness_centrality(g.graph, u=n, distance=weights)
                  for n in nodes]
             return c
+
     def overall_reciprocity(g):
         num_edges = g.graph.number_of_edges()
         num_recip = (num_edges - g.graph.to_undirected().number_of_edges()) * 2
@@ -338,6 +339,7 @@ def _set_networkx():
 
     def local_clustering(g, nodes=None):
         return np.array(glib.clustering(g.graph, nodes).values())
+
     # defining the adjacency function
     from networkx import to_scipy_sparse_matrix
     def adj_mat(g, weight=None):

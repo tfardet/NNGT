@@ -466,6 +466,8 @@ class _GtGraph(GraphInterface):
         -------
         The new connection.
         '''
+        g = self._graph
+
         attributes = {} if attributes is None else deepcopy(attributes)
 
         for k in self.edges_attributes:
@@ -477,15 +479,15 @@ class _GtGraph(GraphInterface):
                     attributes[k] = [np.NaN]
 
         # check that the edge does not already exist
-        edge = self.edge(source, target)
+        edge = g.edge(source, target)
 
         if edge is None:
-            self._graph.add_edge(source, target, add_missing=True)
-            # call parent function to set the attributes
+            g.add_edge(source, target, add_missing=True)
+            # set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
             if not self._directed:
-                c2 = self._graph.add_edge(target, source)
-                # call parent function to set the attributes
+                c2 = g.add_edge(target, source)
+                # set the attributes
                 self._attr_new_edges([(target, source)], attributes=attributes)
         else:
             if not ignore:
