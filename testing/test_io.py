@@ -133,7 +133,7 @@ class TestIO(TestBasis):
             g.new_edges(elist, attributes={"test_attr": ids},
                         check_edges=False)
 
-        g.to_file('test.el')
+        g.to_file(current_dir + 'test.el')
         h = nngt.Graph.from_file('test.el')
 
         allclose = np.allclose(g.get_edge_attributes(name="test_attr"),

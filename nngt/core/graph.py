@@ -437,11 +437,11 @@ class Graph(nngt.core.GraphObject):
 
         if self.is_spatial():
             nngt.SpatialGraph.make_spatial(
-                gc_instance, shape=deepcopy(self.shape),
+                gc_instance, shape=self.shape.copy(),
                 positions=deepcopy(self._pos))
 
         if self.is_network():
-            nngt.Network.make_network(gc_instance, deepcopy(self.population))
+            nngt.Network.make_network(gc_instance, self.population.copy())
 
         return gc_instance
 
