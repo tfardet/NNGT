@@ -270,7 +270,7 @@ def num_iedges(graph):
     if graph.is_network():
         inhib_nodes = graph.population.inhibitory
 
-        return np.sum(graph.get_degrees("out", node_list=inhib_nodes)
+        return np.sum(graph.get_degrees("out", node_list=inhib_nodes))
 
     return np.sum(graph.get_edge_attributes(name="type") < 0)
 
@@ -486,7 +486,7 @@ def node_attributes(network, attributes, nodes=None, data=None):
         values = {}
 
         for attr in attributes:
-            values[attr] = _get_attribute(network, attr, nodes, data
+            values[attr] = _get_attribute(network, attr, nodes, data)
 
         return values
 
