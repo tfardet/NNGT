@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #-*- coding:utf-8 -*-
 #
 # This file is part of the NNGT project to generate and analyze
@@ -93,8 +92,10 @@ def degree_distrib(graph, deg_type="total", node_list=None, use_weights=False,
         bins
     '''
     degrees = graph.get_degrees(deg_type, node_list, use_weights)
+
     if num_bins == 'bayes' or is_integer(num_bins):
         num_bins = binning(degrees, bins=num_bins, log=log)
+
     return np.histogram(degrees, num_bins)
 
 
