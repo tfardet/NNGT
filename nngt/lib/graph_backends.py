@@ -194,9 +194,9 @@ def _set_igraph():
     nngt._config["graph"]   = GraphLib
 
     # store the functions
-    from ..analysis import gt_functions
+    from ..analysis import ig_functions
 
-    _store_functions(nngt.analyze_graph, gt_functions)
+    _store_functions(nngt.analyze_graph, ig_functions)
 
     return True
 
@@ -206,77 +206,16 @@ def _set_networkx():
     if glib.__version__ < '2.4':
         raise ImportError("`networkx {} is ".format(glib.__version__) +\
                           "installed while version >= 2.4 is required.")
+
     from networkx import DiGraph as GraphLib
     nngt._config["backend"] = "networkx"
     nngt._config["library"] = glib
     nngt._config["graph"]   = GraphLib
-    # analysis functions
-    from networkx.algorithms import ( diameter,
-        strongly_connected_components, weakly_connected_components,
-        degree_assortativity_coefficient )
 
-    def diam(g):
-        return diameter(g.graph)
+    # store the functions
+    from ..analysis import nx_functions
 
-    def scc(g):
-        return strongly_connected_components(g.graph)
-
-    def wcc(g):
-        return weakly_connected_components(g.graph)
-
-    def deg_assort_coef(g):
-        return degree_assortativity_coefficient(g.graph)
-
-    def clustering(g):
-        return glib.transitivity(g.graph)
-
-    def _closeness(g, nodes, weights):
-        if weights is True and g.is_weighted():
-            weights = g.edge_properties[weight]
-        else:
-            weights=None
-        if nodes is None:
-            return glib.closeness_centrality(g.graph, distance=weights)
-        else:
-            c = [glib.closeness_centrality(g.graph, u=n, distance=weights)
-                 for n in nodes]
-            return c
-
-    def overall_reciprocity(g):
-        num_edges = g.graph.number_of_edges()
-        num_recip = (num_edges - g.graph.to_undirected().number_of_edges()) * 2
-        if n_all_edge == 0:
-            raise ArgumentError("Not defined for empty graphs")
-        else:
-            return num_recip/float(num_edges)
-
-    nx_version = glib.__version__
-
-    from networkx.algorithms import overall_reciprocity
-
-    def overall_recip(g):
-        return overall_reciprocity(g.graph)
-
-    def local_clustering(g, nodes=None):
-        return np.array(glib.clustering(g.graph, nodes).values())
-
-    # defining the adjacency function
-    from networkx import to_scipy_sparse_matrix
-    def adj_mat(g, weight=None):
-        return to_scipy_sparse_matrix(g.graph, weight=weight)
-    def get_edges(g):
-        return g.graph.edges(data=False)
-    # store functions
-    nngt.analyze_graph["assortativity"] = deg_assort_coef
-    nngt.analyze_graph["diameter"] = diam
-    nngt.analyze_graph["closeness"] = _closeness
-    nngt.analyze_graph["clustering"] = clustering
-    nngt.analyze_graph["local_clustering"] = local_clustering
-    nngt.analyze_graph["reciprocity"] = overall_recip
-    nngt.analyze_graph["scc"] = scc
-    nngt.analyze_graph["wcc"] = wcc
-    nngt.analyze_graph["adjacency"] = adj_mat
-    nngt.analyze_graph["get_edges"] = get_edges
+    _store_functions(nngt.analyze_graph, nx_functions)
 
     return True
 

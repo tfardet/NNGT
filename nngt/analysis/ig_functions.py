@@ -1,6 +1,6 @@
 #-*- coding:utf-8 -*-
 #
-# gt_functions.py
+# ig_functions.py
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
@@ -19,9 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" Tools to analyze graphs with the graph-tool backend """
+""" Tools to analyze graphs with the igraph backend """
 
+import numpy as np
 import scipy.sparse as ssp
+
+from ..lib.test_functions import nonstring_container
 
 
 def global_clustering(g, weights=None):
@@ -45,12 +48,13 @@ def global_clustering(g, weights=None):
 
     if ww is not None:
         # raise warning
-        return np.average(g.graph.transitivity_local_undirected(weights=ww))
+        return np.average(
+            g.graph.as_undirected().transitivity_local_undirected(weights=ww))
 
-    return np.array(g.graph.transitivity_undirected())
+    return np.array(g.graph.as_undirected().transitivity_undirected())
 
 
-def local_clustering(g, weights=False, nodes=None):
+def local_clustering(g, weights=None, nodes=None):
     '''
     Returns the local clustering coefficient of some `nodes`.
 
@@ -74,9 +78,11 @@ def local_clustering(g, weights=False, nodes=None):
     ----------
     .. [ig-local-clustering] https://igraph.org/python/doc/igraph.GraphBase-class.html#transitivity_local_undirected
     '''
-    ww = _get_weights(g, weights)
+    if weights is not None and not isinstance(weights, str):
+        raise ValueError("Only existing attributes can be used as weights.")
 
-    return np.array(g.graph.transitivity_local_undirected(nodes, weights=ww))
+    return np.array(g.graph.as_undirected().transitivity_local_undirected(
+        nodes, weights=weights))
 
 
 def assortativity(g, degree, weights=None):
@@ -98,13 +104,13 @@ def assortativity(g, degree, weights=None):
 
     References
     ----------
-    .. [gt-assortativity] https://graph-tool.skewed.de/static/doc/correlations.html#graph_tool.correlations.scalar_assortativity
+    .. [ig-assortativity] https://igraph.org/python/doc/igraph.GraphBase-class.html#assortativity
     '''
     use_weights = True if weights in (True, 'weight') else False
 
     if not use_weights:
-        raise RuntimeError("igraph backend does not support specific attributes "
-        "as weights yet, will come soon.")
+        raise RuntimeError("igraph backend does not support specific "
+        "attributes as weights yet, will come soon.")
 
     degrees = graph.get_degrees(deg_type=deg_type, use_weights=use_weights)
 
@@ -122,9 +128,9 @@ def reciprocity(g):
 
     References
     ----------
-    .. [gt-reciprocity] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.edge_reciprocity
+    .. [ig-reciprocity] https://igraph.org/python/doc/igraph.GraphBase-class.html#reciprocity
     '''
-    return edge_reciprocity(g.graph)
+    return g.graph.reciprocity(ignore_loops=True, mode="default")
 
 
 def closeness(g, weighted=False, nodes=None):
@@ -173,16 +179,32 @@ def connected_components(g, ctype=None):
     cc, hist : :class:`numpy.ndarray`
         The component associated to each node (`cc`) and the number of nodes in
         each of the component (`hist`).
+        The components are numbered from 0.
 
     References
     ----------
-    .. [gt-connected-components] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.label_components
+    .. [ig-connected-components] https://igraph.org/python/doc/igraph.GraphBase-class.html#clusters
     '''
-    cc, hist = label_components(g.graph, *args, **kwargs)
-    return cc.a, hist
+    ig_type = 2
+
+    if ctype == "wcc":
+        ig_type = 1
+    elif ctype != "scc":
+        raise ValueError("`ctype` must be either 'scc' or 'wcc'.")
+
+    clusters = g.graph.clusters()
+
+    cc = np.zeros(g.node_nb(), dtype=int)
+
+    for i, nodes in enumerate(clusters):
+        cc[nodes] = i
+
+    hist = np.array([len(c) for c in clusters], dtype=int)
+
+    return cc, hist
 
 
-def diameter(g, weighted=False):
+def diameter(g, weights=None):
     '''
     Returns the pseudo-diameter of the graph.
 
@@ -197,11 +219,11 @@ def diameter(g, weighted=False):
 
     References
     ----------
-    .. [gt-diameter] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.pseudo_diameter
+    .. [ig-diameter] https://igraph.org/python/doc/igraph.GraphBase-class.html#diameter
     '''
     ww = _get_weights(g, weights)
 
-    return pseudo_diameter(g.graph, weights=ww)
+    return g.graph.diameter(weights=ww)
 
 
 def adj_mat(g, weights=None):

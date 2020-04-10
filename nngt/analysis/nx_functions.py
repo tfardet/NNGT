@@ -1,6 +1,6 @@
 #-*- coding:utf-8 -*-
 #
-# gt_functions.py
+# nx_functions.py
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
@@ -19,15 +19,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-""" Tools to analyze graphs with the graph-tool backend """
+""" Tools to analyze graphs with the networkx backend """
 
-from graph_tool.spectral import adjacency
-from graph_tool.centrality import closeness as gt_closeness
-from graph_tool.correlations import scalar_assortativity
-import graph_tool.topology as gtt
-import graph_tool.clustering as gtc
+import numpy as np
 
 from ..lib.test_functions import nonstring_container
+
+import networkx as nx
+from networkx.algorithms import diameter as nx_diam
+from networkx.algorithms import (strongly_connected_components,
+                                 weakly_connected_components,
+                                 degree_assortativity_coefficient)
 
 
 def global_clustering(g, weights=None):
@@ -43,18 +45,28 @@ def global_clustering(g, weights=None):
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
 
+    Note
+    ----
+    If `weights` is None, returns the transitivity (number of existing
+    triangles over total number of possible triangles); otherwise returns
+    the average clustering.
+
     References
     ----------
-    .. [gt-global-clustering] https://graph-tool.skewed.de/static/doc/clustering.html#graph_tool.clustering.global_clustering
+    .. [nx-global-clustering] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.transitivity.html
+    .. [nx-average-clustering] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.average_clustering.html
     '''
-    ww = _get_weights(g, weights)
+    w = _get_weights(g, weights)
 
-    return gtc.global_clustering(g.graph, weight=ww)[0]
+    if w is None:
+        return nx.transitivity(g.graph)
+
+    return np.average(nx.clustering(g.graph, weight=weights))
 
 
 def local_clustering(g, weights=None, nodes=None):
     '''
-    Returns the undirected local clustering coefficient of some `nodes`.
+    Returns the local clustering coefficient of some `nodes`.
 
     Parameters
     ----------
@@ -74,25 +86,14 @@ def local_clustering(g, weights=None, nodes=None):
 
     References
     ----------
-    .. [gt-local-clustering] https://graph-tool.skewed.de/static/doc/clustering.html#graph_tool.clustering.local_clustering
+    .. [nx-local-clustering] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.clustering.html
     '''
     ww = _get_weights(g, weights)
 
-    # store previous value
-    directed = g.is_directed()
+    lc = nx.clustering(nx.to_undirected(g.graph), nodes=nodes, weight=weights)
+    lc = np.array([lc[i] for i in range(g.node_nb())], dtype=float)
 
-    # set graph to undirected and compute clustering
-    g.graph.set_directed(False)
-
-    lc = gtc.local_clustering(g.graph, weight=ww, undirected=True).a
-
-    # switch back to previous value
-    g.graph.set_directed(directed)
-
-    if nodes is None:
-        return lc
-
-    return lc[nodes]
+    return lc
 
 
 def assortativity(g, degree, weights=None):
@@ -114,16 +115,19 @@ def assortativity(g, degree, weights=None):
 
     References
     ----------
-    .. [gt-assortativity] https://graph-tool.skewed.de/static/doc/correlations.html#graph_tool.correlations.scalar_assortativity
+    .. [nx-assortativity] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.assortativity.degree_assortativity_coefficient.html
     '''
-    ww = _get_weights(g, weights)
+    w = _get_weights(g, weights)
 
-    return scalar_assortativity(g.graph, degree, eweight=ww)
+    return degree_assortativity_coefficient(g.graph, x=degree, y=degree,
+                                            weight=w)
 
 
 def reciprocity(g):
     '''
     Calculate the edge reciprocity of the graph.
+
+    @todo: check whether we can get this for single nodes for all libraries.
 
     Parameters
     ----------
@@ -132,9 +136,9 @@ def reciprocity(g):
 
     References
     ----------
-    .. [gt-reciprocity] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.edge_reciprocity
+    .. [nx-reciprocity] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.reciprocity.overall_reciprocity.html
     '''
-    return gtt.edge_reciprocity(g.graph)
+    return nx.overall_reciprocity(g.graph)
 
 
 def closeness(g, weighted=False, nodes=None):
@@ -157,18 +161,24 @@ def closeness(g, weighted=False, nodes=None):
     c : :class:`numpy.ndarray`
         The list of closeness centralities, on per node.
 
+    Note
+    ----
+    When requesting a subset of nodes, check whether it is faster to use
+    `nodes`, or to compute all closeness centralities, then take the subset.
+
     References
     ----------
-    .. [gt-closeness] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.closeness
+    .. [nx-closeness] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.closeness_centrality.html
     '''
-    ww = _get_weights(g, weights)
-
-    c = closeness(g.graph, weight=ww)
+    w = _get_weights(g, weights)
 
     if nodes is None:
-        return c.a
+        return nx.closeness_centrality(g.graph, distance=w)
 
-    return c.a[nodes]
+    c = [nx.closeness_centrality(g.graph, u=n, distance=w)
+         for n in nodes]
+
+    return c
 
 
 def connected_components(g, ctype=None):
@@ -193,10 +203,27 @@ def connected_components(g, ctype=None):
 
     References
     ----------
-    .. [gt-connected-components] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.label_components
+    .. [nx-scc] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.label_components
+    .. [nx-wcc]
     '''
-    cc, hist = gtt.label_components(g.graph, *args, **kwargs)
-    return cc.a, hist
+    res = None
+
+    if ctype == "scc":
+        res = strongly_connected_components(g.graph)
+    elif ctype == "wcc":
+        res = weakly_connected_components(g.graph)
+    else:
+        raise ValueError("Invalid `ctype`, only 'scc' and 'wcc' are allowed.")
+
+    cc   = np.zeros(g.node_nb(), dtype=int)
+    hist = []
+
+    for i, nodes in enumerate(res):
+        cc[nodes] = i
+
+        hist.append(len(nodes))
+
+    return cc, np.array(hist, dtype=int)
 
 
 def diameter(g, weights=False):
@@ -217,11 +244,15 @@ def diameter(g, weights=False):
 
     References
     ----------
-    .. [gt-diameter] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.pseudo_diameter
+    .. [nx-diameter] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.distance_measures.diameter.html
     '''
-    ww = _get_weights(g, weights)
+    w = _get_weights(g, weights)
 
-    return gtt.pseudo_diameter(g.graph, weights=ww)[0]
+    if w is not None:
+        raise NotImplementedError("Weighted diameter is not available for "
+                                  "networkx backend.")
+
+    return nx.diameter(g.graph)[0]
 
 
 def adj_mat(g, weights=None):
@@ -247,31 +278,32 @@ def adj_mat(g, weights=None):
     ----------
     .. [gt-adjacency] https://graph-tool.skewed.de/static/doc/spectral.html#graph_tool.spectral.adjacency
     '''
-    ww = _get_weights(g, weights)
+    w = _get_weights(g, weights)
 
-    return adjacency(g.graph, ww).T
+    return nx.to_scipy_sparse_matrix(g.graph, weight=w)
 
 
 def get_edges(g):
     '''
     Returns the edges in the graph by order of creation.
     '''
-    return g.graph.edges()
+    return g.edges_array
 
 
 def _get_weights(g, weights):
     if weights in g.edges_attributes:
         # existing edge attribute
-        return g.graph.edge_properties[weights]
+        return weights
     elif nonstring_container(weights):
         # user-provided array
-        return g.graph.new_edge_property("double", vals=weights)
+        return ValueError("networkx backend does not support custom arrays "
+                          "as `weights`.")
     elif weights is True:
         # "normal" weights
-        return g.graph.edge_properties['weight']
+        return 'weight'
     elif not weights:
         # unweighted
         return None
 
-    raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
+    raise ValueError("Unknown attribute '{}' for `weights`.".format(weights))
     

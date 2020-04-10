@@ -190,7 +190,8 @@ def betweenness(g, btype="both", weights=None, norm=True):
     References
     ----------
     .. [gt-betw] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.betweenness
-    .. [ig-betw] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.betweenness
+    .. [ig-betw] https://igraph.org/python/doc/igraph.GraphBase-class.html#betweenness
+    .. [ig-edge-betw] https://igraph.org/python/doc/igraph.GraphBase-class.html#edge_betweenness
     .. [betweenness-wikipedia] http://en.wikipedia.org/wiki/Centrality#Betweenness_centrality
     '''
     use_weights = True if weights in (True, 'weight') else False
@@ -199,7 +200,7 @@ def betweenness(g, btype="both", weights=None, norm=True):
         raise RuntimeError("backend implementation does not support specific "
                            "attributes as weights yet, will come soon.")
 
-    return g.betweenness_list(btype=btype, use_weights=use_weights, norm=norm):
+    return g.betweenness_list(btype=btype, use_weights=use_weights, norm=norm)
 
 
 def local_clustering(graph, nodes=None):
