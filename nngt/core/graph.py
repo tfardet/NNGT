@@ -820,9 +820,6 @@ class Graph(nngt.core.GraphObject):
         '''
         Degree sequence of all the nodes.
 
-        .. versionchanged:: 0.9
-            Added `syn_type` keyword.
-
         Parameters
         ----------
         deg_type : string, optional (default: "total")

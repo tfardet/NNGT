@@ -325,7 +325,7 @@ def _set_nngt():
 def _store_functions(analysis_dict, module):
     ''' Store functions from module '''
     analysis_dict["assortativity"] = module.assortativity
-    analysis_dict["betweenness"] = module.betwenness
+    analysis_dict["betweenness"] = module.betweenness
     analysis_dict["closeness"] = module.closeness
     analysis_dict["clustering"] = module.global_clustering
     analysis_dict["local_clustering"] = module.local_clustering
