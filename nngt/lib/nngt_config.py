@@ -156,12 +156,11 @@ def set_config(config, value=None, silent=False):
             new_config["db_folder"] = os.path.abspath(
                 os.path.expanduser(val))
 
-        # support for previous "palette" keyword
-        if key == "palette":
-            new_config["palette_continuous"] = val
-            new_config["palette_discrete"]   = val
-
+    # support for previous "palette" keyword
     if "palette" in new_config:
+        new_config["palette_continuous"] = new_config["palette"]
+        new_config["palette_discrete"]   = new_config["palette"]
+
         del new_config["palette"]
 
     # check multithreading status and number of threads
