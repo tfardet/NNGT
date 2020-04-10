@@ -51,37 +51,48 @@ def get_config(key=None, detailed=False):
     This function has no MPI barrier on it.
     '''
     if key is None:
-        cfg = {key: val for key, val in nngt._config.items()}
+        cfg = {
+            key: val.copy() if isinstance(val, list) else val
+            for key, val in nngt._config.items()
+        }
+
         if detailed:
             return cfg
         else:
+            # hide mpi conf if not used
+            if not nngt._config["mpi"]:
+                del cfg['mpi_comm']
+
+            # hide technical stuff
+            del cfg["load_nest"]
+            del cfg["graph"]
+            del cfg["library"]
+            del cfg["palette_continuous"]
+            del cfg["palette_discrete"]
+            del cfg["use_tex"]
+            del cfg["mpl_backend"]
+            del cfg["color_lib"]
+
             # hide database config if not used
             rm = []
             if not nngt._config["use_database"]:
                 for k in cfg:
                     if k.startswith('db_'):
                         rm.append(k)
-            # hide mpi conf if not used
-            if not nngt._config["mpi"]:
-                del cfg['mpi_comm']
-            # hide technical stuff
-            del cfg["load_nest"]
-            del cfg["graph"]
-            del cfg["library"]
-            del cfg["palette"]
-            del cfg["use_tex"]
-            del cfg["mpl_backend"]
-            del cfg["color_lib"]
+
             # hide log config
             for k in cfg:
                 if k.startswith('log_'):
                     rm.append(k)
+
             for k in rm:
                 del cfg[k]
+
         return cfg
-    else:
-        res = nngt._config[key]
-        return res
+
+    res = nngt._config[key]
+
+    return res
 
 
 @mpi_barrier
