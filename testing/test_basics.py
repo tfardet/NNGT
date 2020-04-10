@@ -18,6 +18,54 @@ import nngt
 tolerance = 1e-6
 
 
+def test_config():
+    '''
+    Check get/set_config functions.
+    '''
+    old_cfg = nngt.get_config(detailed=True)
+
+    # get config
+    cfg = nngt.get_config()
+
+    for k, v in cfg.items():
+        assert v == nngt.get_config(k)
+
+    cfg_detailed = nngt.get_config(detailed=True)
+
+    for k, v in cfg_detailed.items():
+        assert v == nngt.get_config(k)
+
+    # set config (omp)
+    num_omp = 2
+    nngt.set_config("omp", num_omp)
+
+    assert nngt.get_config("multithreading")
+    assert nngt.get_config("omp") == num_omp
+
+    # set config (mpi)
+    nngt.set_config("mpi", True)
+
+    assert nngt.get_config("mpi")
+    assert not nngt.get_config("multithreading")
+    assert nngt.get_config("omp") == 1
+
+    # key error
+    key_error = False
+
+    try:
+        nngt.set_config("random_entry", "plop")
+    except KeyError:
+        key_error = True
+
+    assert key_error
+
+    # except for "palette"
+    nngt.set_config("palette", "viridis")
+
+    # restore old config
+    nngt.set_config(old_cfg)
+
+
 @pytest.mark.mpi_skip
 def test_node_creation():
     '''
@@ -110,8 +158,10 @@ def test_graph_copy():
 # Test suite #
 # ---------- #
 
-if not nngt.get_config('mpi'):
-    if __name__ == "__main__":
+if __name__ == "__main__":
+    test_config()
+    test_new_node_attr()
+    test_graph_copy()
+
+    if not nngt.get_config('mpi'):
         test_node_creation()
-        test_new_node_attr()
-        test_graph_copy()
