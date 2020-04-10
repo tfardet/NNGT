@@ -22,6 +22,8 @@ def test_config():
     '''
     Check get/set_config functions.
     '''
+    old_cfg = nngt.get_config(detailed=True)
+
     # get config
     cfg = nngt.get_config()
 
@@ -56,6 +58,9 @@ def test_config():
         key_error = True
 
     assert key_error
+
+    # restore old config
+    nngt.set_config(old_cfg)
 
 
 @pytest.mark.mpi_skip
