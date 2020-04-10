@@ -175,6 +175,33 @@ def closeness(graph, nodes=None, use_weights=False):
     return nngt.analyze_graph["closeness"](graph, nodes, use_weights)
 
 
+def betweenness(g, btype="both", weights=None, norm=True):
+    '''
+    Returns the betweenness centrality.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    btype : str, optional (default: "both")
+        The type of betweenness that will be returned ("node" or "edge").
+    
+
+    References
+    ----------
+    .. [gt-betw] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.betweenness
+    .. [ig-betw] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.betweenness
+    .. [betweenness-wikipedia] http://en.wikipedia.org/wiki/Centrality#Betweenness_centrality
+    '''
+    use_weights = True if weights in (True, 'weight') else False
+
+    if not use_weights and weights not in (None, False):
+        raise RuntimeError("backend implementation does not support specific "
+                           "attributes as weights yet, will come soon.")
+
+    return g.betweenness_list(btype=btype, use_weights=use_weights, norm=norm):
+
+
 def local_clustering(graph, nodes=None):
     '''
     Local clustering coefficient of the nodes.
