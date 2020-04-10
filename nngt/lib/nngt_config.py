@@ -139,29 +139,45 @@ def set_config(config, value=None, silent=False):
         new_config = {config: value}
     else:
         new_config = config.copy()
-    for key in new_config:
-        if key not in nngt._config:
+
+    for key, val in new_config.items():
+        # support for previous "palette" keyword
+        if key not in nngt._config and key != "palette":
             raise KeyError("Unknown configuration property: {}".format(key))
+
         if key == "log_level":
-            new_config[key] = _convert(new_config[key])
-        if key == "backend" and new_config[key] != old_gl:
-            nngt.use_backend(new_config[key])
+            new_config[key] = _convert(val)
+        if key == "backend" and val != old_gl:
+            nngt.use_backend(val)
         if key == "log_folder":
             new_config["log_folder"] = os.path.abspath(
-                os.path.expanduser(new_config["log_folder"]))
+                os.path.expanduser(val))
         if key == "db_folder":
             new_config["db_folder"] = os.path.abspath(
-                os.path.expanduser(new_config["db_folder"]))
+                os.path.expanduser(val))
+
+        # support for previous "palette" keyword
+        if key == "palette":
+            new_config["palette_continuous"] = val
+            new_config["palette_discrete"]   = val
+
+    if "palette" in new_config:
+        del new_config["palette"]
+
     # check multithreading status and number of threads
     _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi)
+
     # update
     nngt._config.update(new_config)
+
     # apply multithreading parameters
     _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi)
+
     # update matplotlib
     if nngt._config['use_tex']:
         import matplotlib
         matplotlib.rc('text', usetex=True)
+
     # update database
     if nngt._config["use_database"] and not hasattr(nngt, "db"):
         from .. import database

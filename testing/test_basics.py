@@ -59,6 +59,9 @@ def test_config():
 
     assert key_error
 
+    # except for "palette"
+    nngt.set_config("palette", "viridis")
+
     # restore old config
     nngt.set_config(old_cfg)
 
