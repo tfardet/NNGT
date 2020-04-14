@@ -285,9 +285,16 @@ class _NxGraph(GraphInterface):
         g = copy_graph.graph if copy_graph is not None else None
 
         if g is not None:
+            if not directed and g.is_directed():
+                g = g.to_undirected()
+            elif directed and not g.is_directed():
+                g = g.to_directed()
+
             self._from_library_graph(g, copy=True)
         else:
-            self._graph = nngt._config["graph"]()
+            nx = nngt._config["library"]
+
+            self._graph = nx.DiGraph() if directed else nx.Graph()
 
             if nodes:
                 self._graph.add_nodes_from(range(nodes))

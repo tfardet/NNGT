@@ -21,9 +21,12 @@
 
 """ Tools to analyze graphs with the graph-tool backend """
 
-from graph_tool.spectral import adjacency
+from graph_tool import GraphView
 from graph_tool.centrality import closeness as gt_closeness
 from graph_tool.correlations import scalar_assortativity
+from graph_tool.spectral import adjacency
+from graph_tool.stats import label_parallel_edges
+
 import graph_tool.topology as gtt
 import graph_tool.clustering as gtc
 
@@ -32,7 +35,9 @@ from ..lib.test_functions import nonstring_container
 
 def global_clustering(g, weights=None):
     '''
-    Returns the global clustering coefficient.
+    Returns the undirected global clustering coefficient.
+    This corresponds to the ratio of undirected triangles to the number of
+    undirected triads.
 
     Parameters
     ----------
@@ -47,9 +52,11 @@ def global_clustering(g, weights=None):
     ----------
     .. [gt-global-clustering] https://graph-tool.skewed.de/static/doc/clustering.html#graph_tool.clustering.global_clustering
     '''
-    ww = _get_weights(g, weights)
+    # use undirected graph view, filter parallel edges
+    u = GraphView(g.graph, directed=False)
+    u = GraphView(u, efilt=label_parallel_edges(u).fa == 0)
 
-    return gtc.global_clustering(g.graph, weight=ww)[0]
+    return gtc.global_clustering(u, weight=None)[0]
 
 
 def local_clustering(g, weights=None, nodes=None):
@@ -88,6 +95,65 @@ def local_clustering(g, weights=None, nodes=None):
 
     # switch back to previous value
     g.graph.set_directed(directed)
+
+    if nodes is None:
+        return lc
+
+    return lc[nodes]
+
+
+def undirected_local_clustering(g, weights=None, nodes=None,
+                                combine_weights="sum"):
+    '''
+    Returns the local clustering coefficient of some `nodes`.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+    nodes : list, optional (default: all nodes)
+        The list of nodes for which the clutering will be returned
+    combine_weights : str, optional (default: "sum")
+        How the weights of directed edges between two nodes should be combined,
+        among:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "product": the product of the edge attribute values will be used for
+          the new edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "median": the median of the edge attribute values will be used for
+          the new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge. 
+
+    Returns
+    -------
+    lc : :class:`numpy.ndarray`
+        The list of clustering coefficients, on per node.
+
+    References
+    ----------
+    .. [gt-local-clustering] https://graph-tool.skewed.de/static/doc/clustering.html#graph_tool.clustering.local_clustering
+    '''
+    if weights is not None:
+        raise NotImplementedError("graph-tool backend currently does not "
+                                  "provide weighted clustering for directed "
+                                  "graphs.")
+
+    # use undirected graph view, filter parallel edges
+    u = GraphView(g.graph, directed=False)
+    u = GraphView(u, efilt=label_parallel_edges(u).fa == 0)
+
+    # compute clustering
+    lc = gtc.local_clustering(u, weight=None, undirected=True).a
 
     if nodes is None:
         return lc

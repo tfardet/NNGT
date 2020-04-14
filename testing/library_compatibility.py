@@ -22,8 +22,13 @@ def test_clustering():
 
     # create a pre-defined graph
     num_nodes = 5
-    # ~ edge_list = [(0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3)]
-    edge_list = [(0, 3), (3, 0), (1, 0), (0, 1), (1, 2), (2, 1), (2, 4), (4, 2), (4, 1), (1, 4), (4, 3), (3, 4)]
+    edge_list = [
+        (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 2), (4, 0)
+    ]
+
+    # expected results
+    loc_clst  = [2/3., 2/3., 1., 1., 0.5]
+    glob_clst = 0.6428571428571429
 
     for bckd in backends:
         nngt.set_config("backend", bckd)
@@ -31,15 +36,11 @@ def test_clustering():
         g = nngt.Graph(nodes=num_nodes)
         g.new_edges(edge_list)
 
-        results[bckd] = nngt.analyze_graph["local_clustering"](g)
+        assert np.all(np.isclose(
+            nngt.analyze_graph["local_clustering"](g), loc_clst))
 
-    print(results)
-
-    nngt.plot.draw_network(g, show=True)
-
-    assert np.all(np.isclose(results[backends[0]], results[backends[1]]) &
-                  np.isclose(results[backends[0]], results[backends[2]])), \
-        "Differing clustering coefficients: {}".format(results)
+        assert np.isclose(
+            nngt.analyze_graph["global_clustering"](g), glob_clst)
 
 
 if __name__ == "__main__":

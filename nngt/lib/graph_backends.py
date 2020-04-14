@@ -265,8 +265,8 @@ def _store_functions(analysis_dict, module):
     ''' Store functions from module '''
     analysis_dict["assortativity"] = module.assortativity
     analysis_dict["closeness"] = module.closeness
-    analysis_dict["clustering"] = module.global_clustering
-    analysis_dict["local_clustering"] = module.local_clustering
+    analysis_dict["global_clustering"] = module.global_clustering
+    analysis_dict["local_clustering"] = module.undirected_local_clustering
     analysis_dict["scc"] = module.connected_components
     analysis_dict["wcc"] = module.connected_components
     analysis_dict["diameter"] = module.diameter

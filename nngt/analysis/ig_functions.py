@@ -29,7 +29,9 @@ from ..lib.test_functions import nonstring_container
 
 def global_clustering(g, weights=None):
     '''
-    Returns the global clustering coefficient.
+    Returns the undirected global clustering coefficient.
+    This corresponds to the ratio of undirected triangles to the number of
+    undirected triads.
 
     Parameters
     ----------
@@ -83,6 +85,56 @@ def local_clustering(g, weights=None, nodes=None):
 
     return np.array(g.graph.as_undirected().transitivity_local_undirected(
         nodes, weights=weights))
+
+
+def undirected_local_clustering(g, weights=None, nodes=None,
+                                combine_weights="sum"):
+    '''
+    Returns the local clustering coefficient of some `nodes`.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+    nodes : list, optional (default: all nodes)
+        The list of nodes for which the clutering will be returned
+    combine_weights : str, optional (default: "sum")
+        How the weights of directed edges between two nodes should be combined,
+        among:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "product": the product of the edge attribute values will be used for
+          the new edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "median": the median of the edge attribute values will be used for
+          the new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge. 
+
+    Returns
+    -------
+    lc : :class:`numpy.ndarray`
+        The list of clustering coefficients, on per node.
+
+    References
+    ----------
+    .. [ig-local-clustering] https://igraph.org/python/doc/igraph.GraphBase-class.html#transitivity_local_undirected
+    '''
+    if weights is not None and not isinstance(weights, str):
+        raise ValueError("Only existing attributes can be used as weights.")
+
+    u = g.graph.as_undirected(combine_edges=combine_weights)
+    u.simplify()
+
+    return np.array(u.transitivity_local_undirected(nodes, weights=weights))
 
 
 def assortativity(g, degree, weights=None):
