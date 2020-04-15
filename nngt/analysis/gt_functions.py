@@ -36,6 +36,7 @@ from ..lib.test_functions import nonstring_container
 def global_clustering(g, weights=None):
     '''
     Returns the undirected global clustering coefficient.
+
     This corresponds to the ratio of undirected triangles to the number of
     undirected triads.
 
@@ -164,15 +165,19 @@ def undirected_local_clustering(g, weights=None, nodes=None,
 def assortativity(g, degree, weights=None):
     '''
     Returns the assortativity of the graph.
+
     This tells whether nodes are preferentially connected together depending
     on their degree.
+    For directed graphs, assortativity is performed with the same degree (e.g.
+    in/in, out/out, total/total), for undirected graph, they are all the same
+    and equivalent to "total".
 
     Parameters
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
     degree : str
-        The type of degree that should be considered.
+        The type of degree that should be considered ("in", "out", or "total").
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
@@ -184,12 +189,29 @@ def assortativity(g, degree, weights=None):
     '''
     ww = _get_weights(g, weights)
 
-    return scalar_assortativity(g.graph, degree, eweight=ww)
+    # graph-tool expects "total" for undirected graphs
+    if not g.is_directed():
+        degree = "total"
 
+    if ww is None:
+        return scalar_assortativity(g.graph, degree)[0]
+
+    # for weighted assortativity, use node strength
+    strength = g.get_degrees(degree, use_weights=ww)
+    ep = g.graph.new_vertex_property("double", vals=strength)
+
+    return scalar_assortativity(g.graph, ep)[0]
 
 def reciprocity(g):
     '''
     Calculate the edge reciprocity of the graph.
+
+    The reciprocity is defined as the number of edges that have a reciprocal
+    edge (an edge between the same nodes but in the opposite direction)
+    divided by the total number of edges.
+    This is also the probability for any given edge, that its reciprocal edge
+    exists.
+    By definition, the reciprocity of undirected graphs is 1.
 
     Parameters
     ----------

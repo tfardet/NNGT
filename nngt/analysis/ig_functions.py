@@ -158,20 +158,23 @@ def assortativity(g, degree, weights=None):
     ----------
     .. [ig-assortativity] https://igraph.org/python/doc/igraph.GraphBase-class.html#assortativity
     '''
-    use_weights = True if weights in (True, 'weight') else False
+    ww = _get_weights(g, weights)
 
-    if not use_weights:
-        raise RuntimeError("igraph backend does not support specific "
-        "attributes as weights yet, will come soon.")
+    node_attr = g.get_degrees(degree, use_weights=ww)
 
-    degrees = graph.get_degrees(deg_type=deg_type, use_weights=use_weights)
-
-    return g.graph.assortativity(degrees, directed=graph.is_directed())
+    return g.graph.assortativity(node_attr, directed=g.is_directed())
 
 
 def reciprocity(g):
     '''
     Calculate the edge reciprocity of the graph.
+
+    The reciprocity is defined as the number of edges that have a reciprocal
+    edge (an edge between the same nodes but in the opposite direction)
+    divided by the total number of edges.
+    This is also the probability for any given edge, that its reciprocal edge
+    exists.
+    By definition, the reciprocity of undirected graphs is 1.
 
     Parameters
     ----------

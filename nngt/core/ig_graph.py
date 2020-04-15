@@ -255,8 +255,16 @@ class _IGraph(GraphInterface):
         g = copy_graph.graph if copy_graph is not None else None
 
         if g is None:
-            self._graph = nngt._config["graph"](n=nodes, directed=True)
+            self._graph = nngt._config["graph"](n=nodes, directed=directed)
         else:
+            # convert graph if necessary
+            if directed and not g.is_directed():
+                g = g.copy()
+                g.to_directed()
+            elif not directed and g.is_directed():
+                g = g.as_undirected(mode="collapse", combine_edges="sum")
+                g.simplify(combine_edges="sum")
+
             self._from_library_graph(g, copy=True)
 
     #-------------------------------------------------------------------------#
@@ -482,16 +490,6 @@ class _IGraph(GraphInterface):
             edge_list = np.array(edge_list)
             new_attr = attributes
 
-        if not self._directed:
-            recip_edges = edge_list[:,::-1]
-            # slow but works
-            unique = ~(recip_edges[..., np.newaxis]
-                      == edge_list[..., np.newaxis].T).all(1).any(1)
-            edge_list = np.concatenate((edge_list, recip_edges[unique]))
-
-            for key, val in new_attr.items():
-                new_attr[key] = np.concatenate((val, val[unique]))
-
         self._graph.add_edges(edge_list)
 
         # call parent function to set the attributes
@@ -517,12 +515,13 @@ class _IGraph(GraphInterface):
 
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         g = self._graph
-    
+
         deg_type = 'all' if deg_type == 'total' else deg_type
 
-        if use_weights:
+        if use_weights is not False:
+            use_weights = 'weight' if use_weights is True else use_weights
             return np.array(g.strength(node_list, mode=deg_type,
-                            weights='weight'))
+                            weights=use_weights))
         else:
             return np.array(g.degree(node_list, mode=deg_type))
 

@@ -179,6 +179,10 @@ def assortativity(g, degree, weights=None):
     ----------
     .. [nx-assortativity] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.assortativity.degree_assortativity_coefficient.html
     '''
+    if weights is not None:
+        raise NotImplementedError("Weighted assortatibity is not yet "
+                                  "implemented for networkx backend.")
+
     w = _get_weights(g, weights)
 
     return degree_assortativity_coefficient(g.graph, x=degree, y=degree,
@@ -188,6 +192,13 @@ def assortativity(g, degree, weights=None):
 def reciprocity(g):
     '''
     Calculate the edge reciprocity of the graph.
+
+    The reciprocity is defined as the number of edges that have a reciprocal
+    edge (an edge between the same nodes but in the opposite direction)
+    divided by the total number of edges.
+    This is also the probability for any given edge, that its reciprocal edge
+    exists.
+    By definition, the reciprocity of undirected graphs is 1.
 
     @todo: check whether we can get this for single nodes for all libraries.
 
@@ -200,6 +211,9 @@ def reciprocity(g):
     ----------
     .. [nx-reciprocity] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.reciprocity.overall_reciprocity.html
     '''
+    if not g.is_directed():
+        return 1.
+
     return nx.overall_reciprocity(g.graph)
 
 

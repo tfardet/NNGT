@@ -28,6 +28,10 @@ undirected networks, and whether they also work with weighted edges.
 +----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
 | :func:`~nngt.analysis.undirected_local_clustering` |       gt, nx, ig       |         x           |   x                 |  x                |
 +----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
+| :func:`~nngt.analysis.assortativity`               |       gt, nx, ig       |     gt, nx, ig      |    gt, ig [1]       |     gt, ig        |
++----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
+| :func:`~nngt.analysis.reciprocity`                 |       gt, nx, ig       |     gt, nx, ig      |     gt, ig nx       |    gt, ig, nx     |
++----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
 
 
 ----
@@ -46,4 +50,6 @@ undirected networks, and whether they also work with weighted edges.
 .. Links
 
 .. _global_clustering: 
-.. _global_clustering: 
+.. _global_clustering:
+
+.. [1]: networkx can be used via a workaround, `an issue <https://github.com/networkx/networkx/issues/3917>`_ has been raised to find out how to best deal with this

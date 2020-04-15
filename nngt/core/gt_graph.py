@@ -312,9 +312,17 @@ class _GtGraph(GraphInterface):
         g = copy_graph.graph if copy_graph is not None else None
 
         if g is not None:
+            from graph_tool.stats import remove_parallel_edges
+            if not directed and g.is_directed():
+                g = g.copy()
+                g.set_directed(False)
+                remove_parallel_edges(g)
+            elif directed and not g.is_directed():
+                g.set_directed(True)
+
             self._from_library_graph(g, copy=True)
         else:
-            self._graph = nngt._config["graph"](directed=True)
+            self._graph = nngt._config["graph"](directed=directed)
 
             if nodes:
                 self._graph.add_vertex(nodes)
@@ -485,10 +493,6 @@ class _GtGraph(GraphInterface):
             g.add_edge(source, target, add_missing=True)
             # set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
-            if not self._directed:
-                c2 = g.add_edge(target, source)
-                # set the attributes
-                self._attr_new_edges([(target, source)], attributes=attributes)
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
@@ -560,27 +564,8 @@ class _GtGraph(GraphInterface):
             edge_list = np.array(edge_list)
             new_attr = attributes
 
-        if not self._directed:
-            recip_edges = edge_list[:,::-1]
-            # slow but works
-            unique = ~(recip_edges[..., np.newaxis]
-                       == edge_list[..., np.newaxis].T).all(1).any(1)
-            edge_list = np.concatenate((edge_list, recip_edges[unique]))
-
-            for key, val in new_attr.items():
-                new_attr[key] = np.concatenate((val, val[unique]))
-
         # create the edges
         if len(edge_list):
-            if not self._directed:
-                recip_edges = edge_list[:,::-1]
-                # slow but works
-                unique = ~(recip_edges[..., np.newaxis]
-                           == edge_list[..., np.newaxis].T).all(1).any(1)
-                edge_list = np.concatenate((edge_list, recip_edges[unique]))
-                for key, val in new_attr.items():
-                    new_attr[key] = np.concatenate((val, val[unique]))
-
             self._graph.add_edge_list(edge_list)
 
             # call parent function to set the attributes

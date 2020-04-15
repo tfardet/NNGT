@@ -484,13 +484,6 @@ class _NxGraph(GraphInterface):
             # call parent function to set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
 
-            if not self._directed:
-                g.add_edge(target,source)
-                g[source][target]["eid"] = g.number_of_edges() - 1
-                for key, val in attributes.items():
-                    g[target][source][key] = val
-                self._attr_new_edges([(target, source)], attributes=attributes)
-
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None, check_edges=True):
@@ -572,15 +565,6 @@ class _NxGraph(GraphInterface):
             arr_edges[:, :2] = edge_list
             arr_edges[:, 2]  = np.arange(initial_edges,
                 initial_edges + num_added)
-
-            if not self._directed:
-                recip_edges = edge_list[:, ::-1]
-                # slow but works
-                unique = ~(recip_edges[..., np.newaxis]
-                          == edge_list[..., np.newaxis].T).all(1).any(1)
-                edge_list = np.concatenate((edge_list, recip_edges[unique]))
-                for key, val in new_attr.items():
-                    new_attr[key] = np.concatenate((val, val[unique]))
 
             # create the edges with an eid attribute
             g.add_weighted_edges_from(arr_edges, weight="eid")
