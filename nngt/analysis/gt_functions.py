@@ -21,6 +21,8 @@
 
 """ Tools to analyze graphs with the graph-tool backend """
 
+import numpy as np
+
 from graph_tool import GraphView
 from graph_tool.centrality import closeness as gt_closeness
 from graph_tool.correlations import scalar_assortativity
@@ -202,6 +204,7 @@ def assortativity(g, degree, weights=None):
 
     return scalar_assortativity(g.graph, ep)[0]
 
+
 def reciprocity(g):
     '''
     Calculate the edge reciprocity of the graph.
@@ -225,9 +228,35 @@ def reciprocity(g):
     return gtt.edge_reciprocity(g.graph)
 
 
-def closeness(g, weighted=False, nodes=None):
+def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
+              default=np.NaN):
     '''
     Returns the closeness centrality of some `nodes`.
+
+    Closeness centrality of a node `u` is defined, for the harmonic version,
+    as the sum of the reciprocal of the shortest path distance :math:`d_{uv}`
+    from `u` to the other nodes in its component (if `mode` is "out",
+    reciprocally :math:`d_{vu}`, the distance to `u` from another node v,
+    if `mode` is "in"):
+
+    .. math::
+
+        C(u) = \frac{1}{n - 1} \sum_{v \neq u} \frac{1}{d_{uv}},
+
+    or, using the arithmetic definition, as the reciprocal of the
+    average shortest path distance to/from `u` over to all other nodes:
+
+    .. math::
+
+        C(u) = \frac{n - 1}{\sum_{v \neq u} d_{uv}},
+
+    where `d_{uv}` is the shortest-path distance from `u` to `v`,
+    and `n` is the number of nodes in the graph.
+
+    By definition, the distance is infinite when nodes are not connected by
+    a path in the harmonic case (such that :math:`\frac{1}{d(v, u)} = 0`),
+    while the distance itself is taken as zero for unconnected nodes in the
+    first equation.
 
     Parameters
     ----------
@@ -239,11 +268,22 @@ def closeness(g, weighted=False, nodes=None):
         otherwise uses any valid edge attribute required.
     nodes : list, optional (default: all nodes)
         The list of nodes for which the clutering will be returned
+    mode : str, optional (default: "out")
+        For directed graphs, whether the distances are computed from ("out") or
+        to ("in") each of the nodes.
+    harmonic : bool, optional (default: False)
+        Whether the arithmetic (default) or the harmonic (recommended) version
+        of the closeness should be used.
 
     Returns
     -------
     c : :class:`numpy.ndarray`
         The list of closeness centralities, on per node.
+
+    .. warning ::
+        For compatibility reasons (harmonic closeness is not implemented for
+        igraph), the arithmetic version is used by default; however, it is
+        recommended to use the harmonic version instead whenever possible.
 
     References
     ----------
@@ -251,12 +291,20 @@ def closeness(g, weighted=False, nodes=None):
     '''
     ww = _get_weights(g, weights)
 
-    c = closeness(g.graph, weight=ww)
+    if mode == "in":
+        g.graph.set_reversed(True)
+
+    c = gt_closeness(g.graph, weight=ww, harmonic=harmonic).a
+
+    g.graph.set_reversed(False)
+
+    if not np.isnan(default):
+        c[np.isnan(c)] = default
 
     if nodes is None:
-        return c.a
+        return c
 
-    return c.a[nodes]
+    return c[nodes]
 
 
 def connected_components(g, ctype=None):

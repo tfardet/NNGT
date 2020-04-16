@@ -117,7 +117,72 @@ def test_reciprocity():
         assert nngt.analyze_graph["reciprocity"](g) == 1.
 
 
+def test_closeness():
+    ''' Check closeness results for all backends '''
+    num_nodes = 5
+    edge_list = [(0, 1), (0, 3), (1, 3), (2, 0), (3, 2), (3, 4), (4, 2)]
+
+    weights = np.random.uniform(0, 1, len(edge_list))
+
+    expected = [2/3, 0.5, 0.5, 0.5714285714285714, 0.4444444444444444]
+
+    for bckd in backends:
+        g = nngt.Graph(nodes=num_nodes, directed=True)
+        g.new_edges(edge_list)
+
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, harmonic=False), expected))
+
+    # with zero degrees and harmonic implementation
+    # closeness does not work for igraph if some nodes have zero in/out-degrees
+    limited = ['graph-tool', 'networkx']
+
+    edge_list = [(0, 1), (0, 2), (0, 3), (1, 3), (3, 2), (3, 4), (4, 2)]
+
+    # DIRECTED
+    harmonic   = [7/8, 0.5, 0, 0.5, 1/4]
+    arithmetic = [0.8, 0.6, np.NaN, 1., 1.]
+
+    harmonic_in   = [0, 1/4, 7/8, 0.5, 0.5]
+    arithmetic_in = [np.NaN, 1, 0.8, 1., 0.6]
+
+    for bckd in limited:
+        g = nngt.Graph(nodes=num_nodes, directed=True)
+        g.new_edges(edge_list)
+
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
+
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, harmonic=False), arithmetic,
+            equal_nan=True))
+
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, mode="in", harmonic=True),
+            harmonic_in))
+
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, mode="out", harmonic=False),
+            arithmetic, equal_nan=True))
+
+    # UNDIRECTED
+    harmonic   = [7/8, 3/4, 7/8, 1., 3/4]
+    arithmetic = [0.8, 2/3, 0.8, 1., 2/3]
+
+    for bckd in limited:
+        g = nngt.Graph(nodes=num_nodes, directed=False)
+        g.new_edges(edge_list)
+
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
+
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, harmonic=False), arithmetic,
+            equal_nan=True))
+
+
 if __name__ == "__main__":
     test_clustering()
     test_assortativity()
     test_reciprocity()
+    test_closeness()

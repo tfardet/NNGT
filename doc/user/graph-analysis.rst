@@ -28,10 +28,20 @@ undirected networks, and whether they also work with weighted edges.
 +----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
 | :func:`~nngt.analysis.undirected_local_clustering` |       gt, nx, ig       |         x           |   x                 |  x                |
 +----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.assortativity`               |       gt, nx, ig       |     gt, nx, ig      |    gt, ig [1]       |     gt, ig        |
+| :func:`~nngt.analysis.assortativity`               |       gt, nx, ig       |     gt, nx, ig      |    gt, ig [1]_      |    gt, ig         |
 +----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.reciprocity`                 |       gt, nx, ig       |     gt, nx, ig      |     gt, ig nx       |    gt, ig, nx     |
+| :func:`~nngt.analysis.reciprocity`                 |       gt, nx, ig       |     gt, nx, ig      |     gt, nx, ig      |    gt, nx, ig     |
 +----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
+| :func:`~nngt.analysis.closeness` [2]_              |       gt, nx, (ig)     |     gt, nx, (ig)    |         x           |         x         |
++----------------------------------------------------+------------------------+---------------------+---------------------+-------------------+
+
+
+.. [1] networkx could be used via a workaround but `an issue
+       <https://github.com/networkx/networkx/issues/3917>`_ has been raised to
+       find out how to best deal with this
+.. [2] since definitions of the distances differ for the libraries, igraph is
+       currently not usable if the in- or out-degree of any of the nodes is
+       zero and does not provide an implementation for the harmonic closeness
 
 
 ----
@@ -45,11 +55,3 @@ undirected networks, and whether they also work with weighted edges.
 * :ref:`neural_groups`
 * :ref:`nest_int`
 * :ref:`activ_analysis`
-
-
-.. Links
-
-.. _global_clustering: 
-.. _global_clustering:
-
-.. [1]: networkx can be used via a workaround, `an issue <https://github.com/networkx/networkx/issues/3917>`_ has been raised to find out how to best deal with this

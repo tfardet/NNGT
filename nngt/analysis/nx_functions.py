@@ -217,9 +217,35 @@ def reciprocity(g):
     return nx.overall_reciprocity(g.graph)
 
 
-def closeness(g, weighted=False, nodes=None):
+def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
+              default=np.NaN):
     '''
     Returns the closeness centrality of some `nodes`.
+
+    Closeness centrality of a node `u` is defined, for the harmonic version,
+    as the sum of the reciprocal of the shortest path distance :math:`d_{uv}`
+    from `u` to the other nodes in its component (if `mode` is "out",
+    reciprocally :math:`d_{vu}`, the distance to `u` from another node v,
+    if `mode` is "in"):
+
+    .. math::
+
+        C(u) = \frac{1}{n - 1} \sum_{v \neq u} \frac{1}{d_{uv}},
+
+    or, using the arithmetic definition, as the reciprocal of the
+    average shortest path distance to/from `u` over to all other nodes:
+
+    .. math::
+
+        C(u) = \frac{n - 1}{\sum_{v \neq u} d_{uv}},
+
+    where `d_{uv}` is the shortest-path distance from `u` to `v`,
+    and `n` is the number of nodes in the graph.
+
+    By definition, the distance is infinite when nodes are not connected by
+    a path in the harmonic case (such that :math:`\frac{1}{d(v, u)} = 0`),
+    while the distance itself is taken as zero for unconnected nodes in the
+    first equation.
 
     Parameters
     ----------
@@ -231,30 +257,54 @@ def closeness(g, weighted=False, nodes=None):
         otherwise uses any valid edge attribute required.
     nodes : list, optional (default: all nodes)
         The list of nodes for which the clutering will be returned
+    mode : str, optional (default: "out")
+        For directed graphs, whether the distances are computed from ("out") or
+        to ("in") each of the nodes.
+    harmonic : bool, optional (default: False)
+        Whether the arithmetic (default) or the harmonic (recommended) version
+        of the closeness should be used.
 
     Returns
     -------
     c : :class:`numpy.ndarray`
         The list of closeness centralities, on per node.
 
-    Note
-    ----
-    When requesting a subset of nodes, check whether it is faster to use
-    `nodes`, or to compute all closeness centralities, then take the subset.
+    .. warning ::
+        For compatibility reasons (harmonic closeness is not implemented for
+        igraph), the arithmetic version is used by default; however, it is
+        recommended to use the harmonic version instead whenever possible.
 
     References
     ----------
+    .. [nx-harmonic] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.harmonic_centrality.html
     .. [nx-closeness] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.closeness_centrality.html
     '''
     w = _get_weights(g, weights)
 
+    graph = g.graph
+
+    if graph.is_directed() and mode == "out":
+        graph = g.graph.reverse(copy=False)
+
+    c = None
+
+    if harmonic:
+        c = nx.harmonic_centrality(graph, distance=w)
+    else:
+        c = nx.closeness_centrality(graph, distance=w, wf_improved=False)
+
+    c = np.array([v for _, v in c.items()])
+
+    # normalize
+    if harmonic:
+        c *= 1 / (len(graph) - 1)
+    elif default != 0:
+        c[c == 0.] = default
+
     if nodes is None:
-        return nx.closeness_centrality(g.graph, distance=w)
+        return c
 
-    c = [nx.closeness_centrality(g.graph, u=n, distance=w)
-         for n in nodes]
-
-    return c
+    return c[nodes]
 
 
 def connected_components(g, ctype=None):
