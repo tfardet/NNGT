@@ -306,7 +306,6 @@ class _GtGraph(GraphInterface):
         see :class:`gt.Graph`'s constructor '''
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
-        self._directed = directed
         self._weighted = weighted
 
         g = copy_graph.graph if copy_graph is not None else None
@@ -592,7 +591,7 @@ class _GtGraph(GraphInterface):
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         w = 1.
 
-        if not self._directed:
+        if not self._graph.is_directed():
             deg_type = "total"
             w = 0.5
 

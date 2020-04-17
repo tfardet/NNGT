@@ -25,6 +25,7 @@ import numpy as np
 
 from graph_tool import GraphView
 from graph_tool.centrality import closeness as gt_closeness
+from graph_tool.centrality import betweenness as gt_betweenness
 from graph_tool.correlations import scalar_assortativity
 from graph_tool.spectral import adjacency
 from graph_tool.stats import label_parallel_edges
@@ -235,13 +236,13 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
 
     Closeness centrality of a node `u` is defined, for the harmonic version,
     as the sum of the reciprocal of the shortest path distance :math:`d_{uv}`
-    from `u` to the other nodes in its component (if `mode` is "out",
+    from `u` to the N - 1 other nodes in the graph (if `mode` is "out",
     reciprocally :math:`d_{vu}`, the distance to `u` from another node v,
     if `mode` is "in"):
 
     .. math::
 
-        C(u) = \frac{1}{n - 1} \sum_{v \neq u} \frac{1}{d_{uv}},
+        C(u) = \frac{1}{N - 1} \sum_{v \neq u} \frac{1}{d_{uv}},
 
     or, using the arithmetic definition, as the reciprocal of the
     average shortest path distance to/from `u` over to all other nodes:
@@ -251,7 +252,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
         C(u) = \frac{n - 1}{\sum_{v \neq u} d_{uv}},
 
     where `d_{uv}` is the shortest-path distance from `u` to `v`,
-    and `n` is the number of nodes in the graph.
+    and `n` is the number of nodes in the component.
 
     By definition, the distance is infinite when nodes are not connected by
     a path in the harmonic case (such that :math:`\frac{1}{d(v, u)} = 0`),
@@ -305,6 +306,47 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
         return c
 
     return c[nodes]
+
+
+def betweenness(g, btype="both", weights=None):
+    '''
+    Returns the normalized betweenness centrality of the nodes and edges.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    ctype : str, optional (default 'both')
+        The centrality that should be returned (either 'node', 'edge', or
+        'both'). By default, both betweenness centralities are computed.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+
+    Returns
+    -------
+    nb : :class:`numpy.ndarray`
+        The nodes' betweenness if `btype` is 'node' or 'both'
+    eb : :class:`numpy.ndarray`
+        The edges' betweenness if `btype` is 'edge' or 'both'
+
+    References
+    ----------
+    .. [gt-betw] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.betweenness
+    '''
+    w = _get_weights(g, weights)
+
+    n  = g.node_nb()
+
+    nb, eb = gt_betweenness(g.graph, weight=w)
+
+    if btype == "node":
+        return nb.a
+    elif btype == "edge":
+        return eb.a
+
+    return nb.a, eb.a
 
 
 def connected_components(g, ctype=None):

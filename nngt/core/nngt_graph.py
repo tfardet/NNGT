@@ -335,6 +335,10 @@ class _NNGTGraph(GraphInterface):
         '''
         return np.array(list(self._edges.keys()), dtype=int)
 
+    def is_directed(self):
+        ''' Whether the graph is directed '''
+        return self._directed
+
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''

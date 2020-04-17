@@ -122,21 +122,26 @@ def test_closeness():
     num_nodes = 5
     edge_list = [(0, 1), (0, 3), (1, 3), (2, 0), (3, 2), (3, 4), (4, 2)]
 
-    weights = np.random.uniform(0, 1, len(edge_list))
+    weights = [0.54881, 0.71518, 0.60276, 0.54488, 0.42365, 0.64589, 0.43758]
 
     expected = [2/3, 0.5, 0.5, 0.5714285714285714, 0.4444444444444444]
+    weighted = [1.06273031, 0.89905622, 0.83253895, 1.12504606, 0.86040934]
 
     for bckd in backends:
+        nngt.set_config("backend", bckd)
+
         g = nngt.Graph(nodes=num_nodes, directed=True)
-        g.new_edges(edge_list)
+        g.new_edges(edge_list, attributes={"weight": weights})
 
         assert np.all(np.isclose(
             nngt.analyze_graph["closeness"](g, harmonic=False), expected))
 
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, weights=True, harmonic=False),
+            weighted))
+
     # with zero degrees and harmonic implementation
     # closeness does not work for igraph if some nodes have zero in/out-degrees
-    limited = ['graph-tool', 'networkx']
-
     edge_list = [(0, 1), (0, 2), (0, 3), (1, 3), (3, 2), (3, 4), (4, 2)]
 
     # DIRECTED
@@ -146,43 +151,157 @@ def test_closeness():
     harmonic_in   = [0, 1/4, 7/8, 0.5, 0.5]
     arithmetic_in = [np.NaN, 1, 0.8, 1., 0.6]
 
-    for bckd in limited:
+    harmonic_wght   = [1.42006842, 0.92688794, 0., 0.97717257, 0.5713241 ]
+    arithmetic_wght = [1.28394428, 1.10939361, np.NaN, 1.86996279, 2.2852964]
+
+    for bckd in backends:
+        nngt.set_config("backend", bckd)
+
         g = nngt.Graph(nodes=num_nodes, directed=True)
-        g.new_edges(edge_list)
+        g.new_edges(edge_list, attributes={"weight": weights})
 
-        assert np.all(np.isclose(
-            nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
+        if bckd == "igraph":
+            # assert igraph fails as expected
+            try:
+                print(nngt.analyze_graph["closeness"](g, harmonic=True))
+                errored = False
+            except NotImplementedError:
+                errored = True
 
-        assert np.all(np.isclose(
-            nngt.analyze_graph["closeness"](g, harmonic=False), arithmetic,
-            equal_nan=True))
+            assert errored
 
-        assert np.all(np.isclose(
-            nngt.analyze_graph["closeness"](g, mode="in", harmonic=True),
-            harmonic_in))
+            try:
+                nngt.analyze_graph["closeness"](g, harmonic=False)
+                runtime_error = False
+            except RuntimeError:
+                runtime_error = True
 
-        assert np.all(np.isclose(
-            nngt.analyze_graph["closeness"](g, mode="out", harmonic=False),
-            arithmetic, equal_nan=True))
+            assert runtime_error
+        else:
+            assert np.all(np.isclose(
+                nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
+
+            assert np.all(np.isclose(
+                nngt.analyze_graph["closeness"](g, harmonic=False), arithmetic,
+                equal_nan=True))
+
+            assert np.all(np.isclose(
+                nngt.analyze_graph["closeness"](g, mode="in", harmonic=True),
+                harmonic_in))
+
+            assert np.all(np.isclose(
+                nngt.analyze_graph["closeness"](g, mode="in", harmonic=False),
+                arithmetic_in, equal_nan=True))
+
+            assert np.all(np.isclose(
+                nngt.analyze_graph["closeness"](g, weights=True,
+                                                harmonic=True),
+                harmonic_wght))
+
+            assert np.all(np.isclose(
+                nngt.analyze_graph["closeness"](g, weights=True,
+                                                harmonic=False),
+                arithmetic_wght, equal_nan=True))
 
     # UNDIRECTED
     harmonic   = [7/8, 3/4, 7/8, 1., 3/4]
     arithmetic = [0.8, 2/3, 0.8, 1., 2/3]
 
-    for bckd in limited:
-        g = nngt.Graph(nodes=num_nodes, directed=False)
-        g.new_edges(edge_list)
+    harmonic_wght   = [1.436723, 1.382419, 1.76911934, 1.85074797, 1.38520591]
+    arithmetic_wght = [1.3247182, 1.2296379, 1.5717462, 1.8040934, 1.16720163]
 
-        assert np.all(np.isclose(
-            nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
+    for bckd in backends:
+        nngt.set_config("backend", bckd)
+
+        g = nngt.Graph(nodes=num_nodes, directed=False)
+        g.new_edges(edge_list, attributes={"weight": weights})
+
+        if bckd != "igraph":
+            assert np.all(np.isclose(
+                nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
+
+            assert np.all(np.isclose(
+                nngt.analyze_graph["closeness"](g, weights=True,
+                                                harmonic=True),
+                harmonic_wght))
 
         assert np.all(np.isclose(
             nngt.analyze_graph["closeness"](g, harmonic=False), arithmetic,
             equal_nan=True))
 
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, weights="weight",
+                                            harmonic=False),
+            arithmetic_wght, equal_nan=True))
+
+
+def test_betweenness():
+    ''' Check betweenness results for all backends '''
+    num_nodes  = 5
+
+    # UNDIRECTED
+    edge_list  = [(0, 1), (0, 2), (0, 3), (1, 3), (2, 3), (2, 4), (3, 4)]
+
+    weights = [0.1, 0.3, 1.5, 0.8, 5.6, 4., 2.3]
+
+    nb_expect = [0.083333, 0.0, 0.083333, 0.3333333, 0.0]
+    eb_expect = [0.15, 0.2, 0.15, 0.25, 0.15, 0.15, 0.25]
+
+    nb_exp_wght = [0.5, 2/3, 0, 0.5, 0]
+    eb_exp_wght = [0.6, 0.4, 0, 0.6, 0, 0, 0.4]
+
+    for bckd in backends:
+        nngt.set_config("backend", bckd)
+
+        g = nngt.Graph(nodes=num_nodes, directed=False)
+        g.new_edges(edge_list, attributes={"weight": weights})
+
+        nb, eb = nngt.analyze_graph["betweenness"](g)
+
+        assert np.all(np.isclose(nb, nb_expect))
+        assert np.all(np.isclose(eb, eb_expect))
+
+        # weighted
+        nb, eb = nngt.analyze_graph["betweenness"](g, weights=True)
+
+        assert np.all(np.isclose(nb, nb_exp_wght))
+        assert np.all(np.isclose(eb, eb_exp_wght))
+
+    # DIRECTED
+    edge_list  = [
+        (0, 1), (0, 2), (0, 3), (1, 3), (3, 2), (3, 4), (4, 2), (4, 0)
+    ]
+
+    weights = [0.1, 0.3, 1.5, 0.8, 5.6, 4., 2.3, 0.9]
+
+    nb_expect = [0.25, 0, 0, 1/3, 0.25]
+    eb_expect = [0.15, 0.05, 0.15, 0.2, 0.1, 0.3, 0.05, 0.3]
+
+    nb_exp_wght = [0.5, 0.25, 0, 1/3, 5/12]
+    eb_exp_wght = [0.3, 0.2, 0, 0.35, 0, 0.4, 0, 0.45]
+
+    for bckd in backends:
+        nngt.set_config("backend", bckd)
+
+        g = nngt.Graph(nodes=num_nodes, directed=True)
+        g.new_edges(edge_list, attributes={"weight": weights})
+
+        nb, eb = nngt.analyze_graph["betweenness"](g)
+
+        assert np.all(np.isclose(nb, nb_expect))
+        assert np.all(np.isclose(eb, eb_expect))
+
+        # weighted
+        nb, eb = nngt.analyze_graph["betweenness"](g, weights=True)
+
+        assert np.all(np.isclose(nb, nb_exp_wght))
+        assert np.all(np.isclose(eb, eb_exp_wght))
+        
+    
 
 if __name__ == "__main__":
-    test_clustering()
-    test_assortativity()
-    test_reciprocity()
-    test_closeness()
+    # ~ test_clustering()
+    # ~ test_assortativity()
+    # ~ test_reciprocity()
+    # ~ test_closeness()
+    test_betweenness()

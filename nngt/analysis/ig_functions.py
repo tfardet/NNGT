@@ -195,13 +195,13 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
 
     Closeness centrality of a node `u` is defined, for the harmonic version,
     as the sum of the reciprocal of the shortest path distance :math:`d_{uv}`
-    from `u` to the other nodes in its component (if `mode` is "out",
+    from `u` to the N - 1 other nodes in the graph (if `mode` is "out",
     reciprocally :math:`d_{vu}`, the distance to `u` from another node v,
     if `mode` is "in"):
 
     .. math::
 
-        C(u) = \frac{1}{n - 1} \sum_{v \neq u} \frac{1}{d_{uv}},
+        C(u) = \frac{1}{N - 1} \sum_{v \neq u} \frac{1}{d_{uv}},
 
     or, using the arithmetic definition, as the reciprocal of the
     average shortest path distance to/from `u` over to all other nodes:
@@ -211,7 +211,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
         C(u) = \frac{n - 1}{\sum_{v \neq u} d_{uv}},
 
     where `d_{uv}` is the shortest-path distance from `u` to `v`,
-    and `n` is the number of nodes in the graph.
+    and `n` is the number of nodes in the strongly-connected component (SCC).
 
     By definition, the distance is infinite when nodes are not connected by
     a path in the harmonic case (such that :math:`\frac{1}{d(v, u)} = 0`),
@@ -258,13 +258,71 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
         raise NotImplementedError("`harmonic` closeness is not available with "
                                   "igraph backend.")
 
-    ww = _get_weights(g, weights)
-
     if not np.all(g.get_degrees("in")) or not np.all(g.get_degrees("out")):
-        raise RuntimeError("Igraph backend does not support closeness for "
+        raise RuntimeError("igraph backend does not support closeness for "
                            "graphs containing nodes with zero in/out-degree.")
 
+    ww = _get_weights(g, weights)
+
     return g.graph.closeness(nodes, mode=mode, weights=ww)
+
+
+def betweenness(g, btype="both", weights=None):
+    '''
+    Returns the normalized betweenness centrality of the nodes and edges.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    ctype : str, optional (default 'both')
+        The centrality that should be returned (either 'node', 'edge', or
+        'both'). By default, both betweenness centralities are computed.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+
+    Returns
+    -------
+    nb : :class:`numpy.ndarray`
+        The nodes' betweenness if `btype` is 'node' or 'both'
+    eb : :class:`numpy.ndarray`
+        The edges' betweenness if `btype` is 'edge' or 'both'
+
+    References
+    ----------
+    .. [ig-ebetw] https://igraph.org/python/doc/igraph.GraphBase-class.html#edge_betweenness
+    .. [ig-nbetw] https://igraph.org/python/doc/igraph.GraphBase-class.html#betweenness
+    '''
+    w = _get_weights(g, weights)
+
+    n  = g.node_nb()
+
+    nb, eb = None, None
+
+    if btype in ("both", "node"):
+        di_nb = np.array(g.graph.betweenness(weights=w))
+        nb    = np.array([di_nb[i] for i in g.get_nodes()])
+        norm  = 1.
+
+        if n > 2:
+            norm = (1 if g.is_directed() else 2) / ((n - 1) * (n - 2))
+
+        nb *= norm
+
+    if btype in ("both", "edge"):
+        eb = np.array(g.graph.edge_betweenness(weights=w))
+
+        norm = (1 if g.is_directed() else 2) / (n * (n - 1))
+        eb *= norm
+
+    if btype == "node":
+        return nb
+    elif btype == "edge":
+        return eb
+
+    return nb, eb
 
 
 def connected_components(g, ctype=None):

@@ -388,8 +388,8 @@ class Graph(nngt.core.GraphObject):
 
     def __repr__(self):
         ''' Provide unambiguous informations regarding the object. '''
-        d = "directed" if self._directed else "undirected"
-        w = "weighted" if self._weighted else "binary"
+        d = "directed" if self.is_directed() else "undirected"
+        w = "weighted" if self.is_weighted() else "binary"
         t = self.type
         n = self.node_nb()
         e = self.edge_nb()
@@ -813,7 +813,7 @@ class Graph(nngt.core.GraphObject):
 
     def is_directed(self):
         ''' Whether the graph is directed or not '''
-        return self._directed
+        return self._graph.is_directed()
 
     def get_degrees(self, deg_type="total", node_list=None, use_weights=False,
                     syn_type="all"):

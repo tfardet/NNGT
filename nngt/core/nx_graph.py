@@ -277,7 +277,6 @@ class _NxGraph(GraphInterface):
 
     def __init__(self, nodes=0, copy_graph=None, directed=True, weighted=False,
                  **kwargs):
-        self._directed = directed
         self._weighted = weighted
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
