@@ -26,10 +26,6 @@ import numpy as np
 from ..lib.test_functions import nonstring_container
 
 import networkx as nx
-from networkx.algorithms import diameter as nx_diam
-from networkx.algorithms import (strongly_connected_components,
-                                 weakly_connected_components,
-                                 degree_assortativity_coefficient)
 
 
 def global_clustering(g, weights=None):
@@ -185,8 +181,8 @@ def assortativity(g, degree, weights=None):
 
     w = _get_weights(g, weights)
 
-    return degree_assortativity_coefficient(g.graph, x=degree, y=degree,
-                                            weight=w)
+    return nx.degree_assortativity_coefficient(g.graph, x=degree, y=degree,
+                                               weight=w)
 
 
 def reciprocity(g):
@@ -405,10 +401,10 @@ def connected_components(g, ctype=None):
 
 def diameter(g, weights=False):
     '''
-    Returns the pseudo-diameter of the graph.
+    Returns the diameter of the graph.
 
-    @todo: check what happens if some nodes are disconnected (with and
-    without weights)
+    It returns infinity if the graph is not connected (strongly connected for
+    directed graphs).
 
     Parameters
     ----------
@@ -425,9 +421,18 @@ def diameter(g, weights=False):
     '''
     w = _get_weights(g, weights)
 
+    num_nodes = g.node_nb()
+
     if w is not None:
-        raise NotImplementedError("Weighted diameter is not available for "
-                                  "networkx backend.")
+        res = []
+
+        for _, (d, _) in nx.all_pairs_dijkstra(g.graph, weight=w):
+            if len(d) < num_nodes:
+                return np.inf
+
+            res.extend(d.values())
+
+        return np.max(res)
 
     try:
         return nx.diameter(g.graph)

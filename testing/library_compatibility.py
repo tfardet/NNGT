@@ -368,36 +368,43 @@ def test_diameter():
 
     edge_list.append((7, 3))
 
+    weights = [0.58, 0.59, 0.88, 0.8, 0.61, 0.66, 0.62, 0.28]
+
     for bckd in backends:
         nngt.set_config("backend", bckd)
 
         g = nngt.Graph(nodes=num_nodes, directed=True)
-        g.new_edges(edge_list)
+        g.new_edges(edge_list, attributes={"weight": weights})
 
-        d = nngt.analyze_graph["diameter"](g)
+        assert np.isinf(nngt.analyze_graph["diameter"](g, weights=None))
 
-        assert np.isinf(d)
+        assert np.isinf(nngt.analyze_graph["diameter"](g, weights=True))
 
     # connected
     num_nodes = 5
     edge_list = [(0, 1), (0, 3), (1, 3), (2, 0), (3, 2), (3, 4), (4, 2)]
 
+    weights = [0.58, 0.59, 0.88, 0.8, 0.61, 0.66, 0.28]
+
     for bckd in backends:
         nngt.set_config("backend", bckd)
 
         g = nngt.Graph(nodes=num_nodes, directed=True)
-        g.new_edges(edge_list)
+        g.new_edges(edge_list, attributes={"weight": weights})
 
         d = nngt.analyze_graph["diameter"](g)
 
-        assert d == 3
+        assert nngt.analyze_graph["diameter"](g, weights=None) == 3
+
+        assert np.isclose(
+            nngt.analyze_graph["diameter"](g, weights="weight"), 2.29)
 
 
 if __name__ == "__main__":
-    # ~ test_clustering()
-    # ~ test_assortativity()
-    # ~ test_reciprocity()
-    # ~ test_closeness()
-    # ~ test_betweenness()
-    # ~ test_components()
+    test_clustering()
+    test_assortativity()
+    test_reciprocity()
+    test_closeness()
+    test_betweenness()
+    test_components()
     test_diameter()

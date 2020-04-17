@@ -370,7 +370,10 @@ def connected_components(g, ctype=None):
 
 def diameter(g, weights=None):
     '''
-    Returns the pseudo-diameter of the graph.
+    Returns the diameter of the graph.
+
+    It returns infinity if the graph is not connected (strongly connected for
+    directed graphs).
 
     Parameters
     ----------

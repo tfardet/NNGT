@@ -52,6 +52,10 @@ the function will raise an error if one tries to use it on such graphs.
 +----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
 | :func:`~nngt.analysis.betweenness`                 |      gt, nx, ig       |     gt, nx, ig      |    gt, nx, ig       |    gt, nx, ig     |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
+| :func:`~nngt.analysis.connected_components`        |      gt, nx, ig       |     gt, nx, ig      |    gt, nx, ig       |    gt, nx, ig     |
++----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
+| :func:`~nngt.analysis.diameter` [3]_               |      gt, nx, ig       |     gt, nx, ig      |    gt, nx, ig       |    gt, nx, ig     |
++----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
 
 
 .. [1] networkx could be used via a workaround but `an issue
@@ -61,7 +65,8 @@ the function will raise an error if one tries to use it on such graphs.
        igraph is currently not usable if the in- or out-degree of any of the
        nodes is zero; it also does not provide an implementation for the
        harmonic closeness
-
+.. [3] the implementation of the diameter for graph-tool is approximmate so
+       results may occasionaly differ with this backend.
 
 ----
 
