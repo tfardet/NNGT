@@ -373,12 +373,13 @@ def connected_components(g, ctype=None):
     ----------
     .. [gt-connected-components] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.label_components
     '''
-    ctype    = "scc" if ctype is None else ctype
+    ctype = "scc" if ctype is None else ctype
 
     if ctype not in ("scc", "wcc"):
         raise ValueError("`ctype` must be either 'scc' or 'wcc'.")
 
-    directed = True if ctype == "scc" else False
+    directed  = True if ctype == "scc" else False
+    directed *= g.is_directed() 
 
     cc, hist = gtt.label_components(g.graph, directed=directed)
 

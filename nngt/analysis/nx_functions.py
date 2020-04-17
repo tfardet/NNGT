@@ -377,12 +377,15 @@ def connected_components(g, ctype=None):
 
     References
     ----------
-    .. [nx-scc] 
-    .. [nx-wcc] 
+    .. [nx-scc] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.components.strongly_connected_components.html#networkx.algorithms.components.strongly_connected_components
+    .. [nx-wcc] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.components.weakly_connected_components.html#networkx.algorithms.components.weakly_connected_components
     '''
-    res = None
+    ctype = "scc" if ctype is None else ctype
+    res   = None
 
-    if ctype == "scc":
+    if not g.is_directed():
+        res = nx.connected_components(g.graph)
+    elif ctype == "scc":
         res = nx.strongly_connected_components(g.graph)
     elif ctype == "wcc":
         res = nx.weakly_connected_components(g.graph)

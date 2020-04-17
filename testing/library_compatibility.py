@@ -335,7 +335,19 @@ def test_components():
         cc, hist = \
             nngt.analyze_graph["connected_components"](g, ctype="wcc")
 
-        print(bckd, "wcc", cc, hist)
+        # nodes are assigned to the correct components
+        assert np.all(cc[:3] == cc[0])  # 3 first together
+        assert np.all(cc[3:] == cc[3])  # 5 last together
+        # hence counts should be 3 and 5
+        assert hist[cc[0]] == 3
+        assert hist[cc[5]] == 5
+
+        # undirected
+        g = nngt.Graph(nodes=num_nodes, directed=False)
+        g.new_edges(edge_list)
+
+        cc, hist = \
+            nngt.analyze_graph["connected_components"](g)
 
         # nodes are assigned to the correct components
         assert np.all(cc[:3] == cc[0])  # 3 first together
@@ -343,6 +355,11 @@ def test_components():
         # hence counts should be 3 and 5
         assert hist[cc[0]] == 3
         assert hist[cc[5]] == 5
+
+
+def test_diameter():
+    ''' Check connected components for all backends '''
+    pass
     
 
 if __name__ == "__main__":
@@ -351,4 +368,5 @@ if __name__ == "__main__":
     # ~ test_reciprocity()
     # ~ test_closeness()
     # ~ test_betweenness()
-    test_components()
+    # ~ test_components()
+    test_diameter()
