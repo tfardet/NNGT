@@ -359,8 +359,39 @@ def test_components():
 
 def test_diameter():
     ''' Check connected components for all backends '''
-    pass
-    
+    # unconnected
+    num_nodes = 8
+    edge_list = [(0, 1), (0, 2), (1, 2)]
+
+    for i in range(3, num_nodes - 1):
+        edge_list.append((i, i+1))
+
+    edge_list.append((7, 3))
+
+    for bckd in backends:
+        nngt.set_config("backend", bckd)
+
+        g = nngt.Graph(nodes=num_nodes, directed=True)
+        g.new_edges(edge_list)
+
+        d = nngt.analyze_graph["diameter"](g)
+
+        assert np.isinf(d)
+
+    # connected
+    num_nodes = 5
+    edge_list = [(0, 1), (0, 3), (1, 3), (2, 0), (3, 2), (3, 4), (4, 2)]
+
+    for bckd in backends:
+        nngt.set_config("backend", bckd)
+
+        g = nngt.Graph(nodes=num_nodes, directed=True)
+        g.new_edges(edge_list)
+
+        d = nngt.analyze_graph["diameter"](g)
+
+        assert d == 3
+
 
 if __name__ == "__main__":
     # ~ test_clustering()

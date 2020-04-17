@@ -390,8 +390,9 @@ def diameter(g, weights=False):
     '''
     Returns the pseudo-diameter of the graph.
 
-    @todo: check what happens if some nodes are disconnected (with and
-    without weights)
+    This function returns an approximmation of the graph diameter.
+    It returns infinity if the graph is not connected (strongly connected for
+    directed graphs).
 
     Parameters
     ----------
@@ -407,6 +408,12 @@ def diameter(g, weights=False):
     .. [gt-diameter] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.pseudo_diameter
     '''
     ww = _get_weights(g, weights)
+
+    # first check whether the graph is fully connected
+    cc, hist = connected_components(g)
+
+    if len(hist) > 1:
+        return np.inf
 
     return gtt.pseudo_diameter(g.graph, weights=ww)[0]
 

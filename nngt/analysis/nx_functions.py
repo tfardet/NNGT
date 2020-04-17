@@ -429,7 +429,10 @@ def diameter(g, weights=False):
         raise NotImplementedError("Weighted diameter is not available for "
                                   "networkx backend.")
 
-    return nx.diameter(g.graph)[0]
+    try:
+        return nx.diameter(g.graph)
+    except nx.exception.NetworkXError:
+        return np.inf
 
 
 def adj_mat(g, weights=None):

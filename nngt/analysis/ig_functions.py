@@ -387,6 +387,11 @@ def diameter(g, weights=None):
     '''
     ww = _get_weights(g, weights)
 
+    mode = "strong" if g.is_directed() else "weak"
+
+    if not g.graph.is_connected(mode):
+        return np.inf
+
     return g.graph.diameter(weights=ww)
 
 
