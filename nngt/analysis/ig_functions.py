@@ -348,14 +348,15 @@ def connected_components(g, ctype=None):
     ----------
     .. [ig-connected-components] https://igraph.org/python/doc/igraph.GraphBase-class.html#clusters
     '''
-    ig_type = 2
+    ctype   = "scc" if ctype is None else ctype
+    ig_type = "strong"
 
     if ctype == "wcc":
-        ig_type = 1
+        ig_type = "weak"
     elif ctype != "scc":
         raise ValueError("`ctype` must be either 'scc' or 'wcc'.")
 
-    clusters = g.graph.clusters()
+    clusters = g.graph.clusters(ig_type)
 
     cc = np.zeros(g.node_nb(), dtype=int)
 

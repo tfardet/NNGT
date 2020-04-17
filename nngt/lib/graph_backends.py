@@ -255,8 +255,7 @@ def _set_nngt():
     nngt.analyze_graph["clustering"] = _notimplemented
     nngt.analyze_graph["local_clustering"] = _notimplemented
     nngt.analyze_graph["reciprocity"] = _notimplemented
-    nngt.analyze_graph["scc"] = _notimplemented
-    nngt.analyze_graph["wcc"] = _notimplemented
+    nngt.analyze_graph["connected_components"] = _notimplemented
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
     return True
@@ -267,11 +266,10 @@ def _store_functions(analysis_dict, module):
     analysis_dict["assortativity"] = module.assortativity
     analysis_dict["betweenness"] = module.betweenness
     analysis_dict["closeness"] = module.closeness
+    analysis_dict["connected_components"] = module.connected_components
+    analysis_dict["diameter"] = module.diameter
     analysis_dict["global_clustering"] = module.global_clustering
     analysis_dict["local_clustering"] = module.undirected_local_clustering
-    analysis_dict["scc"] = module.connected_components
-    analysis_dict["wcc"] = module.connected_components
-    analysis_dict["diameter"] = module.diameter
     analysis_dict["reciprocity"] = module.reciprocity
     analysis_dict["adjacency"] = module.adj_mat
     analysis_dict["get_edges"] = module.get_edges

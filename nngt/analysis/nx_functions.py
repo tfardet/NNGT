@@ -377,15 +377,15 @@ def connected_components(g, ctype=None):
 
     References
     ----------
-    .. [nx-scc] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.label_components
-    .. [nx-wcc]
+    .. [nx-scc] 
+    .. [nx-wcc] 
     '''
     res = None
 
     if ctype == "scc":
-        res = strongly_connected_components(g.graph)
+        res = nx.strongly_connected_components(g.graph)
     elif ctype == "wcc":
-        res = weakly_connected_components(g.graph)
+        res = nx.weakly_connected_components(g.graph)
     else:
         raise ValueError("Invalid `ctype`, only 'scc' and 'wcc' are allowed.")
 
@@ -393,7 +393,7 @@ def connected_components(g, ctype=None):
     hist = []
 
     for i, nodes in enumerate(res):
-        cc[nodes] = i
+        cc[list(nodes)] = i
 
         hist.append(len(nodes))
 

@@ -296,7 +296,53 @@ def test_betweenness():
 
         assert np.all(np.isclose(nb, nb_exp_wght))
         assert np.all(np.isclose(eb, eb_exp_wght))
-        
+
+
+def test_components():
+    ''' Check connected components for all backends '''
+    num_nodes = 8
+    edge_list = [(0, 1), (0, 2), (1, 2)]
+
+    for i in range(3, num_nodes - 1):
+        edge_list.append((i, i+1))
+
+    edge_list.append((7, 3))
+
+    for bckd in backends:
+        nngt.set_config("backend", bckd)
+
+        g = nngt.Graph(nodes=num_nodes, directed=True)
+        g.new_edges(edge_list)
+
+        # scc
+        cc, hist = \
+            nngt.analyze_graph["connected_components"](g, ctype="scc")
+
+        idx = np.array([i for i in range(num_nodes)], dtype=int)
+
+        # nodes are assigned to the correct components
+        assert np.all(cc[0] not in cc[1:])        # 3 first are isolated
+        assert np.all(cc[1] not in cc[idx != 1])  # 3 first are isolated
+        assert np.all(cc[2] not in cc[idx != 2])  # 3 first are isolated
+        assert np.all(cc[3:] == cc[3])            # 5 last together
+        # hence counts should be 1, 1, 1, and 5
+        assert hist[cc[0]] == 1
+        assert hist[cc[1]] == 1
+        assert hist[cc[2]] == 1
+        assert hist[cc[5]] == 5
+
+        # wcc
+        cc, hist = \
+            nngt.analyze_graph["connected_components"](g, ctype="wcc")
+
+        print(bckd, "wcc", cc, hist)
+
+        # nodes are assigned to the correct components
+        assert np.all(cc[:3] == cc[0])  # 3 first together
+        assert np.all(cc[3:] == cc[3])  # 5 last together
+        # hence counts should be 3 and 5
+        assert hist[cc[0]] == 3
+        assert hist[cc[5]] == 5
     
 
 if __name__ == "__main__":
@@ -304,4 +350,5 @@ if __name__ == "__main__":
     # ~ test_assortativity()
     # ~ test_reciprocity()
     # ~ test_closeness()
-    test_betweenness()
+    # ~ test_betweenness()
+    test_components()
