@@ -52,7 +52,6 @@ def global_clustering(g, weights=None):
     References
     ----------
     .. [nx-global-clustering] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.transitivity.html
-    .. [nx-average-clustering] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.average_clustering.html
     '''
     w = _get_weights(g, weights)
 
@@ -61,38 +60,6 @@ def global_clustering(g, weights=None):
 
     raise NotImplementedError("Weighted global clustering is not implemented "
                               "for networkx backend.")
-
-
-def local_clustering(g, weights=None, nodes=None):
-    '''
-    Returns the local clustering coefficient of some `nodes`.
-
-    Parameters
-    ----------
-    g : :class:`~nngt.Graph`
-        Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
-    nodes : list, optional (default: all nodes)
-        The list of nodes for which the clutering will be returned
-
-    Returns
-    -------
-    lc : :class:`numpy.ndarray`
-        The list of clustering coefficients, on per node.
-
-    References
-    ----------
-    .. [nx-local-clustering] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.clustering.html
-    '''
-    ww = _get_weights(g, weights)
-
-    lc = nx.clustering(g.graph.to_undirected(as_view=True), nodes=nodes, weight=weights)
-    lc = np.array([lc[i] for i in range(g.node_nb())], dtype=float)
-
-    return lc
 
 
 def undirected_local_clustering(g, weights=None, nodes=None,
@@ -137,7 +104,7 @@ def undirected_local_clustering(g, weights=None, nodes=None,
 
     References
     ----------
-    .. [nx-local-clustering] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.clustering.html
+    .. [nx-local-clustering] :nxdoc:`algorithms.cluster.clustering`
     '''
     ww = _get_weights(g, weights)
 
@@ -173,7 +140,8 @@ def assortativity(g, degree, weights=None):
 
     References
     ----------
-    .. [nx-assortativity] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.assortativity.degree_assortativity_coefficient.html
+    .. [nx-assortativity]
+       :nxdoc:`algorithms.assortativity.degree_assortativity_coefficient`
     '''
     if weights is not None:
         raise NotImplementedError("Weighted assortatibity is not yet "
@@ -205,7 +173,7 @@ def reciprocity(g):
 
     References
     ----------
-    .. [nx-reciprocity] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.reciprocity.overall_reciprocity.html
+    .. [nx-reciprocity] :nxdoc:`algorithms.reciprocity.overall_reciprocity`
     '''
     if not g.is_directed():
         return 1.
@@ -311,7 +279,7 @@ def betweenness(g, btype="both", weights=None):
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    ctype : str, optional (default 'both')
+    btype : str, optional (default 'both')
         The centrality that should be returned (either 'node', 'edge', or
         'both'). By default, both betweenness centralities are computed.
     weights : bool or str, optional (default: binary edges)

@@ -54,56 +54,13 @@ def global_clustering(g, weights=None):
 
     References
     ----------
-    .. [gt-global-clustering] https://graph-tool.skewed.de/static/doc/clustering.html#graph_tool.clustering.global_clustering
+    .. [gt-global-clustering] :gtdoc:`clustering.global_clustering`
     '''
     # use undirected graph view, filter parallel edges
     u = GraphView(g.graph, directed=False)
     u = GraphView(u, efilt=label_parallel_edges(u).fa == 0)
 
     return gtc.global_clustering(u, weight=None)[0]
-
-
-def local_clustering(g, weights=None, nodes=None):
-    '''
-    Returns the undirected local clustering coefficient of some `nodes`.
-
-    Parameters
-    ----------
-    g : :class:`~nngt.Graph`
-        Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
-    nodes : list, optional (default: all nodes)
-        The list of nodes for which the clutering will be returned
-
-    Returns
-    -------
-    lc : :class:`numpy.ndarray`
-        The list of clustering coefficients, on per node.
-
-    References
-    ----------
-    .. [gt-local-clustering] https://graph-tool.skewed.de/static/doc/clustering.html#graph_tool.clustering.local_clustering
-    '''
-    ww = _get_weights(g, weights)
-
-    # store previous value
-    directed = g.is_directed()
-
-    # set graph to undirected and compute clustering
-    g.graph.set_directed(False)
-
-    lc = gtc.local_clustering(g.graph, weight=ww, undirected=True).a
-
-    # switch back to previous value
-    g.graph.set_directed(directed)
-
-    if nodes is None:
-        return lc
-
-    return lc[nodes]
 
 
 def undirected_local_clustering(g, weights=None, nodes=None,
@@ -145,7 +102,7 @@ def undirected_local_clustering(g, weights=None, nodes=None,
 
     References
     ----------
-    .. [gt-local-clustering] https://graph-tool.skewed.de/static/doc/clustering.html#graph_tool.clustering.local_clustering
+    .. [gt-local-clustering] :gtdoc:`clustering.locall_clustering`
     '''
     if weights is not None:
         raise NotImplementedError("graph-tool backend currently does not "
@@ -188,7 +145,7 @@ def assortativity(g, degree, weights=None):
 
     References
     ----------
-    .. [gt-assortativity] https://graph-tool.skewed.de/static/doc/correlations.html#graph_tool.correlations.scalar_assortativity
+    .. [gt-assortativity] :gtdoc:`correlations.scalar_assortativity`
     '''
     ww = _get_weights(g, weights)
 
@@ -224,7 +181,7 @@ def reciprocity(g):
 
     References
     ----------
-    .. [gt-reciprocity] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.edge_reciprocity
+    .. [gt-reciprocity] :gtdoc:`topology.edge_reciprocity`
     '''
     return gtt.edge_reciprocity(g.graph)
 

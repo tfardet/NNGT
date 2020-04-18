@@ -179,7 +179,8 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.napoleon',
-    'linksourcecode'
+    'linksourcecode',
+    'extlinks_fancy',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -511,3 +512,12 @@ intersphinx_mapping = {
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'shapely': ('https://shapely.readthedocs.io/en/latest/', None),
 }
+
+extlinks_fancy = {
+    'doi': (['https://dx.doi.org/{0}'], ['DOI: {0}']),
+    'arxiv': (['https://arxiv.org/abs/{0}'], ['arXiv: {0}']),
+    'gtdoc': (['https://graph-tool.skewed.de/static/doc/{0}.html#graph_tool.{1}'], ['graph-tool - {0}']),
+    'igdoc': (['https://igraph.org/python/doc/igraph.GraphBase-class.html#{0}'], ['igraph - {0}']),
+    'nxdoc': (['https://networkx.github.io/documentation/stable/reference/{0}/generated/networkx.{1}.html'], ['networkx - {0}'])
+}
+

@@ -56,37 +56,6 @@ def global_clustering(g, weights=None):
     return np.array(g.graph.as_undirected().transitivity_undirected())
 
 
-def local_clustering(g, weights=None, nodes=None):
-    '''
-    Returns the local clustering coefficient of some `nodes`.
-
-    Parameters
-    ----------
-    g : :class:`~nngt.Graph`
-        Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
-    nodes : list, optional (default: all nodes)
-        The list of nodes for which the clutering will be returned
-
-    Returns
-    -------
-    lc : :class:`numpy.ndarray`
-        The list of clustering coefficients, on per node.
-
-    References
-    ----------
-    .. [ig-local-clustering] https://igraph.org/python/doc/igraph.GraphBase-class.html#transitivity_local_undirected
-    '''
-    if weights is not None and not isinstance(weights, str):
-        raise ValueError("Only existing attributes can be used as weights.")
-
-    return np.array(g.graph.as_undirected().transitivity_local_undirected(
-        nodes, weights=weights))
-
-
 def undirected_local_clustering(g, weights=None, nodes=None,
                                 combine_weights="sum"):
     '''
@@ -126,7 +95,7 @@ def undirected_local_clustering(g, weights=None, nodes=None,
 
     References
     ----------
-    .. [ig-local-clustering] https://igraph.org/python/doc/igraph.GraphBase-class.html#transitivity_local_undirected
+    .. [ig-local-clustering] :igdoc:`transitivity_local_undirected`
     '''
     if weights is not None and not isinstance(weights, str):
         raise ValueError("Only existing attributes can be used as weights.")
@@ -156,7 +125,7 @@ def assortativity(g, degree, weights=None):
 
     References
     ----------
-    .. [ig-assortativity] https://igraph.org/python/doc/igraph.GraphBase-class.html#assortativity
+    .. [ig-assortativity] :igdoc:`assortativity`
     '''
     ww = _get_weights(g, weights)
 
@@ -183,7 +152,7 @@ def reciprocity(g):
 
     References
     ----------
-    .. [ig-reciprocity] https://igraph.org/python/doc/igraph.GraphBase-class.html#reciprocity
+    .. [ig-reciprocity] :igdoc:`reciprocity`
     '''
     return g.graph.reciprocity(ignore_loops=True, mode="default")
 
