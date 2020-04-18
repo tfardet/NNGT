@@ -240,8 +240,8 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
 
     References
     ----------
-    .. [nx-harmonic] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.harmonic_centrality.html
-    .. [nx-closeness] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.closeness_centrality.html
+    .. [nx-harmonic] :nxdoc:`algorithms.centrality.harmonic_centrality`
+    .. [nx-closeness] :nxdoc:`algorithms.centrality.closeness_centrality`
     '''
     w = _get_weights(g, weights)
 
@@ -296,8 +296,8 @@ def betweenness(g, btype="both", weights=None):
 
     References
     ----------
-    .. [nx-ebetw] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.edge_betweenness_centrality.html#networkx.algorithms.centrality.edge_betweenness_centrality
-    .. [nx-nbetw] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.betweenness_centrality.html#networkx.algorithms.centrality.betweenness_centrality
+    .. [nx-ebetw] :nxdoc:`algorithms.centrality.edge_betweenness_centrality`
+    .. [nx-nbetw] :nxdoc:`networkx.algorithms.centrality.betweenness_centrality`
     '''
     w = _get_weights(g, weights)
 
@@ -323,8 +323,6 @@ def connected_components(g, ctype=None):
     '''
     Returns the connected component to which each node belongs.
 
-    @todo: check if the components are labeled from 0.
-
     Parameters
     ----------
     g : :class:`~nngt.Graph`
@@ -341,8 +339,9 @@ def connected_components(g, ctype=None):
 
     References
     ----------
-    .. [nx-scc] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.components.strongly_connected_components.html#networkx.algorithms.components.strongly_connected_components
-    .. [nx-wcc] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.components.weakly_connected_components.html#networkx.algorithms.components.weakly_connected_components
+    .. [nx-ucc] :nxdoc:`algorithms.components.connected_components`
+    .. [nx-scc] :nxdoc:`algorithms.components.strongly_connected_components`
+    .. [nx-wcc] :nxdoc:`algorithms.components.weakly_connected_components`
     '''
     ctype = "scc" if ctype is None else ctype
     res   = None
@@ -374,6 +373,9 @@ def diameter(g, weights=False):
     It returns infinity if the graph is not connected (strongly connected for
     directed graphs).
 
+    For weighted graphs, uses the Dijkstra algorithm to find all shortests
+    paths and returns the longest.
+
     Parameters
     ----------
     g : :class:`~nngt.Graph`
@@ -385,7 +387,8 @@ def diameter(g, weights=False):
 
     References
     ----------
-    .. [nx-diameter] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.distance_measures.diameter.html
+    .. [nx-diameter] :nxdoc:`algorithms.distance_measures.diameter`
+    .. [nx-dijkstra] :nxdoc:`algorithms.shortest_paths.weighted.all_pairs_dijkstra`
     '''
     w = _get_weights(g, weights)
 
@@ -429,7 +432,7 @@ def adj_mat(g, weights=None):
 
     References
     ----------
-    .. [gt-adjacency] https://graph-tool.skewed.de/static/doc/spectral.html#graph_tool.spectral.adjacency
+    .. [nx-adjacency] :nxdoc:`.convert_matrix.to_scipy_sparse_matrix`
     '''
     w = _get_weights(g, weights)
 

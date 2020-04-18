@@ -805,7 +805,7 @@ class Graph(nngt.core.GraphObject):
         Density of the graph: :math:`\\frac{E}{N^2}`, where `E` is the number
         of edges and `N` the number of nodes.
         '''
-        return self.edge_nb()/float(self.node_nb()**2)
+        return self.edge_nb() / self.node_nb()**2
 
     def is_weighted(self):
         ''' Whether the edges have weights '''
@@ -814,6 +814,22 @@ class Graph(nngt.core.GraphObject):
     def is_directed(self):
         ''' Whether the graph is directed or not '''
         return self._graph.is_directed()
+
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
+
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+
+        References
+        ----------
+        .. [ig-connected] :igdoc:`is_connected`
+        '''
+        return super().is_connected()
 
     def get_degrees(self, deg_type="total", node_list=None, use_weights=False,
                     syn_type="all"):

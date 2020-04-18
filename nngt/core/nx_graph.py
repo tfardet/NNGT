@@ -634,6 +634,28 @@ class _NxGraph(GraphInterface):
         return (np.array(tuple(di_nbetw.values())),
                 np.array(tuple(di_ebetw.values())))
 
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
+
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+        '''
+        g = self._graph
+
+        if g.is_directed() and mode == "weak":
+            g = g.to_undirected(as_view=True)
+
+        try:
+            import networkx as nx
+            nx.diameter(g)
+            return True
+        except nx.exception.NetworkXError:
+            return False
+
     def neighbours(self, node, mode="all"):
         '''
         Return the neighbours of `node`.

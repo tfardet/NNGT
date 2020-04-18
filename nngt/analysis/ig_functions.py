@@ -221,7 +221,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
 
     References
     ----------
-    .. [ig-closeness] https://igraph.org/python/doc/igraph.GraphBase-class.html#closeness
+    .. [ig-closeness] :igdoc:`closeness`
     '''
     if harmonic:
         raise NotImplementedError("`harmonic` closeness is not available with "
@@ -261,8 +261,8 @@ def betweenness(g, btype="both", weights=None):
 
     References
     ----------
-    .. [ig-ebetw] https://igraph.org/python/doc/igraph.GraphBase-class.html#edge_betweenness
-    .. [ig-nbetw] https://igraph.org/python/doc/igraph.GraphBase-class.html#betweenness
+    .. [ig-ebetw] :igdoc:`edge_betweenness`
+    .. [ig-nbetw] :igdoc:`betweenness`
     '''
     w = _get_weights(g, weights)
 
@@ -315,7 +315,7 @@ def connected_components(g, ctype=None):
 
     References
     ----------
-    .. [ig-connected-components] https://igraph.org/python/doc/igraph.GraphBase-class.html#clusters
+    .. [ig-connected-components] :igdoc:`clusters`
     '''
     ctype   = "scc" if ctype is None else ctype
     ig_type = "strong"
@@ -355,7 +355,7 @@ def diameter(g, weights=None):
 
     References
     ----------
-    .. [ig-diameter] https://igraph.org/python/doc/igraph.GraphBase-class.html#diameter
+    .. [ig-diameter] :igdoc:`diameter`
     '''
     ww = _get_weights(g, weights)
 

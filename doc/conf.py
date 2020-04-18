@@ -518,6 +518,6 @@ extlinks_fancy = {
     'arxiv': (['https://arxiv.org/abs/{0}'], ['arXiv: {0}']),
     'gtdoc': (['https://graph-tool.skewed.de/static/doc/{0}.html#graph_tool.{1}'], ['graph-tool - {0}']),
     'igdoc': (['https://igraph.org/python/doc/igraph.GraphBase-class.html#{0}'], ['igraph - {0}']),
-    'nxdoc': (['https://networkx.github.io/documentation/stable/reference/{0}/generated/networkx.{1}.html'], ['networkx - {0}'])
+    'nxdoc': (['https://networkx.github.io/documentation/stable/reference/{0}generated/networkx.{1}.html'], ['networkx - {0}'])
 }
 

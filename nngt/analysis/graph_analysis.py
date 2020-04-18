@@ -31,17 +31,17 @@ from .bayesian_blocks import bayesian_blocks
 __all__ = [
     "adjacency_matrix",
     "assortativity",
+    "betweenness",
     "betweenness_distrib",
     "binning",
 	"closeness",
+	"connected_components",
 	"global_clustering",
     "degree_distrib",
 	"diameter",
     "local_clustering",
     "node_attributes",
 	"num_iedges",
-	"num_scc",
-	"num_wcc",
 	"reciprocity",
 	"spectral_radius",
     "subgraph_centrality",
@@ -173,95 +173,141 @@ def num_iedges(graph):
     return np.sum(graph.get_edge_attributes(name="type") < 0)
 
 
-def num_scc(graph, listing=False):
+def connected_components(g, ctype=None):
     '''
-    Returns the number of strongly connected components (SCCs).
-    SCC are ensembles where all contained nodes can reach any other node in
-    the ensemble using the directed edges.
+    Returns the connected component to which each node belongs.
 
-    See also
-    --------
-    num_wcc
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    ctype : str, optional (default 'scc')
+        Type of component that will be searched: either strongly connected
+        ('scc', by default) or weakly connected ('wcc').
+
+    Returns
+    -------
+    cc, hist : :class:`numpy.ndarray`
+        The component associated to each node (`cc`) and the number of nodes in
+        each of the component (`hist`).
+
+    References
+    ----------
+    .. [gt-cc] :gtdoc:`topology.label_components`
+    .. [ig-cc] :igdoc:`clusters`
+    .. [nx-ucc] :nxdoc:`algorithms.components.connected_components`
+    .. [nx-scc] :nxdoc:`algorithms.components.strongly_connected_components`
+    .. [nx-wcc] :nxdoc:`algorithms.components.weakly_connected_components`
     '''
-    lst_histo = None
-
-    if nngt._config["backend"] == "graph-tool":
-        vprop_comp, lst_histo = nngt.analyze_graph["scc"](graph, directed=True)
-    elif nngt._config["backend"] == "igraph":
-        lst_histo = graph.graph.clusters()
-        lst_histo = [cluster for cluster in lst_histo]
-    else:
-        lst_histo = [comp for comp in nngt.analyze_graph["scc"](graph)]
-
-    if listing:
-        return len(lst_histo), lst_histo
-
-    return len(lst_histo)
+    raise NotImplementedError(_backend_required)
 
 
-def num_wcc(graph, listing=False):
+def diameter(g, weights=False):
     '''
-    Connected components if the directivity of the edges is ignored.
-    (i.e. all edges are considered bidirectional).
+    Returns the diameter of the graph.
 
-    See also
-    --------
-    num_scc
+    It returns infinity if the graph is not connected (strongly connected for
+    directed graphs).
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+
+    Warning
+    -------
+    For graph-tool, the [pseudo-diameter]_ is returned, which may sometime
+    return inexact results.
+
+    References
+    ----------
+    .. [pseudo-diameter] http://en.wikipedia.org/wiki/Distance_%28graph_theory%29
+    .. [dijkstra] E. Dijkstra, "A note on two problems in connexion with
+       graphs." Numerische Mathematik, 1:269-271, 1959.
+    .. [gt-diameter] :gtdoc:`topology.pseudo_diameter`
+    .. [ig-diameter] :igdoc:`diameter`
+    .. [nx-diameter] :nxdoc:`algorithms.distance_measures.diameter`
+    .. [nx-dijkstra] :nxdoc:`algorithms.shortest_paths.weighted.all_pairs_dijkstra`
     '''
-    lst_histo = None
-
-    if nngt._config["backend"] == "graph-tool":
-        _, lst_histo = nngt.analyze_graph["wcc"](graph, directed=False)
-    elif nngt._config["backend"] == "igraph":
-        lst_histo = graph.graph.clusters("WEAK")
-        lst_histo = [cluster for cluster in lst_histo]
-    else:
-        if listing:
-            raise RuntimeError("Not implemented for networkx.")
-        return nngt.analyze_graph["wcc"](graph)
-
-    if listing:
-        return len(lst_histo), lst_histo
-
-    return len(lst_histo)
-
-
-def diameter(graph):
-    '''
-    Pseudo-diameter of the graph
-
-    @todo: weighted diameter
-    '''
-    if nngt._config["backend"] == "igraph":
-        return graph.graph.diameter()
-    elif nngt._config["backend"] == "networkx":
-        return nngt.analyze_graph["diameter"](graph)
-
-    # graph-tool
-    return nngt.analyze_graph["diameter"](graph)[0]
+    raise NotImplementedError(_backend_required)
 
 
 # ------------ #
 # Centralities #
 # ------------ #
 
-def closeness(graph, nodes=None, use_weights=False):
+def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
+              default=np.NaN):
     '''
-    Return the closeness centrality for each node in `nodes`.
+    Returns the closeness centrality of some `nodes`.
+
+    Closeness centrality of a node `u` is defined, for the harmonic version,
+    as the sum of the reciprocal of the shortest path distance :math:`d_{uv}`
+    from `u` to the N - 1 other nodes in the graph (if `mode` is "out",
+    reciprocally :math:`d_{vu}`, the distance to `u` from another node v,
+    if `mode` is "in"):
+
+    .. math::
+
+        C(u) = \frac{1}{N - 1} \sum_{v \neq u} \frac{1}{d_{uv}},
+
+    or, using the arithmetic definition, as the reciprocal of the
+    average shortest path distance to/from `u` over to all other nodes:
+
+    .. math::
+
+        C(u) = \frac{n - 1}{\sum_{v \neq u} d_{uv}},
+
+    where `d_{uv}` is the shortest-path distance from `u` to `v`,
+    and `n` is the number of nodes in the component.
+
+    By definition, the distance is infinite when nodes are not connected by
+    a path in the harmonic case (such that :math:`\frac{1}{d(v, u)} = 0`),
+    while the distance itself is taken as zero for unconnected nodes in the
+    first equation.
 
     Parameters
     ----------
-    graph : :class:`~nngt.Graph` object
+    g : :class:`~nngt.Graph`
         Graph to analyze.
-    nodes : array-like container with node ids, optional (default = all nodes)
-        Nodes for which the local clustering coefficient should be computed.
-    use_weights : bool, optional (default: False)
-        Whether weighted closeness should be used.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+    nodes : list, optional (default: all nodes)
+        The list of nodes for which the clutering will be returned
+    mode : str, optional (default: "out")
+        For directed graphs, whether the distances are computed from ("out") or
+        to ("in") each of the nodes.
+    harmonic : bool, optional (default: False)
+        Whether the arithmetic (default) or the harmonic (recommended) version
+        of the closeness should be used.
+
+    Returns
+    -------
+    c : :class:`numpy.ndarray`
+        The list of closeness centralities, on per node.
+
+    .. warning ::
+        For compatibility reasons (harmonic closeness is not implemented for
+        igraph), the arithmetic version is used by default; however, it is
+        recommended to use the harmonic version instead whenever possible.
+
+    References
+    ----------
+    .. [gt-closeness] :gtdoc:`centrality.closeness`
+    .. [ig-closeness] :igdoc:`closeness`
+    .. [nx-harmonic] :nxdoc:`algorithms.centrality.harmonic_centrality`
+    .. [nx-closeness] :nxdoc:`algorithms.centrality.closeness_centrality`
     '''
     raise NotImplementedError(_backend_required)
 
 
-def betweenness(g, btype="both", weights=None, norm=True):
+def betweenness(g, btype="both", weights=None):
     '''
     Returns the normalized betweenness centrality of the nodes and edges.
 
@@ -286,12 +332,12 @@ def betweenness(g, btype="both", weights=None, norm=True):
 
     References
     ----------
-    .. [betweenness-wikipedia] http://en.wikipedia.org/wiki/Centrality#Betweenness_centrality
-    .. [gt-betw] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.betweenness
-    .. [ig-betw] https://igraph.org/python/doc/igraph.GraphBase-class.html#betweenness
-    .. [ig-edge-betw] https://igraph.org/python/doc/igraph.GraphBase-class.html#edge_betweenness
-    .. [nx-ebetw] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.edge_betweenness_centrality.html#networkx.algorithms.centrality.edge_betweenness_centrality
-    .. [nx-nbetw] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.betweenness_centrality.html#networkx.algorithms.centrality.betweenness_centrality
+    .. [wiki-betw] http://en.wikipedia.org/wiki/Centrality#Betweenness_centrality
+    .. [gt-betw] :gtdoc:`centrality.betweenness`
+    .. [ig-ebetw] :igdoc:`edge_betweenness`
+    .. [ig-nbetw] :igdoc:`betweenness`
+    .. [nx-ebetw] :nxdoc:`algorithms.centrality.edge_betweenness_centrality`
+    .. [nx-nbetw] :nxdoc:`networkx.algorithms.centrality.betweenness_centrality`
     '''
     raise NotImplementedError(_backend_required)
 
@@ -329,7 +375,7 @@ def undirected_local_clustering(g, weights=None, nodes=None,
         * "min": the minimum of the edge attribute values will be used for the
           new edge.
         * "max": the maximum of the edge attribute values will be used for the
-          new edge. 
+          new edge.
 
     Returns
     -------
@@ -359,6 +405,11 @@ def local_clustering(g, weights=None, nodes=None):
         otherwise uses any valid edge attribute required.
     nodes : array-like container with node ids, optional (default = all nodes)
         Nodes for which the local clustering coefficient should be computed.
+
+    Returns
+    -------
+    lc : :class:`numpy.ndarray`
+        The list of clustering coefficients, on per node.
     '''
     if not graph.is_directed():
         return undirected_local_clustering(g, weights=weights, nodes=nodes)
@@ -369,8 +420,17 @@ def local_clustering(g, weights=None, nodes=None):
 
 def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     '''
-    Subgraph centrality, accordign to [Estrada2005], for each node in the
+    Subgraph centrality, accordign to [Estrada2005]_, for each node in the
     graph.
+
+    Defined as:
+
+    .. math::
+
+        sc(i) = e^{W}_{ii}
+
+    where :math:`W` is the (potentially weighted and normalized) adjacency
+    matrix.
 
     Parameters
     ----------
@@ -397,7 +457,7 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     ----------
     .. [Estrada2005] Ernesto Estrada and Juan A. Rodríguez-Velázquez,
     Subgraph centrality in complex networks, PHYSICAL REVIEW E 71, 056103
-    (2005), `available on ArXiv <http://www.arxiv.org/pdf/cond-mat/0504730>`_.
+    (2005), :doi:`10.1103/PhysRevE.71.056103`, :arxiv:`0504730`.
     '''
     adj_mat = graph.adjacency_matrix(types=False, weights=weights).tocsc()
 
@@ -419,7 +479,7 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
 # Spectral properties #
 # ------------------- #
 
-def spectral_radius(graph, typed=True, weighted=True):
+def spectral_radius(graph, typed=True, weights=True):
     '''
     Spectral radius of the graph, defined as the eigenvalue of greatest module.
 
@@ -430,14 +490,15 @@ def spectral_radius(graph, typed=True, weighted=True):
     typed : bool, optional (default: True)
         Whether the excitatory/inhibitory type of the connnections should be
         considered.
-    weighted : bool, optional (default: True)
-        Whether the weights should be taken into account.
+    weights : bool, optional (default: True)
+        Whether weights should be taken into account, defaults to the "weight"
+        edge attribute if present.
 
     Returns
     -------
     the spectral radius as a float.
     '''
-    mat_adj  = graph.adjacency_matrix(types=typed, weights=weighted)
+    mat_adj  = graph.adjacency_matrix(types=typed, weights=weights)
     eigenval = []
 
     try:
@@ -554,6 +615,9 @@ def find_nodes(network, attributes, equal=None, upper_bound=None,
     lower_fraction : optional (default: None)
         Only the nodes that belong to the `lower_fraction` with the lowest
         values for `attributes` are kept.
+    data : :class:`numpy.array` of shape (N, 2), optional (default: None)
+        Potential data on the spike events; if not None, it must contain the
+        sender ids on the first column and the spike times on the second.
 
     Notes
     -----

@@ -245,7 +245,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
 
     References
     ----------
-    .. [gt-closeness] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.closeness
+    .. [gt-closeness] :gtdoc:`centrality.closeness`
     '''
     ww = _get_weights(g, weights)
 
@@ -290,7 +290,7 @@ def betweenness(g, btype="both", weights=None):
 
     References
     ----------
-    .. [gt-betw] https://graph-tool.skewed.de/static/doc/centrality.html#graph_tool.centrality.betweenness
+    .. [gt-betw] :gtdoc:`centrality.betweenness`
     '''
     w = _get_weights(g, weights)
 
@@ -328,7 +328,7 @@ def connected_components(g, ctype=None):
 
     References
     ----------
-    .. [gt-connected-components] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.label_components
+    .. [gt-connected-components] :gtdoc:`topology.label_components`
     '''
     ctype = "scc" if ctype is None else ctype
 
@@ -336,7 +336,7 @@ def connected_components(g, ctype=None):
         raise ValueError("`ctype` must be either 'scc' or 'wcc'.")
 
     directed  = True if ctype == "scc" else False
-    directed *= g.is_directed() 
+    directed *= g.is_directed()
 
     cc, hist = gtt.label_components(g.graph, directed=directed)
 
@@ -362,7 +362,7 @@ def diameter(g, weights=False):
 
     References
     ----------
-    .. [gt-diameter] https://graph-tool.skewed.de/static/doc/topology.html#graph_tool.topology.pseudo_diameter
+    .. [gt-diameter] :gtdoc:`topology.pseudo_diameter`
     '''
     ww = _get_weights(g, weights)
 

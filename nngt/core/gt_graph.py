@@ -640,6 +640,25 @@ class _GtGraph(GraphInterface):
                 else:
                     return np.array([])
 
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
+
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+        '''
+        from graph_tool.topology import label_components
+
+        directed  = True if mode == "strong" else False
+        directed *= self._graph.is_directed()
+
+        _, hist = label_components(self._graph, directed=directed)
+
+        return len(hist) == 1
+
     def neighbours(self, node, mode="all"):
         '''
         Return the neighbours of `node`.

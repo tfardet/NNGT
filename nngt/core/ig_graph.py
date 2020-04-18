@@ -561,6 +561,18 @@ class _IGraph(GraphInterface):
 
         return nbetw, ebetw
 
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
+
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+        '''
+        return self._graph.is_connected(mode)
+
     def neighbours(self, node, mode="all"):
         '''
         Return the neighbours of `node`.

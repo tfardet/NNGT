@@ -28,9 +28,19 @@ def make_link_role(base_urls, prefixes):
         for base_url, prefix in zip(base_urls, prefixes):
             full_url = None
 
-            if typ in ("gtdoc", "nxdoc"):
+            if typ == "gtdoc":
                 # graph-tool documentation formatting
-                module = part.split(".")[0]
+                module   = part.split(".")[0]
+                full_url = base_url.format(module, part)
+            elif typ == "nxdoc":
+                # networkx documentation formatting
+                module   = part.split(".")[0]
+
+                if not module:
+                    part = part[1:]
+                else:
+                    module += "/"
+
                 full_url = base_url.format(module, part)
             else:
                 full_url = base_url.format(part)

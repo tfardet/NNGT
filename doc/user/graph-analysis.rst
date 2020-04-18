@@ -32,32 +32,42 @@ undirected networks, and whether they also work with weighted edges.
 
 For each type of graph, the table tells which libraries are supported for the
 given function (graph-tool is `gt`, networkx is `nx` and igraph is `ig`).
+Custom implementation of a function is denoted by `nngt`, meaning that the
+function can be used even if no graph library is installed.
 A library marked between parentheses denotes partial support and additional
 explanation is usually given in the footnotes.
 A cross means that no consistent implementation is currently provided and
 the function will raise an error if one tries to use it on such graphs.
 
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-|  Method                                            | Unweighted undirected | Unweighted directed | Weighted undirected | Weighted directed |
-+====================================================+=======================+=====================+=====================+===================+
-| :func:`~nngt.analysis.assortativity` [1]_          |      gt, nx, ig       |     gt, nx, ig      |    gt, ig           |    gt, ig         |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.betweenness`                 |      gt, nx, ig       |     gt, nx, ig      |    gt, nx, ig       |    gt, nx, ig     |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.closeness` [2]_              |      gt, nx, (ig)     |     gt, nx, (ig)    |    gt, nx, (ig)     |    gt, nx, (ig)   |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.connected_components`        |      gt, nx, ig       |     gt, nx, ig      |    gt, nx, ig       |    gt, nx, ig     |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.diameter` [3]_               |      gt, nx, ig       |     gt, nx, ig      |    gt, nx, ig       |    gt, nx, ig     |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.global_clustering`           |      gt, nx, ig       |         x           |    x                |    x              |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.local_clustering`            |      gt, nx, ig       |         x           |    x                |    x              |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.reciprocity`                 |      gt, nx, ig       |     gt, nx, ig      |    gt, nx, ig       |    gt, nx, ig     |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
-| :func:`~nngt.analysis.transitivity` [4]_           |      gt, nx, ig       |         x           |    x                |    x              |
-+----------------------------------------------------+-----------------------+---------------------+---------------------+-------------------+
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+|  Method                                            | Unweighted undirected | Unweighted directed | Weighted undirected | Weighted directed  |
++====================================================+=======================+=====================+=====================+====================+
+| :func:`~nngt.analysis.assortativity` [1]_          |    gt, nx, ig         |   gt, nx, ig        |   gt, ig            |   gt, ig           |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.betweenness`                 |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.betweenness_distrib`         |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.closeness` [2]_              |    gt, nx, (ig)       |   gt, nx, (ig)      |   gt, nx, (ig)      |   gt, nx, (ig)     |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.connected_components`        |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.degree_distrib`              |    gt, nx, ig, nngt   |   gt, nx, ig, nngt  |   gt, nx, ig, nngt  |   gt, nx, ig, nngt |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.diameter` [3]_               |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.global_clustering`           |    gt, nx, ig         |   x                 |   x                 |   x                |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.local_clustering`            |    gt, nx, ig         |   x                 |   x                 |   x                |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.reciprocity`                 |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.spectral_radius`             |    nngt               |   nngt              |   nngt              |   nngt             |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.subgraph_centrality`         |    nngt               |   nngt              |   nngt              |   nngt             |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
+| :func:`~nngt.analysis.transitivity` [4]_           |    gt, nx, ig         |   x                 |   x                 |   x                |
++----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 
 
 .. [1] networkx could be used via a workaround but `an issue
@@ -68,7 +78,7 @@ the function will raise an error if one tries to use it on such graphs.
        nodes is zero; it also does not provide an implementation for the
        harmonic closeness.
 .. [3] the implementation of the diameter for graph-tool is approximmate so
-       results may occasionaly differ with this backend.
+       results may occasionaly be inexact with this backend.
 .. [4] identical to ``global_clustering``.
 
 ----
