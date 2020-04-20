@@ -651,8 +651,8 @@ class _NNGTGraph(GraphInterface):
 
         degrees = np.zeros(num_nodes)
 
-        if "weight" in self._eattr and use_weights:
-            adj_mat = self.adjacency_matrix()
+        if use_weights:
+            adj_mat = self.adjacency_matrix(weights=use_weights)
 
             if not self._directed:
                 degrees += adj_mat.sum(axis=1).A1[node_list]
