@@ -78,7 +78,7 @@ install: if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
          fi
 
 script: if [[ "$GL" == "all" ]]; then
-            coverage run -p -m python3 testing/library_compatibility.py;
+            coverage run -p python3 testing/library_compatibility.py;
         else
             coverage run -p -m pytest testing;
             export OMP=4 && coverage run -p -m pytest testing;
