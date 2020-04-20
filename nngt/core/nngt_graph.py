@@ -671,12 +671,6 @@ class _NNGTGraph(GraphInterface):
 
         return degrees
 
-    def betweenness_list(self, btype="both", use_weights=False,
-                         as_prop=False, norm=True):
-        raise NotImplementedError(
-            "NNGT backup graph does not implement betweenness, install a "
-            "graph library to use it.")
-
     def neighbours(self, node, mode="all"):
         '''
         Return the neighbours of `node`.

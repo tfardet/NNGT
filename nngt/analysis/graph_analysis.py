@@ -418,12 +418,12 @@ def local_clustering(g, weights=None, nodes=None):
                               "directed graphs.")
 
 
-def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
+def subgraph_centrality(graph, weights=True, nodes=None,
+                        normalize="max_centrality"):
     '''
-    Subgraph centrality, accordign to [Estrada2005]_, for each node in the
-    graph.
+    Returns the subgraph centrality for each node in the graph.
 
-    Defined as:
+    Defined according to [Estrada2005]_ as:
 
     .. math::
 
@@ -442,11 +442,14 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
         is returned, if `weights` is a string, then the ponderation is the
         correponding value of the edge attribute (e.g. "distance" will return
         an adjacency matrix where each connection is multiplied by its length).
-    normalize : str, optional (default: "max_centrality")
+    nodes : array-like container with node ids, optional (default = all nodes)
+        Nodes for which the subgraph centrality should be returned (all
+        centralities are computed anyway in the algorithm).
+    normalize : str or False, optional (default: "max_centrality")
         Whether the centrality should be normalized. Accepted normalizations
-        are "max_eigenvalue" and "max_centrality"; the first rescales the
-        adjacency matrix by the its largest eigenvalue before taking the
-        exponential, the second sets the maximum centrality to one.
+        are "max_eigenvalue" (the matrix is divided by its largest eigenvalue),
+        "max_centrality" (the largest centrality is one), and ``False`` to get
+        the non-normalized centralities.
 
     Returns
     -------
@@ -457,7 +460,7 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     ----------
     .. [Estrada2005] Ernesto Estrada and Juan A. Rodríguez-Velázquez,
     Subgraph centrality in complex networks, PHYSICAL REVIEW E 71, 056103
-    (2005), :doi:`10.1103/PhysRevE.71.056103`, :arxiv:`0504730`.
+    (2005), :doi:`10.1103/PhysRevE.71.056103`, :arxiv:`cond-mat/0504730`.
     '''
     adj_mat = graph.adjacency_matrix(types=False, weights=weights).tocsc()
 
@@ -469,10 +472,16 @@ def subgraph_centrality(graph, weights=True, normalize="max_centrality"):
     elif normalize == "max_eigenvalue":
         norm, _ = spl.eigs(adj_mat, k=1)
         centralities = spl.expm(adj_mat / norm).diagonal()
+    elif normalize is False:
+        centralities = spl.expm(adj_mat).diagonal()
     else:
         raise InvalidArgument('`normalize` should be either False, "eigenmax",'
                               ' or "centralmax".')
-    return centralities
+
+    if nodes is None:
+        return centralities
+
+    return centralities[nodes]
 
 
 # ------------------- #

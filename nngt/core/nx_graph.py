@@ -605,35 +605,6 @@ class _NxGraph(GraphInterface):
 
         return np.array([d[1] for d in di_deg])
 
-    def betweenness_list(self, btype="both", use_weights=False, **kwargs):
-        g  = self._graph
-        nx = nngt._config["library"]
-
-        di_nbetw, di_ebetw = None, None
-
-        wattr = None
-
-        if use_weights:
-            wattr = "bweight"
-
-            if "bweight" not in self._eattr:
-                w = self.get_weights()
-                w = w.max() - w if use_weights else None
-                self.new_edge_attribute("bweight", "double", values=w)
-
-        if btype in ("both", "node"):
-            di_nbetw = nx.betweenness_centrality(g, weight=wattr)
-        if btype in ("both", "edge"):
-            di_ebetw = nx.edge_betweenness_centrality(g, weight=wattr)
-
-        if btype == "node":
-            return np.array(tuple(di_nbetw.values()))
-        elif btype == "edge":
-            return np.array(tuple(di_ebetw.values()))
-
-        return (np.array(tuple(di_nbetw.values())),
-                np.array(tuple(di_ebetw.values())))
-
     def is_connected(self, mode="strong"):
         '''
         Return whether the graph is connected.

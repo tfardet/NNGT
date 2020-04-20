@@ -525,42 +525,6 @@ class _IGraph(GraphInterface):
         else:
             return np.array(g.degree(node_list, mode=deg_type))
 
-    def betweenness_list(self, btype="both", use_weights=False, norm=True,
-                         **kwargs):
-        g = self._graph
-
-        n = g.vcount()
-        e = g.ecount()
-
-        ncoeff_norm = (n-1)*(n-2)
-        ecoeff_norm = (e-1)*(e-2)/2.
-
-        w, nbetw, ebetw = None, None, None
-
-        if use_weights:
-            if "bweight" in g.es:
-                w = g.es['bweight']
-            else:
-                w  = self.get_weights()
-                w  = np.max(w) - w
-                minw = np.min(w)
-                w += 1e-5*minw if minw > 0 else 1e-5
-
-        if btype in ("both", "node"):
-            nbetw = np.array(g.betweenness(weights=w))
-
-        if btype in ("both", "edge"):
-            ebetw = np.array(g.edge_betweenness(weights=w))
-
-        if btype == "node":
-            return nbetw/ncoeff_norm if norm else nbetw
-        elif btype == "edge":
-            return ebetw/ecoeff_norm if norm else ebetw
-        elif norm:
-            return nbetw/ncoeff_norm, ebetw/ecoeff_norm
-
-        return nbetw, ebetw
-
     def is_connected(self, mode="strong"):
         '''
         Return whether the graph is connected.

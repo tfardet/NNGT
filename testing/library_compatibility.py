@@ -400,6 +400,26 @@ def test_diameter():
             nngt.analyze_graph["diameter"](g, weights="weight"), 2.29)
 
 
+def test_subgraph_centrality():
+    ''' Check subgraph centrality with networkx implementation '''
+    num_nodes  = 5
+    edge_list  = [(0, 1), (0, 2), (0, 3), (1, 3), (2, 3), (2, 4), (3, 4)]
+
+    nngt.set_config("backend", "networkx")
+
+    g = nngt.Graph(num_nodes, directed=False)
+    g.new_edges(edge_list)
+
+    import networkx as nx
+
+    sc_nx = nx.subgraph_centrality(g.graph)
+
+    sc_nngt = nngt.analysis.subgraph_centrality(g, weights=False,
+                                                normalize=False)
+
+    assert np.all(np.isclose(sc_nx, sc_nngt))
+
+
 if __name__ == "__main__":
     test_clustering()
     test_assortativity()
@@ -408,3 +428,4 @@ if __name__ == "__main__":
     test_betweenness()
     test_components()
     test_diameter()
+    test_subgraph_centrality()

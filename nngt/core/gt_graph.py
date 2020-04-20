@@ -608,38 +608,6 @@ class _GtGraph(GraphInterface):
 
         return w*np.array(g.degree_property_map(deg_type).a[node_list])
 
-    def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
-                         norm=True):
-        g = self._graph
-
-        if g.num_edges():
-            w_p = None
-
-            if "weight" in g.edge_properties and use_weights:
-                ws = self.get_weights()
-                self.set_edge_attribute(
-                    BWEIGHT, values=ws.max() - ws, value_type="double")
-                w_p = g.edge_properties[BWEIGHT]
-
-            tpl = nngt.analyze_graph["betweenness"](
-                self, weight=w_p, norm=norm)
-
-            if btype == "node":
-                return tpl[0] if as_prop else np.array(tpl[0].a)
-            elif btype == "edge":
-                return tpl[1] if as_prop else np.array(tpl[1].a)
-            else:
-                return ( np.array(tpl[0], tpl[1]) if as_prop
-                         else np.array(tpl[0].a), np.array(tpl[1].a) )
-        else:
-            if as_prop:
-                return (None, None) if btype == "both" else None
-            else:
-                if btype == "both":
-                    return np.array([]), np.array([])
-                else:
-                    return np.array([])
-
     def is_connected(self, mode="strong"):
         '''
         Return whether the graph is connected.
