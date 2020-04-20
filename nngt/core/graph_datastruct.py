@@ -984,7 +984,8 @@ class NeuralPop(OrderedDict):
             raise AttributeError(
                 "This NeuralPop requires group to have a model attribute that "
                 "is not `None`; to disable this, use `set_model(None)` "
-                "method on this NeuralPop instance.")
+                "method on this NeuralPop instance or set `with_models` to "
+                "False when creating it.")
         elif group.has_model and not self._has_models:
             _log_message(logger, "WARNING",
                          "This NeuralPop is not set to take models into "

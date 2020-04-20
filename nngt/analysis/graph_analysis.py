@@ -162,7 +162,7 @@ def num_iedges(graph):
 
     For :class:`~nngt.Network` objects, this corresponds to the number of edges
     stemming from inhibitory nodes (given by
-    :meth:`~nngt.NeuralPop.inhibitory`).
+    :meth:`nngt.NeuralPop.inhibitory`).
     Otherwise, counts the edges where the type attribute is -1.
     '''
     if graph.is_network():
@@ -170,7 +170,10 @@ def num_iedges(graph):
 
         return np.sum(graph.get_degrees("out", node_list=inhib_nodes))
 
-    return np.sum(graph.get_edge_attributes(name="type") < 0)
+    if "type" in graph.edges_attributes:
+        return np.sum(graph.get_edge_attributes(name="type") < 0)
+
+    return 0.
 
 
 def connected_components(g, ctype=None):
@@ -459,8 +462,8 @@ def subgraph_centrality(graph, weights=True, nodes=None,
     References
     ----------
     .. [Estrada2005] Ernesto Estrada and Juan A. Rodríguez-Velázquez,
-    Subgraph centrality in complex networks, PHYSICAL REVIEW E 71, 056103
-    (2005), :doi:`10.1103/PhysRevE.71.056103`, :arxiv:`cond-mat/0504730`.
+       Subgraph centrality in complex networks, PHYSICAL REVIEW E 71, 056103
+       (2005), :doi:`10.1103/PhysRevE.71.056103`, :arxiv:`cond-mat/0504730`.
     '''
     adj_mat = graph.adjacency_matrix(types=False, weights=weights).tocsc()
 
@@ -521,7 +524,7 @@ def spectral_radius(graph, typed=True, weights=True):
     raise spl.eigen.arpack.ArpackNoConvergence()
 
 
-def adjacency_matrix(graph, types=True, weights=True):
+def adjacency_matrix(graph, types=False, weights=False):
     '''
     Adjacency matrix of the graph.
 
@@ -529,10 +532,10 @@ def adjacency_matrix(graph, types=True, weights=True):
     ----------
     graph : :class:`~nngt.Graph` or subclass
         Network to analyze.
-    types : bool, optional (default: True)
+    types : bool, optional (default: False)
         Whether the excitatory/inhibitory type of the connnections should be
         considered (only if the weighing factor is the synaptic strength).
-    weights : bool or string, optional (default: True)
+    weights : bool or string, optional (default: False)
         Whether weights should be taken into account; if True, then connections
         are weighed by their synaptic strength, if False, then a binary matrix
         is returned, if `weights` is a string, then the ponderation is the
@@ -736,7 +739,7 @@ def degree_distrib(graph, deg_type="total", nodes=None, weights=None,
     deg : :class:`numpy.array`
         bins
     '''
-    degrees = graph.get_degrees(deg_type, node_list, use_weights)
+    degrees = graph.get_degrees(deg_type, nodes, weights)
 
     if num_bins == 'bayes' or is_integer(num_bins):
         num_bins = binning(degrees, bins=num_bins, log=log)

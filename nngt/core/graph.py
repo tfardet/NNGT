@@ -492,7 +492,7 @@ class Graph(nngt.core.GraphObject):
     #-------------------------------------------------------------------------#
     # Getters
 
-    def adjacency_matrix(self, types=True, weights=True):
+    def adjacency_matrix(self, types=False, weights=False):
         '''
         Return the graph adjacency matrix.
 
@@ -503,10 +503,10 @@ class Graph(nngt.core.GraphObject):
 
         Parameters
         ----------
-        types : bool, optional (default: True)
+        types : bool, optional (default: False)
             Wether the edge types should be taken into account (negative values
             for inhibitory connections).
-        weights : bool or string, optional (default: True)
+        weights : bool or string, optional (default: False)
             Whether the adjacecy matrix should be weighted. If True, all
             connections are multiply bythe associated synaptic strength; if
             weight is a string, the connections are scaled bythe corresponding
@@ -518,14 +518,38 @@ class Graph(nngt.core.GraphObject):
             The adjacency matrix of the graph.
         '''
         weights = "weight" if weights is True else weights
-        mat = nngt.analyze_graph["adjacency"](self, weights)
 
-        if types and 'type' in self.nodes_attributes:
-            tarray = np.where(self.nodes_attributes['type'] < 0)[0]
-            if np.any(tarray):
-                mat[tarray] *= -1.
-        elif types and 'type' in self.edges_attributes:
-            raise NotImplementedError
+        mat = None
+
+        if types:
+            if self.is_network():
+                # use inhibitory nodes
+                mat = nngt.analyze_graph["adjacency"](self, weights)
+                inh = self.population.inhibitory
+
+                if np.any(inh):
+                    mat[inh, :] *= -1
+            elif 'type' in self.nodes_attributes:
+                mat = nngt.analyze_graph["adjacency"](self, weights)
+                tarray = np.where(self.nodes_attributes['type'] < 0)[0]
+                if np.any(tarray):
+                    mat[tarray] *= -1
+            elif types and 'type' in self.edges_attributes:
+                data = self.get_edge_attributes(name=weights) \
+                       if weights else np.ones(self.edge_nb())
+
+                data *= self.get_edge_attributes(name="type")
+                    
+                edges     = self.edges_array
+                num_nodes = self.node_nb()
+                mat       = ssp.coo_matrix(
+                    (data, (edges[:, 0], edges[:, 1])),
+                    shape=(num_nodes, num_nodes)).tocsr()
+
+            return mat
+
+        # untyped
+        mat = nngt.analyze_graph["adjacency"](self, weights)
 
         return mat
 
@@ -813,6 +837,9 @@ class Graph(nngt.core.GraphObject):
 
     def is_directed(self):
         ''' Whether the graph is directed or not '''
+        if isinstance(self, nngt.core._NNGTGraph):
+            return self._directed
+
         return self._graph.is_directed()
 
     def is_connected(self, mode="strong"):

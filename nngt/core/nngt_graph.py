@@ -339,6 +339,11 @@ class _NNGTGraph(GraphInterface):
         ''' Whether the graph is directed '''
         return self._directed
 
+    def is_connected(self):
+        raise NotImplementedError("Not available with 'nngt' backend, please "
+                                  "install a graph library (networkx, igraph, "
+                                  "or graph-tool).")
+
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''

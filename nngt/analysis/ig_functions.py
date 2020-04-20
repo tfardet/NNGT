@@ -392,17 +392,22 @@ def adj_mat(g, weights=None):
     '''
     n = g.node_nb()
 
+    w = _get_weights(g, weights)
+
     if g.edge_nb():
         xs, ys = map(np.array, zip(*g.graph.get_edgelist()))
         xs, ys = xs.T, ys.T
 
-        data = np.ones(xs.shape) * _get_weights(g, weights)
+        data = np.ones(xs.shape)
 
-        coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n,n))
+        if w is not None:
+            data *= w
+
+        coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n, n))
 
         return coo_adj.tocsr()
 
-    return ssp.csr_matrix((n,n))
+    return ssp.csr_matrix((n, n))
 
 
 def get_edges(g):

@@ -26,6 +26,7 @@ jobs:
         - env: GL="ig"
         - env: GL="nx"
         - env: GL="nngt"
+        - env: GL="all"
     fast_finish: true
 
 cache:
@@ -33,7 +34,7 @@ cache:
     - pip
 
 before_install:
-    - if [[ "$GL" == "gt" ]]; then
+    - if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
         sudo sh -c 'echo -n "deb http://downloads.skewed.de/apt bionic main\n" >> /etc/apt/sources.list';
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25;
       fi
@@ -46,12 +47,14 @@ before_install:
     - sudo apt-get autoremove
     # requirements for building + installing scipy and igraph
     - sudo apt-get install -y build-essential autoconf automake libtool python-all-dev libblas-dev liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev libgmp-dev
-    - if [[ "$GL" == "ig" ]]; then sudo apt-get install -y libigraph0v5 libigraph0-dev; fi
+    - if [[ "$GL" == "ig" || "$GL" == "all" ]]; then
+        sudo apt-get install -y libigraph0v5 libigraph0-dev;
+      fi
     # install nest (segfaulting)
     # - apt install -y nest
     # setup pip, libraries, and aliases for graph-tool
     - shopt -s expand_aliases
-    - if [[ "$GL" == "gt" ]]; then
+    - if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
         sudo apt-get install -y python3-pip python3-matplotlib python3-tk;
         alias pip3='sudo -H pip3';
       fi    
@@ -61,16 +64,26 @@ before_install:
     - pip3 install --upgrade cython
     - pip3 install --upgrade numpy scipy matplotlib shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
     # install graph-tool, igraph, and networkx
-    - if [[ "$GL" == "gt" ]]; then sudo apt-get install -y python3-graph-tool; fi
-    - if [[ "$GL" == "ig" ]]; then pip3 install python-igraph; fi
-    - if [[ "$GL" == "nx" ]]; then pip3 install networkx; fi
+    - if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
+        sudo apt-get install -y python3-graph-tool;
+      fi
+    - if [[ "$GL" == "ig" || "$GL" == "all" ]]; then
+        pip3 install python-igraph;
+      fi
+    - if [[ "$GL" == "nx" || "$GL" == "all" ]]; then pip3 install networkx; fi
 
-install: if [[ "$GL" == "gt" ]]; then sudo -H python3 setup.py install; else python setup.py install; fi
+install: if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
+            sudo -H python3 setup.py install; else
+            python setup.py install;
+         fi
 
-script:
-    - coverage run -p -m pytest testing
-    - export OMP=4 && coverage run -p -m pytest testing
-    - export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
-    - coverage combine
+script: if [[ "$GL" == "all" ]]; then
+            coverage run -p -m python3 testing/library_compatibility.py;
+        else
+            coverage run -p -m pytest testing;
+            export OMP=4 && coverage run -p -m pytest testing;
+            export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing;
+            coverage combine;
+        fi
 
 after_success: coveralls
