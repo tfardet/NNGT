@@ -215,7 +215,7 @@ def assortativity(graph, deg_type="in"):
     a float quantifying the graph assortativity.
     '''
     if nngt._config["backend"] == "igraph":
-        deg_list = graph.get_degrees(deg_type=deg_type)
+        deg_list = graph.get_degrees(mode=deg_type)
         return graph.graph.assortativity(deg_list,
                                          directed=graph.is_directed())
     elif nngt._config["backend"] == "graph-tool":
@@ -270,7 +270,7 @@ def num_iedges(graph):
     if graph.is_network():
         inhib_nodes = graph.population.inhibitory
 
-        return np.sum(graph.get_degrees("out", node_list=inhib_nodes))
+        return np.sum(graph.get_degrees("out", nodes=inhib_nodes))
 
     return np.sum(graph.get_edge_attributes(name="type") < 0)
 
@@ -652,9 +652,9 @@ def _get_attribute(network, attribute, nodes=None, data=None):
         dtype = attribute[:attribute.index("-")]
         if dtype.startswith("w"):
             return network.get_degrees(
-                dtype[1:], node_list=nodes, use_weights=True, use_types=True)
+                dtype[1:], nodes=nodes, weights=True)
         else:
-            return network.get_degrees(dtype, node_list=nodes)
+            return network.get_degrees(dtype, nodes=nodes)
     elif attribute == "firing_rate":
         return get_firing_rate(network, nodes=nodes, data=data)
     elif attribute == "subgraph_centrality":

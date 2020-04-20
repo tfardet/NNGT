@@ -572,7 +572,7 @@ def _node_size(network, restrict_nodes, nsize):
 
     if "degree" in nsize:
         deg_type = nsize[:nsize.index("-")]
-        size = network.get_degrees(deg_type, node_list=restrict_nodes).astype(float)
+        size = network.get_degrees(deg_type, nodes=restrict_nodes).astype(float)
         if np.isclose(size.min(), 0):
             size[np.isclose(size, 0)] = 0.5
         if size.max() > 15*size.min():
@@ -675,7 +675,7 @@ def _node_color(network, restrict_nodes, ncolor):
             values = None
             if "degree" in ncolor:
                 dtype   = ncolor[:ncolor.find("-")]
-                values = network.get_degrees(dtype, node_list=restrict_nodes)
+                values = network.get_degrees(dtype, nodes=restrict_nodes)
             elif ncolor == "betweenness":
                 if restrict_nodes is None:
                     values = network.get_betweenness("node")

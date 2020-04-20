@@ -306,8 +306,6 @@ class _GtGraph(GraphInterface):
         see :class:`gt.Graph`'s constructor '''
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
-        self._directed = directed
-        self._weighted = weighted
 
         g = copy_graph.graph if copy_graph is not None else None
 
@@ -560,7 +558,7 @@ class _GtGraph(GraphInterface):
             edge_list = np.array(edge_list)
             new_attr = attributes
 
-        if not self._directed:
+        if not self._graph.is_directed():
             recip_edges = edge_list[:,::-1]
             # slow but works
             unique = ~(recip_edges[..., np.newaxis]
@@ -572,7 +570,7 @@ class _GtGraph(GraphInterface):
 
         # create the edges
         if len(edge_list):
-            if not self._directed:
+            if not self._graph.is_directed():
                 recip_edges = edge_list[:,::-1]
                 # slow but works
                 unique = ~(recip_edges[..., np.newaxis]
@@ -604,25 +602,13 @@ class _GtGraph(GraphInterface):
         ''' Number of edges in the graph '''
         return self._graph.num_edges()
 
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
-        w = 1.
+    def get_degrees(self, mode="total", nodes=None, weights=None):
+        w = _get_weights(self, weights)
 
-        if not self._directed:
-            deg_type = "total"
-            w = 0.5
+        if nodes is None:
+            return self._graph.degree_property_map(mode, weight=w).a[nodes]
 
-        if node_list is None:
-            node_list = slice(0, self.node_nb() + 1)
-        else:
-            node_list = list(node_list)
-
-        g = self._graph
-
-        if "weight" in g.edge_properties and use_weights:
-            return w*g.degree_property_map(
-                deg_type, g.edge_properties["weight"]).a[node_list]
-
-        return w*np.array(g.degree_property_map(deg_type).a[node_list])
+        return self._graph.degree_property_map(mode, weight=w).a
 
     def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
                          norm=True):
@@ -710,3 +696,20 @@ class _GtGraph(GraphInterface):
             for key, val in graph.edge_properties.items():
                 super(type(self._eattr), self._eattr).__setitem__(
                     key, _get_dtype(val.a[0]))
+
+
+def _get_weights(g, weights):
+    if weights in g.edges_attributes:
+        # existing edge attribute
+        return g.graph.edge_properties[weights]
+    elif nonstring_container(weights):
+        # user-provided array
+        return g.graph.new_edge_property("double", vals=weights)
+    elif weights is True:
+        # "normal" weights
+        return g.graph.edge_properties['weight']
+    elif not weights:
+        # unweighted
+        return None
+
+    raise ValueError("Unknown edge attribute '" + str(weights) + "'.")

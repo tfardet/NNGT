@@ -47,7 +47,7 @@ def test_weighted_degrees():
 
     assert np.all(g.get_degrees("in") == in_deg)
     assert np.all(
-        g.get_degrees("in", use_weights=True) == np.multiply(ww[0], in_deg))
+        g.get_degrees("in", weights=True) == np.multiply(ww[0], in_deg))
     assert np.all(g.get_degrees("out") == out_deg)
     assert np.all(g.get_degrees("total") == tot_deg)
 
@@ -57,7 +57,7 @@ def test_weighted_degrees():
     assert set(g.get_weights()) == {0.}
     assert set(g.get_edge_attributes(name="weight")) == {0.}
 
-    assert not np.any(g.get_degrees("in", use_weights=True))
+    assert not np.any(g.get_degrees("in", weights=True))
 
     # set two edges to 2.
     elist = [(0, 4), (8, 2)]
@@ -70,9 +70,9 @@ def test_weighted_degrees():
     w_indeg  = [0., 0., 2., 0., 2., 0., 0., 0., 0., 0.]
     w_outdeg = [2., 0., 0., 0., 0., 0., 0., 0., 2., 0.]
 
-    assert np.all(g.get_degrees("in", use_weights=True) == w_indeg)
+    assert np.all(g.get_degrees("in", weights=True) == w_indeg)
 
-    assert np.all(g.get_degrees("out", use_weights=True) == w_outdeg)
+    assert np.all(g.get_degrees("out", weights=True) == w_outdeg)
 
     # check the node and edges
     assert g.node_nb() == 10

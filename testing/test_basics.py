@@ -154,6 +154,48 @@ def test_graph_copy():
     assert g.shape is not copy.shape
 
 
+def test_degrees():
+    '''
+    Check ``Graph.get_degrees`` method.
+    '''
+    edge_list = [(0, 1), (0, 2), (0, 3), (1, 3), (3, 2), (3, 4), (4, 2)]
+    weights   = [0.54881, 0.71518, 0.60276, 0.54488, 0.42365, 0.64589, 0.43758]
+
+    out_degrees = np.array([3, 1, 0, 2, 1])
+    in_degrees  = np.array([0, 1, 3, 2, 1])
+    tot_degrees = in_degrees + out_degrees
+
+    out_strengths = np.array([1.86675, 0.54488, 0, 1.06954, 0.43758])
+    in_strengths  = np.array([0, 0.54881, 1.57641, 1.14764, 0.64589])
+    tot_strengths = in_strengths + out_strengths
+
+    nngt.set_config("backend", "networkx")
+
+    # DIRECTED
+    g = nngt.Graph(5, directed=True)
+    g.new_edges(edge_list, attributes={"weight": weights})
+
+    assert np.all(g.get_degrees(mode="in") == in_degrees)
+    assert np.all(g.get_degrees(mode="out") == out_degrees)
+    assert np.all(g.get_degrees() == tot_degrees)
+
+    assert np.all(np.isclose(g.get_degrees(mode="in", weights=True), in_strengths))
+    assert np.all(np.isclose(g.get_degrees(mode="out", weights=True), out_strengths))
+    assert np.all(np.isclose(g.get_degrees(weights="weight"), tot_strengths))
+
+    # UNDIRECTED
+    # ~ g = nngt.Graph(5, directed=False)
+    # ~ g.new_edges(edge_list, attributes={"weight": weights})
+
+    # ~ assert np.all(g.get_degrees(mode="in") == tot_degrees)
+    # ~ assert np.all(g.get_degrees(mode="out") == tot_degrees)
+    # ~ assert np.all(g.get_degrees() == tot_degrees)
+
+    # ~ assert np.all(np.isclose(g.get_degrees(mode="in", weights=True), tot_strengths))
+    # ~ assert np.all(np.isclose(g.get_degrees(mode="out", weights=True), tot_strengths))
+    # ~ assert np.all(np.isclose(g.get_degrees(weights="weight"), tot_strengths))
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -162,6 +204,7 @@ if __name__ == "__main__":
     test_config()
     test_new_node_attr()
     test_graph_copy()
+    test_degrees()
 
     if not nngt.get_config('mpi'):
         test_node_creation()

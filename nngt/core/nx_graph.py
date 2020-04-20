@@ -277,8 +277,6 @@ class _NxGraph(GraphInterface):
 
     def __init__(self, nodes=0, copy_graph=None, directed=True, weighted=False,
                  **kwargs):
-        self._directed = directed
-        self._weighted = weighted
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
 
@@ -468,7 +466,7 @@ class _NxGraph(GraphInterface):
                 if "_corr" in attr:
                     raise NotImplementedError("Correlated attributes are not "
                                               "available with networkx.")
-            if self._weighted and "weight" not in attributes:
+            if self.is_weighted() and "weight" not in attributes:
                 attributes["weight"] = 1.
 
             g.add_edge(source, target)
@@ -566,7 +564,7 @@ class _NxGraph(GraphInterface):
             arr_edges[:, 2]  = np.arange(initial_edges,
                 initial_edges + num_added)
 
-            if not self._directed:
+            if not self._graph.is_directed():
                 recip_edges = edge_list[:, ::-1]
                 # slow but works
                 unique = ~(recip_edges[..., np.newaxis]
@@ -600,20 +598,24 @@ class _NxGraph(GraphInterface):
         ''' Number of edges in the graph '''
         return self._graph.number_of_edges()
 
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+    def get_degrees(self, mode="total", nodes=None, weights=None):
         g = self._graph
+        w = _get_weights(self, weights)
 
-        weight = 'weight' if use_weights else None
+        nodes  = range(g.number_of_nodes()) if nodes is None else nodes
+        dtype  = int if weights in {False, None} else float
         di_deg = None
 
-        if deg_type == 'total':
-            di_deg = g.degree(node_list, weight=weight)
-        elif deg_type == 'in':
-            di_deg = g.in_degree(node_list, weight=weight)
+        if mode == 'total':
+            di_deg = g.degree(nodes, weight=w)
+        elif mode == 'in':
+            di_deg = g.in_degree(nodes, weight=w)
+        elif mode == 'out':
+            di_deg = g.out_degree(nodes, weight=w)
         else:
-            di_deg = g.out_degree(node_list, weight=weight)
+            raise ValueError("Unknown `mode` '{}'".format(mode))
 
-        return np.array([d[1] for d in di_deg])
+        return np.array([di_deg[i] for i in nodes], dtype=dtype)
 
     def betweenness_list(self, btype="both", use_weights=False, **kwargs):
         g  = self._graph
@@ -702,3 +704,21 @@ class _NxGraph(GraphInterface):
 def _gen_edges(array, edata):
     source, target, eid = edata
     array[eid] = (source, target)
+
+
+def _get_weights(g, weights):
+    if weights in g.edges_attributes:
+        # existing edge attribute
+        return weights
+    elif nonstring_container(weights):
+        # user-provided array
+        return ValueError("networkx backend does not support custom arrays "
+                          "as `weights`.")
+    elif weights is True:
+        # "normal" weights
+        return 'weight'
+    elif not weights:
+        # unweighted
+        return None
+
+    raise ValueError("Unknown attribute '{}' for `weights`.".format(weights))

@@ -36,14 +36,14 @@ def test_fixed():
     ng.connect_neural_types(net, -1, [-1, 1], graph_model="fixed_degree",
                             degree=deg_i, degree_type="out-degree")
 
-    edeg = net.get_degrees("out", node_list=egroup.ids)
-    ideg = net.get_degrees("out", node_list=igroup.ids)
+    edeg = net.get_degrees("out", nodes=egroup.ids)
+    ideg = net.get_degrees("out", nodes=igroup.ids)
 
     assert np.all(edeg == deg_e)
     assert np.all(ideg == deg_i)
 
-    edeg = net.get_degrees("in", node_list=egroup.ids)
-    ideg = net.get_degrees("in", node_list=igroup.ids)
+    edeg = net.get_degrees("in", nodes=egroup.ids)
+    ideg = net.get_degrees("in", nodes=igroup.ids)
 
     avg_deg = (deg_e*egroup.size + deg_i*igroup.size) / pop.size
     std_deg = np.sqrt(avg_deg)
@@ -73,8 +73,8 @@ def test_gaussian():
                       graph_model="gaussian_degree", avg=avg_i, std=std_i,
                       degree_type="out-degree")
 
-    edeg = net.get_degrees("out", node_list=egroup.ids)
-    ideg = net.get_degrees("out", node_list=igroup.ids)
+    edeg = net.get_degrees("out", nodes=egroup.ids)
+    ideg = net.get_degrees("out", nodes=igroup.ids)
 
     # call only on root process (for mpi) and not if using distributed backend
     if nngt.on_master_process() and nngt.get_config("backend") != "nngt":
@@ -93,8 +93,8 @@ def test_gaussian():
             assert avg_e - std_e < np.average(edeg) < avg_e + std_e
             assert avg_i - std_i < np.average(ideg) < avg_i + std_i
 
-    edeg = net.get_degrees("in", node_list=egroup.ids)
-    ideg = net.get_degrees("in", node_list=igroup.ids)
+    edeg = net.get_degrees("in", nodes=egroup.ids)
+    ideg = net.get_degrees("in", nodes=igroup.ids)
 
     avg_deg = (avg_e*egroup.size + avg_i*igroup.size) / pop.size
     std_deg = np.sqrt(avg_deg)

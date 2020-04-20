@@ -48,7 +48,7 @@ def _get_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
     # check the weights
     if "weight" == attribute:
         weights = np.ones(len(elist))
-        if graph._weighted:
+        if graph.is_weighted():
             if prop is None:
                 prop = graph._w
             else:

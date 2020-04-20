@@ -515,16 +515,16 @@ class _IGraph(GraphInterface):
         ''' Number of edges in the graph '''
         return self._graph.ecount()
 
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+    def get_degrees(self, mode="total", nodes=None, weights=None):
         g = self._graph
+        w = _get_weights(self, weights)
     
-        deg_type = 'all' if deg_type == 'total' else deg_type
+        mode = 'all' if mode == 'total' else mode
 
-        if use_weights:
-            return np.array(g.strength(node_list, mode=deg_type,
-                            weights='weight'))
-        else:
-            return np.array(g.degree(node_list, mode=deg_type))
+        if weights not in {False, None}:
+            return np.array(g.strength(nodes, mode=mode, weights=w))
+
+        return np.array(g.degree(nodes, mode=mode), dtype=int)
 
     def betweenness_list(self, btype="both", use_weights=False, norm=True,
                          **kwargs):
@@ -610,3 +610,20 @@ class _IGraph(GraphInterface):
             for key, val in graph.es[0].attributes().items():
                 super(type(self._eattr), self._eattr).__setitem__(
                     key, _get_dtype(val))
+
+
+def _get_weights(g, weights):
+    if weights in g.edges_attributes:
+        # existing edge attribute
+        return np.array(g._graph.es[weights])
+    elif nonstring_container(weights):
+        # user-provided array
+        return np.array(weights)
+    elif weights is True:
+        # "normal" weights
+        return np.array(g._graph.es["weight"])
+    elif not weights:
+        # unweighted
+        return None
+
+    raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
