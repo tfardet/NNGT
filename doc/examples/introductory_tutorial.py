@@ -118,7 +118,7 @@ if nngt.get_config("with_plot"):
     nplt.degree_distribution(g, ('in', 'total'), show=False)
 
 if nngt.get_config("backend") != "nngt":
-    print("Clustering ER: {}".format(na.clustering(g)))
+    print("Clustering ER: {}".format(na.undirected_local_clustering(g)))
 
 # then a scale-free network
 g = ng.random_scale_free(1.8, 3.2, nodes=1000, avg_deg=100)
@@ -128,4 +128,4 @@ if nngt.get_config("with_plot"):
                              logy=True, show=True)
 
 if nngt.get_config("backend") != "nngt":
-    print("Clustering SF: {}".format(na.clustering(g)))
+    print("Clustering SF: {}".format(na.undirected_local_clustering(g)))

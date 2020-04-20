@@ -79,7 +79,7 @@ install: if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
 
 script:
     - if [[ "$GL" == "all" ]]; then
-        coverage run -p testing/library_compatibility.py;
+        coverage run -p -m pytest testing/library_compatibility.py;
       fi
     - if [[ "$GL" != "all" ]]; then
         coverage run -p -m pytest testing;

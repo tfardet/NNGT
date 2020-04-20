@@ -47,7 +47,8 @@ __all__ = [
 	"reciprocity",
 	"spectral_radius",
     "subgraph_centrality",
-    "transitivity"
+    "transitivity",
+    "undirected_local_clustering"
 ]
 
 
