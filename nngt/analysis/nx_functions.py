@@ -51,7 +51,7 @@ def global_clustering(g, weights=None):
 
     References
     ----------
-    .. [nx-global-clustering] https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.transitivity.html
+    .. [nx-global-clustering] :nxdoc:`algorithms.cluster.transitivity`
     '''
     w = _get_weights(g, weights)
 
@@ -183,7 +183,7 @@ def reciprocity(g):
 
 def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
               default=np.NaN):
-    '''
+    r'''
     Returns the closeness centrality of some `nodes`.
 
     Closeness centrality of a node `u` is defined, for the harmonic version,

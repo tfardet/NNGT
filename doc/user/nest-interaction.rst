@@ -119,7 +119,7 @@ Since we are using NEST, these properties are:
 * the type of the neurons (``1`` for excitatory or ``-1`` for inhibitory)
 
 .. literalinclude:: ../examples/nest_network.py
-   :lines: 29-68
+   :lines: 29-73
 
 Once this network is created, it can simply be sent to nest through the
 command: ``gids = net.to_nest()``, and the NEST gids are returned.

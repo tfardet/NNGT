@@ -188,7 +188,7 @@ def reciprocity(g):
 
 def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
               default=np.NaN):
-    '''
+    r'''
     Returns the closeness centrality of some `nodes`.
 
     Closeness centrality of a node `u` is defined, for the harmonic version,

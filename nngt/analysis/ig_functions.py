@@ -44,7 +44,7 @@ def global_clustering(g, weights=None):
 
     References
     ----------
-    .. [ig-global-clustering] https://igraph.org/python/doc/igraph.GraphBase-class.html#transitivity_undirected
+    .. [ig-global-clustering] :igdoc:`transitivity_undirected`
     '''
     ww = _get_weights(g, weights)
 
@@ -159,7 +159,7 @@ def reciprocity(g):
 
 def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
               default=np.NaN):
-    '''
+    r'''
     Returns the closeness centrality of some `nodes`.
 
     Closeness centrality of a node `u` is defined, for the harmonic version,

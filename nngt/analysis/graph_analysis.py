@@ -248,7 +248,7 @@ def diameter(g, weights=False):
 
 def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
               default=np.NaN):
-    '''
+    r'''
     Returns the closeness centrality of some `nodes`.
 
     Closeness centrality of a node `u` is defined, for the harmonic version,
@@ -707,10 +707,6 @@ def degree_distrib(graph, deg_type="total", nodes=None, weights=None,
                    log=False, num_bins='bayes'):
     '''
     Degree distribution of a graph.
-
-    .. versionchanged:: 0.7
-
-    Inclusion of automatic binning.
 
     Parameters
     ----------
