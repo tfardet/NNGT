@@ -77,13 +77,19 @@ install: if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
             python setup.py install;
          fi
 
-script: if [[ "$GL" == "all" ]]; then
-            coverage run -p testing/library_compatibility.py;
-        else
-            coverage run -p -m pytest testing;
-            export OMP=4 && coverage run -p -m pytest testing;
-            export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing;
-            coverage combine;
-        fi
+script:
+    - if [[ "$GL" == "all" ]]; then
+        coverage run -p testing/library_compatibility.py;
+      fi
+    - if [[ "$GL" != "all"]; then
+        coverage run -p -m pytest testing;
+      fi
+    - if [[ "$GL" != "all"]; then
+        export OMP=4 && coverage run -p -m pytest testing;
+      fi
+    - if [[ "$GL" != "all"]; then
+        export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing;
+      fi
+    - coverage combine
 
 after_success: coveralls

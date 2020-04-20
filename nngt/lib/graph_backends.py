@@ -82,9 +82,11 @@ def use_backend(backend, reloading=True, silent=False):
     old_config = nngt.get_config(detailed=True)
     for k in ("graph", "backend", "library"):
         del old_config[k]
+
     # try to switch graph library
     success = False
     error = None
+
     if backend == "graph-tool":
         try:
             success = _set_graph_tool()
@@ -107,24 +109,24 @@ def use_backend(backend, reloading=True, silent=False):
             error = e
     else:
         raise ValueError("Invalid graph library requested.")
+
     if reloading:
-        reload(sys.modules["nngt"].core.graph_interface)
-        reload(sys.modules["nngt"].core.nngt_graph)
-        reload(sys.modules["nngt"].core.gt_graph)
-        reload(sys.modules["nngt"].core.ig_graph)
-        reload(sys.modules["nngt"].core.nx_graph)
-        reload(sys.modules["nngt"].core)
-        reload(sys.modules["nngt"].generation)
+        reload(sys.modules["nngt"].analysis.graph_analysis)
+        reload(sys.modules["nngt"].analysis)  # must come after  graph_analysis
         reload(sys.modules["nngt"].generation.graph_connectivity)
+        reload(sys.modules["nngt"].generation)
+
         if nngt._config['with_plot']:
             reload(sys.modules["nngt"].plot)
+
         if nngt._config['with_nest']:
             reload(sys.modules["nngt"].simulation)
+
         reload(sys.modules["nngt"].lib)
+        reload(sys.modules["nngt"].core)  # reload first for Graph inheritance
         reload(sys.modules["nngt"].core.graph)
         reload(sys.modules["nngt"].core.spatial_graph)
         reload(sys.modules["nngt"].core.networks)
-        reload(sys.modules["nngt"].analysis)
 
         from nngt.core.graph import Graph
         from nngt.core.spatial_graph import SpatialGraph
@@ -134,8 +136,10 @@ def use_backend(backend, reloading=True, silent=False):
         sys.modules["nngt"].SpatialGraph = SpatialGraph
         sys.modules["nngt"].Network = Network
         sys.modules["nngt"].SpatialNetwork = SpatialNetwork
+
     # restore old config
     nngt.set_config(old_config, silent=True)
+
     # log
     if success:
         if silent:

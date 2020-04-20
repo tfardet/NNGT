@@ -277,7 +277,6 @@ class _NxGraph(GraphInterface):
 
     def __init__(self, nodes=0, copy_graph=None, directed=True, weighted=False,
                  **kwargs):
-        self._weighted = weighted
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
 
@@ -474,7 +473,7 @@ class _NxGraph(GraphInterface):
                 if "_corr" in attr:
                     raise NotImplementedError("Correlated attributes are not "
                                               "available with networkx.")
-            if self._weighted and "weight" not in attributes:
+            if self.is_weighted() and "weight" not in attributes:
                 attributes["weight"] = 1.
 
             g.add_edge(source, target)

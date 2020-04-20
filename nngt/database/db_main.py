@@ -127,10 +127,10 @@ class NNGTdb:
             New NeuralNetwork entry.
         '''
         if network is not None:
-            weighted = network._weighted
+            weighted = network.is_weighted()
             net_prop = {
                 'network_type': network.type,
-                'directed': network._directed,
+                'directed': network.is_directed(),
                 'nodes': network.node_nb(),
                 'edges': network.edge_nb(),
                 'weighted': weighted,

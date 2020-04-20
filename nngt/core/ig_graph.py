@@ -249,8 +249,6 @@ class _IGraph(GraphInterface):
                  **kwargs):
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
-        self._weighted = weighted
-        self._directed = directed
 
         g = copy_graph.graph if copy_graph is not None else None
 

@@ -28,6 +28,8 @@ from .activity_analysis import get_b2, get_firing_rate
 from .bayesian_blocks import bayesian_blocks
 
 
+# implemented function; import from proper backend is done at the bottom
+
 __all__ = [
     "adjacency_matrix",
     "assortativity",
@@ -781,7 +783,7 @@ def betweenness_distrib(graph, weights=None, nodes=None, num_nbins='bayes',
     ebetw : :class:`numpy.array`
         bins for edge betweenness
     '''
-    ia_nbetw, ia_ebetw = betweenness(graph, btype="both", weights=use_weights)
+    ia_nbetw, ia_ebetw = betweenness(graph, btype="both", weights=weights)
 
     if nodes is not None:
         ia_nbetw = ia_nbetw[nodes]
@@ -874,3 +876,17 @@ def _get_attribute(network, attribute, nodes=None, data=None):
         return network.get_node_attributes(nodes=nodes, name=attribute)
 
     raise RuntimeError("Attribute '{}' is not available.".format(attribute))
+
+
+# ------------------------------------ #
+# Importing backend-specific functions #
+# ------------------------------------ #
+
+if nngt._config["backend"] == "networkx":
+    from .nx_functions import *
+
+if nngt._config["backend"] == "igraph":
+    from .ig_functions import *
+
+if nngt._config["backend"] == "graph-tool":
+    from .gt_functions import *

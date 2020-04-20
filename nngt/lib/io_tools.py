@@ -398,7 +398,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         attributes = [a for a in graph.edges_attributes if a != "bweight"]
     nattributes = [a for a in graph.nodes_attributes]
     additional_notif = {
-        "directed": graph._directed,
+        "directed": graph.is_directed(),
         "node_attributes": nattributes,
         "node_attr_types": [
             graph.get_attribute_type(nattr, "node") for nattr in nattributes
