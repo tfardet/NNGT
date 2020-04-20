@@ -413,6 +413,7 @@ def test_subgraph_centrality():
     import networkx as nx
 
     sc_nx = nx.subgraph_centrality(g.graph)
+    sc_nx = [sc_nx[i] for i in range(num_nodes)]
 
     sc_nngt = nngt.analysis.subgraph_centrality(g, weights=False,
                                                 normalize=False)
