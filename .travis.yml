@@ -81,13 +81,13 @@ script:
     - if [[ "$GL" == "all" ]]; then
         coverage run -p testing/library_compatibility.py;
       fi
-    - if [[ "$GL" != "all"]; then
+    - if [[ "$GL" != "all"]]; then
         coverage run -p -m pytest testing;
       fi
-    - if [[ "$GL" != "all"]; then
+    - if [[ "$GL" != "all"]]; then
         export OMP=4 && coverage run -p -m pytest testing;
       fi
-    - if [[ "$GL" != "all"]; then
+    - if [[ "$GL" != "all"]]; then
         export OMP=1 && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing;
       fi
     - coverage combine
