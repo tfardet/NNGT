@@ -306,15 +306,22 @@ class _GtGraph(GraphInterface):
         see :class:`gt.Graph`'s constructor '''
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
-        self._directed = directed
         self._weighted = weighted
 
         g = copy_graph.graph if copy_graph is not None else None
 
         if g is not None:
+            from graph_tool.stats import remove_parallel_edges
+            if not directed and g.is_directed():
+                g = g.copy()
+                g.set_directed(False)
+                remove_parallel_edges(g)
+            elif directed and not g.is_directed():
+                g.set_directed(True)
+
             self._from_library_graph(g, copy=True)
         else:
-            self._graph = nngt._config["graph"](directed=True)
+            self._graph = nngt._config["graph"](directed=directed)
 
             if nodes:
                 self._graph.add_vertex(nodes)
@@ -485,10 +492,6 @@ class _GtGraph(GraphInterface):
             g.add_edge(source, target, add_missing=True)
             # set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
-            if not self._directed:
-                c2 = g.add_edge(target, source)
-                # set the attributes
-                self._attr_new_edges([(target, source)], attributes=attributes)
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
@@ -560,27 +563,8 @@ class _GtGraph(GraphInterface):
             edge_list = np.array(edge_list)
             new_attr = attributes
 
-        if not self._directed:
-            recip_edges = edge_list[:,::-1]
-            # slow but works
-            unique = ~(recip_edges[..., np.newaxis]
-                       == edge_list[..., np.newaxis].T).all(1).any(1)
-            edge_list = np.concatenate((edge_list, recip_edges[unique]))
-
-            for key, val in new_attr.items():
-                new_attr[key] = np.concatenate((val, val[unique]))
-
         # create the edges
         if len(edge_list):
-            if not self._directed:
-                recip_edges = edge_list[:,::-1]
-                # slow but works
-                unique = ~(recip_edges[..., np.newaxis]
-                           == edge_list[..., np.newaxis].T).all(1).any(1)
-                edge_list = np.concatenate((edge_list, recip_edges[unique]))
-                for key, val in new_attr.items():
-                    new_attr[key] = np.concatenate((val, val[unique]))
-
             self._graph.add_edge_list(edge_list)
 
             # call parent function to set the attributes
@@ -607,7 +591,7 @@ class _GtGraph(GraphInterface):
     def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         w = 1.
 
-        if not self._directed:
+        if not self._graph.is_directed():
             deg_type = "total"
             w = 0.5
 
@@ -624,37 +608,24 @@ class _GtGraph(GraphInterface):
 
         return w*np.array(g.degree_property_map(deg_type).a[node_list])
 
-    def betweenness_list(self, btype="both", use_weights=False, as_prop=False,
-                         norm=True):
-        g = self._graph
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
 
-        if g.num_edges():
-            w_p = None
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+        '''
+        from graph_tool.topology import label_components
 
-            if "weight" in g.edge_properties and use_weights:
-                ws = self.get_weights()
-                self.set_edge_attribute(
-                    BWEIGHT, values=ws.max() - ws, value_type="double")
-                w_p = g.edge_properties[BWEIGHT]
+        directed  = True if mode == "strong" else False
+        directed *= self._graph.is_directed()
 
-            tpl = nngt.analyze_graph["betweenness"](
-                self, weight=w_p, norm=norm)
+        _, hist = label_components(self._graph, directed=directed)
 
-            if btype == "node":
-                return tpl[0] if as_prop else np.array(tpl[0].a)
-            elif btype == "edge":
-                return tpl[1] if as_prop else np.array(tpl[1].a)
-            else:
-                return ( np.array(tpl[0], tpl[1]) if as_prop
-                         else np.array(tpl[0].a), np.array(tpl[1].a) )
-        else:
-            if as_prop:
-                return (None, None) if btype == "both" else None
-            else:
-                if btype == "both":
-                    return np.array([]), np.array([])
-                else:
-                    return np.array([])
+        return len(hist) == 1
 
     def neighbours(self, node, mode="all"):
         '''

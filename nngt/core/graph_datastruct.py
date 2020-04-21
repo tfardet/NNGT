@@ -672,11 +672,11 @@ class NeuralPop(OrderedDict):
 
         neuron_param = {} if neuron_param is None else neuron_param.copy()
 
-        group        = NeuralGroup(neurons, neuron_type=neuron_type,
-                                   neuron_model=neuron_model,
-                                   neuron_param=neuron_param, name=name)
+        group = NeuralGroup(neurons, neuron_type=neuron_type,
+                            neuron_model=neuron_model,
+                            neuron_param=neuron_param, name=name)
 
-        self[name]   = group
+        self[name] = group
 
     def create_meta_group(self, neurons, name, neuron_param=None,
                           replace=False):
@@ -984,7 +984,8 @@ class NeuralPop(OrderedDict):
             raise AttributeError(
                 "This NeuralPop requires group to have a model attribute that "
                 "is not `None`; to disable this, use `set_model(None)` "
-                "method on this NeuralPop instance.")
+                "method on this NeuralPop instance or set `with_models` to "
+                "False when creating it.")
         elif group.has_model and not self._has_models:
             _log_message(logger, "WARNING",
                          "This NeuralPop is not set to take models into "
@@ -1054,12 +1055,6 @@ class NeuralGroup:
             neuron_type = kwargs["neuron_type"]
         elif len(args) > 1 and is_integer(args[1]):
             neuron_type = arg[1]
-        elif cls == NeuralGroup:
-            neuron_type = 1
-            _log_message(logger, "WARNING",
-                "In version 2.0, default behavior for NeuralGroup will "
-                "change: if `neuron_type` is not provided then it will "
-                "be set to None and a MetaGroup will be generated.")
 
         if neuron_type is None:
             # will need to remove all but nodes and name from args

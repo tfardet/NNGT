@@ -95,7 +95,6 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         attributes=attributes, notifier=notifier, ignore=ignore)
 
 
-@graph_tool_check('2.22')
 def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                    attributes=None, notifier="@", ignore="#"):
     '''
@@ -165,8 +164,10 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     lst_lines = lst_lines[::-1][:-len(di_notif)]
     while not lst_lines[-1] or lst_lines[-1].startswith(ignore):
         lst_lines.pop()
+
     # get nodes attributes
     di_nattributes  = _get_node_attr(di_notif, separator)
+
     # make edges and attributes
     edges           = []
     eattributes     = (di_notif["edge_attributes"] if attributes is None
@@ -222,6 +223,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             _log_message(logger, "WARNING",
                          'A Shape object was present in the file but could '
                          'not be loaded because Shapely is not installed.')
+
     # check whether a population is present
     if 'population' in di_notif:
         str_enc = di_notif['population'].replace('~', '\n').encode()
@@ -230,6 +232,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             pop = pickle.loads(str_dec)
         except UnicodeError:
             pop = pickle.loads(str_dec, encoding="latin1")
+
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
         y = np.fromstring(di_notif['y'], sep=separator)
@@ -398,7 +401,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         attributes = [a for a in graph.edges_attributes if a != "bweight"]
     nattributes = [a for a in graph.nodes_attributes]
     additional_notif = {
-        "directed": graph._directed,
+        "directed": graph.is_directed(),
         "node_attributes": nattributes,
         "node_attr_types": [
             graph.get_attribute_type(nattr, "node") for nattr in nattributes

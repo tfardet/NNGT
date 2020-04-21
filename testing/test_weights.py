@@ -80,5 +80,6 @@ def test_weighted_degrees():
 
 
 if __name__ == "__main__":
+    nngt.set_config("backend", "nngt")
     test_set_weights()
     test_weighted_degrees()

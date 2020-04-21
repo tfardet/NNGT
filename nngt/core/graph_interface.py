@@ -142,11 +142,7 @@ class GraphInterface:
         pass
 
     @abstractmethod
-    def degree_list(self, node_list=None, deg_type="total", use_weights=True):
-        pass
-
-    @abstractmethod
-    def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
+    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
         pass
 
     @abstractmethod

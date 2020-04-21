@@ -34,8 +34,8 @@ Make the population
 '''
 
 # two groups of neurons
-g1 = nngt.NeuralGroup(500)  # neurons 0 to 499
-g2 = nngt.NeuralGroup(500)  # neurons 500 to 999
+g1 = nngt.NeuralGroup(500, neuron_type=1)  # neurons 0 to 499
+g2 = nngt.NeuralGroup(500, neuron_type=1)  # neurons 500 to 999
 
 # make population (without NEST models)
 pop = nngt.NeuralPop.from_groups(
@@ -75,10 +75,10 @@ if nngt.get_config("with_plot"):
 
     if nngt.get_config("backend") == "graph-tool":
         from graph_tool.draw import graph_draw, prop_to_size, sfdp_layout
-        pm = net.new_vertex_property("int", colors)
-        size = net.new_vertex_property("double", val=5.)
-        pos = sfdp_layout(net, groups=pm, C=1., K=20, gamma=5, mu=20)
-        graph_draw(net, pos=pos, vertex_fill_color=pm, vertex_color=pm,
+        pm = net.graph.new_vertex_property("int", colors)
+        size = net.graph.new_vertex_property("double", val=5.)
+        pos = sfdp_layout(net.graph, groups=pm, C=1., K=20, gamma=5, mu=20)
+        graph_draw(net.graph, pos=pos, vertex_fill_color=pm, vertex_color=pm,
                    vertex_size=size, nodesfirst=True,
                    edge_color=[0.179, 0.203,0.210, 0.3])
     elif nngt.get_config("backend") == "networkx":
@@ -87,13 +87,14 @@ if nngt.get_config("with_plot"):
         init_pos = {i: np.random.uniform(-1000., -900, 2) for i in range(500)}
         init_pos.update(
             {i: np.random.uniform(900., 1000, 2) for i in range(500, 1000)})
-        layout = nx.spring_layout(net, k=20, pos=init_pos)
+        layout = nx.spring_layout(net.graph, k=20, pos=init_pos)
         nx.draw(net, pos=layout, node_color=colors, node_size=20)
     elif nngt.get_config("backend") == "igraph":
         import igraph as ig
         colors = [(1, 0, 0) for _ in range(500)]
         colors.extend([(0, 0, 1) for _ in range(500)])
-        ig.plot(net, vertex_color=colors, vertex_size=5, edge_arrow_size=0.5)
+        ig.plot(net.graph, vertex_color=colors, vertex_size=5,
+                edge_arrow_size=0.5)
     else:
         nngt.plot.draw_network(net)
 

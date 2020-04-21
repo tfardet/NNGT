@@ -85,5 +85,5 @@ if nngt.get_config('with_nest'):
 
     if nngt.get_config('with_plot'):
         ns.plot_activity(
-            recorder, record, network=net, show=True, hist=False,
+            recorder, record, network=net, show=True, histogram=False,
             limits=(0, simtime))
