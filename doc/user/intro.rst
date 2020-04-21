@@ -10,9 +10,12 @@ Yet another graph library?
 It is not ;)
 
 This library is based on existing graph libraries (such as
-graph_tool_, igraph_, networkx_, and possibly soon
+`graph-tool`_, igraph_, networkx_, and possibly soon
 `SNAP <http://snap.stanford.edu/snap/>`_) and acts as a convenient interface to
 build various networks from efficient and verified algorithms.
+Most importantly, it provides a series of analysis functions that are
+guaranteed to provide the same results with all backends, enabling fully
+portable codes (see :ref:`graph-analysis`).
 
 Moreover, it also acts as an interface between those graph libraries and the
 NEST_ and DeNSE_ simulators.
@@ -67,16 +70,8 @@ class of the chosen graph library (:class:`gt.Graph`,
   properties (to interact with NEST)
 
 Using these objects, the user can access to the topological structure of the
-network (including the connections' type -- inhibitory or excitatory -- and its
-weight, which is always positive)
-
-.. warning ::
-  This object should never be directly modified through the initial library's
-  methods but always using those of NNGT. If, for some reason, you should
-  directly use the methods from the graph library on the object, make sure they
-  do not modify its structure; any modification performed from a method other
-  than those of :class:`~nngt.Graph` subclasses will lead to undefined
-  behaviour!
+network (for neuroscience, this includes the connections' type -- inhibitory or
+excitatory -- and its synaptic weight, which is always positive)
 
 
 Additional properties
@@ -113,13 +108,13 @@ procedures are detailed in the documentation.
 Known bugs
 ----------
 
-* Graph I/O confirmed not working with `graph_tool <= 2.19` when using
-  edge attributes. Confirmed working with `graph_tool >= 2.22`.
-* Plotting :class:`SpatialGraph` with `networkx` does not work.
+* erratic key release issue with animation of spiking networks,
+* see `the issue tracker <https://github.com/Silmathoron/NNGT/issues>`_ for an
+  updated list.
 
 
 .. _DeNSE: https://dense.readthedocs.io
-.. _graph_tool: http://graph-tool.skewed.de
+.. _`graph-tool`: http://graph-tool.skewed.de
 .. _igraph: http://igraph.org/
 .. _NEST: http://www.nest-simulator.org/
 .. _networkx: https://networkx.github.io/

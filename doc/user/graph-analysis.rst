@@ -12,16 +12,10 @@ supported methods.
 
 .. note::
     It is of course possible to use any function from the library on the
-    :attribute:`~nngt.Graph.graph` attribute; however, not using one of the
+    :py:attr:`~nngt.Graph.graph` attribute; however, not using one of the
     supported NNGT functions below will usually return results that are not
     consistent between libraries (and the code will obviously no longer be
     portable).
-
-
-**Content:**
-
-.. contents::
-   :local:
 
 
 Supported functions
@@ -29,6 +23,9 @@ Supported functions
 
 The following table details which functions are supported for directed and
 undirected networks, and whether they also work with weighted edges.
+
+The test file where these functions are checked can be found here:
+:source:`testing/library_compatibility.py`.
 
 For each type of graph, the table tells which libraries are supported for the
 given function (graph-tool is `gt`, networkx is `nx` and igraph is `ig`).

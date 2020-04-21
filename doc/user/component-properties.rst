@@ -179,6 +179,8 @@ through smilar functions as node attributes:
    :lines: 84-89,157-184
 
 
+.. _distributions:
+
 Attributes and distributions
 ============================
 

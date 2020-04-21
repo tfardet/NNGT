@@ -407,6 +407,17 @@ class Graph(nngt.core.GraphObject):
 
     @property
     def graph(self):
+        '''
+        Returns the underlying library object.
+
+        .. warning ::
+            Do not add or remove edges directly through this object.
+
+        See also
+        --------
+        :ref:`graph_attr`
+        :ref:`graph-analysis`.
+        '''
         return self._graph
 
     @property
@@ -878,7 +889,7 @@ class Graph(nngt.core.GraphObject):
             Restrict to a given synaptic type ("excitatory", 1, or
             "inhibitory", -1), using either the "type" edge attribute for
             non-:class:`~nngt.Network` or the
-            :py:attribute:`~nngt.NeuralPop.inhibitory` nodes.
+            :py:attr:`~nngt.NeuralPop.inhibitory` nodes.
 
         Returns
         -------

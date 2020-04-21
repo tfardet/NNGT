@@ -121,3 +121,7 @@ dl.citation dt.label {
     margin-right: 5px;
     color: #000000;
 }
+
+.admonition a {
+    color: #555555;
+}
