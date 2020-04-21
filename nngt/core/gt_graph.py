@@ -590,10 +590,14 @@ class _GtGraph(GraphInterface):
     def get_degrees(self, mode="total", nodes=None, weights=None):
         w = _get_gt_weights(self, weights)
 
-        if nodes is None:
-            return self._graph.degree_property_map(mode, weight=w).a[nodes]
+        if not self._graph.is_directed():
+            mode = "total"
 
-        return self._graph.degree_property_map(mode, weight=w).a
+        if nodes is not None:
+            return self._graph.degree_property_map(
+                mode, weight=w).a[nodes]
+
+        return self._graph.degree_property_map(mode, weight=w).a.flatten()
 
     def is_connected(self, mode="strong"):
         '''

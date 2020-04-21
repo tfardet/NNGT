@@ -47,7 +47,7 @@ def global_clustering(g, weights=None):
     ----------
     .. [ig-global-clustering] :igdoc:`transitivity_undirected`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_ig_weights(g, weights)
 
     if ww is not None:
         # raise warning
@@ -128,7 +128,7 @@ def assortativity(g, degree, weights=None):
     ----------
     .. [ig-assortativity] :igdoc:`assortativity`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_ig_weights(g, weights)
 
     node_attr = g.get_degrees(degree, use_weights=ww)
 
@@ -232,7 +232,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
         raise RuntimeError("igraph backend does not support closeness for "
                            "graphs containing nodes with zero in/out-degree.")
 
-    ww = _get_weights(g, weights)
+    ww = _get_ig_weights(g, weights)
 
     return g.graph.closeness(nodes, mode=mode, weights=ww)
 
@@ -265,7 +265,7 @@ def betweenness(g, btype="both", weights=None):
     .. [ig-ebetw] :igdoc:`edge_betweenness`
     .. [ig-nbetw] :igdoc:`betweenness`
     '''
-    w = _get_weights(g, weights)
+    w = _get_ig_weights(g, weights)
 
     n  = g.node_nb()
 
@@ -358,7 +358,7 @@ def diameter(g, weights=None):
     ----------
     .. [ig-diameter] :igdoc:`diameter`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_ig_weights(g, weights)
 
     mode = "strong" if g.is_directed() else "weak"
 
@@ -393,7 +393,7 @@ def adj_mat(g, weights=None):
     '''
     n = g.node_nb()
 
-    w = _get_weights(g, weights)
+    w = _get_ig_weights(g, weights)
 
     if g.edge_nb():
         xs, ys = map(np.array, zip(*g.graph.get_edgelist()))
@@ -405,6 +405,9 @@ def adj_mat(g, weights=None):
             data *= w
 
         coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n, n))
+
+        if not g.is_directed():
+            coo_adj += coo_adj.T
 
         return coo_adj.tocsr()
 

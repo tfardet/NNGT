@@ -264,6 +264,8 @@ class Network(Graph):
         self.__class__.__num_networks += 1
         self.__class__.__max_id += 1
 
+        assert directed, "Network class cannot be undirected."
+
         if population is None:
             raise InvalidArgument("Network needs a NeuralPop to be created")
 

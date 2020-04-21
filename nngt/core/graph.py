@@ -539,12 +539,15 @@ class Graph(nngt.core.GraphObject):
                        if weights else np.ones(self.edge_nb())
 
                 data *= self.get_edge_attributes(name="type")
-                    
+
                 edges     = self.edges_array
                 num_nodes = self.node_nb()
                 mat       = ssp.coo_matrix(
                     (data, (edges[:, 0], edges[:, 1])),
                     shape=(num_nodes, num_nodes)).tocsr()
+
+                if not self.is_directed():
+                    mat += mat.T
 
             return mat
 

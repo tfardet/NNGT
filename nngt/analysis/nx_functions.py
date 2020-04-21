@@ -54,7 +54,7 @@ def global_clustering(g, weights=None):
     ----------
     .. [nx-global-clustering] :nxdoc:`algorithms.cluster.transitivity`
     '''
-    w = _get_weights(g, weights)
+    w = _get_nx_weights(g, weights)
 
     if w is None:
         return nx.transitivity(g.graph.to_undirected(as_view=True))
@@ -107,7 +107,7 @@ def undirected_local_clustering(g, weights=None, nodes=None,
     ----------
     .. [nx-local-clustering] :nxdoc:`algorithms.cluster.clustering`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_nx_weights(g, weights)
 
     if g.is_directed() and ww is not None:
         raise NotImplementedError("networkx backend currently does not "
@@ -148,7 +148,7 @@ def assortativity(g, degree, weights=None):
         raise NotImplementedError("Weighted assortatibity is not yet "
                                   "implemented for networkx backend.")
 
-    w = _get_weights(g, weights)
+    w = _get_nx_weights(g, weights)
 
     return nx.degree_assortativity_coefficient(g.graph, x=degree, y=degree,
                                                weight=w)
@@ -244,7 +244,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
     .. [nx-harmonic] :nxdoc:`algorithms.centrality.harmonic_centrality`
     .. [nx-closeness] :nxdoc:`algorithms.centrality.closeness_centrality`
     '''
-    w = _get_weights(g, weights)
+    w = _get_nx_weights(g, weights)
 
     graph = g.graph
 
@@ -300,7 +300,7 @@ def betweenness(g, btype="both", weights=None):
     .. [nx-ebetw] :nxdoc:`algorithms.centrality.edge_betweenness_centrality`
     .. [nx-nbetw] :nxdoc:`networkx.algorithms.centrality.betweenness_centrality`
     '''
-    w = _get_weights(g, weights)
+    w = _get_nx_weights(g, weights)
 
     nb, eb = None, None
 
@@ -391,7 +391,7 @@ def diameter(g, weights=False):
     .. [nx-diameter] :nxdoc:`algorithms.distance_measures.diameter`
     .. [nx-dijkstra] :nxdoc:`algorithms.shortest_paths.weighted.all_pairs_dijkstra`
     '''
-    w = _get_weights(g, weights)
+    w = _get_nx_weights(g, weights)
 
     num_nodes = g.node_nb()
 
@@ -435,7 +435,7 @@ def adj_mat(g, weights=None):
     ----------
     .. [nx-adjacency] :nxdoc:`.convert_matrix.to_scipy_sparse_matrix`
     '''
-    w = _get_weights(g, weights)
+    w = _get_nx_weights(g, weights)
 
     return nx.to_scipy_sparse_matrix(g.graph, weight=w)
 

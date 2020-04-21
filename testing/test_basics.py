@@ -169,8 +169,6 @@ def test_degrees():
     in_strengths  = np.array([0, 0.54881, 1.57641, 1.14764, 0.64589])
     tot_strengths = in_strengths + out_strengths
 
-    nngt.set_config("backend", "networkx")
-
     # DIRECTED
     g = nngt.Graph(5, directed=True)
     g.new_edges(edge_list, attributes={"weight": weights})
@@ -184,20 +182,20 @@ def test_degrees():
     assert np.all(np.isclose(g.get_degrees(weights="weight"), tot_strengths))
 
     # UNDIRECTED
-    # ~ g = nngt.Graph(5, directed=False)
-    # ~ g.new_edges(edge_list, attributes={"weight": weights})
+    g = nngt.Graph(5, directed=False)
+    g.new_edges(edge_list, attributes={"weight": weights})
 
-    # ~ assert np.all(g.get_degrees(mode="in") == tot_degrees)
-    # ~ assert np.all(g.get_degrees(mode="out") == tot_degrees)
-    # ~ assert np.all(g.get_degrees() == tot_degrees)
+    assert np.all(g.get_degrees(mode="in") == tot_degrees)
+    assert np.all(g.get_degrees(mode="out") == tot_degrees)
+    assert np.all(g.get_degrees() == tot_degrees)
 
-    # ~ assert np.all(np.isclose(g.get_degrees(mode="in", weights=True), tot_strengths))
-    # ~ assert np.all(np.isclose(g.get_degrees(mode="out", weights=True), tot_strengths))
-    # ~ assert np.all(np.isclose(g.get_degrees(weights="weight"), tot_strengths))
+    assert np.all(np.isclose(g.get_degrees(mode="in", weights=True), tot_strengths))
+    assert np.all(np.isclose(g.get_degrees(mode="out", weights=True), tot_strengths))
+    assert np.all(np.isclose(g.get_degrees(weights="weight"), tot_strengths))
 
 
-def test_adjacency():
-    ''' Check adjacency matrix '''
+def test_directed_adjacency():
+    ''' Check directed adjacency matrix '''
     num_nodes = 5
     edge_list = [(0, 1), (0, 3), (1, 3), (2, 0), (3, 2), (3, 4), (4, 2)]
     weights   = [0.54881, 0.71518, 0.60276, 0.54488, 0.42365, 0.64589, 0.43758]
@@ -297,12 +295,70 @@ def test_adjacency():
         g.adjacency_matrix(types=True, weights=True).todense(), wt_mat))
 
 
+def test_undirected_adjacency():
+    ''' Check undirected adjacency matrix '''
+    num_nodes = 5
+    edge_list = [(0, 1), (0, 3), (1, 3), (2, 0), (3, 2), (3, 4), (4, 2)]
+    weights   = [0.54881, 0.71518, 0.60276, 0.54488, 0.42365, 0.64589, 0.43758]
+    etypes    = [-1, 1, 1, -1, -1, 1, 1]
+
+    g = nngt.Graph(num_nodes, directed=False)
+    g.new_edges(edge_list, attributes={"weight": weights})
+    g.new_edge_attribute("type", "int", values=etypes)
+
+    adj_mat = np.array([
+        [0, 1, 1, 1, 0],
+        [1, 0, 0, 1, 0],
+        [1, 0, 0, 1, 1],
+        [1, 1, 1, 0, 1],
+        [0, 0, 1, 1, 0]
+    ])
+
+    assert np.all(np.isclose(g.adjacency_matrix(weights=False).todense(),
+                             adj_mat))
+
+    w_mat = np.array([
+        [0,       0.54881, 0.54488, 0.71518, 0      ],
+        [0.54881, 0,       0,       0.60276, 0      ],
+        [0.54488, 0,       0,       0.42365, 0.43758],
+        [0.71518, 0.60276, 0.42365, 0,       0.64589],
+        [0,       0,       0.43758, 0.64589, 0      ]
+    ])
+
+    assert np.all(np.isclose(g.adjacency_matrix(weights=True).todense(),
+                             w_mat))
+
+    # for typed edges
+    tpd_mat = np.array([
+        [ 0, -1, -1,  1, 0],
+        [-1,  0,  0,  1, 0],
+        [-1,  0,  0, -1, 1],
+        [ 1,  1, -1,  0, 1],
+        [ 0,  0,  1,  1, 0]
+    ])
+
+    assert np.all(np.isclose(g.adjacency_matrix(types=True).todense(),
+                             tpd_mat))
+
+    wt_mat = np.array([
+        [ 0,       -0.54881, -0.54488,  0.71518, 0      ],
+        [-0.54881,  0,        0,        0.60276, 0      ],
+        [-0.54488,  0,        0,       -0.42365, 0.43758],
+        [ 0.71518,  0.60276, -0.42365,  0,       0.64589],
+        [ 0,        0,        0.43758,  0.64589, 0      ]
+    ])
+
+    assert np.all(np.isclose(
+        g.adjacency_matrix(types=True, weights=True).todense(), wt_mat))
+
+
 # ---------- #
 # Test suite #
 # ---------- #
 
 if __name__ == "__main__":
-    test_adjacency()
+    test_directed_adjacency()
+    test_undirected_adjacency()
     test_config()
     test_new_node_attr()
     test_graph_copy()

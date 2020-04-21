@@ -597,7 +597,7 @@ class _NxGraph(GraphInterface):
         dtype  = int if weights in {False, None} else float
         di_deg = None
 
-        if mode == 'total':
+        if mode == 'total' or not self._graph.is_directed():
             di_deg = g.degree(nodes, weight=w)
         elif mode == 'in':
             di_deg = g.in_degree(nodes, weight=w)
