@@ -30,6 +30,7 @@ separately in the following pages:
 
    graph-generation
    component-properties
+   graph-analysis
    multithreading
    neural-groups
    nest-interaction

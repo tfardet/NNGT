@@ -31,7 +31,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import nngt
 from nngt.lib import POS, nonstring_container
-from nngt.analysis import num_wcc
 from .custom_plt import palette_continuous, palette_discrete, format_exponent
 
 
@@ -585,7 +584,7 @@ def _node_size(network, restrict_nodes, nsize):
         else:
             betw = network.betweenness_list("node").astype(float)[restrict_nodes]
 
-        if num_wcc(network) == 1:
+        if network.is_connected("weak") == 1:
             size *= betw
             if size.max() > 15*size.min():
                 min_size = size[size!=0].min()

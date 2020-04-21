@@ -29,7 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT, is_integer
-from nngt.lib.graph_helpers import _to_np_array, _get_dtype
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype, _get_ig_weights
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
@@ -249,14 +249,20 @@ class _IGraph(GraphInterface):
                  **kwargs):
         self._nattr = _IgNProperty(self)
         self._eattr = _IgEProperty(self)
-        self._weighted = weighted
-        self._directed = directed
 
         g = copy_graph.graph if copy_graph is not None else None
 
         if g is None:
-            self._graph = nngt._config["graph"](n=nodes, directed=True)
+            self._graph = nngt._config["graph"](n=nodes, directed=directed)
         else:
+            # convert graph if necessary
+            if directed and not g.is_directed():
+                g = g.copy()
+                g.to_directed()
+            elif not directed and g.is_directed():
+                g = g.as_undirected(mode="collapse", combine_edges="sum")
+                g.simplify(combine_edges="sum")
+
             self._from_library_graph(g, copy=True)
 
     #-------------------------------------------------------------------------#
@@ -482,16 +488,6 @@ class _IGraph(GraphInterface):
             edge_list = np.array(edge_list)
             new_attr = attributes
 
-        if not self._directed:
-            recip_edges = edge_list[:,::-1]
-            # slow but works
-            unique = ~(recip_edges[..., np.newaxis]
-                      == edge_list[..., np.newaxis].T).all(1).any(1)
-            edge_list = np.concatenate((edge_list, recip_edges[unique]))
-
-            for key, val in new_attr.items():
-                new_attr[key] = np.concatenate((val, val[unique]))
-
         self._graph.add_edges(edge_list)
 
         # call parent function to set the attributes
@@ -517,7 +513,7 @@ class _IGraph(GraphInterface):
 
     def get_degrees(self, mode="total", nodes=None, weights=None):
         g = self._graph
-        w = _get_weights(self, weights)
+        w = _get_ig_weights(self, weights)
     
         mode = 'all' if mode == 'total' else mode
 
@@ -526,41 +522,17 @@ class _IGraph(GraphInterface):
 
         return np.array(g.degree(nodes, mode=mode), dtype=int)
 
-    def betweenness_list(self, btype="both", use_weights=False, norm=True,
-                         **kwargs):
-        g = self._graph
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
 
-        n = g.vcount()
-        e = g.ecount()
-
-        ncoeff_norm = (n-1)*(n-2)
-        ecoeff_norm = (e-1)*(e-2)/2.
-
-        w, nbetw, ebetw = None, None, None
-
-        if use_weights:
-            if "bweight" in g.es:
-                w = g.es['bweight']
-            else:
-                w  = self.get_weights()
-                w  = np.max(w) - w
-                minw = np.min(w)
-                w += 1e-5*minw if minw > 0 else 1e-5
-
-        if btype in ("both", "node"):
-            nbetw = np.array(g.betweenness(weights=w))
-
-        if btype in ("both", "edge"):
-            ebetw = np.array(g.edge_betweenness(weights=w))
-
-        if btype == "node":
-            return nbetw/ncoeff_norm if norm else nbetw
-        elif btype == "edge":
-            return ebetw/ecoeff_norm if norm else ebetw
-        elif norm:
-            return nbetw/ncoeff_norm, ebetw/ecoeff_norm
-
-        return nbetw, ebetw
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+        '''
+        return self._graph.is_connected(mode)
 
     def neighbours(self, node, mode="all"):
         '''

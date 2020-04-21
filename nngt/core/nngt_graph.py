@@ -360,6 +360,15 @@ class _NNGTGraph(GraphInterface):
         '''
         return np.array(list(self.graph._edges.keys()), dtype=int)
 
+    def is_directed(self):
+        ''' Whether the graph is directed '''
+        return self._directed
+
+    def is_connected(self):
+        raise NotImplementedError("Not available with 'nngt' backend, please "
+                                  "install a graph library (networkx, igraph, "
+                                  "or graph-tool).")
+
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''
@@ -684,10 +693,15 @@ class _NNGTGraph(GraphInterface):
             degrees = np.zeros(num_nodes)
             adj_mat = self.adjacency_matrix(types=False, weights=weights)
 
+<<<<<<< HEAD
             if mode in ("in", "total") or not self.is_directed():
                 degrees += adj_mat.sum(axis=0).A1[nodes]
             if mode in ("out", "total") and self.is_directed():
                 degrees += adj_mat.sum(axis=1).A1[nodes]
+=======
+        if use_weights:
+            adj_mat = self.adjacency_matrix(weights=use_weights)
+>>>>>>> a63f337606cddc8a01ea31c60691e51ef7382fc4
 
             return degrees
         elif weights is not None:
@@ -709,12 +723,6 @@ class _NNGTGraph(GraphInterface):
                 degrees += [g._out_deg[i] for i in nodes]
 
         return degrees
-
-    def betweenness_list(self, btype="both", use_weights=False,
-                         as_prop=False, norm=True):
-        raise NotImplementedError(
-            "NNGT backup graph does not implement betweenness, install a "
-            "graph library to use it.")
 
     def neighbours(self, node, mode="all"):
         '''

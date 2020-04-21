@@ -30,7 +30,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _to_np_array, _get_dtype
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype, _get_nx_weights
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
@@ -283,9 +283,16 @@ class _NxGraph(GraphInterface):
         g = copy_graph.graph if copy_graph is not None else None
 
         if g is not None:
+            if not directed and g.is_directed():
+                g = g.to_undirected()
+            elif directed and not g.is_directed():
+                g = g.to_directed()
+
             self._from_library_graph(g, copy=True)
         else:
-            self._graph = nngt._config["graph"]()
+            nx = nngt._config["library"]
+
+            self._graph = nx.DiGraph() if directed else nx.Graph()
 
             if nodes:
                 self._graph.add_nodes_from(range(nodes))
@@ -475,13 +482,6 @@ class _NxGraph(GraphInterface):
             # call parent function to set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
 
-            if not self._directed:
-                g.add_edge(target,source)
-                g[source][target]["eid"] = g.number_of_edges() - 1
-                for key, val in attributes.items():
-                    g[target][source][key] = val
-                self._attr_new_edges([(target, source)], attributes=attributes)
-
         return (source, target)
 
     def new_edges(self, edge_list, attributes=None, check_edges=True):
@@ -564,15 +564,6 @@ class _NxGraph(GraphInterface):
             arr_edges[:, 2]  = np.arange(initial_edges,
                 initial_edges + num_added)
 
-            if not self._graph.is_directed():
-                recip_edges = edge_list[:, ::-1]
-                # slow but works
-                unique = ~(recip_edges[..., np.newaxis]
-                          == edge_list[..., np.newaxis].T).all(1).any(1)
-                edge_list = np.concatenate((edge_list, recip_edges[unique]))
-                for key, val in new_attr.items():
-                    new_attr[key] = np.concatenate((val, val[unique]))
-
             # create the edges with an eid attribute
             g.add_weighted_edges_from(arr_edges, weight="eid")
 
@@ -600,7 +591,7 @@ class _NxGraph(GraphInterface):
 
     def get_degrees(self, mode="total", nodes=None, weights=None):
         g = self._graph
-        w = _get_weights(self, weights)
+        w = _get_nx_weights(self, weights)
 
         nodes  = range(g.number_of_nodes()) if nodes is None else nodes
         dtype  = int if weights in {False, None} else float
@@ -617,34 +608,27 @@ class _NxGraph(GraphInterface):
 
         return np.array([di_deg[i] for i in nodes], dtype=dtype)
 
-    def betweenness_list(self, btype="both", use_weights=False, **kwargs):
-        g  = self._graph
-        nx = nngt._config["library"]
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
 
-        di_nbetw, di_ebetw = None, None
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+        '''
+        g = self._graph
 
-        wattr = None
+        if g.is_directed() and mode == "weak":
+            g = g.to_undirected(as_view=True)
 
-        if use_weights:
-            wattr = "bweight"
-
-            if "bweight" not in self._eattr:
-                w = self.get_weights()
-                w = w.max() - w if use_weights else None
-                self.new_edge_attribute("bweight", "double", values=w)
-
-        if btype in ("both", "node"):
-            di_nbetw = nx.betweenness_centrality(g, weight=wattr)
-        if btype in ("both", "edge"):
-            di_ebetw = nx.edge_betweenness_centrality(g, weight=wattr)
-
-        if btype == "node":
-            return np.array(tuple(di_nbetw.values()))
-        elif btype == "edge":
-            return np.array(tuple(di_ebetw.values()))
-
-        return (np.array(tuple(di_nbetw.values())),
-                np.array(tuple(di_ebetw.values())))
+        try:
+            import networkx as nx
+            nx.diameter(g)
+            return True
+        except nx.exception.NetworkXError:
+            return False
 
     def neighbours(self, node, mode="all"):
         '''
@@ -704,21 +688,3 @@ class _NxGraph(GraphInterface):
 def _gen_edges(array, edata):
     source, target, eid = edata
     array[eid] = (source, target)
-
-
-def _get_weights(g, weights):
-    if weights in g.edges_attributes:
-        # existing edge attribute
-        return weights
-    elif nonstring_container(weights):
-        # user-provided array
-        return ValueError("networkx backend does not support custom arrays "
-                          "as `weights`.")
-    elif weights is True:
-        # "normal" weights
-        return 'weight'
-    elif not weights:
-        # unweighted
-        return None
-
-    raise ValueError("Unknown attribute '{}' for `weights`.".format(weights))

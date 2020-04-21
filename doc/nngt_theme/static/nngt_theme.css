@@ -115,3 +115,9 @@ table.longtable {
 .admonition {
     font-size: 100%;
 }
+
+dl.citation dt.label {
+    background-color: none;
+    margin-right: 5px;
+    color: #000000;
+}

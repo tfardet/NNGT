@@ -57,7 +57,7 @@ class TestGraphClasses(TestBasis):
         graph.adjacency_matrix() is the same as the initial matrix.
         '''
         ref_result = ssp.csr_matrix(self.matrices[graph.name])
-        computed_result = graph.adjacency_matrix()
+        computed_result = graph.adjacency_matrix(weights=True)
         self.assertTrue(
             (ref_result != computed_result).nnz == 0,
             "AdjMat test failed for graph {}:\nref = {} vs exp {}\

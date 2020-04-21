@@ -433,8 +433,7 @@ class Graph(nngt.core.GraphObject):
         instance
         '''
         gc_instance = Graph(name=self._name + '_copy',
-                            weighted=self.is_weighted(),
-                            copy_graph=self)
+                            weighted=self.is_weighted(), copy_graph=self)
 
         if self.is_spatial():
             nngt.SpatialGraph.make_spatial(
@@ -493,7 +492,7 @@ class Graph(nngt.core.GraphObject):
     #-------------------------------------------------------------------------#
     # Getters
 
-    def adjacency_matrix(self, types=True, weights=True):
+    def adjacency_matrix(self, types=False, weights=False):
         '''
         Return the graph adjacency matrix.
 
@@ -504,10 +503,10 @@ class Graph(nngt.core.GraphObject):
 
         Parameters
         ----------
-        types : bool, optional (default: True)
+        types : bool, optional (default: False)
             Wether the edge types should be taken into account (negative values
             for inhibitory connections).
-        weights : bool or string, optional (default: True)
+        weights : bool or string, optional (default: False)
             Whether the adjacecy matrix should be weighted. If True, all
             connections are multiply bythe associated synaptic strength; if
             weight is a string, the connections are scaled bythe corresponding
@@ -519,14 +518,38 @@ class Graph(nngt.core.GraphObject):
             The adjacency matrix of the graph.
         '''
         weights = "weight" if weights is True else weights
-        mat = nngt.analyze_graph["adjacency"](self, weights)
 
-        if types and 'type' in self.nodes_attributes:
-            tarray = np.where(self.nodes_attributes['type'] < 0)[0]
-            if np.any(tarray):
-                mat[tarray] *= -1.
-        elif types and 'type' in self.edges_attributes:
-            raise NotImplementedError
+        mat = None
+
+        if types:
+            if self.is_network():
+                # use inhibitory nodes
+                mat = nngt.analyze_graph["adjacency"](self, weights)
+                inh = self.population.inhibitory
+
+                if np.any(inh):
+                    mat[inh, :] *= -1
+            elif 'type' in self.nodes_attributes:
+                mat = nngt.analyze_graph["adjacency"](self, weights)
+                tarray = np.where(self.nodes_attributes['type'] < 0)[0]
+                if np.any(tarray):
+                    mat[tarray] *= -1
+            elif types and 'type' in self.edges_attributes:
+                data = self.get_edge_attributes(name=weights) \
+                       if weights else np.ones(self.edge_nb())
+
+                data *= self.get_edge_attributes(name="type")
+                    
+                edges     = self.edges_array
+                num_nodes = self.node_nb()
+                mat       = ssp.coo_matrix(
+                    (data, (edges[:, 0], edges[:, 1])),
+                    shape=(num_nodes, num_nodes)).tocsr()
+
+            return mat
+
+        # untyped
+        mat = nngt.analyze_graph["adjacency"](self, weights)
 
         return mat
 
@@ -813,6 +836,22 @@ class Graph(nngt.core.GraphObject):
         ''' Whether the graph is directed or not '''
         return self._graph.is_directed()
 
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
+
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+
+        References
+        ----------
+        .. [ig-connected] :igdoc:`is_connected`
+        '''
+        return super().is_connected()
+
     def get_degrees(self, mode="total", nodes=None, weights=None,
                     edge_type="all"):
         '''
@@ -850,13 +889,13 @@ class Graph(nngt.core.GraphObject):
         valid_types = {"in", "out", "total"}
 
         if mode in valid_types:
-            if edge_type in {"excitatory", 1}:
+            if edge_type == "all":
+                return super().get_degrees(
+                    mode=mode, nodes=nodes, weights=weights)
+            elif edge_type in {"excitatory", 1}:
                 edge_type = 1
             elif edge_type in {"inhibitory", -1}:
                 edge_type = -1
-            elif edge_type == "all":
-                return super().get_degrees(
-                    mode=mode, nodes=nodes, weights=weights)
             else:
                 raise InvalidArgument(
                     "Invalid edge type '{}'".format(edge_type))
@@ -908,28 +947,35 @@ class Graph(nngt.core.GraphObject):
 
         raise InvalidArgument("Invalid degree type '{}'".format(mode))
 
-    def get_betweenness(self, btype="both", use_weights=False):
+    def get_betweenness(self, btype="both", weights=None):
         '''
-        Betweenness centrality sequence of all nodes and edges.
-
-        @todo add node/edge list
+        Returns the normalized betweenness centrality of the nodes and edges.
 
         Parameters
         ----------
-        btype : str, optional (default: ``"both"``)
-            Type of betweenness to return (``"edge"``, ``"node"``-betweenness,
-            or ``"both"``).
-        use_weights : bool, optional (default: False)
-            Whether to use weighted (True) or simple degrees (False).
+        g : :class:`~nngt.Graph`
+            Graph to analyze.
+        btype : str, optional (default 'both')
+            The centrality that should be returned (either 'node', 'edge', or
+            'both'). By default, both betweenness centralities are computed.
+        weights : bool or str, optional (default: binary edges)
+            Whether edge weights should be considered; if ``None`` or
+            ``False`` then use binary edges; if ``True``, uses the 'weight'
+            edge attribute, otherwise uses any valid edge attribute required.
 
         Returns
         -------
-        node_betweenness : :class:`numpy.array`
-            Betweenness of the nodes (if `btype` is ``"node"`` or ``"both"``).
-        edge_betweenness : :class:`numpy.array`
-            Betweenness of the edges (if `btype` is ``"edge"`` or ``"both"``).
+        nb : :class:`numpy.ndarray`
+            The nodes' betweenness if `btype` is 'node' or 'both'
+        eb : :class:`numpy.ndarray`
+            The edges' betweenness if `btype` is 'edge' or 'both'
+
+        See also
+        --------
+        :func:`~nngt.analysis.betweenness`
         '''
-        return self.betweenness_list(btype=btype, use_weights=use_weights)
+        from nngt.analysis import betweenness
+        return betweenness(self, btype=btype, weights=weights)
 
     def get_edge_types(self, edges=None):
         '''

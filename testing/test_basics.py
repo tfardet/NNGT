@@ -14,7 +14,7 @@ import numpy as np
 
 import nngt
 
-    
+
 tolerance = 1e-6
 
 
@@ -196,11 +196,113 @@ def test_degrees():
     # ~ assert np.all(np.isclose(g.get_degrees(weights="weight"), tot_strengths))
 
 
+def test_adjacency():
+    ''' Check adjacency matrix '''
+    num_nodes = 5
+    edge_list = [(0, 1), (0, 3), (1, 3), (2, 0), (3, 2), (3, 4), (4, 2)]
+    weights   = [0.54881, 0.71518, 0.60276, 0.54488, 0.42365, 0.64589, 0.43758]
+    etypes    = [-1, 1, 1, -1, -1, 1, 1]
+
+    g = nngt.Graph(num_nodes)
+    g.new_edges(edge_list, attributes={"weight": weights})
+    g.new_edge_attribute("type", "int", values=etypes)
+
+    adj_mat = np.array([
+        [0, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0],
+        [1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 1],
+        [0, 0, 1, 0, 0]
+    ])
+
+    assert np.all(np.isclose(g.adjacency_matrix(weights=False).todense(),
+                             adj_mat))
+
+    w_mat = np.array([
+        [0,       0.54881, 0,       0.71518, 0      ],
+        [0,       0,       0,       0.60276, 0      ],
+        [0.54488, 0,       0,       0,       0      ],
+        [0,       0,       0.42365, 0,       0.64589],
+        [0,       0,       0.43758, 0,       0]
+    ])
+
+    assert np.all(np.isclose(g.adjacency_matrix(weights=True).todense(),
+                             w_mat))
+
+    # for typed edges
+    tpd_mat = np.array([
+        [ 0, -1,  0, 1, 0],
+        [ 0,  0,  0, 1, 0],
+        [-1,  0,  0, 0, 0],
+        [ 0,  0, -1, 0, 1],
+        [ 0,  0,  1, 0, 0]
+    ])
+
+    assert np.all(np.isclose(g.adjacency_matrix(types=True).todense(),
+                             tpd_mat))
+
+    wt_mat = np.array([
+        [ 0,       -0.54881,  0,       0.71518, 0      ],
+        [ 0,        0,        0,       0.60276, 0      ],
+        [-0.54488,  0,        0,       0,       0      ],
+        [ 0,        0,       -0.42365, 0,       0.64589],
+        [ 0,        0,        0.43758, 0,       0]
+    ])
+
+    assert np.all(np.isclose(
+        g.adjacency_matrix(types=True, weights=True).todense(), wt_mat))
+
+    # for Network and node attribute type
+    num_nodes = 5
+    edge_list = [(0, 1), (0, 3), (1, 3), (2, 0), (3, 2), (3, 4), (4, 2)]
+    weights   = [0.54881, 0.71518, 0.60276, 0.54488, 0.42365, 0.64589, 0.43758]
+
+    inh = nngt.NeuralGroup([0, 2, 4], neuron_type=-1, name="inh")
+    exc = nngt.NeuralGroup([1, 3], neuron_type=1, name="exc")
+    pop = nngt.NeuralPop.from_groups((inh, exc), with_models=False)
+
+    net = nngt.Network(population=pop)
+    net.new_edges(edge_list, attributes={"weight": weights})
+
+    g = nngt.Graph(num_nodes)
+    g.new_node_attribute("type", "int", values=[-1, 1, -1, 1, -1])
+    g.new_edges(edge_list, attributes={"weight": weights})
+
+    tpd_mat = np.array([
+        [ 0, -1,  0, -1, 0],
+        [ 0,  0,  0,  1, 0],
+        [-1,  0,  0,  0, 0],
+        [ 0,  0,  1,  0, 1],
+        [ 0,  0, -1,  0, 0]
+    ])
+
+    assert np.all(np.isclose(net.adjacency_matrix(types=True).todense(),
+                             tpd_mat))
+
+    assert np.all(np.isclose(g.adjacency_matrix(types=True).todense(),
+                             tpd_mat))
+
+    wt_mat = np.array([
+        [ 0,       -0.54881,  0,       -0.71518, 0      ],
+        [ 0,        0,        0,        0.60276, 0      ],
+        [-0.54488,  0,        0,        0,       0      ],
+        [ 0,        0,        0.42365,  0,       0.64589],
+        [ 0,        0,       -0.43758,  0,       0]
+    ])
+
+    assert np.all(np.isclose(
+        net.adjacency_matrix(types=True, weights=True).todense(), wt_mat))
+
+    assert np.all(np.isclose(
+        g.adjacency_matrix(types=True, weights=True).todense(), wt_mat))
+
+
 # ---------- #
 # Test suite #
 # ---------- #
 
 if __name__ == "__main__":
+    test_adjacency()
     test_config()
     test_new_node_attr()
     test_graph_copy()

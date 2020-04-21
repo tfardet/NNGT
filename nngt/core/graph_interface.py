@@ -146,10 +146,6 @@ class GraphInterface:
         pass
 
     @abstractmethod
-    def betweenness_list(self, use_weights=True, as_prop=False, norm=True):
-        pass
-
-    @abstractmethod
     def neighbours(self, node, mode="all"):
         pass
 
