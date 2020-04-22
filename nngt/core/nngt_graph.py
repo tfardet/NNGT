@@ -523,7 +523,7 @@ class _NNGTGraph(GraphInterface):
         if target not in g._nodes:
             raise ValueError("There is no node {}.".format(target))
 
-        if edge not in self._edges:
+        if edge not in g._edges:
             edge_id             = len(g._unique)
             g._unique[edge]     = edge_id
             g._out_deg[source] += 1

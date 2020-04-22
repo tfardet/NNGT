@@ -157,7 +157,7 @@ def assortativity(g, degree, weights=None):
         return scalar_assortativity(g.graph, degree)[0]
 
     # for weighted assortativity, use node strength
-    strength = g.get_degrees(degree, use_weights=ww)
+    strength = g.get_degrees(degree, weights=ww)
     ep = g.graph.new_vertex_property("double", vals=strength)
 
     return scalar_assortativity(g.graph, ep)[0]

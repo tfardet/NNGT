@@ -130,7 +130,7 @@ def assortativity(g, degree, weights=None):
     '''
     ww = _get_ig_weights(g, weights)
 
-    node_attr = g.get_degrees(degree, use_weights=ww)
+    node_attr = g.get_degrees(degree, weights=ww)
 
     return g.graph.assortativity(node_attr, directed=g.is_directed())
 

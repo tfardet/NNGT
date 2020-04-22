@@ -44,7 +44,7 @@ __all__ = [
 # ---------------------- #
 
 def degree_distribution(network, deg_type="total", nodes=None,
-                        num_bins='doane', use_weights=False, logx=False,
+                        num_bins='doane', weights=False, logx=False,
                         logy=False, axis=None, axis_num=None, colors=None,
                         norm=False, show=True, title=None, **kwargs):
     '''
@@ -61,9 +61,10 @@ def degree_distribution(network, deg_type="total", nodes=None,
     num_bins : int or N-tuple, optional (default: 'auto'):
         Number of bins used to sample the distribution. Defaults to
         unsupervised Bayesian blocks method.
-    use_weights : bool, optional (default: False)
-        Use weighted degrees (do not take the sign into account : only the
-        magnitude of the weights is considered).
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
     logx : bool, optional (default: False)
         Use log-spaced bins.
     logy : bool, optional (default: False)
@@ -89,7 +90,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
     mincounts, maxcounts, maxbins, minbins = np.inf, 0, 0, np.inf
     if isinstance(deg_type, str):
         counts, bins = degree_distrib(network, deg_type, nodes,
-                                      use_weights, logx, num_bins)
+                                      weights, logx, num_bins)
         bottom_count = -1 if logy else 0
         if norm:
             counts = counts / float(np.sum(counts))
@@ -111,7 +112,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
             num_bins = [num_bins for _ in range(len(deg_type))]
         for i, s_type in enumerate(deg_type):
             counts, bins = degree_distrib(network, s_type, nodes,
-                                          use_weights, logx, num_bins[i])
+                                          weights, logx, num_bins[i])
             bottom_count = -1 if logy else 0
             if norm:
                 counts = counts / float(np.sum(counts))
@@ -195,7 +196,7 @@ def attribute_distribution(network, attribute, num_bins='auto', logx=False,
         #~ lines, legends = [], []
         #~ for i,s_type in enumerate(deg_type):
             #~ counts,bins = degree_distrib(network, s_type, nodes,
-                                         #~ use_weights, logx, num_bins)
+                                         #~ weights, logx, num_bins)
             #~ maxcounts_tmp,mincounts_tmp = counts.max(),counts.min()
             #~ maxbins_tmp,minbins_tmp = bins.max(),bins.min()
             #~ maxcounts = max(maxcounts,maxcounts_tmp)
@@ -216,7 +217,7 @@ def attribute_distribution(network, attribute, num_bins='auto', logx=False,
         plt.show()
 
 
-def betweenness_distribution(network, btype="both", use_weights=True,
+def betweenness_distribution(network, btype="both", weights=False,
                              nodes=None, logx=False, logy=False,
                              num_nbins='auto', num_ebins=None, axes=None,
                              colors=None, norm=False, show=True, **kwargs):
@@ -229,9 +230,10 @@ def betweenness_distribution(network, btype="both", use_weights=True,
         the graph to analyze.
     btype : string, optional (default: "both")
         type of betweenness to display ("node", "edge" or "both")
-    use_weights : bool, optional (default: True)
-        use weighted degrees (do not take the sign into account : all weights
-        are positive).
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
     nodes : list or numpy.array of ints, optional (default: all nodes)
         Restrict the distribution to a set of nodes (taken into account only
         for the node attribute).
@@ -283,7 +285,7 @@ def betweenness_distribution(network, btype="both", use_weights=True,
     if num_ebins is None:
         num_ebins = int(max(network.edge_nb() / 500., 10))
     ncounts, nbins, ecounts, ebins = betweenness_distrib(
-        network, use_weights, nodes=nodes, num_nbins=num_nbins,
+        network, weights, nodes=nodes, num_nbins=num_nbins,
         num_ebins=num_ebins, log=logx)
     if norm:
         ncounts = ncounts / float(np.sum(ncounts))
@@ -492,7 +494,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
         The graph where the `nodes` belong.
     attributes : str or list
         Attributes which should be returned (e.g. "betweenness", "delay",
-        "weights").
+        "weight").
     edges : list, optional (default: all edges)
         Edges for which the attributes should be returned.
     num_bins : int or list, optional (default: 'auto')

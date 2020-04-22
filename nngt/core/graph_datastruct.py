@@ -1513,7 +1513,7 @@ class Connections:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
             parameters["btype"] = parameters.get("btype", "edge")
-            parameters["use_weights"] = parameters.get("use_weights", False)
+            parameters["weights"] = parameters.get("weights", None)
             dlist = _eprop_distribution(graph, distribution, elist=elist,
                                         **parameters)
         # add to the graph container
@@ -1551,7 +1551,7 @@ class Connections:
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
         parameters["btype"] = parameters.get("btype", "edge")
-        parameters["use_weights"] = parameters.get("use_weights", False)
+        parameters["weights"] = parameters.get("weights", None)
         elist = np.array(elist) if elist is not None else elist
         if wlist is not None:
             assert isinstance(wlist, np.ndarray), "numpy.ndarray required in "\
