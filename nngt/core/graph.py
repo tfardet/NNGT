@@ -407,6 +407,17 @@ class Graph(nngt.core.GraphObject):
 
     @property
     def graph(self):
+        '''
+        Returns the underlying library object.
+
+        .. warning ::
+            Do not add or remove edges directly through this object.
+
+        See also
+        --------
+        :ref:`graph_attr`
+        :ref:`graph-analysis`.
+        '''
         return self._graph
 
     @property
@@ -535,16 +546,25 @@ class Graph(nngt.core.GraphObject):
                 if np.any(tarray):
                     mat[tarray] *= -1
             elif types and 'type' in self.edges_attributes:
-                data = self.get_edge_attributes(name=weights) \
-                       if weights else np.ones(self.edge_nb())
+                data = None
+
+                if nonstring_container(weights):
+                    data = weights
+                elif weights in {None, False}:
+                    data = np.ones(self.edge_nb())
+                else:
+                    data = self.get_edge_attributes(name=weights)
 
                 data *= self.get_edge_attributes(name="type")
-                    
+
                 edges     = self.edges_array
                 num_nodes = self.node_nb()
                 mat       = ssp.coo_matrix(
                     (data, (edges[:, 0], edges[:, 1])),
                     shape=(num_nodes, num_nodes)).tocsr()
+
+                if not self.is_directed():
+                    mat += mat.T
 
             return mat
 
@@ -787,9 +807,6 @@ class Graph(nngt.core.GraphObject):
         '''
         Return the type of an attribute (e.g. string, double, int).
 
-        .. versionchanged:: 1.0
-            Added `attribute_class` parameter.
-
         Parameters
         ----------
         attribute_name : str
@@ -837,9 +854,6 @@ class Graph(nngt.core.GraphObject):
 
     def is_directed(self):
         ''' Whether the graph is directed or not '''
-        if isinstance(self, nngt.core._NNGTGraph):
-            return self._directed
-
         return self._graph.is_directed()
 
     def is_connected(self, mode="strong"):
@@ -858,60 +872,100 @@ class Graph(nngt.core.GraphObject):
         '''
         return super().is_connected()
 
-    def get_degrees(self, deg_type="total", node_list=None, use_weights=False,
-                    syn_type="all"):
+    def get_degrees(self, mode="total", nodes=None, weights=None,
+                    edge_type="all"):
         '''
         Degree sequence of all the nodes.
 
+        .. versionchanged:: 2.0
+            Changed `deg_type` to `mode`, `node_list` to `nodes`, `use_weights`
+            to `weights`, and `edge_type` to `edge_type`.
+
         Parameters
         ----------
-        deg_type : string, optional (default: "total")
+        mode : string, optional (default: "total")
             Degree type (among 'in', 'out' or 'total').
-        node_list : list, optional (default: None)
+        nodes : list, optional (default: None)
             List of the nodes which degree should be returned
-        use_weights : bool, optional (default: False)
-            Whether to use weighted (True) or simple degrees (False).
-        syn_type : int or str, optional (default: all)
+        weights : bool or str, optional (default: binary edges)
+            Whether edge weights should be considered; if ``None`` or ``False``
+            then use binary edges; if ``True``, uses the 'weight' edge
+            attribute, otherwise uses any valid edge attribute required.
+        edge_type : int or str, optional (default: all)
             Restrict to a given synaptic type ("excitatory", 1, or
-            "inhibitory", -1).
+            "inhibitory", -1), using either the "type" edge attribute for
+            non-:class:`~nngt.Network` or the
+            :py:attr:`~nngt.NeuralPop.inhibitory` nodes.
 
         Returns
         -------
-        :class:`numpy.array` or None (if an invalid type is asked).
+        degrees : :class:`numpy.array`
+        
+        .. warning ::
+            When using MPI with "nngt" (distributed) backend, returns only the
+            degrees associated to local edges. "Complete" degrees are obtained
+            by taking the sum of the results on all MPI processes.
         '''
-        valid_types = ("in", "out", "total")
-        if deg_type in valid_types:
-            if syn_type in ("excitatory", 1):
-                e_neurons = []
-                if isinstance(self, nngt.Network):
-                    for g in self.population.values():
-                        if g.neuron_type == 1:
-                            e_neurons.extend(g.ids)
-                else:
-                    e_neurons = np.where(
-                        self.get_node_attributes(name="type") == 1)[0]
-                return self.adjacency_matrix(
-                    weights=use_weights,
-                    types=False)[e_neurons, :].sum(axis=0).A1
-            elif syn_type in ("inhibitory", -1):
-                i_neurons = []
-                if isinstance(self, nngt.Network):
-                    for g in self.population.values():
-                        if g.neuron_type == -1:
-                            i_neurons.extend(g.ids)
-                else:
-                    i_neurons = np.where(
-                        self.get_node_attributes(name="type") == -1)[0]
-                return self.adjacency_matrix(
-                    weights=use_weights,
-                    types=False)[i_neurons, :].sum(axis=0).A1
-            elif syn_type == "all":
-                return self.degree_list(node_list, deg_type, use_weights)
+        valid_types = {"in", "out", "total"}
+
+        if mode in valid_types:
+            if edge_type == "all":
+                return super().get_degrees(
+                    mode=mode, nodes=nodes, weights=weights)
+            elif edge_type in {"excitatory", 1}:
+                edge_type = 1
+            elif edge_type in {"inhibitory", -1}:
+                edge_type = -1
             else:
                 raise InvalidArgument(
-                    "Invalid synaptic type '{}'".format(syn_type))
-        else:
-            raise InvalidArgument("Invalid degree type '{}'".format(deg_type))
+                    "Invalid edge type '{}'".format(edge_type))
+
+            degrees = np.zeros(self.node_nb())
+
+            if isinstance(self, nngt.Network):
+                neurons = []
+                for g in self.population.values():
+                    if g.neuron_type == edge_type:
+                        neurons.extend(g.ids)
+
+                if mode in {"in", "all"} or not self.is_directed():
+                    degrees += self.adjacency_matrix(
+                        weights=weights,
+                        types=False)[neurons, :].sum(axis=0).A1
+
+                if mode in {"out", "all"} and self.is_directed():
+                    degrees += self.adjacency_matrix(
+                        weights=weights,
+                        types=False)[neurons, :].sum(axis=1).A1
+            else:
+                edges = np.where(
+                    self.get_edge_attributes(name="type") == edge_type)[0]
+
+                w = None
+
+                if weights is None:
+                    w = np.ones(len(edges))
+                elif weights in self.edges_attributes:
+                    w = self.edges_attributes[weights]
+                elif nonstring_container(weights):
+                    w = np.array(weights)
+                else:
+                    raise InvalidArgument(
+                        "Invalid `weights` '{}'".format(weights))
+
+                # count in-degrees
+                if mode in {"in", "all"} or not self.is_directed():
+                    np.add.at(degrees, edges[1], weights)
+
+                if mode in {"out", "all"} and self.is_directed():
+                    np.add.at(degrees, edges[0], weights)
+
+            if nodes is None:
+                return degrees
+
+            return degrees[nodes]
+
+        raise InvalidArgument("Invalid degree type '{}'".format(mode))
 
     def get_betweenness(self, btype="both", weights=None):
         '''
@@ -1236,29 +1290,32 @@ class Graph(nngt.core.GraphObject):
             self, elist=elist, wlist=weight, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
 
-    def set_types(self, syn_type, nodes=None, fraction=None):
+    def set_types(self, edge_type, nodes=None, fraction=None):
         '''
         Set the synaptic/connection types.
 
+        .. versionchanged :: 2.0
+            Changed `syn_type` to `edge_type`.
+
         .. warning ::
-          The special "type" attribute cannot be modified when using graphs
-          that inherit from the :class:`~nngt.Network` class. This is because
-          for biological networks, neurons make only one kind of synapse,
-          which is determined by the :class:`nngt.NeuralGroup` they
-          belong to.
+            The special "type" attribute cannot be modified when using graphs
+            that inherit from the :class:`~nngt.Network` class. This is because
+            for biological networks, neurons make only one kind of synapse,
+            which is determined by the :class:`nngt.NeuralGroup` they
+            belong to.
 
         Parameters
         ----------
-        syn_type : int or string
+        edge_type : int or string
             Type of the connection among 'excitatory' (also `1`) or
             'inhibitory' (also `-1`).
         nodes : int, float or list, optional (default: `None`)
             If `nodes` is an int, number of nodes of the required type that
             will be created in the graph (all connections from inhibitory nodes
-            are inhibitory); if it is a float, ratio of `syn_type` nodes in the
-            graph; if it is a list, ids of the `syn_type` nodes.
+            are inhibitory); if it is a float, ratio of `edge_type` nodes in the
+            graph; if it is a list, ids of the `edge_type` nodes.
         fraction : float, optional (default: `None`)
-            Fraction of the selected edges that will be set as `syn_type` (if
+            Fraction of the selected edges that will be set as `edge_type` (if
             `nodes` is not `None`, it is the fraction of the specified nodes'
             edges, otherwise it is the fraction of all edges in the graph).
 
@@ -1269,7 +1326,7 @@ class Graph(nngt.core.GraphObject):
             the graph.
         '''
         inhib_nodes = nodes
-        if syn_type == 'excitatory' or syn_type == 1:
+        if edge_type == 'excitatory' or edge_type == 1:
             if is_integer(nodes):
                 inhib_nodes = self.node_nb() - nodes
             elif isinstance(nodes, np.float):

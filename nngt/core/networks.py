@@ -264,6 +264,8 @@ class Network(Graph):
         self.__class__.__num_networks += 1
         self.__class__.__max_id += 1
 
+        assert directed, "Network class cannot be undirected."
+
         if population is None:
             raise InvalidArgument("Network needs a NeuralPop to be created")
 
@@ -362,7 +364,7 @@ class Network(Graph):
         else:
             return self._id_from_nest_gid[gids]
 
-    def to_nest(self, send_only=None, use_weights=True):
+    def to_nest(self, send_only=None, weights=True):
         '''
         Send the network to NEST.
 
@@ -372,7 +374,7 @@ class Network(Graph):
         from nngt.simulation import make_nest_network
         if nngt._config['with_nest']:
             return make_nest_network(
-                self, send_only=send_only, use_weights=use_weights)
+                self, send_only=send_only, weights=weights)
         else:
             raise RuntimeError("NEST is not present.")
 
@@ -403,7 +405,7 @@ class Network(Graph):
     #-------------------------------------------------------------------------#
     # Setter
 
-    def set_types(self, syn_type, nodes=None, fraction=None):
+    def set_types(self, edge_type, nodes=None, fraction=None):
         raise NotImplementedError("Cannot be used on :class:`~nngt.Network`.")
 
     def get_neuron_type(self, neuron_ids):

@@ -61,12 +61,12 @@ class NeuralPop(OrderedDict):
 
     :ivar has_models: :obj:`bool`,
         ``True`` if every group has a ``model`` attribute.
-    :ivar size: :obj:`int`,
+    :ivar ~nngt.NeuralPop.size: :obj:`int`,
         Returns the number of neurons in the population.
     :ivar syn_spec: :obj:`dict`,
         Dictionary containing informations about the synapses between the
         different groups in the population.
-    :ivar is_valid: :obj:`bool`,
+    :ivar ~nngt.NeuralPop.is_valid: :obj:`bool`,
         Whether this population can be used to create a network in NEST.
     """
 
@@ -1022,16 +1022,16 @@ class NeuralGroup:
 
     Its main variables are:
 
-    :ivar ids: :obj:`list` of :obj:`int`
+    :ivar ~nngt.NeuralGroup.ids: :obj:`list` of :obj:`int`
         the ids of the neurons in this group.
-    :ivar neuron_type: :obj:`int`
+    :ivar ~nngt.NeuralGroup.neuron_type: :obj:`int`
         the default is ``1`` for excitatory neurons; ``-1`` is for inhibitory
         neurons; meta-groups must have `neuron_type` set to ``None``
-    :ivar neuron_model: :class:`string`, optional (default: None)
+    :ivar ~nngt.NeuralGroup.neuron_model: str, optional (default: None)
         the name of the model to use when simulating the activity of this group
-    :ivar neuron_param: :class:`dict`, optional (default: {})
+    :ivar ~nngt.NeuralGroup.neuron_param: dict, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
-    :ivar is_metagroup: :obj:`bool`
+    :ivar ~nngt.NeuralGroup.is_metagroup: :obj:`bool`
         whether the group is a meta-group or not (`neuron_type` is ``None``
         for meta-groups)
 
@@ -1282,13 +1282,11 @@ class MetaGroup(NeuralGroup):
     """
     Class defining a meta-group of neurons.
 
-    .. versionadded:: 1.3
-
     Its main variables are:
 
-    :ivar ids: :obj:`list` of :obj:`int`
+    :ivar ~nngt.MetaGroup.ids: :obj:`list` of :obj:`int`
         the ids of the neurons in this group.
-    :ivar is_metagroup: :obj:`bool`
+    :ivar ~nngt.MetaGroup.is_metagroup: :obj:`bool`
         whether the group is a meta-group or not (`neuron_type` is
         ``None`` for meta-groups)
     """
@@ -1367,16 +1365,16 @@ class GroupProperty:
 
     """
     Class defining the properties needed to create groups of neurons from an
-    existing :class:`~nngt.GraphClass` or one of its subclasses.
+    existing :class:`~nngt.Graph` or one of its subclasses.
 
-    :ivar size: :class:`int`
+    :ivar ~nngt.GroupProperty.size: :obj:`int`
         Size of the group.
-    :ivar constraints: :class:`dict`, optional (default: {})
+    :ivar constraints: :obj:`dict`, optional (default: {})
         Constraints to respect when building the
         :class:`~nngt.properties.NeuralGroup` .
-    :ivar neuron_model: :class:`string`, optional (default: None)
+    :ivar ~nngt.GroupProperty.neuron_model: str, optional (default: None)
         name of the model to use when simulating the activity of this group.
-    :ivar neuron_param: :class:`dict`, optional (default: {})
+    :ivar ~nngt.GroupProperty.neuron_param: dict, optional (default: {})
         the parameters to use (if they differ from the model's defaults)
     """
 
@@ -1515,7 +1513,7 @@ class Connections:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
         else:
             parameters["btype"] = parameters.get("btype", "edge")
-            parameters["use_weights"] = parameters.get("use_weights", False)
+            parameters["weights"] = parameters.get("weights", None)
             dlist = _eprop_distribution(graph, distribution, elist=elist,
                                         **parameters)
         # add to the graph container
@@ -1553,7 +1551,7 @@ class Connections:
             A sparse matrix containing *ONLY* the newly-computed weights.
         '''
         parameters["btype"] = parameters.get("btype", "edge")
-        parameters["use_weights"] = parameters.get("use_weights", False)
+        parameters["weights"] = parameters.get("weights", None)
         elist = np.array(elist) if elist is not None else elist
         if wlist is not None:
             assert isinstance(wlist, np.ndarray), "numpy.ndarray required in "\

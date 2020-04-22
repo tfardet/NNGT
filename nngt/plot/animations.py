@@ -711,7 +711,7 @@ class AnimationNetwork(_SpikeAnimator, anim.FuncAnimation):
             arrivals = departures + delays
             # get the spikers
             ids_dep = self.nids[self.senders[spikes_slice]]
-            degrees = network.get_degrees('out', node_list=ids_dep)
+            degrees = network.get_degrees('out', nodes=ids_dep)
             ids_dep = np.repeat(ids_dep, degrees)  # repeat based on out-degree
             x_dep = self.x[ids_dep]
             y_dep = self.y[ids_dep]

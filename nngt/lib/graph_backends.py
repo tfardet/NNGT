@@ -233,23 +233,26 @@ def _set_nngt():
     def _notimplemented(*args, **kwargs):
         raise NotImplementedError("Install a graph library to use.")
 
-    def adj_mat(graph, weight=None):
+    def adj_mat(g, weight=None):
         data = None
 
-        if weight in graph.edges_attributes:
-            data = graph.get_edge_attributes(name=weight)
+        if weight in g.edges_attributes:
+            data = g.get_edge_attributes(name=weight)
         else:
-            data = np.ones(graph.edge_nb())
+            data = np.ones(g.edge_nb())
+
+        if not g.is_directed():
+            data = np.repeat(data, 2)
             
-        edges     = graph.edges_array
-        num_nodes = graph.node_nb()
+        edges     = np.array(list(g._graph._edges), dtype=int)
+        num_nodes = g.node_nb()
         mat       = ssp.coo_matrix((data, (edges[:, 0], edges[:, 1])),
                                    shape=(num_nodes, num_nodes))
 
         return mat.tocsr()
 
-    def get_edges(graph):
-        return graph.edges_array()
+    def get_edges(g):
+        return g.edges_array
 
     # store functions
     nngt.analyze_graph["assortativity"] = _notimplemented

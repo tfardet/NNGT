@@ -12,20 +12,24 @@ Welcome to NNGT's documentation!
     :target: https://coveralls.io/github/Silmathoron/NNGT?branch=master
     :height: 20px
     :width: 99px
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3402494.svg
-   :target: https://doi.org/10.5281/zenodo.3402494
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg
+   :target: https://doi.org/10.5281/zenodo.3402493
 
 
 Overview
 ========
 
-The Neural Network Growth and Topology (NNGT) module provides tools to grow and
+The Neural Network Growth and Topology (NNGT) module provides a unified
+interface to access, generate, and analyze networks via any of the well-known
+Python graph libraries: networkx_, igraph_, and `graph-tool`_.
+
+For people in neuroscience, the library also provides tools to grow and
 study detailed biological networks by interfacing efficient graph libraries
 with highly distributed activity simulators.
 
 The library has two main targets:
 
-* people looking for a unifying interface for the three main graph library,
+* people looking for a unifying interface for these three graph libraries,
   allowing to run and share a single code on different platforms
 * neuroscience people looking for an easy way to generate complex networks
   while keeping track of neuronal populations and their biological properties
@@ -116,3 +120,9 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+
+.. Links
+
+.. _`graph-tool`: http://graph-tool.skewed.de
+.. _igraph: http://igraph.org/
+.. _networkx: https://networkx.github.io/

@@ -142,7 +142,7 @@ class GraphInterface:
         pass
 
     @abstractmethod
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+    def get_degrees(self, mode="total", nodes=None, weights=False):
         pass
 
     @abstractmethod

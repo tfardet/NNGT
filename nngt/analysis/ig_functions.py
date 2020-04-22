@@ -25,6 +25,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 from ..lib.test_functions import nonstring_container
+from ..lib.graph_helpers import _get_ig_weights
 
 
 def global_clustering(g, weights=None):
@@ -46,7 +47,7 @@ def global_clustering(g, weights=None):
     ----------
     .. [ig-global-clustering] :igdoc:`transitivity_undirected`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_ig_weights(g, weights)
 
     if ww is not None:
         # raise warning
@@ -127,9 +128,9 @@ def assortativity(g, degree, weights=None):
     ----------
     .. [ig-assortativity] :igdoc:`assortativity`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_ig_weights(g, weights)
 
-    node_attr = g.get_degrees(degree, use_weights=ww)
+    node_attr = g.get_degrees(degree, weights=ww)
 
     return g.graph.assortativity(node_attr, directed=g.is_directed())
 
@@ -231,7 +232,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
         raise RuntimeError("igraph backend does not support closeness for "
                            "graphs containing nodes with zero in/out-degree.")
 
-    ww = _get_weights(g, weights)
+    ww = _get_ig_weights(g, weights)
 
     return g.graph.closeness(nodes, mode=mode, weights=ww)
 
@@ -264,7 +265,7 @@ def betweenness(g, btype="both", weights=None):
     .. [ig-ebetw] :igdoc:`edge_betweenness`
     .. [ig-nbetw] :igdoc:`betweenness`
     '''
-    w = _get_weights(g, weights)
+    w = _get_ig_weights(g, weights)
 
     n  = g.node_nb()
 
@@ -357,7 +358,7 @@ def diameter(g, weights=None):
     ----------
     .. [ig-diameter] :igdoc:`diameter`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_ig_weights(g, weights)
 
     mode = "strong" if g.is_directed() else "weak"
 
@@ -392,7 +393,7 @@ def adj_mat(g, weights=None):
     '''
     n = g.node_nb()
 
-    w = _get_weights(g, weights)
+    w = _get_ig_weights(g, weights)
 
     if g.edge_nb():
         xs, ys = map(np.array, zip(*g.graph.get_edgelist()))
@@ -405,6 +406,9 @@ def adj_mat(g, weights=None):
 
         coo_adj = ssp.coo_matrix((data, (xs, ys)), shape=(n, n))
 
+        if not g.is_directed():
+            coo_adj += coo_adj.T
+
         return coo_adj.tocsr()
 
     return ssp.csr_matrix((n, n))
@@ -415,21 +419,3 @@ def get_edges(g):
     Returns the edges in the graph by order of creation.
     '''
     return g.graph.get_edgelist()
-
-
-def _get_weights(g, weights):
-    if weights in g.edges_attributes:
-        # existing edge attribute
-        return np.array(g.graph.es[weights])
-    elif nonstring_container(weights):
-        # user-provided array
-        return np.array(weights)
-    elif weights is True:
-        # "normal" weights
-        return np.array(g.graph.es["weight"])
-    elif not weights:
-        # unweighted
-        return None
-
-    raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
-    

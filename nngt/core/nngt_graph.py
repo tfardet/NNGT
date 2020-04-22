@@ -256,11 +256,59 @@ class _EProperty(BaseProperty):
 # NNGT backup graph #
 # ----------------- #
 
-class _NNGTGraph(GraphInterface):
+class _NNGTGraphObject:
     '''
     Minimal implementation of the GraphObject, which does not rely on any
     graph-library.
     '''
+
+    def __init__(self, nodes=0, weighted=True, directed=True):
+        ''' Initialized independent graph '''
+        self._nodes    = set(i for i in range(nodes))
+        self._out_deg  = [0]*nodes
+        self._in_deg   = [0]*nodes
+
+        if directed:
+            # for directed networks, edges and unique are the same
+            self._edges = self._unique = OrderedDict()
+            assert self._edges is self._unique
+        else:
+            # for undirected networks
+            self._edges  = OrderedDict()
+            self._unique = OrderedDict()
+
+        self._directed = directed
+        self._weighted = weighted
+
+    def copy(self):
+        ''' Returns a deep copy of the graph object '''
+        copy = _NNGTGraphObject(len(self._nodes), weighted=self._weighted,
+                                directed=self._directed)
+
+        copy._nodes   = self._nodes.copy()
+
+        if self._directed:
+            copy._unique = copy._edges = self._edges.copy()
+            assert copy._unique is copy._edges
+        else:
+            copy._edges  = self._edges.copy()
+            copy._unique = self._unique.copy()
+
+        copy._out_deg = self._out_deg.copy()
+        copy._in_deg  = self._in_deg.copy()
+
+        return copy
+
+    def is_directed(self):
+        return self._directed
+
+    @property
+    def nodes(self):
+        return list(self._nodes)
+
+
+class _NNGTGraph(GraphInterface):
+    ''' NNGT wrapper class for _NNGTGraphObject '''
 
     #------------------------------------------------------------------#
     # Constructor and instance properties
@@ -268,27 +316,15 @@ class _NNGTGraph(GraphInterface):
     def __init__(self, nodes=0, weighted=True, directed=True,
                  copy_graph=None, **kwargs):
         ''' Initialized independent graph '''
-        self._nodes    = set()
-        self._out_deg  = []
-        self._in_deg   = []
-        self._edges    = OrderedDict()
-
         self._nattr    = _NProperty(self)
         self._eattr    = _EProperty(self)
-        self._directed = directed
-        self._weighted = weighted
-
-        # _graph is self for default backend
-        self._graph = self
 
         # test if copying graph
         if copy_graph is not None:
             self._from_library_graph(copy_graph, copy=True)
         else:
-            self.new_node(nodes)
-
-    def __del__(self):
-        self._graph = None
+            self._graph = _NNGTGraphObject(
+                nodes=nodes, weighted=weighted, directed=directed)
 
     #------------------------------------------------------------------#
     # Graph manipulation
@@ -309,10 +345,12 @@ class _NNGTGraph(GraphInterface):
         index : int or array of ints
             Index of the given `edge`.
         '''
+        g = self._graph
+
         if is_integer(edge[0]):
-            return self._edges[tuple(edge)]
+            return g._edges[tuple(edge)]
         elif nonstring_container(edge[0]):
-            idx = [self._edges[tuple(e)] for e in edge]
+            idx = [g._edges[tuple(e)] for e in edge]
             return idx
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or "
@@ -325,7 +363,8 @@ class _NNGTGraph(GraphInterface):
         .. versionadded:: 2.0
         '''
         e = tuple(edge)
-        return e in self._edges
+
+        return e in self._graph._edges
 
     @property
     def edges_array(self):
@@ -333,11 +372,7 @@ class _NNGTGraph(GraphInterface):
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        return np.array(list(self._edges.keys()), dtype=int)
-
-    def is_directed(self):
-        ''' Whether the graph is directed '''
-        return self._directed
+        return np.array(list(self._graph._unique), dtype=int)
 
     def is_connected(self):
         raise NotImplementedError("Not available with 'nngt' backend, please "
@@ -373,18 +408,20 @@ class _NNGTGraph(GraphInterface):
         '''
         nodes = []
 
+        g = self._graph
+
         if n == 1:
-            nodes.append(len(self._nodes))
-            self._in_deg.append(0)
-            self._out_deg.append(0)
+            nodes.append(len(g._nodes))
+            g._in_deg.append(0)
+            g._out_deg.append(0)
         else:
-            num_nodes = len(self._nodes)
+            num_nodes = len(g._nodes)
             nodes.extend(
                 [i for i in range(num_nodes, num_nodes + n)])
-            self._in_deg.extend([0 for _ in range(n)])
-            self._out_deg.extend([0 for _ in range(n)])
+            g._in_deg.extend([0 for _ in range(n)])
+            g._out_deg.extend([0 for _ in range(n)])
 
-        self._nodes.update(nodes)
+        g._nodes.update(nodes)
 
         attributes = {} if attributes is None else deepcopy(attributes)
 
@@ -461,6 +498,8 @@ class _NNGTGraph(GraphInterface):
         -------
         The new connection.
         '''
+        g = self._graph
+
         attributes = {} if attributes is None else deepcopy(attributes)
 
         # set default values for attributes that were not passed
@@ -479,39 +518,37 @@ class _NNGTGraph(GraphInterface):
         # check that the edge does not already exist
         edge = (source, target)
 
-        if source not in self._nodes:
+        if source not in g._nodes:
             raise ValueError("There is no node {}.".format(source))
-        if target not in self._nodes:
+        if target not in g._nodes:
             raise ValueError("There is no node {}.".format(target))
 
-        if edge not in self._edges:
-            edge_id                = len(self._edges)
-            self._edges[edge]      = edge_id
-            self._out_deg[source] += 1
-            self._in_deg[target]  += 1
+        if edge not in g._edges:
+            edge_id             = len(g._unique)
+            g._unique[edge]     = edge_id
+            g._out_deg[source] += 1
+            g._in_deg[target]  += 1
 
             # attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
 
-            if not self._directed:
-                e_recip                = (target, source)
-                self._edges[e_recip]   = edge_id + 1
-                self._out_deg[target] += 1
-                self._in_deg[source]  += 1
-
-                for k, v in attributes.items():
-                    self.set_edge_attribute(k, val=v, edges=[e_recip])
+            if not g._directed:
+                # edges and unique are different objects, so update _edges
+                self._edges[edge]   = edge_id
+                # add reciprocal
+                e_recip             = (target, source)
+                g._edges[e_recip]   = edge_id
+                g._out_deg[target] += 1
+                g._in_deg[source]  += 1
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
+
         return edge
 
     def new_edges(self, edge_list, attributes=None, check_edges=True):
         '''
         Add a list of edges to the graph.
-
-        .. versionchanged:: 1.0
-            new_edges checks for duplicate edges and self-loops
 
         .. warning ::
             This function currently does not check for duplicate edges between
@@ -538,6 +575,8 @@ class _NNGTGraph(GraphInterface):
         attributes = {} if attributes is None else deepcopy(attributes)
         num_edges  = len(edge_list)
 
+        g = self._graph
+
         # set default values for attributes that were not passed
         for k in self.edges_attributes:
             if k not in attributes:
@@ -552,7 +591,7 @@ class _NNGTGraph(GraphInterface):
                 else:
                     attributes[k] = [None for _ in range(num_edges)]
 
-        assert self._nodes.issuperset(np.ravel(edge_list)), \
+        assert g._nodes.issuperset(np.ravel(edge_list)), \
             "Some nodes in `edge_list` do not exist in the network."
 
         initial_edges = self.edge_nb()
@@ -577,15 +616,6 @@ class _NNGTGraph(GraphInterface):
             edge_list = np.array(edge_list)
             new_attr = attributes
 
-        if not self._directed:
-            recip_edges = edge_list[:,::-1]
-            # slow but works
-            unique = ~(recip_edges[..., np.newaxis]
-                       == edge_list[..., np.newaxis].T).all(1).any(1)
-            edge_list = np.concatenate((edge_list, recip_edges[unique]))
-            for key, val in new_attr.items():
-                new_attr[key] = np.concatenate((val, val[unique]))
-
         # create the edges
         ws        = None
         num_added = len(edge_list)
@@ -599,9 +629,19 @@ class _NNGTGraph(GraphInterface):
             ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
 
         for i, (e, w) in enumerate(zip(edge_list, ws)):
-            self._edges[tuple(e)]     = initial_edges + i
-            self._out_deg[e[0]]  += 1
-            self._in_deg[e[1]]   += 1
+            g._unique[tuple(e)] = initial_edges + i
+
+            g._out_deg[e[0]] += 1
+            g._in_deg[e[1]]  += 1
+
+            if not g._directed:
+                # edges and unique are different objects, so update _edges
+                g._edges[tuple(e)] = initial_edges + i
+                # reciprocal edge
+                g._edges[tuple(e[::-1])] = initial_edges + i
+
+                g._out_deg[e[1]] += 1
+                g._in_deg[e[0]]  += 1
 
         # call parent function to set the attributes
         self._attr_new_edges(edge_list, attributes=new_attr)
@@ -609,9 +649,18 @@ class _NNGTGraph(GraphInterface):
         return edge_list
 
     def clear_all_edges(self):
-        self._edges   = OrderedDict()
-        self._out_deg = [0 for _ in range(self.node_nb())]
-        self._out_deg = [0 for _ in range(self.node_nb())]
+        g = self._graph
+
+        if g._directed:
+            g._edges = g._unique = OrderedDict()
+            assert g._edges is g._unique
+        else:
+            g._edges  = OrderedDict()
+            g._unique = OrderedDict()
+
+        g._out_deg = [0 for _ in range(self.node_nb())]
+        g._out_deg = [0 for _ in range(self.node_nb())]
+
         self._eattr.clear()
 
     #------------------------------------------------------------------#
@@ -623,7 +672,7 @@ class _NNGTGraph(GraphInterface):
 
         .. warning:: When using MPI, returns only the local number of nodes.
         '''
-        return len(self._nodes)
+        return len(self._graph._nodes)
 
     def edge_nb(self):
         '''
@@ -631,48 +680,58 @@ class _NNGTGraph(GraphInterface):
 
         .. warning:: When using MPI, returns only the local number of edges.
         '''
-        return len(self._edges)
+        return len(self._graph._unique)
 
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+    def is_directed(self):
+        return g._directed
+
+    def get_degrees(self, mode="total", nodes=None, weights=None):
         '''
         Returns the degree of the nodes.
 
-        .. warning::
-        When using MPI, returns only the degree related to local edges.
+        .. warning ::
+            When using MPI, returns only the degree related to local edges.
         '''
+        g = self._graph
+
         num_nodes = None
+        weights   = 'weight' if weights is True else weights
 
-        if node_list is None:
+        if nodes is None:
             num_nodes = self.node_nb()
-            node_list = slice(num_nodes)
+            nodes = slice(num_nodes)
         else:
-            node_list = list(node_list)
-            num_nodes = len(node_list)
+            nodes = list(nodes)
+            num_nodes = len(nodes)
 
-        degrees = np.zeros(num_nodes)
+        # weighted
+        if nonstring_container(weights) or weights in self._eattr:
+            degrees = np.zeros(num_nodes)
+            adj_mat = self.adjacency_matrix(types=False, weights=weights)
 
-        if use_weights:
-            adj_mat = self.adjacency_matrix(weights=use_weights)
+            if mode in ("in", "total") or not self.is_directed():
+                degrees += adj_mat.sum(axis=0).A1[nodes]
+            if mode in ("out", "total") and self.is_directed():
+                degrees += adj_mat.sum(axis=1).A1[nodes]
 
-            if not self._directed:
-                degrees += adj_mat.sum(axis=1).A1[node_list]
+            return degrees
+        elif weights not in {None, False}:
+            raise ValueError("Invalid `weights` {}".format(weights))
+
+        # unweighted
+        degrees = np.zeros(num_nodes, dtype=int)
+
+        if not g._directed or mode in ("in", "total"):
+            if isinstance(nodes, slice):
+                degrees += g._in_deg[nodes]
             else:
-                if deg_type in ("in", "total"):
-                    degrees += adj_mat.sum(axis=0).A1[node_list]
-                if deg_type in ("out", "total"):
-                    degrees += adj_mat.sum(axis=1).A1[node_list]
-        else:
-            if not self._directed or deg_type in ("in", "total"):
-                if isinstance(node_list, slice):
-                    degrees += self._in_deg[node_list]
-                else:
-                    degrees += [self._in_deg[i] for i in node_list]
+                degrees += [g._in_deg[i] for i in nodes]
 
-            if self._directed and deg_type in ("out", "total"):
-                if isinstance(node_list, slice):
-                    degrees += self._out_deg[node_list]
-                else:
-                    degrees += [self._out_deg[i] for i in node_list]
+        if g._directed and mode in ("out", "total"):
+            if isinstance(nodes, slice):
+                degrees += g._out_deg[nodes]
+            else:
+                degrees += [g._out_deg[i] for i in nodes]
 
         return degrees
 
@@ -695,27 +754,23 @@ class _NNGTGraph(GraphInterface):
         neighbours : tuple
             The neighbours of `node`.
         '''
-        neighbours = []
+        neighbours = set()
+
         edges = self.edges_array
-        if mode in ("in", "all"):
-            neighbours.extend(edges[edges[1] == node, 1])
-        elif mode in ("out", "all"):
-            neighbours.extend(edges[edges[0] == node, 1])
+
+        if mode in ("in", "all") or self._graph._directed:
+            neighbours.update(edges[edges[1] == node, 1])
+        elif mode in ("out", "all") and self._graph._directed:
+            neighbours.update(edges[edges[0] == node, 1])
         else:
             raise ValueError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
-        return list(set(neighbours))
+
+        return list(neighbours)
 
     def _from_library_graph(self, graph, copy=True):
         ''' Initialize `self._graph` from existing library object. '''
-        self._directed = graph.is_directed()
-        self._weighted = graph.is_weighted()
-
-        self._nodes    = graph._nodes.copy()
-        self._edges    = graph._edges.copy()
-
-        self._out_deg  = graph._out_deg.copy()
-        self._in_deg   = graph._in_deg.copy()
+        self._graph = graph._graph.copy() if copy else graph._graph
 
         for key, val in graph._nattr.items():
             dtype = graph._nattr.value_type(key)

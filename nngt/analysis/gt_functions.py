@@ -34,6 +34,7 @@ import graph_tool.topology as gtt
 import graph_tool.clustering as gtc
 
 from ..lib.test_functions import nonstring_container
+from ..lib.graph_helpers import _get_gt_weights
 
 
 def global_clustering(g, weights=None):
@@ -106,8 +107,7 @@ def undirected_local_clustering(g, weights=None, nodes=None,
     '''
     if weights is not None:
         raise NotImplementedError("graph-tool backend currently does not "
-                                  "provide weighted clustering for directed "
-                                  "graphs.")
+                                  "provide weighted clustering.")
 
     # use undirected graph view, filter parallel edges
     u = GraphView(g.graph, directed=False)
@@ -147,17 +147,15 @@ def assortativity(g, degree, weights=None):
     ----------
     .. [gt-assortativity] :gtdoc:`correlations.scalar_assortativity`
     '''
-    ww = _get_weights(g, weights)
-
     # graph-tool expects "total" for undirected graphs
     if not g.is_directed():
         degree = "total"
 
-    if ww is None:
+    if not nonstring_container(weights) and weights in {None, False}:
         return scalar_assortativity(g.graph, degree)[0]
 
     # for weighted assortativity, use node strength
-    strength = g.get_degrees(degree, use_weights=ww)
+    strength = g.get_degrees(degree, weights=weights)
     ep = g.graph.new_vertex_property("double", vals=strength)
 
     return scalar_assortativity(g.graph, ep)[0]
@@ -247,7 +245,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
     ----------
     .. [gt-closeness] :gtdoc:`centrality.closeness`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_gt_weights(g, weights)
 
     if mode == "in":
         g.graph.set_reversed(True)
@@ -292,7 +290,7 @@ def betweenness(g, btype="both", weights=None):
     ----------
     .. [gt-betw] :gtdoc:`centrality.betweenness`
     '''
-    w = _get_weights(g, weights)
+    w = _get_gt_weights(g, weights)
 
     n  = g.node_nb()
 
@@ -364,7 +362,7 @@ def diameter(g, weights=False):
     ----------
     .. [gt-diameter] :gtdoc:`topology.pseudo_diameter`
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_gt_weights(g, weights)
 
     # first check whether the graph is fully connected
     cc, hist = connected_components(g)
@@ -398,7 +396,7 @@ def adj_mat(g, weights=None):
     ----------
     .. [gt-adjacency] https://graph-tool.skewed.de/static/doc/spectral.html#graph_tool.spectral.adjacency
     '''
-    ww = _get_weights(g, weights)
+    ww = _get_gt_weights(g, weights)
 
     return adjacency(g.graph, ww).T
 
@@ -408,21 +406,3 @@ def get_edges(g):
     Returns the edges in the graph by order of creation.
     '''
     return g.graph.edges()
-
-
-def _get_weights(g, weights):
-    if weights in g.edges_attributes:
-        # existing edge attribute
-        return g.graph.edge_properties[weights]
-    elif nonstring_container(weights):
-        # user-provided array
-        return g.graph.new_edge_property("double", vals=weights)
-    elif weights is True:
-        # "normal" weights
-        return g.graph.edge_properties['weight']
-    elif not weights:
-        # unweighted
-        return None
-
-    raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
-    

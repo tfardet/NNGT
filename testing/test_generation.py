@@ -58,7 +58,7 @@ def _fixed_deg_exp(graph, instruct):
     avg_free_degree, std_free_degree = fixed_degree, 0
     if deg_type != 'total':
         del deg_types[deg_types.index(deg_type)]
-        degrees = graph.get_degrees(deg_types[0], use_weights=False)
+        degrees = graph.get_degrees(deg_types[0], weights=False)
         avg_free_degree = np.average(degrees)
         std_free_degree = np.std(degrees)
     return fixed_degree, avg_free_degree, std_free_degree
@@ -77,14 +77,14 @@ def _gaussian_deg_exp(graph, instruct):
     n, d, e, a_deg, directed, weighted = _get_connections(instruct)
     deg_type = instruct["degree_type"]
     deg_types = [ 'in', 'out' ]
-    degrees = graph.get_degrees(deg_type, use_weights=False)
+    degrees = graph.get_degrees(deg_type, weights=False)
     avg_degree = np.average(degrees)
     std_degree = np.std(degrees)
     # compute free_degree properties
     avg_free_degree, std_free_degree = avg_degree, std_degree
     if deg_type != 'total':
         del deg_types[deg_types.index(deg_type)]
-        degrees = graph.get_degrees(deg_types[0], use_weights=False)
+        degrees = graph.get_degrees(deg_types[0], weights=False)
         avg_free_degree = np.average(degrees)
         std_free_degree = np.std(degrees)
     return avg_degree, std_degree, avg_free_degree, std_free_degree
@@ -150,7 +150,7 @@ def _distance_rule_exp(graph, instruct):
     # - bin size is 0.02*scale for exp, 0.005 for lin
     scale = instruct["scale"]
     rule = instruct["rule"]
-    degrees = graph.get_degrees('out', use_weights=False)
+    degrees = graph.get_degrees('out', weights=False)
     res = [np.average(degrees)]
     distances = graph.get_edge_attributes(name='distance')
     bins = None

@@ -30,7 +30,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _to_np_array, _get_dtype
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype, _get_nx_weights
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
@@ -589,20 +589,24 @@ class _NxGraph(GraphInterface):
         ''' Number of edges in the graph '''
         return self._graph.number_of_edges()
 
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+    def get_degrees(self, mode="total", nodes=None, weights=None):
         g = self._graph
+        w = _get_nx_weights(self, weights)
 
-        weight = 'weight' if use_weights else None
+        nodes  = range(g.number_of_nodes()) if nodes is None else nodes
+        dtype  = int if weights in {False, None} else float
         di_deg = None
 
-        if deg_type == 'total':
-            di_deg = g.degree(node_list, weight=weight)
-        elif deg_type == 'in':
-            di_deg = g.in_degree(node_list, weight=weight)
+        if mode == 'total' or not self._graph.is_directed():
+            di_deg = g.degree(nodes, weight=w)
+        elif mode == 'in':
+            di_deg = g.in_degree(nodes, weight=w)
+        elif mode == 'out':
+            di_deg = g.out_degree(nodes, weight=w)
         else:
-            di_deg = g.out_degree(node_list, weight=weight)
+            raise ValueError("Unknown `mode` '{}'".format(mode))
 
-        return np.array([d[1] for d in di_deg])
+        return np.array([di_deg[i] for i in nodes], dtype=dtype)
 
     def is_connected(self, mode="strong"):
         '''

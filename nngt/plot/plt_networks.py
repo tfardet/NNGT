@@ -545,10 +545,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         plt.show()
 
 
-#-----------------------------------------------------------------------------#
-# Tools
-#------------------------
-#
+# ----- #
+# Tools #
+# ----- #
 
 def _set_ax_lim(ax, xdata, ydata, xlims, ylims):
     if xlims is not None:
@@ -566,12 +565,16 @@ def _set_ax_lim(ax, xdata, ydata, xlims, ylims):
 
 
 def _node_size(network, restrict_nodes, nsize):
+    restrict_nodes = None if restrict_nodes is None else list(restrict_nodes)
+
     n = network.node_nb() if restrict_nodes is None else len(restrict_nodes)
+
     size = np.ones(n, dtype=float)
 
     if "degree" in nsize:
         deg_type = nsize[:nsize.index("-")]
-        size = network.get_degrees(deg_type, node_list=restrict_nodes).astype(float)
+        size = network.get_degrees(deg_type,
+                                   nodes=restrict_nodes).astype(float)
         if np.isclose(size.min(), 0):
             size[np.isclose(size, 0)] = 0.5
         if size.max() > 15*size.min():
@@ -674,7 +677,7 @@ def _node_color(network, restrict_nodes, ncolor):
             values = None
             if "degree" in ncolor:
                 dtype   = ncolor[:ncolor.find("-")]
-                values = network.get_degrees(dtype, node_list=restrict_nodes)
+                values = network.get_degrees(dtype, nodes=restrict_nodes)
             elif ncolor == "betweenness":
                 if restrict_nodes is None:
                     values = network.get_betweenness("node")

@@ -365,7 +365,7 @@ def undirected_local_clustering(g, weights=None, nodes=None,
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
     nodes : list, optional (default: all nodes)
-        The list of nodes for which the clutering will be returned
+        The list of nodes for which the clustering will be returned
     combine_weights : str, optional (default: "sum")
         How the weights of directed edges between two nodes should be combined,
         among:
@@ -859,9 +859,9 @@ def _get_attribute(network, attribute, nodes=None, data=None):
         dtype = attribute[:attribute.index("-")]
         if dtype.startswith("w"):
             return network.get_degrees(
-                dtype[1:], node_list=nodes, use_weights=True, use_types=True)
+                dtype[1:], nodes=nodes, weights=True)
         else:
-            return network.get_degrees(dtype, node_list=nodes)
+            return network.get_degrees(dtype, nodes=nodes)
     elif attribute == "firing_rate":
         return get_firing_rate(network, nodes=nodes, data=data)
     elif attribute == "subgraph_centrality":

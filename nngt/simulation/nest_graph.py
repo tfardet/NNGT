@@ -45,7 +45,7 @@ __all__ = [
 # -------- #
 
 @mpi_checker()
-def make_nest_network(network, send_only=None, use_weights=True):
+def make_nest_network(network, send_only=None, weights=True):
     '''
     Create a new network which will be filled with neurons and
     connector objects to reproduce the topology from the initial network.
@@ -61,8 +61,10 @@ def make_nest_network(network, send_only=None, use_weights=True):
         Restrict the nodes that are created in NEST to either inhibitory or
         excitatory neurons `send_only` :math:`\in \{ 1, -1\}` to a group or a
         list of groups.
-    use_weights : bool, optional (default: True)
-        Whether to use the network weights or default ones (value: 10.).
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
 
     Returns
     -------
@@ -125,7 +127,7 @@ def make_nest_network(network, send_only=None, use_weights=True):
     }
 
     # get all properties as scipy.sparse.csr matrices
-    csr_weights = network.adjacency_matrix(types=False, weights=True)
+    csr_weights = network.adjacency_matrix(types=False, weights=weights)
     csr_delays  = network.adjacency_matrix(types=False, weights=DELAY)
 
     cspec = 'one_to_one'
@@ -156,12 +158,14 @@ def make_nest_network(network, send_only=None, use_weights=True):
                     syn_spec = _get_syn_param(
                         src_name, src_group, tgt_name, tgt_group, pop.syn_spec)
                     # using A1 to get data from matrix
-                    if use_weights:
+                    if weights not in {None, False}:
                         syn_spec[WEIGHT] = syn_sign *\
                             csr_weights[local_src_ids, local_tgt_ids].A1
                     else:
                         syn_spec[WEIGHT] = np.repeat(syn_sign, len(tgt_ids))
-                    syn_spec[DELAY] = csr_delays[local_src_ids, local_tgt_ids].A1
+    
+                    syn_spec[DELAY] = \
+                        csr_delays[local_src_ids, local_tgt_ids].A1
 
                     num_conn += len(local_src_ids)
 
@@ -188,12 +192,15 @@ def make_nest_network(network, send_only=None, use_weights=True):
             # get NEST gids of sources and targets for each edge
             src_ids = network.nest_gids[local_csr.nonzero()[0] + min_sidx]
             tgt_ids = network.nest_gids[local_csr.nonzero()[1]]
+
             # prepare weights
             syn_spec = {
                 WEIGHT: np.repeat(syn_sign, len(src_ids)).astype(float)
             }
-            if use_weights:
+
+            if weights not in {None, False}:
                 syn_spec[WEIGHT] *= csr_weights[src_group.ids, :].data
+
             syn_spec[DELAY] = csr_delays[src_group.ids, :].data
 
             nest.Connect(src_ids, tgt_ids, syn_spec=syn_spec, conn_spec=cspec,

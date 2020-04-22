@@ -29,7 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT, is_integer
-from nngt.lib.graph_helpers import _to_np_array, _get_dtype
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype, _get_ig_weights
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
@@ -511,17 +511,16 @@ class _IGraph(GraphInterface):
         ''' Number of edges in the graph '''
         return self._graph.ecount()
 
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
+    def get_degrees(self, mode="total", nodes=None, weights=None):
         g = self._graph
+        w = _get_ig_weights(self, weights)
+    
+        mode = 'all' if mode == 'total' else mode
 
-        deg_type = 'all' if deg_type == 'total' else deg_type
+        if nonstring_container(weights) or weights not in {False, None}:
+            return np.array(g.strength(nodes, mode=mode, weights=w))
 
-        if use_weights is not False:
-            use_weights = 'weight' if use_weights is True else use_weights
-            return np.array(g.strength(node_list, mode=deg_type,
-                            weights=use_weights))
-        else:
-            return np.array(g.degree(node_list, mode=deg_type))
+        return np.array(g.degree(nodes, mode=mode), dtype=int)
 
     def is_connected(self, mode="strong"):
         '''
@@ -583,3 +582,20 @@ class _IGraph(GraphInterface):
             for key, val in graph.es[0].attributes().items():
                 super(type(self._eattr), self._eattr).__setitem__(
                     key, _get_dtype(val))
+
+
+def _get_weights(g, weights):
+    if weights in g.edges_attributes:
+        # existing edge attribute
+        return np.array(g._graph.es[weights])
+    elif nonstring_container(weights):
+        # user-provided array
+        return np.array(weights)
+    elif weights is True:
+        # "normal" weights
+        return np.array(g._graph.es["weight"])
+    elif not weights:
+        # unweighted
+        return None
+
+    raise ValueError("Unknown edge attribute '" + str(weights) + "'.")

@@ -275,7 +275,7 @@
                     <string name="distribution">lin_corr</string>
                     <string name="correl_attribute">betweenness</string>
                     <string name="btype">edge</string>
-                    <bool name="use_weights">False</bool>
+                    <bool name="weights">False</bool>
                     <float name="lower">0.001</float>
                     <float name="upper">5.0</float>
                 </weights>

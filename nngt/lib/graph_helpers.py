@@ -152,3 +152,55 @@ def _get_dtype(value):
         return "string"
 
     return "object"
+
+
+def _get_gt_weights(g, weights):
+    if nonstring_container(weights):
+        # user-provided array (test must come first since non hashable)
+        return g.graph.new_edge_property("double", vals=weights)
+    elif weights in g.edges_attributes:
+        # existing edge attribute
+        return g.graph.edge_properties[weights]
+    elif weights is True:
+        # "normal" weights
+        return g.graph.edge_properties['weight']
+    elif not weights:
+        # unweighted
+        return None
+
+    raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
+
+
+def _get_ig_weights(g, weights):
+    if nonstring_container(weights):
+        # user-provided array (test must come first since non hashable)
+        return np.array(weights)
+    elif weights in g.edges_attributes:
+        # existing edge attribute
+        return np.array(g.graph.es[weights])
+    elif weights is True:
+        # "normal" weights
+        return np.array(g.graph.es["weight"])
+    elif not weights:
+        # unweighted
+        return None
+
+    raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
+
+
+def _get_nx_weights(g, weights):
+    if nonstring_container(weights):
+        # user-provided array (test must come first since non hashable)
+        return ValueError("networkx backend does not support custom arrays "
+                          "as `weights`.")
+    elif weights in g.edges_attributes:
+        # existing edge attribute
+        return weights
+    elif weights is True:
+        # "normal" weights
+        return 'weight'
+    elif not weights:
+        # unweighted
+        return None
+
+    raise ValueError("Unknown attribute '{}' for `weights`.".format(weights))

@@ -126,20 +126,6 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
     a neuron receiving :math:`k` inputs will be subjected to these events with
     a rate :math:`k*\\lambda`, where :math:`\\lambda` is the base rate.
 
-    .. versionchanged:: 1.1
-        Removed optional `weight_fraction` in favour of a compulsory `weight`
-        to avoid problems when synaptic weights need to change.
-        Because of this, `weight_normalization` is no longer necessary and
-        has been removed.
-
-    .. versionchanged:: 1.0
-        Added `syn_type`, separating the excitatory and inhibitory degrees
-        and weights.
-
-    .. versionchanged:: 0.8
-        Added `nodes`, removed `syn_model` and `syn_params`.
-        Added `weight_normalization` to avoid issues with plastic synapses.
-
     Parameters
     ----------
     network : :class:`~nngt.Network` object
@@ -182,7 +168,7 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
         weight = [weight for _ in range(len(gids))]
 
     # get the unique degrees and create one poisson_generator per degree
-    degrees    = network.get_degrees("in", syn_type=syn_type)
+    degrees    = network.get_degrees("in", edge_type=syn_type)
     deg_set    = set(degrees)
     map_deg_pg = {d: i for i, d in enumerate(deg_set)}
     pgs        = nest.Create("poisson_generator", len(deg_set), _warn=False)

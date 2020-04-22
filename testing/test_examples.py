@@ -69,15 +69,9 @@ class TestExamples(unittest.TestCase):
         '''
         for example in self.example_files:
             if example.endswith('.py'):
-                try:
-                    try:
-                        execfile(example)
-                    except NameError:  # python 3+
-                        with open(example) as f:
-                            code = compile(f.read(), example, 'exec')
-                            exec(code, glob)
-                except NotImplementedError:
-                    pass  # potential IO error for gt <= 2.22
+                with open(example) as f:
+                    code = compile(f.read(), example, 'exec')
+                    exec(code, glob)
 
 
 # ---------- #

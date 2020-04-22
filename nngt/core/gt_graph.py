@@ -29,7 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _to_np_array, _get_dtype
+from nngt.lib.graph_helpers import _to_np_array, _get_dtype, _get_gt_weights
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
 
@@ -306,7 +306,6 @@ class _GtGraph(GraphInterface):
         see :class:`gt.Graph`'s constructor '''
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
-        self._weighted = weighted
 
         g = copy_graph.graph if copy_graph is not None else None
 
@@ -588,25 +587,17 @@ class _GtGraph(GraphInterface):
         ''' Number of edges in the graph '''
         return self._graph.num_edges()
 
-    def degree_list(self, node_list=None, deg_type="total", use_weights=False):
-        w = 1.
+    def get_degrees(self, mode="total", nodes=None, weights=None):
+        w = _get_gt_weights(self, weights)
 
         if not self._graph.is_directed():
-            deg_type = "total"
-            w = 0.5
+            mode = "total"
 
-        if node_list is None:
-            node_list = slice(0, self.node_nb() + 1)
-        else:
-            node_list = list(node_list)
+        if nodes is not None:
+            return self._graph.degree_property_map(
+                mode, weight=w).a[nodes]
 
-        g = self._graph
-
-        if "weight" in g.edge_properties and use_weights:
-            return w*g.degree_property_map(
-                deg_type, g.edge_properties["weight"]).a[node_list]
-
-        return w*np.array(g.degree_property_map(deg_type).a[node_list])
+        return self._graph.degree_property_map(mode, weight=w).a.flatten()
 
     def is_connected(self, mode="strong"):
         '''

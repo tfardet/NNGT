@@ -16,7 +16,7 @@ Then, you will be able to use the help from IPython by typing, for instance:
 
 >>> nngt.Graph?
 
-In Jupyter, the docstring can be viewed using Shift+Tab.
+In Jupyter, the docstring can be viewed using :kbd:`Shift` + :kbd:`Tab`.
 
 The source file for the tutorial can be found here:
 :source:`doc/examples/introductory_tutorial.py`.
@@ -239,27 +239,33 @@ In order to access the gids from each group, you can do: ::
 For more details to use NNGT with NEST, see :ref:`nest_int`.
 
 
-Using the graph library of the NNGT object
-==========================================
+.. _graph_attr:
 
-.. warning::
-    This behavior will change in the next major release (NNGT 2.0) where
-    the specific library graph object will be handled through composition
-    instead of direct inheritance. It will then be accessible via a ``graph``
-    property of the :class:`~nngt.Graph` instance.
+Underlying graph objects and libraries
+======================================
 
-As mentionned in the installation and introduction, NNGT uses existing graph
-library objects to store the graph.
-The library was designed so that most of the functions of the underlying graph
-library can be used directly on the :class:`~nngt.Graph` object.
+Starting with version 2.0 of NNGT, the library no longer uses inheritance but
+composition to provide access to the underlying graph object, which is stored
+in the :attr:`~nngt.Graph.graph` attribute of the :class:`~nngt.Graph` class.
+
+It can simply be accessed via: ::
+
+    g = nngt.Graph()
+
+    library_graph = g.graph
+
+Using :attr:`~nngt.Graph.graph` attribute, on can directly use functions of the
+underlying graph library (networkx, igraph, or graph-tool) if their equivalent
+is not yet provided in NNGT -- see :ref:`graph-analysis` for implemented
+functions.
 
 .. warning::
     One notable exception to this behaviour relates to the creation and
     deletion of nodes or edges, for which you have to use the functions
     provided by NNGT.
     As a general rule, any operation that might alter the graph structure
-    should be done through NNGT and never directly using the underlying
-    library.
+    should be done through NNGT and never directly by calling functions or
+    methods on the :attr:`~nngt.Graph.graph` attribute.
 
 Apart from this, you can use any analysis or drawing tool from the graph
 library.
@@ -270,8 +276,8 @@ Example using graph-tool
 
 >>> import graph_tool as gt
 >>> import matplotlib.pyplot as plt
->>> print(gt.centrality.closeness(g, harmonic=True))
->>> gt.draw.graph_draw(g)
+>>> print(gt.centrality.closeness(g.graph))
+>>> gt.draw.graph_draw(g.graph)
 >>> nngt.plot.draw_network(g)
 >>> plt.show()
 
@@ -281,8 +287,8 @@ Example using igraph
 
 >>> import igraph as ig
 >>> import matplotlib.pyplot as plt
->>> print(g.closeness(mode='out'))
->>> ig.plot(g)
+>>> print(g.graph.closeness(mode='out'))
+>>> ig.plot(g.graph)
 >>> nngt.plot.draw_network(g)
 >>> plt.show()
 
@@ -292,8 +298,8 @@ Example using networkx
 
 >>> import networkx as nx
 >>> import matplotlib.pyplot as plt
->>> print(nx.closeness_centrality(g))
->>> nx.draw(g)
+>>> print(nx.closeness_centrality(g.graph.reverse()))
+>>> nx.draw(g.graph)
 >>> nngt.plot.draw_network(g)
 >>> plt.show()
 
@@ -303,8 +309,11 @@ Example using networkx
     different (though I made sure the functions of each libraries worked
     on the same outgoing edges)!
     This example is given voluntarily to remind you, when using these
-    libraries, to check that they indeed compute what you think they do.
-    And even when they compute it, check how they do it!
+    libraries, to check that they indeed compute what you think they do and
+    what are the underlying hypotheses or definitions.
+
+    To avoid such issues and make sure that results are the same with all
+    libraries, use the functions provided in :ref:`graph-analysis`.
 
 
 **Go to other tutorials:**

@@ -18,13 +18,13 @@ Regardless of your needs, the following libraries are required:
 * `numpy <http://www.numpy.org/>`_ (>= 1.11 required for full support)
 * `scipy <http://www.scipy.org/scipylib/index.html>`_
 
-Though NNGT implements a default (very basic) backend, installing one of the
+Though NNGT implements a default (limited) backend, installing one of the
 following libraries is highly recommended to do some proper network
 analysis:
 
-* graph_tool_ (> 2.22 recommended)
+* graph_tool_ (> 2.22)
 * or igraph_
-* or networkx_ (>= 2.0)
+* or networkx_ (>= 2.4)
 
 
 Additionnal dependencies
@@ -32,14 +32,14 @@ Additionnal dependencies
 
 * matplotlib_ (optional but will limit the functionalities if not present)
 * shapely_ for complex spatial embedding
-* `peewee>3` for database features
+* peewee (> 3) for database features
 
 .. note::
-    If they are not present on your computer, `pip` will directly try to
-    install scipy and numpy.
+    If they are not present on your computer, :command:`pip` will directly try
+    to install scipy and numpy.
     However, if you want advanced network analysis features, you will have to
     install the graph library yourself (only `networkx` can be installed
-    directly using `pip`)
+    directly using :command:`pip`)
 
 
 Simple install
@@ -48,10 +48,10 @@ Simple install
 Linux
 -----
 
-Install the requirements (through ``aptitude`` or ``apt-get`` on
-debian/ubuntu/mint, ``pacman`` and ``yaourt`` on arch-based distributions, or
-your `.rpm` manager on fedora. Otherwise you can also install the latest
-versions via `pip`: ::
+Install the requirements (through :command:`apt` on debian/ubuntu/mint,
+:command:`pacman` and :command:`trizen` on arch-based distributions, or
+:command:`yum` on fedora/centos. Otherwise you can also install the latest
+versions via :command:`pip`: ::
 
     pip install --user numpy scipy matplotlib networkx
 
@@ -73,15 +73,15 @@ Mac
 I recommend using `Homebrew <https://brew.sh/>`_ or `Macports
 <https://guide.macports.org/#installing>`_ with which you can install all
 required features to use `NEST` and `NNGT` with `graph-tool`. The following
-command lines are used with `python 2.7` since it is what people are used to
-but I recommend using version `3.5` or higher (replace all 27/2.7 by 35/3.5).
+command lines are used with `python 3.7` but you can use any python >= 3.5
+(just replace all 37/3.7 by the desired version).
 
 **Homebrew** ::
 
     brew tap homebrew/core
     brew tap brewsci/science
 
-    brew install gcc-7 cmake gsl autoconf automake libtool
+    brew install gcc-8 cmake gsl autoconf automake libtool
     brew install python
 
 if you want nest, add ::
@@ -92,20 +92,20 @@ if you want nest, add ::
 
 **Macports** ::
 
-    sudo port select gcc mp-gcc7 && sudo port install gsl +gcc7
+    sudo port select gcc mp-gcc8 && sudo port install gsl +gcc8
     sudo port install autoconf automake libtool
-    sudo port install python27 pip
-    sudo port select python python27
-    sudo port install py27-cython
-    sudo port select cython cython27
-    sudo port install py27-numpy py27-scipy py27-matplotlib py27-ipython
-    sudo port select ipython ipython-2.7
+    sudo port install python37 pip
+    sudo port select python python37
+    sudo port install py37-cython
+    sudo port select cython cython37
+    sudo port install py37-numpy py37-scipy py37-matplotlib py37-ipython
+    sudo port select ipython ipython-3.7
     sudo port install py-graph-tool gtk3
 
 Once the installation is done, you can just install: ::
 
-    export CC=gcc-7
-    export CXX=gcc-7
+    export CC=gcc-8
+    export CXX=gcc-8
     pip install --user nngt
 
 
@@ -114,7 +114,7 @@ Windows
 
 It's the same as Linux for windows users once you've installed
 `Python <http://docs.python-guide.org/en/latest/starting/install/win/>`_ and
-`pip`, but `NEST <http://www.nest-simulator.org/>`_ won't work anyway...
+:command:`pip`, but `NEST <http://www.nest-simulator.org/>`_ won't work.
 
 .. note ::
     `igraph` can be installed on windows if you need something faster than
@@ -122,10 +122,10 @@ It's the same as Linux for windows users once you've installed
 
 **Using the multithreaded algorithms**
 
-Install a compiler (the default `msvc` should already be present, otherwise
-you can install VisualStudio) before you make the installation.
+Install a compiler (the default :command:`msvc` should already be present,
+otherwise you can install VisualStudio) before you make the installation.
 
-In case of problems with `msvc`:
+In case of problems with :command:`msvc`:
 
 * install `MinGW <http://mingw.org/>`_ or
   `MinGW-W64 <https://mingw-w64.org/doku.php>`_
