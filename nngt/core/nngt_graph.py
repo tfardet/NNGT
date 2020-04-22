@@ -705,7 +705,7 @@ class _NNGTGraph(GraphInterface):
             num_nodes = len(nodes)
 
         # weighted
-        if weights in self._eattr:
+        if nonstring_container(weights) or weights in self._eattr:
             degrees = np.zeros(num_nodes)
             adj_mat = self.adjacency_matrix(types=False, weights=weights)
 

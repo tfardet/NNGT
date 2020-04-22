@@ -517,7 +517,7 @@ class _IGraph(GraphInterface):
     
         mode = 'all' if mode == 'total' else mode
 
-        if weights not in {False, None}:
+        if nonstring_container(weights) or weights not in {False, None}:
             return np.array(g.strength(nodes, mode=mode, weights=w))
 
         return np.array(g.degree(nodes, mode=mode), dtype=int)

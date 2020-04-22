@@ -147,17 +147,15 @@ def assortativity(g, degree, weights=None):
     ----------
     .. [gt-assortativity] :gtdoc:`correlations.scalar_assortativity`
     '''
-    ww = _get_gt_weights(g, weights)
-
     # graph-tool expects "total" for undirected graphs
     if not g.is_directed():
         degree = "total"
 
-    if ww is None:
+    if not nonstring_container(weights) and weights in {None, False}:
         return scalar_assortativity(g.graph, degree)[0]
 
     # for weighted assortativity, use node strength
-    strength = g.get_degrees(degree, weights=ww)
+    strength = g.get_degrees(degree, weights=weights)
     ep = g.graph.new_vertex_property("double", vals=strength)
 
     return scalar_assortativity(g.graph, ep)[0]

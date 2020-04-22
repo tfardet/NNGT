@@ -546,8 +546,14 @@ class Graph(nngt.core.GraphObject):
                 if np.any(tarray):
                     mat[tarray] *= -1
             elif types and 'type' in self.edges_attributes:
-                data = self.get_edge_attributes(name=weights) \
-                       if weights else np.ones(self.edge_nb())
+                data = None
+
+                if nonstring_container(weights):
+                    data = weights
+                elif weights in {None, False}:
+                    data = np.ones(self.edge_nb())
+                else:
+                    data = self.get_edge_attributes(name=weights)
 
                 data *= self.get_edge_attributes(name="type")
 
