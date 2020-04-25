@@ -76,6 +76,7 @@ Main classes and functions
 
 import os as _os
 import errno as _errno
+import importlib.util as _imputil
 import shutil as _shutil
 import sys as _sys
 import logging as _logging
@@ -149,7 +150,7 @@ _init_logger(_logger)
 
 # IMPORTANT: afterwards, import config
 from .lib.nngt_config import (get_config, set_config, _load_config, _convert,
-                              _log_conf_changed)
+                              _log_conf_changed, _lazy_load)
 
 # check that config file exists
 if not _os.path.isfile(_new_config):  # if it does not, create it
@@ -300,26 +301,10 @@ except ImportError as e:
     _config['with_plot'] = False
 
 
-# look for nest
-
-if _config['load_nest']:
-    try:
-        # silence nest
-        _sys.argv.append('--quiet')
-        import nest as _nest
-        from . import simulation
-        _config['with_nest'] = _nest.version()
-        __all__.append("simulation")
-        # remove quiet from sys.argv
-        try:
-            idx = _sys.argv.index('--quiet')
-            del _sys.argv[idx]
-        except ValueError:
-            pass
-    except ImportError as e:
-        _log_message(_logger, "DEBUG",
-                     "NEST not found; nngt.simulation not loaded: " + str(e))
-        _config["with_nest"] = False
+if _imputil.find_spec("nest") is not None:
+    _config['with_nest'] = True
+    simulation = _lazy_load("nngt.simulation")
+    __all__.append("simulation")
 
 
 # load database module if required

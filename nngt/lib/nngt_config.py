@@ -23,6 +23,7 @@
 import os
 import sys
 import logging
+import importlib.util as imputil
 from copy import deepcopy
 from importlib import reload
 
@@ -185,14 +186,11 @@ def set_config(config, value=None, silent=False):
             _log_message(logger, "WARNING",
                         "This functionality is not available")
     # update nest
-    if nngt._config["load_nest"] or nngt._config["with_nest"]:
-        try:
-            import nest as _nest
-            from .. import simulation
-            sys.modules["nngt.simulation"] = simulation
-            nngt._config["with_nest"] = _nest.version()
-        except:
-            nngt._config["with_nest"] = False
+    if imputil.find_spec("nest") is not None:
+        _lazy_load("nngt.simulation")
+        nngt._config["with_nest"] = True
+    else:
+        nngt._config["with_nest"] = False
     # log changes
     _configure_logger(nngt._logger)
     glib = (nngt._config["library"] if nngt._config["library"] is not None
@@ -396,6 +394,23 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
     # seed python RNGs
     if old_msd != nngt._config['msd'] or not nngt._seeded:
         nngt_seed(msd=nngt._config['msd'])
+
+
+def _lazy_load(fullname):
+    '''
+    Lazy loading for simulation.
+
+    From: https://stackoverflow.com/a/51126745/5962321
+    '''
+    try:
+        return sys.modules[fullname]
+    except KeyError:
+        spec   = imputil.find_spec(fullname)
+        module = imputil.module_from_spec(spec)
+        loader = imputil.LazyLoader(spec.loader)
+        # setup module and insert into sys.modules
+        loader.exec_module(module)
+        return module
 
 
 config_info = '''
