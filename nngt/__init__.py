@@ -99,7 +99,6 @@ _config = {
     'graph': object,
     'backend': "nngt",
     'library': None,
-    'load_nest': False,
     'log_folder': "~/.nngt/log",
     'log_level': 10,
     'log_to_file': False,
