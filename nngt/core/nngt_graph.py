@@ -751,22 +751,23 @@ class _NNGTGraph(GraphInterface):
 
         Returns
         -------
-        neighbours : tuple
+        neighbours : set
             The neighbours of `node`.
         '''
-        neighbours = set()
-
         edges = self.edges_array
 
-        if mode in ("in", "all") or self._graph._directed:
-            neighbours.update(edges[edges[1] == node, 1])
-        elif mode in ("out", "all") and self._graph._directed:
-            neighbours.update(edges[edges[0] == node, 1])
-        else:
-            raise ValueError('''Invalid `mode` argument {}; possible values
-                                are "all", "out" or "in".'''.format(mode))
+        if mode == "all" or not self._graph._directed:
+            neighbours = set(edges[edges[:, 1] == node, 0])
+            return neighbours.union(edges[edges[:, 0] == node, 1])
 
-        return list(neighbours)
+        if mode == "in":
+            return set(edges[edges[:, 1] == node, 0])
+
+        if mode == "out":
+            return set(edges[edges[:, 0] == node, 1])
+
+        raise ValueError(('Invalid `mode` argument {}; possible values'
+                          'are "all", "out" or "in".').format(mode))
 
     def _from_library_graph(self, graph, copy=True):
         ''' Initialize `self._graph` from existing library object. '''

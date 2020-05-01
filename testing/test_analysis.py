@@ -10,10 +10,12 @@
 """ Test the graph analysis functions """
 
 import numpy as np
+import pytest
 
 import nngt
 
 
+@pytest.mark.skipif(nngt.get_config("backend") == "nngt")
 def test_directed_clustering():
     '''
     Check directed clustering.
