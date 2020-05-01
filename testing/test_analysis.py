@@ -15,7 +15,7 @@ import pytest
 import nngt
 
 
-@pytest.mark.skipif(nngt.get_config("backend") == "nngt")
+@pytest.mark.skipif(nngt.get_config("backend") == "nngt", reason="unsupported")
 def test_directed_clustering():
     '''
     Check directed clustering.
