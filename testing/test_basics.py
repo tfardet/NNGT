@@ -154,7 +154,7 @@ def test_graph_copy():
     assert g.shape is not copy.shape
 
 
-def test_degrees():
+def test_degrees_neighbors():
     '''
     Check ``Graph.get_degrees`` method.
     '''
@@ -177,9 +177,15 @@ def test_degrees():
     assert np.all(g.get_degrees(mode="out") == out_degrees)
     assert np.all(g.get_degrees() == tot_degrees)
 
-    assert np.all(np.isclose(g.get_degrees(mode="in", weights=True), in_strengths))
-    assert np.all(np.isclose(g.get_degrees(mode="out", weights=True), out_strengths))
+    assert np.all(
+        np.isclose(g.get_degrees(mode="in", weights=True), in_strengths))
+    assert np.all(
+        np.isclose(g.get_degrees(mode="out", weights=True), out_strengths))
     assert np.all(np.isclose(g.get_degrees(weights="weight"), tot_strengths))
+
+    assert g.neighbours(3, "in")  == {0, 1}
+    assert g.neighbours(3, "out") == {2, 4}
+    assert g.neighbours(3, "all") == {0, 1, 2, 4}
 
     # UNDIRECTED
     g = nngt.Graph(5, directed=False)
@@ -189,9 +195,15 @@ def test_degrees():
     assert np.all(g.get_degrees(mode="out") == tot_degrees)
     assert np.all(g.get_degrees() == tot_degrees)
 
-    assert np.all(np.isclose(g.get_degrees(mode="in", weights=True), tot_strengths))
-    assert np.all(np.isclose(g.get_degrees(mode="out", weights=True), tot_strengths))
+    assert np.all(
+        np.isclose(g.get_degrees(mode="in", weights=True), tot_strengths))
+    assert np.all(
+        np.isclose(g.get_degrees(mode="out", weights=True), tot_strengths))
     assert np.all(np.isclose(g.get_degrees(weights="weight"), tot_strengths))
+
+    assert g.neighbours(3, "in")  == {0, 1, 2, 4}
+    assert g.neighbours(3, "out") == {0, 1, 2, 4}
+    assert g.neighbours(3, "all") == {0, 1, 2, 4}
 
 
 def test_directed_adjacency():
@@ -362,7 +374,7 @@ if __name__ == "__main__":
     test_config()
     test_new_node_attr()
     test_graph_copy()
-    test_degrees()
+    test_degrees_neighbors()
 
     if not nngt.get_config('mpi'):
         test_node_creation()

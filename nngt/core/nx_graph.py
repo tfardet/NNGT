@@ -22,6 +22,7 @@
 
 from collections import OrderedDict, deque
 from copy import deepcopy
+from itertools import chain
 import logging
 import sys
 
@@ -646,18 +647,22 @@ class _NxGraph(GraphInterface):
 
         Returns
         -------
-        neighbours : numpy array
+        neighbours : set
             The neighbours of `node`.
         '''
         g = self._graph
 
+        # special case for undirected
+        if not g.is_directed():
+            return set(g.neighbors(node))
+
         if mode == "all":
-            return np.fromiter(
-                chain(g.successors(node), g.predecessors(node)), dtype=int)
+            # for directed graphs, neighbors ~ successors
+            return set(g.successors(node)).union(g.predecessors(node))
         elif mode == "in":
-            return np.fromiter(g.predecessors(node), dtype=int)
+            return set(g.predecessors(node))
         elif mode == "out":
-            return np.fromiter(g.successors(node), dtype=int)
+            return set(g.successors(node))
 
         raise ArgumentError('Invalid `mode` argument {}; possible values are '
                             '"all", "out" or "in".'.format(mode))

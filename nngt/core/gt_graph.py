@@ -634,17 +634,18 @@ class _GtGraph(GraphInterface):
 
         Returns
         -------
-        neighbours : tuple
+        neighbours : set
             The neighbours of `node`.
         '''
-        v = self._graph.vertex(node)
+        g = self._graph
+        v = g.vertex(node)
 
-        if mode == "all":
-            return (int(n) for n in v.all_neighbours())
+        if mode == "all" or not g.is_directed():
+            return set(int(n) for n in v.all_neighbours())
         elif mode == "in":
-            return (int(n) for n in v.in_neighbours())
+            return set(int(n) for n in v.in_neighbours())
         elif mode == "out":
-            return (int(n) for n in v.out_neighbours())
+            return set(int(n) for n in v.out_neighbours())
         else:
             raise ArgumentError('''Invalid `mode` argument {}; possible values
                                 are "all", "out" or "in".'''.format(mode))
