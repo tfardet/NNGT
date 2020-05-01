@@ -55,7 +55,7 @@ the function will raise an error if one tries to use it on such graphs.
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.global_clustering`           |    gt, nx, ig         |   x                 |   x                 |   x                |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
-| :func:`~nngt.analysis.local_clustering`            |    gt, nx, ig         |   x                 |   x                 |   x                |
+| :func:`~nngt.analysis.local_clustering` [4]_       |    gt, nx, ig         |   x                 |   x                 |   x                |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.reciprocity`                 |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
@@ -63,7 +63,7 @@ the function will raise an error if one tries to use it on such graphs.
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.subgraph_centrality`         |    nngt               |   nngt              |   nngt              |   nngt             |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
-| :func:`~nngt.analysis.transitivity` [4]_           |    gt, nx, ig         |   x                 |   x                 |   x                |
+| :func:`~nngt.analysis.transitivity` [5]_           |    gt, nx, ig         |   x                 |   x                 |   x                |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 
 
@@ -76,7 +76,10 @@ the function will raise an error if one tries to use it on such graphs.
        harmonic closeness.
 .. [3] the implementation of the diameter for graph-tool is approximmate so
        results may occasionaly be inexact with this backend.
-.. [4] identical to ``global_clustering``.
+.. [4] for directed and weighted networks, definitions and implementations
+       differ between graph libraries, generic implementation in NNGT will
+       come soon.
+.. [5] identical to ``global_clustering``.
 
 ----
 

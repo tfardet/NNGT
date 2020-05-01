@@ -550,17 +550,17 @@ class _IGraph(GraphInterface):
 
         Returns
         -------
-        neighbours : tuple
+        neighbours : set
             The neighbours of `node`.
         '''
         g = self._graph
 
         if mode == "all":
-            return (n for n in g.neighbors(node, mode=3))
+            return set(n for n in g.neighbors(node, mode=3))
         elif mode == "in":
-            return (n for n in g.neighbors(node, mode=2))
+            return set(n for n in g.neighbors(node, mode=2))
         elif mode == "out":
-            return (n for n in g.neighbors(node, mode=1))
+            return set(n for n in g.neighbors(node, mode=1))
 
         raise ArgumentError('Invalid `mode` argument {}; possible values are '
                             '"all", "out" or "in".'.format(mode))
