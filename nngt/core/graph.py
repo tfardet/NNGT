@@ -1065,6 +1065,27 @@ class Graph(nngt.core.GraphObject):
         else:
             return self._eattr[edges]["delay"]
 
+    def neighbours(self, node, mode="all"):
+        '''
+        Return the neighbours of `node`.
+
+        Parameters
+        ----------
+        node : int
+            Index of the node of interest.
+        mode : string, optional (default: "all")
+            Type of neighbours that will be returned: "all" returns all the
+            neighbours regardless of directionality, "in" returns the
+            in-neighbours (also called predecessors) and "out" retruns the
+            out-neighbours (or successors).
+
+        Returns
+        -------
+        neighbours : set
+            The neighbours of `node`.
+        '''
+        return super().neighbours(node, mode=mode)
+
     def is_spatial(self):
         '''
         Whether the graph is embedded in space (i.e. is a subclass of
