@@ -655,9 +655,9 @@ class _NxGraph(GraphInterface):
             return np.fromiter(
                 chain(g.successors(node), g.predecessors(node)), dtype=int)
         elif mode == "in":
-            return np.fromiter(self.predecessors(node), dtype=int)
+            return np.fromiter(g.predecessors(node), dtype=int)
         elif mode == "out":
-            return np.fromiter(self.successors(node), dtype=int)
+            return np.fromiter(g.successors(node), dtype=int)
 
         raise ArgumentError('Invalid `mode` argument {}; possible values are '
                             '"all", "out" or "in".'.format(mode))

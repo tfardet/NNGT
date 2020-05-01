@@ -417,7 +417,7 @@ def local_clustering(g, weights=None, nodes=None):
     lc : :class:`numpy.ndarray`
         The list of clustering coefficients, on per node.
     '''
-    if not graph.is_directed():
+    if not g.is_directed():
         return undirected_local_clustering(g, weights=weights, nodes=nodes)
 
     raise NotImplementedError("`local_clustering` is not yet implemented for "
