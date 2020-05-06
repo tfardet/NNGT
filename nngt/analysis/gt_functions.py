@@ -419,7 +419,7 @@ def adj_mat(g, weights=None, mformat="csr"):
 
     libgraph_tool_spectral.adjacency(
         graph._Graph__graph, _prop("v", graph, index),
-        _prop("e", graph, weight), data, i, j)
+        _prop("e", graph, ww), data, i, j)
 
     if E > 0:
         V = max(graph.num_vertices(), max(i.max() + 1, j.max() + 1))
