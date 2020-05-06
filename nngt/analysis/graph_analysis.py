@@ -548,6 +548,11 @@ def adjacency_matrix(graph, types=False, weights=False):
     Returns
     -------
     a :class:`~scipy.sparse.csr_matrix`.
+
+    References
+    ----------
+    .. [gt-adjacency] :gtdoc:`spectral.adjacency`
+    .. [nx-adjacency] :nxdoc:`.convert_matrix.to_scipy_sparse_matrix`
     '''
     return graph.adjacency_matrix(types=types, weights=weights)
 

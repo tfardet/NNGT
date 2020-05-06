@@ -412,7 +412,7 @@ def diameter(g, weights=False):
         return np.inf
 
 
-def adj_mat(g, weights=None):
+def adj_mat(g, weights=None, mformat="csr"):
     r'''
     Returns the adjacency matrix :math:`A` of the graph.
     With edge :math:`i \leftarrow j` corresponding to entry :math:`A_{ij}`.
@@ -426,6 +426,9 @@ def adj_mat(g, weights=None):
         then returns the binary adjacency matrix; if ``True``, returns the
         weighted matrix, otherwise fills the matrix with any valid edge
         attribute values.
+    mformat : str, optional (default: "csr")
+        Type of :mod:`scipy.sparse` matrix that will be returned, by
+        default :class:`scipy.sparse.csr_matrix`.
 
     Returns
     -------
@@ -437,7 +440,7 @@ def adj_mat(g, weights=None):
     '''
     w = _get_nx_weights(g, weights)
 
-    return nx.to_scipy_sparse_matrix(g.graph, weight=w)
+    return nx.to_scipy_sparse_matrix(g.graph, weight=w, format=mformat)
 
 
 def get_edges(g):

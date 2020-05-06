@@ -503,9 +503,12 @@ class Graph(nngt.core.GraphObject):
     #-------------------------------------------------------------------------#
     # Getters
 
-    def adjacency_matrix(self, types=False, weights=False):
+    def adjacency_matrix(self, types=False, weights=False, mformat="csr"):
         '''
         Return the graph adjacency matrix.
+
+        .. versionchanged: 2.0
+            Added matrix format option (`mformat`).
 
         Note
         ----
@@ -522,10 +525,13 @@ class Graph(nngt.core.GraphObject):
             connections are multiply bythe associated synaptic strength; if
             weight is a string, the connections are scaled bythe corresponding
             edge attribute.
+        mformat : str, optional (default: "csr")
+            Type of :mod:`scipy.sparse` matrix that will be returned, by
+            default :class:`scipy.sparse.csr_matrix`.
 
         Returns
         -------
-        mat : :class:`scipy.sparse.csr_matrix` matrix
+        mat : :mod:`scipy.sparse` matrix
             The adjacency matrix of the graph.
         '''
         weights = "weight" if weights is True else weights
@@ -540,6 +546,7 @@ class Graph(nngt.core.GraphObject):
 
                 if np.any(inh):
                     mat[inh, :] *= -1
+
             elif 'type' in self.nodes_attributes:
                 mat = nngt.analyze_graph["adjacency"](self, weights)
                 tarray = np.where(self.nodes_attributes['type'] < 0)[0]
@@ -566,10 +573,10 @@ class Graph(nngt.core.GraphObject):
                 if not self.is_directed():
                     mat += mat.T
 
-            return mat
+            return mat.asformat(mformat)
 
         # untyped
-        mat = nngt.analyze_graph["adjacency"](self, weights)
+        mat = nngt.analyze_graph["adjacency"](self, weights, mformat=mformat)
 
         return mat
 
