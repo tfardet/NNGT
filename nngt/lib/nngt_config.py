@@ -65,7 +65,6 @@ def get_config(key=None, detailed=False):
                 del cfg['mpi_comm']
 
             # hide technical stuff
-            del cfg["load_nest"]
             del cfg["graph"]
             del cfg["library"]
             del cfg["palette_continuous"]
