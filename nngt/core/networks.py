@@ -30,9 +30,6 @@ from nngt.lib import (InvalidArgument, nonstring_container, default_neuron,
 from .graph import Graph
 from .spatial_graph import SpatialGraph
 
-if nngt._config['with_nest']:
-    from nngt.simulation import make_nest_network
-
 
 # ------- #
 # Network #
