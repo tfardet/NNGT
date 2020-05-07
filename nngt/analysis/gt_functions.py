@@ -426,7 +426,8 @@ def adj_mat(g, weights=None, mformat="csr"):
     else:
         V = graph.num_vertices()
 
-    m = coo_matrix((data, (i,j)), shape=(V, V))
+    # we take the convention using rows for outgoing connections
+    m = coo_matrix((data, (j, i)), shape=(V, V))
 
     return m.asformat(mformat)
 
