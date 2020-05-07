@@ -233,7 +233,7 @@ def _set_nngt():
     def _notimplemented(*args, **kwargs):
         raise NotImplementedError("Install a graph library to use.")
 
-    def adj_mat(g, weight=None):
+    def adj_mat(g, weight=None, mformat="csr"):
         data = None
 
         if weight in g.edges_attributes:
@@ -249,7 +249,7 @@ def _set_nngt():
         mat       = ssp.coo_matrix((data, (edges[:, 0], edges[:, 1])),
                                    shape=(num_nodes, num_nodes))
 
-        return mat.tocsr()
+        return mat.asformat(mformat)
 
     def get_edges(g):
         return g.edges_array

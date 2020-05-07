@@ -368,7 +368,7 @@ def diameter(g, weights=None):
     return g.graph.diameter(weights=ww)
 
 
-def adj_mat(g, weights=None):
+def adj_mat(g, weights=None, mformat="csr"):
     r'''
     Returns the adjacency matrix :math:`A` of the graph.
     With edge :math:`i \leftarrow j` corresponding to entry :math:`A_{ij}`.
@@ -382,6 +382,9 @@ def adj_mat(g, weights=None):
         then returns the binary adjacency matrix; if ``True``, returns the
         weighted matrix, otherwise fills the matrix with any valid edge
         attribute values.
+    mformat : str, optional (default: "csr")
+        Type of :mod:`scipy.sparse` matrix that will be returned, by
+        default :class:`scipy.sparse.csr_matrix`.
 
     Note
     ----
@@ -409,9 +412,11 @@ def adj_mat(g, weights=None):
         if not g.is_directed():
             coo_adj += coo_adj.T
 
-        return coo_adj.tocsr()
+        return coo_adj.asformat(mformat)
 
-    return ssp.csr_matrix((n, n))
+    m = ssp.cco_matrix((n, n))
+
+    return m.asformat(mformat)
 
 
 def get_edges(g):

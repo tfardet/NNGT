@@ -21,13 +21,14 @@
 
 """ Tools to analyze graphs with the graph-tool backend """
 
+from scipy.sparse import coo_matrix
 import numpy as np
 
-from graph_tool import GraphView
+from graph_tool import GraphView, _prop
 from graph_tool.centrality import closeness as gt_closeness
 from graph_tool.centrality import betweenness as gt_betweenness
 from graph_tool.correlations import scalar_assortativity
-from graph_tool.spectral import adjacency
+from graph_tool.spectral import libgraph_tool_spectral
 from graph_tool.stats import label_parallel_edges
 
 import graph_tool.topology as gtt
@@ -98,7 +99,7 @@ def undirected_local_clustering(g, weights=None, nodes=None,
 
     Returns
     -------
-    lc : :class:`numpy.ndarray`
+    lc : :class:`np.ndarray`
         The list of clustering coefficients, on per node.
 
     References
@@ -233,7 +234,7 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
 
     Returns
     -------
-    c : :class:`numpy.ndarray`
+    c : :class:`np.ndarray`
         The list of closeness centralities, on per node.
 
     .. warning ::
@@ -281,9 +282,9 @@ def betweenness(g, btype="both", weights=None):
 
     Returns
     -------
-    nb : :class:`numpy.ndarray`
+    nb : :class:`np.ndarray`
         The nodes' betweenness if `btype` is 'node' or 'both'
-    eb : :class:`numpy.ndarray`
+    eb : :class:`np.ndarray`
         The edges' betweenness if `btype` is 'edge' or 'both'
 
     References
@@ -320,7 +321,7 @@ def connected_components(g, ctype=None):
 
     Returns
     -------
-    cc, hist : :class:`numpy.ndarray`
+    cc, hist : :class:`np.ndarray`
         The component associated to each node (`cc`) and the number of nodes in
         each of the component (`hist`).
 
@@ -373,7 +374,7 @@ def diameter(g, weights=False):
     return gtt.pseudo_diameter(g.graph, weights=ww)[0]
 
 
-def adj_mat(g, weights=None):
+def adj_mat(g, weights=None, mformat="csr"):
     r'''
     Returns the adjacency matrix :math:`A` of the graph.
     With edge :math:`i \leftarrow j` corresponding to entry :math:`A_{ij}`.
@@ -387,6 +388,9 @@ def adj_mat(g, weights=None):
         then returns the binary adjacency matrix; if ``True``, returns the
         weighted matrix, otherwise fills the matrix with any valid edge
         attribute values.
+    mformat : str, optional (default: "csr")
+        Type of :mod:`scipy.sparse` matrix that will be returned, by
+        default :class:`scipy.sparse.csr_matrix`.
 
     Returns
     -------
@@ -394,11 +398,38 @@ def adj_mat(g, weights=None):
 
     References
     ----------
-    .. [gt-adjacency] https://graph-tool.skewed.de/static/doc/spectral.html#graph_tool.spectral.adjacency
+    .. [gt-adjacency] :gtdoc:`spectral.adjacency`
     '''
     ww = _get_gt_weights(g, weights)
 
-    return adjacency(g.graph, ww).T
+    graph = g.graph
+    index = None
+
+    if graph.get_vertex_filter()[0] is not None:
+        index = graph.new_vertex_property("int64_t")
+        index.fa = np.arange(graph.num_vertices())
+    else:
+        index = graph.vertex_index
+
+    E = graph.num_edges() if graph.is_directed() else 2 * graph.num_edges()
+
+    data = np.zeros(E, dtype="double")
+    i = np.zeros(E, dtype="int32")
+    j = np.zeros(E, dtype="int32")
+
+    libgraph_tool_spectral.adjacency(
+        graph._Graph__graph, _prop("v", graph, index),
+        _prop("e", graph, ww), data, i, j)
+
+    if E > 0:
+        V = max(graph.num_vertices(), max(i.max() + 1, j.max() + 1))
+    else:
+        V = graph.num_vertices()
+
+    # we take the convention using rows for outgoing connections
+    m = coo_matrix((data, (j, i)), shape=(V, V))
+
+    return m.asformat(mformat)
 
 
 def get_edges(g):
