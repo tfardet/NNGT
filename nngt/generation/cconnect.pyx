@@ -28,7 +28,6 @@ __all__ = [
     "_fixed_degree",
     "_from_degree_list",
     "_gaussian_degree",
-    "_newman_watts",
     "_no_self_loops",
     "_price_scale_free",
     "_random_scale_free",
@@ -409,60 +408,6 @@ def _erdos_renyi(source_ids, target_ids, float density=-1, int edges=-1,
 
 def _price_scale_free():
     pass
-
-
-def _circular_graph(node_ids, coord_nb):
-    '''
-    Connect every node `i` to its `coord_nb` nearest neighbours on a circle
-    '''
-    nodes = len(node_ids)
-    ia_sources, ia_targets = np.zeros(nodes*coord_nb), np.zeros(nodes*coord_nb)
-    ia_sources = np.repeat(np.arange(0,nodes).astype(int),coord_nb)
-    dist = coord_nb/2.
-    neg_dist = -int(np.floor(dist))
-    pos_dist = 1-neg_dist if dist-np.floor(dist) < EPS else 2-neg_dist
-    ia_base = np.concatenate((np.arange(neg_dist,0),np.arange(1,pos_dist)))
-    ia_targets = np.tile(ia_base, nodes)+ia_sources
-    ia_targets[ia_targets<-0.5] += nodes
-    ia_targets[ia_targets>nodes-0.5] -= nodes
-    return np.array([node_ids[ia_sources], node_ids[ia_targets]]).astype(int).T
-
-
-def _newman_watts(source_ids, target_ids, int coord_nb=-1,
-                  float proba_shortcut=-1, directed=True, multigraph=False,
-                  **kwargs):
-    '''
-    Returns a numpy array of dimension (num_edges,2) that describes the edge
-    list of a Newmaan-Watts graph.
-    '''
-    node_ids = np.array(source_ids, dtype=int)
-    target_ids = np.array(target_ids, dtype=int)
-    nodes = len(node_ids)
-    circular_edges = nodes*coord_nb
-    num_edges = int(circular_edges*(1+proba_shortcut))
-    num_edges, circular_edges = (num_edges, circular_edges if directed
-                             else (int(num_edges/2), int(circular_edges/2)))
-
-    get_state()
-    b_one_pop = _check_num_edges(
-        source_ids, target_ids, num_edges, directed, multigraph)
-    if not b_one_pop:
-        raise InvalidArgument("This graph model can only be used if source \
-                              and target populations are the same")
-    # generate the initial circular graph
-    ia_edges = np.zeros((num_edges,2),dtype=int)
-    ia_edges[:circular_edges,:] = _circular_graph(node_ids, coord_nb)
-    # add the random connections
-    num_test, num_ecurrent = 0, circular_edges
-    while num_ecurrent != num_edges and num_test < MAXTESTS:
-        ia_sources = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
-        ia_targets = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
-        ia_edges_tmp = np.array([ia_sources,ia_targets]).T
-        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         b_one_pop, multigraph)
-        num_test += 1
-    ia_edges = _no_self_loops(ia_edges)
-    return ia_edges
 
 
 def _distance_rule(cnp.ndarray[size_t, ndim=1] source_ids,

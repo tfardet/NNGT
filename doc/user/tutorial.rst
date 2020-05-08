@@ -28,7 +28,7 @@ The source file for the tutorial can be found here:
     For specific tutorials see also:
 
     * :ref:`graph_gen`
-    * :ref:`multithread`
+    * :ref:`parallelism`
     * :ref:`neural_groups`
     * :ref:`nest_int`
     * :ref:`activ_analysis`
@@ -64,7 +64,7 @@ Let's walk through this configuration:
 * the backend used here is ``igraph``, so all graph-theoretical tools will be
   derived from those of the igraph_ library and we're using version 0.7.1.
 * Multithreaded algorithms will be used, currently running on only one thread
-  (see :ref:`multithread` for more details)
+  (see :ref:`parallelism` for more details)
 * MPI algorithms are not in use (you cannot use both MT and MPI at the same
   time)
 * Plotting is available because the matplotlib_ library is installed
@@ -320,7 +320,7 @@ Example using networkx
 
 * :ref:`intro`
 * :ref:`graph_gen`
-* :ref:`multithread`
+* :ref:`parallelism`
 * :ref:`neural_groups`
 * :ref:`nest_int`
 * :ref:`activ_analysis`

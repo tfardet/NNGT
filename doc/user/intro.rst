@@ -34,7 +34,7 @@ separately in the following pages:
    graph-generation
    component-properties
    graph-analysis
-   multithreading
+   parallelism
    neural-groups
    nest-interaction
    activity-analysis

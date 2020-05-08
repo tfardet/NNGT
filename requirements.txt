@@ -1,6 +1,6 @@
 cython
 setuptools
-numpy
+numpy >= 1.17
 scipy
 shapely
 svg.path >= 4

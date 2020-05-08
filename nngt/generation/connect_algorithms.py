@@ -324,55 +324,121 @@ def _price_scale_free():
     pass
 
 
-def _circular_graph(node_ids, coord_nb):
-    '''
-    Connect every node `i` to its `coord_nb` nearest neighbours on a circle
-    '''
+def _circular_directed_recip(node_ids, coord_nb, reciprocity):
+    ''' Circular graph with given reciprocity '''
+    nodes    = len(node_ids)
+    edges    = int(0.5*nodes*coord_nb*(1 + reciprocity))
+    init_deg = int(0.5*coord_nb)
+
+    # sources and targets
+    sources = np.zeros(edges, dtype=int)
+    targets = np.zeros(edges, dtype=int)
+
+    # set non-reciprocal edges using the full undirected circular graph
+    init_edges = _circular_full(node_ids, coord_nb, False)
+    num_init   = len(init_edges)
+
+    sources[:num_init] = init_edges[:, 0]
+    targets[:num_init] = init_edges[:, 1]
+
+    # then we randomize the direction of these E_init edges
+    # this is equivalent to reversing E edges with E from Binom(E_init, 0.5)
+    rng = np.random.default_rng()
+    E   = rng.binomial(num_init, 0.5)
+
+    chosen = rng.choice(num_init, E, replace=False)
+
+    sources[chosen], targets[chosen] = targets[chosen], sources[chosen]
+
+    # set reciprocal edges
+    num_recip = edges - nodes*init_deg
+
+    if num_recip:
+        chosen = rng.choice(
+            [i for i in range(nodes*init_deg)], num_recip, replace=False)
+
+        sources[-num_recip:] = targets[chosen]
+        targets[-num_recip:] = sources[chosen]
+
+    return np.array([sources, targets], dtype=int).T
+
+
+def _circular_full(node_ids, coord_nb, directed):
+    ''' Create a circular graph with all possible edges '''
     nodes = len(node_ids)
-    ia_sources, ia_targets = np.zeros(nodes*coord_nb), np.zeros(nodes*coord_nb)
-    ia_sources = np.repeat(np.arange(0,nodes).astype(int),coord_nb)
-    dist = coord_nb/2.
-    neg_dist = -int(np.floor(dist))
-    pos_dist = 1-neg_dist if dist-np.floor(dist) < EPS else 2-neg_dist
-    ia_base = np.concatenate((np.arange(neg_dist,0),np.arange(1,pos_dist)))
-    ia_targets = np.tile(ia_base, nodes)+ia_sources
-    ia_targets[ia_targets<-0.5] += nodes
-    ia_targets[ia_targets>nodes-0.5] -= nodes
-    return np.array([node_ids[ia_sources], node_ids[ia_targets]]).astype(int).T
+
+    dist = int(0.5*coord_nb)
+
+    out_deg = coord_nb if directed else dist
+
+    sources = np.repeat(np.arange(0, nodes).astype(int), out_deg)
+
+    # create the connection mask
+    start = -dist if directed else 0
+    stop  = dist + 1
+
+    conn_mask = np.concatenate((np.arange(start, 0), np.arange(1, stop)))
+
+    # make the targets and put them back into [0, nodes - 1]
+    targets   = np.tile(conn_mask, nodes) + sources
+
+    targets[targets < 0] += nodes
+    targets[targets >= nodes] -= nodes
+
+    return np.array((sources, targets), dtype=int).T
 
 
-def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
+def _newman_watts(node_ids, coord_nb, proba_shortcut, reciprocity_circular,
                   directed=True, multigraph=False, **kwargs):
     '''
     Returns a numpy array of dimension (num_edges,2) that describes the edge
-    list of a Newmaan-Watts graph.
+    list of a Newman-Watts graph.
     '''
-    node_ids = np.array(source_ids, dtype=int)
-    target_ids = np.array(target_ids, dtype=int)
-    nodes = len(node_ids)
-    circular_edges = nodes*coord_nb
-    num_edges = int(circular_edges*(1+proba_shortcut))
-    num_edges, circular_edges = (num_edges, circular_edges if directed
-                             else (int(num_edges/2), int(circular_edges/2)))
+    nodes      = len(node_ids)
+    source_ids = np.array(node_ids, dtype=int)
+    target_ids = np.array(node_ids, dtype=int)
+
+    # check the number of edges
+    direct_factor  = 0.5*(1 + directed)
+    recip_factor   = 0.5*(1 + reciprocity_circular)
+    circular_edges = int(nodes * coord_nb * recip_factor * direct_factor)
+
+    num_edges = int(circular_edges*(1 + proba_shortcut))
 
     b_one_pop = _check_num_edges(
         source_ids, target_ids, num_edges, directed, multigraph)
+
     if not b_one_pop:
         raise InvalidArgument("This graph model can only be used if source "
                               "and target populations are the same.")
+
     # generate the initial circular graph
-    ia_edges = np.zeros((num_edges,2),dtype=int)
-    ia_edges[:circular_edges,:] = _circular_graph(node_ids, coord_nb)
+    ia_edges = np.zeros((num_edges, 2), dtype=int)
+
+    if reciprocity_circular == 1 or not directed:
+        ia_edges[:circular_edges, :] = _circular_full(
+            node_ids, coord_nb, directed)
+    elif directed:
+        ia_edges[:circular_edges, :] = _circular_directed_recip(
+            node_ids, coord_nb, reciprocity_circular)
+    else:
+        raise ValueError("`reciprocity_circular` is 1 by definition for an "
+                         "undirected Newman-Watts graph.")
+
     # add the random connections
     num_test, num_ecurrent = 0, circular_edges
-    edges_hash = set()
+    edges_hash = set(tuple(e) for e in ia_edges[:circular_edges])
+
+    rng = np.random.default_rng()
 
     while num_ecurrent != num_edges and num_test < MAXTESTS:
-        ia_sources = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
-        ia_targets = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
-        ia_edges_tmp = np.array([ia_sources,ia_targets]).T
-        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         edges_hash, b_one_pop, multigraph)
+        todo   = num_edges - num_ecurrent
+        chosen = rng.choice(node_ids, int(2*todo))
+
+        ia_edges, num_ecurrent = _filter(
+            ia_edges, chosen.reshape(todo, 2), num_ecurrent, edges_hash,
+            b_one_pop, multigraph)
+
         num_test += 1
 
     ia_edges = _no_self_loops(ia_edges)

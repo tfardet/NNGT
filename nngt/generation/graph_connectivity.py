@@ -101,6 +101,7 @@ if nngt.get_config("mpi"):
 
 __all__ = [
     'all_to_all',
+    'circular',
     'connect_neural_groups',
     'connect_groups',
     'connect_neural_types',
@@ -652,29 +653,120 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     graph_price._graph_type = "price_scale_free"
     return graph_price
 
-#
-#---
-# Small-world models
-#------------------------
 
-def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
-                 directed=True,multigraph=False, name="NW", shape=None,
-                 positions=None, population=None, from_graph=None, **kwargs):
-    """
-    Generate a small-world graph using the Newman-Watts algorithm.
+# -------------- #
+# Circular graph #
+# -------------- #
 
-    @todo
-        generate the edges of a circular graph to not replace the graph of the
-        `from_graph` and implement chosen reciprocity.
+def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
+             directed=True, multigraph=False, name="Circular", shape=None,
+             positions=None, population=None, from_graph=None, **kwargs):
+    '''
+    Generate a circular graph.
+
+    The nodes are placed on a circle and connected to their `coord_nb` closest
+    neighbours.
+    If the graph is directed, the number of connections depends on the value
+    of `reciprocity`: if ``reciprocity == 0.``, then only half of all possible
+    connections will be created, so that no bidirectional edges exist; on the
+    other hand, for ``reciprocity == 1.``, all possible edges are created; for
+    intermediate values of `reciprocity`, the number of edges increases
+    linearly as ``0.5*(1 + reciprocity)*nodes*coord_nb``.
 
     Parameters
     ----------
     coord_nb : int
         The number of neighbours for each node on the initial topological
-        lattice.
+        lattice (must be even).
+    reciprocity : double, optional (default: 1.)
+        Proportion of reciprocal edges in the graph.
     proba_shortcut : double
         Probability of adding a new random (shortcut) edge for each existing
         edge on the initial lattice.
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    density: double, optional (default: 0.1)
+        Structural density given by `edges` / (`nodes`*`nodes`).
+    edges : int (optional)
+        The number of edges between the nodes
+    avg_deg : double, optional
+        Average degree of the neurons given by `edges` / `nodes`.
+    weighted : bool, optional (default: True)
+        Whether the graph edges have weights.
+    directed : bool, optional (default: True)
+        Whether the graph is directed or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+        Shape of the neurons' environment
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
+    from_graph : :class:`Graph` or subclass, optional (default: None)
+        Initial graph whose nodes are to be connected.
+
+    Returns
+    -------
+    graph_circ : :class:`~nngt.Graph` or subclass
+    '''
+    if multigraph:
+        raise ValueError("`multigraph` is not supported for circular graphs.")
+
+    # set node number and library graph
+    graph_circ = from_graph
+    if graph_circ is not None:
+        nodes = graph_circ.node_nb()
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_circ = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
+
+    _set_options(graph_circ, population, shape, positions)
+
+    # add edges
+    if nodes > 1:
+        ids   = range(nodes)
+        edges = None
+
+        if reciprocity == 1 or not directed:
+            edges = _circular_full(ids, coord_nb, directed)
+        elif directed:
+            edges = _circular_directed_recip(ids, coord_nb, reciprocity)
+
+        graph_circ.new_edges(edges, check_edges=False)
+
+    graph_circ._graph_type = "circular"
+
+    return graph_circ
+    
+
+# ------------------ #
+# Small-world models #
+# ------------------ #
+
+def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
+                 weighted=True, directed=True, multigraph=False, name="NW",
+                 shape=None, positions=None, population=None, from_graph=None,
+                 **kwargs):
+    """
+    Generate a (potentially small-world) graph using the Newman-Watts
+    algorithm.
+
+    Parameters
+    ----------
+    coord_nb : int
+        The number of neighbours for each node on the initial topological
+        lattice (must be even).
+    proba_shortcut : double
+        Probability of adding a new random (shortcut) edge for each existing
+        edge on the initial lattice.
+    reciprocity_circular : double, optional (default: 1.)
+        Proportion of reciprocal edges in the initial circular graph.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     density: double, optional (default: 0.1)
@@ -710,23 +802,29 @@ def newman_watts(coord_nb, proba_shortcut, nodes=0, weighted=True,
     ----
 	`nodes` is required unless `from_graph` or `population` is provided.
     """
+    if multigraph:
+        raise ValueError("`multigraph` is not supported for Newman-Watts.")
+
     # set node number and library graph
     graph_nw = from_graph
     if graph_nw is not None:
         nodes = graph_nw.node_nb()
-        graph_nw.clear_all_edges()
     else:
         nodes = population.size if population is not None else nodes
-        graph_nw = nngt.Graph(name=name,nodes=nodes,directed=directed,**kwargs)
+        graph_nw = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
+
     _set_options(graph_nw, population, shape, positions)
+
     # add edges
-    ia_edges = None
     if nodes > 1:
         ids = range(nodes)
-        ia_edges = _newman_watts(ids, ids, coord_nb, proba_shortcut, directed,
-                                 multigraph)
+        ia_edges = _newman_watts(
+            ids, coord_nb, proba_shortcut, reciprocity_circular, directed)
         graph_nw.new_edges(ia_edges, check_edges=False)
+
     graph_nw._graph_type = "newman_watts"
+
     return graph_nw
 
 
