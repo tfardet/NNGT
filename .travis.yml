@@ -14,6 +14,12 @@ addons:
     - gcc-8
     - g++-8
 
+notifications:
+  email:
+    if: branch = master
+    on_success: never
+    on_failure: always
+
 services:
 - xvfb
 

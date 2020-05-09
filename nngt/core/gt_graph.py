@@ -501,9 +501,6 @@ class _GtGraph(GraphInterface):
         '''
         Add a list of edges to the graph.
 
-        .. versionchanged:: 1.0
-            new_edges checks for duplicate edges and self-loops
-
         .. warning ::
             This function currently does not check for duplicate edges between
             the existing edges and the added ones, but only inside `edge_list`!
@@ -519,8 +516,6 @@ class _GtGraph(GraphInterface):
             for each connection (synaptic strength in NEST).
         check_edges : bool, optional (default: True)
             Check for duplicate edges and self-loops.
-
-        @todo: add example
 
         Returns
         -------
