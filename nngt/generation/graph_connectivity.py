@@ -433,10 +433,10 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 # Erdos-Renyi #
 # ----------- #
 
-def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
-                weighted=True, directed=True, multigraph=False, name="ER",
-                shape=None, positions=None, population=None, from_graph=None,
-                **kwargs):
+def erdos_renyi(density=None, nodes=0, edges=None, avg_deg=None,
+                reciprocity=-1., weighted=True, directed=True,
+                multigraph=False, name="ER", shape=None, positions=None,
+                population=None, from_graph=None, **kwargs):
     """
     Generate a random graph as defined by Erdos and Renyi but with a
     reciprocity that can be chosen.
@@ -517,11 +517,11 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
 # Scale-free models #
 # ----------------- #
 
-def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
-                      avg_deg=-1, reciprocity=0., weighted=True, directed=True,
-                      multigraph=False, name="RandomSF", shape=None,
-                      positions=None, population=None, from_graph=None,
-                      **kwargs):
+def random_scale_free(in_exp, out_exp, nodes=0, density=None, edges=None,
+                      avg_deg=None, reciprocity=0., weighted=True,
+                      directed=True, multigraph=False, name="RandomSF",
+                      shape=None, positions=None, population=None,
+                      from_graph=None, **kwargs):
     """
     Generate a free-scale graph of given reciprocity and otherwise
     devoid of correlations.
@@ -534,11 +534,11 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
     out_exp : float
         Absolute value of the out-degree exponent :math:`\gamma_o`, such that
         :math:`p(k_o) \propto k_o^{-\gamma_o}`
-    nodes : int, optional (default: None)
+    nodes : int, optional (default: 0)
         The number of nodes in the graph.
-    density: double, optional (default: 0.1)
+    density: double, optional
         Structural density given by `edges / (nodes*nodes)`.
-    edges : int (optional)
+    edges : int optional
         The number of edges between the nodes
     avg_deg : double, optional
         Average degree of the neurons given by `edges / nodes`.
@@ -582,15 +582,18 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
         nodes = population.size if population is not None else nodes
         graph_rsf = nngt.Graph(
             name=name,nodes=nodes,directed=directed,**kwargs)
+
     _set_options(graph_rsf, population, shape, positions)
+
     # add edges
-    ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
                           edges, avg_deg, reciprocity, directed, multigraph)
         graph_rsf.new_edges(ia_edges, check_edges=False)
+
     graph_rsf._graph_type = "random_scale_free"
+
     return graph_rsf
 
 
@@ -750,10 +753,10 @@ def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
 # Small-world models #
 # ------------------ #
 
-def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
-                 weighted=True, directed=True, multigraph=False, name="NW",
-                 shape=None, positions=None, population=None, from_graph=None,
-                 **kwargs):
+def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
+                 nodes=0, edges=None, weighted=True, directed=True,
+                 multigraph=False, name="NW", shape=None, positions=None,
+                 population=None, from_graph=None, **kwargs):
     """
     Generate a (potentially small-world) graph using the Newman-Watts
     algorithm.
@@ -763,9 +766,11 @@ def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
     coord_nb : int
         The number of neighbours for each node on the initial topological
         lattice (must be even).
-    proba_shortcut : double
+    proba_shortcut : double, optional
         Probability of adding a new random (shortcut) edge for each existing
         edge on the initial lattice.
+        If `edges` is provided, then will be computed automatically as
+        ``edges / (coord_nb * nodes * (1 + reciprocity_circular) / 2)``
     reciprocity_circular : double, optional (default: 1.)
         Proportion of reciprocal edges in the initial circular graph.
     nodes : int, optional (default: None)
@@ -820,8 +825,11 @@ def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
     # add edges
     if nodes > 1:
         ids = range(nodes)
+
         ia_edges = _newman_watts(
-            ids, coord_nb, proba_shortcut, reciprocity_circular, directed)
+            ids, coord_nb, proba_shortcut, reciprocity_circular, edges=edges,
+            directed=directed)
+
         graph_nw.new_edges(ia_edges, check_edges=False)
 
     graph_nw._graph_type = "newman_watts"
@@ -835,10 +843,10 @@ def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
 
 @mpi_random
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
-                  max_proba=-1., nodes=0, density=-1., edges=-1, avg_deg=-1.,
-                  unit='um', weighted=True, directed=True, multigraph=False,
-                  name="DR", positions=None, population=None, from_graph=None,
-                  **kwargs):
+                  max_proba=-1., nodes=0, density=None, edges=None,
+                  avg_deg=None, unit='um', weighted=True, directed=True,
+                  multigraph=False, name="DR", positions=None, population=None,
+                  from_graph=None, **kwargs):
     """
     Create a graph using a 2D distance rule to create the connection between
     neurons. Available rules are linear and exponential.

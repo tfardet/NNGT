@@ -36,18 +36,22 @@ def _set_options(graph, population, shape, positions):
 
 def _compute_connections(num_source, num_target, density, edges, avg_deg,
                          directed, reciprocity=-1):
-    assert not np.allclose((density, edges, avg_deg), -1.), "At leat one " +\
-        "of the following entries must be specified: 'density', 'edges', " +\
-        "'avg_deg'."
+    assert (density, edges, avg_deg) != (None, None, None), \
+        "At leat one of the following entries must be specified: 'density', " \
+        "'edges', 'avg_deg'."
+
     pre_recip_edges = 0
-    if avg_deg > 0:
+
+    if avg_deg is not None:
         pre_recip_edges = int(avg_deg * num_source)
-    elif edges > 0:
+    elif edges is not None:
         pre_recip_edges = int(edges)
     else:
         pre_recip_edges = int(density * num_source * num_target)
-    dens = pre_recip_edges / float(num_source * num_target)
+
+    dens  = pre_recip_edges / float(num_source * num_target)
     edges = pre_recip_edges
+
     if edges:
         if not directed:
             pre_recip_edges = edges = int(edges/2)
@@ -63,25 +67,38 @@ def _compute_connections(num_source, num_target, density, edges, avg_deg,
         elif reciprocity > 0.:
             raise InvalidArgument(
                 "Reciprocity cannot be lower than 2-1/density.")
+
     return edges, pre_recip_edges
 
 
-def _check_num_edges(source_ids, target_ids, num_edges, directed, multigraph):
+def _check_num_edges(source_ids, target_ids, num_edges, directed, multigraph,
+                     return_sets=False):
     num_source, num_target = len(source_ids), len(target_ids)
 
-    has_only_one_population = (False if num_source != num_target
-                               else not np.all(source_ids - target_ids))
+    source_set, target_set = None, None
+
+    has_only_one_population = (num_source == num_target)
+
+    if has_only_one_population:
+        source_set = set(source_ids)
+        target_set = set(target_ids)
+        has_only_one_population = (source_set == target_set)
 
     if not has_only_one_population and not multigraph:
-        b_d = (num_edges > num_source*num_target)
+        b_d  = (num_edges > num_source*num_target)
         b_nd = (num_edges > int(0.5*num_source*num_target))
+
         if (not directed and b_nd) or (directed and b_d):
             raise InvalidArgument("Required number of edges is too high")
     elif has_only_one_population and not multigraph:
         b_d = (num_edges > num_source*(num_target-1))
-        b_nd = (num_edges > int((0.5*num_source-1)*num_target))
+        b_nd = (num_edges > int(0.5*(num_source-1)*num_target))
+
         if (not directed and b_nd) or (directed and b_d):
             raise InvalidArgument("Required number of edges is too high")
+
+    if return_sets:
+        return has_only_one_population, source_set, target_set
 
     return has_only_one_population
 
@@ -130,7 +147,8 @@ def _no_self_loops(array, return_test=False):
 
 
 def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
-            multigraph, distance=None, dist_tmp=None):
+            multigraph, directed=True, recip_hash=None, distance=None,
+            dist_tmp=None):
     '''
     Filter the edges: remove self loops and multiple connections if the graph
     is not a multigraph.
@@ -145,24 +163,38 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
         if distance is not None:
             for e, d in zip(ia_edges_tmp, dist_tmp):
                 tpl_e = tuple(e)
+
                 if tpl_e not in edges_hash:
-                    ia_edges[num_ecurrent, :] = e
-                    distance.append(d)
-                    edges_hash.add(tpl_e)
-                    num_ecurrent += 1
+                    if directed or tpl_e not in recip_hash:
+                        ia_edges[num_ecurrent] = e
+                        distance.append(d)
+                        edges_hash.add(tpl_e)
+
+                        if not directed:
+                            recip_hash.add(tpl_e[::-1])
+
+                        num_ecurrent += 1
         else:
             for e in ia_edges_tmp:
                 tpl_e = tuple(e)
+
                 if tpl_e not in edges_hash:
-                    ia_edges[num_ecurrent, :] = e
-                    edges_hash.add(tpl_e)
-                    num_ecurrent += 1
+                    if directed or tpl_e not in recip_hash:
+                        ia_edges[num_ecurrent] = e
+                        edges_hash.add(tpl_e)
+
+                        if not directed:
+                            recip_hash.add(tpl_e[::-1])
+
+                        num_ecurrent += 1
     else:
         num_added = len(ia_edges_tmp)
         ia_edges[num_ecurrent:num_ecurrent + num_added, :] = ia_edges_tmp
         num_ecurrent += num_added
+
         if distance is not None:
             distance.extend(dist_tmp)
+
     return ia_edges, num_ecurrent
 
 
