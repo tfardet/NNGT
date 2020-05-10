@@ -51,7 +51,7 @@ typedef std::unordered_set<edge_t, key_hash, key_equal> set_t;
  *
  * \return num_unique - Number of unique entries.
  */
-size_t _unique_1d(std::vector<int>& a,
+size_t _unique_1d(std::vector<size_t>& a,
                   std::unordered_set<size_t>& hash_set);
 
 
@@ -65,12 +65,13 @@ size_t _unique_1d(std::vector<int>& a,
  *
  * \return num_unique - Number of unique entries.
  */
-size_t _unique_2d(std::vector< std::vector<int> >& a, set_t& hash_set);
+size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set,
+                  set_t& recip_set, bool directed=true);
 
 
-size_t _unique_2d(std::vector< std::vector<int> >& a, set_t& hash_set,
-                  std::vector<float>& dist,
-                  const std::vector<float>& dist_tmp);
+size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set,
+                  std::vector<float>& dist, const std::vector<float>& dist_tmp,
+                  set_t& recip_set, bool directed=true);
 
 
 /*
@@ -89,7 +90,7 @@ std::vector<size_t> _gen_edge_complement(
   long seed, const std::vector<size_t>& nodes, const size_t other_end,
   const unsigned int degree,
   const std::vector< std::vector<size_t> >* existing_edges,
-  const bool multigraph);
+  bool multigraph, bool directed);
 
 
 /*
@@ -108,7 +109,7 @@ std::vector<size_t> _gen_edge_complement(
  * \param omp            - Number of OpenMP threads.
  */
 void _gen_edges(
-  size_t* ia_edges, const std::vector<size_t>& first_nodes,
+  int64_t* ia_edges, const std::vector<size_t>& first_nodes,
   const std::vector<unsigned int>& degrees,
   const std::vector<size_t>& second_nodes,
   const std::vector< std::vector<size_t> >& existing_edges, unsigned int idx,
@@ -134,12 +135,14 @@ void _gen_edges(
  * \param msd            - master seed given by numpy in the cython function
  * \param omp            - number of OpenMP threads
  */
-void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
+void _cdistance_rule(
+  int64_t* ia_edges,const std::vector<size_t>& source_nodes,
   const std::vector<std::vector<size_t>>& target_nodes,
   const std::string& rule, float scale, float norm,
   const std::vector<float>& x, const std::vector<float>& y, size_t num_neurons,
   size_t num_edges, const std::vector< std::vector<size_t> >& existing_edges,
-  std::vector<float>& dist, bool multigraph, std::vector<long>& seeds);
+  std::vector<float>& dist, bool multigraph, bool directed,
+  std::vector<long>& seeds);
 
 
 static inline float _proba(

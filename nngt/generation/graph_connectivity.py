@@ -351,8 +351,6 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     """
     Generate a random graph with constant in- or out-degree.
 
-    @todo: adapt it for undirected graphs!
-
     Parameters
     ----------
     avg : float

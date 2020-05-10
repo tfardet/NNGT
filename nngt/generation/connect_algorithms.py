@@ -98,7 +98,6 @@ def _total_degree_list(source_ids, target_ids, degree_list, directed=True,
                        multigraph=False):
     ''' Called from _from_degree_list '''
     degree_list = np.array(degree_list, dtype=int)
-    init_deg = degree_list.copy()
 
     num_source, num_target = len(source_ids), len(target_ids)
     edges = int(0.5*np.sum(degree_list))

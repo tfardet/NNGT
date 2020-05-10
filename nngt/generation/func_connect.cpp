@@ -30,7 +30,8 @@ size_t _unique_1d(std::vector<size_t>& a,
     for (size_t i = 0; i < a.size(); i++)
     {
         number = a[i];
-        // check if this number is already in the set
+
+        // check if this number is negative () or already in the set
         if (hash_set.find(number) == hash_set.end())
         {
             // it's not in there yet so add it and set the count to 1
@@ -44,7 +45,8 @@ size_t _unique_1d(std::vector<size_t>& a,
 }
 
 
-size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set)
+size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set,
+                  set_t& recip_set, bool directed)
 {
     size_t total_unique = hash_set.size();
     size_t num_edges = a[0].size();
@@ -55,15 +57,32 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set)
     {
         s = a[0][i];
         t = a[1][i];
+
         edge = edge_t(s, t);
+
         // check if this number is already in the set
         if (hash_set.find(edge) == hash_set.end())
         {
-            // it's not in there yet so add it and set the count to 1
-            hash_set.insert(edge);
-            a[0][total_unique] = s;
-            a[1][total_unique] = t;
-            total_unique += 1;
+            if (directed)
+            {
+                // it's not in there yet so add it and set the count to 1
+                hash_set.insert(edge);
+
+                a[0][total_unique] = s;
+                a[1][total_unique] = t;
+
+                total_unique += 1;
+            }
+            else if (recip_set.find(edge) == recip_set.end())
+            {
+                hash_set.insert(edge);
+                recip_set.insert(edge_t(t, s));
+
+                a[0][total_unique] = s;
+                a[1][total_unique] = t;
+
+                total_unique += 1;
+            }
         }
     }
 
@@ -72,27 +91,49 @@ size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set)
 
 
 size_t _unique_2d(std::vector< std::vector<size_t> >& a, set_t& hash_set,
-                  std::vector<float>& dist, const std::vector<float>& dist_tmp)
+                  std::vector<float>& dist, const std::vector<float>& dist_tmp,
+                  set_t& recip_set, bool directed)
 {
     size_t total_unique = hash_set.size();
     size_t num_edges = a[0].size();
-    size_t s, t, initial_enum(total_unique);
+    size_t initial_enum = total_unique;
+    size_t s, t;
     edge_t edge;
 
     for (size_t i = total_unique; i < num_edges; i++)
     {
         s = a[0][i];
         t = a[1][i];
+
         edge = edge_t(s, t);
+
         // check if this number is already in the set
         if (hash_set.find(edge) == hash_set.end())
         {
-            // it's not in there yet so add it and set the count to 1
-            hash_set.insert(edge);
-            a[0][total_unique] = s;
-            a[1][total_unique] = t;
-            dist.push_back(dist_tmp[i-initial_enum]);
-            total_unique += 1;
+            if (directed)
+            {
+                // it's not in there yet so add it and set the count to 1
+                hash_set.insert(edge);
+
+                a[0][total_unique] = s;
+                a[1][total_unique] = t;
+
+                dist.push_back(dist_tmp[i - initial_enum]);
+
+                total_unique += 1;
+            }
+            else if (recip_set.find(edge) == recip_set.end())
+            {
+                hash_set.insert(edge);
+                recip_set.insert(edge_t(t, s));
+
+                a[0][total_unique] = s;
+                a[1][total_unique] = t;
+
+                dist.push_back(dist_tmp[i - initial_enum]);
+
+                total_unique += 1;
+            }
         }
     }
 
@@ -104,7 +145,7 @@ std::vector<size_t> _gen_edge_complement(
   std::mt19937& generator, const std::vector<size_t>& nodes, size_t other_end,
   unsigned int degree,
   const std::vector< std::vector<size_t> >* existing_edges,
-  bool multigraph)
+  bool multigraph, bool directed)
 {
     // Initialize the RNG
     size_t min_idx = *std::min_element(nodes.begin(), nodes.end());
@@ -115,25 +156,41 @@ std::vector<size_t> _gen_edge_complement(
     std::vector<size_t> result;
     size_t ecurrent = 0;
 
+    std::unordered_set<size_t> hash_set;
+
     // check the existing edges
     const size_t num_old_edges = existing_edges ? existing_edges[0].size() : 0;
+    size_t node;
+
     for (size_t i=0; i < num_old_edges; i++)
     {
         if (existing_edges->at(0)[i] == other_end)
         {
-            result.push_back(existing_edges->at(1)[i]);
+            node = existing_edges->at(1)[i];
+
+            result.push_back(node);
+            hash_set.insert(node);
+        }
+
+        if (not directed and existing_edges->at(1)[i] == other_end)
+        {
+            node = existing_edges->at(1)[i];
+
+            if (hash_set.find(node) == hash_set.end())
+            {
+                result.push_back(node);
+                hash_set.insert(node);
+            }
         }
     }
+
     ecurrent = result.size();
     result.resize(ecurrent + degree);
     
     size_t remaining = degree;
     size_t cplt, j;
     const size_t target_degree = ecurrent + degree;
-    std::unordered_set<size_t> hash_set;
-    
-    assert(target_degree == degree);
-    
+
     while (ecurrent < target_degree)
     {
         remaining = target_degree - ecurrent;
@@ -147,6 +204,7 @@ std::vector<size_t> _gen_edge_complement(
                 j++;
             }
         }
+
         // update ecurrent and (potentially) the results
         ecurrent = multigraph ? target_degree : _unique_1d(result, hash_set);
     }
@@ -156,7 +214,7 @@ std::vector<size_t> _gen_edge_complement(
 
 
 void _gen_edges(
-  size_t* ia_edges, const std::vector<size_t>& first_nodes,
+  int64_t* ia_edges, const std::vector<size_t>& first_nodes,
   const std::vector<unsigned int>& degrees,
   const std::vector<size_t>& second_nodes,
   const std::vector< std::vector<size_t> >& existing_edges, unsigned int idx,
@@ -172,16 +230,19 @@ void _gen_edges(
     #pragma omp parallel num_threads(omp)
     {
         std::mt19937 generator_(seeds[omp_get_thread_num()]);
-        
+        std::vector<size_t> res_tmp;
+
         #pragma omp for schedule(static)
         for (size_t node=0; node < first_nodes.size(); node++)
         {
             // generate the vector of complementary nodes
-            std::vector<size_t> res_tmp = _gen_edge_complement(
-                generator_, second_nodes, node, degrees[node], &existing_edges,
-                multigraph);
+            res_tmp = _gen_edge_complement(
+                generator_, second_nodes, node, degrees[node],
+                &existing_edges, multigraph, true);
+
             // fill the edges
             size_t idx_start = cum_degrees[node] - degrees[node];
+
             for (unsigned int j = 0; j < degrees[node]; j++)
             {
                 ia_edges[2*(idx_start + j) + idx] = first_nodes[node];
@@ -196,12 +257,13 @@ void _gen_edges(
 * Distance-rule algorithms
 */
 
-void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
+void _cdistance_rule(int64_t* ia_edges, const std::vector<size_t>& source_nodes,
   const std::vector<std::vector<size_t>>& target_nodes,
   const std::string& rule, float scale, float norm,
   const std::vector<float>& x, const std::vector<float>& y, size_t num_neurons,
   size_t num_edges, const std::vector< std::vector<size_t> >& existing_edges,
-  std::vector<float>& dist, bool multigraph, std::vector<long>& seeds)
+  std::vector<float>& dist, bool multigraph, bool directed,
+  std::vector<long>& seeds)
 {
     float inv_scale = 1. / scale;
     int num_omp = seeds.size();
@@ -264,7 +326,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
             std::vector<size_t> local_tgts;
             std::mt19937 generator_(seeds[omp_get_thread_num()]);
             // thread local edges
-            set_t hash_set;
+            set_t hash_set, recip_set;
             size_t num_elocal = 0;
             std::vector< std::vector<size_t> > local_edges(
                 2, std::vector<size_t>());
@@ -329,7 +391,7 @@ void _cdistance_rule(size_t* ia_edges, const std::vector<size_t>& source_nodes,
                 num_elocal = multigraph
                              ? local_edges[0].size()
                              : _unique_2d(local_edges, hash_set,
-                                          local_dist, dist_tmp);
+                                          local_dist, dist_tmp, recip_set);
 
                 local_edges[0].resize(num_elocal);
                 local_edges[1].resize(num_elocal);
