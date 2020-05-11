@@ -120,7 +120,7 @@ def _total_degree_list(source_ids, target_ids, degree_list, directed=True,
 
     ia_edges = np.full((edges, 2), -1, dtype=int)
 
-    rng = np.random.default_rng()
+    rng = nngt._rng
 
     if b_one_pop:
         # check that the degree sequence is graphic (i.e. can be realized)
@@ -295,7 +295,7 @@ def _from_degree_list(source_ids, target_ids, degree_list, degree_type="in",
 
             target_degrees[u] = d
 
-        rng = np.random.default_rng()
+        rng = nngt._rng
 
         # create new connections
         for v, degree_v in target_degrees.items():
@@ -371,7 +371,7 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type="in",
     b_total = (degree_type == "total")
 
     # edges (we set the in, out, or total degree of the source neurons)
-    rng = np.random.default_rng()
+    rng = nngt._rng
 
     degrees = np.around(
         np.maximum(rng.normal(avg, std, num_source), 0.)).astype(int)
@@ -539,7 +539,7 @@ def _circular_directed_recip(node_ids, coord_nb, reciprocity):
 
     # then we randomize the direction of these E_init edges
     # this is equivalent to reversing E edges with E from Binom(E_init, 0.5)
-    rng = np.random.default_rng()
+    rng = nngt._rng
     E   = rng.binomial(num_init, 0.5)
 
     chosen = rng.choice(num_init, E, replace=False)
@@ -600,7 +600,7 @@ def _newman_watts(node_ids, coord_nb, proba_shortcut, reciprocity_circular,
     circular_edges = int(nodes * coord_nb * recip_factor * direct_factor)
 
     if edges is None:
-        rng   = np.random.default_rng()
+        rng   = nngt._rng
         edges = circular_edges + rng.binomial(circular_edges, proba_shortcut)
 
     b_one_pop = _check_num_edges(
@@ -631,7 +631,7 @@ def _newman_watts(node_ids, coord_nb, proba_shortcut, reciprocity_circular,
     if not directed:
         recip_hash = set((tuple(e) for e in ia_edges[:circular_edges, ::-1]))
 
-    rng = np.random.default_rng()
+    rng = nngt._rng
 
     while num_ecurrent != edges and num_test < MAXTESTS:
         todo   = edges - num_ecurrent

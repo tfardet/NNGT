@@ -80,7 +80,6 @@ def test_newman_watts():
     '''
     Check the newman_watts generation method.
     '''
-    nngt.use_backend("networkx")
     num_nodes  = 5
     k_lattice  = 2
     p_shortcut = 0.2

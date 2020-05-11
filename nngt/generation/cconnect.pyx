@@ -215,7 +215,7 @@ def _total_degree_list(cnp.ndarray[int64, ndim=1] source_ids,
         cnp.ndarray[int64, ndim=2] ia_edges = np.full((edges, 2), -1,
                                                       dtype=np.int64)
 
-    rng = np.random.default_rng()
+    rng = nngt._rng
 
     if b_one_pop:
         # check that the degree sequence is graphic (i.e. can be realized)
@@ -430,7 +430,7 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
 
     degree_type = _set_degree_type(degree_type)
 
-    rng = np.random.default_rng()
+    rng = nngt._rng
 
     cdef:
         # type of degree
