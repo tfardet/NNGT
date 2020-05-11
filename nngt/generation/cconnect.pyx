@@ -1,4 +1,3 @@
-#cython: boundscheck=False, wraparound=False, initializedcheck=False
 #cython: cdivision=True, language_level=3
 #!/usr/bin/env cython
 #-*- coding:utf-8 -*-
@@ -16,7 +15,8 @@ from numpy.random import randint, get_state
 
 import nngt
 from nngt.lib import InvalidArgument
-from nngt.lib.connect_tools import *
+from nngt.lib.connect_tools import (_check_num_edges, _compute_connections,
+                                    _set_degree_type, max_proba_dist_rule)
 
 
 __all__ = [
@@ -37,6 +37,7 @@ cdef float EPS = 0.00001
 DTYPE = np.int64
 
 ctypedef cnp.uint8_t uint8
+ctypedef cnp.int64_t int64
 
 
 # ------------ #
@@ -60,10 +61,11 @@ def _no_self_loops(cnp.ndarray[int64_t, ndim=2] array):
     return array[test], test
 
 
-cdef size_t _filter(int64_t[:, :]& ia_edges, int64_t[:, :] ia_edges_tmp,
-                    size_t num_ecurrent, set edges_hash, bool b_one_pop,
-                    bool multigraph, bool directed=True, set recip_hash=None,
-                    cnp.ndarray distance=None, cnp.ndarray dist_tmp=None):
+def _filter(cnp.ndarray[int64, ndim=2] ia_edges,
+            cnp.ndarray[int64, ndim=2] ia_edges_tmp,
+            size_t num_ecurrent, set edges_hash, bool b_one_pop,
+            bool multigraph, bool directed=True, set recip_hash=None,
+            cnp.ndarray distance=None, cnp.ndarray dist_tmp=None):
     '''
     Filter the edges: remove self loops and multiple connections if the graph
     is not a multigraph.
@@ -117,7 +119,7 @@ cdef size_t _filter(int64_t[:, :]& ia_edges, int64_t[:, :] ia_edges_tmp,
         if distance is not None:
             distance.extend(dist_tmp)
 
-    return num_ecurrent
+    return ia_edges, num_ecurrent
 
 
 # ---------------------- #
@@ -173,9 +175,10 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
     return edges
 
 
-def _total_degree_list(size_t[:] source_ids, size_t[:] target_ids,
-                       size_t[:] degree_list, bool directed=True,
-                       bool multigraph=False):
+def _total_degree_list(cnp.ndarray[int64, ndim=1] source_ids,
+                       cnp.ndarray[int64, ndim=1] target_ids,
+                       cnp.ndarray[int64, ndim=1] degree_list,
+                       bool directed=True, bool multigraph=False):
     ''' Called from _from_degree_list '''
     cdef:
         size_t num_source = len(source_ids)
@@ -199,15 +202,18 @@ def _total_degree_list(size_t[:] source_ids, size_t[:] target_ids,
         source_ids, target_ids, edges, directed, multigraph, return_sets=True)
 
     cdef:
-        size_t i, k, num_tests
+        size_t i, k, num_tests, num_choice, new_etot
         size_t ecurrent = 0
         set edges_hash = set()
         set recip_hash = set()
-        set chosen
-        size_t[:] sorted_degrees = np.sort(degree_list)[::-1]
-        size_t[:] data, deg_tmp
-
-        int64_t[:, :] ia_edges = np.full((edges, 2), -1, dtype=int)
+        set ids
+        int64[:] sorted_degrees = np.sort(degree_list)[::-1]
+        int64[:] data
+        cnp.ndarray[int64, ndim=1] incr, decr
+        cnp.ndarray[int64, ndim=1] deg_tmp, unfinished, even_deg, add_node
+        cnp.ndarray[int64, ndim=2] chosen, new_edges
+        cnp.ndarray[int64, ndim=2] ia_edges = np.full((edges, 2), -1,
+                                                      dtype=np.int64)
 
     rng = np.random.default_rng()
 
@@ -238,31 +244,80 @@ def _total_degree_list(size_t[:] source_ids, size_t[:] target_ids,
 
             new_edges = np.array((sources, targets), dtype=DTYPE).T
 
-            new_etot =  _filter(
+            ia_edges, new_etot =  _filter(
                 ia_edges, new_edges, ecurrent, edges_hash, b_one_pop,
                 multigraph, directed=directed, recip_hash=recip_hash)
 
-            np.add.at(degree_list, ia_edges[ecurrent:new_etot].ravel(), -1)
+            np.add.at(degree_list, np.ravel(ia_edges[ecurrent:new_etot]), -1)
 
             ecurrent = new_etot
 
             # trying to correct things if initial procedure did not converge
             if num_tests >= 0.5*MAXTESTS:
-                unfinished = np.where(np.greater(degree_list, 0))[0]
+                nnz_degree = degree_list != 0
+                unfinished = np.where(nnz_degree)[0]
                 num_choice = max(int(0.5*len(unfinished)), 1)
 
                 # pick random edges
                 ids    = set(rng.choice(ecurrent, num_choice, replace=False))
-                chosen = np.array([ia_edges[i] for i in ids], dtype=size_t)
+                chosen = np.array([ia_edges[i] for i in ids], dtype=np.int64)
+
+                # if unfinished is odd then we need to readd a node that has
+                # a remaining degree of 2
+                if len(unfinished) % 2 == 1:
+                    even_deg = np.where((degree_list % 2 == 0)*nnz_degree)[0]
+                    add_node = rng.choice(even_deg, 1)
+                    unfinished = np.array(
+                        list(unfinished) + list(add_node), dtype=np.int64)
 
                 # try to pair them differently
+                rng.shuffle(unfinished)
+
                 new_edges = np.array(
                     [(u, v) for u, v in zip(unfinished, chosen.ravel())],
-                    dtype=int)
+                    dtype=np.int64)
+
+                # randomize direction if directed
+                if directed:
+                    num_reverse = rng.binomial(2*num_choice, 0.5)
+                    reverse     = rng.choice(2*num_choice, num_reverse,
+                                             replace=False)
+
+                    new_edges[reverse, 0], new_edges[reverse, 1] = \
+                        new_edges[reverse, 1], new_edges[reverse, 0]
+
+                # check that new_edges are indeed new
+                skip = False
+
+                for e in new_edges:
+                    if e[0] == e[1]:
+                        skip = True
+                        break
+
+                    tpl_e = tuple(e)
+                        
+                    if tpl_e in edges_hash:
+                        skip = True
+                        break
+
+                    if not directed and tpl_e in recip_hash:
+                        skip = True
+                        break
+
+                if skip:
+                    num_tests += 1
+                    continue
+
+                # remove old ones from edges_hash
+                edges_hash -= {tuple(e) for e in chosen}
+
+                if not directed:
+                    recip_hash -= {tuple(e) for e in chosen[:, ::-1]}
 
                 # remove chosen edges from existing edges
                 ia_edges[:ecurrent - num_choice] = np.array(
-                    [e for i, e in enumerate(ia_edges) if i not in ids])
+                    [e for i, e in enumerate(ia_edges[:ecurrent])
+                     if i not in ids])
 
                 ecurrent -= num_choice
 
@@ -270,12 +325,13 @@ def _total_degree_list(size_t[:] source_ids, size_t[:] target_ids,
                     ia_edges, new_edges, ecurrent, edges_hash, b_one_pop,
                     multigraph, directed=directed, recip_hash=recip_hash)
 
-                added = set(ia_edges[ecurrent:new_etot].ravel())
-                incr = list(added.intersection(unfinished))
-                decr = list(set(chosen.ravel()).difference(added))
+                decr  = new_edges.ravel()
+                incr  = chosen.ravel()
 
                 np.add.at(degree_list, incr, 1)
                 np.add.at(degree_list, decr, -1)
+                
+                ecurrent += len(new_edges)
                 
             num_tests += 1
 
@@ -314,14 +370,25 @@ def _from_degree_list(cnp.ndarray[size_t, ndim=1] source_ids,
 
         unsigned int idx = 0 if b_out else 1  # differenciate source / target
         unsigned int omp = nngt._config["omp"]
+        cnp.ndarray[int64, ndim=1] degree_list, source64, target64
         vector[unsigned int] cdegrees = degrees
         vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
         vector[long] seeds = _random_init(omp)
+
+    # total-degree or undirected case
+    if b_total or not directed:
+        degree_list = np.array(degrees, dtype=np.int64)
+        source64 = np.array(source_ids, dtype=np.int64)
+        target64 = np.array(target_ids, dtype=np.int64)
+
+        return _total_degree_list(source64, target64, degree_list,
+                                  directed=directed, multigraph=multigraph)
 
     if existing_edges is not None:
         old_edges.push_back(list(existing_edges[:, 0]))
         old_edges.push_back(list(existing_edges[:, 1]))
 
+    # directed case for in/out-degrees
     _gen_edges(&ia_edges[0,0], source_ids, cdegrees, target_ids, old_edges,
                idx, multigraph, use_directed, seeds)
 
@@ -403,10 +470,10 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
             idx = -1
 
             # correct if its not the case
-            while idx < 0 or deg_tmp[idx] == 0:
+            while idx < 0 or degrees[idx] == 0:
                 idx = rng.integers(num_source, size=1)
-                if deg_tmp[idx] != 0:
-                    deg_tmp[idx] -= 1
+                if degrees[idx] != 0:
+                    degrees[idx] -= 1
 
     return _from_degree_list(source_ids, target_ids, degrees,
         degree_type=degree_type, directed=directed, multigraph=multigraph,

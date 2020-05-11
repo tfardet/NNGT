@@ -160,21 +160,66 @@ def _total_degree_list(source_ids, target_ids, degree_list, directed=True,
 
             # trying to correct things if initial procedure did not converge
             if num_tests >= 0.5*MAXTESTS:
-                unfinished = np.where(degree_list != 0)[0]
+                nnz_degree = degree_list != 0
+                unfinished = np.where(nnz_degree)[0]
                 num_choice = max(int(0.5*len(unfinished)), 1)
 
                 # pick random edges
                 ids    = set(rng.choice(ecurrent, num_choice, replace=False))
                 chosen = np.array([ia_edges[i] for i in ids], dtype=int)
 
+                # if unfinished is odd then we need to readd a node that has
+                # a remaining degree of 2
+                if len(unfinished) % 2 == 1:
+                    even_deg = np.where((degree_list % 2 == 0)*nnz_degree)[0]
+                    add_node = rng.choice(even_deg, 1)
+                    unfinished = list(unfinished) + list(add_node)
+
                 # try to pair them differently
+                rng.shuffle(unfinished)
+
                 new_edges = np.array(
                     [(u, v) for u, v in zip(unfinished, chosen.ravel())],
                     dtype=int)
 
+                # randomize direction if directed
+                if directed:
+                    num_reverse = rng.binomial(2*num_choice, 0.5)
+                    reverse     = rng.choice(2*num_choice, num_reverse,
+                                             replace=False)
+                    new_edges[reverse, 0], new_edges[reverse, 1] = \
+                        new_edges[reverse, 1], new_edges[reverse, 0]
+
+                # check that new_edges are indeed new
+                skip = False
+
+                for e in new_edges:
+                    if e[0] == e[1]:
+                        skip = True
+                        break
+                        
+                    if tuple(e) in edges_hash:
+                        skip = True
+                        break
+
+                    if not directed and tuple(e) in recip_hash:
+                        skip = True
+                        break
+
+                if skip:
+                    num_tests += 1
+                    continue
+
+                # remove old ones from edges_hash
+                edges_hash -= {tuple(e) for e in chosen}
+
+                if not directed:
+                    recip_hash -= {tuple(e) for e in chosen[:, ::-1]}
+
                 # remove chosen edges from existing edges
                 ia_edges[:ecurrent - num_choice] = np.array(
-                    [e for i, e in enumerate(ia_edges) if i not in ids])
+                    [e for i, e in enumerate(ia_edges[:ecurrent])
+                     if i not in ids])
 
                 ecurrent -= num_choice
 
@@ -182,13 +227,14 @@ def _total_degree_list(source_ids, target_ids, degree_list, directed=True,
                     ia_edges, new_edges, ecurrent, edges_hash, b_one_pop,
                     multigraph, directed=directed, recip_hash=recip_hash)
 
-                added = set(ia_edges[ecurrent:new_etot].ravel())
-                incr = list(added.intersection(unfinished))
-                decr = list(set(chosen.ravel()).difference(added))
+                decr  = list(new_edges.ravel())
+                incr  = list(chosen.ravel())
 
                 np.add.at(degree_list, incr, 1)
                 np.add.at(degree_list, decr, -1)
                 
+                ecurrent += len(new_edges)
+
             num_tests += 1
 
         if num_tests == MAXTESTS:

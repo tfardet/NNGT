@@ -31,49 +31,65 @@ def test_from_degree_list():
     Check that the degrees generated using `from_degree_list` indeed
     correspond to the provided list
     '''
-    num_nodes = 1000
-    deg_list  = np.random.randint(0, 100, size=num_nodes)
+    # ~ num_nodes = 1000
+    # ~ deg_list  = np.random.randint(0, 100, size=num_nodes)
 
-    # test for in
-    g = ng.from_degree_list(deg_list, degree_type="in", nodes=num_nodes)
+    # ~ # test for in
+    # ~ g = ng.from_degree_list(deg_list, degree_type="in", nodes=num_nodes)
 
-    assert np.all(g.get_degrees("in") == deg_list)
+    # ~ assert np.all(g.get_degrees("in") == deg_list)
 
-    assert g.edge_nb() == np.sum(deg_list)
+    # ~ assert g.edge_nb() == np.sum(deg_list)
 
-    # test for out
-    g = ng.from_degree_list(deg_list, degree_type="out", nodes=num_nodes)
+    # ~ # test for out
+    # ~ g = ng.from_degree_list(deg_list, degree_type="out", nodes=num_nodes)
 
-    assert np.all(g.get_degrees("out") == deg_list)
+    # ~ assert np.all(g.get_degrees("out") == deg_list)
 
-    assert g.edge_nb() == np.sum(deg_list)
+    # ~ assert g.edge_nb() == np.sum(deg_list)
 
-    # test for total-degree
-    deg_list = 2*np.random.randint(0, 50, size=num_nodes)
+    # ~ # test for total-degree
+    # ~ deg_list = 2*np.random.randint(0, 50, size=num_nodes)
+
+    # ~ try:
+        # ~ g = ng.from_degree_list(deg_list, degree_type="total", nodes=num_nodes,
+                                # ~ directed=True)
+
+        # ~ assert np.all(g.get_degrees("total") == deg_list)
+
+        # ~ assert g.edge_nb() == int(0.5*np.sum(deg_list))
+    # ~ except ValueError:
+        # ~ # non-graphical sequence was provided
+        # ~ print("Skipping non graphical sequence for 'total-degree'.")
+
+    # ~ # test for undirected
+    # ~ deg_list = 2*np.random.randint(0, 50, size=num_nodes)
+
+    # ~ try:
+        # ~ g = ng.from_degree_list(deg_list, nodes=num_nodes, directed=False)
+
+        # ~ assert np.all(g.get_degrees("total") == deg_list)
+
+        # ~ assert g.edge_nb() == int(0.5*np.sum(deg_list))
+    # ~ except ValueError:
+        # ~ # non-graphical sequence was provided
+        # ~ print("Skipping non graphical sequence for undirected graph.")
+
+    num_nodes = 10
+    deg_list  = 2*np.random.randint(3, size=10)
+    print(deg_list)
 
     try:
         g = ng.from_degree_list(deg_list, degree_type="total", nodes=num_nodes,
-                                directed=True)
+                                directed=False)
 
-        assert np.all(g.get_degrees("total") == deg_list)
-
-        assert g.edge_nb() == int(0.5*np.sum(deg_list))
-    except ValueError:
-        # non-graphical sequence was provided
-        print("Skipping non graphical sequence for 'total-degree'.")
-
-    # test for undirected
-    deg_list = 2*np.random.randint(0, 50, size=num_nodes)
-
-    try:
-        g = ng.from_degree_list(deg_list, nodes=num_nodes, directed=False)
-
-        assert np.all(g.get_degrees("total") == deg_list)
-
-        assert g.edge_nb() == int(0.5*np.sum(deg_list))
-    except ValueError:
-        # non-graphical sequence was provided
-        print("Skipping non graphical sequence for undirected graph.")
+        print("results")
+        print(g.get_degrees("total"))
+        print(g.get_degrees("in"))
+        print(g.edge_nb(), 0.5*np.sum(deg_list))
+    except Exception as err:
+        print(deg_list)
+        raise err
 
 
 def test_newman_watts():
@@ -209,11 +225,11 @@ def test_mpi_from_degree_list():
 
 
 if __name__ == "__main__":
-    test_newman_watts()
+    # ~ test_newman_watts()
 
-    nngt.set_config("multithreading", False)
+    nngt.set_config("multithreading", True)
     if not nngt.get_config("mpi"):
         test_from_degree_list()
 
-    if nngt.get_config("mpi"):
-        test_mpi_from_degree_list()
+    # ~ if nngt.get_config("mpi"):
+        # ~ test_mpi_from_degree_list()

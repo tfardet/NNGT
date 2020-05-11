@@ -180,7 +180,13 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
 
                 if tpl_e not in edges_hash:
                     if directed or tpl_e not in recip_hash:
-                        ia_edges[num_ecurrent] = e
+                        try:
+                            ia_edges[num_ecurrent] = e
+                        except Exception as err:
+                            print(num_ecurrent, len(edges_hash), e, len(ia_edges))
+                            print(edges_hash)
+                            raise err
+
                         edges_hash.add(tpl_e)
 
                         if not directed:
