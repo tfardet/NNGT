@@ -53,9 +53,7 @@ def _compute_connections(num_source, num_target, density, edges, avg_deg,
     edges = pre_recip_edges
 
     if edges:
-        if not directed:
-            pre_recip_edges = edges = int(edges/2)
-        elif reciprocity > max(0,(2.-1./dens)):
+        if reciprocity > max(0,(2.-1./dens)):
             frac_recip = ((reciprocity - 1.
                            + np.sqrt(1. + dens*(reciprocity - 2.))) /
                              (2. - reciprocity))

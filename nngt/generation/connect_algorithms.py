@@ -498,7 +498,7 @@ def _erdos_renyi(source_ids, target_ids, density=None, edges=None,
         ia_edges_tmp = np.array([ia_sources,ia_targets]).T
         ia_edges, num_ecurrent = _filter(
             ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
-            multigraph, directed=directed,recip_hash=recip_hash)
+            multigraph, directed=directed, recip_hash=recip_hash)
         num_test += 1
 
     if directed and reciprocity > 0:

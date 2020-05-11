@@ -211,6 +211,12 @@ def test_total_undirected_connectivities():
     ''' Test total-degree connectivities '''
     num_nodes = 1000
 
+    # erdos-renyi
+    density = 0.1
+    g = ng.erdos_renyi(density=density, nodes=num_nodes, directed=False)
+
+    assert g.edge_nb() / (num_nodes*num_nodes) == density
+
     for directed in (True, False):
         # fixed-degree
         deg = 50
@@ -225,7 +231,7 @@ def test_total_undirected_connectivities():
         g = ng.gaussian_degree(avg, std, degree_type="total", nodes=num_nodes,
                                directed=directed)
 
-        deviation = 10. / np.sqrt(num_nodes)
+        deviation = 20. / np.sqrt(num_nodes)
         average   = np.average(g.get_degrees())
 
         assert avg - deviation <= average <= avg + deviation
