@@ -365,12 +365,30 @@ def _gaussian_degree(source_ids, target_ids, avg, std, degree_type="in",
 
     num_source = len(source_ids)
 
+    # type of degree
+    degree_type = _set_degree_type(degree_type)
+
+    b_total = (degree_type == "total")
+
     # edges (we set the in, out, or total degree of the source neurons)
-    lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
+    rng = np.random.default_rng()
+
+    degrees = np.around(
+        np.maximum(rng.normal(avg, std, num_source), 0.)).astype(int)
+
+    if b_total or not directed:
+        # check that the sum of the degrees is even
+        if np.sum(degrees) % 2 != 0:
+            idx = -1
+
+            # correct if its not the case
+            while idx < 0 or degrees[idx] == 0:
+                idx = rng.choice(num_source)
+                if degrees[idx] > 0:
+                    degrees[idx] -= 1
 
     return _from_degree_list(
-        source_ids, target_ids, lst_deg, degree_type=degree_type,
+        source_ids, target_ids, degrees, degree_type=degree_type,
         directed=directed, multigraph=multigraph,
         existing_edges=existing_edges, **kwargs)
 

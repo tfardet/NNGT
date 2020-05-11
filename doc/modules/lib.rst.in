@@ -17,9 +17,3 @@ Content
 .. autosummary::
 
 @autosum@
-
-
-Details
-=======
-
-.. automodule:: nngt.lib

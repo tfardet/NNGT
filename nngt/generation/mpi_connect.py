@@ -44,7 +44,17 @@ def _from_degree_list(source_ids, target_ids, degrees, degree_type="in",
     ''' Connect nodes from a list of degrees '''
     if not directed:
         raise NotImplementedError("This function is not yet implemented for "
-                                  "undirected graphs.")
+                                  "undirected graphs in MPI.")
+
+    # type of degree
+    degree_type = _set_degree_type(degree_type)
+
+    b_out = (degree_type == "out")
+    b_total = (degree_type == "total")
+
+    if b_total:
+        raise NotImplementedError(
+            "Total degree is not supported yet with MPI.")
 
     # mpi-related stuff
     comm, size, rank = _mpi_and_random_init()
@@ -63,15 +73,6 @@ def _from_degree_list(source_ids, target_ids, degrees, degree_type="in",
     target_ids = np.array(target_ids, dtype=int)
 
     num_source = len(source_ids)
-
-    # type of degree
-    degree_type = _set_degree_type(degree_type)
-
-    b_out = (degree_type == "out")
-    b_total = (degree_type == "total")
-
-    if b_total:
-        raise NotImplementedError("Total degree is not supported yet.")
 
     # compute the local number of edges
     edges = np.sum(degrees)

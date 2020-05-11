@@ -19,10 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-This modules provides the following features:
+Functions for plotting graphs and graph properties.
 
-* plotting the distribution of some attribute over the graph
+The following features are provided:
+
 * basic graph plotting
+* plotting the distribution of some attribute over the graph
 * animation of some recorded activity
 """
 

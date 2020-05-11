@@ -203,6 +203,10 @@ The file should then be executed using:
 Parallelized generation algorithms
 ==================================
 
+Generation of some *directed* graphs are available with parallel
+implementations (see table below).
+No undirected graph generation mechanisms are currently implemented.
+
 +--------------------------------------------+-----+-----+
 |  Function                                  | OMP | MPI |
 +============================================+=====+=====+

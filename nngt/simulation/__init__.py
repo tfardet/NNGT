@@ -19,8 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Main functions to send :class:`Network` instances to NEST, as well as helper
-functions to excite or record the network activity.
+Module to interact easily with the NEST simulator. It allows to:
+
+* build a NEST network from :class:`~nngt.Network` or
+  :class:`~nngt.SpatialNetwork` objects,
+* monitor the activity of the network (taking neural groups into account)
+* plot the activity while separating the behaviours of predefined neural groups
 """
 
 import sys as _sys
@@ -103,7 +107,7 @@ else:
 
     try:
         _rn = _nngt._old_nest_func["ResetNetwork"]
-    except NameError:
+    except KeyError:
         pass
 
 

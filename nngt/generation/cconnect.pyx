@@ -404,35 +404,12 @@ def _fixed_degree(cnp.ndarray[size_t, ndim=1] source_ids,
 
     assert degree >= 0, "A positive value is required for `degree`."
 
-    degree_type = _set_degree_type(degree_type)
+    degrees = np.repeat(degree, len(source_ids))
 
-    cdef:
-        # type of degree
-        bool b_out = (degree_type == "out")
-        bool b_total = (degree_type == "total")
-        bool use_directed = directed + b_total
-        size_t num_source = source_ids.shape[0]
-        size_t num_target = target_ids.shape[0]
-        size_t edges = num_source * degree
-        bool b_one_pop = _check_num_edges(
-            source_ids, target_ids, edges, directed, multigraph)
-        int64_t[:, :] ia_edges = np.full((edges, 2), -1, dtype=DTYPE)
-
-    cdef:
-        unsigned int idx = 0 if b_out else 1 # differenciate source / target
-        unsigned int omp = nngt._config["omp"]
-        vector[unsigned int] degrees = np.repeat(degree, num_source)
-        vector[ vector[size_t] ] old_edges = vector[ vector[size_t] ]()
-        vector[long] seeds = _random_init(omp)
-
-    if existing_edges is not None:
-        old_edges.push_back(list(existing_edges[:, 0]))
-        old_edges.push_back(list(existing_edges[:, 1]))
-
-    _gen_edges(&ia_edges[0, 0], source_ids, degrees, target_ids, old_edges,
-               idx, multigraph, use_directed, seeds)
-
-    return ia_edges
+    return _from_degree_list(source_ids, target_ids, degrees,
+                             degree_type=degree_type, directed=directed,
+                             multigraph=multigraph,
+                             existing_edges=existing_edges)
 
 
 def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
@@ -471,8 +448,8 @@ def _gaussian_degree(cnp.ndarray[size_t, ndim=1] source_ids,
 
             # correct if its not the case
             while idx < 0 or degrees[idx] == 0:
-                idx = rng.integers(num_source, size=1)
-                if degrees[idx] != 0:
+                idx = rng.choice(num_source)
+                if degrees[idx] > 0:
                     degrees[idx] -= 1
 
     return _from_degree_list(source_ids, target_ids, degrees,
