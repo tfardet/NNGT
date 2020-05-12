@@ -33,6 +33,7 @@ from nngt.lib.connect_tools import *
 
 __all__ = [
     "_all_to_all",
+    "_circular",
     "_distance_rule",
     "_erdos_renyi",
     "_fixed_degree",
@@ -520,6 +521,24 @@ def _price_scale_free():
     pass
 
 
+def _circular(source_ids, target_ids, coord_nb, reciprocity, directed):
+    '''
+    Circular graph.
+
+    Note
+    ----
+    `source_ids` and `target_ids` are only there for compatibility with the
+    connect functions, this algorithm requires a single population.
+    This check (if necessary) is performed above.
+    '''
+    if reciprocity == 1 or not directed:
+        return _circular_full(source_ids, coord_nb, directed)
+    elif directed:
+        return _circular_directed_recip(source_ids, coord_nb, reciprocity)
+
+    raise ValueError("For undirected graphs, reciprocity is 1 by definition.")
+
+
 def _circular_directed_recip(node_ids, coord_nb, reciprocity):
     ''' Circular graph with given reciprocity '''
     nodes    = len(node_ids)
@@ -567,7 +586,12 @@ def _circular_full(node_ids, coord_nb, directed):
 
     out_deg = coord_nb if directed else dist
 
+    # create the graph using a continuous range from zero
     sources = np.repeat(np.arange(0, nodes).astype(int), out_deg)
+
+    # prepare conversion dict if nodes do not start from zero or are not
+    # contiguous. Initial generation assumes continuous range from zero
+    convertor = {i: n for i, n in enumerate(node_ids)}
 
     # create the connection mask
     start = -dist if directed else 0
@@ -581,18 +605,29 @@ def _circular_full(node_ids, coord_nb, directed):
     targets[targets < 0] += nodes
     targets[targets >= nodes] -= nodes
 
+    # convert back to ids
+    sources = np.array([convertor[i] for i in sources])
+    targets = np.array([convertor[i] for i in targets])
+
     return np.array((sources, targets), dtype=int).T
 
 
-def _newman_watts(node_ids, coord_nb, proba_shortcut, reciprocity_circular,
-                  edges=None, directed=True, multigraph=False, **kwargs):
+def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
+                  reciprocity_circular, edges=None, directed=True,
+                  multigraph=False, **kwargs):
     '''
     Returns a numpy array of dimension (num_edges,2) that describes the edge
     list of a Newman-Watts graph.
+
+    Note
+    ----
+    `source_ids` and `target_ids` are only there for compatibility with the
+    connect functions, this algorithm requires a single population.
+    This check (if necessary) is performed above.
     '''
-    nodes      = len(node_ids)
-    source_ids = np.array(node_ids, dtype=int)
-    target_ids = np.array(node_ids, dtype=int)
+    nodes      = len(source_ids)
+    source_ids = np.array(source_ids, dtype=int)
+    target_ids = np.array(target_ids, dtype=int)
 
     # check the number of edges
     direct_factor  = 0.5*(1 + directed)
@@ -613,15 +648,8 @@ def _newman_watts(node_ids, coord_nb, proba_shortcut, reciprocity_circular,
     # generate the initial circular graph
     ia_edges = np.full((edges, 2), -1, dtype=int)
 
-    if reciprocity_circular == 1 or not directed:
-        ia_edges[:circular_edges, :] = _circular_full(
-            node_ids, coord_nb, directed)
-    elif directed:
-        ia_edges[:circular_edges, :] = _circular_directed_recip(
-            node_ids, coord_nb, reciprocity_circular)
-    else:
-        raise ValueError("`reciprocity_circular` is 1 by definition for an "
-                         "undirected Newman-Watts graph.")
+    ia_edges[:circular_edges, :] = _circular(source_ids, source_ids, coord_nb,
+                                             reciprocity_circular, directed)
 
     # add the random connections
     num_test, num_ecurrent = 0, circular_edges
@@ -635,7 +663,7 @@ def _newman_watts(node_ids, coord_nb, proba_shortcut, reciprocity_circular,
 
     while num_ecurrent != edges and num_test < MAXTESTS:
         todo   = edges - num_ecurrent
-        chosen = rng.choice(node_ids, int(2*todo))
+        chosen = rng.choice(source_ids, int(2*todo))
 
         ia_edges, num_ecurrent = _filter(
             ia_edges, chosen.reshape(todo, 2), num_ecurrent, edges_hash,

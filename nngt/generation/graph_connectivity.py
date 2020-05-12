@@ -733,12 +733,7 @@ def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
     # add edges
     if nodes > 1:
         ids   = range(nodes)
-        edges = None
-
-        if reciprocity == 1 or not directed:
-            edges = _circular_full(ids, coord_nb, directed)
-        elif directed:
-            edges = _circular_directed_recip(ids, coord_nb, reciprocity)
+        edges = _circular(ids, ids, coord_nb, reciprocity, directed)
 
         graph_circ.new_edges(edges, check_edges=False)
 
@@ -825,8 +820,8 @@ def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
         ids = range(nodes)
 
         ia_edges = _newman_watts(
-            ids, coord_nb, proba_shortcut, reciprocity_circular, edges=edges,
-            directed=directed)
+            ids, ids, coord_nb, proba_shortcut, reciprocity_circular,
+             edges=edges, directed=directed)
 
         graph_nw.new_edges(ia_edges, check_edges=False)
 
@@ -945,9 +940,11 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
 
 _di_generator = {
     "all_to_all": all_to_all,
+    "circular": circular,
     "distance_rule": distance_rule,
     "erdos_renyi": erdos_renyi,
     "fixed_degree": fixed_degree,
+    "from_degree_list": from_degree_list,
     "gaussian_degree": gaussian_degree,
     "newman_watts": newman_watts,
     "price_scale_free": price_scale_free,
@@ -986,9 +983,11 @@ def generate(di_instructions, **kwargs):
 
 _di_gen_edges = {
     "all_to_all": _all_to_all,
+    "circular": _circular,
     "distance_rule": _distance_rule,
     "erdos_renyi": _erdos_renyi,
     "fixed_degree": _fixed_degree,
+    "from_degree_list": _from_degree_list,
     "gaussian_degree": _gaussian_degree,
     "newman_watts": _newman_watts,
     "price_scale_free": _price_scale_free,
@@ -996,16 +995,14 @@ _di_gen_edges = {
 }
 
 
-_one_pop_models = ("newman_watts",)
+_one_pop_models = {"newman_watts", "circular"}
 
 
-def connect_nodes(network, sources, targets, graph_model, density=-1.,
-                  edges=-1, avg_deg=-1., unit='um', weighted=True,
+def connect_nodes(network, sources, targets, graph_model, density=None,
+                  edges=None, avg_deg=None, unit='um', weighted=True,
                   directed=True, multigraph=False, **kwargs):
     '''
     Function to connect nodes with a given graph model.
-
-    .. versionadded:: 1.0
 
     Parameters
     ----------
@@ -1032,6 +1029,10 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
         kwargs['positions'] = network.get_positions().astype(np.float32).T
     if network.is_spatial() and 'shape' not in kwargs:
         kwargs['shape'] = network.shape
+
+    if graph_model in _one_pop_models:
+        assert np.array_equal(sources, targets), \
+            "'" + graph_model + "' can only work on a single set of nodes."
 
     sources  = np.array(sources, dtype=np.uint)
     targets  = np.array(targets, dtype=np.uint)
@@ -1063,21 +1064,12 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
 
 
 def connect_neural_types(network, source_type, target_type, graph_model,
-                         density=-1., edges=-1, avg_deg=-1., unit='um',
+                         density=None, edges=None, avg_deg=None, unit='um',
                          weighted=True, directed=True, multigraph=False,
                          **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
-
-    .. versionchanged:: 0.8
-        Model-specific arguments are now provided as keywords and not through a
-        dict.
-        It is now possible to provide different weights and delays at each
-        call.
-
-    @todo
-        make the modifications for only a set of edges
 
     Parameters
     ----------
@@ -1143,7 +1135,7 @@ def connect_neural_groups(*args, **kwargs):
 
 
 def connect_groups(network, source_groups, target_groups, graph_model,
-                   density=-1., edges=-1, avg_deg=-1., unit='um',
+                   density=None, edges=None, avg_deg=None, unit='um',
                    weighted=True, directed=True, multigraph=False, **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
@@ -1152,14 +1144,6 @@ def connect_groups(network, source_groups, target_groups, graph_model,
     .. versionchanged:: 1.2.0
         Allow to use :class:`NeuralGroup` as `source_groups` and
         `target_groups` arguments.
-
-    .. versionchanged:: 0.8
-        Model-specific arguments are now provided as keywords and not through a
-        dict. It is now possible to provide different weights and delays at
-        each call.
-
-    @todo
-        make the modifications for only a set of edges
 
     Parameters
     ----------

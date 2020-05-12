@@ -21,7 +21,6 @@ from scipy.special import lambertw
 
 import nngt
 
-
 # set example dir
 current_dir = dirname(abspath(__file__))
 idx_testing = current_dir.find('testing')
