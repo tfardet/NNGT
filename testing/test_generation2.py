@@ -90,7 +90,7 @@ def test_newman_watts():
     # undirected
     g = ng.newman_watts(k_lattice, edges=6, nodes=num_nodes, directed=False)
 
-    subset   = {(0, 1), (1, 2), (2, 3), (3, 4)}
+    subset = {(0, 1), (1, 2), (2, 3), (3, 4)}
 
     # connection between 0 and 4 depends on the library
     try:
