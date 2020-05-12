@@ -1222,7 +1222,6 @@ def connect_groups(network, source_groups, target_groups, graph_model,
 # Modifying networks #
 # ------------------ #
 
-
 def random_rewire(g, constraints=None, node_attr_constraints=None,
                   edge_attr_constraints=None):
     '''
@@ -1247,8 +1246,8 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
         Whether attribute randomization is constrained.
         If `constraints` is "in-degree" (respectively "out-degree") or
         "degrees", this can be "preserve_in" (respectively "preserve_out"),
-        in which case all nodes keep the attributes of their incoming
-        (respectively outgoing) edges.
+        in which case all attributes of a given edge are moved together to a
+        new incoming (respectively outgoing) edge of the same node.
         Regardless of `constraints`, "together" can be used so that edges
         attributes are randomized by groups (all attributes of a given edge are
         sent to the same new edge). By default, attributes are completely and
@@ -1266,11 +1265,11 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
     if edge_attr_constraints not in valid_e:
         raise ValueError(
             "`edge_attr_constraints` must be in {}.".format(valid_e))
-    elif edge_attr_constraints in == "preserve_in":
+    elif edge_attr_constraints == "preserve_in":
         assert constraints in ("in-degree", "all-degrees"), \
             "Can only use 'preserve_in' if `constraints` is 'in-degree' or " \
             "'all-degrees'."
-    elif edge_attr_constraints in == "preserve_out":
+    elif edge_attr_constraints == "preserve_out":
         assert constraints in ("in-degree", "all-degrees"), \
             "Can only use 'preserve_out' if `constraints` is 'out-degree' " \
             "or 'all-degrees'."
@@ -1314,15 +1313,48 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
     # edge attributes
     eattr = deepcopy(g.get_edge_attributes())
 
-    order = [i for i in range(num_edges)]
-    rng.shuffle(order)  # shuffled order for "together"
+    order = np.arange(num_edges, dtype=int)
+
+    if edge_attr_constraints == "together":
+        rng.shuffle(order)
+    elif edge_attr_constraints == "preserve_in":
+        for i in range(num_nodes):
+            old_edges = g.get_edges(source=i)
+            new_edges = new_graph.edge_edges(source=i)
+
+            old_ids = g.edge_id(old_edges)
+            new_ids = new_graph.edge_id(new_edges)
+
+            order[new_ids] = old_ids
+    elif edge_attr_constraints == "preserve_out":
+        for i in range(num_nodes):
+            old_edges = g.get_edges(target=i)
+            new_edges = new_graph.edge_edges(target=i)
+
+            old_ids = g.edge_id(old_edges)
+            new_ids = new_graph.edge_id(new_edges)
+
+            order[new_ids] = old_ids
 
     for k, v in eattr.items():
         if edge_attr_constraints is None:
             rng.shuffle(v)
-        elif edge_attr_constraints == "together":
+        else:
             v = v[order]
 
         dtype = new_graph.get_attribute_type(k, attribute_class="edge")
 
         new_graph.new_edge_attribute(k, dtype, values=v)
+
+    # set spatial/network properties
+    if g.is_spatial():
+        nngt.Graph.make_spatial(new_graph, shape=g.shape.copy(),
+                                positions=g.get_positions().copy())
+    if g.is_network():
+        nngt.Graph.make_network(new_graph, neural_pop=g.population.copy())
+
+    return new_graph
+
+
+def lattice_rewire(g, reciprocity):
+    pass
