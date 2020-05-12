@@ -73,10 +73,6 @@ if on_rtd:
         def __setitem__(self, name, value):
             pass
 
-        def __spec__(self):
-            # necessary for new lazy load
-            return None
-
         @property
         def __version__(self):
             return ""
