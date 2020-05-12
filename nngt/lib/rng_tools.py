@@ -51,7 +51,11 @@ def seed(msd=None, seeds=None):
     '''
     # when using MPI numpy seeeds are sync-ed via the mpi_random decorator
     msd = np.random.randint(0, 2**32 - 1) if msd is None else msd
+
+    # seed both random state and new generator
     np.random.seed(msd)
+    nngt._rng = np.random.default_rng(msd)
+
     nngt._config['msd'] = msd
 
     nngt._seeded = True

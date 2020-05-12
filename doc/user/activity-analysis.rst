@@ -74,7 +74,7 @@ Or from a spike detector gid ``sd``:
 
 * :ref:`intro`
 * :ref:`graph_gen`
-* :ref:`multithread`
+* :ref:`parallelism`
 * :ref:`neural_groups`
 * :ref:`nest_int`
 * :ref:`graph-prop`

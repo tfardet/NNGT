@@ -216,7 +216,7 @@ linearly correlated
 
 * :ref:`intro`
 * :ref:`graph_gen`
-* :ref:`multithread`
+* :ref:`parallelism`
 * :ref:`neural_groups`
 * :ref:`nest_int`
 * :ref:`activ_analysis`

@@ -749,8 +749,9 @@ class Graph(nngt.core.GraphObject):
         if name is not None and edges is not None:
             if isinstance(edges, slice):
                 return self._eattr[name][edges]
-            else:
+            elif len(edges):
                 return self._eattr[edges][name]
+            return np.array([])
         elif name is None and edges is None:
             return {k: self._eattr[k]
                     for k in self._eattr.keys()}

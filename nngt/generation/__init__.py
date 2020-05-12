@@ -19,8 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Details
-=======
+Functions that generates the underlying connectivity of graphs, as well
+as the connection properties (weight/strength and delay).
 """
 
 from .graph_connectivity import *

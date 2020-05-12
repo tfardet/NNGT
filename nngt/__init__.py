@@ -81,6 +81,8 @@ import shutil as _shutil
 import sys as _sys
 import logging as _logging
 
+import numpy as _np
+
 
 __version__ = '2.0.dev'
 
@@ -120,6 +122,17 @@ _config = {
 # tools for nest interactions (can be used in config)
 
 _old_nest_func = {}
+
+# random generator for numpy
+
+_rng = _np.random.default_rng()
+
+# state of master seed (already seeded or not)
+_seeded = False
+
+# state of local seeds for multithreading or MPI (already used or not)
+_seeded_local = False
+_used_local   = False
 
 # database (predeclare here, can be used in config)
 
@@ -184,13 +197,6 @@ else:                                 # if it does check it is up-to-date
             _log_message(_logger, "WARNING",
                          "Updating the configuration file, your previous "
                          "settings have be overwritten.")
-
-# state of master seed (already seeded or not)
-_seeded = False
-
-# state of local seeds for multithreading or MPI (already used or not)
-_seeded_local = False
-_used_local   = False
 
 _load_config(_new_config)
 

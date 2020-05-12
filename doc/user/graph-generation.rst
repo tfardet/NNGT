@@ -17,6 +17,7 @@ The example files can be found at: :source:`docs/examples/simple_graphs.py`,
 .. contents::
    :local:
 
+
 Principle
 =========
 
@@ -170,7 +171,7 @@ of the **target** neuron is concerned.
 
 * :ref:`intro`
 * :ref:`graph-prop`
-* :ref:`multithread`
+* :ref:`parallelism`
 * :ref:`neural_groups`
 * :ref:`nest_int`
 * :ref:`activ_analysis`

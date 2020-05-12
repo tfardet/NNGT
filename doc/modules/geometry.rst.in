@@ -17,5 +17,8 @@ Overview
 
 @autosum@
 
+.. currentmodule:: nngt.geometry
+
 
 .. automodule:: nngt.geometry
+    :members:

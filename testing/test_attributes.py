@@ -137,10 +137,15 @@ class TestAttributes(TestBasis):
         When generating graphs with weights, check that the expected properties
         are indeed obtained.
         '''
-        g = nngt.generation.erdos_renyi(avg_deg=50, nodes=200)
+        avg = 50
+        std = 6
+        g = nngt.generation.gaussian_degree(avg, std, nodes=200)
+
         ref_result = np.random.uniform(0, 5, g.edge_nb())
         g.set_edge_attribute("ud", values=ref_result, value_type="double")
+
         computed_result = g.get_edge_attributes(name="ud")
+
         self.assertTrue(np.allclose(ref_result, computed_result),
             '''Error on graph {}: unequal 'ud' attribute for tolerance {}.
             '''.format(g.name, self.tolerance))
@@ -150,20 +155,28 @@ class TestAttributes(TestBasis):
         When generating graphs with weights, check that the expected properties
         are indeed obtained.
         '''
-        g = nngt.generation.erdos_renyi(avg_deg=50, nodes=200)
+        avg = 50
+        std = 6
+        g = nngt.generation.gaussian_degree(avg, std, nodes=200)
+
         ref_result = np.full(g.edge_nb(), 4.)
         g.set_edge_attribute("ud2", val=4., value_type="double")
+
         computed_result = g.get_edge_attributes(name="ud2")
         self.assertTrue(np.allclose(ref_result, computed_result),
             '''Error on graph {}: unequal 'ud2' attribute for tolerance {}.
             '''.format(g.name, self.tolerance))
-    
+
+    @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     def test_list_attributes(self):
         '''
         For list attributes, test that they are preserved as lists, and that
         some nodes or edges do not own references to the same list.
         '''
-        graph = nngt.generation.erdos_renyi(nodes=1000, avg_deg=25)
+        avg = 25
+        std = 3
+
+        graph = nngt.generation.gaussian_degree(avg, std, nodes=1000)
 
         # --------------- #
         # node attributes #

@@ -180,6 +180,7 @@ class _GtEProperty(BaseProperty):
             else:
                 for k in self.keys():
                     eprop[k] = g.edge_properties[k][name]
+
             return eprop
 
         dtype = super(_GtEProperty, self).__getitem__(name)
@@ -198,14 +199,23 @@ class _GtEProperty(BaseProperty):
 
         if name in self:
             size = g.num_edges()
-            if len(value) == size:
-                g.edge_properties[name].a = np.array(value)
-            else:
-                raise ValueError("A list or a np.array with one entry per "
+
+            if size:
+                dtype = super(_GtEProperty, self).__getitem__(name)
+
+                # check for list value for one edge
+                if dtype == "object" and size == 1 and isinstance(value, list):
+                    value = [value]
+
+                if len(value) == size:
+                    g.edge_properties[name].a = _to_np_array(value, dtype)
+                else:
+                    raise ValueError("A list or a np.array with one entry per "
                                  "edge in the graph is required")
         else:
             raise InvalidArgument("Attribute does not exist yet, use "
                                   "set_attribute to create it.")
+
         self._num_values_set[name] = len(value)
 
     def set_attribute(self, name, values, edges=None):
@@ -501,9 +511,6 @@ class _GtGraph(GraphInterface):
         '''
         Add a list of edges to the graph.
 
-        .. versionchanged:: 1.0
-            new_edges checks for duplicate edges and self-loops
-
         .. warning ::
             This function currently does not check for duplicate edges between
             the existing edges and the added ones, but only inside `edge_list`!
@@ -519,8 +526,6 @@ class _GtGraph(GraphInterface):
             for each connection (synaptic strength in NEST).
         check_edges : bool, optional (default: True)
             Check for duplicate edges and self-loops.
-
-        @todo: add example
 
         Returns
         -------

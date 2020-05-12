@@ -8,11 +8,13 @@ Test weights setting.
 """
 
 import numpy as np
+import pytest
 
 import nngt
 import nngt.generation as ng
 
 
+@pytest.mark.mpi_skip
 def test_set_weights():
     w = 10.
     g = ng.erdos_renyi(nodes=100, density=0.1, weights=w)
@@ -80,6 +82,5 @@ def test_weighted_degrees():
 
 
 if __name__ == "__main__":
-    nngt.set_config("backend", "nngt")
     test_set_weights()
     test_weighted_degrees()

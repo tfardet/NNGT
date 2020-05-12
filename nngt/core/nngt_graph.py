@@ -348,9 +348,9 @@ class _NNGTGraph(GraphInterface):
         g = self._graph
 
         if is_integer(edge[0]):
-            return g._edges[tuple(edge)]
+            return g._unique[tuple(edge)]
         elif nonstring_container(edge[0]):
-            idx = [g._edges[tuple(e)] for e in edge]
+            idx = [g._unique[tuple(e)] for e in edge]
             return idx
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or "
@@ -523,7 +523,7 @@ class _NNGTGraph(GraphInterface):
         if target not in g._nodes:
             raise ValueError("There is no node {}.".format(target))
 
-        if edge not in g._edges:
+        if edge not in g._unique:
             edge_id             = len(g._unique)
             g._unique[edge]     = edge_id
             g._out_deg[source] += 1
