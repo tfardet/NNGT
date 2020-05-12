@@ -364,7 +364,7 @@ class _NNGTGraph(GraphInterface):
         '''
         e = tuple(edge)
 
-        return e in self._graph._unique
+        return e in self._graph._edges
 
     @property
     def edges_array(self):
