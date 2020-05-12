@@ -95,11 +95,13 @@ if on_rtd:
             return (object,)
 
     mock_objects_modules = [
-        "nest", "shapely", "shapely.affinity", "shapely.geometry", "dxfgrabber"
+        "shapely", "shapely.affinity", "shapely.geometry", "dxfgrabber"
     ]
 
     for mod in mock_objects_modules:
         sys.modules[mod] = mock_object
+
+    sys.modules["nest"] = Mock()
 
 
 # -- Setup all autosum then start --------------------------------------------
