@@ -1235,8 +1235,8 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
     constraints : str, optional (default: no constraints)
         Defines which properties of `g` will be maintained in the rewired
         graph. By default, the graph is completely rewired into an Erdos-Renyi
-        model. Available constraints are "in-degree", "out-degree", "degrees",
-        and "clustering".
+        model. Available constraints are "in-degree", "out-degree",
+        "total-degree", "all-degrees", and "clustering".
     node_attr_constraints : str, optional (default: randomize all attributes)
         Whether attribute randomization is constrained: either "preserve",
         where all nodes keep their attributes, or "together", where attributes
@@ -1254,3 +1254,75 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
         sent to the same new edge). By default, attributes are completely and
         separately randomized.
     '''
+    directed  = g.is_directed()
+    num_nodes = g.node_nb()
+    num_edges = g.edge_nb()
+
+    new_graph = None
+
+    # check compatibility between `constraints` and `edge_attr_constraints`
+    valid_e = (None, "preserve_in", "preserve_out", "together")
+
+    if edge_attr_constraints not in valid_e:
+        raise ValueError(
+            "`edge_attr_constraints` must be in {}.".format(valid_e))
+    elif edge_attr_constraints in == "preserve_in":
+        assert constraints in ("in-degree", "all-degrees"), \
+            "Can only use 'preserve_in' if `constraints` is 'in-degree' or " \
+            "'all-degrees'."
+    elif edge_attr_constraints in == "preserve_out":
+        assert constraints in ("in-degree", "all-degrees"), \
+            "Can only use 'preserve_out' if `constraints` is 'out-degree' " \
+            "or 'all-degrees'."
+
+    # generate rewired graph
+    if constraints is None:
+        new_graph = erdos_renyi(edges=num_edges, nodes=num_nodes,
+                                directed=directed)
+    elif constraints == "all-degrees":
+        raise NotImplementedError("Full degrees constraints is not yet "
+                                  "implemented.")
+    elif "degree" in constraints:
+        degrees   = g.get_degrees(constraints)
+        new_graph = from_degree_list(degrees, constraints, directed=directed)
+    elif constraints == "clustering":
+        raise NotImplementedError("Rewiring with constrained clustering is "
+                                  "not yet available.")
+
+    rng = nngt._rng
+
+    # node attributes
+    nattr = deepcopy(g.get_node_attributes())
+
+    order = [i for i in range(num_nodes)]
+    rng.shuffle(order)  # shuffled order for "together"
+
+    if node_attr_constraints not in (None, "preserve", "together"):
+        raise ValueError("`node_attr_constraints` must be either None, "
+                         "'preserve', or 'together'.")
+    else:
+        for k, v in nattr.items():
+            if node_attr_constraints is None:
+                rng.shuffle(v)
+            elif node_attr_constraints == "together":
+                v = v[order]
+
+            dtype = new_graph.get_attribute_type(k, attribute_class="node")
+
+            new_graph.new_node_attribute(k, dtype, values=v)
+
+    # edge attributes
+    eattr = deepcopy(g.get_edge_attributes())
+
+    order = [i for i in range(num_edges)]
+    rng.shuffle(order)  # shuffled order for "together"
+
+    for k, v in eattr.items():
+        if edge_attr_constraints is None:
+            rng.shuffle(v)
+        elif edge_attr_constraints == "together":
+            v = v[order]
+
+        dtype = new_graph.get_attribute_type(k, attribute_class="edge")
+
+        new_graph.new_edge_attribute(k, dtype, values=v)
