@@ -76,6 +76,7 @@ def test_from_degree_list():
         print("Skipping non graphical sequence for undirected graph.")
 
 
+@pytest.mark.mpi_skip
 def test_newman_watts():
     '''
     Check the newman_watts generation method.
@@ -206,6 +207,7 @@ def test_mpi_from_degree_list():
         assert num_edges == np.sum(deg_list)
 
 
+@pytest.mark.mpi_skip
 def test_total_undirected_connectivities():
     ''' Test total-degree connectivities '''
     num_nodes = 1000
@@ -237,9 +239,8 @@ def test_total_undirected_connectivities():
 
 
 if __name__ == "__main__":
-    test_newman_watts()
-
     if not nngt.get_config("mpi"):
+        test_newman_watts()
         test_from_degree_list()
         test_total_undirected_connectivities()
 

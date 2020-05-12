@@ -15,6 +15,7 @@ import pytest
 import nngt
 
 
+@pytest.mark.mpi_skip
 @pytest.mark.skipif(nngt.get_config("backend") == "nngt", reason="unsupported")
 def test_directed_clustering():
     '''
