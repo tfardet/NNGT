@@ -398,8 +398,8 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     np.set_printoptions(threshold=sys.maxsize)
     # data
     if attributes is None:
-        attributes = [a for a in graph.edges_attributes if a != "bweight"]
-    nattributes = [a for a in graph.nodes_attributes]
+        attributes = [a for a in graph.edge_attributes if a != "bweight"]
+    nattributes = [a for a in graph.node_attributes]
     additional_notif = {
         "directed": graph.is_directed(),
         "node_attributes": nattributes,
@@ -535,7 +535,7 @@ def _edge_list(graph, separator, secondary, attributes):
     ''' Generate a string containing the edge list and their properties. '''
     edges = graph.edges_array
     di_attributes = {
-        k: v for k, v in graph.edges_attributes.items()
+        k: v for k, v in graph.edge_attributes.items()
         if k != 'bweight'
     }
     end_strings = (len(attributes) - 1)*[secondary]

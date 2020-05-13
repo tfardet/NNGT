@@ -683,7 +683,7 @@ def _node_color(network, restrict_nodes, ncolor):
                     values = network.get_betweenness("node")
                 else:
                     values = network.get_betweenness("node")[list(restrict_nodes)]
-            elif ncolor in network.nodes_attributes:
+            elif ncolor in network.node_attributes:
                 values = network.get_node_attributes(name=ncolor, nodes=restrict_nodes)
             elif ncolor == "clustering" :
                 values = nngt.analysis.local_clustering(network, nodes=restrict_nodes)

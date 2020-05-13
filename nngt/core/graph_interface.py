@@ -166,7 +166,7 @@ class GraphInterface:
             specials = ("weight", "delay", 'distance')
 
             for k in attributes.keys():
-                if k not in self.edges_attributes and k in specials:
+                if k not in self.edge_attributes and k in specials:
                     self._eattr.new_attribute(name=k, value_type="double")
 
             # take care of classic attributes
@@ -230,7 +230,7 @@ class GraphInterface:
                     "weight", values, edges=edge_list)
 
             # then delay
-            if self.is_network() or "delay" in self.edges_attributes:
+            if self.is_network() or "delay" in self.edge_attributes:
                 prop = attributes.get("delay", None)
                 values = _get_edge_attr(
                     self, edge_list, 'delay', prop, last_edges=True)
@@ -239,7 +239,7 @@ class GraphInterface:
 
             for k in attributes.keys():
                 if k not in specials:
-                    if k in self.edges_attributes:
+                    if k in self.edge_attributes:
                         values = _get_edge_attr(
                             self, edge_list, k, attributes[k], last_edges=True)
                         self._eattr.set_attribute(k, values, edges=edge_list)

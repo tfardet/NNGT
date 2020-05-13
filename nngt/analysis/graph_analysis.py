@@ -173,7 +173,7 @@ def num_iedges(graph):
 
         return np.sum(graph.get_degrees("out", node_list=inhib_nodes))
 
-    if "type" in graph.edges_attributes:
+    if "type" in graph.edge_attributes:
         return np.sum(graph.get_edge_attributes(name="type") < 0)
 
     return 0.
@@ -874,7 +874,7 @@ def _get_attribute(network, attribute, nodes=None, data=None):
         if nodes is not None:
             return sc[nodes]
         return sc
-    elif attribute in network.nodes_attributes:
+    elif attribute in network.node_attributes:
         return network.get_node_attributes(nodes=nodes, name=attribute)
 
     raise RuntimeError("Attribute '{}' is not available.".format(attribute))

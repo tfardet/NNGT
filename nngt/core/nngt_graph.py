@@ -434,7 +434,7 @@ class _NNGTGraph(GraphInterface):
                     self._nattr.set_attribute(k, v, nodes=nodes)
 
         # set default values for all attributes that were not set
-        for k in self.nodes_attributes:
+        for k in self.node_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "double":
@@ -503,7 +503,7 @@ class _NNGTGraph(GraphInterface):
         attributes = {} if attributes is None else deepcopy(attributes)
 
         # set default values for attributes that were not passed
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
@@ -578,7 +578,7 @@ class _NNGTGraph(GraphInterface):
         g = self._graph
 
         # set default values for attributes that were not passed
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":

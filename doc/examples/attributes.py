@@ -59,7 +59,7 @@ dogsizes = np.random.normal(80, 10, 400)  # dogs around 80 cm
 graph.new_node_attribute("size", value_type="double")
 
 # We now have to attributes: one containing strings, the other numbers (double)
-print(graph.nodes_attributes)
+print(graph.node_attributes)
 
 # get the cats and set their sizes
 cats = graph.get_nodes(attribute="animal", value="cat")

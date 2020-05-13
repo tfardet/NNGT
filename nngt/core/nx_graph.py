@@ -387,7 +387,7 @@ class _NxGraph(GraphInterface):
                     self._nattr.set_attribute(k, v, nodes=new_nodes)
 
         # set default values for all attributes that were not set
-        for k in self.nodes_attributes:
+        for k in self.node_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 filler = [None for _ in new_nodes]
@@ -456,7 +456,7 @@ class _NxGraph(GraphInterface):
         attributes = {} if attributes is None else deepcopy(attributes)
 
         # set default values for attributes that were not passed
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
@@ -522,7 +522,7 @@ class _NxGraph(GraphInterface):
                                           "available with networkx.")
 
         # set default values for attributes that were not passed
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":

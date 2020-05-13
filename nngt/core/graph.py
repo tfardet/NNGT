@@ -33,6 +33,7 @@ import nngt
 from nngt import save_to_file
 import nngt.analysis as na
 from nngt.lib import InvalidArgument, nonstring_container
+from nngt.lib.connect_tools import _set_degree_type
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.io_tools import _as_string, _load_from_file
 from nngt.lib.logger import _log_message
@@ -203,7 +204,7 @@ class Graph(nngt.core.GraphObject):
 
         # make the nodes attributes
         lst_attr, dtpes, lst_values = [], [], []
-        if info["node_attributes"]:  # edge attributes to add to the graph
+        if info["node_attributes"]:  # node attributes to add to the graph
             lst_attr   = info["node_attributes"]
             dtpes      = info["node_attr_types"]
             lst_values = [nattr[name] for name in info["node_attributes"]]
@@ -547,12 +548,12 @@ class Graph(nngt.core.GraphObject):
                 if np.any(inh):
                     mat[inh, :] *= -1
 
-            elif 'type' in self.nodes_attributes:
+            elif 'type' in self.node_attributes:
                 mat = nngt.analyze_graph["adjacency"](self, weights)
-                tarray = np.where(self.nodes_attributes['type'] < 0)[0]
+                tarray = np.where(self.node_attributes['type'] < 0)[0]
                 if np.any(tarray):
                     mat[tarray] *= -1
-            elif types and 'type' in self.edges_attributes:
+            elif types and 'type' in self.edge_attributes:
                 data = None
 
                 if nonstring_container(weights):
@@ -581,6 +582,36 @@ class Graph(nngt.core.GraphObject):
         return mat
 
     @property
+    def node_attributes(self):
+        '''
+        Access node attributes.
+
+        See also
+        --------
+        :attr:`~nngt.Graph.edge_attributes`,
+        :attr:`~nngt.Graph.get_node_attributes`,
+        :attr:`~nngt.Graph.new_node_attribute`,
+        :attr:`~nngt.Graph.set_node_attribute`.
+        '''
+        return self._nattr
+
+    @property
+    def edge_attributes(self):
+        '''
+        Access edge attributes.
+
+        See also
+        --------
+        :attr:`~nngt.Graph.node_attributes`,
+        :attr:`~nngt.Graph.get_edge_attributes`,
+        :attr:`~nngt.Graph.new_edge_attribute`,
+        :attr:`~nngt.Graph.set_edge_attribute`.
+        '''
+        return self._eattr
+
+    @property
+    @deprecated("2.0", reason="Inconsistent with naming conventions",
+                alternative="node_attributes", removal="2.1")
     def nodes_attributes(self):
         '''
         Access node attributes.
@@ -595,6 +626,8 @@ class Graph(nngt.core.GraphObject):
         return self._nattr
 
     @property
+    @deprecated("2.0", reason="Inconsistent with naming conventions",
+                alternative="edge_attributes", removal="2.1")
     def edges_attributes(self):
         '''
         Access edge attributes.
@@ -623,7 +656,7 @@ class Graph(nngt.core.GraphObject):
 
         See also
         --------
-        :func:`~nngt.Graph.get_edges`, :attr:`~nngt.Graph.nodes_attributes`
+        :func:`~nngt.Graph.get_edges`, :attr:`~nngt.Graph.node_attributes`
         '''
         if attribute is None:
             return [i for i in range(self.node_nb())]
@@ -657,7 +690,7 @@ class Graph(nngt.core.GraphObject):
 
         See also
         --------
-        :func:`~nngt.Graph.get_nodes`, :attr:`~nngt.Graph.edges_attributes`
+        :func:`~nngt.Graph.get_nodes`, :attr:`~nngt.Graph.edge_attributes`
         '''
         edges = None
 
@@ -858,7 +891,7 @@ class Graph(nngt.core.GraphObject):
 
     def is_weighted(self):
         ''' Whether the edges have weights '''
-        return "weight" in self.edges_attributes
+        return "weight" in self.edge_attributes
 
     def is_directed(self):
         ''' Whether the graph is directed or not '''
@@ -914,66 +947,63 @@ class Graph(nngt.core.GraphObject):
             degrees associated to local edges. "Complete" degrees are obtained
             by taking the sum of the results on all MPI processes.
         '''
-        valid_types = {"in", "out", "total"}
+        mode = _set_degree_type(mode)
 
-        if mode in valid_types:
-            if edge_type == "all":
-                return super().get_degrees(
-                    mode=mode, nodes=nodes, weights=weights)
-            elif edge_type in {"excitatory", 1}:
-                edge_type = 1
-            elif edge_type in {"inhibitory", -1}:
-                edge_type = -1
+        if edge_type == "all":
+            return super().get_degrees(
+                mode=mode, nodes=nodes, weights=weights)
+        elif edge_type in {"excitatory", 1}:
+            edge_type = 1
+        elif edge_type in {"inhibitory", -1}:
+            edge_type = -1
+        else:
+            raise InvalidArgument(
+                "Invalid edge type '{}'".format(edge_type))
+
+        degrees = np.zeros(self.node_nb())
+
+        if isinstance(self, nngt.Network):
+            neurons = []
+            for g in self.population.values():
+                if g.neuron_type == edge_type:
+                    neurons.extend(g.ids)
+
+            if mode in {"in", "all"} or not self.is_directed():
+                degrees += self.adjacency_matrix(
+                    weights=weights,
+                    types=False)[neurons, :].sum(axis=0).A1
+
+            if mode in {"out", "all"} and self.is_directed():
+                degrees += self.adjacency_matrix(
+                    weights=weights,
+                    types=False)[neurons, :].sum(axis=1).A1
+        else:
+            edges = np.where(
+                self.get_edge_attributes(name="type") == edge_type)[0]
+
+            w = None
+
+            if weights is None:
+                w = np.ones(len(edges))
+            elif weights in self.edge_attributes:
+                w = self.edge_attributes[weights]
+            elif nonstring_container(weights):
+                w = np.array(weights)
             else:
                 raise InvalidArgument(
-                    "Invalid edge type '{}'".format(edge_type))
+                    "Invalid `weights` '{}'".format(weights))
 
-            degrees = np.zeros(self.node_nb())
+            # count in-degrees
+            if mode in {"in", "all"} or not self.is_directed():
+                np.add.at(degrees, edges[1], weights)
 
-            if isinstance(self, nngt.Network):
-                neurons = []
-                for g in self.population.values():
-                    if g.neuron_type == edge_type:
-                        neurons.extend(g.ids)
+            if mode in {"out", "all"} and self.is_directed():
+                np.add.at(degrees, edges[0], weights)
 
-                if mode in {"in", "all"} or not self.is_directed():
-                    degrees += self.adjacency_matrix(
-                        weights=weights,
-                        types=False)[neurons, :].sum(axis=0).A1
+        if nodes is None:
+            return degrees
 
-                if mode in {"out", "all"} and self.is_directed():
-                    degrees += self.adjacency_matrix(
-                        weights=weights,
-                        types=False)[neurons, :].sum(axis=1).A1
-            else:
-                edges = np.where(
-                    self.get_edge_attributes(name="type") == edge_type)[0]
-
-                w = None
-
-                if weights is None:
-                    w = np.ones(len(edges))
-                elif weights in self.edges_attributes:
-                    w = self.edges_attributes[weights]
-                elif nonstring_container(weights):
-                    w = np.array(weights)
-                else:
-                    raise InvalidArgument(
-                        "Invalid `weights` '{}'".format(weights))
-
-                # count in-degrees
-                if mode in {"in", "all"} or not self.is_directed():
-                    np.add.at(degrees, edges[1], weights)
-
-                if mode in {"out", "all"} and self.is_directed():
-                    np.add.at(degrees, edges[0], weights)
-
-            if nodes is None:
-                return degrees
-
-            return degrees[nodes]
-
-        raise InvalidArgument("Invalid degree type '{}'".format(mode))
+        return degrees[nodes]
 
     def get_betweenness(self, btype="both", weights=None):
         '''
@@ -1021,7 +1051,7 @@ class Graph(nngt.core.GraphObject):
         -------
         the list of types (1 for excitatory, -1 for inhibitory)
         '''
-        if TYPE in self.edges_attributes:
+        if TYPE in self.edge_attributes:
             return self.get_edge_attributes(name=TYPE, edges=edges)
         else:
             size = self.edge_nb() if edges is None else len(edges)
@@ -1201,7 +1231,7 @@ class Graph(nngt.core.GraphObject):
         :func:`~nngt.Graph.new_node_attribute`,
         :func:`~nngt.Graph.get_node_attributes`
         '''
-        if attribute not in self.edges_attributes:
+        if attribute not in self.edge_attributes:
             assert value_type is not None, "`value_type` is necessary for " +\
                                            "new attributes."
             self.new_edge_attribute(name=attribute, value_type=value_type,
@@ -1246,7 +1276,7 @@ class Graph(nngt.core.GraphObject):
         :func:`~nngt.Graph.new_edge_attribute`,
         :func:`~nngt.Graph.get_edge_attributes`,
         '''
-        if attribute not in self.nodes_attributes:
+        if attribute not in self.node_attributes:
             assert value_type is not None, "`value_type` is necessary for " +\
                                            "new attributes."
             self.new_node_attribute(name=attribute, value_type=value_type,

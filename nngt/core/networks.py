@@ -390,7 +390,7 @@ class Network(Graph):
                 self._population = population
                 nodes = population.size
                 # create the delay attribute if necessary
-                if "delay" not in self.edges_attributes:
+                if "delay" not in self.edge_attributes:
                     self.set_delays()
             else:
                 raise AttributeError("NeuralPop is not valid (not all neurons "

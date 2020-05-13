@@ -65,7 +65,7 @@ attribute_types = {
 }
 
 g2.new_node(attributes=attributes, value_types=attribute_types)
-print(g2.nodes_attributes, '\n')
+print(g2.node_attributes, '\n')
 
 # by default all nodes will have these properties with "empty" values
 g2.new_node(2)
@@ -81,26 +81,26 @@ print(g2.get_node_attributes(name='blob'), '\n')
 # attributes for multiple nodes can be set simultaneously
 g2.new_node(3, attributes={'size': [4., 5., 1.], 'color': ['r', 'g', 'b']},
             value_types={'size': 'double', 'color': 'string'})
-print(g2.nodes_attributes['size'])
-print(g2.nodes_attributes['color'], '\n')
+print(g2.node_attributes['size'])
+print(g2.node_attributes['color'], '\n')
 
 # creating attributes afterwards
 import numpy as np
 g3 = nngt.Graph(nodes=100)
 g3.new_node_attribute('size', 'double',
                       values=np.random.uniform(0, 20, 100))
-print(g3.nodes_attributes['size'][:5], '\n')
+print(g3.node_attributes['size'][:5], '\n')
 
 # edges attributes
 edges = g3.new_edges(np.random.randint(0, 50, (10, 2)))
 g3.new_edge_attribute('rank', 'int')
 g3.set_edge_attribute('rank', val=2, edges=edges[:3, :])
-print(g3.edges_attributes['rank'], '\n')
+print(g3.edge_attributes['rank'], '\n')
 
 # check default values
 e = g3.new_edge(99, 98)
 g3.new_edges(np.random.randint(50, 100, (5, 2)))
-print(g3.edges_attributes['rank'], '\n')
+print(g3.edge_attributes['rank'], '\n')
 
 
 ''' ---------------------------------------- #

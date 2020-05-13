@@ -430,7 +430,7 @@ class _GtGraph(GraphInterface):
 
         # set default values for double attributes that were not set
         # (others are properly handled automatically)
-        for k in self.nodes_attributes:
+        for k in self.node_attributes:
             if k not in attributes and self.get_attribute_type(k) == "double":
                 self.set_node_attribute(k, nodes=nodes, val=np.NaN)
 
@@ -486,7 +486,7 @@ class _GtGraph(GraphInterface):
 
         attributes = {} if attributes is None else deepcopy(attributes)
 
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
@@ -536,7 +536,7 @@ class _GtGraph(GraphInterface):
 
         # set default values for attributes that were not passed
         # (only string and double, others are handled correctly by default)
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":

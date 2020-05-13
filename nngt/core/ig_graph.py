@@ -348,7 +348,7 @@ class _IGraph(GraphInterface):
                     self._nattr.set_attribute(k, v, nodes=nodes)
 
         # set default values for all attributes that were not set
-        for k in self.nodes_attributes:
+        for k in self.node_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
@@ -414,7 +414,7 @@ class _IGraph(GraphInterface):
         attributes = {} if attributes is None else deepcopy(attributes)
 
         # set default values for attributes that were not passed
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
@@ -456,7 +456,7 @@ class _IGraph(GraphInterface):
         num_edges  = len(edge_list)
 
         # set default values for attributes that were not passed
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
@@ -585,7 +585,7 @@ class _IGraph(GraphInterface):
 
 
 def _get_weights(g, weights):
-    if weights in g.edges_attributes:
+    if weights in g.edge_attributes:
         # existing edge attribute
         return np.array(g._graph.es[weights])
     elif nonstring_container(weights):

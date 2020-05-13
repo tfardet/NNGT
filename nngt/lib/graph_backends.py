@@ -233,7 +233,7 @@ def _set_nngt():
     def adj_mat(g, weight=None, mformat="csr"):
         data = None
 
-        if weight in g.edges_attributes:
+        if weight in g.edge_attributes:
             data = g.get_edge_attributes(name=weight)
         else:
             data = np.ones(g.edge_nb())

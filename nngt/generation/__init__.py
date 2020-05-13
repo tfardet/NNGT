@@ -23,19 +23,13 @@ Functions that generates the underlying connectivity of graphs, as well
 as the connection properties (weight/strength and delay).
 """
 
+from . import connectors as _ct
+from . import graph_connectivity as _gc
+from . import rewiring as _rw
+
+from .connectors import *
 from .graph_connectivity import *
+from .rewiring import *
 
 
-__all__ = [
-	'all_to_all',
-    'connect_neural_groups',
-    'connect_neural_types',
-	'connect_nodes',
-	'distance_rule',
-	'erdos_renyi',
-    'fixed_degree',
-    'gaussian_degree',
-	'random_scale_free',
-	'price_scale_free',
-	'newman_watts'
-]
+__all__ = _gc.__all__ + _rw.__all__ + _ct.__all__
