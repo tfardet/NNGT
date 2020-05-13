@@ -171,7 +171,7 @@ values inside the network nodes' attributes.
 
 * :ref:`intro`
 * :ref:`graph_gen`
-* :ref:`multithread`
+* :ref:`parallelism`
 * :ref:`neural_groups`
 * :ref:`activ_analysis`
 * :ref:`graph-prop`

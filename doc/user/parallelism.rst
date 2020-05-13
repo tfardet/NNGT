@@ -1,8 +1,8 @@
-.. _multithread:
+.. _parallelism:
 
-==============
-Multithreading
-==============
+===========
+Parallelism
+===========
 
 .. warning:
   When using ``graph-tool``, read carefully the `Graph-tool caveat`_ section
@@ -10,6 +10,7 @@ Multithreading
 
 .. contents::
    :local:
+
 
 Principle
 =========
@@ -197,6 +198,36 @@ The file should then be executed using:
     Graph saving is available in parallel in the fully distributed setup
     through the :func:`~nngt.Graph.to_file` and :func:`~nngt.save_to_file`
     functions as in any other configuration.
+
+
+Parallelized generation algorithms
+==================================
+
+Generation of some *directed* graphs are available with parallel
+implementations (see table below).
+No undirected graph generation mechanisms are currently implemented.
+
++--------------------------------------------+-----+-----+
+|  Function                                  | OMP | MPI |
++============================================+=====+=====+
+| :func:`~nngt.generation.all_to_all`        | no  | no  |
++--------------------------------------------+-----+-----+
+| :func:`~nngt.generation.circular`          | no  | no  |
++--------------------------------------------+-----+-----+
+| :func:`~nngt.generation.distance_rule`     | yes | yes |
++--------------------------------------------+-----+-----+
+| :func:`~nngt.generation.erdos_renyi`       | no  | no  |
++--------------------------------------------+-----+-----+
+| :func:`~nngt.generation.fixed_degree`      | yes | yes |
++--------------------------------------------+-----+-----+
+| :func:`~nngt.generation.from_degree_list`  | yes | yes |
++--------------------------------------------+-----+-----+
+| :func:`~nngt.generation.gaussian_degree`   | yes | yes |
++--------------------------------------------+-----+-----+
+| :func:`~nngt.generation.newman_watts`      | no  | no  |
++--------------------------------------------+-----+-----+
+| :func:`~nngt.generation.random_scale_free` | no  | no  |
++--------------------------------------------+-----+-----+
 
 
 **Go to other tutorials:**

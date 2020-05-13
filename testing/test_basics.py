@@ -113,7 +113,10 @@ def test_graph_copy():
     '''
     # partial copy
     # non-spatial graph
-    g = nngt.generation.erdos_renyi(density=0.1, nodes=100)
+    avg = 20
+    std = 4
+
+    g = nngt.generation.gaussian_degree(avg, std, nodes=100)
 
     h = nngt.Graph(copy_graph=g)
 
@@ -126,8 +129,8 @@ def test_graph_copy():
     pop   = nngt.NeuralPop.exc_and_inhib(100)
     shape = nngt.geometry.Shape.rectangle(1000., 1000.)
 
-    g = nngt.generation.erdos_renyi(density=0.1, population=pop, shape=shape,
-                                    name="new_node_spatial")
+    g = nngt.generation.gaussian_degree(avg, std, population=pop, shape=shape,
+                                        name="new_node_spatial")
 
     h = nngt.Graph(copy_graph=g)
 

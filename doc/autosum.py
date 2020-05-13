@@ -40,6 +40,8 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
         Name of the module on which autosummary should be performed.
     autotype : str
         Type of summary (normal for all, 'autofunction' or 'autoclass').
+        Use 'autoall' for both functions and classes.
+        Use 'full' to get both summary and detailed list.
     dtype : str, optional (default: all)
         Type of object that should be kept ('func' or 'class'), depending on
         `autotype`.
@@ -55,30 +57,65 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
 
     # list classes and functions
     str_autosum = ''
+    str_autoref = ('\nDetails\n'
+                   '=======\n\n'
+                   '.. module:: ' + module + '\n\n')
+
     for member in mod_dir:
         if not member.startswith('_') and not member in ignore:
             m = getattr(mod, member)
             keep = 1
+
+            isfunc  = inspect.isfunction(m)
+            isclass = inspect.isclass(m)
+
+            currenttype = None
+
+            if autotype in ("autofunction", "autoclass"):
+                currenttype = autotype
+            elif isfunc:
+                currenttype = 'autofunction'
+            elif isclass:
+                currenttype = 'autoclass'
+
             if dtype == "func":
-                keep *= inspect.isfunction(m)
+                keep *= isfunc
             elif dtype == "class":
-                keep *= inspect.isclass(m)
+                keep *= isclass
             else:
-                keep *= inspect.isfunction(m) + inspect.isclass(m)
+                keep *= isfunc + isclass
+
             if keep:
-                if autotype == "summary":
+                if autotype in ("summary", "full"):
                     str_autosum += '    ' + module + '.' + member + '\n'
                 else:
-                    str_autosum += '\n.. ' + autotype + ':: ' + member + '\n'
+                    str_autosum += '\n.. {}:: {}\n'.format(currenttype, member)
+
+                    if currenttype == 'autoclass':
+                        str_autosum += '    :members:\n'
+
+                if autotype == "full":
+                    str_autoref += '\n.. {}:: {}\n'.format(currenttype, member)
+
+                    if currenttype == 'autoclass':
+                        str_autosum += '    :members:\n'
 
     # write to file
     done = False
 
+    str_final = ''
+
     with open(source, "r") as rst_input:
-        with open(target, "w") as main_rst:
             for line in rst_input:
                 if line.find("@autosum@") != -1 and not done:
-                    main_rst.write(str_autosum)
+                    str_final += str_autosum + "\n"
+
+                    if autotype == "full":
+                        str_final += str_autoref + '\n'
+
                     done = True
                 else:
-                    main_rst.write(line)
+                    str_final += line
+
+    with open(target, "w") as main_rst:
+        main_rst.write(str_final)

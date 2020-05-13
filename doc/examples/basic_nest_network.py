@@ -52,7 +52,8 @@ ng.connect_neural_types(net, 1, -1, "erdos_renyi", density=0.035)
 # exc -> exc (Newmann-Watts)
 prop_nw = {
     "coord_nb": 10,
-    "proba_shortcut": 0.1
+    "proba_shortcut": 0.1,
+    "reciprocity_circular": 1.
 }
 ng.connect_neural_types(net, 1, 1, "newman_watts", **prop_nw)
 

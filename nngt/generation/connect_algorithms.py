@@ -33,6 +33,7 @@ from nngt.lib.connect_tools import *
 
 __all__ = [
     "_all_to_all",
+    "_circular",
     "_distance_rule",
     "_erdos_renyi",
     "_fixed_degree",
@@ -94,6 +95,157 @@ def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
     return edges
 
 
+def _total_degree_list(source_ids, target_ids, degree_list, directed=True,
+                       multigraph=False):
+    ''' Called from _from_degree_list '''
+    degree_list = np.array(degree_list, dtype=int)
+
+    num_source, num_target = len(source_ids), len(target_ids)
+    edges = int(0.5*np.sum(degree_list))
+
+    # check if the sequence is not obviously impossible
+    if not multigraph:
+        assert np.all(degree_list <= (num_target - 1)), \
+            "Some degrees are higher than the number of available targets."
+
+    if np.sum(degree_list) % 2 != 0:
+        raise ValueError("The sum of the degrees must ben even.")
+
+    # check one pop
+    b_one_pop, source_set, target_set = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph, return_sets=True)
+
+    ecurrent = 0
+    edges_hash = set()
+    recip_hash = set()
+
+    ia_edges = np.full((edges, 2), -1, dtype=int)
+
+    rng = nngt._rng
+
+    if b_one_pop:
+        # check that the degree sequence is graphic (i.e. can be realized)
+        sorted_degrees = np.sort(degree_list)[::-1]
+        for k in range(1, num_source + 1):
+            partial_sum = np.sum(sorted_degrees[:k])
+            capped_deg  = np.minimum(sorted_degrees[k:], k)
+
+            if not partial_sum <= k*(k-1) + np.sum(capped_deg):
+                raise ValueError("The degree sequence provided is not "
+                                 "graphical and cannot be realized.")
+
+        num_tests = 0
+
+        while ecurrent < edges and num_tests < MAXTESTS:
+            # initial procedure
+            remaining = max(int(0.5*(edges - ecurrent)), 1)
+
+            data = np.repeat(source_ids, degree_list)
+            sources = rng.choice(data, remaining, replace=False)
+
+            deg_tmp = degree_list.copy()
+            np.add.at(deg_tmp, sources, -1)
+
+            data = np.repeat(source_ids, deg_tmp)
+            targets = rng.choice(data, remaining, replace=False)
+
+            new_edges = np.array((sources, targets), dtype=int).T
+
+            ia_edges, new_etot =  _filter(
+                ia_edges, new_edges, ecurrent, edges_hash, b_one_pop,
+                multigraph, directed=directed, recip_hash=recip_hash)
+
+            np.add.at(degree_list, ia_edges[ecurrent:new_etot].ravel(), -1)
+
+            ecurrent = new_etot
+
+            # trying to correct things if initial procedure did not converge
+            if num_tests >= 0.5*MAXTESTS:
+                nnz_degree = degree_list != 0
+                unfinished = np.where(nnz_degree)[0]
+                num_choice = max(int(0.5*len(unfinished)), 1)
+
+                # pick random edges
+                ids    = set(rng.choice(ecurrent, num_choice, replace=False))
+                chosen = np.array([ia_edges[i] for i in ids], dtype=int)
+
+                # if unfinished is odd then we need to readd a node that has
+                # a remaining degree of 2
+                if len(unfinished) % 2 == 1:
+                    even_deg = np.where((degree_list % 2 == 0)*nnz_degree)[0]
+                    add_node = rng.choice(even_deg, 1)
+                    unfinished = list(unfinished) + list(add_node)
+
+                # try to pair them differently
+                rng.shuffle(unfinished)
+
+                new_edges = np.array(
+                    [(u, v) for u, v in zip(unfinished, chosen.ravel())],
+                    dtype=int)
+
+                # randomize direction if directed
+                if directed:
+                    num_reverse = rng.binomial(2*num_choice, 0.5)
+                    reverse     = rng.choice(2*num_choice, num_reverse,
+                                             replace=False)
+                    new_edges[reverse, 0], new_edges[reverse, 1] = \
+                        new_edges[reverse, 1], new_edges[reverse, 0]
+
+                # check that new_edges are indeed new
+                skip = False
+
+                for e in new_edges:
+                    if e[0] == e[1]:
+                        skip = True
+                        break
+                        
+                    if tuple(e) in edges_hash:
+                        skip = True
+                        break
+
+                    if not directed and tuple(e) in recip_hash:
+                        skip = True
+                        break
+
+                if skip:
+                    num_tests += 1
+                    continue
+
+                # remove old ones from edges_hash
+                edges_hash -= {tuple(e) for e in chosen}
+
+                if not directed:
+                    recip_hash -= {tuple(e) for e in chosen[:, ::-1]}
+
+                # remove chosen edges from existing edges
+                ia_edges[:ecurrent - num_choice] = np.array(
+                    [e for i, e in enumerate(ia_edges[:ecurrent])
+                     if i not in ids])
+
+                ecurrent -= num_choice
+
+                ia_edges, new_etot =  _filter(
+                    ia_edges, new_edges, ecurrent, edges_hash, b_one_pop,
+                    multigraph, directed=directed, recip_hash=recip_hash)
+
+                decr  = list(new_edges.ravel())
+                incr  = list(chosen.ravel())
+
+                np.add.at(degree_list, incr, 1)
+                np.add.at(degree_list, decr, -1)
+                
+                ecurrent += len(new_edges)
+
+            num_tests += 1
+
+        if num_tests == MAXTESTS:
+            raise RuntimeError("Graph generation did not converge.")
+
+        return ia_edges
+
+    raise NotImplementedError("not available if sources != targets.")
+    
+
 def _from_degree_list(source_ids, target_ids, degree_list, degree_type="in",
                       directed=True, multigraph=False, existing_edges=None,
                       **kwargs):
@@ -110,60 +262,81 @@ def _from_degree_list(source_ids, target_ids, degree_list, degree_type="in",
     b_out = (degree_type == "out")
     b_total = (degree_type == "total")
 
-    if b_total:
-        raise NotImplementedError("Total degree is not supported yet.")
+    # directed case for in/out-degree
+    if directed and not b_total:
+        edges = np.sum(degree_list)
 
-    if not directed:
-        raise NotImplementedError("This function is not yet implemented for "
-                                  "undirected graphs.")
+        b_one_pop = _check_num_edges(
+            source_ids, target_ids, edges, directed, multigraph)
 
-    edges = np.sum(degree_list)
-    b_one_pop = _check_num_edges(
-        source_ids, target_ids, edges, directed, multigraph)
+        num_einit  = 0 if existing_edges is None else existing_edges.shape[0]
+        num_etotal = num_einit
 
-    num_etotal = 0 if existing_edges is None else existing_edges.shape[0]
+        ia_edges = np.full((num_einit + edges, 2), -1, dtype=int)
 
-    ia_edges = np.zeros((num_etotal + edges, 2), dtype=int)
+        if num_einit:
+            ia_edges[:num_einit, :] = existing_edges
 
-    if num_etotal:
-        ia_edges[:num_etotal,:] = existing_edges
+        idx = 0 if b_out else 1  # differenciate source / target
 
-    idx = 0 if b_out else 1  # differenciate source / target
+        # keep track of degrees for undirected case
+        target_degrees  = {}
+        current_targets = {u: [] for u in source_ids}
 
-    for i, v in enumerate(source_ids):
-        degree_i = degree_list[i]
-        edges_i, ecurrent, variables_i = np.zeros((degree_i, 2)), 0, []
+        for u, d in zip(source_ids, degree_list):
+            if existing_edges is not None:
+                current_targets[u].extend(
+                    existing_edges[existing_edges[:, idx] == u, 1 - idx])
 
-        if existing_edges is not None:
-            with_v = np.where(ia_edge[:,idx] == v)
-            variables_i.extend(ia_edge[with_v:int(not idx)])
-            ecurrent = len(variables_i)
+            if not multigraph and (num_target - len(current_targets[u]) < d):
+                raise RuntimeError(
+                    ("Node {node} already has a degree {d0} which means that "
+                     "there are not enough targets left to add {d} edges."
+                    ).format(node=u, d0=len(current_targets[u]), target=d))
 
-        rm = np.where(target_ids == v)[0]
-        rm = rm[0] if len(rm) else -1
-        var_tmp = (target_ids if rm == -1 else
-                   np.concatenate((target_ids[:rm], target_ids[rm+1:])))
+            target_degrees[u] = d
 
-        num_var_i = len(var_tmp)
-        ia_edges[num_etotal:num_etotal+degree_i, idx] = v
+        rng = nngt._rng
 
-        while len(variables_i) != degree_i:
-            var = np.random.choice(var_tmp, degree_i-ecurrent,
-                                   replace=multigraph)
-            variables_i.extend(var)
+        # create new connections
+        for v, degree_v in target_degrees.items():
+            existing_v = current_targets[v]
+            targets_v  = [] # where the targets will be stored
 
-            if not multigraph:
-                variables_i = list(set(variables_i))
+            # set targets
+            rm = np.where(target_ids == v)[0]
+            rm = rm[0] if len(rm) else -1
 
-            ecurrent = len(variables_i)
+            tgts = (target_ids if rm == -1 else
+                    np.concatenate((target_ids[:rm], target_ids[rm+1:])))
 
-        ia_edges[num_etotal:num_etotal+ecurrent, 1 - idx] = variables_i
-        num_etotal += ecurrent
+            # select targets
+            while len(targets_v) < degree_v:
+                var = rng.choice(tgts, degree_v - len(targets_v),
+                                 replace=multigraph)
 
-    return ia_edges
+                targets_v.extend(var)
+
+                if not multigraph:
+                    s = set(existing_v + targets_v)
+
+                    targets_v  = list(s.difference(existing_v))
+                    existing_v = list(s)
 
 
-def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
+            ia_edges[num_etotal:num_etotal + degree_v, idx] = v
+            ia_edges[num_etotal:num_etotal + degree_v, 1 - idx] = targets_v
+
+            num_etotal += degree_v
+
+        return ia_edges[num_einit:]
+
+    # unidrected or total-degree cases
+    return _total_degree_list(source_ids, target_ids, degree_list,
+                              directed=directed, multigraph=multigraph)
+
+
+def _fixed_degree(source_ids, target_ids, degree, degree_type="in",
                   reciprocity=-1, directed=True, multigraph=False,
                   existing_edges=None, **kwargs):
     degree = int(degree)
@@ -180,7 +353,7 @@ def _fixed_degree(source_ids, target_ids, degree=-1, degree_type="in",
         existing_edges=existing_edges, **kwargs)
 
 
-def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
+def _gaussian_degree(source_ids, target_ids, avg, std, degree_type="in",
                      directed=True, multigraph=False, existing_edges=None,
                      **kwargs):
     ''' Connect nodes with a Gaussian distribution '''
@@ -193,18 +366,36 @@ def _gaussian_degree(source_ids, target_ids, avg=-1, std=-1, degree_type="in",
 
     num_source = len(source_ids)
 
+    # type of degree
+    degree_type = _set_degree_type(degree_type)
+
+    b_total = (degree_type == "total")
+
     # edges (we set the in, out, or total degree of the source neurons)
-    lst_deg = np.around(
-        np.maximum(np.random.normal(avg, std, num_source), 0.)).astype(int)
+    rng = nngt._rng
+
+    degrees = np.around(
+        np.maximum(rng.normal(avg, std, num_source), 0.)).astype(int)
+
+    if b_total or not directed:
+        # check that the sum of the degrees is even
+        if np.sum(degrees) % 2 != 0:
+            idx = -1
+
+            # correct if its not the case
+            while idx < 0 or degrees[idx] == 0:
+                idx = rng.choice(num_source)
+                if degrees[idx] > 0:
+                    degrees[idx] -= 1
 
     return _from_degree_list(
-        source_ids, target_ids, lst_deg, degree_type=degree_type,
+        source_ids, target_ids, degrees, degree_type=degree_type,
         directed=directed, multigraph=multigraph,
         existing_edges=existing_edges, **kwargs)
 
 
-def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
-                       density=-1, edges=-1, avg_deg=-1, reciprocity=-1,
+def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density=None,
+                       edges=None, avg_deg=None, reciprocity=-1,
                        directed=True, multigraph=False, **kwargs):
     ''' Connect the nodes with power law distributions '''
     source_ids = np.array(source_ids).astype(int)
@@ -215,9 +406,10 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
 
-    ia_edges = np.zeros((edges,2),dtype=int)
+    ia_edges = np.full((edges, 2), -1, dtype=int)
     num_ecurrent, num_test = 0, 0
     edges_hash = set()
+    recip_hash = None if not directed else set()
 
     # lists containing the in/out-degrees for all nodes
     ia_in_deg = np.random.pareto(in_exp,num_target)+1
@@ -249,15 +441,17 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
     np.random.shuffle(ia_targets)
     ia_edges_tmp = np.array([ia_sources,ia_targets]).T
     ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                     edges_hash, b_one_pop, multigraph)
+                                     edges_hash, b_one_pop, multigraph,
+                                     directed=directed, recip_hash=recip_hash)
 
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         num_desired = pre_recip_edges-num_ecurrent
         ia_sources_tmp = np.random.choice(ia_sources, num_desired)
         ia_targets_tmp = np.random.choice(ia_targets, num_desired)
         ia_edges_tmp = np.array([ia_sources_tmp, ia_targets_tmp]).T
-        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         edges_hash, b_one_pop, multigraph)
+        ia_edges, num_ecurrent = _filter(
+            ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
+            multigraph, directed=directed, recip_hash=recip_hash)
         num_test += 1
 
     if directed and reciprocity > 0:
@@ -275,8 +469,9 @@ def _random_scale_free(source_ids, target_ids, in_exp=-1, out_exp=-1,
     return ia_edges
 
 
-def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
-                 reciprocity=-1, directed=True, multigraph=False, **kwargs):
+def _erdos_renyi(source_ids, target_ids, density=None, edges=None,
+                 avg_deg=None, reciprocity=-1, directed=True, multigraph=False,
+                 **kwargs):
     '''
     Returns a numpy array of dimension (2,edges) that describes the edge list
     of an Erdos-Renyi graph.
@@ -291,9 +486,10 @@ def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
 
-    ia_edges = np.zeros((edges,2), dtype=int)
+    ia_edges = np.full((edges, 2), -1, dtype=int)
     num_test, num_ecurrent = 0, 0 # number of tests and current number of edges
     edges_hash = set()
+    recip_hash = None if directed else set()
 
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         ia_sources = source_ids[randint(0, num_source,
@@ -301,8 +497,9 @@ def _erdos_renyi(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
         ia_targets = target_ids[randint(0, num_target,
                                         pre_recip_edges-num_ecurrent)]
         ia_edges_tmp = np.array([ia_sources,ia_targets]).T
-        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         edges_hash, b_one_pop, multigraph)
+        ia_edges, num_ecurrent = _filter(
+            ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
+            multigraph, directed=directed, recip_hash=recip_hash)
         num_test += 1
 
     if directed and reciprocity > 0:
@@ -324,55 +521,154 @@ def _price_scale_free():
     pass
 
 
-def _circular_graph(node_ids, coord_nb):
+def _circular(source_ids, target_ids, coord_nb, reciprocity, directed):
     '''
-    Connect every node `i` to its `coord_nb` nearest neighbours on a circle
+    Circular graph.
+
+    Note
+    ----
+    `source_ids` and `target_ids` are only there for compatibility with the
+    connect functions, this algorithm requires a single population.
+    This check (if necessary) is performed above.
     '''
+    if reciprocity == 1 or not directed:
+        return _circular_full(source_ids, coord_nb, directed)
+    elif directed:
+        return _circular_directed_recip(source_ids, coord_nb, reciprocity)
+
+    raise ValueError("For undirected graphs, reciprocity is 1 by definition.")
+
+
+def _circular_directed_recip(node_ids, coord_nb, reciprocity):
+    ''' Circular graph with given reciprocity '''
+    nodes    = len(node_ids)
+    edges    = int(0.5*nodes*coord_nb*(1 + reciprocity))
+    init_deg = int(0.5*coord_nb)
+
+    # sources and targets
+    sources = np.full(edges, -1, dtype=int)
+    targets = np.full(edges, -1, dtype=int)
+
+    # set non-reciprocal edges using the full undirected circular graph
+    init_edges = _circular_full(node_ids, coord_nb, False)
+    num_init   = len(init_edges)
+
+    sources[:num_init] = init_edges[:, 0]
+    targets[:num_init] = init_edges[:, 1]
+
+    # then we randomize the direction of these E_init edges
+    # this is equivalent to reversing E edges with E from Binom(E_init, 0.5)
+    rng = nngt._rng
+    E   = rng.binomial(num_init, 0.5)
+
+    chosen = rng.choice(num_init, E, replace=False)
+
+    sources[chosen], targets[chosen] = targets[chosen], sources[chosen]
+
+    # set reciprocal edges
+    num_recip = edges - nodes*init_deg
+
+    if num_recip:
+        chosen = rng.choice(
+            [i for i in range(nodes*init_deg)], num_recip, replace=False)
+
+        sources[-num_recip:] = targets[chosen]
+        targets[-num_recip:] = sources[chosen]
+
+    return np.array([sources, targets], dtype=int).T
+
+
+def _circular_full(node_ids, coord_nb, directed):
+    ''' Create a circular graph with all possible edges '''
     nodes = len(node_ids)
-    ia_sources, ia_targets = np.zeros(nodes*coord_nb), np.zeros(nodes*coord_nb)
-    ia_sources = np.repeat(np.arange(0,nodes).astype(int),coord_nb)
-    dist = coord_nb/2.
-    neg_dist = -int(np.floor(dist))
-    pos_dist = 1-neg_dist if dist-np.floor(dist) < EPS else 2-neg_dist
-    ia_base = np.concatenate((np.arange(neg_dist,0),np.arange(1,pos_dist)))
-    ia_targets = np.tile(ia_base, nodes)+ia_sources
-    ia_targets[ia_targets<-0.5] += nodes
-    ia_targets[ia_targets>nodes-0.5] -= nodes
-    return np.array([node_ids[ia_sources], node_ids[ia_targets]]).astype(int).T
+
+    dist = int(0.5*coord_nb)
+
+    out_deg = coord_nb if directed else dist
+
+    # create the graph using a continuous range from zero
+    sources = np.repeat(np.arange(0, nodes).astype(int), out_deg)
+
+    # prepare conversion dict if nodes do not start from zero or are not
+    # contiguous. Initial generation assumes continuous range from zero
+    convertor = {i: n for i, n in enumerate(node_ids)}
+
+    # create the connection mask
+    start = -dist if directed else 0
+    stop  = dist + 1
+
+    conn_mask = np.concatenate((np.arange(start, 0), np.arange(1, stop)))
+
+    # make the targets and put them back into [0, nodes - 1]
+    targets   = np.tile(conn_mask, nodes) + sources
+
+    targets[targets < 0] += nodes
+    targets[targets >= nodes] -= nodes
+
+    # convert back to ids
+    sources = np.array([convertor[i] for i in sources])
+    targets = np.array([convertor[i] for i in targets])
+
+    return np.array((sources, targets), dtype=int).T
 
 
-def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
-                  directed=True, multigraph=False, **kwargs):
+def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
+                  reciprocity_circular, edges=None, directed=True,
+                  multigraph=False, **kwargs):
     '''
     Returns a numpy array of dimension (num_edges,2) that describes the edge
-    list of a Newmaan-Watts graph.
+    list of a Newman-Watts graph.
+
+    Note
+    ----
+    `source_ids` and `target_ids` are only there for compatibility with the
+    connect functions, this algorithm requires a single population.
+    This check (if necessary) is performed above.
     '''
-    node_ids = np.array(source_ids, dtype=int)
+    nodes      = len(source_ids)
+    source_ids = np.array(source_ids, dtype=int)
     target_ids = np.array(target_ids, dtype=int)
-    nodes = len(node_ids)
-    circular_edges = nodes*coord_nb
-    num_edges = int(circular_edges*(1+proba_shortcut))
-    num_edges, circular_edges = (num_edges, circular_edges if directed
-                             else (int(num_edges/2), int(circular_edges/2)))
+
+    # check the number of edges
+    direct_factor  = 0.5*(1 + directed)
+    recip_factor   = 0.5*(1 + reciprocity_circular)
+    circular_edges = int(nodes * coord_nb * recip_factor * direct_factor)
+
+    if edges is None:
+        rng   = nngt._rng
+        edges = circular_edges + rng.binomial(circular_edges, proba_shortcut)
 
     b_one_pop = _check_num_edges(
-        source_ids, target_ids, num_edges, directed, multigraph)
+        source_ids, target_ids, edges, directed, multigraph)
+
     if not b_one_pop:
         raise InvalidArgument("This graph model can only be used if source "
                               "and target populations are the same.")
+
     # generate the initial circular graph
-    ia_edges = np.zeros((num_edges,2),dtype=int)
-    ia_edges[:circular_edges,:] = _circular_graph(node_ids, coord_nb)
+    ia_edges = np.full((edges, 2), -1, dtype=int)
+
+    ia_edges[:circular_edges, :] = _circular(source_ids, source_ids, coord_nb,
+                                             reciprocity_circular, directed)
+
     # add the random connections
     num_test, num_ecurrent = 0, circular_edges
-    edges_hash = set()
+    edges_hash = set(tuple(e) for e in ia_edges[:circular_edges])
+    recip_hash = None
 
-    while num_ecurrent != num_edges and num_test < MAXTESTS:
-        ia_sources = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
-        ia_targets = node_ids[randint(0, nodes, num_edges-num_ecurrent)]
-        ia_edges_tmp = np.array([ia_sources,ia_targets]).T
-        ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
-                                         edges_hash, b_one_pop, multigraph)
+    if not directed:
+        recip_hash = set((tuple(e) for e in ia_edges[:circular_edges, ::-1]))
+
+    rng = nngt._rng
+
+    while num_ecurrent != edges and num_test < MAXTESTS:
+        todo   = edges - num_ecurrent
+        chosen = rng.choice(source_ids, int(2*todo))
+
+        ia_edges, num_ecurrent = _filter(
+            ia_edges, chosen.reshape(todo, 2), num_ecurrent, edges_hash,
+            b_one_pop, multigraph, directed=directed, recip_hash=recip_hash)
+
         num_test += 1
 
     ia_edges = _no_self_loops(ia_edges)
@@ -380,26 +676,32 @@ def _newman_watts(source_ids, target_ids, coord_nb=-1, proba_shortcut=-1,
     return ia_edges
 
 
-def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
-                   scale=-1, rule="exp", max_proba=-1, shape=None,
-                   positions=None, directed=True, multigraph=False,
+def _distance_rule(source_ids, target_ids, density=None, edges=None,
+                   avg_deg=None, scale=-1, rule="exp", max_proba=-1,
+                   shape=None, positions=None, directed=True, multigraph=False,
                    distance=None, **kwargs):
     '''
     Returns a distance-rule graph
     '''
     distance = [] if distance is None else distance
     edges_hash = set()
+    recip_hash = None if directed else set()
+
     # compute the required values
     source_ids = np.array(source_ids).astype(int)
     target_ids = np.array(target_ids).astype(int)
+
     num_source, num_target = len(source_ids), len(target_ids)
     num_edges = 0
+
     if max_proba <= 0:
         num_edges, _ = _compute_connections(
             num_source, num_target, density, edges, avg_deg, directed,
             reciprocity=-1)
+
     b_one_pop = _check_num_edges(
         source_ids, target_ids, num_edges, directed, multigraph)
+
     num_neurons = len(set(np.concatenate((source_ids, target_ids))))
 
     # for each node, check the neighbours that are in an area where
@@ -407,6 +709,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     # Get the sources and associated targets for each MPI process
     list_targets = []
     lim = scale if rule == 'lin' else 10*scale
+
     for s in source_ids:
         keep  = (np.abs(positions[0, target_ids] - positions[0, s]) < lim)
         keep *= (np.abs(positions[1, target_ids] - positions[1, s]) < lim)
@@ -436,7 +739,7 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
     num_ecurrent = 0
 
     if max_proba <= 0:
-        ia_edges = np.zeros((num_edges, 2), dtype=int)
+        ia_edges = np.full((num_edges, 2), -1, dtype=int)
         while num_ecurrent < num_edges:
             trials = []
             for tgt_list in list_targets:
@@ -483,7 +786,8 @@ def _distance_rule(source_ids, target_ids, density=-1, edges=-1, avg_deg=-1,
 
             ia_edges, num_ecurrent = _filter(
                 ia_edges, edges_tmp, num_ecurrent, edges_hash, b_one_pop,
-                multigraph, distance=distance, dist_tmp=dist)
+                multigraph, directed=directed, recip_hash=recip_hash,
+                distance=distance, dist_tmp=dist)
     else:
         sources, targets = [], []
         for i, s in enumerate(source_ids):

@@ -892,3 +892,6 @@ if nngt._config["backend"] == "igraph":
 
 if nngt._config["backend"] == "graph-tool":
     from .gt_functions import *
+
+if nngt._config["backend"] == "nngt":
+    from .nngt_functions import *

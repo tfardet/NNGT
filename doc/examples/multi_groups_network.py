@@ -56,7 +56,8 @@ ng.connect_groups(net, "left", "right", "erdos_renyi", **prop_er1)
 # intra-groups (Newman-Watts)
 prop_nw = {
     "coord_nb": 20,
-    "proba_shortcut": 0.1
+    "proba_shortcut": 0.1,
+    "reciprocity_circular": 1.
 }
 
 ng.connect_groups(net, "left", "left", "newman_watts", **prop_nw)

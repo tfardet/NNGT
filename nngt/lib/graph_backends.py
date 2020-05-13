@@ -119,9 +119,6 @@ def use_backend(backend, reloading=True, silent=False):
         if nngt._config['with_plot']:
             reload(sys.modules["nngt"].plot)
 
-        if nngt._config['with_nest']:
-            reload(sys.modules["nngt"].simulation)
-
         reload(sys.modules["nngt"].lib)
         reload(sys.modules["nngt"].core)  # reload first for Graph inheritance
         reload(sys.modules["nngt"].core.graph)

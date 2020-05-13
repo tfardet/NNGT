@@ -197,7 +197,7 @@ Then add additional metagroups for cell types:
 
 * :ref:`intro`
 * :ref:`graph_gen`
-* :ref:`multithread`
+* :ref:`parallelism`
 * :ref:`nest_int`
 * :ref:`activ_analysis`
 * :ref:`graph-prop`

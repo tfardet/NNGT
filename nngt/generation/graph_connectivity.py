@@ -352,8 +352,6 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     """
     Generate a random graph with constant in- or out-degree.
 
-    @todo: adapt it for undirected graphs!
-
     Parameters
     ----------
     avg : float
@@ -434,10 +432,10 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 # Erdos-Renyi #
 # ----------- #
 
-def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
-                weighted=True, directed=True, multigraph=False, name="ER",
-                shape=None, positions=None, population=None, from_graph=None,
-                **kwargs):
+def erdos_renyi(density=None, nodes=0, edges=None, avg_deg=None,
+                reciprocity=-1., weighted=True, directed=True,
+                multigraph=False, name="ER", shape=None, positions=None,
+                population=None, from_graph=None, **kwargs):
     """
     Generate a random graph as defined by Erdos and Renyi but with a
     reciprocity that can be chosen.
@@ -518,11 +516,11 @@ def erdos_renyi(density=-1., nodes=0, edges=-1, avg_deg=-1., reciprocity=-1.,
 # Scale-free models #
 # ----------------- #
 
-def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
-                      avg_deg=-1, reciprocity=0., weighted=True, directed=True,
-                      multigraph=False, name="RandomSF", shape=None,
-                      positions=None, population=None, from_graph=None,
-                      **kwargs):
+def random_scale_free(in_exp, out_exp, nodes=0, density=None, edges=None,
+                      avg_deg=None, reciprocity=0., weighted=True,
+                      directed=True, multigraph=False, name="RandomSF",
+                      shape=None, positions=None, population=None,
+                      from_graph=None, **kwargs):
     """
     Generate a free-scale graph of given reciprocity and otherwise
     devoid of correlations.
@@ -535,11 +533,11 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
     out_exp : float
         Absolute value of the out-degree exponent :math:`\gamma_o`, such that
         :math:`p(k_o) \propto k_o^{-\gamma_o}`
-    nodes : int, optional (default: None)
+    nodes : int, optional (default: 0)
         The number of nodes in the graph.
-    density: double, optional (default: 0.1)
+    density: double, optional
         Structural density given by `edges / (nodes*nodes)`.
-    edges : int (optional)
+    edges : int optional
         The number of edges between the nodes
     avg_deg : double, optional
         Average degree of the neurons given by `edges / nodes`.
@@ -583,15 +581,18 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=-1, edges=-1,
         nodes = population.size if population is not None else nodes
         graph_rsf = nngt.Graph(
             name=name,nodes=nodes,directed=directed,**kwargs)
+
     _set_options(graph_rsf, population, shape, positions)
+
     # add edges
-    ia_edges = None
     if nodes > 1:
         ids = range(nodes)
         ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
                           edges, avg_deg, reciprocity, directed, multigraph)
         graph_rsf.new_edges(ia_edges, check_edges=False)
+
     graph_rsf._graph_type = "random_scale_free"
+
     return graph_rsf
 
 
@@ -685,6 +686,8 @@ def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
     proba_shortcut : double
         Probability of adding a new random (shortcut) edge for each existing
         edge on the initial lattice.
+    reciprocity_circular : double, optional (default: 1.)
+        Proportion of reciprocal edges in the initial circular graph.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     density: double, optional (default: 0.1)
@@ -733,12 +736,7 @@ def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
     # add edges
     if nodes > 1:
         ids   = range(nodes)
-        edges = None
-
-        if reciprocity == 1 or not directed:
-            edges = _circular_full(ids, coord_nb, directed)
-        elif directed:
-            edges = _circular_directed_recip(ids, coord_nb, reciprocity)
+        edges = _circular(ids, ids, coord_nb, reciprocity, directed)
 
         graph_circ.new_edges(edges, check_edges=False)
 
@@ -751,10 +749,10 @@ def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
 # Small-world models #
 # ------------------ #
 
-def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
-                 weighted=True, directed=True, multigraph=False, name="NW",
-                 shape=None, positions=None, population=None, from_graph=None,
-                 **kwargs):
+def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
+                 nodes=0, edges=None, weighted=True, directed=True,
+                 multigraph=False, name="NW", shape=None, positions=None,
+                 population=None, from_graph=None, **kwargs):
     """
     Generate a (potentially small-world) graph using the Newman-Watts
     algorithm.
@@ -764,9 +762,11 @@ def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
     coord_nb : int
         The number of neighbours for each node on the initial topological
         lattice (must be even).
-    proba_shortcut : double
+    proba_shortcut : double, optional
         Probability of adding a new random (shortcut) edge for each existing
         edge on the initial lattice.
+        If `edges` is provided, then will be computed automatically as
+        ``edges / (coord_nb * nodes * (1 + reciprocity_circular) / 2)``
     reciprocity_circular : double, optional (default: 1.)
         Proportion of reciprocal edges in the initial circular graph.
     nodes : int, optional (default: None)
@@ -821,8 +821,11 @@ def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
     # add edges
     if nodes > 1:
         ids = range(nodes)
+
         ia_edges = _newman_watts(
-            ids, coord_nb, proba_shortcut, reciprocity_circular, directed)
+            ids, ids, coord_nb, proba_shortcut, reciprocity_circular,
+             edges=edges, directed=directed)
+
         graph_nw.new_edges(ia_edges, check_edges=False)
 
     graph_nw._graph_type = "newman_watts"
@@ -836,10 +839,10 @@ def newman_watts(coord_nb, proba_shortcut, reciprocity_circular=1., nodes=0,
 
 @mpi_random
 def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
-                  max_proba=-1., nodes=0, density=-1., edges=-1, avg_deg=-1.,
-                  unit='um', weighted=True, directed=True, multigraph=False,
-                  name="DR", positions=None, population=None, from_graph=None,
-                  **kwargs):
+                  max_proba=-1., nodes=0, density=None, edges=None,
+                  avg_deg=None, unit='um', weighted=True, directed=True,
+                  multigraph=False, name="DR", positions=None, population=None,
+                  from_graph=None, **kwargs):
     """
     Create a graph using a 2D distance rule to create the connection between
     neurons. Available rules are linear and exponential.
@@ -940,9 +943,11 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
 
 _di_generator = {
     "all_to_all": all_to_all,
+    "circular": circular,
     "distance_rule": distance_rule,
     "erdos_renyi": erdos_renyi,
     "fixed_degree": fixed_degree,
+    "from_degree_list": from_degree_list,
     "gaussian_degree": gaussian_degree,
     "newman_watts": newman_watts,
     "price_scale_free": price_scale_free,
@@ -981,9 +986,11 @@ def generate(di_instructions, **kwargs):
 
 _di_gen_edges = {
     "all_to_all": _all_to_all,
+    "circular": _circular,
     "distance_rule": _distance_rule,
     "erdos_renyi": _erdos_renyi,
     "fixed_degree": _fixed_degree,
+    "from_degree_list": _from_degree_list,
     "gaussian_degree": _gaussian_degree,
     "newman_watts": _newman_watts,
     "price_scale_free": _price_scale_free,
@@ -991,16 +998,14 @@ _di_gen_edges = {
 }
 
 
-_one_pop_models = ("newman_watts",)
+_one_pop_models = {"newman_watts", "circular"}
 
 
-def connect_nodes(network, sources, targets, graph_model, density=-1.,
-                  edges=-1, avg_deg=-1., unit='um', weighted=True,
+def connect_nodes(network, sources, targets, graph_model, density=None,
+                  edges=None, avg_deg=None, unit='um', weighted=True,
                   directed=True, multigraph=False, **kwargs):
     '''
     Function to connect nodes with a given graph model.
-
-    .. versionadded:: 1.0
 
     Parameters
     ----------
@@ -1027,6 +1032,10 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
         kwargs['positions'] = network.get_positions().astype(np.float32).T
     if network.is_spatial() and 'shape' not in kwargs:
         kwargs['shape'] = network.shape
+
+    if graph_model in _one_pop_models:
+        assert np.array_equal(sources, targets), \
+            "'" + graph_model + "' can only work on a single set of nodes."
 
     sources  = np.array(sources, dtype=np.uint)
     targets  = np.array(targets, dtype=np.uint)
@@ -1058,21 +1067,12 @@ def connect_nodes(network, sources, targets, graph_model, density=-1.,
 
 
 def connect_neural_types(network, source_type, target_type, graph_model,
-                         density=-1., edges=-1, avg_deg=-1., unit='um',
+                         density=None, edges=None, avg_deg=None, unit='um',
                          weighted=True, directed=True, multigraph=False,
                          **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
-
-    .. versionchanged:: 0.8
-        Model-specific arguments are now provided as keywords and not through a
-        dict.
-        It is now possible to provide different weights and delays at each
-        call.
-
-    @todo
-        make the modifications for only a set of edges
 
     Parameters
     ----------
@@ -1138,7 +1138,7 @@ def connect_neural_groups(*args, **kwargs):
 
 
 def connect_groups(network, source_groups, target_groups, graph_model,
-                   density=-1., edges=-1, avg_deg=-1., unit='um',
+                   density=None, edges=None, avg_deg=None, unit='um',
                    weighted=True, directed=True, multigraph=False, **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
@@ -1147,14 +1147,6 @@ def connect_groups(network, source_groups, target_groups, graph_model,
     .. versionchanged:: 1.2.0
         Allow to use :class:`NeuralGroup` as `source_groups` and
         `target_groups` arguments.
-
-    .. versionchanged:: 0.8
-        Model-specific arguments are now provided as keywords and not through a
-        dict. It is now possible to provide different weights and delays at
-        each call.
-
-    @todo
-        make the modifications for only a set of edges
 
     Parameters
     ----------

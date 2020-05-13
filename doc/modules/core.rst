@@ -2,7 +2,9 @@
 Core module
 ===========
 
+.. currentmodule:: nngt.core
+
 .. automodule:: nngt.core
-	:special-members:
-	:show-inheritance:
+    :show-inheritance:
+    :inherited-members:
 	:exclude-members: __dict__,__weakref__,__module__

@@ -2,7 +2,10 @@
 Plot module
 ===========
 
-Functions for plotting graphs and graph properties.
+.. currentmodule:: nngt.plot
+
+.. automodule:: nngt.plot
+    :no-members:
 
 
 Content
@@ -11,11 +14,3 @@ Content
 .. autosummary::
 
 @autosum@
-
-
-Details
-=======
-
-.. automodule:: nngt.plot
-    :show-inheritance:
-    :inherited-members:

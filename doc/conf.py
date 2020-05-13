@@ -95,23 +95,33 @@ if on_rtd:
             return (object,)
 
     mock_objects_modules = [
-        "nest", "shapely", "shapely.affinity", "shapely.geometry", "dxfgrabber"
+        "shapely", "shapely.affinity", "shapely.geometry", "dxfgrabber"
     ]
 
     for mod in mock_objects_modules:
         sys.modules[mod] = mock_object
 
+    sys.modules["nest"] = Mock()
+
 
 # -- Setup all autosum then start --------------------------------------------
+
+# import nngt
+import nngt
+
+# import simulation explicitely to avoid import conflict with lazy load
+import nngt.simulation
 
 from autosum import gen_autosum
 
 # find all *.in files
 
 inputs = []
+skip   = ('main-functions.rst.in', 'side-classes.rst.in', 'geometry.rst.in')
+
 for root, dirnames, filenames in os.walk('.'):
     for filename in fnmatch.filter(filenames, '*.in'):
-        if filename not in ('main-functions.rst.in', 'side-classes.rst.in'):
+        if filename not in skip:
             inputs.append(os.path.join(root, filename))
 
 # list of classes to ignore for each module
@@ -131,28 +141,34 @@ for f in inputs:
     module = target[last_slash + 1:last_dot]
     if module != 'nngt':
         module = 'nngt.' + module
-    gen_autosum(f, target, module, 'summary', ignore=ignore.get(module, None))
+    gen_autosum(f, target, module, 'full', ignore=ignore.get(module, None))
 
 # Add nngt (functions)
 source = current_directory + "/modules/nngt/main-functions.rst.in"
-tmp    = current_directory + "/modules/nngt/main-functions.rst.tmp"
 target = current_directory + "/modules/nngt/main-functions.rst"
-gen_autosum(source, tmp, 'nngt', 'summary', dtype="func")
-gen_autosum(tmp, target, 'nngt', 'autofunction', dtype="func")
+gen_autosum(source, target, 'nngt', 'summary', dtype="func")
+gen_autosum(target, target, 'nngt', 'autofunction', dtype="func")
 
 # nngt (side classes)
 source = current_directory + "/modules/nngt/side-classes.rst.in"
-tmp    = current_directory + "/modules/nngt/side-classes.rst.tmp"
 target = current_directory + "/modules/nngt/side-classes.rst"
-gen_autosum(source, tmp, 'nngt', 'summary', dtype="class",
+
+gen_autosum(source, target, 'nngt', 'summary', dtype="class",
             ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
-gen_autosum(tmp, target, 'nngt', 'autoclass', dtype="class",
+
+gen_autosum(target, target, 'nngt', 'autoclass', dtype="class",
             ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
+
+# geometry
+source = current_directory + "/modules/geometry.rst.in"
+target = current_directory + "/modules/geometry.rst"
+gen_autosum(source, target, 'nngt.geometry', 'summary', dtype="all")
+
+
 
 
 # -- NNGT setup -----------------------------------------------------------
 
-import nngt
 from nngt import __version__ as nngt_version
 
 # set database
