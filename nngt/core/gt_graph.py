@@ -159,10 +159,14 @@ class _GtEProperty(BaseProperty):
 
         if isinstance(name, slice):
             eprop = {}
-            for k in self.keys():
+            for k in self:
                 eprop[k] = g.edge_properties[k].a[name]
+
             return eprop
         elif nonstring_container(name):
+            if len(name) == 0:
+                return {k: [] for k in self}
+
             eprop = {}
             if nonstring_container(name[0]):
                 eids = [g.edge_index[Edge(*e)] for e in name]

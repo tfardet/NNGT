@@ -104,12 +104,24 @@ def test_random_rewire():
             assert np.array_equal(my_eattr,
                                   (weights - (num_edges + 1)).astype(int))
         else:
+            node_type = ("source_node" if edge_constraint == "preserve_out"
+                         else "target_node")
+
             for i in range(num_nodes):
-                pass
-    # 
+                kwarg = {node_type: i}
+
+                old_edges = g.get_edges(**kwarg)
+                new_edges = r2.get_edges(**kwarg)
+
+                for name in g.edge_attributes:
+                    old_attr = g.get_edge_attributes(old_edges, name)
+                    new_attr = r2.get_edge_attributes(new_edges, name)
+
+                    assert set(old_attr) == set(new_attr)
 
 
 if __name__ == "__main__":
-    nngt.set_config("multithreading", False)
+    # ~ nngt.set_config("multithreading", False)
+    # ~ nngt.use_backend("nngt")
     if not nngt.get_config("mpi"):
         test_random_rewire()
