@@ -356,11 +356,12 @@ class _GtGraph(GraphInterface):
         '''
         g = self._graph
 
-        if is_integer(edge[0]):
-            return g.edge_index[edge]
-        elif nonstring_container(edge[0]):
-            idx = [g.edge_index[e] for e in edge]
-            return idx
+        if nonstring_container(edge) and len(edge):
+            if is_integer(edge[0]):
+                return g.edge_index[edge]
+            elif nonstring_container(edge[0]):
+                idx = [g.edge_index[g.edge(*e)] for e in edge]
+                return idx
 
         raise AttributeError("`edge` must be either a 2-tuple of ints or "
                              "an array of 2-tuples of ints.")
