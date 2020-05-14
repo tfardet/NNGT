@@ -120,8 +120,26 @@ def test_random_rewire():
                     assert set(old_attr) == set(new_attr)
 
 
+def test_lattice_rewire():
+    ''' Check lattice rewiring method.'''
+    num_nodes = 10
+    degree    = 4
+
+    g = ng.fixed_degree(degree, "total", nodes=num_nodes)
+
+    l1 = ng.lattice_rewire(g)
+
+    print(g.get_degrees())
+    print(l1.get_degrees())
+    print(g.get_degrees("in"))
+    print(l1.get_degrees("in"))
+    print(g.get_degrees("out"))
+    print(l1.get_degrees("out"))
+
+
 if __name__ == "__main__":
     # ~ nngt.set_config("multithreading", False)
     # ~ nngt.use_backend("nngt")
     if not nngt.get_config("mpi"):
-        test_random_rewire()
+        # ~ test_random_rewire()
+        test_lattice_rewire()

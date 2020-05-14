@@ -653,9 +653,10 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
 # Circular graph #
 # -------------- #
 
-def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
-             directed=True, multigraph=False, name="Circular", shape=None,
-             positions=None, population=None, from_graph=None, **kwargs):
+def circular(coord_nb, reciprocity=1., reciprocity_choice="random", nodes=0,
+             weighted=True, directed=True, multigraph=False, name="Circular",
+             shape=None, positions=None, population=None, from_graph=None,
+             **kwargs):
     '''
     Generate a circular graph.
 
@@ -675,11 +676,11 @@ def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
         lattice (must be even).
     reciprocity : double, optional (default: 1.)
         Proportion of reciprocal edges in the graph.
-    proba_shortcut : double
-        Probability of adding a new random (shortcut) edge for each existing
-        edge on the initial lattice.
-    reciprocity_circular : double, optional (default: 1.)
-        Proportion of reciprocal edges in the initial circular graph.
+    reciprocity_choice : str, optional (default: "random")
+        How reciprocal edges should be chosen, which can be either "random" or
+        "closest". If the latter option is used, then connections
+        between first neighbours are rendered reciprocal first, then between
+        second neighbours, etc.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     density: double, optional (default: 0.1)
@@ -728,7 +729,8 @@ def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
     # add edges
     if nodes > 1:
         ids   = range(nodes)
-        edges = _circular(ids, ids, coord_nb, reciprocity, directed)
+        edges = _circular(ids, ids, coord_nb, reciprocity, directed,
+                          reciprocity_choice=reciprocity_choice)
 
         graph_circ.new_edges(edges, check_edges=False)
 
@@ -742,9 +744,10 @@ def circular(coord_nb, reciprocity=1., defaults=None, nodes=0, weighted=True,
 # ------------------ #
 
 def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
-                 nodes=0, edges=None, weighted=True, directed=True,
-                 multigraph=False, name="NW", shape=None, positions=None,
-                 population=None, from_graph=None, **kwargs):
+                 reciprocity_choice_circular="random", nodes=0, edges=None,
+                 weighted=True, directed=True, multigraph=False, name="NW",
+                 shape=None, positions=None, population=None, from_graph=None,
+                 **kwargs):
     """
     Generate a (potentially small-world) graph using the Newman-Watts
     algorithm.
@@ -761,6 +764,11 @@ def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
         ``edges / (coord_nb * nodes * (1 + reciprocity_circular) / 2)``
     reciprocity_circular : double, optional (default: 1.)
         Proportion of reciprocal edges in the initial circular graph.
+    reciprocity_choice_circular : str, optional (default: "random")
+        How reciprocal edges should be chosen in the initial circular graph.
+        This can be either "random" or "closest". If the latter option
+        is used, then connections between first neighbours are rendered
+        reciprocal first, then between second neighbours, etc.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     density: double, optional (default: 0.1)

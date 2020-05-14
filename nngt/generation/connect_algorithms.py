@@ -521,7 +521,8 @@ def _price_scale_free():
     pass
 
 
-def _circular(source_ids, target_ids, coord_nb, reciprocity, directed):
+def _circular(source_ids, target_ids, coord_nb, reciprocity, directed,
+              reciprocity_choice="random"):
     '''
     Circular graph.
 
@@ -531,15 +532,23 @@ def _circular(source_ids, target_ids, coord_nb, reciprocity, directed):
     connect functions, this algorithm requires a single population.
     This check (if necessary) is performed above.
     '''
+    if reciprocity_choice not in ("random", "closest", "closest-ordered"):
+        # note: only "random" and "closest" are publicly advertised,
+        # "closest-ordered" is only for internal use in lattice_rewire.
+        raise ValueError("Valid entries for `reciprocity_choice` are "
+                         "'random' and 'closest'.")
+
     if reciprocity == 1 or not directed:
         return _circular_full(source_ids, coord_nb, directed)
     elif directed:
-        return _circular_directed_recip(source_ids, coord_nb, reciprocity)
+        return _circular_directed_recip(source_ids, coord_nb, reciprocity,
+                                        reciprocity_choice=reciprocity_choice)
 
     raise ValueError("For undirected graphs, reciprocity is 1 by definition.")
 
 
-def _circular_directed_recip(node_ids, coord_nb, reciprocity):
+def _circular_directed_recip(node_ids, coord_nb, reciprocity,
+                             reciprocity_choice="random"):
     ''' Circular graph with given reciprocity '''
     nodes    = len(node_ids)
     edges    = int(0.5*nodes*coord_nb*(1 + reciprocity))
@@ -569,11 +578,45 @@ def _circular_directed_recip(node_ids, coord_nb, reciprocity):
     num_recip = edges - nodes*init_deg
 
     if num_recip:
-        chosen = rng.choice(
-            [i for i in range(nodes*init_deg)], num_recip, replace=False)
+        if reciprocity_choice == "random":
+            chosen = rng.choice(nodes*init_deg, size=num_recip, replace=False)
 
-        sources[-num_recip:] = targets[chosen]
-        targets[-num_recip:] = sources[chosen]
+            sources[-num_recip:] = targets[chosen]
+            targets[-num_recip:] = sources[chosen]
+        elif reciprocity_choice == "closest":
+            # closest connections are the first ones, so if
+            # num_recip = k*num_nodes + l then we reverse all first k*num_nodes
+            # then we randomly chose the remaining l
+            remainder = num_recip % num_nodes
+            rounds    = num_recip - remainder
+            
+            sources[-num_recip:-num_recip + rounds] = targets[:rounds]
+            targets[-num_recip:-num_recip + rounds] = sources[:rounds]
+
+            # chose randomly the remaining connections
+            stop = min(rounds + num_nodes, edges)
+            chosen = rng.choice([i for i in range(rounds, stop)],
+                                size=remainder, replace=False)
+
+            sources[-num_recip + rounds:] = targets[chosen]
+            targets[-num_recip + rounds:] = sources[chosen]
+        else:
+            # deterministic (ordered) closest connections, only for the
+            # lattice rewiring (see function _lattice_shuffle_eattr)
+            # closest connections are the first ones
+            remainder = num_recip % num_nodes
+            rounds    = num_recip - remainder
+
+            sources[-num_recip:-num_recip + rounds] = targets[:rounds]
+            targets[-num_recip:-num_recip + rounds] = sources[:rounds]
+
+            # chose randomly the remaining connections
+            stop = min(rounds + num_nodes, edges)
+            chosen = rng.choice([i for i in range(rounds, stop)],
+                                size=remainder, replace=False)
+
+            sources[-num_recip + rounds:] = targets[chosen]
+            targets[-num_recip + rounds:] = sources[chosen]
 
     return np.array([sources, targets], dtype=int).T
 
@@ -587,7 +630,7 @@ def _circular_full(node_ids, coord_nb, directed):
     out_deg = coord_nb if directed else dist
 
     # create the graph using a continuous range from zero
-    sources = np.repeat(np.arange(0, nodes).astype(int), out_deg)
+    sources = np.tile(np.arange(0, nodes).astype(int), out_deg)
 
     # prepare conversion dict if nodes do not start from zero or are not
     # contiguous. Initial generation assumes continuous range from zero
@@ -600,7 +643,7 @@ def _circular_full(node_ids, coord_nb, directed):
     conn_mask = np.concatenate((np.arange(start, 0), np.arange(1, stop)))
 
     # make the targets and put them back into [0, nodes - 1]
-    targets   = np.tile(conn_mask, nodes) + sources
+    targets   = np.repeat(conn_mask, nodes) + sources
 
     targets[targets < 0] += nodes
     targets[targets >= nodes] -= nodes
