@@ -610,7 +610,7 @@ class Graph(nngt.core.GraphObject):
         return self._eattr
 
     @property
-    @deprecated("2.0", reason="Inconsistent with naming conventions",
+    @deprecated("2.0", reason="it was inconsistent with naming conventions",
                 alternative="node_attributes", removal="2.1")
     def nodes_attributes(self):
         '''
@@ -626,7 +626,7 @@ class Graph(nngt.core.GraphObject):
         return self._nattr
 
     @property
-    @deprecated("2.0", reason="Inconsistent with naming conventions",
+    @deprecated("2.0", reason="it was inconsistent with naming conventions",
                 alternative="edge_attributes", removal="2.1")
     def edges_attributes(self):
         '''
