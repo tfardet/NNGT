@@ -120,26 +120,91 @@ def test_random_rewire():
                     assert set(old_attr) == set(new_attr)
 
 
-def test_lattice_rewire():
+def test_complete_lattice_rewire():
     ''' Check lattice rewiring method.'''
     num_nodes = 10
-    degree    = 4
+    degree = 4
 
     g = ng.fixed_degree(degree, "total", nodes=num_nodes)
 
-    l1 = ng.lattice_rewire(g)
+    # node attributes
+    g.new_node_attribute("random_int", "int",
+                         values=[2, 5, 33, 6, 4, 1, 98, 45, 30, 10])
+    g.new_node_attribute("attr2", "float",
+                         values=nngt._rng.uniform(size=num_nodes))
 
-    print(g.get_degrees())
-    print(l1.get_degrees())
-    print(g.get_degrees("in"))
-    print(l1.get_degrees("in"))
-    print(g.get_degrees("out"))
-    print(l1.get_degrees("out"))
+    # edge attributes
+    ww = nngt._rng.uniform(1, 5, size=g.edge_nb())
+    g.set_weights(ww)
+    g.new_edge_attribute("my-edge-attr", "int", values=-ww.astype(int))
+
+    # rewire
+    l1 = ng.lattice_rewire(g, weight="weight",
+                           node_attr_constraints="preserve")
+
+    assert g.node_nb() == l1.node_nb()
+    assert g.edge_nb() == l1.edge_nb()
+
+    # check node attributes
+    assert g.node_attributes == l1.node_attributes
+    assert np.array_equal(g.node_attributes["random_int"],
+                          l1.node_attributes["random_int"])
+    assert np.array_equal(g.node_attributes["attr2"],
+                          l1.node_attributes["attr2"])
+
+    # check the order of the first weights
+    srt = np.sort(l1.get_weights())[::-1]
+
+    for i in range(num_nodes - 1):
+        assert l1.get_edge_attributes((i, i+1), name='weight') == srt[2*i]
+        assert l1.get_edge_attributes((i+1, i), name='weight') == srt[2*i + 1]
+
+
+def test_incomplete_lattice_rewire():
+    num_nodes = 10
+    degree = 7
+
+    g = ng.fixed_degree(degree, "total", nodes=num_nodes)
+
+    # node attributes
+    g.new_node_attribute("random_int", "int",
+                         values=[2, 5, 33, 6, 4, 1, 98, 45, 30, 10])
+    g.new_node_attribute("attr2", "float",
+                         values=nngt._rng.uniform(size=num_nodes))
+
+    # edge attributes
+    ww = nngt._rng.uniform(1, 5, size=g.edge_nb())
+    g.set_weights(ww)
+    g.new_edge_attribute("my-edge-attr", "int", values=-ww.astype(int))
+
+    # rewire
+    l2 = ng.lattice_rewire(g, weight="weight", distance_sort="linear",
+                           edge_attr_constraints="together")
+
+    assert g.node_nb() == l2.node_nb()
+    assert g.edge_nb() == l2.edge_nb()
+
+    # check node attributes (may fail every million trials or so)
+    assert g.node_attributes == l2.node_attributes
+    assert not np.array_equal(g.node_attributes["random_int"],
+                              l2.node_attributes["random_int"])
+    assert not np.array_equal(g.node_attributes["attr2"],
+                              l2.node_attributes["attr2"])
+
+    # check edge attributes
+    mea = l2.edge_attributes["my-edge-attr"]
+    assert np.array_equal(mea, -l2.get_weights().astype(int))
+
+    # check the order of the first weights
+    srt = np.sort(ww)
+
+    for i in range(num_nodes - 1):
+        assert l2.get_edge_attributes((i, i+1), name='weight') == srt[2*i]
+        assert l2.get_edge_attributes((i+1, i), name='weight') == srt[2*i + 1]
 
 
 if __name__ == "__main__":
-    # ~ nngt.set_config("multithreading", False)
-    # ~ nngt.use_backend("nngt")
     if not nngt.get_config("mpi"):
-        # ~ test_random_rewire()
-        test_lattice_rewire()
+        test_random_rewire()
+        test_complete_lattice_rewire()
+        test_incomplete_lattice_rewire()

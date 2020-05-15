@@ -538,6 +538,9 @@ def _circular(source_ids, target_ids, coord_nb, reciprocity, directed,
         raise ValueError("Valid entries for `reciprocity_choice` are "
                          "'random' and 'closest'.")
 
+    if coord_nb % 2:
+        raise ValueError("`coord_nb` must be even.")
+
     if reciprocity == 1 or not directed:
         return _circular_full(source_ids, coord_nb, directed)
     elif directed:

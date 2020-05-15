@@ -164,11 +164,13 @@ class _GtEProperty(BaseProperty):
 
             return eprop
         elif nonstring_container(name):
+            # name is and edge or contains edges
             if len(name) == 0:
                 return {k: [] for k in self}
 
             eprop = {}
             if nonstring_container(name[0]):
+                # name is a list of edges
                 eids = [g.edge_index[Edge(*e)] for e in name]
                 for k in self.keys():
                     dtype = super(_GtEProperty, self).__getitem__(k)
@@ -182,8 +184,9 @@ class _GtEProperty(BaseProperty):
                     else:
                         eprop[k] = g.edge_properties[k].a[eids]
             else:
+                # name is a single edge
                 for k in self.keys():
-                    eprop[k] = g.edge_properties[k][name]
+                    eprop[k] = g.edge_properties[k][Edge(*name)]
 
             return eprop
 

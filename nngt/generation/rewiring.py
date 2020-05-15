@@ -38,7 +38,7 @@ __all__ = [
 
 def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
                    edge_attr_constraints=None,  weight=None,
-                   weight_constraint=None, distance_sort="inverse"):
+                   weight_constraint="distance", distance_sort="inverse"):
     '''
     Build a (generally irregular) lattice by rewiring the edges of a graph.
 
@@ -93,9 +93,37 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     num_nodes = g.node_nb()
     num_edges = g.edge_nb()
 
+    # check that requested lattice is possible
+    if directed:
+        if num_edges < int(num_nodes*(1 + target_reciprocity)):
+            raise ValueError("The number of edges in the graph is not "
+                             "sufficient to make a lattice with requested "
+                             "reciprocity.")
+    else:
+        if num_edges < num_nodes:
+            raise ValueError("The number of edges in the graph is not"
+                             "sufficient to make a lattice.")
+
+    # check arguments
+    if node_attr_constraints not in (None, "preserve", "together"):
+        raise ValueError("`node_attr_constraints` must be either None, "
+                         "'preserve', or 'together'.")
+
+    if edge_attr_constraints not in (None, "distance", "together"):
+        raise ValueError("`edge_attr_constraints` must be either None, "
+                         "'distance', or 'together'.")
+
+    if weight_constraint not in ("distance", None):
+        raise ValueError("`weight_constraint` can only be 'distance' or None.")
+
+    if distance_sort not in ("linear", "inverse"):
+        raise ValueError("`distance_sort` must be either 'linear' or "
+                         "'inverse'.")
+
     if directed and target_reciprocity != 1:
         raise ValueError("Reciprocity is always 1 for undirected graphs.")
 
+    # init graph and edges
     new_graph = nngt.Graph(nodes=num_nodes, directed=directed,
                            name=g.name + "_latticized")
 
@@ -105,10 +133,12 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     coord_nb, e_reglat = None, None
 
     if directed:
-        coord_nb = int(2*num_edges / (num_nodes*(1 + target_reciprocity)))
+        # coordination number must be even
+        coord_nb = 2*int(num_edges / (num_nodes*(1 + target_reciprocity)))
         e_reglat = int(0.5*num_nodes*(1 + target_reciprocity)*coord_nb)
     else:
-        coord_nb = int(num_edges / num_nodes)
+        # coordination number must be even
+        coord_nb = 2*int(0.5*num_edges / num_nodes)
         e_reglat = num_nodes*coord_nb
 
     # generate the edges of the regular lattice
@@ -124,6 +154,9 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     if e_remaining:
         last_edges = np.full((e_remaining, 2), -1, dtype=np.int64)
 
+        # new connectins are one step above the max regular lattive distance
+        dist = int(0.5*coord_nb) + 1
+
         if directed:
             # make reciprocal edges
             num_recip  = int(0.5*target_reciprocity*e_remaining)
@@ -136,10 +169,9 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
 
             if e_final:
                 last_edges[2*num_recip:] = \
-                    [(i, i + dist) for i in range(num_recip, num_recip + e_final)]
+                    [(i, i + dist) for i in range(num_recip,
+                                                  num_recip + e_final)]
         else:
-            dist = int(0.5*coord_nb) + 1
-
             last_edges = [(i, i + dist) for i in range(e_remaning)]
 
             # put targets back into [0, num_nodes[
@@ -153,7 +185,23 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     # set the node attributes
     _set_node_attributes(g, new_graph, node_attr_constraints, num_nodes)
 
-    # edge attributes @todo
+    # edge attributes
+    order = None
+
+    # start with the weight
+    if weight is not None:
+        order = _lattice_shuffle_eattr(
+            weight, g, new_graph, coord_nb, target_reciprocity,
+            weight_constraint, distance_sort)
+
+    for eattr in g.edge_attributes:
+        if eattr != weight:
+            ordering = (order if edge_attr_constraints == "together"
+                        else edge_attr_constraints)
+
+            order = _lattice_shuffle_eattr(
+                eattr, g, new_graph, coord_nb, target_reciprocity,
+                ordering, distance_sort)
 
     return new_graph
 
@@ -194,6 +242,10 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
     num_edges = g.edge_nb()
 
     new_graph = None
+
+    if node_attr_constraints not in (None, "preserve", "together"):
+        raise ValueError("`node_attr_constraints` must be either None, "
+                         "'preserve', or 'together'.")
 
     # check compatibility between `constraints` and `edge_attr_constraints`
     valid_e = (None, "preserve_in", "preserve_out", "together")
@@ -292,25 +344,20 @@ def _set_node_attributes(old_graph, new_graph, constraints, num_nodes):
         order = [i for i in range(num_nodes)]
         nngt._rng.shuffle(order)  # shuffled order for "together"
 
-    if constraints not in (None, "preserve", "together"):
-        raise ValueError("`node_attr_constraints` must be either None, "
-                         "'preserve', or 'together'.")
-    else:
-        for k, v in old_graph.node_attributes.items():
-            values = None
+    for k, v in old_graph.node_attributes.items():
+        values = v.copy()
 
-            if constraints is None:
-                values = deepcopy(v)
-                nngt._rng.shuffle(values)
-            elif constraints == "together":
-                values = v[order]
+        if constraints is None:
+            nngt._rng.shuffle(values)
+        elif constraints == "together":
+            values = v[order]
 
-            dtype = old_graph.get_attribute_type(k, attribute_class="node")
+        dtype = old_graph.get_attribute_type(k, attribute_class="node")
 
-            new_graph.new_node_attribute(k, dtype, values=values)
+        new_graph.new_node_attribute(k, dtype, values=values)
 
 
-def _lattice_shuffle_eattr(name, old_graph, new_graph, edges, coord_nb,
+def _lattice_shuffle_eattr(name, old_graph, new_graph, coord_nb,
                            target_recip, order, distance_sort):
     '''
     Reassign edge attributes based on a constraint or a pre-defined
@@ -324,8 +371,6 @@ def _lattice_shuffle_eattr(name, old_graph, new_graph, edges, coord_nb,
         The old graph.
     new_graph : :class:`~nngt.Graph`
         The new graph.
-    edges : array of dimension (E, 2)
-        Edges of the new graph.
     coord_nb : int
         Coordination number of the lattice.
     target_recip : float
@@ -344,50 +389,128 @@ def _lattice_shuffle_eattr(name, old_graph, new_graph, edges, coord_nb,
         The order in which the edge attributes have been shuffled.
     '''
     num_nodes = new_graph.node_nb()
-    num_edges = len(edges)
+    num_edges = new_graph.edge_nb()
 
+    # old attribute
+    value_type = old_graph.get_attribute_type(name, "edge")
+
+    values = old_graph.edge_attributes[name].copy()
+
+    # compute order and reassign values
     if order is None:
         order = np.arange(num_edges, dtype=int)
         nngt._rng.shuffle(order)
-    elif order == "distance":
+
+        values = values[order]
+    elif nonstring_container(order):
+        # use precomputed order
+        values = values[order]
+    else:
+        # distance sort
         directed = new_graph.is_directed()
 
         if directed:
-            # we need to find the reciprocal edges for the attribute
-            # assignment (this relies on the precise implementation of the
-            # function _circular_directed_recip that the closest distances
-            # come first, then the reciprocal edges are at the end in the
-            # same order)
-            init_edges = int(0.5*num_nodes*(1 + target_recip)*coord_nb)
-            num_recip  = init_edges - num_nodes*int(0.5*coord_nb)
+            if target_recip < 1:
+                # we need to find the reciprocal edges for the attribute
+                # assignment (this relies on the precise implementation of the
+                # function _circular_directed_recip that the closest distances
+                # come first, then the reciprocal edges are at the end in the
+                # same order)
+                init_edges = int(0.5*num_nodes*(1 + target_recip)*coord_nb)
+                num_recip  = init_edges - num_nodes*int(0.5*coord_nb)
 
-            # fill the order list in the following order
-            order = np.zeros(num_edges, dtype=int)
-            # every other first entries are the initial edges that got a
-            # reciprocal connection
-            order[:2*num_recip:2] = np.arange(num_recip)
-            # we enter the index of the reciprocal connection after each
-            order[1:2*num_recip + 1:2] = np.arange(init_edges,
-                                                   init_edges + num_recip)
-            # then we fill the last entries with the initial edges that did
-            # not get a reciprocal connection
-            order[2*num_recip + 1:] = np.arange(num_recip, init_edges)
+                # fill the order list in the following order
+                order = np.zeros(num_edges, dtype=int)
+                # the first entries are the initial edges that got a reciprocal
+                # connection, we order them with every other first indices
+                # since the reciprocal edges will come in between
+                order[:2*num_recip:2] = np.arange(num_recip)
+                # we enter the index of the reciprocal connection after each
+                order[1:2*num_recip + 1:2] = np.arange(init_edges,
+                                                       init_edges + num_recip)
+                # then we fill the last entries with the initial edges that did
+                # not get a reciprocal connection
+                order[2*num_recip + 1:] = np.arange(num_recip, init_edges)
 
-            if distance_sort == "inverse":
-                order = order[::-1]
+                if distance_sort == "inverse":
+                    order = order[::-1]
+            else:
+                # For the fully reciprocal lattice, the edges go both ways,
+                # with first the long-distance, left-pointing edges, then
+                # decreasing distances until the middle of the edges array,
+                # then increasing from the middle onward with the shortest
+                # right-pointing edges first (see _circular_full).
+                # Distances looks like [d_max, d_max... 1, 1... 1, 1... d_max].
+                # Therefore we proceed almost like for the partly reciprocal
+                # lattice but we start at the middle and the reciprocal edges
+                # are before the middle
+                e_reglat = int(0.5*num_nodes*(1 + target_recip)*coord_nb)
+
+                # we work based on the middle of the edges of the regular
+                # lattice, other edges are added at the end
+                middle = int(0.5*e_reglat)
+                d_max  = int(0.5*coord_nb)
+                order  = np.full(num_edges, -1, dtype=int)
+
+                count = 0
+
+                for d_n in range(1, d_max + 1):
+                    d_middle  = num_nodes*(d_n - 1)
+
+                    stop = count + 2*num_nodes
+
+                    # the entries from the middle shortest edges; we order them
+                    # with every other increasing indices since the reciprocal
+                    # edges will come in between
+                    order[count:stop:2] = np.arange(
+                        middle + d_middle, middle + d_middle + num_nodes)
+
+                    # we enter the index of the reciprocal connection after
+                    # however, here the first one (starting from zero) needs
+                    # to go at the end
+                    order[count + 1:stop - 1:2] = \
+                        np.arange(middle - (d_middle + num_nodes) + 1,
+                                  middle - d_middle)
+
+                    order[stop -  1] = middle - d_middle - num_nodes
+
+                    count = stop
+
+                # add remaining edges (those not in the regular lattice)
+                remaining = num_edges - count
+                num_recip = int(0.5*remaining)
+
+                order[count:count + 2*num_recip:2] = \
+                    np.arange(count, count + num_recip)
+
+                order[count + 1:count + 2*num_recip + 1:2] = \
+                    np.arange(count + num_recip, count + 2*num_recip)
+
+                if remaining - 2*num_recip:
+                    order[-1] = num_edges - 1
+
+            order = np.argsort(order)
         else:
             # we don't need to sort the new edges because they are ordered by
             # distance by default in the circular algorithm
-            if distance_sort == "linear":
-                order = slice(num_edges)
-            else:
-                order = slice(0, num_edges, -1)
+            order = slice(num_edges)
+                
+        # sort the attribute
+        if distance_sort == "linear":
+            # order for other attributes if "together" is used
+            order = np.argsort(values)[order]
+
+            # sorted values
+            values = values[order]
+
+        else:
+            # order for other attributes if "together" is used
+            order = np.argsort(values)[::-1][order]
+
+            # sorted values
+            values = values[order]
 
     # set the new attributes
-    value_type = old_graph.get_attribute_type(name, "edge")
-
-    values = old_graph.edge_attributes[name]
-
-    new_graph.new_edge_attribute(name, value_type, values=values[order])
+    new_graph.new_edge_attribute(name, value_type, values=values)
 
     return order
