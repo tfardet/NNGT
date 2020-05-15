@@ -37,14 +37,14 @@ def test_from_degree_list():
     # test for in
     g = ng.from_degree_list(deg_list, degree_type="in", nodes=num_nodes)
 
-    assert np.all(g.get_degrees("in") == deg_list)
+    assert np.array_equal(g.get_degrees("in"), deg_list)
 
     assert g.edge_nb() == np.sum(deg_list)
 
     # test for out
     g = ng.from_degree_list(deg_list, degree_type="out", nodes=num_nodes)
 
-    assert np.all(g.get_degrees("out") == deg_list)
+    assert np.array_equal(g.get_degrees("out"), deg_list)
 
     assert g.edge_nb() == np.sum(deg_list)
 
@@ -55,7 +55,7 @@ def test_from_degree_list():
         g = ng.from_degree_list(deg_list, degree_type="total", nodes=num_nodes,
                                 directed=True)
 
-        assert np.all(g.get_degrees("total") == deg_list)
+        assert np.array_equal(g.get_degrees("total"), deg_list)
 
         assert g.edge_nb() == int(0.5*np.sum(deg_list))
     except ValueError:

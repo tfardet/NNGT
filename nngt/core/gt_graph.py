@@ -159,12 +159,18 @@ class _GtEProperty(BaseProperty):
 
         if isinstance(name, slice):
             eprop = {}
-            for k in self.keys():
+            for k in self:
                 eprop[k] = g.edge_properties[k].a[name]
+
             return eprop
         elif nonstring_container(name):
+            # name is and edge or contains edges
+            if len(name) == 0:
+                return {k: [] for k in self}
+
             eprop = {}
             if nonstring_container(name[0]):
+                # name is a list of edges
                 eids = [g.edge_index[Edge(*e)] for e in name]
                 for k in self.keys():
                     dtype = super(_GtEProperty, self).__getitem__(k)
@@ -178,8 +184,9 @@ class _GtEProperty(BaseProperty):
                     else:
                         eprop[k] = g.edge_properties[k].a[eids]
             else:
+                # name is a single edge
                 for k in self.keys():
-                    eprop[k] = g.edge_properties[k][name]
+                    eprop[k] = g.edge_properties[k][Edge(*name)]
 
             return eprop
 
@@ -356,11 +363,12 @@ class _GtGraph(GraphInterface):
         '''
         g = self._graph
 
-        if is_integer(edge[0]):
-            return g.edge_index[edge]
-        elif nonstring_container(edge[0]):
-            idx = [g.edge_index[e] for e in edge]
-            return idx
+        if nonstring_container(edge) and len(edge):
+            if is_integer(edge[0]):
+                return g.edge_index[edge]
+            elif nonstring_container(edge[0]):
+                idx = [g.edge_index[g.edge(*e)] for e in edge]
+                return idx
 
         raise AttributeError("`edge` must be either a 2-tuple of ints or "
                              "an array of 2-tuples of ints.")
@@ -430,7 +438,7 @@ class _GtGraph(GraphInterface):
 
         # set default values for double attributes that were not set
         # (others are properly handled automatically)
-        for k in self.nodes_attributes:
+        for k in self.node_attributes:
             if k not in attributes and self.get_attribute_type(k) == "double":
                 self.set_node_attribute(k, nodes=nodes, val=np.NaN)
 
@@ -486,7 +494,7 @@ class _GtGraph(GraphInterface):
 
         attributes = {} if attributes is None else deepcopy(attributes)
 
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
@@ -536,7 +544,7 @@ class _GtGraph(GraphInterface):
 
         # set default values for attributes that were not passed
         # (only string and double, others are handled correctly by default)
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":

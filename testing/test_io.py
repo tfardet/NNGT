@@ -78,7 +78,7 @@ class TestIO(TestBasis):
         if instructions is not None:  # working with generated graph
             # load graph
             h = nngt.Graph.from_file(current_dir + graph.name + '.el')
-            attributes = h.edges_attributes
+            attributes = h.edge_attributes
             # test properties
             self.assertTrue(h.node_nb() == graph.node_nb(),
                             err.format(val='node number'))
@@ -88,17 +88,17 @@ class TestIO(TestBasis):
                 self.assertTrue(np.allclose(h.get_positions(),
                                             graph.get_positions()),
                                 err.format(val='positions'))
-            for attr, values in graph.edges_attributes.items():
+            for attr, values in graph.edge_attributes.items():
                 # different results probably because of rounding problems
-                allclose = np.allclose(h.edges_attributes[attr], values, 1e-4)
+                allclose = np.allclose(h.edge_attributes[attr], values, 1e-4)
                 if not allclose:
                     print("Error: expected")
-                    print(h.edges_attributes[attr])
+                    print(h.edge_attributes[attr])
                     print("but got")
                     print(values)
                     print("max error is: {}".format(
                         np.max(np.abs(np.subtract(
-                            h.edges_attributes[attr], values)))))
+                            h.edge_attributes[attr], values)))))
                 self.assertTrue(allclose, err.format(val=attr))
         else:  # working with loaded graph
             nodes = self.get_expected_result(graph, "nodes")

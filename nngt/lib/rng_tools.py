@@ -235,7 +235,7 @@ def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
     if correl_attribute == "betweenness":
         data = graph.get_betweenness(kwargs["btype"], kwargs["weights"])
     elif correl_attribute == "distance":
-        assert 'distance' in graph.edges_attributes, \
+        assert 'distance' in graph.edge_attributes, \
             'Graph has no "distance" edge attribute.'
         if 'distance' not in kwargs:
             if last_edges:

@@ -62,7 +62,7 @@ def _get_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
 
         # if dealing with network, check inhibitory weight factor
         if graph.is_network() and not np.isclose(graph._iwf, 1.):
-            keep = graph.nodes_attributes['type'][elist[:, 0]] < 0
+            keep = graph.node_attributes['type'][elist[:, 0]] < 0
             weights[keep] *= graph._iwf
 
         return weights
@@ -158,7 +158,7 @@ def _get_gt_weights(g, weights):
     if nonstring_container(weights):
         # user-provided array (test must come first since non hashable)
         return g.graph.new_edge_property("double", vals=weights)
-    elif weights in g.edges_attributes:
+    elif weights in g.edge_attributes:
         # existing edge attribute
         return g.graph.edge_properties[weights]
     elif weights is True:
@@ -175,7 +175,7 @@ def _get_ig_weights(g, weights):
     if nonstring_container(weights):
         # user-provided array (test must come first since non hashable)
         return np.array(weights)
-    elif weights in g.edges_attributes:
+    elif weights in g.edge_attributes:
         # existing edge attribute
         return np.array(g.graph.es[weights])
     elif weights is True:
@@ -193,7 +193,7 @@ def _get_nx_weights(g, weights):
         # user-provided array (test must come first since non hashable)
         return ValueError("networkx backend does not support custom arrays "
                           "as `weights`.")
-    elif weights in g.edges_attributes:
+    elif weights in g.edge_attributes:
         # existing edge attribute
         return weights
     elif weights is True:

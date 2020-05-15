@@ -144,6 +144,7 @@ class _EProperty(BaseProperty):
         Return the attributes of an edge or a list of edges.
         '''
         eprop = {}
+        graph = self.parent()
 
         if isinstance(name, slice):
             for k in self.keys():
@@ -153,13 +154,13 @@ class _EProperty(BaseProperty):
             return eprop
         elif nonstring_container(name):
             if nonstring_container(name[0]):
-                eids = [self.parent().edge_id(e) for e in name]
+                eids = [graph.edge_id(e) for e in name]
 
                 for k in self.keys():
                     dtype = _np_dtype(super(type(self), self).__getitem__(k))
                     eprop[k] = _to_np_array(self.prop[k], dtype=dtype)[eids]
             else:
-                eid = self.parent().get_eid(*name)
+                eid = graph.edge_id(name)
 
                 for k in self.keys():
                     eprop[k] = self.prop[k][eid]
@@ -434,7 +435,7 @@ class _NNGTGraph(GraphInterface):
                     self._nattr.set_attribute(k, v, nodes=nodes)
 
         # set default values for all attributes that were not set
-        for k in self.nodes_attributes:
+        for k in self.node_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "double":
@@ -503,7 +504,7 @@ class _NNGTGraph(GraphInterface):
         attributes = {} if attributes is None else deepcopy(attributes)
 
         # set default values for attributes that were not passed
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
@@ -578,7 +579,7 @@ class _NNGTGraph(GraphInterface):
         g = self._graph
 
         # set default values for attributes that were not passed
-        for k in self.edges_attributes:
+        for k in self.edge_attributes:
             if k not in attributes:
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":

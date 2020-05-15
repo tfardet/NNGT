@@ -115,21 +115,21 @@ class TestAttributes(TestBasis):
         # NaN == NaN is false, so we need to check separately equality between
         # non-NaN entries and position of NaN entries
         double_res = np.array([2., np.NaN, np.NaN, 4., 5., 1.])
-        isnan1     = np.isnan(g2.nodes_attributes['size'])
+        isnan1     = np.isnan(g2.node_attributes['size'])
         isnan2     = np.isnan(double_res)
         self.assertTrue(np.all(isnan1 == isnan2))
         self.assertTrue(
             np.all(np.isclose(
-                g2.nodes_attributes['size'][~isnan1], double_res[~isnan2]))
+                g2.node_attributes['size'][~isnan1], double_res[~isnan2]))
         )
         # for the others, just compare the lists
         self.assertEqual(
-            g2.nodes_attributes['color'].tolist(),
+            g2.node_attributes['color'].tolist(),
             ['blue', '', '', 'r', 'g', 'b'])
         self.assertEqual(
-            g2.nodes_attributes['a'].tolist(), [5, 0, 0, 0, 0, 0])
+            g2.node_attributes['a'].tolist(), [5, 0, 0, 0, 0, 0])
         self.assertEqual(
-            g2.nodes_attributes['blob'].tolist(),
+            g2.node_attributes['blob'].tolist(),
             [[], None, None, None, None, None])
 
     def test_user_defined(self):

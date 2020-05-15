@@ -21,6 +21,8 @@
 """ Test functions for the NNGT """
 
 import collections
+import functools
+import inspect
 import warnings
 
 from collections.abc import Container as _container
@@ -58,6 +60,46 @@ def deprecated(version, reason=None, alternative=None, removal=None):
             return func(*args, **kwargs)
         return decorate(func, wrapper)
     return decorator
+
+
+# ~ def constrain_argument(arg, valid_values):
+    # ~ '''
+    # ~ Decorator to constrain function arguments.
+    # ~ '''
+    # ~ def decorator(func):
+        # ~ @functools.wrap(func)
+        # ~ def wrapper(func, *args, **kwargs):
+            # ~ arg_names = inspect.getargspec(func)[0]
+            # ~ arguments = {k: v for k, v in zip(arg_names, args)}
+
+            # ~ arguments.update(kwargs)
+
+            # ~ if arg in arguments:
+                # ~ assert arguments[arg] in valid_values, \
+                    # ~ "Argument `'{}' must be among {}".format(arg, valid_values)
+
+            # ~ return func(*args, **kwargs)
+        # ~ return decorate(func, wrapper)
+    # ~ return decorator
+
+
+# ~ def check_arguments(arg_list):
+    # ~ '''
+    # ~ Decorator to constrain function arguments.
+    # ~ '''
+    # ~ def decorator(func):
+        # ~ @functools.wrap(func)
+        # ~ def wrapper(func, *args, **kwargs):
+            # ~ arg_names = set(inspect.getargspec(func)[0])
+            # ~ allowed   = arg_names.union(arg_list)
+
+            # ~ for arg in kwargs:
+                # ~ if arg not in allowed:
+                    # ~ raise InvalidArgument(("'{}' is not a valid argument for "
+                                           # ~ "function '{}'.").format(arg, func))
+            # ~ return func(*args, **kwargs)
+        # ~ return decorate(func, wrapper)
+    # ~ return decorator
 
 
 def on_master_process():

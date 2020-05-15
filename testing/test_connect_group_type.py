@@ -52,6 +52,7 @@ def test_fixed():
     assert avg_deg - std_deg < np.average(ideg) < avg_deg + std_deg
 
 
+@pytest.mark.mpi_skip
 def test_gaussian():
     ''' Gaussian degree with groups '''
     pop = nngt.NeuralPop.exc_and_inhib(1000)

@@ -42,7 +42,7 @@ distinction between populations of purely excitatory and purely inhibitory
 neurons.
 However, if you want to include additional information regarding the nodes, to
 account for specific differences in their properties, then node attributes
-are what you need. They are stored in :attr:`~nngt.Graph.nodes_attributes`.
+are what you need. They are stored in :attr:`~nngt.Graph.node_attributes`.
 Furthermore, to model more realistic neuronal networks, you might also want to
 define different groups and types of neurons, then connect them in specific
 ways. This specific feature will be provides by :class:`~nngt.NeuralGroup`
