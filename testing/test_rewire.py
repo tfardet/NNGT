@@ -206,6 +206,7 @@ def test_incomplete_lattice_rewire():
 
 
 if __name__ == "__main__":
+    nngt.use_backend("nngt")
     if not nngt.get_config("mpi"):
         test_random_rewire()
         test_complete_lattice_rewire()

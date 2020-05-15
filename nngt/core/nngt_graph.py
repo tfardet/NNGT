@@ -144,6 +144,7 @@ class _EProperty(BaseProperty):
         Return the attributes of an edge or a list of edges.
         '''
         eprop = {}
+        graph = self.parent()
 
         if isinstance(name, slice):
             for k in self.keys():
@@ -153,13 +154,13 @@ class _EProperty(BaseProperty):
             return eprop
         elif nonstring_container(name):
             if nonstring_container(name[0]):
-                eids = [self.parent().edge_id(e) for e in name]
+                eids = [graph.edge_id(e) for e in name]
 
                 for k in self.keys():
                     dtype = _np_dtype(super(type(self), self).__getitem__(k))
                     eprop[k] = _to_np_array(self.prop[k], dtype=dtype)[eids]
             else:
-                eid = self.parent().get_eid(*name)
+                eid = graph.edge_id(name)
 
                 for k in self.keys():
                     eprop[k] = self.prop[k][eid]
