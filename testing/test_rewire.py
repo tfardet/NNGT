@@ -120,6 +120,7 @@ def test_random_rewire():
                     assert set(old_attr) == set(new_attr)
 
 
+@pytest.mark.mpi_skip
 def test_complete_lattice_rewire():
     ''' Check lattice rewiring method.'''
     num_nodes = 10
@@ -160,6 +161,7 @@ def test_complete_lattice_rewire():
         assert l1.get_edge_attributes((i+1, i), name='weight') == srt[2*i + 1]
 
 
+@pytest.mark.mpi_skip
 def test_incomplete_lattice_rewire():
     num_nodes = 10
     degree = 7
