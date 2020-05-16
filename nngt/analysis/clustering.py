@@ -57,13 +57,23 @@ def global_clustering(g, weights=None, method="continuous", directed=True):
     :func:`~nngt.analysis.triad_count`
     :func:`~nngt.analysis.triangle_count`
     '''
+    # check directivity and weights
     directed = g.is_directed()
     weighted = weights not in (False, None)
 
     if not directed and not weighted:
         return undirected_binary_global_clustering(g)
+    elif not weighted:
+        # directed clustering
+        triangles = triangle_count(g, nodes=nodes)
+        triads    = triad_count(g, nodes)
 
-    # weighted or directed cases
+        return np.sum(triangles) / np.sum(triads)
+
+    triangles, triads = _triangles_and_triads(g, weights, directed,
+                                              combine_weights, nodes)
+
+    return np.sum(triangles) / np.sum(triads)
 
 
 def undirected_binary_clustering(g, nodes=None):
@@ -210,72 +220,27 @@ def local_clustering(g, weights=None, nodes=None, method="continuous",
     :func:`global_clustering`
     '''
     # check directivity and weights
-    directed = g.is_directed()
+    directed *= g.is_directed()
+    weighted  = weights not in (None, False)
 
-    weighted = weights not in (None, False)
-
-    # undirected binary clustering uses the library method
     if not directed and not weighted:
-        return undirected_local_clustering(g, weights=weights, nodes=nodes)
+        # undirected binary clustering uses the library method
+        return undirected_binary_clustering(g, weights=weights, nodes=nodes)
+    elif not weighted:
+        # directed clustering
+        triangles = triangle_count(g, nodes=nodes)
+        triads    = triad_count(g, nodes)
 
-    # directed or weighted clustering
-    mat = g.adjacency_matrix(weights=weights)
+        triads[triads == 0] = np.inf
 
-    if weighted:
-        weights = 'weight' if weights is True else weights
-        wmax = np.max(g.edge_attributes[weights])
-        mat /= wmax
+        return triangles / triads
 
-    matsym = mat + mat.T if directed else mat
+    triangles, triads = _triangles_and_triads(g, weights, directed,
+                                              combine_weights, nodes)
 
-    numer, denom = None, None
+    triads[triads == 0] = np.inf
 
-    if method == "continuous":
-        sqmat = mat.sqrt() if weighted else mat
-
-        numer = 0.5*(matsym*matsym*matsym).diagonal()
-
-        # strength for denom
-        if directed:
-            s_cyc1 = np.square(sqmat.sum(axis=0).A1 + sqmat.sum(axis=1).A1)
-            s_cyc2 = matsym.sum(axis=0).A1
-            s_recp = 2*(sqmat*sqmat).diagonal()
-
-            denom = s_cyc1 - s_cyc2 - s_recp
-        else:
-            s_cyc1 = np.square(sqmat.sum(axis=0).A1)
-            s_cyc2 = mat.sum(axis=0).A1
-            denom  = s_cyc1 - s_cyc2
-    elif method == "onnela":
-        matsym = mat + mat.T
-
-        numer = 0.5*np.power((matsym*matsym*matsym).diagonal(), 1/3)
-
-        # degrees for denom
-        dtot = g.get_degrees("total")
-
-        adj = g.adjacency_matrix(weights=None)
-
-        d_recp = (adj*adj).diagonal() if directed else 0.
-
-        denom = dtot(dtot - 1) - 2*d_recp
-    elif method == "barrat":
-        adj = g.adjacency_matrix(weights=None)
-        s_recp = (mat*adj).diagonal() if directed else 0.
-
-        adj = adj + adj.T
-
-        numer = 0.25*(matsym*adj*adj + adj*adj*matsym)
-
-        # degrees and strength
-        dtot = g.get_degrees("total")
-        stot = g.get_degrees("total", weights=weights)
-
-        denom = stot*(dtot - 1) - 2*s_recp
-
-    denom[numer == 0] = 1.
-
-    return numer/denom
+    return triangles / triads
 
 
 def triad_count(g, nodes=None, directed=True, weights=None,
@@ -348,12 +313,13 @@ def triad_count(g, nodes=None, directed=True, weights=None,
         # we need only the weighted matrices
         W, Wu = _get_matrices(g, weights, weighted,
                               combine_weights=combine_weights)
-    elif method == "onella":
-        
-    if method == "barrat":
+    elif method == "barrat":
+        # we need only the (potentially) directed matrices
+        W = g.adjacency_matrix(weights=weights)
+        A = g.adjacency_matrix()
+    else:
         raise ValueError("`method` must be either 'barrat', 'continuous' "
-                         "or 'normal' (identical, recommended option), "
-                         "or 'onella'.")
+                         "or 'normal' (identical, recommended options).")
 
     return _triad_count_weighted(g, W, Wu, A, Au, method, directed, nodes)
 
@@ -417,6 +383,38 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
 # -------------- #
 
 
+def _triangles_and_triads(g, weights, directed, combine_weights, nodes):
+    ''' Return the triangles and triads '''
+    # weighted clustering
+    W, Wu, A, Au = None, None, None, None
+    triads = None
+
+    # check the method to get the relevant matrices
+    if method == "continuous":
+        W, Wu = _get_matrices(g, weights, True, combine_weights)
+
+        triads = _triad_count_weighted(g, W, Wu, A, Au, method,
+                                       directed=directed, nodes=nodes)
+    elif method == "onella":
+        W, Wu = _get_matrices(g, weights, True, combine_weights)
+
+        # onella uses the binary triads
+        triads = triad_count(g, nodes=nodes, directed=directed, weights=None)
+    elif method == "barrat":
+        # we need all matrices
+        W, Wu = _get_matrices(g, weights, True, combine_weights)
+        A, Au = _get_matrices(g, None, False, combine_weights)
+        
+        triads = _triad_count_weighted(g, W, Wu, A, Au, method,
+                                       directed=directed, nodes=nodes)
+
+    # get triangles and triad strength
+    triangles = _triangle_count(Wu, Au, method, weighted=True,
+                                directed=directed, nodes=nodes)
+
+    return triangles, triads
+
+
 def _triad_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
                           nodes):
     '''
@@ -427,15 +425,15 @@ def _triad_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
     if method == "normal":
         pass
     elif method == "continuous":
-        sqmat = mat.sqrt()
-
         if directed:
+            sqmat = mat.sqrt()
             s_cyc1 = np.square(sqmat.sum(axis=0).A1 + sqmat.sum(axis=1).A1)
             s_cyc2 = matsym.sum(axis=0).A1
             s_recp = 2*(sqmat*sqmat).diagonal()
 
             tr = s_cyc1 - s_cyc2 - s_recp
         else:
+            sqmat = matsym.sqrt()
             s_cyc1 = np.square(sqmat.sum(axis=0).A1)
             s_cyc2 = mat.sum(axis=0).A1
             denom  = s_cyc1 - s_cyc2
