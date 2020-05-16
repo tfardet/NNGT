@@ -22,6 +22,25 @@
 """ Tools to analyze graphs with the nngt backend """
 
 
+def adj_mat(g, weight=None, mformat="csr"):
+    data = None
+
+    if weight in g.edge_attributes:
+        data = g.get_edge_attributes(name=weight)
+    else:
+        data = np.ones(g.edge_nb())
+
+    if not g.is_directed():
+        data = np.repeat(data, 2)
+        
+    edges     = np.array(list(g._graph._edges), dtype=int)
+    num_nodes = g.node_nb()
+    mat       = ssp.coo_matrix((data, (edges[:, 0], edges[:, 1])),
+                               shape=(num_nodes, num_nodes))
+
+    return mat.asformat(mformat)
+
+
 def reciprocity(g):
     '''
     Calculate the edge reciprocity of the graph.

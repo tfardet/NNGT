@@ -29,9 +29,10 @@ from ..lib.graph_helpers import _get_nx_weights
 import networkx as nx
 
 
-def global_clustering(g, weights=None):
+def undirected_binary_global_clustering(g):
     '''
     Returns the undirected global clustering coefficient.
+
     This corresponds to the ratio of undirected triangles to the number of
     undirected triads.
 
@@ -39,32 +40,15 @@ def global_clustering(g, weights=None):
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
-
-    Note
-    ----
-    If `weights` is None, returns the transitivity (number of existing
-    triangles over total number of possible triangles); otherwise returns
-    the average clustering.
 
     References
     ----------
     .. [nx-global-clustering] :nxdoc:`algorithms.cluster.transitivity`
     '''
-    w = _get_nx_weights(g, weights)
-
-    if w is None:
-        return nx.transitivity(g.graph.to_undirected(as_view=True))
-
-    raise NotImplementedError("Weighted global clustering is not implemented "
-                              "for networkx backend.")
+    return nx.transitivity(g.graph.to_undirected(as_view=True))
 
 
-def undirected_local_clustering(g, weights=None, nodes=None,
-                                combine_weights="sum"):
+def undirected_binary_clustering(g, nodes=None):
     '''
     Returns the undirected local clustering coefficient of some `nodes`.
 
@@ -75,28 +59,8 @@ def undirected_local_clustering(g, weights=None, nodes=None,
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
     nodes : list, optional (default: all nodes)
-        The list of nodes for which the clutering will be returned
-    combine_weights : str, optional (default: "sum")
-        How the weights of directed edges between two nodes should be combined,
-        among:
-
-        * "sum": the sum of the edge attribute values will be used for the new
-          edge.
-        * "product": the product of the edge attribute values will be used for
-          the new edge.
-        * "mean": the mean of the edge attribute values will be used for the
-          new edge.
-        * "median": the median of the edge attribute values will be used for
-          the new edge.
-        * "min": the minimum of the edge attribute values will be used for the
-          new edge.
-        * "max": the maximum of the edge attribute values will be used for the
-          new edge. 
+        The list of nodes for which the clustering will be returned
 
     Returns
     -------
@@ -107,15 +71,8 @@ def undirected_local_clustering(g, weights=None, nodes=None,
     ----------
     .. [nx-local-clustering] :nxdoc:`algorithms.cluster.clustering`
     '''
-    ww = _get_nx_weights(g, weights)
-
-    if g.is_directed() and ww is not None:
-        raise NotImplementedError("networkx backend currently does not "
-                                  "provide weighted clustering for directed "
-                                  "graphs.")
-
     lc = nx.clustering(g.graph.to_undirected(as_view=True), nodes=nodes,
-                       weight=weights)
+                       weight=None)
        
     lc = np.array([lc[i] for i in range(g.node_nb())], dtype=float)
 

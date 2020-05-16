@@ -16,11 +16,10 @@ import nngt
 
 
 @pytest.mark.mpi_skip
-@pytest.mark.skipif(nngt.get_config("backend") == "nngt", reason="unsupported")
-def test_directed_clustering():
+def test_undirected_clustering():
     '''
-    Check directed clustering.
-    (should return undirected value if graph is not directed)
+    Check that directed local clustering returns undirected value if graph is
+    not directed.
     '''
     g = nngt.generation.erdos_renyi(avg_deg=10, nodes=100, directed=False)
 

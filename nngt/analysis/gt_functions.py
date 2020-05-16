@@ -38,7 +38,7 @@ from ..lib.test_functions import nonstring_container
 from ..lib.graph_helpers import _get_gt_weights
 
 
-def global_clustering(g, weights=None):
+def undirected_binary_global_clustering(g):
     '''
     Returns the undirected global clustering coefficient.
 
@@ -49,10 +49,6 @@ def global_clustering(g, weights=None):
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
 
     References
     ----------
@@ -65,51 +61,29 @@ def global_clustering(g, weights=None):
     return gtc.global_clustering(u, weight=None)[0]
 
 
-def undirected_local_clustering(g, weights=None, nodes=None,
-                                combine_weights="sum"):
+def undirected_binary_clustering(g, nodes=None):
     '''
-    Returns the local clustering coefficient of some `nodes`.
+    Returns the undirected local clustering coefficient of some `nodes`.
+
+    If `g` is directed, then it is converted to a simple undirected graph
+    (no parallel edges).
 
     Parameters
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
     nodes : list, optional (default: all nodes)
-        The list of nodes for which the clutering will be returned
-    combine_weights : str, optional (default: "sum")
-        How the weights of directed edges between two nodes should be combined,
-        among:
-
-        * "sum": the sum of the edge attribute values will be used for the new
-          edge.
-        * "product": the product of the edge attribute values will be used for
-          the new edge.
-        * "mean": the mean of the edge attribute values will be used for the
-          new edge.
-        * "median": the median of the edge attribute values will be used for
-          the new edge.
-        * "min": the minimum of the edge attribute values will be used for the
-          new edge.
-        * "max": the maximum of the edge attribute values will be used for the
-          new edge. 
+        The list of nodes for which the clustering will be returned
 
     Returns
     -------
-    lc : :class:`np.ndarray`
+    lc : :class:`numpy.ndarray`
         The list of clustering coefficients, on per node.
 
     References
     ----------
     .. [gt-local-clustering] :gtdoc:`clustering.locall_clustering`
     '''
-    if weights is not None:
-        raise NotImplementedError("graph-tool backend currently does not "
-                                  "provide weighted clustering.")
-
     # use undirected graph view, filter parallel edges
     u = GraphView(g.graph, directed=False)
     u = GraphView(u, efilt=label_parallel_edges(u).fa == 0)
