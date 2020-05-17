@@ -332,12 +332,12 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     weighted  = weights not in (False, None)
 
     # get relevant matrices (use directed=False to get both dir/undir mat)
-    _, matsym = _get_matrices(g, weights, weighted, combine_weights)
+    _, matsym = _get_matrices(g, directed, weights, weighted, combine_weights)
 
     adjsym = None
 
     if method == "barrat" and weighted:
-        _, adjsym = _get_matrices(g, None, False, combine_weights)
+        _, adjsym = _get_matrices(g, directed, None, False, combine_weights)
 
     return _triangle_count(matsym, adjsym, method, weighted, directed, nodes)
 
@@ -397,7 +397,8 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
             deg = None
 
             if g.is_directed():
-                _, adjsym = _get_matrices(g, None, False, combine_weights)
+                _, adjsym = _get_matrices(g, directed, None, False,
+                                          combine_weights)
 
                 deg = adjsym.sum(axis=0).A1
             else:
@@ -411,7 +412,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
         d_recip = (adj*adj).diagonal()
         dtot    = g.get_degrees("total", nodes=nodes)
 
-        tr = (0.5*(dtot*(dtot - 1) - 2*d_recip)).astype(int)
+        tr = dtot*(dtot - 1) - 2*d_recip
 
         if nodes is None:
             return tr
@@ -423,7 +424,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
 
     if method in ("continuous", "normal"):
         # we need only the weighted matrices
-        W, Wu = _get_matrices(g, weights, weighted,
+        W, Wu = _get_matrices(g, directed, weights, weighted,
                               combine_weights=combine_weights)
     elif method == "barrat":
         # we need only the (potentially) directed matrices
@@ -468,20 +469,21 @@ def _triangles_and_triplets(g, directed, weights, method, combine_weights,
 
     # check the method to get the relevant matrices
     if method == "continuous":
-        W, Wu = _get_matrices(g, weights, True, combine_weights)
+        W, Wu = _get_matrices(g, directed, weights, True, combine_weights)
 
         triplets = _triplet_count_weighted(
             g, W, Wu, A, Au, method, directed, weights, nodes)
     elif method == "onella":
-        W, Wu = _get_matrices(g, weights, True, combine_weights)
+        W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
+                              onella=True)
 
         # onella uses the binary triplets
         triplets = triplet_count(g, nodes=nodes, directed=directed,
                                  weights=None)
     elif method == "barrat":
         # we need all matrices
-        W, Wu = _get_matrices(g, weights, True, combine_weights)
-        A, Au = _get_matrices(g, None, False, combine_weights)
+        W, Wu = _get_matrices(g, directed, weights, True, combine_weights)
+        A, Au = _get_matrices(g, directed, None, False, combine_weights)
 
         triplets = _triplet_count_weighted(
             g, W, Wu, A, Au, method, directed, weights, nodes)
@@ -500,18 +502,9 @@ def _triangle_count(matsym, adjsym, method, weighted, directed, nodes):
     tr = None
 
     if not weighted:
-        tr = (matsym*matsym*matsym).diagonal()
-
-        if directed:
-            tr = (0.5*tr).astype(int)
-    elif method in ("continuous", "normal"):
-        tr = (matsym*matsym*matsym).diagonal()
-
-        if directed:
-            tr *= 0.5
-    elif method == "onella":
-        cbrt = matsym.power(1/3)
-        tr   = 0.5*(cbrt*cbrt*cbrt).diagonal()
+        tr = (0.5*(adjsym*adjsym*adjsym).diagonal()).astype(int)
+    elif method in ("continuous", "normal", "onella"):
+        tr = 0.5*(matsym*matsym*matsym).diagonal()
     elif method == "barrat":
         tr = 0.5*(matsym*adjsym*adjsym).diagonal()
     else:
@@ -574,7 +567,8 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
     return tr[nodes]
 
 
-def _get_matrices(g, weights, weighted, combine_weights):
+def _get_matrices(g, directed, weights, weighted, combine_weights,
+                  onella=False):
     '''
     Return the relevant matrices:
     * W, Wu if weighted
@@ -584,21 +578,28 @@ def _get_matrices(g, weights, weighted, combine_weights):
         # weighted undirected
         W  = g.adjacency_matrix(weights=weights)
         W /= W.max()
+
+        if onella:
+            W = W.power(1/3)
+
         Wu = W
 
         if g.is_directed():
-            Wu = mat + mat.T
+            Wu = W + W.T
 
-            # find reciprocal edges
-            if combine_weights != "sum":
-                recip = (Wu*Wu).nonzero()
+            if not directed:
+                # find reciprocal edges
+                if combine_weights != "sum":
+                    recip = (W*W).nonzero()
 
-                if combine_weights == "mean":
-                    Wu[recip] *= 0.5
-                elif combine_weights == "min":
-                    Wu[recip] = mat[recip].minimum(mat.T[recip])
-                elif combine_weights == "max":
-                    Wu[recip] = mat[recip].maximum(mat.T[recip])
+                    if combine_weights == "mean":
+                        print("using mean")
+                        Wu[recip] *= 0.5
+                    elif combine_weights == "min":
+                        Wu[recip] = mat[recip].minimum(mat.T[recip])
+                    elif combine_weights == "max":
+                        Wu[recip] = mat[recip].maximum(mat.T[recip])
+
         return W, Wu
 
     # binary undirected
@@ -607,6 +608,8 @@ def _get_matrices(g, weights, weighted, combine_weights):
 
     if g.is_directed():
         Au = Au + Au.T
-        Au.data = np.ones(len(Au.data))
+
+        if not directed:
+            Au.data = np.ones(len(Au.data))
 
     return A, Au

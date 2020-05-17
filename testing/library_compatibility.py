@@ -112,6 +112,20 @@ def test_weighted_undirected_clustering():
             na.local_clustering(g, weights="weight", method="barrat"),
             barrat))
 
+        # fully reciprocal directed version
+        g = nngt.Graph(nodes=num_nodes, directed=True)
+        g.new_edges(edge_list, attributes={"weight": weights})
+        g.new_edges(np.array(edge_list, dtype=int)[:, ::-1],
+                    attributes={"weight": weights})
+
+        assert np.all(np.isclose(
+            na.local_clustering(g, weights="weight", method="onella"),
+            onella))
+
+        assert np.all(np.isclose(
+            na.local_clustering(g, weights="weight", method="barrat"),
+            barrat))
+
 
 def test_assortativity():
     ''' Check assortativity result for all backends '''
