@@ -76,10 +76,6 @@ def test_weighted_undirected_clustering():
     ]
     weights = [0.53, 0.45, 0.8, 0.125, 0.66, 0.31, 0.78]
 
-    # expected results
-    loc_clst  = [2/3., 2/3., 1., 1., 0.5]
-    glob_clst = 0.6428571428571429
-
     # create nx graph and compute reference Onella clustering
     nx_graph = nx.Graph()
     nx_graph.add_nodes_from(range(num_nodes))
@@ -89,6 +85,9 @@ def test_weighted_undirected_clustering():
 
     onella = list(nx.clustering(nx_graph, weight="weight").values())
 
+    triplets = [3, 3, 1, 1, 6]
+    gc_onella = np.sum(np.multiply(onella, triplets)) / np.sum(triplets)
+
     # create ig graph and compute reference Barrat clustering
     ig_graph = ig.Graph(num_nodes, directed=False)
     ig_graph.add_edges(edge_list)
@@ -97,6 +96,12 @@ def test_weighted_undirected_clustering():
     barrat = ig_graph.transitivity_local_undirected(mode="zero",
                                                     weights="weight")
 
+    strength = np.array(ig_graph.strength())
+    degree   = np.array(ig_graph.degree())
+    triplets = strength*(degree - 1)
+
+    gc_barrat = np.sum(np.multiply(barrat, triplets)) / np.sum(triplets)
+
     # check for all backends
     for bckd in backends_clustering:
         nngt.set_config("backend", bckd)
@@ -104,13 +109,26 @@ def test_weighted_undirected_clustering():
         g = nngt.Graph(nodes=num_nodes, directed=False)
         g.new_edges(edge_list, attributes={"weight": weights})
 
+        # onella
         assert np.all(np.isclose(
             na.local_clustering(g, weights="weight", method="onella"),
             onella))
 
+        assert np.isclose(
+            na.global_clustering(g, weights="weight", method="onella"),
+            gc_onella)
+
+        # barrat
         assert np.all(np.isclose(
             na.local_clustering(g, weights="weight", method="barrat"),
             barrat))
+
+        # ~ print(na.global_clustering(g, weights="weight", method="barrat"),
+            # ~ gc_barrat)
+
+        # ~ assert np.isclose(
+            # ~ na.global_clustering(g, weights="weight", method="barrat"),
+            # ~ gc_barrat)
 
         # fully reciprocal directed version
         g = nngt.Graph(nodes=num_nodes, directed=True)

@@ -528,16 +528,19 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
     elif method == "continuous":
         if directed:
             sqmat = mat.sqrt()
-            s_cyc1 = np.square(sqmat.sum(axis=0).A1 + sqmat.sum(axis=1).A1)
-            s_cyc2 = matsym.sum(axis=0).A1
-            s_recp = 2*(sqmat*sqmat).diagonal()
 
-            tr = s_cyc1 - s_cyc2 - s_recp
+            s2_sq_tot = np.square(sqmat.sum(axis=0).A1 + sqmat.sum(axis=1).A1)
+            s_tot     = matsym.sum(axis=0).A1
+            s_recp    = 2*(sqmat*sqmat).diagonal()
+
+            tr = s2_sq_tot - s_tot - s_recp
         else:
             sqmat = matsym.sqrt()
-            s_cyc1 = np.square(sqmat.sum(axis=0).A1)
-            s_cyc2 = mat.sum(axis=0).A1
-            denom  = s_cyc1 - s_cyc2
+
+            s2_sq = np.square(sqmat.sum(axis=0).A1)
+            s     = mat.sum(axis=0).A1
+
+            tr = s2_sq - s
     elif method == "barrat":
         if directed:
             s_recp = 0.5*(mat*adj + adj*mat).diagonal() if directed else 0.
