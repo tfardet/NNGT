@@ -110,6 +110,7 @@ def use_backend(backend, reloading=True, silent=False):
         raise ValueError("Invalid graph library requested.")
 
     if reloading:
+        reload(sys.modules["nngt"].analysis.clustering)
         reload(sys.modules["nngt"].analysis.graph_analysis)
         reload(sys.modules["nngt"].analysis)  # must come after  graph_analysis
         reload(sys.modules["nngt"].generation.graph_connectivity)

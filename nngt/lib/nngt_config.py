@@ -275,6 +275,7 @@ def _set_gt_config(old_gl, new_config):
     using_gt  = old_gl == "graph-tool"
     using_gt *= new_config.get("backend", old_gl) == "graph-tool"
     using_gt *= nngt._config["library"] is not None
+
     if "omp" in new_config and using_gt:
         omp_nest = new_config["omp"]
         if nngt._config['with_nest']:
@@ -354,6 +355,9 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
     new_multithreading = new_config.get("multithreading", old_mt)
 
     if new_multithreading != old_mt:
+        # connectors.py and rewiring.py use directly
+        # nngt.generation.graph_connectivity so they always access the reloaded
+        # version and we don't need to reload them
         reload(sys.modules["nngt"].generation.graph_connectivity)
 
     # if multithreading loading failed, set omp back to 1
@@ -385,6 +389,9 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
 
     # reload for mpi
     if new_config.get('mpi', old_mpi) != old_mpi:
+        # connectors.py and rewiring.py use directly
+        # nngt.generation.graph_connectivity so they always access the reloaded
+        # version and we don't need to reload them
         reload(sys.modules["nngt"].generation.graph_connectivity)
 
     # set graph-tool config

@@ -21,6 +21,9 @@
 
 """ Tools to analyze graphs with the nngt backend """
 
+import numpy as np
+import scipy.sparse as ssp
+
 
 def adj_mat(g, weight=None, mformat="csr"):
     data = None

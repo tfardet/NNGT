@@ -28,7 +28,7 @@ from ..lib.test_functions import nonstring_container
 from ..lib.graph_helpers import _get_ig_weights
 
 
-def undirected_binary_global_clustering(g):
+def global_clustering_binary_undirected(g):
     '''
     Returns the undirected global clustering coefficient.
 
@@ -47,7 +47,7 @@ def undirected_binary_global_clustering(g):
     return np.array(g.graph.as_undirected().transitivity_undirected())
 
 
-def undirected_binary_clustering(g, nodes=None):
+def local_clustering_binary_undirected(g, nodes=None):
     '''
     Returns the undirected local clustering coefficient of some `nodes`.
 
@@ -70,7 +70,10 @@ def undirected_binary_clustering(g, nodes=None):
     ----------
     .. [ig-local-clustering] :igdoc:`transitivity_local_undirected`
     '''
-    return np.array(u.transitivity_local_undirected(nodes, weights=None))
+    u = g.graph.as_undirected()
+
+    return np.array(u.transitivity_local_undirected(nodes, mode="zero",
+                                                    weights=None))
 
 
 def assortativity(g, degree, weights=None):

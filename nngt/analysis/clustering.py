@@ -21,30 +21,74 @@
 
 """ Tools for directed/weighted clsutering analysis """
 
+import numpy as np
+
+import nngt
+
+
 __all__ = [
 	"global_clustering",
+    "global_clustering_binary_undirected",
     "local_clustering",
-    "triad_count",
+    "local_clustering_binary_undirected",
+    "triplet_count",
     "triangle_count",
 ]
 
 
-def global_clustering(g, weights=None, method="continuous", directed=True):
+def global_clustering_binary_undirected(g):
     '''
     Returns the undirected global clustering coefficient.
 
-    This corresponds to the ratio of triangles to the number of triads.
-    For directed and weighted cases, see definitions of generalized triangles
-    and triads in the associated functions below.
+    This corresponds to the ratio of undirected triangles to the number of
+    undirected triads.
 
     Parameters
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
+    '''
+    # Note, this function is overloaded by the library-specific version
+    # if igraph, graph-tool, or networkx is used
+    triangles = triangle_count(g, weights=None, directed=False)
+    triplets  = triplet_count(g, weights=None, directed=False)
+
+    return np.sum(triangles) / np.sum(triplets)
+
+
+def global_clustering(g, directed=True, weights=None, method="continuous",
+                      combine_weights="mean"):
+    '''
+    Returns the global clustering coefficient.
+
+    This corresponds to the ratio of triangles to the number of triplets.
+    For directed and weighted cases, see definitions of generalized triangles
+    and triplets in the associated functions below.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    directed : bool, optional (default: True)
+        Whether to compute the directed clustering if the graph is directed.
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
+    method : str, optional (default: 'continuous')
+        Method used to compute the weighted clustering, either 'barrat'
+        [Barrat2004], 'continuous', or 'onella' [Saramaki2007].
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     References
     ----------
@@ -54,29 +98,29 @@ def global_clustering(g, weights=None, method="continuous", directed=True):
 
     See also
     --------
-    :func:`~nngt.analysis.triad_count`
+    :func:`~nngt.analysis.triplet_count`
     :func:`~nngt.analysis.triangle_count`
     '''
     # check directivity and weights
-    directed = g.is_directed()
-    weighted = weights not in (False, None)
+    directed *= g.is_directed()
+    weighted  = weights not in (False, None)
 
     if not directed and not weighted:
-        return undirected_binary_global_clustering(g)
+        return global_clustering_binary_undirected(g)
     elif not weighted:
         # directed clustering
-        triangles = triangle_count(g, nodes=nodes)
-        triads    = triad_count(g, nodes)
+        triangles = triangle_count(g)
+        triplets  = triplet_count(g)
 
-        return np.sum(triangles) / np.sum(triads)
+        return np.sum(triangles) / np.sum(triplets)
 
-    triangles, triads = _triangles_and_triads(g, weights, directed,
-                                              combine_weights, nodes)
+    triangles, triplets = _triangles_and_triplets(g, directed, weights, method,
+                                                  combine_weights, None)
 
-    return np.sum(triangles) / np.sum(triads)
+    return np.sum(triangles) / np.sum(triplets)
 
 
-def undirected_binary_clustering(g, nodes=None):
+def local_clustering_binary_undirected(g, nodes=None):
     r'''
     Returns the undirected local clustering coefficient of some `nodes`.
 
@@ -86,7 +130,7 @@ def undirected_binary_clustering(g, nodes=None):
 
     with :math:`A` the adjacency matrix, :math:`d_i` the degree of node
     :math:`i`, :math:`\Delta_i` is the number of triangles, and :math:`T_i` is
-    the number of triads to which :math:`i` belongs.
+    the number of triplets to which :math:`i` belongs.
 
     If `g` is directed, then it is converted to a simple undirected graph
     (no parallel edges), both directed and reciprocal edges are merged into
@@ -112,15 +156,17 @@ def undirected_binary_clustering(g, nodes=None):
     '''
     # Note, this function is overloaded by the library-specific version
     # if igraph, graph-tool, or networkx is used
-    triads    = triad_count(g, weights=None, nodes=nodes, directed=False)
     triangles = triangle_count(g, weights=None, nodes=nodes, directed=False)
+    triplets  = triplet_count(g, weights=None, nodes=nodes, directed=False)
 
-    return triads / triangles
+    triplets[triangles == 0] = 1
+
+    return triangles / triplets
 
 
-def local_clustering(g, weights=None, nodes=None, method="continuous",
-                     directed=True, combine_weights="mean"):
-    '''
+def local_clustering(g, nodes=None, directed=True, weights=None,
+                     method="continuous", combine_weights="mean"):
+    r'''
     Local (weighted directed) clustering coefficient of the nodes.
 
     If no weights are requested and the graph is undirected, returns the
@@ -168,17 +214,17 @@ def local_clustering(g, weights=None, nodes=None, method="continuous",
     ----------
     g : :class:`~nngt.Graph` object
         Graph to analyze.
+    nodes : array-like container with node ids, optional (default = all nodes)
+        Nodes for which the local clustering coefficient should be computed.
+    directed : bool, optional (default: True)
+        Whether to compute the directed clustering if the graph is directed.
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
-    nodes : array-like container with node ids, optional (default = all nodes)
-        Nodes for which the local clustering coefficient should be computed.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
         [Barrat2004], 'continuous', or 'onella' [Saramaki2007].
-    directed : bool, optional (default: True)
-        Whether to compute the directed clustering if the graph is directed.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
@@ -225,103 +271,22 @@ def local_clustering(g, weights=None, nodes=None, method="continuous",
 
     if not directed and not weighted:
         # undirected binary clustering uses the library method
-        return undirected_binary_clustering(g, weights=weights, nodes=nodes)
+        return local_clustering_binary_undirected(g, nodes=nodes)
     elif not weighted:
         # directed clustering
         triangles = triangle_count(g, nodes=nodes)
-        triads    = triad_count(g, nodes)
+        triplets  = triplet_count(g, nodes).astype(float)
 
-        triads[triads == 0] = np.inf
+        triplets[triangles == 0] = 1
 
-        return triangles / triads
+        return triangles / triplets
 
-    triangles, triads = _triangles_and_triads(g, weights, directed,
-                                              combine_weights, nodes)
+    triangles, triplets = _triangles_and_triplets(g, directed, weights, method,
+                                                  combine_weights, nodes)
 
-    triads[triads == 0] = np.inf
+    triplets[triangles == 0] = 1
 
-    return triangles / triads
-
-
-def triad_count(g, nodes=None, directed=True, weights=None,
-                method="normal", combine_weights="mean"):
-    '''
-    Returns the number or strength of triads for each node.
-
-    Parameters
-    ----------
-    g : :class:`~nngt.Graph` object
-        Graph to analyze.
-    nodes : array-like container with node ids, optional (default = all nodes)
-        Nodes for which the local clustering coefficient should be computed.
-    directed : bool, optional (default: True)
-        Whether to compute the directed clustering if the graph is directed.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
-    method : str, optional (default: 'continuous')
-        Method used to compute the weighted triads, either 'normal', where
-        the edge weights are directly used, or the definitions used for
-        weighted clustering coefficients, 'barrat' [Barrat2004] or
-        'continuous'.
-    combine_weights : str, optional (default: 'mean')
-        How to combine the weights of reciprocal edges if the graph is directed
-        but `directed` is set to False. It can be:
-        * "sum": the sum of the edge attribute values will be used for the new
-          edge.
-        * "mean": the mean of the edge attribute values will be used for the
-          new edge.
-        * "min": the minimum of the edge attribute values will be used for the
-          new edge.
-        * "max": the maximum of the edge attribute values will be used for the
-          new edge.
-
-    Returns
-    -------
-    tr : array
-        Number or weight of triads to which each node belongs.
-    '''
-    directed *= g.is_directed()
-    weighted  = weights not in (False, None)
-
-    # simple binary cases
-    if not weighted or method == "onella":
-        # undirected
-        if not g.is_directed():
-            deg = g.get_degrees(nodes=nodes)
-
-            return deg*(deg - 1)
-
-        # directed
-        adj = g.adjacency_matrix()
-
-        d_recip = (adj*adj).diagonal()
-        dtot    = g.get_degrees("total", nodes=nodes)
-
-        tr = dtot*(dtot - 1) - 2*d_recip
-
-        if nodes is None:
-            return tr
-
-        return tr[nodes]
-
-    # check method for weighted
-    W, Wu, A, Au = None, None, None, None
-
-    if method in ("continuous", "normal"):
-        # we need only the weighted matrices
-        W, Wu = _get_matrices(g, weights, weighted,
-                              combine_weights=combine_weights)
-    elif method == "barrat":
-        # we need only the (potentially) directed matrices
-        W = g.adjacency_matrix(weights=weights)
-        A = g.adjacency_matrix()
-    else:
-        raise ValueError("`method` must be either 'barrat', 'continuous' "
-                         "or 'normal' (identical, recommended options).")
-
-    return _triad_count_weighted(g, W, Wu, A, Au, method, directed, nodes)
+    return triangles / triplets
 
 
 def triangle_count(g, nodes=None, directed=True, weights=None,
@@ -367,15 +332,126 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     weighted  = weights not in (False, None)
 
     # get relevant matrices (use directed=False to get both dir/undir mat)
-    _, matsym = _get_matrices(g, weights, weighted, False, combine_weights)
+    _, matsym = _get_matrices(g, weights, weighted, combine_weights)
 
     adjsym = None
 
     if method == "barrat" and weighted:
-        _, adjsym = _get_matrices(g, None, False, False, combine_weights)
+        _, adjsym = _get_matrices(g, None, False, combine_weights)
 
-    return _triangle_count_weighted_directed(matsym, adjsym, method, weighted,
-                                             directed, nodes)
+    return _triangle_count(matsym, adjsym, method, weighted, directed, nodes)
+
+
+def triplet_count(g, nodes=None, directed=True, weights=None,
+                method="normal", combine_weights="mean"):
+    '''
+    Returns the number or strength of triplets for each node.
+
+    For binary networks, the triplets of node :math:`i` are defined as:
+
+    .. math::
+
+        T_i = \sum_{j,k} a_{ij}a_{ik}
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph` object
+        Graph to analyze.
+    nodes : array-like container with node ids, optional (default = all nodes)
+        Nodes for which the local clustering coefficient should be computed.
+    directed : bool, optional (default: True)
+        Whether to compute the directed clustering if the graph is directed.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+    method : str, optional (default: 'continuous')
+        Method used to compute the weighted triplets, either 'normal', where
+        the edge weights are directly used, or the definitions used for
+        weighted clustering coefficients, 'barrat' [Barrat2004] or
+        'continuous'.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
+
+    Returns
+    -------
+    tr : array
+        Number or weight of triplets to which each node belongs.
+    '''
+    directed *= g.is_directed()
+    weighted  = weights not in (False, None)
+
+    # simple binary cases
+    if not weighted or method == "onella":
+        # undirected
+        if not directed:
+            deg = None
+
+            if g.is_directed():
+                _, adjsym = _get_matrices(g, None, False, combine_weights)
+
+                deg = adjsym.sum(axis=0).A1
+            else:
+                deg = g.get_degrees(nodes=nodes)
+
+            return (0.5*deg*(deg - 1)).astype(int)
+
+        # directed
+        adj = g.adjacency_matrix()
+
+        d_recip = (adj*adj).diagonal()
+        dtot    = g.get_degrees("total", nodes=nodes)
+
+        tr = (0.5*(dtot*(dtot - 1) - 2*d_recip)).astype(int)
+
+        if nodes is None:
+            return tr
+
+        return tr[nodes]
+
+    # check method for weighted
+    W, Wu, A, Au = None, None, None, None
+
+    if method in ("continuous", "normal"):
+        # we need only the weighted matrices
+        W, Wu = _get_matrices(g, weights, weighted,
+                              combine_weights=combine_weights)
+    elif method == "barrat":
+        # we need only the (potentially) directed matrices
+        W = g.adjacency_matrix(weights=weights)
+        A = g.adjacency_matrix()
+    else:
+        raise ValueError("`method` must be either 'barrat', 'continuous' "
+                         "or 'normal' (identical, recommended options).")
+
+    return _triplet_count_weighted(
+        g, W, Wu, A, Au, method, directed, weights, nodes)
+
+
+# ---------------------------------------------------------- #
+# Overwrite binary clusterings with library-specific version #
+# ---------------------------------------------------------- #
+
+if nngt._config["backend"] == "networkx":
+    from .nx_functions import (global_clustering_binary_undirected,
+                               local_clustering_binary_undirected)
+
+if nngt._config["backend"] == "igraph":
+    from .ig_functions import (global_clustering_binary_undirected,
+                               local_clustering_binary_undirected)
+
+if nngt._config["backend"] == "graph-tool":
+    from .gt_functions import (global_clustering_binary_undirected,
+                               local_clustering_binary_undirected)
 
 
 # -------------- #
@@ -383,42 +459,74 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
 # -------------- #
 
 
-def _triangles_and_triads(g, weights, directed, combine_weights, nodes):
-    ''' Return the triangles and triads '''
+def _triangles_and_triplets(g, directed, weights, method, combine_weights,
+                            nodes):
+    ''' Return the triangles and triplets '''
     # weighted clustering
     W, Wu, A, Au = None, None, None, None
-    triads = None
+    triplets = None
 
     # check the method to get the relevant matrices
     if method == "continuous":
         W, Wu = _get_matrices(g, weights, True, combine_weights)
 
-        triads = _triad_count_weighted(g, W, Wu, A, Au, method,
-                                       directed=directed, nodes=nodes)
+        triplets = _triplet_count_weighted(
+            g, W, Wu, A, Au, method, directed, weights, nodes)
     elif method == "onella":
         W, Wu = _get_matrices(g, weights, True, combine_weights)
 
-        # onella uses the binary triads
-        triads = triad_count(g, nodes=nodes, directed=directed, weights=None)
+        # onella uses the binary triplets
+        triplets = triplet_count(g, nodes=nodes, directed=directed,
+                                 weights=None)
     elif method == "barrat":
         # we need all matrices
         W, Wu = _get_matrices(g, weights, True, combine_weights)
         A, Au = _get_matrices(g, None, False, combine_weights)
-        
-        triads = _triad_count_weighted(g, W, Wu, A, Au, method,
-                                       directed=directed, nodes=nodes)
 
-    # get triangles and triad strength
+        triplets = _triplet_count_weighted(
+            g, W, Wu, A, Au, method, directed, weights, nodes)
+
+    # get triangles and triplet strength
     triangles = _triangle_count(Wu, Au, method, weighted=True,
                                 directed=directed, nodes=nodes)
 
-    return triangles, triads
+    return triangles, triplets
 
 
-def _triad_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
-                          nodes):
+def _triangle_count(matsym, adjsym, method, weighted, directed, nodes):
     '''
-    Triad count, weighted only.
+    (Un)weighted (un)directed triangle count.
+    '''
+    tr = None
+
+    if not weighted:
+        tr = (matsym*matsym*matsym).diagonal()
+
+        if directed:
+            tr = (0.5*tr).astype(int)
+    elif method in ("continuous", "normal"):
+        tr = (matsym*matsym*matsym).diagonal()
+
+        if directed:
+            tr *= 0.5
+    elif method == "onella":
+        cbrt = matsym.power(1/3)
+        tr   = 0.5*(cbrt*cbrt*cbrt).diagonal()
+    elif method == "barrat":
+        tr = 0.5*(matsym*adjsym*adjsym).diagonal()
+    else:
+        raise ValueError("Invalid `method`: '{}'".format(method))
+
+    if nodes is None:
+        return tr
+
+    return tr[nodes]
+
+
+def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
+                            weights, nodes):
+    '''
+    triplet count, weighted only.
     '''
     tr = None
 
@@ -438,38 +546,27 @@ def _triad_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
             s_cyc2 = mat.sum(axis=0).A1
             denom  = s_cyc1 - s_cyc2
     elif method == "barrat":
-        s_recp = (mat*adj).diagonal() if directed else 0.
+        if directed:
+            s_recp = 0.5*(mat*adj + adj*mat).diagonal() if directed else 0.
 
-        dtot = g.get_degrees("total")
-        stot = g.get_degrees("total", weights=weights)
+            dtot = g.get_degrees("total")
+            wmax = np.max(g.get_weights())
+            stot = g.get_degrees("total", weights=weights) / wmax
 
-        tr = stot*(dtot - 1) - 2*s_recp
+            tr = stot*(dtot - 1) - 2*s_recp
+        elif g.is_directed():
+            d = adjsym.sum(axis=0).A1
+            s = matsym.sum(axis=0).A1
+
+            tr = 0.5*s*(d - 1)
+        else:
+            d = g.get_degrees()
+            s = matsym.sum(axis=0).A1
+
+            tr = 0.5*s*(d - 1)
     else:
         raise ValueError(
-            "Invalid `method` for triad count: '{}'".format(method))
-
-    if nodes is None:
-        return tr
-
-    return tr[nodes]
-
-
-def _triangle_count(matsym, adjsym, method, weighted, directed, nodes):
-    '''
-    (Un)weighted (un)directed triangle count.
-    '''
-    tr = None
-
-    if not weighted and not directed:
-        tr = (matsym*matsym*matsym).diagonal()
-    elif not weighted or method in ("continuous", "normal"):
-        tr = 0.5*(matsym*matsym*matsym).diagonal()
-    elif method == "onnela":
-        tr = 0.5*np.power((matsym*matsym*matsym).diagonal(), 1/3)
-    elif method == "barrat":
-        tr = 0.25*(matsym*adjsym*adjsym + adjsym*adjsym*matsym)
-    else:
-        raise ValueError("Invalid `method`: '{}'".format(method))
+            "Invalid `method` for triplet count: '{}'".format(method))
 
     if nodes is None:
         return tr
@@ -486,6 +583,7 @@ def _get_matrices(g, weights, weighted, combine_weights):
     if weighted:
         # weighted undirected
         W  = g.adjacency_matrix(weights=weights)
+        W /= W.max()
         Wu = W
 
         if g.is_directed():

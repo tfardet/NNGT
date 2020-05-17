@@ -29,5 +29,7 @@ def test_undirected_clustering():
     assert np.all(np.isclose(cc, ccu))
 
 
+
+
 if __name__ == "__main__":
-    test_directed_clustering()
+    test_undirected_clustering()

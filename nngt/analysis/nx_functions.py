@@ -29,7 +29,7 @@ from ..lib.graph_helpers import _get_nx_weights
 import networkx as nx
 
 
-def undirected_binary_global_clustering(g):
+def global_clustering_binary_undirected(g):
     '''
     Returns the undirected global clustering coefficient.
 
@@ -48,7 +48,7 @@ def undirected_binary_global_clustering(g):
     return nx.transitivity(g.graph.to_undirected(as_view=True))
 
 
-def undirected_binary_clustering(g, nodes=None):
+def local_clustering_binary_undirected(g, nodes=None):
     '''
     Returns the undirected local clustering coefficient of some `nodes`.
 

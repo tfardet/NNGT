@@ -38,7 +38,7 @@ from ..lib.test_functions import nonstring_container
 from ..lib.graph_helpers import _get_gt_weights
 
 
-def undirected_binary_global_clustering(g):
+def global_clustering_binary_undirected(g):
     '''
     Returns the undirected global clustering coefficient.
 
@@ -61,7 +61,7 @@ def undirected_binary_global_clustering(g):
     return gtc.global_clustering(u, weight=None)[0]
 
 
-def undirected_binary_clustering(g, nodes=None):
+def local_clustering_binary_undirected(g, nodes=None):
     '''
     Returns the undirected local clustering coefficient of some `nodes`.
 
