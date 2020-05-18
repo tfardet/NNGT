@@ -1457,8 +1457,7 @@ class Connections:
         elist = graph.edges_array if elist is None else elist
 
         if dlist is not None:
-            assert isinstance(dlist, np.ndarray), "numpy.ndarray required in "\
-                                                  "Connections.distances"
+            dlist = np.array(dlist)
             graph.set_edge_attribute(DIST, value_type="double", values=dlist)
             return dlist
         else:
@@ -1506,8 +1505,7 @@ class Connections:
         '''
         elist = np.array(elist) if elist is not None else elist
         if dlist is not None:
-            assert isinstance(dlist, np.ndarray), "numpy.ndarray required in "\
-                                                  "Connections.delays"
+            dlist = np.array(dlist)
             num_edges = graph.edge_nb() if elist is None else elist.shape[0]
             if len(dlist) != num_edges:
                 raise InvalidArgument("`dlist` must have one entry per edge.")
@@ -1554,8 +1552,7 @@ class Connections:
         parameters["weights"] = parameters.get("weights", None)
         elist = np.array(elist) if elist is not None else elist
         if wlist is not None:
-            assert isinstance(wlist, np.ndarray), "numpy.ndarray required in "\
-                                                  "Connections.weights"
+            wlist = np.array(wlist)
             num_edges = graph.edge_nb() if elist is None else elist.shape[0]
             if len(wlist) != num_edges:
                 raise InvalidArgument("`wlist` must have one entry per edge.")

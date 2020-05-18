@@ -292,7 +292,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
 def triangle_count(g, nodes=None, directed=True, weights=None,
                    method="normal", combine_weights="mean"):
     '''
-    Returns the number or strength of triangles 
+    Returns the number or the strength (also called intensity) of triangles
+    for each node.
 
     Parameters
     ----------
@@ -346,8 +347,9 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
 
 def triplet_count(g, nodes=None, directed=True, weights=None,
                 method="normal", combine_weights="mean"):
-    '''
-    Returns the number or strength of triplets for each node.
+    r'''
+    Returns the number or the strength (also called intensity) of triplets for
+    each node.
 
     For binary networks, the triplets of node :math:`i` are defined as:
 
@@ -542,7 +544,7 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
             s2_sq = np.square(sqmat.sum(axis=0).A1)
             s     = mat.sum(axis=0).A1
 
-            tr = s2_sq - s
+            tr = 0.5*(s2_sq - s)
     elif method == "barrat":
         if directed:
             s_recp = 0.5*(mat*adj + adj*mat).diagonal() if directed else 0.
@@ -598,7 +600,6 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
                     recip = (W*W).nonzero()
 
                     if combine_weights == "mean":
-                        print("using mean")
                         Wu[recip] *= 0.5
                     elif combine_weights == "min":
                         Wu[recip] = mat[recip].minimum(mat.T[recip])
