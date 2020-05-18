@@ -96,7 +96,7 @@ def test_weighted_undirected_clustering():
     barrat = ig_graph.transitivity_local_undirected(mode="zero",
                                                     weights="weight")
 
-    strength = np.array(ig_graph.strength())
+    strength = np.array(ig_graph.strength(weights='weight'))
     degree   = np.array(ig_graph.degree())
     triplets = strength*(degree - 1)
 
@@ -123,12 +123,9 @@ def test_weighted_undirected_clustering():
             na.local_clustering(g, weights="weight", method="barrat"),
             barrat))
 
-        # ~ print(na.global_clustering(g, weights="weight", method="barrat"),
-            # ~ gc_barrat)
-
-        # ~ assert np.isclose(
-            # ~ na.global_clustering(g, weights="weight", method="barrat"),
-            # ~ gc_barrat)
+        assert np.isclose(
+            na.global_clustering(g, weights="weight", method="barrat"),
+            gc_barrat)
 
         # fully reciprocal directed version
         g = nngt.Graph(nodes=num_nodes, directed=True)
@@ -140,9 +137,17 @@ def test_weighted_undirected_clustering():
             na.local_clustering(g, weights="weight", method="onella"),
             onella))
 
+        assert np.isclose(
+            na.global_clustering(g, weights="weight", method="onella"),
+            gc_onella)
+
         assert np.all(np.isclose(
             na.local_clustering(g, weights="weight", method="barrat"),
             barrat))
+
+        assert np.isclose(
+            na.global_clustering(g, weights="weight", method="barrat"),
+            gc_barrat)
 
 
 def test_assortativity():
@@ -524,12 +529,12 @@ def test_subgraph_centrality():
 
 
 if __name__ == "__main__":
-    # ~ test_binary_undirected_clustering()
+    test_binary_undirected_clustering()
     test_weighted_undirected_clustering()
-    # ~ test_assortativity()
-    # ~ test_reciprocity()
-    # ~ test_closeness()
-    # ~ test_betweenness()
-    # ~ test_components()
-    # ~ test_diameter()
-    # ~ test_subgraph_centrality()
+    test_assortativity()
+    test_reciprocity()
+    test_closeness()
+    test_betweenness()
+    test_components()
+    test_diameter()
+    test_subgraph_centrality()

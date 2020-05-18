@@ -334,8 +334,10 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     # get relevant matrices (use directed=False to get both dir/undir mat)
     _, matsym = _get_matrices(g, directed, weights, weighted, combine_weights)
 
-    adjsym = None
+    # if unweighted, adjsym is matsym
+    adjsym = matsym
 
+    # for barrat, we need both weighted and binary matrices
     if method == "barrat" and weighted:
         _, adjsym = _get_matrices(g, directed, None, False, combine_weights)
 
