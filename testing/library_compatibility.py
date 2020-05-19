@@ -63,7 +63,7 @@ def test_binary_undirected_clustering():
 
 def test_weighted_undirected_clustering():
     '''
-    Compare the Onella implementation with networkx and Barrat with igraph.
+    Compare the onnela implementation with networkx and Barrat with igraph.
     '''
     # import networkx and igraph
     import networkx as nx
@@ -76,17 +76,17 @@ def test_weighted_undirected_clustering():
     ]
     weights = [0.53, 0.45, 0.8, 0.125, 0.66, 0.31, 0.78]
 
-    # create nx graph and compute reference Onella clustering
+    # create nx graph and compute reference onnela clustering
     nx_graph = nx.Graph()
     nx_graph.add_nodes_from(range(num_nodes))
 
     arr_edges = [e + (w,) for e, w in zip(edge_list, weights)]
     nx_graph.add_weighted_edges_from(arr_edges, weight="weight")
 
-    onella = list(nx.clustering(nx_graph, weight="weight").values())
+    onnela = list(nx.clustering(nx_graph, weight="weight").values())
 
     triplets = [3, 3, 1, 1, 6]
-    gc_onella = np.sum(np.multiply(onella, triplets)) / np.sum(triplets)
+    gc_onnela = np.sum(np.multiply(onnela, triplets)) / np.sum(triplets)
 
     # create ig graph and compute reference Barrat clustering
     ig_graph = ig.Graph(num_nodes, directed=False)
@@ -109,14 +109,14 @@ def test_weighted_undirected_clustering():
         g = nngt.Graph(nodes=num_nodes, directed=False)
         g.new_edges(edge_list, attributes={"weight": weights})
 
-        # onella
+        # onnela
         assert np.all(np.isclose(
-            na.local_clustering(g, weights="weight", method="onella"),
-            onella))
+            na.local_clustering(g, weights="weight", method="onnela"),
+            onnela))
 
         assert np.isclose(
-            na.global_clustering(g, weights="weight", method="onella"),
-            gc_onella)
+            na.global_clustering(g, weights="weight", method="onnela"),
+            gc_onnela)
 
         # barrat
         assert np.all(np.isclose(
@@ -134,12 +134,12 @@ def test_weighted_undirected_clustering():
                     attributes={"weight": weights})
 
         assert np.all(np.isclose(
-            na.local_clustering(g, weights="weight", method="onella"),
-            onella))
+            na.local_clustering(g, weights="weight", method="onnela"),
+            onnela))
 
         assert np.isclose(
-            na.global_clustering(g, weights="weight", method="onella"),
-            gc_onella)
+            na.global_clustering(g, weights="weight", method="onnela"),
+            gc_onnela)
 
         assert np.all(np.isclose(
             na.local_clustering(g, weights="weight", method="barrat"),
