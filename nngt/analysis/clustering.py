@@ -333,7 +333,8 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     weighted  = weights not in (False, None)
 
     # get relevant matrices (use directed=False to get both dir/undir mat)
-    _, matsym = _get_matrices(g, directed, weights, weighted, combine_weights)
+    _, matsym = _get_matrices(g, directed, weights, weighted, combine_weights,
+                              onella=(method=="onella"))
 
     # if unweighted, adjsym is matsym
     adjsym = matsym
@@ -535,9 +536,9 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
 
             s2_sq_tot = np.square(sqmat.sum(axis=0).A1 + sqmat.sum(axis=1).A1)
             s_tot     = matsym.sum(axis=0).A1
-            s_recp    = 2*(sqmat*sqmat).diagonal()
+            s_recip   = 2*(sqmat*sqmat).diagonal()
 
-            tr = s2_sq_tot - s_tot - s_recp
+            tr = s2_sq_tot - s_tot - s_recip
         else:
             sqmat = matsym.sqrt()
 
@@ -547,13 +548,14 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
             tr = 0.5*(s2_sq - s)
     elif method == "barrat":
         if directed:
-            s_recp = 0.5*(mat*adj + adj*mat).diagonal() if directed else 0.
+            # specifc definition of the reciprocal strength from Clemente
+            s_recip = 0.5*(mat*adj + adj*mat).diagonal()
 
             dtot = g.get_degrees("total")
             wmax = np.max(g.get_weights())
             stot = g.get_degrees("total", weights=weights) / wmax
 
-            tr = stot*(dtot - 1) - 2*s_recp
+            tr = stot*(dtot - 1) - 2*s_recip
         elif g.is_directed():
             d = adjsym.sum(axis=0).A1
             s = matsym.sum(axis=0).A1
