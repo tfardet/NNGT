@@ -131,6 +131,9 @@ ignore = {
     'nngt.lib': ("custom", "decorate", "deprecated", "graph_tool_check",
                  "mpi_barrier", "mpi_checker", "mpi_random", "not_implemented",
                  "num_mpi_processes", "on_master_process", "seed"),
+    'nngt.generation': ('connect_nodes', 'connect_groups', 'connect_types',
+                        'connect_neural_types', 'random_rewire',
+                        'lattice_rewire', 'connect_neural_groups')
 }
 
 for f in inputs:
@@ -163,6 +166,13 @@ gen_autosum(target, target, 'nngt', 'autoclass', dtype="class",
 source = current_directory + "/modules/geometry.rst.in"
 target = current_directory + "/modules/geometry.rst"
 gen_autosum(source, target, 'nngt.geometry', 'summary', dtype="all")
+
+# generation
+source = current_directory + "/modules/generation.rst.in"
+target = current_directory + "/modules/generation.rst"
+gen_autosum(source, target, 'nngt.generation', 'summary', dtype="func",
+            ignore=ignore['nngt.generation'])
+gen_autosum(target, target, 'nngt.generation', 'autofunction', dtype="func")
 
 
 

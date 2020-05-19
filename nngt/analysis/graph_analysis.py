@@ -1,5 +1,7 @@
 #-*- coding:utf-8 -*-
 #
+# graph_analysis.py
+#
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.
 # Copyright (C) 2015-2019  Tanguy Fardet
@@ -24,8 +26,10 @@ import scipy.sparse.linalg as spl
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
+from . import clustering
 from .activity_analysis import get_b2, get_firing_rate
 from .bayesian_blocks import bayesian_blocks
+from .clustering import *
 
 
 # implemented function; import from proper backend is done at the bottom
@@ -38,18 +42,18 @@ __all__ = [
     "binning",
 	"closeness",
 	"connected_components",
-	"global_clustering",
     "degree_distrib",
 	"diameter",
-    "local_clustering",
     "node_attributes",
 	"num_iedges",
 	"reciprocity",
 	"spectral_radius",
     "subgraph_centrality",
     "transitivity",
-    "undirected_local_clustering"
 ]
+
+
+__all__.extend(clustering.__all__)
 
 
 _backend_required = "Please install either networkx, igraph, or graph-tool " \
@@ -118,36 +122,6 @@ def reciprocity(g):
     .. [gt-reciprocity] :gtdoc:`topology.edge_reciprocity`
     .. [ig-reciprocity] :igdoc:`reciprocity`
     .. [nx-reciprocity] :nxdoc:`algorithms.reciprocity.overall_reciprocity`
-    '''
-    raise NotImplementedError(_backend_required)
-
-
-def global_clustering(g, weights=None):
-    '''
-    Returns the undirected global clustering coefficient.
-    This corresponds to the ratio of undirected triangles to the number of
-    undirected triads.
-
-    Parameters
-    ----------
-    g : :class:`~nngt.Graph`
-        Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
-
-    Note
-    ----
-    If `weights` is None, returns the transitivity (number of existing
-    triangles over total number of possible triangles); otherwise returns
-    the average clustering.
-
-    References
-    ----------
-    .. [gt-global-clustering] :gtdoc:`clustering.global_clustering`
-    .. [ig-global-clustering] :igdoc:`transitivity_undirected`
-    .. [nx-global-clustering] :nxdoc:`algorithms.cluster.transitivity`
     '''
     raise NotImplementedError(_backend_required)
 
@@ -346,82 +320,6 @@ def betweenness(g, btype="both", weights=None):
     .. [nx-nbetw] :nxdoc:`networkx.algorithms.centrality.betweenness_centrality`
     '''
     raise NotImplementedError(_backend_required)
-
-
-def undirected_local_clustering(g, weights=None, nodes=None,
-                                combine_weights="sum"):
-    '''
-    Returns the undirected local clustering coefficient of some `nodes`.
-
-    If `g` is directed, then it is converted to a simple undirected graph
-    (no parallel edges).
-
-    Parameters
-    ----------
-    g : :class:`~nngt.Graph`
-        Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
-    nodes : list, optional (default: all nodes)
-        The list of nodes for which the clustering will be returned
-    combine_weights : str, optional (default: "sum")
-        How the weights of directed edges between two nodes should be combined,
-        among:
-
-        * "sum": the sum of the edge attribute values will be used for the new
-          edge.
-        * "product": the product of the edge attribute values will be used for
-          the new edge.
-        * "mean": the mean of the edge attribute values will be used for the
-          new edge.
-        * "median": the median of the edge attribute values will be used for
-          the new edge.
-        * "min": the minimum of the edge attribute values will be used for the
-          new edge.
-        * "max": the maximum of the edge attribute values will be used for the
-          new edge.
-
-    Returns
-    -------
-    lc : :class:`numpy.ndarray`
-        The list of clustering coefficients, on per node.
-
-    References
-    ----------
-    .. [gt-local-clustering] :gtdoc:`clustering.locall_clustering`
-    .. [ig-local-clustering] :igdoc:`transitivity_local_undirected`
-    .. [nx-local-clustering] :nxdoc:`algorithms.cluster.clustering`
-    '''
-    raise NotImplementedError(_backend_required)
-
-
-def local_clustering(g, weights=None, nodes=None):
-    '''
-    Local clustering coefficient of the nodes.
-
-    Parameters
-    ----------
-    g : :class:`~nngt.Graph` object
-        Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
-    nodes : array-like container with node ids, optional (default = all nodes)
-        Nodes for which the local clustering coefficient should be computed.
-
-    Returns
-    -------
-    lc : :class:`numpy.ndarray`
-        The list of clustering coefficients, on per node.
-    '''
-    if not g.is_directed():
-        return undirected_local_clustering(g, weights=weights, nodes=nodes)
-
-    raise NotImplementedError("`local_clustering` is not yet implemented for "
-                              "directed graphs.")
 
 
 def subgraph_centrality(graph, weights=True, nodes=None,
@@ -895,3 +793,7 @@ if nngt._config["backend"] == "graph-tool":
 
 if nngt._config["backend"] == "nngt":
     from .nngt_functions import *
+
+# update analyze_graph dict
+for func in __all__:
+    nngt.analyze_graph[func] = locals()[func]

@@ -15,10 +15,12 @@ import nngt
 import nngt.analysis as na
 
 
+backends_clustering = ["networkx", "igraph", "graph-tool", "nngt"]
+
 backends = ["networkx", "igraph", "graph-tool"]
 
 
-def test_clustering():
+def test_binary_undirected_clustering():
     ''' Check the clustering coefficient results for all backends '''
     # create a pre-defined graph
     num_nodes = 5
@@ -30,17 +32,122 @@ def test_clustering():
     loc_clst  = [2/3., 2/3., 1., 1., 0.5]
     glob_clst = 0.6428571428571429
 
-    for bckd in backends:
+    for bckd in backends_clustering:
         nngt.set_config("backend", bckd)
 
         g = nngt.Graph(nodes=num_nodes)
         g.new_edges(edge_list)
 
+        # check all 3 ways of computing the local clustering
         assert np.all(np.isclose(
-            nngt.analyze_graph["local_clustering"](g), loc_clst))
+            na.local_clustering_binary_undirected(g), loc_clst))
+
+        assert np.all(np.isclose(
+            na.local_clustering(g, directed=False), loc_clst))
+
+        assert np.all(np.isclose(
+            nngt.analyze_graph["local_clustering"](g, directed=False),
+            loc_clst))
+
+        # check all 3 ways of computing the global clustering
+        assert np.isclose(
+            na.global_clustering(g, directed=False), glob_clst)
 
         assert np.isclose(
-            nngt.analyze_graph["global_clustering"](g), glob_clst)
+            na.global_clustering_binary_undirected(g), glob_clst)
+
+        assert np.isclose(
+            nngt.analyze_graph["global_clustering"](g, directed=False),
+            glob_clst)
+
+
+def test_weighted_undirected_clustering():
+    '''
+    Compare the onnela implementation with networkx and Barrat with igraph.
+    '''
+    # import networkx and igraph
+    import networkx as nx
+    import igraph as ig
+
+    # create a pre-defined graph
+    num_nodes = 5
+    edge_list = [
+        (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 0)
+    ]
+    weights = [0.53, 0.45, 0.8, 0.125, 0.66, 0.31, 0.78]
+
+    # create nx graph and compute reference onnela clustering
+    nx_graph = nx.Graph()
+    nx_graph.add_nodes_from(range(num_nodes))
+
+    arr_edges = [e + (w,) for e, w in zip(edge_list, weights)]
+    nx_graph.add_weighted_edges_from(arr_edges, weight="weight")
+
+    onnela = list(nx.clustering(nx_graph, weight="weight").values())
+
+    triplets = [3, 3, 1, 1, 6]
+    gc_onnela = np.sum(np.multiply(onnela, triplets)) / np.sum(triplets)
+
+    # create ig graph and compute reference Barrat clustering
+    ig_graph = ig.Graph(num_nodes, directed=False)
+    ig_graph.add_edges(edge_list)
+    ig_graph.es["weight"] = weights
+
+    barrat = ig_graph.transitivity_local_undirected(mode="zero",
+                                                    weights="weight")
+
+    strength = np.array(ig_graph.strength(weights='weight'))
+    degree   = np.array(ig_graph.degree())
+    triplets = strength*(degree - 1)
+
+    gc_barrat = np.sum(np.multiply(barrat, triplets)) / np.sum(triplets)
+
+    # check for all backends
+    for bckd in backends_clustering:
+        nngt.set_config("backend", bckd)
+
+        g = nngt.Graph(nodes=num_nodes, directed=False)
+        g.new_edges(edge_list, attributes={"weight": weights})
+
+        # onnela
+        assert np.all(np.isclose(
+            na.local_clustering(g, weights="weight", method="onnela"),
+            onnela))
+
+        assert np.isclose(
+            na.global_clustering(g, weights="weight", method="onnela"),
+            gc_onnela)
+
+        # barrat
+        assert np.all(np.isclose(
+            na.local_clustering(g, weights="weight", method="barrat"),
+            barrat))
+
+        assert np.isclose(
+            na.global_clustering(g, weights="weight", method="barrat"),
+            gc_barrat)
+
+        # fully reciprocal directed version
+        g = nngt.Graph(nodes=num_nodes, directed=True)
+        g.new_edges(edge_list, attributes={"weight": weights})
+        g.new_edges(np.array(edge_list, dtype=int)[:, ::-1],
+                    attributes={"weight": weights})
+
+        assert np.all(np.isclose(
+            na.local_clustering(g, weights="weight", method="onnela"),
+            onnela))
+
+        assert np.isclose(
+            na.global_clustering(g, weights="weight", method="onnela"),
+            gc_onnela)
+
+        assert np.all(np.isclose(
+            na.local_clustering(g, weights="weight", method="barrat"),
+            barrat))
+
+        assert np.isclose(
+            na.global_clustering(g, weights="weight", method="barrat"),
+            gc_barrat)
 
 
 def test_assortativity():
@@ -422,7 +529,8 @@ def test_subgraph_centrality():
 
 
 if __name__ == "__main__":
-    test_clustering()
+    test_binary_undirected_clustering()
+    test_weighted_undirected_clustering()
     test_assortativity()
     test_reciprocity()
     test_closeness()

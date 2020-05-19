@@ -11,6 +11,34 @@ Generation module
 Content
 =======
 
+Generation functions
+--------------------
+
 .. autosummary::
+
+@autosum@
+
+
+Connectors
+----------
+
+.. autosummary::
+
+    nngt.generation.connect_nodes
+    nngt.generation.connect_groups
+    nngt.generation.connect_neural_types
+
+
+Rewiring functions
+------------------
+
+.. autosummary::
+
+    nngt.generation.random_rewire
+    nngt.generation.lattice_rewire
+
+
+Details
+=======
 
 @autosum@

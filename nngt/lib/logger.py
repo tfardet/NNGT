@@ -21,11 +21,19 @@
 """ Logging for the NNGT module """
 
 import os
-from datetime import date
 import logging
+import warnings
+from datetime import date
+
+import scipy.sparse as ssp
 
 import nngt
 from .test_functions import mpi_checker
+
+
+# ignore scipy.sparse efficiency warnings
+
+warnings.filterwarnings("ignore", category=ssp.SparseEfficiencyWarning)
 
 # check that log folder exists, otherwise create it
 

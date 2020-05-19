@@ -122,6 +122,10 @@ dl.citation dt.label {
     color: #000000;
 }
 
+a.fn-backref {
+    color: #000000;
+}
+
 .admonition a {
     color: #555555;
 }

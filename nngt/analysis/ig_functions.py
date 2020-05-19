@@ -28,9 +28,10 @@ from ..lib.test_functions import nonstring_container
 from ..lib.graph_helpers import _get_ig_weights
 
 
-def global_clustering(g, weights=None):
+def global_clustering_binary_undirected(g):
     '''
     Returns the undirected global clustering coefficient.
+
     This corresponds to the ratio of undirected triangles to the number of
     undirected triads.
 
@@ -38,56 +39,27 @@ def global_clustering(g, weights=None):
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
 
     References
     ----------
     .. [ig-global-clustering] :igdoc:`transitivity_undirected`
     '''
-    ww = _get_ig_weights(g, weights)
-
-    if ww is not None:
-        # raise warning
-        return np.average(
-            g.graph.as_undirected().transitivity_local_undirected(weights=ww))
-
     return np.array(g.graph.as_undirected().transitivity_undirected())
 
 
-def undirected_local_clustering(g, weights=None, nodes=None,
-                                combine_weights="sum"):
+def local_clustering_binary_undirected(g, nodes=None):
     '''
-    Returns the local clustering coefficient of some `nodes`.
+    Returns the undirected local clustering coefficient of some `nodes`.
+
+    If `g` is directed, then it is converted to a simple undirected graph
+    (no parallel edges).
 
     Parameters
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    weights : bool or str, optional (default: binary edges)
-        Whether edge weights should be considered; if ``None`` or ``False``
-        then use binary edges; if ``True``, uses the 'weight' edge attribute,
-        otherwise uses any valid edge attribute required.
     nodes : list, optional (default: all nodes)
-        The list of nodes for which the clutering will be returned
-    combine_weights : str, optional (default: "sum")
-        How the weights of directed edges between two nodes should be combined,
-        among:
-
-        * "sum": the sum of the edge attribute values will be used for the new
-          edge.
-        * "product": the product of the edge attribute values will be used for
-          the new edge.
-        * "mean": the mean of the edge attribute values will be used for the
-          new edge.
-        * "median": the median of the edge attribute values will be used for
-          the new edge.
-        * "min": the minimum of the edge attribute values will be used for the
-          new edge.
-        * "max": the maximum of the edge attribute values will be used for the
-          new edge. 
+        The list of nodes for which the clustering will be returned
 
     Returns
     -------
@@ -98,13 +70,10 @@ def undirected_local_clustering(g, weights=None, nodes=None,
     ----------
     .. [ig-local-clustering] :igdoc:`transitivity_local_undirected`
     '''
-    if weights is not None and not isinstance(weights, str):
-        raise ValueError("Only existing attributes can be used as weights.")
+    u = g.graph.as_undirected()
 
-    u = g.graph.as_undirected(combine_edges=combine_weights)
-    u.simplify()
-
-    return np.array(u.transitivity_local_undirected(nodes, weights=weights))
+    return np.array(u.transitivity_local_undirected(nodes, mode="zero",
+                                                    weights=None))
 
 
 def assortativity(g, degree, weights=None):

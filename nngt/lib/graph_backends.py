@@ -44,7 +44,6 @@ analyze_graph = {
     'adjacency': not_implemented,
     'assortativity': not_implemented,
     'betweenness': not_implemented,
-    'clustering': not_implemented,
     'diameter': not_implemented,
     'ebetweenness': not_implemented,
     'get_edges': not_implemented,
@@ -111,6 +110,7 @@ def use_backend(backend, reloading=True, silent=False):
         raise ValueError("Invalid graph library requested.")
 
     if reloading:
+        reload(sys.modules["nngt"].analysis.clustering)
         reload(sys.modules["nngt"].analysis.graph_analysis)
         reload(sys.modules["nngt"].analysis)  # must come after  graph_analysis
         reload(sys.modules["nngt"].generation.graph_connectivity)
@@ -230,38 +230,21 @@ def _set_nngt():
     def _notimplemented(*args, **kwargs):
         raise NotImplementedError("Install a graph library to use.")
 
-    def adj_mat(g, weight=None, mformat="csr"):
-        data = None
-
-        if weight in g.edge_attributes:
-            data = g.get_edge_attributes(name=weight)
-        else:
-            data = np.ones(g.edge_nb())
-
-        if not g.is_directed():
-            data = np.repeat(data, 2)
-            
-        edges     = np.array(list(g._graph._edges), dtype=int)
-        num_nodes = g.node_nb()
-        mat       = ssp.coo_matrix((data, (edges[:, 0], edges[:, 1])),
-                                   shape=(num_nodes, num_nodes))
-
-        return mat.asformat(mformat)
-
     def get_edges(g):
         return g.edges_array
+
+    from nngt.analysis.nngt_functions import reciprocity, adj_mat
 
     # store functions
     nngt.analyze_graph["assortativity"] = _notimplemented
     nngt.analyze_graph["betweenness"] = _notimplemented
     nngt.analyze_graph["diameter"] = _notimplemented
     nngt.analyze_graph["closeness"] = _notimplemented
-    nngt.analyze_graph["clustering"] = _notimplemented
-    nngt.analyze_graph["local_clustering"] = _notimplemented
-    nngt.analyze_graph["reciprocity"] = _notimplemented
+    nngt.analyze_graph["reciprocity"] = reciprocity
     nngt.analyze_graph["connected_components"] = _notimplemented
     nngt.analyze_graph["adjacency"] = adj_mat
     nngt.analyze_graph["get_edges"] = get_edges
+
     return True
 
 
@@ -272,8 +255,6 @@ def _store_functions(analysis_dict, module):
     analysis_dict["closeness"] = module.closeness
     analysis_dict["connected_components"] = module.connected_components
     analysis_dict["diameter"] = module.diameter
-    analysis_dict["global_clustering"] = module.global_clustering
-    analysis_dict["local_clustering"] = module.undirected_local_clustering
     analysis_dict["reciprocity"] = module.reciprocity
     analysis_dict["adjacency"] = module.adj_mat
     analysis_dict["get_edges"] = module.get_edges
