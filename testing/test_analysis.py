@@ -19,7 +19,7 @@ import nngt.analysis as na
 import nngt.generation as ng
 
 
-methods = ('barrat', 'continuous', 'onella')
+methods = ('barrat', 'continuous', 'onnela')
 
 
 @pytest.mark.mpi_skip
@@ -45,7 +45,7 @@ def test_weighted_undirected_clustering():
     * corner cases for specific networks, see [Saramaki2007]
     * equivalence between no edge and zero-weight edge for 'continuous' method
 
-    Note: onella and barrat are already check against networkx and igraph
+    Note: onnela and barrat are already check against networkx and igraph
     implementations in libarry_compatibility.py
     '''
     g = ng.erdos_renyi(avg_deg=10, nodes=100, directed=False)
@@ -239,7 +239,7 @@ def test_weighted_directed_clustering():
 
     assert np.all(np.isclose(cc, expected))
 
-    # onella
+    # onnela
     triplets_o  = np.array([8, 4, 10, 0, 0, 0])
     triangles_o = np.array(
         [0.672764902429877, 0.672764902429877, 0.672764902429877, 0, 0, 0])
@@ -247,12 +247,12 @@ def test_weighted_directed_clustering():
     assert np.array_equal(triplets_o, na.triplet_count(g))
 
     assert np.all(np.isclose(
-        triangles_o, na.triangle_count(g, weights='weight', method="onella")))
+        triangles_o, na.triangle_count(g, weights='weight', method="onnela")))
     
     triplets_o[-3:] = 1
     expected = triangles_o / triplets_o
 
-    cc = na.local_clustering(g, weights='weight', method='onella')
+    cc = na.local_clustering(g, weights='weight', method='onnela')
 
     assert np.all(np.isclose(cc, expected))
 

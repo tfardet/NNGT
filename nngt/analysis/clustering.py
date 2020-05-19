@@ -77,10 +77,11 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
-        [Barrat2004], 'continuous', or 'onella' [Saramaki2007].
+        [Barrat2004], 'continuous', or 'onnela' [Saramaki2007].
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
+
         * "sum": the sum of the edge attribute values will be used for the new
           edge.
         * "mean": the mean of the edge attribute values will be used for the
@@ -202,8 +203,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     with :math:`s^{\leftrightarrow} = \sum_k \sqrt{w_{ik}w_{ki}}` the
     reciprocal strength (associated to reciprocal connections).
 
-    Contrary to 'barrat' and 'onella', this method displays *all* following
-    properties:
+    Contrary to 'barrat' and 'onnela' [Saramaki2007], this method displays
+    *all* following properties:
 
     * fully continuous (no jump in clustering when weights go to zero),
     * equivalent to binary clustering when all weights are 1,
@@ -224,10 +225,11 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
-        [Barrat2004], 'continuous', or 'onella' [Saramaki2007].
+        [Barrat2004]/[Clemente2018], 'continuous', or 'onnela' [Onnela2005].
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
+
         * "sum": the sum of the edge attribute values will be used for the new
           edge.
         * "mean": the mean of the edge attribute values will be used for the
@@ -247,9 +249,15 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     .. [Barrat2004] Barrat, Barthelemy, Pastor-Satorras, Vespignani. The
         Architecture of Complex Weighted Networks. PNAS 2004, 101 (11).
         :doi:`10.1073/pnas.0400087101`.
+    .. [Clemente2018] Clemente, Grassi. Directed Clustering in Weighted
+        Networks: A New Perspective. Chaos, Solitons & Fractals 2018, 107,
+        26–38. :doi:`10.1016/j.chaos.2017.12.007`, :arxiv:`1706.07322`.
     .. [Fagiolo2007] Fagiolo. Clustering in Complex Directed Networks.
         Phys. Rev. E 2007, 76, (2), 026107. :doi:`10.1103/PhysRevE.76.026107`,
         :arxiv:`physics/0612169`.
+    .. [Onnela2005] Onnela, Saramäki, Kertész, Kaski. Intensity and Coherence
+        of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
+        065103. :doi:`10.1103/physreve.71.065103`, arxiv:`cond-mat/0408629`.
     .. [Saramaki2007] Saramäki, Kivelä, Onnela, Kaski, Kertész. Generalizations
         of the Clustering Coefficient to Weighted Complex Networks.
         Phys. Rev. E 2007, 75 (2), 027105. :doi:`10.1103/PhysRevE.75.027105`,
@@ -257,7 +265,7 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     .. [Zhang2005] Zhang, Horvath. A General Framework for Weighted Gene
         Co-Expression Network Analysis. Statistical Applications in Genetics
         and Molecular Biology 2005, 4 (1). :doi:`10.2202/1544-6115.1128`,
-        `pdf <https://dibernardo.tigem.it/files/papers/2008/
+        `PDF <https://dibernardo.tigem.it/files/papers/2008/
         zhangbin-statappsgeneticsmolbio.pdf>`_.
 
     See also
@@ -310,11 +318,12 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     method : str, optional (default: 'normal')
         Method used to compute the weighted triangles, either 'normal', where
         the weights are directly used, or the definitions associated to the
-        weighted clustering: 'barrat' [Barrat2004], 'continuous', or 'onella'
+        weighted clustering: 'barrat' [Barrat2004], 'continuous', or 'onnela'
         [Saramaki2007].
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
+
         * "sum": the sum of the edge attribute values will be used for the new
           edge.
         * "mean": the mean of the edge attribute values will be used for the
@@ -334,7 +343,7 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
 
     # get relevant matrices (use directed=False to get both dir/undir mat)
     _, matsym = _get_matrices(g, directed, weights, weighted, combine_weights,
-                              onella=(method=="onella"))
+                              onnela=(method=="onnela"))
 
     # if unweighted, adjsym is matsym
     adjsym = matsym
@@ -378,6 +387,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
+
         * "sum": the sum of the edge attribute values will be used for the new
           edge.
         * "mean": the mean of the edge attribute values will be used for the
@@ -396,7 +406,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
     weighted  = weights not in (False, None)
 
     # simple binary cases
-    if not weighted or method == "onella":
+    if not weighted or method == "onnela":
         # undirected
         if not directed:
             deg = None
@@ -478,11 +488,11 @@ def _triangles_and_triplets(g, directed, weights, method, combine_weights,
 
         triplets = _triplet_count_weighted(
             g, W, Wu, A, Au, method, directed, weights, nodes)
-    elif method == "onella":
+    elif method == "onnela":
         W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
-                              onella=True)
+                              onnela=True)
 
-        # onella uses the binary triplets
+        # onnela uses the binary triplets
         triplets = triplet_count(g, nodes=nodes, directed=directed,
                                  weights=None)
     elif method == "barrat":
@@ -508,7 +518,7 @@ def _triangle_count(matsym, adjsym, method, weighted, directed, nodes):
 
     if not weighted:
         tr = (0.5*(adjsym*adjsym*adjsym).diagonal()).astype(int)
-    elif method in ("continuous", "normal", "onella"):
+    elif method in ("continuous", "normal", "onnela"):
         tr = 0.5*(matsym*matsym*matsym).diagonal()
     elif method == "barrat":
         tr = 0.5*(matsym*adjsym*adjsym).diagonal()
@@ -577,7 +587,7 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
 
 
 def _get_matrices(g, directed, weights, weighted, combine_weights,
-                  onella=False):
+                  onnela=False):
     '''
     Return the relevant matrices:
     * W, Wu if weighted
@@ -588,7 +598,7 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
         W  = g.adjacency_matrix(weights=weights)
         W /= W.max()
 
-        if onella:
+        if onnela:
             W = W.power(1/3)
 
         Wu = W
