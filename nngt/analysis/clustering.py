@@ -77,7 +77,7 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
-        [Barrat2004], 'continuous', or 'onnela' [Saramaki2007].
+        [Barrat2004]_, 'continuous', or 'onnela' [Onnela2005]_.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
@@ -96,6 +96,12 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
     .. [gt-global-clustering] :gtdoc:`clustering.global_clustering`
     .. [ig-global-clustering] :igdoc:`transitivity_undirected`
     .. [nx-global-clustering] :nxdoc:`algorithms.cluster.transitivity`
+    .. [Barrat2004] Barrat, Barthelemy, Pastor-Satorras, Vespignani. The
+        Architecture of Complex Weighted Networks. PNAS 2004, 101 (11).
+        :doi:`10.1073/pnas.0400087101`.
+    .. [Onnela2005] Onnela, Saramäki, Kertész, Kaski. Intensity and Coherence
+        of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
+        065103. :doi:`10.1103/physreve.71.065103`, arxiv:`cond-mat/0408629`.
 
     See also
     --------
@@ -178,7 +184,7 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     the highest weight.
 
     The default `method` for weighted networks is based on a modification of
-    the proposal in [Zhang2005] with:
+    the proposal in [Zhang2005]_ with:
 
     .. math::
 
@@ -192,7 +198,7 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     :math:`W^{[\frac{1}{2}]} = \{\sqrt{w_{ij}}\}`.
 
     For directed networks, we used the total clustering defined in
-    [Fagiolo2007], hence the second equation becomes:
+    [Fagiolo2007]_, hence the second equation becomes:
 
     .. math::
 
@@ -203,7 +209,7 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     with :math:`s^{\leftrightarrow} = \sum_k \sqrt{w_{ik}w_{ki}}` the
     reciprocal strength (associated to reciprocal connections).
 
-    Contrary to 'barrat' and 'onnela' [Saramaki2007], this method displays
+    Contrary to 'barrat' and 'onnela' [Saramaki2007]_, this method displays
     *all* following properties:
 
     * fully continuous (no jump in clustering when weights go to zero),
@@ -225,7 +231,7 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
-        [Barrat2004]/[Clemente2018], 'continuous', or 'onnela' [Onnela2005].
+        [Barrat2004]_/[Clemente2018]_, 'continuous', or 'onnela' [Onnela2005]_.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
@@ -257,7 +263,7 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         :arxiv:`physics/0612169`.
     .. [Onnela2005] Onnela, Saramäki, Kertész, Kaski. Intensity and Coherence
         of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
-        065103. :doi:`10.1103/physreve.71.065103`, arxiv:`cond-mat/0408629`.
+        065103. :doi:`10.1103/physreve.71.065103`, :arxiv:`cond-mat/0408629`.
     .. [Saramaki2007] Saramäki, Kivelä, Onnela, Kaski, Kertész. Generalizations
         of the Clustering Coefficient to Weighted Complex Networks.
         Phys. Rev. E 2007, 75 (2), 027105. :doi:`10.1103/PhysRevE.75.027105`,
@@ -318,8 +324,8 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     method : str, optional (default: 'normal')
         Method used to compute the weighted triangles, either 'normal', where
         the weights are directly used, or the definitions associated to the
-        weighted clustering: 'barrat' [Barrat2004], 'continuous', or 'onnela'
-        [Saramaki2007].
+        weighted clustering: 'barrat' [Barrat2004]_, 'continuous', or 'onnela'
+        [Onnela2005]_.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
@@ -382,7 +388,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
     method : str, optional (default: 'continuous')
         Method used to compute the weighted triplets, either 'normal', where
         the edge weights are directly used, or the definitions used for
-        weighted clustering coefficients, 'barrat' [Barrat2004] or
+        weighted clustering coefficients, 'barrat' [Barrat2004]_ or
         'continuous'.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed

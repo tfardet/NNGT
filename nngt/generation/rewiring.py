@@ -39,7 +39,7 @@ __all__ = [
 def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
                    edge_attr_constraints=None,  weight=None,
                    weight_constraint="distance", distance_sort="inverse"):
-    '''
+    r'''
     Build a (generally irregular) lattice by rewiring the edges of a graph.
 
     The lattice is based on a circular graph, meaning that the nodes are placed
@@ -48,7 +48,7 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
 
     .. math::
 
-        d_{ij} = (i - j) % N
+        d_{ij} = (i - j) \% N
 
     with :math:`N` the number of nodes in the graph.
 

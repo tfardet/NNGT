@@ -22,8 +22,9 @@
 """ Tools to analyze graphs with the networkx backend """
 
 import numpy as np
+import scipy.sparse as ssp
 
-from ..lib.test_functions import nonstring_container
+from ..lib.test_functions import nonstring_container, is_integer
 from ..lib.graph_helpers import _get_nx_weights
 
 import networkx as nx
@@ -322,6 +323,196 @@ def connected_components(g, ctype=None):
         hist.append(len(nodes))
 
     return cc, np.array(hist, dtype=int)
+
+
+def shortest_distance(g, sources=None, targets=None, directed=True,
+                      weights=None, mformat='dense'):
+    '''
+    Returns the length of the shortest paths between `sources`and `targets`.
+    The algorithms return infinity if there are no paths between nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+    mformat : str, optional (default: 'dense')
+        Format of the distance matrix returned: either a dense numpy matrix
+        or one of the :mod:`scipy.sparse` matrices ('bsr', 'coo', 'csr', 'csc',
+        'lil').
+
+    Returns
+    -------
+    distance : float or matrix
+        Distance (if single source and single target) or distance matrix.
+        If `mformat` is 'dense', then the shape of the matrix is (S, T),
+        with S the number of sources and T the number of targets;
+        otherwise (for sparse matrices) only the relevant entries are present
+        but the matrix size is (N, N) with N the number of nodes in the graph.
+
+    References
+    ----------
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.shortest_path_length`
+    '''
+    # networkx raises NetworkXNoPath if nodes are not connected so no
+    # additional check is necessary
+    graph = g.graph if directed else g.graph.to_undirected(as_view=True)
+
+    num_nodes = g.node_nb()
+
+    # check consistency for weights and directed
+    w = _get_nx_weights(g, weights)
+
+    if g.graph.is_directed() and not directed and w is not None:
+        raise ValueError("Cannot make graph undirected if `weights` are used.")
+
+    # check for single source/target case and convert sources and targets
+    if is_integer(sources):
+        if is_integer(targets):
+            try:
+                return nx.shortest_path_length(graph, sources, targets,
+                                               weight=w)
+            except Exception as e:
+                return np.inf
+
+        sources = [sources]
+    elif sources is None:
+        sources = range(num_nodes)
+
+    if is_integer(targets):
+        targets = [targets]
+
+    # compute distances
+    data, ii, jj = [], [], []
+
+    if w is None:
+        for s in sources:
+            dist = nx.single_source_shortest_path_length(graph, s)
+
+            if targets is None:
+                data.extend(dist.values())
+                ii.extend((s for _ in range(len(dist))))
+                jj.extend(dist.keys())
+            else:
+                for t in targets:
+                    if t in dist:
+                        data.append(dist[t])
+                        ii.append(s)
+                        jj.append(t)
+    else:
+        dist, _ = multi_source_dijkstra(graph, sources, weight=w)
+
+        for s, d in dist.items():
+            if targets is None:
+                data.extend(d.values())
+                ii.extend((s for _ in range(len(d))))
+                jj.extend(d.keys())
+            else:
+                for t in targets:
+                    if t in d:
+                        data.append(d[t])
+                        ii.append(s)
+                        jj.append(t)
+
+    num_sources = num_nodes if sources is None else len(sources)
+    num_targets = num_nodes if targets is None else len(targets)
+
+    if mformat == 'dense':
+        mat_dist = np.full((num_sources, num_targets), np.inf)
+        mat_dist[ii, jj] = data
+
+        if num_sources == 1:
+            return mat_dist[0]
+
+        if num_targets == 1:
+            return mat_dist.T[0]
+
+        return mat_dist
+
+    coo = ssp.coo_matrix((data, (ii, jj)), shape=(num_nodes, num_nodes))
+
+    return coo.asformat(mformat)
+
+
+def average_path_length(g, sources=None, targets=None, directed=True,
+                        weights=None):
+    r'''
+    Returns the average shortest path length between `sources` and `targets`.
+    The algorithms raises an error if all nodes are not connected.
+
+    The average path length is defined as
+
+    .. math::
+
+       L = \frac{1}{N_p} \sum_{u,v} d(u, v),
+
+    where :math:`N_p` is the number of paths between `sources` and `targets`,
+    and :math:`d(u, v)` is the shortest path distance from u to v.
+
+    If `sources` and `targets` are both None, then the total number of paths is
+    :math:`N_p = N(N - 1)`, with :math:`N` the number of nodes in the graph.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    References
+    ----------
+    .. [ig-sp] :igdoc:`shortest_paths`
+    '''
+    mat_dist = shortest_paths_length(g, sources=sources, targets=targets,
+                                     directed=directed, weights=weights,
+                                     mformat='coo')
+
+    return mat_dist.mean()
+
+
+def average_path_length(g, weights=None):
+    r'''
+    Returns the average shortest path length.
+
+    The average shortest path length is
+
+    .. math::
+
+       L = \sum_{u,v} \frac{d(u, v)}{N(N-1)}
+
+    where :math:`N` is the number of nodes in `g` and :math:`d(u, v)` is the
+    shortest path distance from u to v.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    weights : str, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    References
+    ----------
+    .. [nx-apl] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
+    '''
+    return nx.average_shortest_path_length(g.graph, weight=weights)
 
 
 def diameter(g, weights=False):

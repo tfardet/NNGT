@@ -21,8 +21,8 @@
 
 """ Tools to analyze graphs with the graph-tool backend """
 
-from scipy.sparse import coo_matrix
 import numpy as np
+import scipy.sparse as ssp
 
 from graph_tool import GraphView, _prop
 from graph_tool.centrality import closeness as gt_closeness
@@ -316,6 +316,163 @@ def connected_components(g, ctype=None):
     return cc.a, hist
 
 
+def shortest_distance(g, sources=None, targets=None, directed=True,
+                      weights=None, mformat='dense'):
+    '''
+    Returns the length of the shortest paths between `sources`and `targets`.
+    The algorithms return infinity if there are no paths between nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+    mformat : str, optional (default: 'dense')
+        Format of the distance matrix returned: either a dense numpy matrix
+        or one of the :mod:`scipy.sparse` matrices ('bsr', 'coo', 'csr', 'csc',
+        'lil').
+
+    Returns
+    -------
+    distance : float or matrix
+        Distance (if single source and single target) or distance matrix.
+        If `mformat` is 'dense', then the shape of the matrix is (S, T),
+        with S the number of sources and T the number of targets;
+        otherwise (for sparse matrices) only the relevant entries are present
+        but the matrix size is (N, N) with N the number of nodes in the graph.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.shortest_distance`
+    '''
+    # graph-tool returns infinity for unconnected nodes so there is no need
+    # to check connectedness
+    graph = g.graph
+
+    num_nodes = g.node_nb()
+
+    w = _get_gt_weights(g, weights)
+
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = GraphView(g.graph, directed=False)
+        graph = GraphView(graph, efilt=label_parallel_edges(u).fa == 0)
+
+    dist_emap = None
+    tgt_vtx   = None
+
+    # convert sources and targets
+    if sources is not None:
+        if nonstring_container(sources):
+            sources = [graph.vertex(s) for s in sources]
+        else:
+            sources = [graph.vertex(sources)]
+
+    if nonstring_container(targets):
+        tgt_vtx = [graph.vertex(t) for t in targets]
+    elif targets is not None:
+        tgt_vtx = [graph.vertex(targets)]
+        targets = [targets]
+
+    # compute only specific paths
+    if sources is not None:
+        # single source/target case
+        if targets is not None and len(sources) == 1 and len(targets) == 1:
+            distance = gtt.shortest_distance(
+                graph, source=sources[0], target=tgt_vtx[0], weights=weights)
+
+            if weights is None:
+                if distance == 2147483647:
+                    return np.inf
+
+            return float(distance)
+
+        # multiple sources
+        data, ii, jj = [], [], []
+
+        for s in sources:
+            s_int = int(s)
+            dist = gtt.shortest_distance(graph, source=s, target=tgt_vtx,
+                                         weights=weights)
+
+            if targets is None:
+                # dist is a 1d property map
+                data.extend(dist.a)
+                ii.extend((s_int for _ in range(num_nodes)))
+                jj.extend((t for t in range(num_nodes)))
+            else:
+                # dist is an array
+                data.extend(dist)
+                ii.extend((s_int for _ in range(num_nodes)))
+                jj.extend((t for t in targets))
+
+        # convert 2147483647 to inf for binary graphs
+        if weights is None:
+            data = np.array(data, dtype=float)
+
+            data[data == 2147483647] = np.inf
+
+        num_sources = len(sources)
+        num_targets = num_nodes if targets is None else len(targets)
+
+        if mformat == 'dense':
+            mat_dist = np.full((num_sources, num_targets), np.NaN)
+            mat_dist[ii, jj] = data
+
+            if num_sources == 1:
+                return mat_dist[0]
+
+            if num_targets == 1:
+                return mat_dist[0]
+
+            return mat_dist
+
+        coo = ssp.coo_matrix((data, (ii, jj)), shape=(num_nodes, num_nodes))
+
+        return coo.asformat(mformat)
+
+    # if source is None, then we compute all paths
+    dist = gtt.shortest_distance(graph, weights=weights)
+
+    # transpose (graph-tool uses columns as sources)
+    mat_dist = dist.get_2d_array([i for i in range(num_nodes)]).astype(float).T
+
+    if weights is None:
+        # check unconnected with int32
+        mat_dist[mat_dist == 2147483647] = np.inf
+
+    if mformat == 'dense':
+        if targets is not None:
+            if len(targets) == 1:
+                return mat_dist.T[0]
+
+            return mat_dist[:, targets]
+
+        return mat_dist
+
+    sp_mat = None
+
+    if targets is None:
+        sp_mat = ssp.coo_matrix(mat_dist)
+    else:
+        sp_mat = ssp.lil_matrix((num_nodes, num_nodes))
+        sp_mat[:, targets] = mat_dist[:, targets]
+
+    return sp_mat.asformat(mformat)
+
+
 def diameter(g, weights=False):
     '''
     Returns the pseudo-diameter of the graph.
@@ -401,7 +558,7 @@ def adj_mat(g, weights=None, mformat="csr"):
         V = graph.num_vertices()
 
     # we take the convention using rows for outgoing connections
-    m = coo_matrix((data, (j, i)), shape=(V, V))
+    m = ssp.coo_matrix((data, (j, i)), shape=(V, V))
 
     return m.asformat(mformat)
 
