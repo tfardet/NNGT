@@ -317,7 +317,7 @@ def connected_components(g, ctype=None):
 
 
 def shortest_distance(g, sources=None, targets=None, directed=True,
-                      weights=None, mformat='dense'):
+                      weights=None):
     '''
     Returns the length of the shortest paths between `sources`and `targets`.
     The algorithms return infinity if there are no paths between nodes.
@@ -336,19 +336,14 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     weights : str, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
-    mformat : str, optional (default: 'dense')
-        Format of the distance matrix returned: either a dense numpy matrix
-        or one of the :mod:`scipy.sparse` matrices ('bsr', 'coo', 'csr', 'csc',
-        'lil').
 
     Returns
     -------
-    distance : float or matrix
-        Distance (if single source and single target) or distance matrix.
-        If `mformat` is 'dense', then the shape of the matrix is (S, T),
-        with S the number of sources and T the number of targets;
-        otherwise (for sparse matrices) only the relevant entries are present
-        but the matrix size is (N, N) with N the number of nodes in the graph.
+    distance : float, or 1d/2d numpy array of floats
+        Distance (if single source and single target) or distance array.
+        For multiple sources and targets, the shape of the matrix is (S, T),
+        with S the number of sources and T the number of targets; for a single
+        source or target, return a 1d-array of length T or S.
 
     References
     ----------
@@ -373,6 +368,9 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     dist_emap = None
     tgt_vtx   = None
 
+    maxint = np.iinfo(np.int32).max
+    maxflt = np.finfo(np.float64).max
+
     # convert sources and targets
     if sources is not None:
         if nonstring_container(sources):
@@ -391,86 +389,123 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
         # single source/target case
         if targets is not None and len(sources) == 1 and len(targets) == 1:
             distance = gtt.shortest_distance(
-                graph, source=sources[0], target=tgt_vtx[0], weights=weights)
+                graph, source=sources[0], target=tgt_vtx[0], weights=w)
 
-            if weights is None:
-                if distance == 2147483647:
+            if w is None:
+                if distance == maxint:
                     return np.inf
+            elif distance == maxflt:
+                return np.inf
 
             return float(distance)
 
         # multiple sources
-        data, ii, jj = [], [], []
+        num_sources = len(sources)
+        num_targets = num_nodes if targets is None else len(targets)
+
+        mat_dist = np.full((num_sources, num_targets), np.NaN)
 
         for s in sources:
             s_int = int(s)
             dist = gtt.shortest_distance(graph, source=s, target=tgt_vtx,
-                                         weights=weights)
+                                         weights=w)
 
-            if targets is None:
-                # dist is a 1d property map
-                data.extend(dist.a)
-                ii.extend((s_int for _ in range(num_nodes)))
-                jj.extend((t for t in range(num_nodes)))
-            else:
-                # dist is an array
-                data.extend(dist)
-                ii.extend((s_int for _ in range(num_nodes)))
-                jj.extend((t for t in targets))
+            mat_dist[s_int] = dist.a
 
-        # convert 2147483647 to inf for binary graphs
-        if weights is None:
-            data = np.array(data, dtype=float)
+        # convert max int and float to inf
+        if w is None:
+            mat_dist[mat_dist == maxint] = np.inf
+        else:
+            mat_dist[mat_dist == maxflt] = np.inf
 
-            data[data == 2147483647] = np.inf
+        if num_sources == 1:
+            return mat_dist[0]
 
-        num_sources = len(sources)
-        num_targets = num_nodes if targets is None else len(targets)
+        if num_targets == 1:
+            return mat_dist[0]
 
-        if mformat == 'dense':
-            mat_dist = np.full((num_sources, num_targets), np.NaN)
-            mat_dist[ii, jj] = data
-
-            if num_sources == 1:
-                return mat_dist[0]
-
-            if num_targets == 1:
-                return mat_dist[0]
-
-            return mat_dist
-
-        coo = ssp.coo_matrix((data, (ii, jj)), shape=(num_nodes, num_nodes))
-
-        return coo.asformat(mformat)
+        return mat_dist
 
     # if source is None, then we compute all paths
-    dist = gtt.shortest_distance(graph, weights=weights)
+    dist = gtt.shortest_distance(graph, weights=w)
 
     # transpose (graph-tool uses columns as sources)
     mat_dist = dist.get_2d_array([i for i in range(num_nodes)]).astype(float).T
 
-    if weights is None:
+    if w is None:
         # check unconnected with int32
-        mat_dist[mat_dist == 2147483647] = np.inf
-
-    if mformat == 'dense':
-        if targets is not None:
-            if len(targets) == 1:
-                return mat_dist.T[0]
-
-            return mat_dist[:, targets]
-
-        return mat_dist
-
-    sp_mat = None
-
-    if targets is None:
-        sp_mat = ssp.coo_matrix(mat_dist)
+        mat_dist[mat_dist == maxint] = np.inf
     else:
-        sp_mat = ssp.lil_matrix((num_nodes, num_nodes))
-        sp_mat[:, targets] = mat_dist[:, targets]
+        # check float max
+        mat_dist[mat_dist == maxflt] = np.inf
 
-    return sp_mat.asformat(mformat)
+    if targets is not None:
+        if len(targets) == 1:
+            return mat_dist.T[0]
+
+        return mat_dist[:, targets]
+
+    return mat_dist
+
+
+def average_path_length(g, sources=None, targets=None, directed=True,
+                        weights=None, unconnected=False):
+    r'''
+    Returns the average shortest path length between `sources` and `targets`.
+    The algorithms raises an error if all nodes are not connected unless
+    `unconnected` is set to True.
+
+    The average path length is defined as
+
+    .. math::
+
+       L = \frac{1}{N_p} \sum_{u,v} d(u, v),
+
+    where :math:`N_p` is the number of paths between `sources` and `targets`,
+    and :math:`d(u, v)` is the shortest path distance from u to v.
+
+    If `sources` and `targets` are both None, then the total number of paths is
+    :math:`N_p = N(N - 1)`, with :math:`N` the number of nodes in the graph.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+    unconnected : bool, optional (default: False)
+        If set to true, ignores unconnected nodes and returns the average path
+        length of the existing paths.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.shortest_distance`
+    '''
+    mat_dist = short_distance(g, sources=sources, targets=targets,
+                              directed=directed, weights=weights)
+
+    if not unconnected and np.any(np.isinf(mat_dist)):
+        raise RuntimeError("`sources` and `target` do not belong to the "
+                           "same connected component.")
+
+    # compute the number of path
+    num_paths = np.sum(mat_dist != 0)
+
+    # compute average path length
+    if unconnected:
+        num_paths -= np.sum(np.isinf(mat_dist))
+
+        return np.nansum(mat_dist) / num_paths
+
+    return np.sum(mat_dist) / num_paths
 
 
 def diameter(g, weights=False):

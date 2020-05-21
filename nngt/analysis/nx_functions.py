@@ -326,7 +326,7 @@ def connected_components(g, ctype=None):
 
 
 def shortest_distance(g, sources=None, targets=None, directed=True,
-                      weights=None, mformat='dense'):
+                      weights=None):
     '''
     Returns the length of the shortest paths between `sources`and `targets`.
     The algorithms return infinity if there are no paths between nodes.
@@ -345,23 +345,18 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     weights : str, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
-    mformat : str, optional (default: 'dense')
-        Format of the distance matrix returned: either a dense numpy matrix
-        or one of the :mod:`scipy.sparse` matrices ('bsr', 'coo', 'csr', 'csc',
-        'lil').
 
     Returns
     -------
-    distance : float or matrix
-        Distance (if single source and single target) or distance matrix.
-        If `mformat` is 'dense', then the shape of the matrix is (S, T),
-        with S the number of sources and T the number of targets;
-        otherwise (for sparse matrices) only the relevant entries are present
-        but the matrix size is (N, N) with N the number of nodes in the graph.
+    distance : float, or 1d/2d numpy array of floats
+        Distance (if single source and single target) or distance array.
+        For multiple sources and targets, the shape of the matrix is (S, T),
+        with S the number of sources and T the number of targets; for a single
+        source or target, return a 1d-array of length T or S.
 
     References
     ----------
-    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.shortest_path_length`
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.weighted.multi_source_dijkstra`
     '''
     # networkx raises NetworkXNoPath if nodes are not connected so no
     # additional check is necessary
@@ -394,60 +389,49 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     # compute distances
     data, ii, jj = [], [], []
 
-    if w is None:
-        for s in sources:
-            dist = nx.single_source_shortest_path_length(graph, s)
+    def _nx_sp(nx_graph, s, weight):
+        if weight is None:
+            return nx.single_source_shortest_path_length(nx_graph, s)
 
-            if targets is None:
-                data.extend(dist.values())
-                ii.extend((s for _ in range(len(dist))))
-                jj.extend(dist.keys())
-            else:
-                for t in targets:
-                    if t in dist:
-                        data.append(dist[t])
-                        ii.append(s)
-                        jj.append(t)
-    else:
-        dist, _ = multi_source_dijkstra(graph, sources, weight=w)
+        dist, _ = nx.multi_source_dijkstra(graph, [s], weight=weight)
 
-        for s, d in dist.items():
-            if targets is None:
-                data.extend(d.values())
-                ii.extend((s for _ in range(len(d))))
-                jj.extend(d.keys())
-            else:
-                for t in targets:
-                    if t in d:
-                        data.append(d[t])
-                        ii.append(s)
-                        jj.append(t)
+        return dist
+
+    for s in sources:
+        dist = _nx_sp(graph, s, w)
+
+        if targets is None:
+            data.extend(dist.values())
+            ii.extend((s for _ in range(len(dist))))
+            jj.extend(dist.keys())
+        else:
+            for t in targets:
+                if t in dist:
+                    data.append(dist[t])
+                    ii.append(s)
+                    jj.append(t)
 
     num_sources = num_nodes if sources is None else len(sources)
     num_targets = num_nodes if targets is None else len(targets)
 
-    if mformat == 'dense':
-        mat_dist = np.full((num_sources, num_targets), np.inf)
-        mat_dist[ii, jj] = data
+    mat_dist = np.full((num_sources, num_targets), np.inf)
+    mat_dist[ii, jj] = data
 
-        if num_sources == 1:
-            return mat_dist[0]
+    if num_sources == 1:
+        return mat_dist[0]
 
-        if num_targets == 1:
-            return mat_dist.T[0]
+    if num_targets == 1:
+        return mat_dist.T[0]
 
-        return mat_dist
-
-    coo = ssp.coo_matrix((data, (ii, jj)), shape=(num_nodes, num_nodes))
-
-    return coo.asformat(mformat)
+    return mat_dist
 
 
 def average_path_length(g, sources=None, targets=None, directed=True,
-                        weights=None):
+                        weights=None, unconnected=False):
     r'''
     Returns the average shortest path length between `sources` and `targets`.
-    The algorithms raises an error if all nodes are not connected.
+    The algorithms raises an error if all nodes are not connected unless
+    `unconnected` is set to True.
 
     The average path length is defined as
 
@@ -475,17 +459,36 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     weights : str, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    unconnected : bool, optional (default: False)
+        If set to true, ignores unconnected nodes and returns the average path
+        length of the existing paths.
 
     References
     ----------
-    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
     '''
-    mat_dist = shortest_paths_length(g, sources=sources, targets=targets,
-                                     directed=directed, weights=weights,
-                                     mformat='coo')
+    if sources is None and targets is None and not unconnected:
+        w = _nx_get_weights(weights)
 
-    return mat_dist.mean()
+        return nx.average_shortest_path_length(g.graph, weight=w)
 
+    mat_dist = short_distance(g, sources=sources, targets=targets,
+                              directed=directed, weights=weights)
+
+    if not unconnected and np.any(np.isinf(mat_dist)):
+        raise nx.NetworkXNoPath("`sources` and `target` do not belong to the "
+                                "same connected component.")
+
+    # compute the number of path
+    num_paths = np.sum(mat_dist != 0)
+
+    # compute average path length
+    if unconnected:
+        num_paths -= np.sum(np.isinf(mat_dist))
+
+        return np.nansum(mat_dist) / num_paths
+
+    return np.sum(mat_dist) / num_paths
 
 def average_path_length(g, weights=None):
     r'''

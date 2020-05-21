@@ -218,7 +218,7 @@ def diameter(g, weights=False):
 
 
 def shortest_distance(g, sources=None, targets=None, directed=True,
-                      weights=None, mformat='dense'):
+                      weights=None):
     '''
     Returns the length of the shortest paths between `sources`and `targets`.
     The algorithms return infinity if there are no paths between nodes.
@@ -237,30 +237,67 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     weights : str, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
-    mformat : str, optional (default: 'dense')
-        Format of the distance matrix returned: either a dense numpy matrix
-        or one of the :mod:`scipy.sparse` matrices ('bsr', 'coo', 'csr', 'csc',
-        'lil').
 
     Returns
     -------
-    distance : float or matrix
-        Distance (if single source and single target) or distance matrix.
-        If `mformat` is 'dense', then the shape of the matrix is (S, T),
-        with S the number of sources and T the number of targets;
-        otherwise (for sparse matrices) only the relevant entries are present
-        but the matrix size is (N, N) with N the number of nodes in the graph.
+    distance : float, or 1d/2d numpy array of floats
+        Distance (if single source and single target) or distance array.
+        For multiple sources and targets, the shape of the matrix is (S, T),
+        with S the number of sources and T the number of targets; for a single
+        source or target, return a 1d-array of length T or S.
 
     References
     ----------
     .. [gt-sd] :gtdoc:`topology.shortest_distance`
     .. [ig-sp] :igdoc:`shortest_paths`
-    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.shortest_path_length`
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.weighted.multi_source_dijkstra`
     '''
     raise NotImplementedError(_backend_required)
 
 
-def average_path_length(g, weights=None):
+def average_path_length(g, sources=None, targets=None, directed=True,
+                        weights=None, unconnected=False):
+    r'''
+    Returns the average shortest path length between `sources` and `targets`.
+    The algorithms raises an error if all nodes are not connected unless
+    `unconnected` is set to True.
+
+    The average path length is defined as
+
+    .. math::
+
+       L = \frac{1}{N_p} \sum_{u,v} d(u, v),
+
+    where :math:`N_p` is the number of paths between `sources` and `targets`,
+    and :math:`d(u, v)` is the shortest path distance from u to v.
+
+    If `sources` and `targets` are both None, then the total number of paths is
+    :math:`N_p = N(N - 1)`, with :math:`N` the number of nodes in the graph.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+    unconnected : bool, optional (default: False)
+        If set to true, ignores unconnected nodes and returns the average path
+        length of the existing paths.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.shortest_distance`
+    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
+    '''
     raise NotImplementedError(_backend_required)
 
 
@@ -341,13 +378,44 @@ def small_world_propensity(g, directed=True, weights=None,
 
     See also
     --------
+    :func:`nngt.analysis.average_path_length`
     :func:`nngt.analysis.global_clustering`
-    :func:`nngt.analysis.diameter`
     :func:`nngt.generation.lattice_rewire`
     :func:`nngt.generation.random_rewire`
     '''
     latt = nngt.generation.lattice_rewire(g, weights=weights)
     rand = nngt.generation.random_rewire(g)
+
+    # compute average path-length using the inverse of the weights
+    inv_weights = None
+
+    if nonstring_container(weights):
+        inv_weights = 1 / weights
+    elif weights not in (None, False):
+        inv_weights = 1 / g.edge_attributes[weights]
+
+    l_latt = average_path_length(latt, directed=directed, weights=weights)
+    l_rand = average_path_length(rand, directed=directed, weights=weights)
+    lg     = average_path_length(g, directed=directed, weights=weights)
+
+    # compute clustering
+    c_latt = global_clustering(
+        latt, directed=directed, weights=weights, method=clustering,
+        combine_weights=combine_weights)
+
+    c_rand = global_clustering(
+        rand, directed=directed, weights=weights, method=clustering,
+        combine_weights=combine_weights)
+
+    c_g = global_clustering(
+        g, directed=directed, weights=weights, method=clustering,
+        combine_weights=combine_weights)
+
+    # compute deltas
+    delta_l = (l_g - l_rand) / (l_latt - l_rand)
+    delta_c = (c_latt - c_g) / (c_latt - c_rand)
+
+    return 1 - np.sqrt(0.5*(delta_l**2 + delta_c**2))
 
 
 # ------------ #

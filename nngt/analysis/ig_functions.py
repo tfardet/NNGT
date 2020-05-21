@@ -308,7 +308,7 @@ def connected_components(g, ctype=None):
 
 
 def shortest_distance(g, sources=None, targets=None, directed=True,
-                      weights=None, mformat='dense'):
+                      weights=None):
     '''
     Returns the length of the shortest paths between `sources`and `targets`.
     The algorithms return infinity if there are no paths between nodes.
@@ -327,19 +327,14 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     weights : str, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
-    mformat : str, optional (default: 'dense')
-        Format of the distance matrix returned: either a dense numpy matrix
-        or one of the :mod:`scipy.sparse` matrices ('bsr', 'coo', 'csr', 'csc',
-        'lil').
 
     Returns
     -------
-    distance : float or matrix
-        Distance (if single source and single target) or distance matrix.
-        If `mformat` is 'dense', then the shape of the matrix is (S, T),
-        with S the number of sources and T the number of targets;
-        otherwise (for sparse matrices) only the relevant entries are present
-        but the matrix size is (N, N) with N the number of nodes in the graph.
+    distance : float, or 1d/2d numpy array of floats
+        Distance (if single source and single target) or distance array.
+        For multiple sources and targets, the shape of the matrix is (S, T),
+        with S the number of sources and T the number of targets; for a single
+        source or target, return a 1d-array of length T or S.
 
     References
     ----------
@@ -362,27 +357,23 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     mat_dist = graph.shortest_paths(source=sources, target=targets,
                                     weights=ww)
 
-    if mformat == 'dense':
-        mat_dist = np.array(mat_dist, dtype=float)
+    mat_dist = np.array(mat_dist, dtype=float)
 
-        if mat_dist.shape[0] == 1:
-            return mat_dist[0]
+    if mat_dist.shape[0] == 1:
+        return mat_dist[0]
 
-        if mat_dist.shape[1] == 1:
-            return mat_dist.T[0]
+    if mat_dist.shape[1] == 1:
+        return mat_dist.T[0]
 
-        return mat_dist
-
-    coo = ssp.coo_matrix(mat_dist)
-
-    return coo.asformat(mformat)
+    return mat_dist
 
 
 def average_path_length(g, sources=None, targets=None, directed=True,
-                        weights=None):
+                        weights=None, unconnected=False):
     r'''
     Returns the average shortest path length between `sources` and `targets`.
-    The algorithms raises an error if all nodes are not connected.
+    The algorithms raises an error if all nodes are not connected unless
+    `unconnected` is set to True.
 
     The average path length is defined as
 
@@ -410,16 +401,29 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     weights : str, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    unconnected : bool, optional (default: False)
+        If set to true, ignores unconnected nodes and returns the average path
+        length of the existing paths.
 
     References
     ----------
     .. [ig-sp] :igdoc:`shortest_paths`
     '''
-    mat_dist = shortest_paths_length(g, sources=sources, targets=targets,
-                                     directed=directed, weights=weights,
-                                     mformat='dense')
+    mat_dist = short_distance(g, sources=sources, targets=targets,
+                              directed=directed, weights=weights)
 
+    if not unconnected and np.any(np.isinf(mat_dist)):
+        raise RuntimeError("`sources` and `target` do not belong to the "
+                           "same connected component.")
+
+    # compute the number of path
     num_paths = np.sum(mat_dist != 0)
+
+    # compute average path length
+    if unconnected:
+        num_paths -= np.sum(np.isinf(mat_dist))
+
+        return np.nansum(mat_dist) / num_paths
 
     return np.sum(mat_dist) / num_paths
 

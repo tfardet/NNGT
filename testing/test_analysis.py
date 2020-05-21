@@ -287,9 +287,9 @@ def test_binary_shortest_distance():
     assert np.array_equal(mat_dist, undirected_dist[:3])
 
     # undirected targets
-    mat_dist = na.shortest_distance(g, targets=[0, 1, 2], mformat='lil')
+    mat_dist = na.shortest_distance(g, targets=[0, 1, 2])
 
-    assert np.array_equal(mat_dist.todense()[:, :3], undirected_dist[:, :3])
+    assert np.array_equal(mat_dist[:, :3], undirected_dist[:, :3])
 
     # single source/target
     assert na.shortest_distance(g, sources=0, targets=2) == 2
@@ -324,13 +324,84 @@ def test_binary_shortest_distance():
     assert np.isinf(na.shortest_distance(g, sources=0, targets=2))
 
 
+@pytest.mark.mpi_skip
+def test_weighted_shortest_distance():
+    ''' Check shortest distance '''
+    num_nodes = 5
+    edge_list = [
+        (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 0)
+    ]
+    weights = [2., 1., 1., 3., 2., 3., 2.]
+
+    # undirected
+    g = nngt.Graph(num_nodes, directed=False)
+    g.new_edges(edge_list)
+
+    mat_dist = na.shortest_distance(g, weights=weights)
+
+    undirected_dist = np.array([
+        [0, 1, 2, 2, 2],
+        [1, 0, 1, 3, 2],
+        [2, 1, 0, 4, 3],
+        [2, 3, 4, 0, 3],
+        [2, 2, 3, 3, 0],
+    ])
+
+    assert np.array_equal(mat_dist, undirected_dist)
+
+    # undirected, sources
+    g.set_weights(weights)
+    mat_dist = na.shortest_distance(g, sources=[0, 1, 2], weights='weight')
+
+    assert np.array_equal(mat_dist, undirected_dist[:3])
+
+    # undirected targets
+    mat_dist = na.shortest_distance(g, targets=[0, 1, 2], weights='weight')
+
+    assert np.array_equal(mat_dist[:, :3], undirected_dist[:, :3])
+
+    # single source/target
+    assert na.shortest_distance(g, sources=3, targets=2, weights='weight') == 4
+
+    # directed
+    g = nngt.Graph(num_nodes, directed=True)
+    g.new_edges(edge_list)
+
+    directed_dist = np.array([
+        [0.,     np.inf, np.inf, 2.,  np.inf],
+        [1.,     0.,     1.,     3.,  4.    ],
+        [5.,     5.,     0.,     6.,  3.    ],
+        [np.inf, np.inf, np.inf, 0.,  np.inf],
+        [ 2.,    2.,     3.,     3.,  0.    ]
+    ])
+
+    mat_dist = na.shortest_distance(g, weights=weights)
+
+    assert np.array_equal(mat_dist, directed_dist)
+
+    # single source
+    g.set_weights(weights)
+    mat_dist = na.shortest_distance(g, sources=[0], weights='weight')
+
+    assert np.array_equal(mat_dist, directed_dist[:1].ravel())
+
+    # single target
+    mat_dist = na.shortest_distance(g, targets=0, weights='weight')
+
+    assert np.array_equal(mat_dist, directed_dist[:, 0].ravel())
+
+    # single source/target directed
+    assert np.isinf(
+        na.shortest_distance(g, sources=0, targets=2, weights='weight'))
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        # ~ test_binary_undirected_clustering()
-        # ~ test_weighted_undirected_clustering()
-        # ~ test_weighted_directed_clustering()
-        # ~ for b in ("networkx", "igraph", "graph-tool"):
+        test_binary_undirected_clustering()
+        test_weighted_undirected_clustering()
+        test_weighted_directed_clustering()
+        test_binary_shortest_distance()
+        test_weighted_shortest_distance()
         for b in ("networkx", "igraph", "graph-tool"):
             nngt.use_backend(b)
             print(b)
-            test_binary_shortest_distance()
