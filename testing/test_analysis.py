@@ -28,6 +28,43 @@ def test_binary_undirected_clustering():
     Check that directed local clustering returns undirected value if graph is
     not directed.
     '''
+    # pre-defined graph
+    num_nodes = 5
+    edge_list = [
+        (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 2), (4, 0)
+    ]
+
+    # expected results
+    loc_clst  = [2/3., 2/3., 1., 1., 0.5]
+    glob_clst = 0.6428571428571429
+
+    # create graph
+    g = nngt.Graph(nodes=num_nodes)
+    g.new_edges(edge_list)
+
+    # check all 3 ways of computing the local clustering
+    assert np.all(np.isclose(
+        na.local_clustering_binary_undirected(g), loc_clst))
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, directed=False), loc_clst))
+
+    assert np.all(np.isclose(
+        nngt.analyze_graph["local_clustering"](g, directed=False),
+        loc_clst))
+
+    # check all 3 ways of computing the global clustering
+    assert np.isclose(
+        na.global_clustering(g, directed=False), glob_clst)
+
+    assert np.isclose(
+        na.global_clustering_binary_undirected(g), glob_clst)
+
+    assert np.isclose(
+        nngt.analyze_graph["global_clustering"](g, directed=False),
+        glob_clst)
+
+    # sanity check for local clustering on undirected unweighted graph
     g = ng.erdos_renyi(avg_deg=10, nodes=100, directed=False)
 
     ccu = na.local_clustering_binary_undirected(g)
@@ -258,279 +295,26 @@ def test_weighted_directed_clustering():
 
 
 @pytest.mark.mpi_skip
-def test_binary_shortest_distance():
-    ''' Check shortest distance '''
-    num_nodes = 5
-    edge_list = [
-        (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 2), (4, 0)
-    ]
+def test_reciprocity():
+    ''' Check reciprocity result '''
+    num_nodes  = 5
+    edge_list1 = [(0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 2)]
+    edge_list2 = [(0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3)]
 
-    # undirected
-    g = nngt.Graph(num_nodes, directed=False)
-    g.new_edges(edge_list)
-
-    mat_dist = na.shortest_distance(g)
-
-    undirected_dist = np.array([
-        [0, 1, 2, 1, 1],
-        [1, 0, 1, 2, 1],
-        [2, 1, 0, 2, 1],
-        [1, 2, 2, 0, 1],
-        [1, 1, 1, 1, 0],
-    ])
-
-    assert np.array_equal(mat_dist, undirected_dist)
-
-    # undirected, sources
-    mat_dist = na.shortest_distance(g, sources=[0, 1, 2])
-
-    assert np.array_equal(mat_dist, undirected_dist[:3])
-
-    # undirected targets
-    mat_dist = na.shortest_distance(g, targets=[0, 1, 2])
-
-    assert np.array_equal(mat_dist[:, :3], undirected_dist[:, :3])
-
-    # single source/target
-    assert na.shortest_distance(g, sources=0, targets=2) == 2
+    recip = 2/7
 
     # directed
-    g = nngt.Graph(num_nodes, directed=True)
-    g.new_edges(edge_list)
+    g = nngt.Graph(nodes=num_nodes, directed=True)
+    g.new_edges(edge_list1)
 
-    directed_dist = np.array([
-        [0.,     np.inf, np.inf, 1.,  np.inf],
-        [1.,     0.,     1.,     2.,  2.    ],
-        [2.,     2.,     0.,     2.,  1.    ],
-        [np.inf, np.inf, np.inf, 0.,  np.inf],
-        [ 1.,    1.,     1.,     1.,  0.    ]
-    ])
-
-    mat_dist = na.shortest_distance(g)
-
-    assert np.array_equal(mat_dist, directed_dist)
-
-    # check undirected from directed
-    mat_dist = na.shortest_distance(g, directed=False)
-
-    assert np.array_equal(mat_dist, undirected_dist)
-
-    # single source
-    mat_dist = na.shortest_distance(g, sources=[0])
-
-    assert np.array_equal(mat_dist, directed_dist[:1].ravel())
-
-    # single target
-    mat_dist = na.shortest_distance(g, targets=0)
-
-    assert np.array_equal(mat_dist, directed_dist[:, 0].ravel())
-
-    # single source/target directed
-    assert np.isinf(na.shortest_distance(g, sources=0, targets=2))
-
-
-@pytest.mark.mpi_skip
-def test_weighted_shortest_distance():
-    ''' Check shortest distance '''
-    num_nodes = 5
-    edge_list = [
-        (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 0)
-    ]
-    weights = [2., 1., 1., 3., 2., 3., 2.]
+    assert np.isclose(
+        nngt.analyze_graph["reciprocity"](g), recip)
 
     # undirected
-    g = nngt.Graph(num_nodes, directed=False)
-    g.new_edges(edge_list)
+    g = nngt.Graph(nodes=num_nodes, directed=False)
+    g.new_edges(edge_list2)
 
-    mat_dist = na.shortest_distance(g, weights=weights)
-
-    undirected_dist = np.array([
-        [0, 1, 2, 2, 2],
-        [1, 0, 1, 3, 2],
-        [2, 1, 0, 4, 3],
-        [2, 3, 4, 0, 3],
-        [2, 2, 3, 3, 0],
-    ])
-
-    assert np.array_equal(mat_dist, undirected_dist)
-
-    # undirected, sources
-    g.set_weights(weights)
-    mat_dist = na.shortest_distance(g, sources=[0, 1, 2], weights='weight')
-
-    assert np.array_equal(mat_dist, undirected_dist[:3])
-
-    # undirected targets
-    mat_dist = na.shortest_distance(g, targets=[0, 1, 2], weights='weight')
-
-    assert np.array_equal(mat_dist[:, :3], undirected_dist[:, :3])
-
-    # single source/target
-    assert na.shortest_distance(g, sources=3, targets=2, weights='weight') == 4
-
-    # directed
-    g = nngt.Graph(num_nodes, directed=True)
-    g.new_edges(edge_list)
-
-    directed_dist = np.array([
-        [0.,     np.inf, np.inf, 2.,  np.inf],
-        [1.,     0.,     1.,     3.,  4.    ],
-        [5.,     5.,     0.,     6.,  3.    ],
-        [np.inf, np.inf, np.inf, 0.,  np.inf],
-        [ 2.,    2.,     3.,     3.,  0.    ]
-    ])
-
-    mat_dist = na.shortest_distance(g, weights=weights)
-
-    assert np.array_equal(mat_dist, directed_dist)
-
-    # check undirected from directed raises an error
-    error_raised = False
-
-    try:
-        na.shortest_distance(g, directed=False, weights=weights)
-    except:
-        error_raised = True
-
-    assert error_raised
-
-    # single source
-    g.set_weights(weights)
-    mat_dist = na.shortest_distance(g, sources=[0], weights='weight')
-
-    assert np.array_equal(mat_dist, directed_dist[:1].ravel())
-
-    # single target
-    mat_dist = na.shortest_distance(g, targets=0, weights='weight')
-
-    assert np.array_equal(mat_dist, directed_dist[:, 0].ravel())
-
-    # single source/target directed
-    assert np.isinf(
-        na.shortest_distance(g, sources=0, targets=2, weights='weight'))
-
-
-def test_binary_shortest_paths():
-    num_nodes = 5
-
-    # undirected
-    edge_list = [
-        (0, 1), (0, 3), (1, 2), (1, 4), (2, 3), (3, 4)
-    ]
-
-    g = nngt.Graph(num_nodes, directed=False)
-    g.new_edges(edge_list)
-
-    assert na.shortest_path(g, 0, 0) == [0]
-    assert na.shortest_path(g, 0, 1) == [0, 1]
-    assert na.shortest_path(g, 0, 2) in ([0, 1, 2], [0, 3, 2])
-
-    count = 0
-
-    for p in na.all_shortest_paths(g, 4, 2):
-        assert p in ([4, 1, 2], [4, 3, 2])
-        count += 1
-
-    assert count == 2
-
-    count = 0
-
-    for p in na.all_shortest_paths(g, 1, 1):
-        assert p == [1]
-        count += 1
-
-    assert count == 1
-
-    # directed
-    edge_list = [
-        (0, 1), (0, 3), (1, 2), (1, 4), (3, 2), (4, 3)
-    ]
-
-    g = nngt.Graph(num_nodes, directed=True)
-    g.new_edges(edge_list)
-
-    assert na.shortest_path(g, 0, 0) == [0]
-    assert na.shortest_path(g, 2, 4) == []
-    assert na.shortest_path(g, 0, 2) in ([0, 1, 2], [0, 3, 2])
-
-    count = 0
-
-    for p in na.all_shortest_paths(g, 4, 2):
-        assert p == [4, 3, 2]
-        count += 1
-
-    assert count == 1
-
-    count = 0
-
-    for p in na.all_shortest_paths(g, 1, 1):
-        assert p == [1]
-        count += 1
-
-    assert count == 1
-
-
-def test_weighted_shortest_paths():
-    num_nodes = 5
-
-    # undirected
-    edge_list = [
-        (0, 1), (0, 3), (1, 2), (1, 4), (2, 3), (3, 4)
-    ]
-    weights = [5, 0.1, 3., 0.5, 1, 3.5]
-
-    g = nngt.Graph(num_nodes, directed=False)
-    g.new_edges(edge_list)
-    g.set_weights(weights)
-
-    assert na.shortest_path(g, 0, 0, weights='weight') == [0]
-    assert na.shortest_path(g, 0, 1, weights='weight') == [0, 3, 2, 1]
-    assert na.shortest_path(g, 1, 3, weights=weights) in ([1, 4, 3], [1, 2, 3])
-
-    count = 0
-
-    for p in na.all_shortest_paths(g, 1, 3, weights='weight'):
-        assert p in ([1, 4, 3], [1, 2, 3])
-        count += 1
-
-    assert count == 2
-
-    count = 0
-
-    for p in na.all_shortest_paths(g, 1, 1, weights='weight'):
-        assert p == [1]
-        count += 1
-
-    assert count == 1
-
-    # directed
-    edge_list = [
-        (0, 1), (0, 3), (1, 2), (1, 4), (3, 2), (4, 3)
-    ]
-    weights = [1., 0.1, 0.1, 0.5, 1, 3.5]
-
-    g = nngt.Graph(num_nodes, directed=True)
-    g.new_edges(edge_list, attributes={"weight": weights})
-
-    assert na.shortest_path(g, 0, 0, weights='weight') == [0]
-    assert na.shortest_path(g, 2, 4, weights='weight') == []
-    assert na.shortest_path(g, 1, 3, weights=weights) == [1, 4, 3]
-
-    count = 0
-
-    for p in na.all_shortest_paths(g, 0, 2, weights='weight'):
-        assert p in ([0, 1, 2], [0, 3, 2])
-        count += 1
-
-    assert count == 2
-
-    count = 0
-
-    for p in na.all_shortest_paths(g, 1, 1, weights='weight'):
-        assert p == [1]
-        count += 1
-
-    assert count == 1
+    assert nngt.analyze_graph["reciprocity"](g) == 1.
 
 
 if __name__ == "__main__":
@@ -538,7 +322,4 @@ if __name__ == "__main__":
         test_binary_undirected_clustering()
         test_weighted_undirected_clustering()
         test_weighted_directed_clustering()
-        test_binary_shortest_distance()
-        test_weighted_shortest_distance()
-        test_binary_shortest_paths()
-        test_weighted_shortest_paths()
+        test_reciprocity()
