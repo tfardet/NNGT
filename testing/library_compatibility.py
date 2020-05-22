@@ -743,6 +743,9 @@ def test_subgraph_centrality():
     num_nodes  = 5
     edge_list  = [(0, 1), (0, 2), (0, 3), (1, 3), (2, 3), (2, 4), (3, 4)]
 
+    # this test requires networkx as backend
+    nngt.use_backend("networkx")
+
     g = nngt.Graph(num_nodes, directed=False)
     g.new_edges(edge_list)
 
