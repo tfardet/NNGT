@@ -28,6 +28,43 @@ def test_binary_undirected_clustering():
     Check that directed local clustering returns undirected value if graph is
     not directed.
     '''
+    # pre-defined graph
+    num_nodes = 5
+    edge_list = [
+        (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 2), (4, 0)
+    ]
+
+    # expected results
+    loc_clst  = [2/3., 2/3., 1., 1., 0.5]
+    glob_clst = 0.6428571428571429
+
+    # create graph
+    g = nngt.Graph(nodes=num_nodes)
+    g.new_edges(edge_list)
+
+    # check all 3 ways of computing the local clustering
+    assert np.all(np.isclose(
+        na.local_clustering_binary_undirected(g), loc_clst))
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, directed=False), loc_clst))
+
+    assert np.all(np.isclose(
+        nngt.analyze_graph["local_clustering"](g, directed=False),
+        loc_clst))
+
+    # check all 3 ways of computing the global clustering
+    assert np.isclose(
+        na.global_clustering(g, directed=False), glob_clst)
+
+    assert np.isclose(
+        na.global_clustering_binary_undirected(g), glob_clst)
+
+    assert np.isclose(
+        nngt.analyze_graph["global_clustering"](g, directed=False),
+        glob_clst)
+
+    # sanity check for local clustering on undirected unweighted graph
     g = ng.erdos_renyi(avg_deg=10, nodes=100, directed=False)
 
     ccu = na.local_clustering_binary_undirected(g)
@@ -257,8 +294,32 @@ def test_weighted_directed_clustering():
     assert np.all(np.isclose(cc, expected))
 
 
+@pytest.mark.mpi_skip
+def test_reciprocity():
+    ''' Check reciprocity result '''
+    num_nodes  = 5
+    edge_list1 = [(0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 2)]
+    edge_list2 = [(0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3)]
+
+    recip = 2/7
+
+    # directed
+    g = nngt.Graph(nodes=num_nodes, directed=True)
+    g.new_edges(edge_list1)
+
+    assert np.isclose(
+        nngt.analyze_graph["reciprocity"](g), recip)
+
+    # undirected
+    g = nngt.Graph(nodes=num_nodes, directed=False)
+    g.new_edges(edge_list2)
+
+    assert nngt.analyze_graph["reciprocity"](g) == 1.
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
         test_binary_undirected_clustering()
         test_weighted_undirected_clustering()
         test_weighted_directed_clustering()
+        test_reciprocity()

@@ -506,7 +506,7 @@ class _GtGraph(GraphInterface):
         edge = g.edge(source, target)
 
         if edge is None:
-            g.add_edge(source, target, add_missing=True)
+            g.add_edge(source, target, add_missing=False)
             # set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
         else:
@@ -541,6 +541,10 @@ class _GtGraph(GraphInterface):
         '''
         attributes = {} if attributes is None else deepcopy(attributes)
         num_edges  = len(edge_list)
+
+        # check that all nodes exist
+        if np.max(edge_list) >= self.node_nb():
+            raise ValueError("Some nodes do no exist.")
 
         # set default values for attributes that were not passed
         # (only string and double, others are handled correctly by default)

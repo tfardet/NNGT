@@ -21,8 +21,8 @@
 
 """ Tools to analyze graphs with the graph-tool backend """
 
-from scipy.sparse import coo_matrix
 import numpy as np
+import scipy.sparse as ssp
 
 from graph_tool import GraphView, _prop
 from graph_tool.centrality import closeness as gt_closeness
@@ -316,7 +316,302 @@ def connected_components(g, ctype=None):
     return cc.a, hist
 
 
-def diameter(g, weights=False):
+def shortest_path(g, source, target, directed=True, weights=None):
+    '''
+    Returns a shortest path between `source`and `target`.
+    The algorithms returns an empty list if there is no path between the nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the path starts.
+    target : int
+        Node where the path ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    path : array of ints
+        Order of the nodes making up the path from `source` to `target`.
+
+    References
+    ----------
+    .. [gt-sp] :gtdoc:`topology.shortest_path`
+    '''
+    graph = g.graph
+
+    # source == target case
+    if source == target:
+        return [source]
+
+    # non-trivial cases
+    w = _get_gt_weights(g, weights)
+
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = GraphView(g.graph, directed=False)
+        graph = GraphView(graph, efilt=label_parallel_edges(u).fa == 0)
+
+    path, _ = gtt.shortest_path(graph, source, target, weights=w)
+
+    return [int(v) for v in path]
+
+
+def all_shortest_paths(g, source, target, directed=True, weights=None):
+    '''
+    Yields all shortest paths from `source` to `target`.
+    The algorithms returns an empty generator if there is no path between the
+    nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the paths starts.
+    target : int, optional (default: all nodes)
+        Node where the paths ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    all_paths : generator
+        Generator yielding paths as lists of ints.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.all_shortest_paths`
+    '''
+    graph = g.graph
+
+    # source == target case
+    if source == target:
+        return ([source] for _ in range(1))
+
+    # not trivial cases
+    w = _get_gt_weights(g, weights)
+
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = GraphView(g.graph, directed=False)
+        graph = GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+
+    all_paths = gtt.all_shortest_paths(graph, source, target, weights=w)
+
+    return ([int(v) for v in path] for path in all_paths) 
+
+
+def shortest_distance(g, sources=None, targets=None, directed=True,
+                      weights=None):
+    '''
+    Returns the length of the shortest paths between `sources`and `targets`.
+    The algorithms return infinity if there are no paths between nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    distance : float, or 1d/2d numpy array of floats
+        Distance (if single source and single target) or distance array.
+        For multiple sources and targets, the shape of the matrix is (S, T),
+        with S the number of sources and T the number of targets; for a single
+        source or target, return a 1d-array of length T or S.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.shortest_distance`
+    '''
+    # graph-tool returns infinity for unconnected nodes so there is no need
+    # to check connectedness
+    graph = g.graph
+
+    num_nodes = g.node_nb()
+
+    w = _get_gt_weights(g, weights)
+
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = GraphView(g.graph, directed=False)
+        graph = GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+
+    dist_emap = None
+    tgt_vtx   = None
+
+    maxint = np.iinfo(np.int32).max
+    maxflt = np.finfo(np.float64).max
+
+    # convert sources and targets
+    if sources is not None:
+        if nonstring_container(sources):
+            sources = [graph.vertex(s) for s in sources]
+        else:
+            sources = [graph.vertex(sources)]
+
+    if nonstring_container(targets):
+        tgt_vtx = [graph.vertex(t) for t in targets]
+    elif targets is not None:
+        tgt_vtx = [graph.vertex(targets)]
+        targets = [targets]
+
+    # compute only specific paths
+    if sources is not None:
+        # single source/target case
+        if targets is not None and len(sources) == 1 and len(targets) == 1:
+            distance = gtt.shortest_distance(
+                graph, source=sources[0], target=tgt_vtx[0], weights=w)
+
+            if w is None:
+                if distance == maxint:
+                    return np.inf
+            elif distance == maxflt:
+                return np.inf
+
+            return float(distance)
+
+        # multiple sources
+        num_sources = len(sources)
+        num_targets = num_nodes if targets is None else len(targets)
+
+        mat_dist = np.full((num_sources, num_targets), np.NaN)
+
+        for s in sources:
+            s_int = int(s)
+            dist = gtt.shortest_distance(graph, source=s, target=tgt_vtx,
+                                         weights=w)
+
+            mat_dist[s_int] = dist.a
+
+        # convert max int and float to inf
+        if w is None:
+            mat_dist[mat_dist == maxint] = np.inf
+        else:
+            mat_dist[mat_dist == maxflt] = np.inf
+
+        if num_sources == 1:
+            return mat_dist[0]
+
+        if num_targets == 1:
+            return mat_dist[0]
+
+        return mat_dist
+
+    # if source is None, then we compute all paths
+    dist = gtt.shortest_distance(graph, weights=w)
+
+    # transpose (graph-tool uses columns as sources)
+    mat_dist = dist.get_2d_array([i for i in range(num_nodes)]).astype(float).T
+
+    if w is None:
+        # check unconnected with int32
+        mat_dist[mat_dist == maxint] = np.inf
+    else:
+        # check float max
+        mat_dist[mat_dist == maxflt] = np.inf
+
+    if targets is not None:
+        if len(targets) == 1:
+            return mat_dist.T[0]
+
+        return mat_dist[:, targets]
+
+    return mat_dist
+
+
+def average_path_length(g, sources=None, targets=None, directed=True,
+                        weights=None, unconnected=False):
+    r'''
+    Returns the average shortest path length between `sources` and `targets`.
+    The algorithms raises an error if all nodes are not connected unless
+    `unconnected` is set to True.
+
+    The average path length is defined as
+
+    .. math::
+
+       L = \frac{1}{N_p} \sum_{u,v} d(u, v),
+
+    where :math:`N_p` is the number of paths between `sources` and `targets`,
+    and :math:`d(u, v)` is the shortest path distance from u to v.
+
+    If `sources` and `targets` are both None, then the total number of paths is
+    :math:`N_p = N(N - 1)`, with :math:`N` the number of nodes in the graph.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+    unconnected : bool, optional (default: False)
+        If set to true, ignores unconnected nodes and returns the average path
+        length of the existing paths.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.shortest_distance`
+    '''
+    mat_dist = shortest_distance(g, sources=sources, targets=targets,
+                                 directed=directed, weights=weights)
+
+    if not unconnected and np.any(np.isinf(mat_dist)):
+        raise RuntimeError("`sources` and `target` do not belong to the "
+                           "same connected component.")
+
+    # compute the number of path
+    num_paths = np.sum(mat_dist != 0)
+
+    # compute average path length
+    if unconnected:
+        num_paths -= np.sum(np.isinf(mat_dist))
+
+        return np.nansum(mat_dist) / num_paths
+
+    return np.sum(mat_dist) / num_paths
+
+
+def diameter(g, weights=None):
     '''
     Returns the pseudo-diameter of the graph.
 
@@ -401,7 +696,7 @@ def adj_mat(g, weights=None, mformat="csr"):
         V = graph.num_vertices()
 
     # we take the convention using rows for outgoing connections
-    m = coo_matrix((data, (j, i)), shape=(V, V))
+    m = ssp.coo_matrix((data, (j, i)), shape=(V, V))
 
     return m.asformat(mformat)
 
