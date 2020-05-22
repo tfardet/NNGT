@@ -36,7 +36,9 @@ from .clustering import *
 
 __all__ = [
     "adjacency_matrix",
+    "all_shortest_paths",
     "assortativity",
+    "average_path_length",
     "betweenness",
     "betweenness_distrib",
     "binning",
@@ -47,6 +49,8 @@ __all__ = [
     "node_attributes",
 	"num_iedges",
 	"reciprocity",
+    "shortest_distance",
+    "shortest_path",
 	"spectral_radius",
     "subgraph_centrality",
     "transitivity",
@@ -212,6 +216,163 @@ def diameter(g, weights=False):
     .. [ig-diameter] :igdoc:`diameter`
     .. [nx-diameter] :nxdoc:`algorithms.distance_measures.diameter`
     .. [nx-dijkstra] :nxdoc:`algorithms.shortest_paths.weighted.all_pairs_dijkstra`
+    '''
+    raise NotImplementedError(_backend_required)
+
+
+def shortest_path(g, source, target, directed=True, weights=None):
+    '''
+    Returns a shortest path between `source`and `target`.
+    The algorithms returns an empty list if there is no path between the nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the path starts.
+    target : int
+        Node where the path ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    path : array of ints
+        Order of the nodes making up the path from `source` to `target`.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.shortest_distance`
+    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.shortest_path`
+    '''
+    raise NotImplementedError(_backend_required)
+
+
+def all_shortest_paths(g, source, target, directed=True, weights=None):
+    '''
+    Yields all shortest paths from `source` to `target`.
+    The algorithms returns an empty generator if there is no path between the
+    nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the paths starts.
+    target : int, optional (default: all nodes)
+        Node where the paths ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    all_paths : generator
+        Generator yielding paths as lists of ints.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.all_shortest_paths`
+    .. [ig-sp] :igdoc:`get_all_shortest_paths`
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.all_shortest_paths`
+    '''
+    raise NotImplementedError(_backend_required)
+
+
+def shortest_distance(g, sources=None, targets=None, directed=True,
+                      weights=None):
+    '''
+    Returns the length of the shortest paths between `sources`and `targets`.
+    The algorithms return infinity if there are no paths between nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    distance : float, or 1d/2d numpy array of floats
+        Distance (if single source and single target) or distance array.
+        For multiple sources and targets, the shape of the matrix is (S, T),
+        with S the number of sources and T the number of targets; for a single
+        source or target, return a 1d-array of length T or S.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.shortest_distance`
+    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.weighted.multi_source_dijkstra`
+    '''
+    raise NotImplementedError(_backend_required)
+
+
+def average_path_length(g, sources=None, targets=None, directed=True,
+                        weights=None, unconnected=False):
+    r'''
+    Returns the average shortest path length between `sources` and `targets`.
+    The algorithms raises an error if all nodes are not connected unless
+    `unconnected` is set to True.
+
+    The average path length is defined as
+
+    .. math::
+
+       L = \frac{1}{N_p} \sum_{u,v} d(u, v),
+
+    where :math:`N_p` is the number of paths between `sources` and `targets`,
+    and :math:`d(u, v)` is the shortest path distance from u to v.
+
+    If `sources` and `targets` are both None, then the total number of paths is
+    :math:`N_p = N(N - 1)`, with :math:`N` the number of nodes in the graph.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    sources : list of nodes, optional (default: all)
+        Nodes from which the paths must be computed.
+    targets : list of nodes, optional (default: all)
+        Nodes to which the paths must be computed.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+    unconnected : bool, optional (default: False)
+        If set to true, ignores unconnected nodes and returns the average path
+        length of the existing paths.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.shortest_distance`
+    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
+
+    See also
+    --------
+    :func:`nngt.analysis.shortest_distance`
     '''
     raise NotImplementedError(_backend_required)
 

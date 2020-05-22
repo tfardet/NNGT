@@ -126,6 +126,21 @@ a.fn-backref {
     color: #000000;
 }
 
+table.citation {
+    border-left: none;
+    font-size: 100%;
+}
+
+table.citation td.label {
+    font-size: 100%;
+    display: block;
+    line-height: normal;
+    padding: none;
+    vertical-align: baseline;
+    border: none;
+    color: #000000;
+}
+
 .admonition a {
     color: #555555;
 }

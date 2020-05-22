@@ -190,9 +190,12 @@ def _get_ig_weights(g, weights):
 
 def _get_nx_weights(g, weights):
     if nonstring_container(weights):
-        # user-provided array (test must come first since non hashable)
-        return ValueError("networkx backend does not support custom arrays "
-                          "as `weights`.")
+        # generate a function that returns the weights
+        def f(source, target, attr):
+            eid = g.edge_id((source, target))
+            return weights[eid]
+
+        return f
     elif weights in g.edge_attributes:
         # existing edge attribute
         return weights
