@@ -47,6 +47,7 @@ __all__ = [
     "node_attributes",
 	"num_iedges",
 	"reciprocity",
+    "small_world_propensity",
 	"spectral_radius",
     "subgraph_centrality",
     "transitivity",
@@ -214,6 +215,123 @@ def diameter(g, weights=False):
     .. [nx-dijkstra] :nxdoc:`algorithms.shortest_paths.weighted.all_pairs_dijkstra`
     '''
     raise NotImplementedError(_backend_required)
+
+
+def small_world_propensity(g, directed=True, weights=None,
+                           combine_weights="mean", clustering="continuous"):
+    r'''
+    Returns the small-world propensity of the graph as first defined in
+    [Muldoon2016]_.
+
+    .. math::
+
+        \phi = 1 - \sqrt{\frac{\Delta_C^2 + \Delta_L^2}{2}}
+
+    with :math:`\Delta_C` the relative global clustering of `g`
+
+    .. math::
+
+        \Delta_C = \frac{C_{latt} - C_g}{C_{latt} - C_{rand}}
+
+    and :math:`Delta_L` the relative diameter (characteristic path length) of
+    `g`
+
+    .. math::
+
+        \Delta_L = \frac{L_g - L_{rand}}{L_{latt} - L_{rand}}.
+
+    In both cases, *latt* and *rand* refer to the equivalent lattice and
+    Erdos-Renyi graphs obtained by rewiring `g` to obtain respectively the
+    highest and lowest combination of clustering and diameter.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph` object
+        Graph to analyze.
+    directed : bool, optional (default: True)
+        Whether to compute the directed clustering if the graph is directed.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
+    clustering : str, optional (default: 'continuous')
+        Method used to compute the weighted clustering coefficients, either
+        'barrat' [Barrat2004]_, 'continuous' (recommended), or 'onnela'
+        [Onnela2005]_.
+
+    Note
+    ----
+    If `weights` are provided, the distance calculation uses the inverse of
+    the weights.
+    This implementation differs slightly from the `original implementation
+    <https://github.com/KordingLab/nctpy>`_ as it uses the global instead of
+    the average clustering coefficient and it is generalized to directed
+    networks.
+
+    References
+    ----------
+    .. [Muldoon2016] Muldoon, Bridgeford, Bassett. Small-World Propensity and
+        Weighted Brain Networks. Sci Rep 2016, 6 (1), 22057.
+        :doi:`10.1038/srep22057`, :arxiv:`1505.02194`.
+    .. [Barrat2004] Barrat, Barthelemy, Pastor-Satorras, Vespignani. The
+        Architecture of Complex Weighted Networks. PNAS 2004, 101 (11).
+        :doi:`10.1073/pnas.0400087101`.
+    .. [Onnela2005] Onnela, Saramäki, Kertész, Kaski. Intensity and Coherence
+        of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
+        065103. :doi:`10.1103/physreve.71.065103`, arxiv:`cond-mat/0408629`.
+
+    See also
+    --------
+    :func:`nngt.analysis.average_path_length`
+    :func:`nngt.analysis.global_clustering`
+    :func:`nngt.generation.lattice_rewire`
+    :func:`nngt.generation.random_rewire`
+    '''
+    latt = nngt.generation.lattice_rewire(g, weights=weights)
+    rand = nngt.generation.random_rewire(g)
+
+    # compute average path-length using the inverse of the weights
+    inv_weights = None
+
+    if nonstring_container(weights):
+        inv_weights = 1 / weights
+    elif weights not in (None, False):
+        inv_weights = 1 / g.edge_attributes[weights]
+
+    l_latt = average_path_length(latt, directed=directed, weights=weights)
+    l_rand = average_path_length(rand, directed=directed, weights=weights)
+    lg     = average_path_length(g, directed=directed, weights=weights)
+
+    # compute clustering
+    c_latt = global_clustering(
+        latt, directed=directed, weights=weights, method=clustering,
+        combine_weights=combine_weights)
+
+    c_rand = global_clustering(
+        rand, directed=directed, weights=weights, method=clustering,
+        combine_weights=combine_weights)
+
+    c_g = global_clustering(
+        g, directed=directed, weights=weights, method=clustering,
+        combine_weights=combine_weights)
+
+    # compute deltas
+    delta_l = (l_g - l_rand) / (l_latt - l_rand)
+    delta_c = (c_latt - c_g) / (c_latt - c_rand)
+
+    return 1 - np.sqrt(0.5*(delta_l**2 + delta_c**2))
 
 
 # ------------ #
