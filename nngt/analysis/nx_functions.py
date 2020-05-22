@@ -325,6 +325,99 @@ def connected_components(g, ctype=None):
     return cc, np.array(hist, dtype=int)
 
 
+def shortest_path(g, source, target, directed=True, weights=None):
+    '''
+    Returns a shortest path between `source`and `target`.
+    The algorithms returns an empty list if there is no path between the nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the path starts.
+    target : int
+        Node where the path ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    path : list of ints
+        Order of the nodes making up the path from `source` to `target`.
+
+    References
+    ----------
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.shortest_path`
+    '''
+    w = _get_nx_weights(g, weights)
+
+    graph = g.graph
+
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = g.graph.to_undirected(as_view=True)
+
+    try:
+        return nx.shortest_path(graph, source, target, weight=w)
+    except nx.NetworkXNoPath:
+        return []
+
+
+def all_shortest_paths(g, source, target, directed=True, weights=None):
+    '''
+    Yields all shortest paths from `source` to `target`.
+    The algorithms returns an empty generator if there is no path between the
+    nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the paths starts.
+    target : int, optional (default: all nodes)
+        Node where the paths ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    all_paths : generator
+        Generator yielding paths as lists of ints.
+
+    References
+    ----------
+    .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.all_shortest_paths`
+    '''
+    w = _get_nx_weights(g, weights)
+
+    graph = g.graph
+
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = g.graph.to_undirected(as_view=True)
+
+    try:
+        return nx.all_shortest_paths(graph, source, target, weight=w)
+    except nx.NetworkXNoPath:
+        return (_ for _ in [])
+
+
 def shortest_distance(g, sources=None, targets=None, directed=True,
                       weights=None):
     '''
@@ -342,7 +435,7 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     directed : bool, optional (default: True)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
-    weights : str, optional (default: binary)
+    weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
 
@@ -358,17 +451,19 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     ----------
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.weighted.multi_source_dijkstra`
     '''
-    # networkx raises NetworkXNoPath if nodes are not connected so no
-    # additional check is necessary
-    graph = g.graph if directed else g.graph.to_undirected(as_view=True)
+    graph = g.graph
 
     num_nodes = g.node_nb()
 
     # check consistency for weights and directed
     w = _get_nx_weights(g, weights)
 
-    if g.graph.is_directed() and not directed and w is not None:
-        raise ValueError("Cannot make graph undirected if `weights` are used.")
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = g.graph.to_undirected(as_view=True)
 
     # check for single source/target case and convert sources and targets
     if is_integer(sources):
@@ -456,7 +551,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     directed : bool, optional (default: True)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
-    weights : str, optional (default: binary)
+    weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
     unconnected : bool, optional (default: False)
@@ -518,7 +613,7 @@ def average_path_length(g, weights=None):
     return nx.average_shortest_path_length(g.graph, weight=weights)
 
 
-def diameter(g, weights=False):
+def diameter(g, weights=None):
     '''
     Returns the diameter of the graph.
 

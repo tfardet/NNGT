@@ -307,6 +307,99 @@ def connected_components(g, ctype=None):
     return cc, hist
 
 
+def shortest_path(g, source, target, directed=True, weights=None):
+    '''
+    Returns a shortest path between `source`and `target`.
+    The algorithms returns an empty list if there is no path between the nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the path starts.
+    target : int
+        Node where the path ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    path : array of ints
+        Order of the nodes making up the path from `source` to `target`.
+
+    References
+    ----------
+    .. [ig-sp] :igdoc:`get_shortest_paths`
+    '''
+    w = _get_ig_weights(g, weights)
+
+    graph = g.graph
+    
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = g.graph.as_undirected()
+
+    path = graph.get_shortest_paths(source, target, mode="out", weights=w)[0]
+
+    if source != target and len(path) == 1:
+        # weird igraph issue
+        return []
+
+    return path
+
+
+def all_shortest_paths(g, source, target, directed=True, weights=None):
+    '''
+    Yields all shortest paths from `source` to `target`.
+    The algorithms returns an empty generator if there is no path between the
+    nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the paths starts.
+    target : int, optional (default: all nodes)
+        Node where the paths ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    all_paths : generator
+        Generator yielding paths as lists of ints.
+
+    References
+    ----------
+    .. [ig-sp] :igdoc:`get_all_shortest_paths`
+    '''
+    w = _get_ig_weights(g, weights)
+
+    graph = g.graph
+    
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = g.graph.as_undirected()
+
+    return (p for p in graph.get_all_shortest_paths(source, target, weights=w))
+
+
 def shortest_distance(g, sources=None, targets=None, directed=True,
                       weights=None):
     '''
@@ -324,7 +417,7 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     directed : bool, optional (default: True)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
-    weights : str, optional (default: binary)
+    weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
 
@@ -340,13 +433,17 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     ----------
     .. [ig-sp] :igdoc:`shortest_paths`
     '''
-    graph = g.graph if directed else g.graph.as_undirected()
+    graph = g.graph
 
     # weighted or selective algorithm
     ww = _get_ig_weights(g, weights)
 
-    if g.graph.is_directed() and not directed and ww is not None:
-        raise ValueError("Cannot make graph undirected if `weights` are used.")
+    if g.graph.is_directed() and not directed:
+        if ww is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = g.graph.as_undirected()
 
     # special case for one source/one target
     if is_integer(sources) and is_integer(targets):
@@ -398,7 +495,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     directed : bool, optional (default: True)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
-    weights : str, optional (default: binary)
+    weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
     unconnected : bool, optional (default: False)

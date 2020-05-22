@@ -316,6 +316,109 @@ def connected_components(g, ctype=None):
     return cc.a, hist
 
 
+def shortest_path(g, source, target, directed=True, weights=None):
+    '''
+    Returns a shortest path between `source`and `target`.
+    The algorithms returns an empty list if there is no path between the nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the path starts.
+    target : int
+        Node where the path ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    path : array of ints
+        Order of the nodes making up the path from `source` to `target`.
+
+    References
+    ----------
+    .. [gt-sp] :gtdoc:`topology.shortest_path`
+    '''
+    graph = g.graph
+
+    # source == target case
+    if source == target:
+        return [source]
+
+    # non-trivial cases
+    w = _get_gt_weights(g, weights)
+
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = GraphView(g.graph, directed=False)
+        graph = GraphView(graph, efilt=label_parallel_edges(u).fa == 0)
+
+    path, _ = gtt.shortest_path(graph, source, target, weights=w)
+
+    return [int(v) for v in path]
+
+
+def all_shortest_paths(g, source, target, directed=True, weights=None):
+    '''
+    Yields all shortest paths from `source` to `target`.
+    The algorithms returns an empty generator if there is no path between the
+    nodes.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    source : int
+        Node from which the paths starts.
+    target : int, optional (default: all nodes)
+        Node where the paths ends.
+    directed : bool, optional (default: True)
+        Whether the edges should be considered as directed or not
+        (automatically set to False if `g` is undirected).
+    weights : str or array, optional (default: binary)
+        Whether to use weighted edges to compute the distances. By default,
+        all edges are considered to have distance 1.
+
+    Returns
+    -------
+    all_paths : generator
+        Generator yielding paths as lists of ints.
+
+    References
+    ----------
+    .. [gt-sd] :gtdoc:`topology.all_shortest_paths`
+    '''
+    graph = g.graph
+
+    # source == target case
+    if source == target:
+        return ([source] for _ in range(1))
+
+    # not trivial cases
+    w = _get_gt_weights(g, weights)
+
+    if not directed and graph.is_directed():
+        if w is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = GraphView(g.graph, directed=False)
+        graph = GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+
+    all_paths = gtt.all_shortest_paths(graph, source, target, weights=w)
+
+    return ([int(v) for v in path] for path in all_paths) 
+
+
 def shortest_distance(g, sources=None, targets=None, directed=True,
                       weights=None):
     '''
@@ -333,7 +436,7 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     directed : bool, optional (default: True)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
-    weights : str, optional (default: binary)
+    weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
 
@@ -363,7 +466,7 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
                 "Cannot make graph undirected if `weights` are used.")
 
         graph = GraphView(g.graph, directed=False)
-        graph = GraphView(graph, efilt=label_parallel_edges(u).fa == 0)
+        graph = GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
 
     dist_emap = None
     tgt_vtx   = None
@@ -478,7 +581,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     directed : bool, optional (default: True)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
-    weights : str, optional (default: binary)
+    weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
     unconnected : bool, optional (default: False)
@@ -508,7 +611,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     return np.sum(mat_dist) / num_paths
 
 
-def diameter(g, weights=False):
+def diameter(g, weights=None):
     '''
     Returns the pseudo-diameter of the graph.
 

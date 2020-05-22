@@ -455,6 +455,12 @@ class _NxGraph(GraphInterface):
 
         attributes = {} if attributes is None else deepcopy(attributes)
 
+        # check that nodes exist
+        num_nodes = g.number_of_nodes()
+
+        if source >= num_nodes or target >= num_nodes:
+            raise ValueError("`source` or `target` does not exist.")
+
         # set default values for attributes that were not passed
         for k in self.edge_attributes:
             if k not in attributes:
@@ -515,6 +521,10 @@ class _NxGraph(GraphInterface):
 
         attributes = {} if attributes is None else deepcopy(attributes)
         num_edges  = len(edge_list)
+
+        # check that all nodes exist
+        if np.max(edge_list) >= g.number_of_nodes():
+            raise ValueError("Some nodes do no exist.")
 
         for attr in attributes:
             if "_corr" in attr:

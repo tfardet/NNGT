@@ -310,6 +310,11 @@ def test_binary_shortest_distance():
 
     assert np.array_equal(mat_dist, directed_dist)
 
+    # check undirected from directed
+    mat_dist = na.shortest_distance(g, directed=False)
+
+    assert np.array_equal(mat_dist, undirected_dist)
+
     # single source
     mat_dist = na.shortest_distance(g, sources=[0])
 
@@ -379,6 +384,16 @@ def test_weighted_shortest_distance():
 
     assert np.array_equal(mat_dist, directed_dist)
 
+    # check undirected from directed raises an error
+    error_raised = False
+
+    try:
+        na.shortest_distance(g, directed=False, weights=weights)
+    except:
+        error_raised = True
+
+    assert error_raised
+
     # single source
     g.set_weights(weights)
     mat_dist = na.shortest_distance(g, sources=[0], weights='weight')
@@ -395,6 +410,129 @@ def test_weighted_shortest_distance():
         na.shortest_distance(g, sources=0, targets=2, weights='weight'))
 
 
+def test_binary_shortest_paths():
+    num_nodes = 5
+
+    # undirected
+    edge_list = [
+        (0, 1), (0, 3), (1, 2), (1, 4), (2, 3), (3, 4)
+    ]
+
+    g = nngt.Graph(num_nodes, directed=False)
+    g.new_edges(edge_list)
+
+    assert na.shortest_path(g, 0, 0) == [0]
+    assert na.shortest_path(g, 0, 1) == [0, 1]
+    assert na.shortest_path(g, 0, 2) in ([0, 1, 2], [0, 3, 2])
+
+    count = 0
+
+    for p in na.all_shortest_paths(g, 4, 2):
+        assert p in ([4, 1, 2], [4, 3, 2])
+        count += 1
+
+    assert count == 2
+
+    count = 0
+
+    for p in na.all_shortest_paths(g, 1, 1):
+        assert p == [1]
+        count += 1
+
+    assert count == 1
+
+    # directed
+    edge_list = [
+        (0, 1), (0, 3), (1, 2), (1, 4), (3, 2), (4, 3)
+    ]
+
+    g = nngt.Graph(num_nodes, directed=True)
+    g.new_edges(edge_list)
+
+    assert na.shortest_path(g, 0, 0) == [0]
+    assert na.shortest_path(g, 2, 4) == []
+    assert na.shortest_path(g, 0, 2) in ([0, 1, 2], [0, 3, 2])
+
+    count = 0
+
+    for p in na.all_shortest_paths(g, 4, 2):
+        assert p == [4, 3, 2]
+        count += 1
+
+    assert count == 1
+
+    count = 0
+
+    for p in na.all_shortest_paths(g, 1, 1):
+        assert p == [1]
+        count += 1
+
+    assert count == 1
+
+
+def test_weighted_shortest_paths():
+    num_nodes = 5
+
+    # undirected
+    edge_list = [
+        (0, 1), (0, 3), (1, 2), (1, 4), (2, 3), (3, 4)
+    ]
+    weights = [5, 0.1, 3., 0.5, 1, 3.5]
+
+    g = nngt.Graph(num_nodes, directed=False)
+    g.new_edges(edge_list)
+    g.set_weights(weights)
+
+    assert na.shortest_path(g, 0, 0, weights='weight') == [0]
+    assert na.shortest_path(g, 0, 1, weights='weight') == [0, 3, 2, 1]
+    assert na.shortest_path(g, 1, 3, weights=weights) in ([1, 4, 3], [1, 2, 3])
+
+    count = 0
+
+    for p in na.all_shortest_paths(g, 1, 3, weights='weight'):
+        assert p in ([1, 4, 3], [1, 2, 3])
+        count += 1
+
+    assert count == 2
+
+    count = 0
+
+    for p in na.all_shortest_paths(g, 1, 1, weights='weight'):
+        assert p == [1]
+        count += 1
+
+    assert count == 1
+
+    # directed
+    edge_list = [
+        (0, 1), (0, 3), (1, 2), (1, 4), (3, 2), (4, 3)
+    ]
+    weights = [1., 0.1, 0.1, 0.5, 1, 3.5]
+
+    g = nngt.Graph(num_nodes, directed=True)
+    g.new_edges(edge_list, attributes={"weight": weights})
+
+    assert na.shortest_path(g, 0, 0, weights='weight') == [0]
+    assert na.shortest_path(g, 2, 4, weights='weight') == []
+    assert na.shortest_path(g, 1, 3, weights=weights) == [1, 4, 3]
+
+    count = 0
+
+    for p in na.all_shortest_paths(g, 0, 2, weights='weight'):
+        assert p in ([0, 1, 2], [0, 3, 2])
+        count += 1
+
+    assert count == 2
+
+    count = 0
+
+    for p in na.all_shortest_paths(g, 1, 1, weights='weight'):
+        assert p == [1]
+        count += 1
+
+    assert count == 1
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
         test_binary_undirected_clustering()
@@ -402,6 +540,5 @@ if __name__ == "__main__":
         test_weighted_directed_clustering()
         test_binary_shortest_distance()
         test_weighted_shortest_distance()
-        for b in ("networkx", "igraph", "graph-tool"):
-            nngt.use_backend(b)
-            print(b)
+        test_binary_shortest_paths()
+        test_weighted_shortest_paths()
