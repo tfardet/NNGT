@@ -541,9 +541,10 @@ class _GtGraph(GraphInterface):
         '''
         attributes = {} if attributes is None else deepcopy(attributes)
         num_edges  = len(edge_list)
+        num_nodes  = self.node_nb()
 
         # check that all nodes exist
-        if np.max(edge_list) >= self.node_nb():
+        if np.max(edge_list) >= num_nodes:
             raise ValueError("Some nodes do no exist.")
 
         # set default values for attributes that were not passed

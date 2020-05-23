@@ -563,7 +563,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
     '''
     if sources is None and targets is None and not unconnected:
-        w = _nx_get_weights(weights)
+        w = _get_nx_weights(g, weights)
 
         return nx.average_shortest_path_length(g.graph, weight=w)
 

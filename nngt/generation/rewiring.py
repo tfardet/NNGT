@@ -154,7 +154,7 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     if e_remaining:
         last_edges = np.full((e_remaining, 2), -1, dtype=np.int64)
 
-        # new connectins are one step above the max regular lattive distance
+        # new connections are one step above the max regular lattice distance
         dist = int(0.5*coord_nb) + 1
 
         if directed:
@@ -176,10 +176,10 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
                     [(i, i + dist) for i in range(num_recip,
                                                   num_recip + e_final)]
         else:
-            last_edges = [(i, i + dist) for i in range(e_remaning)]
+            last_edges[:] = [(i, i + dist) for i in range(e_remaning)]
 
-            # put targets back into [0, num_nodes[
-            last_edges[:, last_edges[:, 1] >= num_nodes] -= num_nodes
+        # put nodes back into [0, num_nodes[
+        last_edges[last_edges >= num_nodes] -= num_nodes
 
         ia_edges[e_reglat:] = last_edges
 

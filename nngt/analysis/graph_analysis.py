@@ -222,7 +222,8 @@ def diameter(g, weights=False):
 
 
 def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
-                           combine_weights="mean", clustering="continuous"):
+                           combine_weights="mean", clustering="continuous",
+                           lattice=None, random=None):
     r'''
     Returns the small-world propensity of the graph as first defined in
     [Muldoon2016]_.
@@ -254,6 +255,10 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
         Graph to analyze.
     directed : bool, optional (default: True)
         Whether to compute the directed clustering if the graph is directed.
+    use_diameter : bool, optional (default: False)
+        Use the diameter instead of the average path length to have more global
+        information. Ccan also be much faster in some cases, especially using
+        graph-tool as the backend.
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
@@ -274,6 +279,14 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
         Method used to compute the weighted clustering coefficients, either
         'barrat' [Barrat2004]_, 'continuous' (recommended), or 'onnela'
         [Onnela2005]_.
+    lattice : :class:`nngt.Graph`, optional (default: generated from `g`)
+        Lattice to use as reference (since its generation is deterministic,
+        enables to avoid multiple generations when running the algorithm
+        several times with the same graph)
+    random : :class:`nngt.Graph`, optional (default: generated from `g`)
+        Random graph to use as reference. Can be useful for reproducibility or
+        for very sparse graphs where ER algorithm would statistically lead to
+        a disconnected graph.
 
     Note
     ----
@@ -303,16 +316,16 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
     :func:`nngt.generation.lattice_rewire`
     :func:`nngt.generation.random_rewire`
     '''
-    latt = nngt.generation.lattice_rewire(g, weight=weights)
-    rand = nngt.generation.random_rewire(g)
+    latt = ng.lattice_rewire(g, weight=weights) if lattice is None else lattice
+    rand = ng.random_rewire(g) if random is None else random
 
     # compute average path-length using the inverse of the weights
-    inv_weights = None
+    inv_w = None
 
     if nonstring_container(weights):
-        inv_weights = 1 / weights
+        inv_w = 1 / weights
     elif weights not in (None, False):
-        inv_weights = 1 / g.edge_attributes[weights]
+        inv_w = 1 / g.edge_attributes[weights]
 
     l_latt, l_rand, l_g = None, None, None
 
@@ -320,13 +333,13 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
         # ~ l_latt = diameter(latt, directed=directed, weights=weights)
         # ~ l_rand = diameter(rand, directed=directed, weights=weights)
         # ~ l_g    = diameter(g, directed=directed, weights=weights)
-        l_latt = diameter(latt, weights=weights)
-        l_rand = diameter(rand, weights=weights)
-        l_g    = diameter(g, weights=weights)
+        l_latt = diameter(latt, weights=inv_w)
+        l_rand = diameter(rand, weights=inv_w)
+        l_g    = diameter(g, weights=inv_w)
     else:
-        l_latt = average_path_length(latt, directed=directed, weights=weights)
-        l_rand = average_path_length(rand, directed=directed, weights=weights)
-        l_g    = average_path_length(g, directed=directed, weights=weights)
+        l_latt = average_path_length(latt, directed=directed, weights=inv_w)
+        l_rand = average_path_length(rand, directed=directed, weights=inv_w)
+        l_g    = average_path_length(g, directed=directed, weights=inv_w)
 
     # compute clustering
     c_latt = global_clustering(
@@ -344,8 +357,6 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
     # compute deltas
     delta_l = (l_g - l_rand) / (l_latt - l_rand)
     delta_c = (c_latt - c_g) / (c_latt - c_rand)
-
-    print(delta_l, delta_c)
 
     return 1 - np.sqrt(0.5*(delta_l**2 + delta_c**2))
 
