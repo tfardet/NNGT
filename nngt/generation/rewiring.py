@@ -180,7 +180,8 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
         ia_edges[e_reglat:] = last_edges
 
     # add the edges
-    new_graph.new_edges(ia_edges, check_edges=False)
+    new_graph.new_edges(ia_edges, check_duplicates=False,
+                        check_self_loops=False, check_existing=False)
 
     # set the node attributes
     _set_node_attributes(g, new_graph, node_attr_constraints, num_nodes)

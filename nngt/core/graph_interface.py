@@ -130,7 +130,9 @@ class GraphInterface:
         pass
 
     @abstractmethod
-    def new_edges(self, edge_list, attributes=None):
+    def new_edges(self, edge_list, attributes=None, check_duplicates=True,
+                  check_self_loops=True, check_existing=True,
+                  ignore_invalid=False):
         pass
 
     @abstractmethod
@@ -157,7 +159,7 @@ class GraphInterface:
     def _from_library_graph(self, graph, copy=True):
         pass
 
-    def _attr_new_edges(self, edge_list, attributes=None, check_edges=True):
+    def _attr_new_edges(self, edge_list, attributes=None):
         ''' Generate attributes for newly created edges. '''
         num_edges = len(edge_list)
 

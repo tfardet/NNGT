@@ -112,7 +112,8 @@ def connect_nodes(network, sources, targets, graph_model, density=None,
 
     # call only on root process (for mpi) unless using distributed backend
     if nngt.on_master_process() or nngt.get_config("backend") == "nngt":
-        network.new_edges(elist, attributes=attr, check_edges=False)
+        network.new_edges(elist, attributes=attr, check_duplicates=False,
+                          check_self_loops=False, check_existing=False)
 
     if not network._graph_type.endswith('_connect'):
         network._graph_type += "_nodes_connect"

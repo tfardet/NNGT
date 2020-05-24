@@ -140,7 +140,7 @@ def _to_np_array(data, dtype):
         arr[:] = data
         return arr
 
-    return np.array(data, dtype=dtype)
+    return np.asarray(data, dtype=dtype)
 
 
 def _get_dtype(value):
