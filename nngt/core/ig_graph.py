@@ -405,8 +405,8 @@ class _IGraph(GraphInterface):
             weighted, defaults to ``{"weight": 1.}``, the unit weight for the
             connection (synaptic strength in NEST).
         ignore : bool, optional (default: False)
-            If set to True, ignore attempts to add an existing edge, otherwise
-            raises an error.
+            If set to True, ignore attempts to add an existing edge and accept
+            self-loops; otherwise an error is raised.
 
         Returns
         -------
@@ -425,9 +425,13 @@ class _IGraph(GraphInterface):
                 elif dtype == "int":
                     attributes[k] = [0]
 
-        self.new_edges(((source, target),), attributes)
+        if not ignore and source == target:
+            raise InvalidArgument("Trying to add a self-loop.")
 
-    def new_edges(self, edge_list, attributes=None, check_duplicates=True,
+        self.new_edges(((source, target),), attributes,
+                       check_self_loops=(not ignore), ignore_invalid=ignore)
+
+    def new_edges(self, edge_list, attributes=None, check_duplicates=False,
                   check_self_loops=True, check_existing=True,
                   ignore_invalid=False):
         '''
@@ -460,12 +464,22 @@ class _IGraph(GraphInterface):
             silently dropped. Unless this is set to true, an error is raised
             whenever one of the three checks fails.
 
+        .. warning::
+
+            Setting `check_existing` to False will lead to undefined behavior
+            if existing edges are provided! Only use it (for speedup) if you
+            are sure that you are indeed only adding new edges.
+
         Returns
         -------
         Returns new edges only.
         '''
         attributes = {} if attributes is None else deepcopy(attributes)
         num_edges  = len(edge_list)
+
+        # check that all nodes exist
+        if np.max(edge_list) >= self.node_nb():
+            raise InvalidArgument("Some nodes do no exist.")
 
         # set default values for attributes that were not passed
         for k in self.edge_attributes:

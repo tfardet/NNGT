@@ -493,8 +493,8 @@ class _NNGTGraph(GraphInterface):
             weighted, defaults to ``{"weight": 1.}``, the unit weight for the
             connection (synaptic strength in NEST).
         ignore : bool, optional (default: False)
-            If set to True, ignore attempts to add an existing edge, otherwise
-            raises an error.
+            If set to True, ignore attempts to add an existing edge and accept
+            self-loops; otherwise an error is raised.
 
         Returns
         -------
@@ -521,11 +521,16 @@ class _NNGTGraph(GraphInterface):
         edge = (source, target)
 
         if source not in g._nodes:
-            raise ValueError("There is no node {}.".format(source))
-        if target not in g._nodes:
-            raise ValueError("There is no node {}.".format(target))
+            raise InvalidArgument("There is no node {}.".format(source))
 
-        if edge not in g._unique:
+        if target not in g._nodes:
+            raise InvalidArgument("There is no node {}.".format(target))
+
+        if not ignore and source == target:
+            raise InvalidArgument("Trying to add a self-loop.")
+
+
+        if (g._directed and edge not in g._unique) or edge not in g._edges:
             edge_id             = len(g._unique)
             g._unique[edge]     = edge_id
             g._out_deg[source] += 1
@@ -536,7 +541,7 @@ class _NNGTGraph(GraphInterface):
 
             if not g._directed:
                 # edges and unique are different objects, so update _edges
-                self._edges[edge]   = edge_id
+                g._edges[edge] = edge_id
                 # add reciprocal
                 e_recip             = (target, source)
                 g._edges[e_recip]   = edge_id
@@ -546,9 +551,12 @@ class _NNGTGraph(GraphInterface):
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
 
+            _log_message(logger, "WARNING",
+                         "Existing edge {} ignored.".format((source, target)))
+
         return edge
 
-    def new_edges(self, edge_list, attributes=None, check_duplicates=True,
+    def new_edges(self, edge_list, attributes=None, check_duplicates=False,
                   check_self_loops=True, check_existing=True,
                   ignore_invalid=False):
         '''
@@ -581,6 +589,12 @@ class _NNGTGraph(GraphInterface):
             silently dropped. Unless this is set to true, an error is raised
             whenever one of the three checks fails.
 
+        .. warning::
+
+            Setting `check_existing` to False will lead to undefined behavior
+            if existing edges are provided! Only use it (for speedup) if you
+            are sure that you are indeed only adding new edges.
+
         Returns
         -------
         Returns new edges only.
@@ -604,8 +618,9 @@ class _NNGTGraph(GraphInterface):
                 else:
                     attributes[k] = [None for _ in range(num_edges)]
 
-        assert g._nodes.issuperset(np.ravel(edge_list)), \
-            "Some nodes in `edge_list` do not exist in the network."
+        # check that all nodes exist
+        if np.max(edge_list) >= self.node_nb():
+            raise InvalidArgument("Some nodes do no exist.")
 
         # check edges
         new_attr = None

@@ -366,7 +366,7 @@ class _GtGraph(GraphInterface):
 
         if nonstring_container(edge) and len(edge):
             if is_integer(edge[0]):
-                return g.edge_index[edge]
+                return g.edge_index[g.edge(*edge)]
             elif nonstring_container(edge[0]):
                 idx = [g.edge_index[g.edge(*e)] for e in edge]
                 return idx
@@ -484,8 +484,8 @@ class _GtGraph(GraphInterface):
             weighted, defaults to ``{"weight": 1.}``, the unit weight for the
             connection (synaptic strength in NEST).
         ignore : bool, optional (default: False)
-            If set to True, ignore attempts to add an existing edge, otherwise
-            raises an error.
+            If set to True, ignore attempts to add an existing edge and accept
+            self-loops; otherwise an error is raised.
 
         Returns
         -------
@@ -503,20 +503,30 @@ class _GtGraph(GraphInterface):
                 elif dtype == "double" and k != "weight":
                     attributes[k] = [np.NaN]
 
-        # check that the edge does not already exist
-        edge = g.edge(source, target)
+        # check that the edge does not already exist and that nodes are valid
+        try:
+            edge = g.edge(source, target)
+        except ValueError:
+            raise InvalidArgument("`source` or `target` does not exist.")
 
         if edge is None:
+            if not ignore and source == target:
+                raise InvalidArgument("Trying to add a self-loop.")
+
             g.add_edge(source, target, add_missing=False)
+
             # set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
 
+            _log_message(logger, "WARNING",
+                         "Existing edge {} ignored.".format((source, target)))
+
         return (source, target)
 
-    def new_edges(self, edge_list, attributes=None, check_duplicates=True,
+    def new_edges(self, edge_list, attributes=None, check_duplicates=False,
                   check_self_loops=True, check_existing=True,
                   ignore_invalid=False):
         '''
@@ -549,6 +559,12 @@ class _GtGraph(GraphInterface):
             silently dropped. Unless this is set to true, an error is raised
             whenever one of the three checks fails.
 
+        .. warning::
+
+            Setting `check_existing` to False will lead to undefined behavior
+            if existing edges are provided! Only use it (for speedup) if you
+            are sure that you are indeed only adding new edges.
+
         Returns
         -------
         Returns new edges only.
@@ -558,7 +574,7 @@ class _GtGraph(GraphInterface):
 
         # check that all nodes exist
         if np.max(edge_list) >= self.node_nb():
-            raise ValueError("Some nodes do no exist.")
+            raise InvalidArgument("Some nodes do no exist.")
 
         # set default values for attributes that were not passed
         # (only string and double, others are handled correctly by default)

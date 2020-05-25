@@ -126,11 +126,11 @@ class GraphInterface:
         pass
 
     @abstractmethod
-    def new_edge(self, source, target, weight=1.):
+    def new_edge(self, source, target, attributes=None, ignore=False):
         pass
 
     @abstractmethod
-    def new_edges(self, edge_list, attributes=None, check_duplicates=True,
+    def new_edges(self, edge_list, attributes=None, check_duplicates=False,
                   check_self_loops=True, check_existing=True,
                   ignore_invalid=False):
         pass

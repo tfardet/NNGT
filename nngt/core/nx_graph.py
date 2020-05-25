@@ -445,8 +445,8 @@ class _NxGraph(GraphInterface):
             weighted, defaults to ``{"weight": 1.}``, the unit weight for the
             connection (synaptic strength in NEST).
         ignore : bool, optional (default: False)
-            If set to True, ignore attempts to add an existing edge, otherwise
-            raises an error.
+            If set to True, ignore attempts to add an existing edge and accept
+            self-loops; otherwise an error is raised.
 
         Returns
         -------
@@ -460,7 +460,7 @@ class _NxGraph(GraphInterface):
         num_nodes = g.number_of_nodes()
 
         if source >= num_nodes or target >= num_nodes:
-            raise ValueError("`source` or `target` does not exist.")
+            raise InvalidArgument("`source` or `target` does not exist.")
 
         # set default values for attributes that were not passed
         for k in self.edge_attributes:
@@ -476,7 +476,13 @@ class _NxGraph(GraphInterface):
         if g.has_edge(source, target):
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
+
+            _log_message(logger, "WARNING",
+                         "Existing edge {} ignored.".format((source, target)))
         else:
+            if not ignore and source == target:
+                raise InvalidArgument("Trying to add a self-loop.")
+
             for attr in attributes:
                 if "_corr" in attr:
                     raise NotImplementedError("Correlated attributes are not "
@@ -485,6 +491,7 @@ class _NxGraph(GraphInterface):
                 attributes["weight"] = 1.
 
             g.add_edge(source, target)
+
             g[source][target]["eid"] = g.number_of_edges() - 1
 
             # call parent function to set the attributes
@@ -525,6 +532,12 @@ class _NxGraph(GraphInterface):
             silently dropped. Unless this is set to true, an error is raised
             whenever one of the three checks fails.
 
+        .. warning::
+
+            Setting `check_existing` to False will lead to undefined behavior
+            if existing edges are provided! Only use it (for speedup) if you
+            are sure that you are indeed only adding new edges.
+
         Returns
         -------
         Returns new edges only.
@@ -536,7 +549,7 @@ class _NxGraph(GraphInterface):
 
         # check that all nodes exist
         if np.max(edge_list) >= g.number_of_nodes():
-            raise ValueError("Some nodes do no exist.")
+            raise InvalidArgument("Some nodes do no exist.")
 
         for attr in attributes:
             if "_corr" in attr:

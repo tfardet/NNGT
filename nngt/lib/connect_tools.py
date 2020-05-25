@@ -3,6 +3,8 @@
 
 """ Generation tools for NNGT """
 
+import logging
+
 import numpy as np
 import scipy.sparse as ssp
 from scipy.spatial.distance import cdist
@@ -10,6 +12,10 @@ from numpy.random import randint
 
 import nngt
 from nngt.lib import InvalidArgument
+from nngt.lib.logger import _log_message
+
+
+logger = logging.getLogger(__name__)
 
 
 __all__ = [
@@ -201,8 +207,6 @@ def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
     '''
     Cleanup an list of edges.
     '''
-    from nngt.core.nngt_graph import _NNGTGraph
-
     loops_only = loops and not (duplicates or existing)
 
     new_edges = None
@@ -210,7 +214,17 @@ def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
     directed  = g.is_directed()
 
     if loops_only:
-        new_edges, test = _no_self_loops(array, return_test=True)
+        edges = np.asarray(edges)
+
+        new_edges, test = _no_self_loops(edges, return_test=True)
+
+        if len(new_edges) != len(edges):
+            if ignore:
+                _log_message(logger, "WARNING",
+                             "Self-loops ignored: {}.".format(edges[~test]))
+            else:
+                raise InvalidArgument(
+                    "Self-loops are present: {}.".format(edges[~test]))
 
         new_attr  = {k: np.asarray(v)[test] for v, k in attributes.items()}
     else:
@@ -221,10 +235,7 @@ def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
         new_edges = []
 
         if existing:
-            if isinstance(g, _NNGTGraph):
-                edge_set = g.graph._edges.copy()
-            else:
-                edge_set = {tuple(e) for e in g.edges_array}
+            edge_set = {tuple(e) for e in g.edges_array}
 
         for i, e in enumerate(edges):
             tpl_e = tuple(e)
@@ -234,13 +245,14 @@ def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
                     _log_message(logger, "WARNING",
                                  "Existing edge {} ignored.".format(tpl_e))
                 else:
-                    raise ValueError("Edge {} already exists.".format(tpl_e))
+                    raise InvalidArgument(
+                        "Edge {} already exists.".format(tpl_e))
             elif loops and e[0] == e[1]:
                 if ignore:
                     _log_message(logger, "WARNING",
                                  "Self-loop on {} ignored.".format(e[0]))
                 else:
-                    raise ValueError("Self-loop on {}.".format(e[0]))
+                    raise InvalidArgument("Self-loop on {}.".format(e[0]))
             else:
                 edge_set.add(tpl_e)
                 new_edges.append(tpl_e)
