@@ -241,6 +241,32 @@ def test_edge_creation():
     assert g.edge_nb() == 11
 
 
+@pytest.mark.mpi_skip
+def test_has_edges_edge_id():
+    ''' Test the ``has_edge`` and ``edge_id`` methods '''
+    num_nodes = 10
+
+    # DIRECTED
+    edges = [(0, 1), (2, 4)]
+
+    g = nngt.Graph(num_nodes)
+    g.new_edges(edges)
+
+    for i, e in enumerate(edges):
+        assert g.has_edge(e)
+        assert g.edge_id(e) == i
+
+    # UNDIRECTED
+    g = nngt.Graph(num_nodes, directed=False)
+    g.new_edges(edges)
+
+    for i, e in enumerate(edges):
+        assert g.has_edge(e)
+        assert g.edge_id(e) == i
+        assert g.has_edge(e[::-1])
+        assert g.edge_id(e[::-1]) == i
+
+
 def test_new_node_attr():
     '''
     Test node creation with attributes.
@@ -534,3 +560,4 @@ if __name__ == "__main__":
     if not nngt.get_config('mpi'):
         test_node_creation()
         test_edge_creation()
+        test_has_edges_edge_id()

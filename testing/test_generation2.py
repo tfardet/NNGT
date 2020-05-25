@@ -85,23 +85,18 @@ def test_newman_watts():
     k_lattice  = 2
     p_shortcut = 0.2
 
+    nngt.use_backend("igraph")
+
     ## USING EDGES
 
     # undirected
     g = ng.newman_watts(k_lattice, edges=6, nodes=num_nodes, directed=False)
 
-    subset = {(0, 1), (1, 2), (2, 3), (3, 4)}
+    lattice_edges = [(0, 1), (0, 4), (1, 2), (2, 3), (3, 4)]
 
-    # connection between 0 and 4 depends on the library
-    try:
-        g.edge_id((0, 4))
-        subset.add((0, 4))
-    except:
-        subset.add((4, 0))
-
-    edge_set = {tuple(e) for e in g.edges_array}
-
-    assert edge_set.issuperset(subset)
+    for e in lattice_edges:
+        assert g.has_edge(e)
+    
     assert g.edge_nb() == 6  # min_edges + one shortcut
 
     # directed

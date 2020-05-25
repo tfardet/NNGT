@@ -57,9 +57,13 @@ _one_pop_models = {"newman_watts", "circular"}
 
 def connect_nodes(network, sources, targets, graph_model, density=None,
                   edges=None, avg_deg=None, unit='um', weighted=True,
-                  directed=True, multigraph=False, **kwargs):
+                  directed=True, multigraph=False, check_existing=True,
+                  ignore_invalid=False, **kwargs):
     '''
     Function to connect nodes with a given graph model.
+
+    .. versionchanged:: 2.0
+        Added `check_existing` and `ignore_invalid` arguments.
 
     Parameters
     ----------
@@ -72,7 +76,14 @@ def connect_nodes(network, sources, targets, graph_model, density=None,
     graph_model : string
         The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
-    kwargs : keyword arguments
+    check_existing : bool, optional (default: True)
+        Check whether some of the edges that will be added already exist in the
+        graph.
+    ignore_invalid : bool, optional (default: False)
+        Ignore invalid edges: they are not added to the graph and are
+        silently dropped. Unless this is set to true, an error is raised
+        if an existing edge is re-generated.
+    **kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
 
@@ -113,7 +124,9 @@ def connect_nodes(network, sources, targets, graph_model, density=None,
     # call only on root process (for mpi) unless using distributed backend
     if nngt.on_master_process() or nngt.get_config("backend") == "nngt":
         network.new_edges(elist, attributes=attr, check_duplicates=False,
-                          check_self_loops=False, check_existing=False)
+                          check_self_loops=False,
+                          check_existing=check_existing,
+                          ignore_invalid=ignore_invalid)
 
     if not network._graph_type.endswith('_connect'):
         network._graph_type += "_nodes_connect"
@@ -124,10 +137,13 @@ def connect_nodes(network, sources, targets, graph_model, density=None,
 def connect_neural_types(network, source_type, target_type, graph_model,
                          density=None, edges=None, avg_deg=None, unit='um',
                          weighted=True, directed=True, multigraph=False,
-                         **kwargs):
+                         check_existing=True, ignore_invalid=False, **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
+
+    .. versionchanged:: 2.0
+        Added `check_existing` and `ignore_invalid` arguments.
 
     Parameters
     ----------
@@ -141,6 +157,13 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     graph_model : string
         The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
+    check_existing : bool, optional (default: True)
+        Check whether some of the edges that will be added already exist in the
+        graph.
+    ignore_invalid : bool, optional (default: False)
+        Ignore invalid edges: they are not added to the graph and are
+        silently dropped. Unless this is set to true, an error is raised
+        if an existing edge is re-generated.
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
@@ -178,7 +201,9 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     elist = connect_nodes(
         network, source_ids, target_ids, graph_model, density=density,
         edges=edges, avg_deg=avg_deg, unit=unit, weighted=weighted,
-        directed=directed, multigraph=multigraph, **kwargs)
+        directed=directed, multigraph=multigraph,
+        check_existing=check_existing, ignore_invalid=ignore_invalid,
+        **kwargs)
 
     if not network._graph_type.endswith('_neural_type_connect'):
         network._graph_type += "_neural_type_connect"
@@ -195,10 +220,14 @@ def connect_neural_groups(*args, **kwargs):
 
 def connect_groups(network, source_groups, target_groups, graph_model,
                    density=None, edges=None, avg_deg=None, unit='um',
-                   weighted=True, directed=True, multigraph=False, **kwargs):
+                   weighted=True, directed=True, multigraph=False,
+                   check_existing=True, ignore_invalid=False, **kwargs):
     '''
     Function to connect excitatory and inhibitory population with a given graph
     model.
+
+    .. versionchanged:: 2.0
+        Added `check_existing` and `ignore_invalid` arguments.
 
     .. versionchanged:: 1.2.0
         Allow to use :class:`NeuralGroup` as `source_groups` and
@@ -217,6 +246,13 @@ def connect_groups(network, source_groups, target_groups, graph_model,
     graph_model : string
         The name of the connectivity model (among "erdos_renyi",
         "random_scale_free", "price_scale_free", and "newman_watts").
+    check_existing : bool, optional (default: True)
+        Check whether some of the edges that will be added already exist in the
+        graph.
+    ignore_invalid : bool, optional (default: False)
+        Ignore invalid edges: they are not added to the graph and are
+        silently dropped. Unless this is set to true, an error is raised
+        if an existing edge is re-generated.
     kwargs : keyword arguments
         Specific model parameters. or edge attributes specifiers such as
         `weights` or `delays`.
@@ -258,7 +294,9 @@ def connect_groups(network, source_groups, target_groups, graph_model,
     elist = connect_nodes(
         network, source_ids, target_ids, graph_model, density=density,
         edges=edges, avg_deg=avg_deg, unit=unit, weighted=weighted,
-        directed=directed, multigraph=multigraph, **kwargs)
+        directed=directed, multigraph=multigraph,
+        check_existing=check_existing, ignore_invalid=ignore_invalid,
+        **kwargs)
 
     if not network._graph_type.endswith('_neural_group_connect'):
         network._graph_type += "_neural_group_connect"

@@ -334,7 +334,7 @@ class _NxGraph(GraphInterface):
 
         .. versionadded:: 2.0
         '''
-        return self._graph.has_edge(edge)
+        return self._graph.has_edge(*edge)
 
     @property
     def edges_array(self):
