@@ -85,8 +85,6 @@ def test_newman_watts():
     k_lattice  = 2
     p_shortcut = 0.2
 
-    nngt.use_backend("igraph")
-
     ## USING EDGES
 
     # undirected

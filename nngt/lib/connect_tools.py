@@ -11,7 +11,7 @@ from scipy.spatial.distance import cdist
 from numpy.random import randint
 
 import nngt
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.logger import _log_message
 
 
@@ -261,7 +261,10 @@ def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
                     edge_set.add(tpl_e[::-1])
 
                 for k, vv in attributes.items():
-                    new_attr[k].append(vv[i])
+                    if nonstring_container(vv):
+                        new_attr[k].append(vv[i])
+                    else:
+                        new_attr[k].append(vv)
 
         new_edges = np.asarray(new_edges)
 
