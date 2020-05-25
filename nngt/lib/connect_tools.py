@@ -3,13 +3,19 @@
 
 """ Generation tools for NNGT """
 
+import logging
+
 import numpy as np
 import scipy.sparse as ssp
 from scipy.spatial.distance import cdist
 from numpy.random import randint
 
 import nngt
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, nonstring_container
+from nngt.lib.logger import _log_message
+
+
+logger = logging.getLogger(__name__)
 
 
 __all__ = [
@@ -178,12 +184,7 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
 
                 if tpl_e not in edges_hash:
                     if directed or tpl_e not in recip_hash:
-                        try:
-                            ia_edges[num_ecurrent] = e
-                        except Exception as err:
-                            print(num_ecurrent, len(edges_hash), e, len(ia_edges))
-                            print(edges_hash)
-                            raise err
+                        ia_edges[num_ecurrent] = e
 
                         edges_hash.add(tpl_e)
 
@@ -200,6 +201,74 @@ def _filter(ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
             distance.extend(dist_tmp)
 
     return ia_edges, num_ecurrent
+
+
+def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
+    '''
+    Cleanup an list of edges.
+    '''
+    loops_only = loops and not (duplicates or existing)
+
+    new_edges = None
+    new_attr  = {}
+    directed  = g.is_directed()
+
+    if loops_only:
+        edges = np.asarray(edges)
+
+        new_edges, test = _no_self_loops(edges, return_test=True)
+
+        if len(new_edges) != len(edges):
+            if ignore:
+                _log_message(logger, "WARNING",
+                             "Self-loops ignored: {}.".format(edges[~test]))
+            else:
+                raise InvalidArgument(
+                    "Self-loops are present: {}.".format(edges[~test]))
+
+        new_attr  = {k: np.asarray(v)[test] for v, k in attributes.items()}
+    else:
+        # check (also) either duplicates or existing
+        new_attr = {key: [] for key in attributes}
+        edge_set = set()
+
+        new_edges = []
+
+        if existing:
+            edge_set = {tuple(e) for e in g.edges_array}
+
+        for i, e in enumerate(edges):
+            tpl_e = tuple(e)
+
+            if tpl_e in edge_set or (not directed and tpl_e[::-1] in edge_set):
+                if ignore:
+                    _log_message(logger, "WARNING",
+                                 "Existing edge {} ignored.".format(tpl_e))
+                else:
+                    raise InvalidArgument(
+                        "Edge {} already exists.".format(tpl_e))
+            elif loops and e[0] == e[1]:
+                if ignore:
+                    _log_message(logger, "WARNING",
+                                 "Self-loop on {} ignored.".format(e[0]))
+                else:
+                    raise InvalidArgument("Self-loop on {}.".format(e[0]))
+            else:
+                edge_set.add(tpl_e)
+                new_edges.append(tpl_e)
+
+                if not directed:
+                    edge_set.add(tpl_e[::-1])
+
+                for k, vv in attributes.items():
+                    if nonstring_container(vv):
+                        new_attr[k].append(vv[i])
+                    else:
+                        new_attr[k].append(vv)
+
+        new_edges = np.asarray(new_edges)
+
+    return new_edges, new_attr
 
 
 # ------------- #

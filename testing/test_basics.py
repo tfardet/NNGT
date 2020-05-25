@@ -13,6 +13,7 @@ import pytest
 import numpy as np
 
 import nngt
+from nngt.lib import InvalidArgument
 
 
 tolerance = 1e-6
@@ -87,6 +88,183 @@ def test_node_creation():
     assert g.node_nb() == 103 and tuple(nn) == (101, 102), \
         "Error on '{}': ({}, {}, {}) vs (103, 101, 102) expected.".format(
             g.name, g.node_nb(), nn[0], nn[1])
+
+
+@pytest.mark.mpi_skip
+def test_edge_creation():
+    ''' Check edge checks '''
+    num_nodes = 10
+
+    # DIRECTED
+    edges = [(0, 1), (2, 4)]
+
+    g = nngt.Graph(num_nodes)
+    g.new_edges(edges)
+
+    error_raised = False
+
+    # all following should trigger an error
+    for e in [(11, 10), (4, 4), (0, 1)]:
+        error_raised = False
+
+        try:
+            g.new_edge(*e)
+        except InvalidArgument:
+            error_raised = True
+
+        assert error_raised
+
+    # all following should also trigger an error
+    lst_edges = [
+        [(1, 1), (0, 2), (3, 4)],   # self-loop
+        [(9, 4), (5, 6), (9, 4)],   # duplicate
+        [(2, 4), (3, 4), (7, 2)],   # existing
+        [(20, 1), (4, 8), (3, 2)],  # out-of-range
+    ]
+
+    for elist in lst_edges:
+        error_raised = False
+
+        try:
+            g.new_edges(elist)
+        except InvalidArgument:
+            error_raised = True
+
+        assert error_raised
+
+    # check specific filters
+    # self-loop
+    error_raised = False
+
+    try:
+        g.new_edges(lst_edges[0], check_duplicates=False, check_existing=False)
+    except InvalidArgument:
+        error_raised = True
+
+    assert error_raised
+
+    # duplicate
+    error_raised = False
+
+    try:
+        g.new_edges(lst_edges[1], check_duplicates=True,
+                    check_self_loops=False, check_existing=False)
+    except InvalidArgument:
+        error_raised = True
+
+    assert error_raised
+
+    # existing
+    error_raised = False
+
+    try:
+        g.new_edges(lst_edges[2], check_self_loops=False)
+    except InvalidArgument:
+        error_raised = True
+
+    assert error_raised
+
+    # out-of-range
+    error_raised = False
+
+    try:
+        g.new_edges(lst_edges[3], check_self_loops=False, check_existing=False)
+    except InvalidArgument:
+        error_raised = True
+
+    assert error_raised
+
+    # working calls
+    g.new_edge(4, 4, ignore=True)
+    assert g.edge_id((4, 4)) == 2
+
+    g.set_weights(5.)
+    g.new_edge(0, 1, attributes={"weight": 3.}, ignore=True)
+    assert g.get_weights(edges=(0, 1)) == 5
+
+    g.new_edges(lst_edges[0], check_self_loops=False)
+    assert g.edge_nb() == 6
+
+    for elist in lst_edges[:-1]:
+        g.new_edges(elist, ignore_invalid=True)
+
+    assert g.edge_nb() == 9
+
+    # UNDIRECTED
+    g = nngt.Graph(num_nodes, directed=False)
+    g.new_edges(edges)
+
+    # all following should trigger an error
+    for e in [(1, 0), (0, 1)]:
+        error_raised = False
+
+        try:
+            g.new_edge(*e)
+        except InvalidArgument:
+            error_raised = True
+
+        assert error_raised
+
+    # all following should also trigger an error
+    lst_edges = [
+        [(1, 1), (0, 2), (3, 4)],  # self-loop
+        [(9, 4), (5, 6), (9, 4)],  # duplicate
+        [(2, 4), (3, 4), (7, 2)],  # existing
+        [(4, 2), (4, 8), (3, 2)],  # existing 2
+    ]
+
+    for elist in lst_edges:
+        error_raised = False
+
+        try:
+            g.new_edges(elist)
+        except InvalidArgument:
+            error_raised = True
+
+        assert error_raised
+
+    # working calls
+    g.new_edge(4, 4, ignore=True)
+    assert g.edge_id((4, 4)) == 2
+
+    g.set_weights(5.)
+    g.new_edge(1, 0, attributes={"weight": 3.}, ignore=True)
+    assert g.get_weights(edges=(0, 1)) == 5
+
+    g.new_edges(lst_edges[0], check_self_loops=False)
+    assert g.edge_nb() == 6
+
+
+    for elist in lst_edges:
+        g.new_edges(elist, ignore_invalid=True)
+
+    assert g.edge_nb() == 11
+
+
+@pytest.mark.mpi_skip
+def test_has_edges_edge_id():
+    ''' Test the ``has_edge`` and ``edge_id`` methods '''
+    num_nodes = 10
+
+    # DIRECTED
+    edges = [(0, 1), (2, 4)]
+
+    g = nngt.Graph(num_nodes)
+    g.new_edges(edges)
+
+    for i, e in enumerate(edges):
+        assert g.has_edge(e)
+        assert g.edge_id(e) == i
+
+    # UNDIRECTED
+    g = nngt.Graph(num_nodes, directed=False)
+    g.new_edges(edges)
+
+    for i, e in enumerate(edges):
+        assert g.has_edge(e)
+        assert g.edge_id(e) == i
+        assert g.has_edge(e[::-1])
+        assert g.edge_id(e[::-1]) == i
 
 
 def test_new_node_attr():
@@ -381,3 +559,5 @@ if __name__ == "__main__":
 
     if not nngt.get_config('mpi'):
         test_node_creation()
+        test_edge_creation()
+        test_has_edges_edge_id()

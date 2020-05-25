@@ -128,7 +128,8 @@ class TestIO(TestBasis):
             ids  = np.random.randint(0, avg_deg*num_nodes, len(targets))
             ids *= 2*np.random.randint(0, 2, len(targets)) - 1
             g.new_edges(elist, attributes={"test_attr": ids},
-                        check_edges=False)
+                        check_duplicates=False, check_self_loops=False,
+                        check_existing=False)
 
         g.to_file(current_dir + 'test.el')
         h = nngt.Graph.from_file(current_dir + 'test.el')

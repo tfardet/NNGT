@@ -138,7 +138,8 @@ class Graph(nngt.core.GraphObject):
             else:
                 weights = matrix[edges[:, 0], edges[:, 1]]
 
-        graph.new_edges(edges, {"weight": weights}, check_edges=False)
+        graph.new_edges(edges, {"weight": weights}, check_duplicates=False,
+                        check_self_loops=False, check_existing=False)
 
         return graph
 
@@ -219,7 +220,8 @@ class Graph(nngt.core.GraphObject):
             dtpes      = info["edge_attr_types"]
             lst_values = [eattr[name] for name in info["edge_attributes"]]
 
-        graph.new_edges(edges, check_edges=False)
+        graph.new_edges(edges, check_duplicates=False, check_self_loops=False,
+                        check_existing=False)
 
         for eattr, dtype, values in zip(lst_attr, dtpes, lst_values):
             graph.new_edge_attribute(eattr, dtype, values=values)
