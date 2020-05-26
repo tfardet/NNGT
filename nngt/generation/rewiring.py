@@ -42,6 +42,8 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     r'''
     Build a (generally irregular) lattice by rewiring the edges of a graph.
 
+    .. versionadded:: 2.0
+
     The lattice is based on a circular graph, meaning that the nodes are placed
     on a circle and connected based on the topological distance between them,
     the distance being defined through the positive modulo:
@@ -184,7 +186,8 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
         ia_edges[e_reglat:] = last_edges
 
     # add the edges
-    new_graph.new_edges(ia_edges, check_edges=False)
+    new_graph.new_edges(ia_edges, check_duplicates=False,
+                        check_self_loops=False, check_existing=False)
 
     # set the node attributes
     _set_node_attributes(g, new_graph, node_attr_constraints, num_nodes)
@@ -214,6 +217,8 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
                   edge_attr_constraints=None):
     '''
     Generate a new rewired graph from `g`.
+
+    .. versionadded:: 2.0
 
     Parameters
     ----------

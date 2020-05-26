@@ -162,6 +162,8 @@ def connected_components(g, ctype=None):
     '''
     Returns the connected component to which each node belongs.
 
+    .. versionadded:: 2.0
+
     Parameters
     ----------
     g : :class:`~nngt.Graph`
@@ -366,6 +368,8 @@ def shortest_path(g, source, target, directed=True, weights=None):
     Returns a shortest path between `source`and `target`.
     The algorithms returns an empty list if there is no path between the nodes.
 
+    .. versionadded:: 2.0
+
     Parameters
     ----------
     g : :class:`~nngt.Graph`
@@ -401,6 +405,8 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
     The algorithms returns an empty generator if there is no path between the
     nodes.
 
+    .. versionadded:: 2.0
+
     Parameters
     ----------
     g : :class:`~nngt.Graph`
@@ -435,6 +441,8 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     '''
     Returns the length of the shortest paths between `sources`and `targets`.
     The algorithms return infinity if there are no paths between nodes.
+
+    .. versionadded:: 2.0
 
     Parameters
     ----------
@@ -474,6 +482,8 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     Returns the average shortest path length between `sources` and `targets`.
     The algorithms raises an error if all nodes are not connected unless
     `unconnected` is set to True.
+
+    .. versionadded:: 2.0
 
     The average path length is defined as
 
@@ -526,6 +536,8 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
               default=np.NaN):
     r'''
     Returns the closeness centrality of some `nodes`.
+
+    .. versionadded:: 2.0
 
     Closeness centrality of a node `u` is defined, for the harmonic version,
     as the sum of the reciprocal of the shortest path distance :math:`d_{uv}`

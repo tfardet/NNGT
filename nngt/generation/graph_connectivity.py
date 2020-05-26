@@ -166,7 +166,8 @@ def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
     if nodes > 1:
         ids = np.arange(nodes, dtype=np.uint)
         edges = _all_to_all(ids, ids, directed=directed, multigraph=multigraph)
-        graph_all.new_edges(edges, check_edges=False)
+        graph_all.new_edges(edges, check_duplicates=False,
+                            check_self_loops=False, check_existing=False)
 
     graph_all._graph_type = "all_to_all"
 
@@ -244,7 +245,8 @@ def from_degree_list(degrees, degree_type='in', weighted=True,
                                      directed=directed, multigraph=multigraph)
         # check for None if MPI
         if ia_edges is not None:
-            graph_dl.new_edges(ia_edges, check_edges=False)
+            graph_dl.new_edges(ia_edges, check_duplicates=False,
+                               check_self_loops=False, check_existing=False)
 
     graph_dl._graph_type = "from_{}_degree_list".format(degree_type)
 
@@ -329,7 +331,8 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
             directed=directed, multigraph=multigraph)
         # check for None if MPI
         if ia_edges is not None:
-            graph_fd.new_edges(ia_edges, check_edges=False)
+            graph_fd.new_edges(ia_edges, check_duplicates=False,
+                               check_self_loops=False, check_existing=False)
 
     graph_fd._graph_type = "fixed_{}_degree".format(degree_type)
 
@@ -413,7 +416,8 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
             directed=directed, multigraph=multigraph)
         # check for None if MPI
         if ia_edges is not None:
-            graph_gd.new_edges(ia_edges, check_edges=False)
+            graph_gd.new_edges(ia_edges, check_duplicates=False,
+                               check_self_loops=False, check_existing=False)
 
     graph_gd._graph_type = "gaussian_{}_degree".format(degree_type)
 
@@ -497,7 +501,8 @@ def erdos_renyi(density=None, nodes=0, edges=None, avg_deg=None,
         ids = range(nodes)
         ia_edges = _erdos_renyi(ids, ids, density, edges, avg_deg, reciprocity,
                                 directed, multigraph)
-        graph_er.new_edges(ia_edges, check_edges=False)
+        graph_er.new_edges(ia_edges, check_duplicates=False,
+                           check_self_loops=False, check_existing=False)
 
     graph_er._graph_type = "erdos_renyi"
 
@@ -581,7 +586,8 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=None, edges=None,
         ids = range(nodes)
         ia_edges = _random_scale_free(ids, ids, in_exp, out_exp, density,
                           edges, avg_deg, reciprocity, directed, multigraph)
-        graph_rsf.new_edges(ia_edges, check_edges=False)
+        graph_rsf.new_edges(ia_edges, check_duplicates=False,
+                            check_self_loops=False, check_existing=False)
 
     graph_rsf._graph_type = "random_scale_free"
 
@@ -732,7 +738,8 @@ def circular(coord_nb, reciprocity=1., reciprocity_choice="random", nodes=0,
         edges = _circular(ids, ids, coord_nb, reciprocity, directed,
                           reciprocity_choice=reciprocity_choice)
 
-        graph_circ.new_edges(edges, check_edges=False)
+        graph_circ.new_edges(edges, check_duplicates=False,
+                             check_self_loops=False, check_existing=False)
 
     graph_circ._graph_type = "circular"
 
@@ -826,7 +833,8 @@ def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
             ids, ids, coord_nb, proba_shortcut, reciprocity_circular,
              edges=edges, directed=directed)
 
-        graph_nw.new_edges(ia_edges, check_edges=False)
+        graph_nw.new_edges(ia_edges, check_duplicates=False,
+                           check_self_loops=False, check_existing=False)
 
     graph_nw._graph_type = "newman_watts"
 
@@ -931,7 +939,9 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
         attr = {'distance': distance}
         # check for None if MPI
         if ia_edges is not None:
-            graph_dr.new_edges(ia_edges, attributes=attr, check_edges=False)
+            graph_dr.new_edges(ia_edges, attributes=attr,
+                               check_duplicates=False, check_self_loops=False,
+                               check_existing=False)
 
     graph_dr._graph_type = "{}_distance_rule".format(rule)
     return graph_dr

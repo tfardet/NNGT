@@ -453,7 +453,7 @@ def test_binary_shortest_distance():
 
         # UNDIRECTED
         edge_list = [
-            (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 2), (4, 0)
+            (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 0)
         ]
 
         g = nngt.Graph(num_nodes, directed=False)
@@ -486,6 +486,9 @@ def test_binary_shortest_distance():
 
         # DIRECTED
         g = nngt.Graph(num_nodes, directed=True)
+        edge_list = [
+            (0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3), (4, 2), (4, 0)
+        ]
         g.new_edges(edge_list)
 
         directed_dist = np.array([

@@ -123,7 +123,8 @@ class Network(Graph):
             mat = get_nest_adjacency(converter)
             edges = np.array(mat.nonzero()).T
             w = mat.data
-            net.new_edges(edges, {'weight': w}, check_edges=False)
+            net.new_edges(edges, {'weight': w}, check_duplicates=False,
+                          check_self_loops=False, check_existing=False)
 
         if get_params:
             raise NotImplementedError('`get_params` not implemented yet.')

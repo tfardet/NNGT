@@ -30,6 +30,7 @@ from scipy.sparse import coo_matrix, lil_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
+from nngt.lib.connect_tools import _cleanup_edges
 from nngt.lib.graph_helpers import _get_edge_attr, _to_np_array, _get_dtype
 from nngt.lib.io_tools import _np_dtype
 from nngt.lib.logger import _log_message
@@ -349,9 +350,9 @@ class _NNGTGraph(GraphInterface):
         g = self._graph
 
         if is_integer(edge[0]):
-            return g._unique[tuple(edge)]
+            return g._edges[tuple(edge)]
         elif nonstring_container(edge[0]):
-            idx = [g._unique[tuple(e)] for e in edge]
+            idx = [g._edges[tuple(e)] for e in edge]
             return idx
         else:
             raise AttributeError("`edge` must be either a 2-tuple of ints or "
@@ -492,8 +493,8 @@ class _NNGTGraph(GraphInterface):
             weighted, defaults to ``{"weight": 1.}``, the unit weight for the
             connection (synaptic strength in NEST).
         ignore : bool, optional (default: False)
-            If set to True, ignore attempts to add an existing edge, otherwise
-            raises an error.
+            If set to True, ignore attempts to add an existing edge and accept
+            self-loops; otherwise an error is raised.
 
         Returns
         -------
@@ -520,11 +521,16 @@ class _NNGTGraph(GraphInterface):
         edge = (source, target)
 
         if source not in g._nodes:
-            raise ValueError("There is no node {}.".format(source))
-        if target not in g._nodes:
-            raise ValueError("There is no node {}.".format(target))
+            raise InvalidArgument("There is no node {}.".format(source))
 
-        if edge not in g._unique:
+        if target not in g._nodes:
+            raise InvalidArgument("There is no node {}.".format(target))
+
+        if not ignore and source == target:
+            raise InvalidArgument("Trying to add a self-loop.")
+
+
+        if (g._directed and edge not in g._unique) or edge not in g._edges:
             edge_id             = len(g._unique)
             g._unique[edge]     = edge_id
             g._out_deg[source] += 1
@@ -535,7 +541,7 @@ class _NNGTGraph(GraphInterface):
 
             if not g._directed:
                 # edges and unique are different objects, so update _edges
-                self._edges[edge]   = edge_id
+                g._edges[edge] = edge_id
                 # add reciprocal
                 e_recip             = (target, source)
                 g._edges[e_recip]   = edge_id
@@ -545,15 +551,21 @@ class _NNGTGraph(GraphInterface):
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
 
+            _log_message(logger, "WARNING",
+                         "Existing edge {} ignored.".format((source, target)))
+
         return edge
 
-    def new_edges(self, edge_list, attributes=None, check_edges=True):
+    def new_edges(self, edge_list, attributes=None, check_duplicates=False,
+                  check_self_loops=True, check_existing=True,
+                  ignore_invalid=False):
         '''
         Add a list of edges to the graph.
 
-        .. warning ::
-            This function currently does not check for duplicate edges between
-            the existing edges and the added ones, but only inside `edge_list`!
+        .. versionchanged:: 2.0
+            Can perform all possible checks before adding new edges via the
+            ``check_duplicates`` ``check_self_loops``, and ``check_existing``
+            arguments.
 
         Parameters
         ----------
@@ -564,10 +576,24 @@ class _NNGTGraph(GraphInterface):
             weighted, defaults to ``{"weight": ones}``, where ``ones`` is an
             array the same length as the `edge_list` containing a unit weight
             for each connection (synaptic strength in NEST).
-        check_edges : bool, optional (default: True)
-            Check for duplicate edges and self-loops.
+        check_duplicates : bool, optional (default: False)
+            Check for duplicate edges within `edge_list`.
+        check_self_loops : bool, optional (default: True)
+            Check for self-loops.
+        check_existing : bool, optional (default: True)
+            Check whether some of the edges in `edge_list` already exist in the
+            graph or exist multiple times in `edge_list` (also performs
+            `check_duplicates`).
+        ignore_invalid : bool, optional (default: False)
+            Ignore invalid edges: they are not added to the graph and are
+            silently dropped. Unless this is set to true, an error is raised
+            whenever one of the three checks fails.
 
-        @todo: add example
+        .. warning::
+
+            Setting `check_existing` to False will lead to undefined behavior
+            if existing edges are provided! Only use it (for speedup) if you
+            are sure that you are indeed only adding new edges.
 
         Returns
         -------
@@ -592,32 +618,23 @@ class _NNGTGraph(GraphInterface):
                 else:
                     attributes[k] = [None for _ in range(num_edges)]
 
-        assert g._nodes.issuperset(np.ravel(edge_list)), \
-            "Some nodes in `edge_list` do not exist in the network."
+        # check that all nodes exist
+        if np.max(edge_list) >= self.node_nb():
+            raise InvalidArgument("Some nodes do no exist.")
 
-        initial_edges = self.edge_nb()
-        new_attr      = None
+        # check edges
+        new_attr = None
 
-        if check_edges:
-            new_attr = {key: [] for key in attributes}
-            eweight_list = OrderedDict()
-            for i, e in enumerate(edge_list):
-                tpl_e = tuple(e)
-                if tpl_e in eweight_list:
-                    eweight_list[tpl_e] += 1
-                elif e[0] == e[1]:
-                    _log_message(logger, "WARNING",
-                    "Self-loop on {} ignored.".format(e[0]))
-                else:
-                    eweight_list[tpl_e] = 1
-                    for k, vv in attributes.items():
-                        new_attr[k].append(vv[i])
-            edge_list = np.array(list(eweight_list.keys()))
+        if check_duplicates or check_self_loops or check_existing:
+            edge_list, new_attr = _cleanup_edges(
+                self, edge_list, attributes, check_duplicates,
+                check_self_loops, check_existing, ignore_invalid)
         else:
-            edge_list = np.array(edge_list)
             new_attr = attributes
 
         # create the edges
+        initial_edges = self.edge_nb()
+
         ws        = None
         num_added = len(edge_list)
 
