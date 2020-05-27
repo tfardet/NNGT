@@ -25,6 +25,8 @@ import numpy as np
 import scipy.sparse.linalg as spl
 
 import nngt
+import nngt.generation as ng
+
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
 from . import clustering
 from .activity_analysis import get_b2, get_firing_rate
@@ -189,26 +191,42 @@ def connected_components(g, ctype=None):
     raise NotImplementedError(_backend_required)
 
 
-def diameter(g, weights=False):
+def diameter(g, directed=True, weights=False, is_connected=False):
     '''
     Returns the diameter of the graph.
 
+    .. versionchanged:: 2.0
+        Added `directed` and `is_connected` arguments.
+
     It returns infinity if the graph is not connected (strongly connected for
-    directed graphs).
+    directed graphs) unless `is_connected` is True, in which case it returns
+    the longest existing shortest distance.
 
     Parameters
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
+    directed : bool, optional (default: True)
+        Whether to compute the directed diameter if the graph is directed.
+        If False, then the graph is treated as undirected. The option switches
+        to False automatically if `g` is undirected.
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
+    is_connected : bool, optional (default: False)
+        If False, check whether the graph is connected or not and return
+        infinite diameter if graph is unconnected. If True, the graph is
+        assumed to be connected.
 
     Warning
     -------
     For graph-tool, the [pseudo-diameter]_ is returned, which may sometime
-    return inexact results.
+    lead to inexact results.
+
+    See also
+    --------
+    :func:`nngt.analysis.shortest_distance`
 
     References
     ----------
@@ -223,33 +241,41 @@ def diameter(g, weights=False):
     raise NotImplementedError(_backend_required)
 
 
-def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
+def small_world_propensity(g, directed=True, use_global_clustering=True,
+                           use_diameter=False, weights=None,
                            combine_weights="mean", clustering="continuous",
-                           lattice=None, random=None):
+                           lattice=None, random=None, return_deviations=False):
     r'''
     Returns the small-world propensity of the graph as first defined in
     [Muldoon2016]_.
 
+    .. versionadded: 2.0
+
     .. math::
 
-        \phi = 1 - \sqrt{\frac{\Delta_C^2 + \Delta_L^2}{2}}
+        \phi = 1 - \sqrt{\frac{\Pi_{[0, 1]}(\Delta_C^2) + \Pi_{[0, 1]}(\Delta_L^2)}{2}}
 
-    with :math:`\Delta_C` the relative global clustering of `g`
+    with :math:`\Delta_C` the clustering deviation, i.e. the relative global
+    clustering of `g` compared to two reference graphs
 
     .. math::
 
         \Delta_C = \frac{C_{latt} - C_g}{C_{latt} - C_{rand}}
 
-    and :math:`Delta_L` the relative diameter (characteristic path length) of
-    `g`
+    and :math:`Delta_L` the deviation of the average path length, i.e. relative
+    average path length of `g` compared to that of the reference graphs
 
     .. math::
 
         \Delta_L = \frac{L_g - L_{rand}}{L_{latt} - L_{rand}}.
 
     In both cases, *latt* and *rand* refer to the equivalent lattice and
-    Erdos-Renyi graphs obtained by rewiring `g` to obtain respectively the
-    highest and lowest combination of clustering and diameter.
+    Erdos-Renyi (ER) graphs obtained by rewiring `g` to obtain respectively the
+    highest and lowest combination of clustering and average path length.
+
+    The rectangle function :math:`\Pi_{[0, 1]}` is used to clip both
+    deviations to the [0, 1] range in case some graphs have a higher clustering
+    than the lattice or a lower average path length than the ER graph.
 
     Parameters
     ----------
@@ -257,6 +283,11 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
         Graph to analyze.
     directed : bool, optional (default: True)
         Whether to compute the directed clustering if the graph is directed.
+        If False, then the graph is treated as undirected. The option switches
+        to False automatically if `g` is undirected.
+    use_global_clustering : bool, optional (default: True)
+        If False, then the average local clustering is used instead of the
+        global clustering.
     use_diameter : bool, optional (default: False)
         Use the diameter instead of the average path length to have more global
         information. Ccan also be much faster in some cases, especially using
@@ -289,6 +320,9 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
         Random graph to use as reference. Can be useful for reproducibility or
         for very sparse graphs where ER algorithm would statistically lead to
         a disconnected graph.
+    return_deviations : bool, optional (default: False)
+        If True, the deviations are also returned, in addition to the
+        small-world propensity.
 
     Note
     ----
@@ -311,13 +345,32 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
         of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
         065103. :doi:`10.1103/physreve.71.065103`, arxiv:`cond-mat/0408629`.
 
+    Returns
+    -------
+    phi : float in [0, 1]
+        The small-world propensity.
+    delta_l : float
+        The average path-length deviation (if `return_deviations` is True).
+    delta_c : float
+        The clustering deviation (if `return_deviations` is True).
+
     See also
     --------
     :func:`nngt.analysis.average_path_length`
+    :func:`nngt.analysis.diameter`
     :func:`nngt.analysis.global_clustering`
+    :func:`nngt.analysis.local_clustering`
     :func:`nngt.generation.lattice_rewire`
     :func:`nngt.generation.random_rewire`
     '''
+    # special case for too sparse (unconnected) graphs
+    if g.edge_nb() < g.node_nb():
+        if return_deviations:
+            return np.NaN, np.NaN, np.NaN
+
+        return np.NaN
+
+    # rewired graph
     latt = ng.lattice_rewire(g, weight=weights) if lattice is None else lattice
     rand = ng.random_rewire(g) if random is None else random
 
@@ -332,35 +385,53 @@ def small_world_propensity(g, directed=True, use_diameter=False, weights=None,
     l_latt, l_rand, l_g = None, None, None
 
     if use_diameter:
-        # ~ l_latt = diameter(latt, directed=directed, weights=weights)
-        # ~ l_rand = diameter(rand, directed=directed, weights=weights)
-        # ~ l_g    = diameter(g, directed=directed, weights=weights)
-        l_latt = diameter(latt, weights=inv_w)
-        l_rand = diameter(rand, weights=inv_w)
-        l_g    = diameter(g, weights=inv_w)
+        l_latt = diameter(latt, directed=directed, weights=weights)
+        l_rand = diameter(rand, directed=directed, weights=weights)
+        l_g    = diameter(g, directed=directed, weights=weights)
     else:
         l_latt = average_path_length(latt, directed=directed, weights=inv_w)
         l_rand = average_path_length(rand, directed=directed, weights=inv_w)
         l_g    = average_path_length(g, directed=directed, weights=inv_w)
 
     # compute clustering
-    c_latt = global_clustering(
-        latt, directed=directed, weights=weights, method=clustering,
-        combine_weights=combine_weights)
+    c_latt, c_rand, c_g = None, None, None
 
-    c_rand = global_clustering(
-        rand, directed=directed, weights=weights, method=clustering,
-        combine_weights=combine_weights)
+    if use_global_clustering:
+        c_latt = global_clustering(
+            latt, directed=directed, weights=weights, method=clustering,
+            combine_weights=combine_weights)
 
-    c_g = global_clustering(
-        g, directed=directed, weights=weights, method=clustering,
-        combine_weights=combine_weights)
+        c_rand = global_clustering(
+            rand, directed=directed, weights=weights, method=clustering,
+            combine_weights=combine_weights)
+
+        c_g = global_clustering(
+            g, directed=directed, weights=weights, method=clustering,
+            combine_weights=combine_weights)
+    else:
+        c_latt = np.average(local_clustering(
+            latt, directed=directed, weights=weights, method=clustering,
+            combine_weights=combine_weights))
+
+        c_rand = np.average(local_clustering(
+            rand, directed=directed, weights=weights, method=clustering,
+            combine_weights=combine_weights))
+
+        c_g = np.average(local_clustering(
+            g, directed=directed, weights=weights, method=clustering,
+            combine_weights=combine_weights))
 
     # compute deltas
-    delta_l = (l_g - l_rand) / (l_latt - l_rand)
+    delta_l = (l_g - l_rand) / (l_latt - l_rand) if l_latt != l_rand else 1.
     delta_c = (c_latt - c_g) / (c_latt - c_rand)
 
-    return 1 - np.sqrt(0.5*(delta_l**2 + delta_c**2))
+    if return_deviations:
+        return 1 - np.sqrt(
+            0.5*(np.clip(delta_l**2, 0, 1) + np.clip(delta_c**2, 0, 1))), \
+            delta_l, delta_c
+    else:
+        return 1 - np.sqrt(
+            0.5*(np.clip(delta_l**2, 0, 1) + np.clip(delta_c**2, 0, 1)))
 
 
 def shortest_path(g, source, target, directed=True, weights=None):

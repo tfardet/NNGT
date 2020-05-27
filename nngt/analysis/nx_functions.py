@@ -356,14 +356,7 @@ def shortest_path(g, source, target, directed=True, weights=None):
     '''
     w = _get_nx_weights(g, weights)
 
-    graph = g.graph
-
-    if not directed and graph.is_directed():
-        if w is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = g.graph.to_undirected(as_view=True)
+    graph = _get_nx_graph(g, directed, w)
 
     try:
         return nx.shortest_path(graph, source, target, weight=w)
@@ -403,14 +396,7 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
     '''
     w = _get_nx_weights(g, weights)
 
-    graph = g.graph
-
-    if not directed and graph.is_directed():
-        if w is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = g.graph.to_undirected(as_view=True)
+    graph = _get_nx_graph(g, directed, w)
 
     try:
         return nx.all_shortest_paths(graph, source, target, weight=w)
@@ -451,19 +437,12 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     ----------
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.weighted.multi_source_dijkstra`
     '''
-    graph = g.graph
-
     num_nodes = g.node_nb()
 
     # check consistency for weights and directed
     w = _get_nx_weights(g, weights)
 
-    if not directed and graph.is_directed():
-        if w is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = g.graph.to_undirected(as_view=True)
+    graph = _get_nx_graph(g, directed, w)
 
     # check for single source/target case and convert sources and targets
     if is_integer(sources):
@@ -565,7 +544,9 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     if sources is None and targets is None and not unconnected:
         w = _get_nx_weights(g, weights)
 
-        return nx.average_shortest_path_length(g.graph, weight=w)
+        graph = _get_nx_graph(g, directed, w)
+
+        return nx.average_shortest_path_length(graph, weight=w)
 
     mat_dist = shortest_distance(g, sources=sources, targets=targets,
                                  directed=directed, weights=weights)
@@ -586,24 +567,37 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     return np.sum(mat_dist) / num_paths
 
 
-def diameter(g, weights=None):
+def diameter(g, directed=True, weights=False, is_connected=False):
     '''
     Returns the diameter of the graph.
 
-    It returns infinity if the graph is not connected (strongly connected for
-    directed graphs).
+    .. versionchanged:: 2.0
+        Added `directed` and `is_connected` arguments.
 
-    For weighted graphs, uses the Dijkstra algorithm to find all shortests
-    paths and returns the longest.
+    It returns infinity if the graph is not connected (strongly connected for
+    directed graphs) unless `is_connected` is True, in which case it returns
+    the longest existing shortest distance.
 
     Parameters
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
+    directed : bool, optional (default: True)
+        Whether to compute the directed diameter if the graph is directed.
+        If False, then the graph is treated as undirected. The option switches
+        to False automatically if `g` is undirected.
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
+    is_connected : bool, optional (default: False)
+        If False, check whether the graph is connected or not and return
+        infinite diameter if graph is unconnected. If True, the graph is
+        assumed to be connected.
+
+    See also
+    --------
+    :func:`nngt.analysis.shortest_distance`
 
     References
     ----------
@@ -612,21 +606,20 @@ def diameter(g, weights=None):
     '''
     w = _get_nx_weights(g, weights)
 
-    num_nodes = g.node_nb()
+    # weighted or "connected" cases
+    if w is not None or is_connected:
+        dist = shortest_distance(g, directed=directed, weights=weights)
 
-    if w is not None:
-        res = []
+        if is_connected:
+            return np.max(dist[~np.isinf(dist)])
 
-        for _, (d, _) in nx.all_pairs_dijkstra(g.graph, weight=w):
-            if len(d) < num_nodes:
-                return np.inf
+        return np.max(dist)
 
-            res.extend(d.values())
-
-        return np.max(res)
+    # unweighted case
+    graph = _get_nx_graph(g, directed, w)
 
     try:
-        return nx.diameter(g.graph)
+        return nx.diameter(graph)
     except nx.exception.NetworkXError:
         return np.inf
 

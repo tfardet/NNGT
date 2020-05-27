@@ -338,14 +338,7 @@ def shortest_path(g, source, target, directed=True, weights=None):
     '''
     w = _get_ig_weights(g, weights)
 
-    graph = g.graph
-    
-    if not directed and graph.is_directed():
-        if w is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = g.graph.as_undirected()
+    graph = _get_ig_graph(g, directed, w)
 
     path = graph.get_shortest_paths(source, target, mode="out", weights=w)[0]
 
@@ -388,14 +381,7 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
     '''
     w = _get_ig_weights(g, weights)
 
-    graph = g.graph
-    
-    if not directed and graph.is_directed():
-        if w is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = g.graph.as_undirected()
+    graph = _get_ig_graph(g, directed, w)
 
     return (p for p in graph.get_all_shortest_paths(source, target, weights=w))
 
@@ -438,12 +424,7 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     # weighted or selective algorithm
     ww = _get_ig_weights(g, weights)
 
-    if g.graph.is_directed() and not directed:
-        if ww is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = g.graph.as_undirected()
+    graph = _get_ig_graph(g, directed, ww)
 
     # special case for one source/one target
     if is_integer(sources) and is_integer(targets):
@@ -525,21 +506,37 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     return np.sum(mat_dist) / num_paths
 
 
-def diameter(g, weights=None):
+def diameter(g, directed=True, weights=False, is_connected=False):
     '''
     Returns the diameter of the graph.
 
+    .. versionchanged:: 2.0
+        Added `directed` and `is_connected` arguments.
+
     It returns infinity if the graph is not connected (strongly connected for
-    directed graphs).
+    directed graphs) unless `is_connected` is True, in which case it returns
+    the longest existing shortest distance.
 
     Parameters
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
+    directed : bool, optional (default: True)
+        Whether to compute the directed diameter if the graph is directed.
+        If False, then the graph is treated as undirected. The option switches
+        to False automatically if `g` is undirected.
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
+    is_connected : bool, optional (default: False)
+        If False, check whether the graph is connected or not and return
+        infinite diameter if graph is unconnected. If True, the graph is
+        assumed to be connected.
+
+    See also
+    --------
+    :func:`nngt.analysis.shortest_distance`
 
     References
     ----------
@@ -547,12 +544,15 @@ def diameter(g, weights=None):
     '''
     ww = _get_ig_weights(g, weights)
 
-    mode = "strong" if g.is_directed() else "weak"
+    graph = _get_ig_graph(g, directed, ww)
 
-    if not g.graph.is_connected(mode):
-        return np.inf
+    if not is_connected:
+        mode = "strong" if g.is_directed() else "weak"
 
-    return g.graph.diameter(weights=ww)
+        if not graph.is_connected(mode):
+            return np.inf
+
+    return graph.diameter(weights=ww, unconn=True)
 
 
 def adj_mat(g, weights=None, mformat="csr"):

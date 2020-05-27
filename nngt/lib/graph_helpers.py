@@ -154,7 +154,12 @@ def _get_dtype(value):
     return "object"
 
 
+# ------------------ #
+# Graph-tool helpers #
+# ------------------ #
+
 def _get_gt_weights(g, weights):
+    ''' Return the properly formatted weights '''
     if nonstring_container(weights):
         # user-provided array (test must come first since non hashable)
         return g.graph.new_edge_property("double", vals=weights)
@@ -170,6 +175,24 @@ def _get_gt_weights(g, weights):
 
     raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
 
+
+def _get_gt_graph(g, directed, weights):
+    ''' Returns the correct graph(view) given the options '''
+    if not directed and g.is_directed():
+        if weights is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = GraphView(g.graph, directed=False)
+
+        return GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+
+    return g.graph
+
+
+# -------------- #
+# IGraph helpers #
+# -------------- #
 
 def _get_ig_weights(g, weights):
     if nonstring_container(weights):
@@ -188,7 +211,24 @@ def _get_ig_weights(g, weights):
     raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
 
 
+def _get_ig_graph(g, directed, weights):
+    ''' Returns the correct graph(view) given the options '''
+    if not directed and g.is_directed():
+        if weights is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        return g.graph.as_undirected()
+
+    return g.graph
+
+
+# ---------------- #
+# Networkx helpers #
+# ---------------- #
+
 def _get_nx_weights(g, weights):
+    ''' Return the properly formatted weights '''
     if nonstring_container(weights):
         # generate a function that returns the weights
         def f(source, target, attr):
@@ -207,3 +247,15 @@ def _get_nx_weights(g, weights):
         return None
 
     raise ValueError("Unknown attribute '{}' for `weights`.".format(weights))
+
+
+def _get_nx_graph(g, directed, weights):
+    ''' Returns the correct graph(view) given the options '''
+    if not directed and g.is_directed():
+        if weights is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        return g.graph.to_undirected(as_view=True)
+
+    return g.graph
