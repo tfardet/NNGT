@@ -1062,7 +1062,8 @@ _di_generator = {
     "gaussian_degree": gaussian_degree,
     "newman_watts": newman_watts,
     "price_scale_free": price_scale_free,
-    "random_scale_free": random_scale_free
+    "random_scale_free": random_scale_free,
+    "watts_strogatz": watts_strogatz,
 }
 
 
