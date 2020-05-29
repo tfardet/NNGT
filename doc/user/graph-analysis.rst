@@ -118,7 +118,7 @@ For undirected weighted clustering, NNGT provides the definition proposed in
 
 .. math::
 
-    C_{c,i}^u = \frac{W^3_{ii}}{\left(s^{\left[\frac{1}{2}\right]}_i\right)^2 - s_i}
+    C_{c,i}^u = \frac{\left(W^{\left[\frac{2}{3}\right]}\right)^3_{ii}}{\left(s^{\left[\frac{1}{2}\right]}_i\right)^2 - s_i}
 
 with :math:`s^{\left[\frac{1}{2}\right]}` the generalized strength associated to the
 matrix :math:`W^{\left[\frac{1}{2}\right]} = \{\sqrt{w_{ij}}\}`.
@@ -141,7 +141,7 @@ reciprocal strength,
 
 .. math::
 
-    C_{c,i}^d = \frac{\frac{1}{2}(W + W^T)^3_{ii}}{\left(s^{\left[\frac{1}{2}\right]}_i\right)^2 - s_i - s_i^\leftrightarrow}
+    C_{c,i}^d = \frac{\frac{1}{2}\left(W^{\left[\frac{2}{3}\right]} + W^{\left[\frac{2}{3}\right],T}\right)^3_{ii}}{\left(s^{\left[\frac{1}{2}\right]}_i\right)^2 - 2s^{\leftrightarrow}_i - s_i}
 
 with :math:`s^{\left[\frac{1}{2}\right]}` the total generalized strength and
 :math:`s_i^\leftrightarrow = \left( W^{\left[\frac{1}{2}\right]} \right)^2` the
