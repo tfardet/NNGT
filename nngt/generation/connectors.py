@@ -119,7 +119,8 @@ def connect_nodes(network, sources, targets, graph_model, density=None,
     if 'delays' in kwargs:
         attr['delay'] = kwargs['delays']
     if network.is_spatial():
-        attr['distance'] = distance
+        if len(distance) > 0:
+            attr['distance'] = distance
 
     # call only on root process (for mpi) unless using distributed backend
     if nngt.on_master_process() or nngt.get_config("backend") == "nngt":
