@@ -108,6 +108,7 @@ __all__ = [
 	'newman_watts',
 	'random_scale_free',
 	'price_scale_free',
+    'watts_strogatz',
 ]
 
 
@@ -723,6 +724,7 @@ def circular(coord_nb, reciprocity=1., reciprocity_choice="random", nodes=0,
 
     # set node number and library graph
     graph_circ = from_graph
+
     if graph_circ is not None:
         nodes = graph_circ.node_nb()
     else:
@@ -759,6 +761,13 @@ def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
     Generate a (potentially small-world) graph using the Newman-Watts
     algorithm.
 
+    For directed networks, the reciprocity of the initial circular network can
+    be chosen.
+
+    .. versionchanged:: 2.0
+        Added the `reciprocity_circular` and `reciprocity_choice_circular`
+        options.
+
     Parameters
     ----------
     coord_nb : int
@@ -778,12 +787,104 @@ def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
         reciprocal first, then between second neighbours, etc.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
-    density: double, optional (default: 0.1)
-        Structural density given by `edges` / (`nodes`*`nodes`).
     edges : int (optional)
-        The number of edges between the nodes
-    avg_deg : double, optional
-        Average degree of the neurons given by `edges` / `nodes`.
+        The number of edges between the nodes.
+    weighted : bool, optional (default: True)
+        Whether the graph edges have weights.
+    directed : bool, optional (default: True)
+        Whether the graph is directed or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two
+        nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+        Shape of the neurons' environment
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
+    from_graph : :class:`Graph` or subclass, optional (default: None)
+        Initial graph whose nodes are to be connected.
+
+    Returns
+    -------
+    graph_nw : :class:`~nngt.Graph` or subclass
+
+    Note
+    ----
+	`nodes` is required unless `from_graph` or `population` is provided.
+    """
+    if multigraph:
+        raise ValueError("`multigraph` is not supported for Watts-Strogatz.")
+
+    # set node number and library graph
+    graph_nw = from_graph
+
+    if graph_nw is not None:
+        nodes = graph_nw.node_nb()
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_nw = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
+
+    _set_options(graph_nw, population, shape, positions)
+
+    # add edges
+    if nodes > 1:
+        ids = range(nodes)
+
+        ia_edges = _newman_watts(
+            ids, ids, coord_nb, proba_shortcut, reciprocity_circular,
+            edges=edges, directed=directed)
+
+        graph_nw.new_edges(ia_edges, check_duplicates=False,
+                           check_self_loops=False, check_existing=False)
+
+    graph_nw._graph_type = "watts_strogatz"
+
+    return graph_nw
+
+
+def watts_strogatz(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
+                   reciprocity_choice_circular="random", shuffle="random",
+                   nodes=0, weighted=True, directed=True, multigraph=False,
+                   name="WS", shape=None, positions=None, population=None,
+                   from_graph=None,  **kwargs):
+    """
+    Generate a (potentially small-world) graph using the Watts-Strogatz
+    algorithm.
+
+    For directed networks, the reciprocity of the initial circular network can
+    be chosen.
+
+    .. versionadded:: 2.0
+
+    Parameters
+    ----------
+    coord_nb : int
+        The number of neighbours for each node on the initial topological
+        lattice (must be even).
+    proba_shortcut : double, optional
+        Probability of adding a new random (shortcut) edge for each existing
+        edge on the initial lattice.
+        If `edges` is provided, then will be computed automatically as
+        ``edges / (coord_nb * nodes * (1 + reciprocity_circular) / 2)``
+    reciprocity_circular : double, optional (default: 1.)
+        Proportion of reciprocal edges in the initial circular graph.
+    reciprocity_choice_circular : str, optional (default: "random")
+        How reciprocal edges should be chosen in the initial circular graph.
+        This can be either "random" or "closest". If the latter option
+        is used, then connections between first neighbours are rendered
+        reciprocal first, then between second neighbours, etc.
+    shuffle : str, optional (default: 'random')
+        Whether to shuffle only 'targets' (out-degree of all nodes remains
+        constant), 'sources' (in-degree remains constant), or randomly the
+        source or the target for each edge ('random') in the case of directed
+        graphs.
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
     weighted : bool, optional (default: True)
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
@@ -829,9 +930,9 @@ def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
     if nodes > 1:
         ids = range(nodes)
 
-        ia_edges = _newman_watts(
+        ia_edges = _watts_strogatz(
             ids, ids, coord_nb, proba_shortcut, reciprocity_circular,
-             edges=edges, directed=directed)
+            shuffle, directed=directed)
 
         graph_nw.new_edges(ia_edges, check_duplicates=False,
                            check_self_loops=False, check_existing=False)
