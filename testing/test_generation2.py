@@ -278,9 +278,9 @@ def test_total_undirected_connectivities():
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        # ~ test_newman_watts()
-        # ~ test_from_degree_list()
-        # ~ test_total_undirected_connectivities()
+        test_newman_watts()
+        test_from_degree_list()
+        test_total_undirected_connectivities()
         test_watts_strogatz()
 
     if nngt.get_config("mpi"):
