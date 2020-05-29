@@ -233,15 +233,15 @@ def test_weighted_directed_clustering():
     g.new_edges(edge_list)
 
     # continuous
-    g.set_weights([1/4, 1/9, 1/4, 1/9, 1/4, 1/9, 1])
+    g.set_weights([1/64, 1/729, 1/64, 1/729, 1/64, 1/729, 1])
 
     # expected triangles and triplets
-    # s_sqrt_tot  = np.array([11/6, 4/3, 3/2, 1/3, 1, 1])
-    # s_tot       = np.array([31/36, 11/18, 7/12, 1/9, 1, 1])
-    # s_recip     = np.array([5/12, 1/4, 1/6, 0, 0, 0])
+    # s_sqrt_tot  = np.array([89/216, 31/108, 51/216, 1/27, 1, 1])
+    # s_tot       = np.array([2251/46656, 761/23328, 307/15552, 1/729, 1, 1])
+    # s_recip     = np.array([35/1728, 1/64, 1/216, 0, 0, 0])
     # triplets_c  = np.square(s_sqrt_tot) - s_tot - 2*s_recip
-    triangles_c = np.array([13/648, 13/648, 13/648, 0, 0, 0])
-    triplets_c  = np.array([15/9, 2/3, 4/3, 0, 0, 0])
+    triangles_c = np.array([97/839808, 97/839808, 97/839808, 0, 0, 0])
+    triplets_c  = np.array([35/432, 1/54, 13/486, 0, 0, 0])
 
     assert np.all(np.isclose(
         triangles_c,
@@ -259,6 +259,8 @@ def test_weighted_directed_clustering():
     assert np.all(np.isclose(cc, expected))
 
     # barrat (clemente version for reciprocal strength)
+    g.set_weights([1/4, 1/9, 1/4, 1/9, 1/4, 1/9, 1])
+
     # d_tot       = np.array([4, 3, 4, 1, 1, 1])
     # s_recip     = np.array([31/72, 1/4, 0, 0, 0])
     # triplets_b  = s_tot*(d_tot - 1) - s_recip
