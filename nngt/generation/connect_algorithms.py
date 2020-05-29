@@ -43,6 +43,7 @@ __all__ = [
     "_price_scale_free",
     "_random_scale_free",
     "_unique_rows",
+    "_watts_strogatz",
     "price_network",
 ]
 
@@ -717,7 +718,88 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
         num_test += 1
 
-    ia_edges = _no_self_loops(ia_edges)
+    return ia_edges
+
+
+def _watts_strogatz(source_ids, target_ids, coord_nb, proba_shortcut,
+                    reciprocity_circular, shuffle, directed=True,
+                    multigraph=False, **kwargs):
+    '''
+    Returns a numpy array of dimension (num_edges,2) that describes the edge
+    list of a Watts-Strogatz graph.
+
+    Note
+    ----
+    `source_ids` and `target_ids` are only there for compatibility with the
+    connect functions, this algorithm requires a single population.
+    This check (if necessary) is performed above.
+    '''
+    assert shuffle in ('sources', 'targets', 'random'), \
+        "Shuffle must be either 'sources', 'targets', or 'random'."
+
+    nodes      = len(source_ids)
+    source_ids = np.array(source_ids, dtype=int)
+    target_ids = np.array(target_ids, dtype=int)
+
+    # check the number of edges
+    direct_factor  = 0.5*(1 + directed)
+    recip_factor   = 0.5*(1 + reciprocity_circular)
+
+    deg   = int(coord_nb * recip_factor * direct_factor)
+    edges = nodes * deg
+
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
+
+    if not b_one_pop:
+        raise InvalidArgument("This graph model can only be used if source "
+                              "and target populations are the same.")
+
+    # generate the initial circular graph
+    ia_edges = _circular(source_ids, source_ids, coord_nb,
+                         reciprocity_circular, directed)
+
+    # randomize some of the outgoing connections
+    node_set = set(source_ids)
+
+    rng = nngt._rng
+
+    edge_hash = set(tuple(e) for e in ia_edges)
+
+    if not directed:
+        edge_hash.update([tuple(e) for e in ia_edges[:, ::-1]])
+
+    # compute how many we rewire in total, choose them
+    rewire = rng.binomial(edges, proba_shortcut)
+    chosen = rng.choice(edges, rewire, replace=False)
+
+    # rewire
+    keep = np.zeros(rewire, dtype=int)
+
+    if shuffle == "random":
+        keep = rng.integers(1, size=rewire, endpoint=True)
+    elif shuffle == "sources":
+        keep = np.ones(rewire, dtype=int)
+
+    new_targets = rng.integers(nodes, size=rewire)
+
+    for i in range(rewire):
+        idx1 = chosen[i]
+        idx2 = keep[i]
+
+        s = ia_edges[idx1, idx2]
+        t = new_targets[i]
+        e = (s, t)
+
+        while s == t or e in edge_hash:
+            t = rng.integers(nodes)
+            e = (s, t)
+
+        ia_edges[idx1, 1 - idx2] = t
+        edge_hash.add(e)
+
+        if not directed:
+            edge_hash.add(e[::-1])
 
     return ia_edges
 
