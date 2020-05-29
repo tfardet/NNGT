@@ -96,7 +96,7 @@ def test_weighted_undirected_clustering():
         assert np.all(np.isclose(ccb, ccw))
 
     # corner cases
-    eps = 1e-20
+    eps = 1e-30
 
     # 3 nodes
     num_nodes = 3
@@ -194,16 +194,18 @@ def test_weighted_undirected_clustering():
     g = nngt.Graph(nodes=num_nodes, directed=False)
     g.new_edges(edge_list)
 
-    g.set_weights([1/4, 1/9, 1/4, 1/9, 1])
+    g.set_weights([1/64, 1/729, 1/64, 1/729, 1])
 
-    expected = [1/36, 1/24, 1/64, 0, 0, 0]
+    # triangle is 1/20736
+    # triplets are [1/64, 1/216, 62/5832, 0, 0, 0]
+    expected = [1/324, 1/96, 9/1984, 0, 0, 0]
 
     cc = na.local_clustering(g, weights='weight', method='continuous')
 
     assert np.all(np.isclose(cc, expected))
 
     # 0-weight case
-    g.set_weights([1/4, 1/9, 1/4, 0, 1])
+    g.set_weights([1/64, 1/729, 1/64, 0, 1])
 
     cc0 = na.local_clustering(g, weights='weight', method='continuous')
 
@@ -212,9 +214,9 @@ def test_weighted_undirected_clustering():
 
     g = nngt.Graph(nodes=num_nodes, directed=False)
     g.new_edges(edge_list)
-    g.set_weights([1/4, 1/9, 1/4, 1])
+    g.set_weights([1/64, 1/729, 1/64, 1])
 
-    expected = [1/36, 1/24, 1/24, 0, 0, 0]
+    expected = [1/324, 1/96, 1/96, 0, 0, 0]
 
     ccn = na.local_clustering(g, weights='weight', method='continuous')
 
