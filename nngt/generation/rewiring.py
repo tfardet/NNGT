@@ -1,6 +1,6 @@
 #-*- coding:utf-8 -*-
 #
-# grewiring.py
+# rewiring.py
 #
 # This file is part of the NNGT project to generate and analyze
 # neuronal networks and their activity.

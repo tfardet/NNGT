@@ -47,12 +47,13 @@ _di_gen_edges = {
     "from_degree_list": gc._from_degree_list,
     "gaussian_degree": gc._gaussian_degree,
     "newman_watts": gc._newman_watts,
+    "watts_strogatz": gc._watts_strogatz,
     "price_scale_free": gc._price_scale_free,
     "random_scale_free": gc._random_scale_free
 }
 
 
-_one_pop_models = {"newman_watts", "circular"}
+_one_pop_models = {"newman_watts", "watts_strogatz", "circular"}
 
 
 def connect_nodes(network, sources, targets, graph_model, density=None,
