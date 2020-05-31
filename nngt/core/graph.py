@@ -91,7 +91,8 @@ class Graph(nngt.core.GraphObject):
         return graph
 
     @classmethod
-    def from_matrix(cls, matrix, weighted=True, directed=True):
+    def from_matrix(cls, matrix, weighted=True, directed=True, population=None,
+                    shape=None, positions=None, name=None):
         '''
         Creates a :class:`~nngt.Graph` from a :mod:`scipy.sparse` matrix or
         a dense matrix.
@@ -104,14 +105,25 @@ class Graph(nngt.core.GraphObject):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
+        population : :class:`~nngt.NeuralPop`
+            Population to associate to the new :class:`~nngt.Network`.
+        shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+            Shape to associate to the new :class:`~nngt.SpatialGraph`.
+        positions : (N, 2) array
+            Positions, in a 2D space, of the N neurons.
+        name : str, optional
+            Graph name.
 
         Returns
         -------
         :class:`~nngt.Graph`
         '''
         shape = matrix.shape
+
         graph_name = "FromYMatrix_Z"
+
         nodes = max(shape[0], shape[1])
+
         if issubclass(matrix.__class__, ssp.spmatrix):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
@@ -126,9 +138,23 @@ class Graph(nngt.core.GraphObject):
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
+
         edges = np.array(matrix.nonzero()).T
-        graph = cls(nodes, name=graph_name.replace("Z", str(cls.__num_graphs)),
-                    weighted=weighted, directed=directed)
+
+        graph_name = graph_name.replace("Z", str(cls.__num_graphs))
+
+        # overwrite default name if necessary
+        if name is not None:
+            graph_name = name
+
+        graph = cls(nodes, name=graph_name, weighted=weighted,
+                    directed=directed)
+
+        if population is not None:
+            cls.make_network(graph, population)
+
+        if shape is not None:
+            cls.make_spatial(graph, shape, positions)
 
         weights = None
 
@@ -146,7 +172,8 @@ class Graph(nngt.core.GraphObject):
     @staticmethod
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
                   attributes=None, notifier="@", ignore="#",
-                  from_string=False):
+                  from_string=False, name="LoadedGraph", directed=True,
+                  cleanup=False):
         '''
         Import a saved graph from a file.
         @todo: implement gml, dot, xml, gt
@@ -187,8 +214,17 @@ class Graph(nngt.core.GraphObject):
             Additional notifiers are ``@type=SpatialGraph/Network/
             SpatialNetwork``, which must be followed by the relevant notifiers
             among ``@shape``, ``@population``, and ``@graph``.
+        ignore : str, optional (default: "#")
+            Ignore lines starting with the `ignore` string.
         from_string : bool, optional (default: False)
             Load from a string instead of a file.
+        name : str, optional (default: from file information or 'LoadedGraph')
+            The name of the graph.
+        directed : bool, optional (default: from file information or True)
+            Whether the graph is directed or not.
+        cleanup : bool, optional (default: False)
+           If true, removes nodes before the first one that appears in the
+           edges and after the last one and renumber the nodes from 0. 
 
         Returns
         -------
@@ -196,12 +232,13 @@ class Graph(nngt.core.GraphObject):
             Loaded graph.
         '''
         info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
-            filename=filename, fmt=fmt, separator=separator,
-            secondary=secondary, attributes=attributes, notifier=notifier)
+            filename=filename, fmt=fmt, separator=separator, ignore=ignore,
+            secondary=secondary, attributes=attributes, notifier=notifier,
+            cleanup=cleanup)
 
         # create the graph
-        graph = Graph(nodes=info["size"], name=info["name"],
-                      directed=info["directed"])
+        graph = Graph(nodes=info["size"], name=info.get("name", name),
+                      directed=info.get("directed", directed))
 
         # make the nodes attributes
         lst_attr, dtpes, lst_values = [], [], []

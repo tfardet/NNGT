@@ -1,5 +1,3 @@
-@size=10879
-@directed=True
 # Directed graph (each unordered pair of nodes is saved once): p2p-Gnutella04.txt 
 # Directed Gnutella P2P network from August 4 2002
 # Nodes: 10879 Edges: 39994

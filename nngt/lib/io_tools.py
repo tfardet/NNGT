@@ -24,6 +24,7 @@ import ast
 import codecs
 import logging
 import pickle
+import re
 import sys
 import weakref
 
@@ -45,7 +46,8 @@ logger = logging.getLogger(__name__)
 # -- #
 
 def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
-                   attributes=None, notifier="@", ignore="#"):
+                   attributes=None, notifier="@", ignore="#",
+                   name="LoadedGraph", directed=True, cleanup=False):
     '''
     Load a Graph from a file.
 
@@ -73,6 +75,8 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         List of names for the attributes present in the file. If a `notifier`
         is present in the file, names will be deduced from it; otherwise the
         attributes will be numbered.
+        For "edge_list", attributes may also be present as additional columns
+        after the source and the target.
     notifier : str, optional (default: "@")
         Symbol specifying the following as meaningfull information. Relevant
         information are formatted ``@info_name=info_value``, where
@@ -84,6 +88,13 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         ``@population``, and ``@graph``.
     ignore : str, optional (default: "#")
         Ignore lines starting with the `ignore` string.
+    name : str, optional (default: from file information or 'LoadedGraph')
+        The name of the graph.
+    directed : bool, optional (default: from file information or True)
+        Whether the graph is directed or not.
+    cleanup : bool, optional (default: False)
+       If true, removes nodes before the first one that appears in the
+       edges and after the last one and renumber the nodes from 0. 
 
     Returns
     -------
@@ -92,11 +103,12 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     '''
     return nngt.Graph.from_file(
         filename, fmt=fmt, separator=separator, secondary=secondary,
-        attributes=attributes, notifier=notifier, ignore=ignore)
+        attributes=attributes, notifier=notifier, ignore=ignore, name=name,
+        directed=directed, cleanup=cleanup) 
 
 
 def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
-                   attributes=None, notifier="@", ignore="#"):
+                    attributes=None, notifier="@", ignore="#", cleanup=False):
     '''
     Load the main properties (edges, attributes...) from a file.
 
@@ -121,9 +133,9 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         Secondary separator used to separate attributes in the case of custom
         formats.
     attributes : list, optional (default: [])
-        List of names for the attributes present in the file. If a `notifier`
-        is present in the file, names will be deduced from it; otherwise the
-        attributes will be numbered.
+        List of names for the edge attributes present in the file. If a
+        `notifier` is present in the file, names will be deduced from it;
+        otherwise the attributes will be numbered.
     notifier : str, optional (default: "@")
         Symbol specifying the following as meaningfull information. Relevant
         information are formatted ``@info_name=info_value``, where
@@ -135,6 +147,9 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         ``@population``, and ``@graph``.
     ignore : str, optional (default: "#")
         Ignore lines starting with the `ignore` string.
+    cleanup : bool, optional (default: False)
+       If true, removes nodes before the first one that appears in the
+       edges and after the last one and renumber the nodes from 0. 
 
     Returns
     -------
@@ -153,15 +168,21 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     # check for mpi
     if nngt.get_config("mpi"):
         raise NotImplementedError("This function is not ready for MPI yet.")
+
     # load
-    lst_lines, di_notif, pop, shape, positions = None, None, None, None, None
+    lst_lines, pop, shape, positions = None, None, None, None
     fmt = _get_format(fmt, filename)
+
     with open(filename, "r") as filegraph:
-        lst_lines = [line.strip() for line in filegraph.readlines()]
+        lst_lines = [_cleanup_line(line, separator)
+                     for line in filegraph.readlines()]
+
     # notifier lines
-    di_notif = _get_notif(lst_lines, notifier)
-    # data
-    lst_lines = lst_lines[::-1][:-len(di_notif)]
+    di_notif = _get_notif(lst_lines, notifier, attributes)
+
+    # data (remove lines to ignore)
+    lst_lines = lst_lines[::-1]
+
     while not lst_lines[-1] or lst_lines[-1].startswith(ignore):
         lst_lines.pop()
 
@@ -170,12 +191,13 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
 
     # make edges and attributes
     edges           = []
-    eattributes     = (di_notif["edge_attributes"] if attributes is None
-                       else attributes)
-    di_eattributes  = {name: [] for name in di_notif["edge_attributes"]}
+    eattributes     = di_notif["edge_attributes"]
+    di_eattributes  = {name: [] for name in eattributes}
     di_edge_convert = _gen_convert(di_notif["edge_attributes"],
                                    di_notif["edge_attr_types"])
-    line            = None
+
+    # process file
+    line = None
 
     while lst_lines:
         line = lst_lines.pop()
@@ -184,7 +206,15 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                 line, eattributes, separator, secondary, edges, di_eattributes,
                 di_edge_convert)
         else:
-            break
+            continue
+
+    if cleanup:
+        edges = np.array(edges) - np.min(edges)
+
+    # add missing size information if necessary
+    if "size" not in di_notif:
+        di_notif["size"] = int(np.max(edges)) + 1
+
     # check whether a shape is present
     if 'shape' in di_notif:
         if _shapely_support:
@@ -241,6 +271,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
             positions = np.array((x, y, z)).T
         else:
             positions = np.array((x, y)).T
+
     return (di_notif, edges, di_nattributes, di_eattributes, pop, shape,
             positions)
 
@@ -591,11 +622,12 @@ def _format_notif(notif_name, notif_val):
         return notif_val
 
 
-def _get_notif(lines, notifier):
+def _get_notif(lines, notifier, attributes):
     di_notif = {
         "node_attributes": [], "edge_attributes": [], "node_attr_types": [],
-        "edge_attr_types": [], "name": "LoadedGraph"
+        "edge_attr_types": [],
     }
+
     for line in lines:
         if line.startswith(notifier):
             idx_eq = line.find("=")
@@ -604,6 +636,10 @@ def _get_notif(lines, notifier):
             di_notif[notif_name] = _format_notif(notif_name, notif_val)
         else:
             break
+
+    if attributes is not None:
+        di_notif["edge_attributes"] = attributes
+
     return di_notif
 
 
@@ -640,6 +676,10 @@ def _gen_convert(attributes, attr_types):
     attribute
     '''
     di_convert = {}
+
+    if attributes and not attr_types:
+        attr_types.extend(("float" for _ in attributes))
+
     for attr, attr_type in zip(attributes, attr_types):
         if attr_type in ("double", "float", "real"):
             di_convert[attr] = float
@@ -651,6 +691,7 @@ def _gen_convert(attributes, attr_types):
             di_convert[attr] = _to_list
         else:
             raise TypeError("Invalid attribute type.")
+
     return di_convert
 
 
@@ -675,13 +716,18 @@ def _get_edges_neighbour(line, attributes, separator, secondary, edges,
     len_first_delim = line.find(separator)
     source = int(line[:len_first_delim])
     len_first_delim += 1
+
     if len_first_delim:
         neighbours = line[len_first_delim:].split(separator)
+
         for stub in neighbours:
             content = stub.split(secondary)
             target = int(content[0])
+
             edges.append((source, target))
+
             attr_val = content[1:] if len(content) > 1 else []
+
             for name, val in zip(attributes, attr_val):
                 di_attributes[name].append(di_convert[name](val))
 
@@ -695,9 +741,14 @@ def _get_edges_elist(line, attributes, separator, secondary, edges,
     data = line.split(separator)
     source, target = int(data[0]), int(data[1])
     edges.append((source, target))
-    if len(data) == 3:
+
+    # different ways of loading the attributes
+    if len(data) == 3 and secondary in data[2]:  # secondary notifier
         attr_data = data[2].split(secondary)
         for name, val in zip(attributes, attr_data):
+            di_attributes[name].append(di_convert[name](val))
+    elif len(data) == len(attributes) + 2:  # regular columns
+        for name, val in zip(attributes, data[2:]):
             di_attributes[name].append(di_convert[name](val))
 
 
@@ -710,17 +761,26 @@ def _get_node_attr(di_notif, separator):
     di_nattr   = {}
     nattr_name = {str("na_" + k): k for k in di_notif["node_attributes"]}
     nattr_type = di_notif["node_attr_types"]
+
     for k, s in di_notif.items():
         if k in nattr_name:
             attr           = nattr_name[k]
             idx            = di_notif["node_attributes"].index(attr)
             dtype          = _np_dtype(nattr_type[idx])
             di_nattr[attr] = np.fromstring(s, sep=separator, dtype=dtype)
+
     return di_nattr
 
 
 def _str_bytes_len(s):
     return len(s.encode('utf-8'))
+ 
+
+def _cleanup_line(string, char):
+    ''' Replace multiple occurrences of a separator and remove line ends '''
+    pattern = char + '+'
+    string = re.sub(pattern, char, string)
+    return string.strip()
 
 
 # ---------- #
