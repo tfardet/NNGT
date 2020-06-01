@@ -26,6 +26,7 @@ import logging
 import pickle
 import re
 import sys
+import types
 import weakref
 
 from collections import defaultdict
@@ -197,11 +198,11 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
 
     # notifier lines
     di_notif = _get_notif(lst_lines, notifier, attributes, fmt=fmt,
-                          attributes_types=attributes_types)
+                          atypes=attributes_types)
 
     # get nodes attributes
     di_nattributes  = _get_node_attr(di_notif, separator, fmt=fmt,
-                                     lines=lst_lines)
+                                     lines=lst_lines, atypes=attributes_types)
 
     # make edges and attributes
     eattributes     = di_notif["edge_attributes"]
@@ -696,7 +697,7 @@ def _format_notif(notif_name, notif_val):
         return notif_val
 
 
-def _get_notif(lines, notifier, attributes, fmt=None, attributes_types=None):
+def _get_notif(lines, notifier, attributes, fmt=None, atypes=None):
     di_notif = {
         "node_attributes": [], "edge_attributes": [], "node_attr_types": [],
         "edge_attr_types": [],
@@ -704,12 +705,38 @@ def _get_notif(lines, notifier, attributes, fmt=None, attributes_types=None):
 
     # special case for GML
     if fmt == "gml":
+        start = 0
+
+        for i, l in enumerate(lines):
+            if l == "graph":
+                start = i
+                break
+
         # nodes
-        nodes = [i for i, l in enumerate(lines) if l == "node"]
+        nodes = [i for i, l in enumerate(lines) if l == "node" and i > start]
         num_nodes = len(nodes)
 
         di_notif["size"]  = num_nodes
         di_notif["nodes"] = nodes
+
+        # node attributes
+        diff = np.diff(nodes) - 4  # number of lines other than node spec
+
+        num_nattr = diff[0]
+
+        if not np.all(diff == num_nattr):
+            raise RuntimeError("All nodes should have the same attributes.")
+
+        if num_nattr > len(di_notif["node_attributes"]):
+            for i in range(nodes[0] + 3, nodes[0] + num_nattr + 3):
+                name = lines[i].split(" ")[0]
+                di_notif["node_attributes"].append(name)
+                # default type is object
+                if atypes is not None:
+                    di_notif["node_attr_types"].append(
+                        _string_from_object(atypes.get(name, object)))
+                else:
+                    di_notif["node_attr_types"].append("object")
 
         # graph attributes
         for line in lines[:nodes[0]]:
@@ -719,11 +746,11 @@ def _get_notif(lines, notifier, attributes, fmt=None, attributes_types=None):
             di_notif[key] = _format_notif(key, val)
 
         # edges
-        edges = [i for i, l in enumerate(lines) if l == "edge"]
+        edges = [i for i, l in enumerate(lines) if l == "edge" and i > start]
 
         di_notif["edges"] = edges
 
-        diff = np.diff(edges[:-1]) - 5  # number of lines other than edge spec
+        diff = np.diff(edges) - 5  # number of lines other than edge spec
 
         num_eattr = diff[0]
 
@@ -732,7 +759,14 @@ def _get_notif(lines, notifier, attributes, fmt=None, attributes_types=None):
 
         if num_eattr > len(di_notif["edge_attributes"]):
             for i in range(edges[0] + 4, edges[0] + num_eattr + 4):
-                di_notif["edge_attributes"].append(lines[i].split(" ")[0])
+                name = lines[i].split(" ")[0]
+                di_notif["edge_attributes"].append(name)
+                # default type is object
+                if atypes is not None:
+                    di_notif["edge_attr_types"].append(
+                        _string_from_object(atypes.get(name, object)))
+                else:
+                    di_notif["edge_attr_types"].append("object")
     else:
         for line in lines:
             if line.startswith(notifier):
@@ -745,16 +779,6 @@ def _get_notif(lines, notifier, attributes, fmt=None, attributes_types=None):
 
         if attributes is not None:
             di_notif["edge_attributes"] = attributes
-
-    # special attribute conversion
-    if attributes_types is not None:
-        for i, elt in enumerate(di_notif["node_attributes"]):
-            if elt in attributes_types:
-                di_notif["node_attr_types"] = attributes_types["elt"]
-
-        for i, elt in enumerate(di_notif["edge_attributes"]):
-            if elt in attributes_types:
-                di_notif["edge_attr_types"] = attributes_types["elt"]
 
     return di_notif
 
@@ -784,6 +808,27 @@ def _to_string(byte_string):
     if isinstance(byte_string, bytes):
         return str(byte_string.decode())
     return byte_string
+
+
+def _string_from_object(obj):
+    ''' Return a type string from an object (usually a class) '''
+    if obj.__class__ == type:
+        # dealing with a class
+        if issubclass(obj, float):
+            return "double"
+
+        if issubclass(obj, (int, np.integer)):
+            return "int"
+
+        if issubclass(obj, str):
+            return "string"
+
+        return "object"
+    elif issubclass(obj.__class__, (types.FunctionType, types.MethodType)):
+        # dealing with a function
+        return "object"
+
+    raise ValueError("Cannot deduce class string from '{}'.".format(obj))
 
 
 def _gen_convert(attributes, attr_types, attributes_types=None):
@@ -841,6 +886,8 @@ def _get_edges_neighbour(lst_lines, attributes, ignore, notifier, separator,
     '''
     edges = []
 
+    lst_lines = lst_lines[::-1]
+
     while lst_lines:
         line = lst_lines.pop()
 
@@ -873,6 +920,8 @@ def _get_edges_elist(lst_lines, attributes, ignore, notifier, separator,
     format.
     '''
     edges = []
+
+    lst_lines = lst_lines[::-1]
 
     while lst_lines:
         line = lst_lines.pop()
@@ -920,7 +969,7 @@ def _get_edges_gml(lst_lines, attributes, *args, di_attributes=None,
     return edges
 
 
-def _get_node_attr(di_notif, separator, fmt=None, lines=None):
+def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
     '''
     Return node attributes.
 
@@ -943,18 +992,19 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None):
                     l = lines[line_num + i + 2]
                     first_space = l.find(" ")
 
-                    attr_name = l[:first_space]
-                    attr_val  = l[first_space + 1:]
+                    # get attribute name and value
+                    name = l[:first_space]
+                    val  = l[first_space + 1:]
 
-                    if attr_name not in di_nattr:
-                        di_nattr[attr_name] = []
+                    if name not in di_nattr:
+                        di_nattr[name] = []
 
-                    dtype = str
+                    dtype = str if atypes is None else atypes.get(name, str)
 
                     if has_types:
                         dtype = _type_converter(di_notif["node_attr_types"][i])
 
-                    di_nattr[attr_name].append(dtype(attr_val))
+                    di_nattr[name].append(dtype(val))
     else:
         nattr_name = {str("na_" + k): k for k in di_notif["node_attributes"]}
         nattr_type = di_notif["node_attr_types"]

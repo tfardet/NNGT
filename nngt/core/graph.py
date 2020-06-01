@@ -250,10 +250,12 @@ class Graph(nngt.core.GraphObject):
 
         # make the nodes attributes
         lst_attr, dtpes, lst_values = [], [], []
+
         if info["node_attributes"]:  # node attributes to add to the graph
             lst_attr   = info["node_attributes"]
             dtpes      = info["node_attr_types"]
             lst_values = [nattr[name] for name in info["node_attributes"]]
+
         for nattr, dtype, values in zip(lst_attr, dtpes, lst_values):
             graph.new_node_attribute(nattr, dtype, values=values)
 

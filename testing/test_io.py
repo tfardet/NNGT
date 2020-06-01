@@ -79,26 +79,32 @@ class TestIO(TestBasis):
             # load graph
             h = nngt.Graph.from_file(current_dir + graph.name + '.el')
             attributes = h.edge_attributes
+
             # test properties
             self.assertTrue(h.node_nb() == graph.node_nb(),
                             err.format(val='node number'))
             self.assertTrue(h.edge_nb() == graph.edge_nb(),
                             err.format(val='edge number'))
+
             if graph.is_spatial():
                 self.assertTrue(np.allclose(h.get_positions(),
                                             graph.get_positions()),
                                 err.format(val='positions'))
+
+            old_edges = graph.edges_array
+
             for attr, values in graph.edge_attributes.items():
                 # different results probably because of rounding problems
-                allclose = np.allclose(h.edge_attributes[attr], values, 1e-4)
+                new_val = h.get_edge_attributes(edges=old_edges, name=attr)
+                allclose = np.allclose(new_val, values, 1e-4)
                 if not allclose:
                     print("Error: expected")
-                    print(h.edge_attributes[attr])
-                    print("but got")
                     print(values)
+                    print("but got")
+                    print(new_val)
                     print("max error is: {}".format(
                         np.max(np.abs(np.subtract(
-                            h.edge_attributes[attr], values)))))
+                            new_val, values)))))
                 self.assertTrue(allclose, err.format(val=attr))
         else:  # working with loaded graph
             nodes = self.get_expected_result(graph, "nodes")
