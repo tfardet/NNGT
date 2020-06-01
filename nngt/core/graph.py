@@ -22,20 +22,23 @@
 
 """ Graph class for graph generation and management """
 
-from copy import deepcopy
 import logging
 import weakref
+
+from copy import deepcopy
 
 import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt import save_to_file
 import nngt.analysis as na
+
+from nngt import save_to_file
+from nngt.io.graph_loading import _load_from_file
+from nngt.io.graph_saving import _as_string
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.connect_tools import _set_degree_type
 from nngt.lib.graph_helpers import _edge_prop
-from nngt.lib.io_tools import _as_string, _load_from_file
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import graph_tool_check, deprecated, is_integer
 
@@ -118,23 +121,23 @@ class Graph(nngt.core.GraphObject):
         -------
         :class:`~nngt.Graph`
         '''
-        shape = matrix.shape
+        mshape = matrix.shape
 
         graph_name = "FromYMatrix_Z"
 
-        nodes = max(shape[0], shape[1])
+        nodes = max(mshape[0], mshape[1])
 
         if issubclass(matrix.__class__, ssp.spmatrix):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
-                if shape[0] != shape[1] or not (matrix.T != matrix).nnz == 0:
+                if mshape[0] != mshape[1] or not (matrix.T != matrix).nnz == 0:
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
-                if shape[0] != shape[1] or not (matrix.T == matrix).all():
+                if mshape[0] != mshape[1] or not (matrix.T == matrix).all():
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
