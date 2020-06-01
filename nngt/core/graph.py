@@ -171,28 +171,29 @@ class Graph(nngt.core.GraphObject):
 
     @staticmethod
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
-                  attributes=None, notifier="@", ignore="#",
-                  from_string=False, name="LoadedGraph", directed=True,
-                  cleanup=False):
+                  attributes=None, attributes_types=None, notifier="@",
+                  ignore="#", from_string=False, name="LoadedGraph",
+                  directed=True, cleanup=False):
         '''
         Import a saved graph from a file.
-        @todo: implement gml, dot, xml, gt
+
+        .. versionchanged :: 2.0
+            Added optional `attributes_types` and `cleanup` arguments.
 
         Parameters
         ----------
         filename: str
             The path to the file.
-        fmt : str, optional (default: "neighbour")
+        fmt : str, optional (default: deduced from filename)
             The format used to save the graph. Supported formats are:
-            "neighbour" (neighbour list, default if format cannot be deduced
-            automatically), "ssp" (scipy.sparse), "edge_list" (list of all the
-            edges in the graph, one edge per line, represented by a ``source
-            target``-pair), "gml" (gml format, default if `filename` ends with
-            '.gml'), "graphml" (graphml format, default if `filename` ends
-            with '.graphml' or '.xml'), "dot" (dot format, default if
-            `filename` ends with '.dot'), "gt" (only when using
-            `graph_tool`<http://graph-tool.skewed.de/>_ as library, detected
-            if `filename` ends with '.gt').
+            "neighbour" (neighbour list), "ssp" (scipy.sparse), "edge_list"
+            (list of all the edges in the graph, one edge per line,
+            represented by a ``source target``-pair), "gml" (gml format,
+            default if `filename` ends with '.gml'), "graphml" (graphml format,
+            default if `filename` ends with '.graphml' or '.xml'), "dot" (dot
+            format, default if `filename` ends with '.dot'), "gt" (only
+            when using `graph_tool <http://graph-tool.skewed.de/>`_ as library,
+            detected if `filename` ends with '.gt').
         separator : str, optional (default " ")
             separator used to separate inputs in the case of custom formats
             (namely "neighbour" and "edge_list")
@@ -203,28 +204,34 @@ class Graph(nngt.core.GraphObject):
             List of names for the attributes present in the file. If a
             `notifier` is present in the file, names will be deduced from it;
             otherwise the attributes will be numbered.
-            This argument can also be used to load only a subset of the saved
-            attributes.
+            For "edge_list", attributes may also be present as additional
+            columns after the source and the target.
+        attributes_types : dict, optional (default: str)
+            Backup information if the type of the attributes is not specified
+            in the file. Values must be callables (types or functions) that
+            will take the argument value as a string input and convert it to
+            the proper type.
         notifier : str, optional (default: "@")
             Symbol specifying the following as meaningfull information.
-            Relevant information is formatted ``@info_name=info_value``, where
+            Relevant information are formatted ``@info_name=info_value``, where
             ``info_name`` is in ("attributes", "directed", "name", "size") and
-            associated ``info_value`` are of type (``list``, ``bool``,
-            ``str``, ``int``).
-            Additional notifiers are ``@type=SpatialGraph/Network/
-            SpatialNetwork``, which must be followed by the relevant notifiers
-            among ``@shape``, ``@population``, and ``@graph``.
-        ignore : str, optional (default: "#")
-            Ignore lines starting with the `ignore` string.
+            associated ``info_value`` are of type (``list``, ``bool``, ``str``,
+            ``int``).
+            Additional notifiers are
+            ``@type=SpatialGraph/Network/SpatialNetwork``, which must be
+            followed by the relevant notifiers among ``@shape``,
+            ``@population``, and ``@graph``.
         from_string : bool, optional (default: False)
             Load from a string instead of a file.
+        ignore : str, optional (default: "#")
+            Ignore lines starting with the `ignore` string.
         name : str, optional (default: from file information or 'LoadedGraph')
             The name of the graph.
         directed : bool, optional (default: from file information or True)
             Whether the graph is directed or not.
         cleanup : bool, optional (default: False)
            If true, removes nodes before the first one that appears in the
-           edges and after the last one and renumber the nodes from 0. 
+           edges and after the last one and renumber the nodes from 0.
 
         Returns
         -------
@@ -233,7 +240,8 @@ class Graph(nngt.core.GraphObject):
         '''
         info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
             filename=filename, fmt=fmt, separator=separator, ignore=ignore,
-            secondary=secondary, attributes=attributes, notifier=notifier,
+            secondary=secondary, attributes=attributes,
+            attributes_types=attributes_types, notifier=notifier,
             cleanup=cleanup)
 
         # create the graph

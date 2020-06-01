@@ -28,6 +28,8 @@ import re
 import sys
 import weakref
 
+from collections import defaultdict
+
 import numpy as np
 import scipy.sparse as ssp
 
@@ -46,10 +48,14 @@ logger = logging.getLogger(__name__)
 # -- #
 
 def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
-                   attributes=None, notifier="@", ignore="#",
-                   name="LoadedGraph", directed=True, cleanup=False):
+                   attributes=None, attributes_types=None, notifier="@",
+                   ignore="#", name="LoadedGraph", directed=True,
+                   cleanup=False):
     '''
     Load a Graph from a file.
+
+    .. versionchanged :: 2.0
+        Added optional `attributes_types` and `cleanup` arguments.
 
     Parameters
     ----------
@@ -77,6 +83,11 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         attributes will be numbered.
         For "edge_list", attributes may also be present as additional columns
         after the source and the target.
+    attributes_types : dict, optional (default: str)
+        Backup information if the type of the attributes is not specified
+        in the file. Values must be callables (types or functions) that will
+        take the argument value as a string input and convert it to the proper
+        type.
     notifier : str, optional (default: "@")
         Symbol specifying the following as meaningfull information. Relevant
         information are formatted ``@info_name=info_value``, where
@@ -94,7 +105,7 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         Whether the graph is directed or not.
     cleanup : bool, optional (default: False)
        If true, removes nodes before the first one that appears in the
-       edges and after the last one and renumber the nodes from 0. 
+       edges and after the last one and renumber the nodes from 0.
 
     Returns
     -------
@@ -103,12 +114,14 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     '''
     return nngt.Graph.from_file(
         filename, fmt=fmt, separator=separator, secondary=secondary,
-        attributes=attributes, notifier=notifier, ignore=ignore, name=name,
-        directed=directed, cleanup=cleanup) 
+        attributes=attributes, attributes_types=attributes_types,
+        notifier=notifier, ignore=ignore, name=name, directed=directed,
+        cleanup=cleanup) 
 
 
 def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
-                    attributes=None, notifier="@", ignore="#", cleanup=False):
+                    attributes=None, attributes_types=None,
+                    notifier="@", ignore="#", cleanup=False):
     '''
     Load the main properties (edges, attributes...) from a file.
 
@@ -136,6 +149,11 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         List of names for the edge attributes present in the file. If a
         `notifier` is present in the file, names will be deduced from it;
         otherwise the attributes will be numbered.
+    attributes_types : dict, optional (default: str)
+        Backup information if the type of the attributes is not specified
+        in the file. Values must be callables (types or functions) that will
+        take the argument value as a string input and convert it to the proper
+        type.
     notifier : str, optional (default: "@")
         Symbol specifying the following as meaningfull information. Relevant
         information are formatted ``@info_name=info_value``, where
@@ -178,35 +196,25 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                      for line in filegraph.readlines()]
 
     # notifier lines
-    di_notif = _get_notif(lst_lines, notifier, attributes)
-
-    # data (remove lines to ignore)
-    lst_lines = lst_lines[::-1]
-
-    while not lst_lines[-1] or lst_lines[-1].startswith(ignore):
-        lst_lines.pop()
+    di_notif = _get_notif(lst_lines, notifier, attributes, fmt=fmt,
+                          attributes_types=attributes_types)
 
     # get nodes attributes
-    di_nattributes  = _get_node_attr(di_notif, separator)
+    di_nattributes  = _get_node_attr(di_notif, separator, fmt=fmt,
+                                     lines=lst_lines)
 
     # make edges and attributes
-    edges           = []
     eattributes     = di_notif["edge_attributes"]
     di_eattributes  = {name: [] for name in eattributes}
     di_edge_convert = _gen_convert(di_notif["edge_attributes"],
-                                   di_notif["edge_attr_types"])
+                                   di_notif["edge_attr_types"],
+                                   attributes_types=attributes_types)
 
     # process file
-    line = None
-
-    while lst_lines:
-        line = lst_lines.pop()
-        if line and not line.startswith(notifier):
-            di_get_edges[fmt](
-                line, eattributes, separator, secondary, edges, di_eattributes,
-                di_edge_convert)
-        else:
-            continue
+    edges = di_get_edges[fmt](
+        lst_lines, eattributes, ignore, notifier, separator, secondary,
+        di_attributes=di_eattributes, di_convert=di_edge_convert,
+        di_notif=di_notif)
 
     if cleanup:
         edges = np.array(edges) - np.min(edges)
@@ -356,13 +364,10 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         fh.Write_at_all(offset[rank], str_local.encode('utf-8'))
         fh.Close()
     else:
-        str_graph, di_notif = _as_string(
+        str_graph = _as_string(
             graph, separator=separator, fmt=fmt, secondary=secondary,
-            attributes=attributes, notifier=notifier, return_info=True)
+            attributes=attributes, notifier=notifier)
         with open(filename, "w") as f_graph:
-            for key, val in iter(di_notif.items()):
-                f_graph.write("{}{}={}\n".format(notifier, key, val))
-            f_graph.write("\n")
             f_graph.write(str_graph)
 
 
@@ -421,16 +426,21 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     if separator == secondary:
         raise InvalidArgument("`separator` and `secondary` strings must be "
                               "different.")
+
     if notifier == separator or notifier == secondary:
         raise InvalidArgument("`notifier` string should differ from "
                               "`separator` and `secondary`.")
+
     # temporarily disable numpy cut threshold to save string
     old_threshold = np.get_printoptions()['threshold']
     np.set_printoptions(threshold=sys.maxsize)
+
     # data
     if attributes is None:
         attributes = [a for a in graph.edge_attributes if a != "bweight"]
+
     nattributes = [a for a in graph.node_attributes]
+
     additional_notif = {
         "directed": graph.is_directed(),
         "node_attributes": nattributes,
@@ -444,15 +454,14 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         "name": graph.name,
         "size": graph.node_nb()
     }
+
     # add node attributes to the notifications
     for nattr in additional_notif["node_attributes"]:
         key                   = "na_" + nattr
         additional_notif[key] = np.array2string(
                 graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
                 separator=separator)[1:-1]
-        # ~ additional_notif[key] = codecs.encode(
-            # ~ graph.get_node_attributes(name=nattr).tobytes(),
-            # ~ "base64").decode().replace('\n', '~')
+
     # save positions for SpatialGraph (and shape if Shapely is available)
     if graph.is_spatial():
         if _shapely_support:
@@ -474,6 +483,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
             _log_message(logger, "WARNING",
                          'The `shape` attribute of the graph could not be '
                          'saved to file because Shapely is not installed.')
+
         pos = graph.get_positions()
         additional_notif['x'] = np.array2string(
             pos[:, 0], max_line_width=np.NaN, separator=separator)[1:-1]
@@ -513,8 +523,11 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
 
     if return_info:
         return str_graph, additional_notif
-    else:
-        return str_graph
+
+    # format the info into the string
+    info_str = format_graph_info[fmt](additional_notif, notifier, graph=graph)
+
+    return info_str + str_graph
 
 
 # ------------ #
@@ -587,8 +600,45 @@ def _dot(graph, attributes, **kwargs):
     pass
 
 
-def _gml(graph, attributes, **kwargs):
-    pass
+def _gml(graph, *args, **kwargs):
+    ''' Generate a string containing the edge list and their properties. '''
+    node_str = "  node\n  [\n    id {id}{attr}\n  ]"
+    edge_str = "  edge\n  [\n    source {s}\n    target {t}\n{attr}\n  ]"
+    attr_str = "    {key} {val}"
+
+    indent = "    "
+
+    # set nodes
+    lst_elements = []
+
+    for i in range(graph.node_nb()):
+        lst_attr = []
+
+        for k, v in graph.node_attributes.items():
+            lst_attr.append(attr_str.format(key=k, val=v[i]))
+
+        nattr = "\n" + "\n".join(lst_attr)
+
+        lst_elements.append(node_str.format(id=i, attr=nattr))
+
+    # set edges
+    edges = graph.edges_array
+
+    for i, e in enumerate(edges):
+        lst_attr = []
+
+        for k, v in graph.edge_attributes.items():
+            lst_attr.append(attr_str.format(key=k, val=v[i]))
+
+        eattr = "\n".join(lst_attr)
+
+        lst_elements.append(edge_str.format(s=e[0], t=e[1], attr=eattr))
+
+    str_gml = "\n".join(lst_elements)
+
+    str_gml += "\n]"
+
+    return str_gml
 
 
 def _xml(graph, attributes, **kwargs):
@@ -597,6 +647,30 @@ def _xml(graph, attributes, **kwargs):
 
 def _gt(graph, attributes, **kwargs):
     pass
+
+
+def _custom_info(graph_info, notifier, *args, **kwargs):
+    ''' Format the graph information for custom formats '''
+    info_str = ""
+
+    for key, val in iter(graph_info.items()):
+        info_str += "{}{}={}\n".format(notifier, key, val)
+
+    return info_str
+
+
+def _gml_info(graph_info, *args, **kwargs):
+    ''' Format the graph information for the GML format '''
+    info_str = "graph\n[\n"
+
+    indent = "  "
+
+    for key, val in iter(graph_info.items()):
+        if not key.startswith("na_"):
+            val = 1 if val is True else (0 if val is False else val)
+            info_str += "{}{} {}\n".format(indent, key, val)
+
+    return info_str
 
 
 # ------------- #
@@ -617,28 +691,70 @@ def _format_notif(notif_name, notif_val):
     elif notif_name == "size":
         return int(notif_val)
     elif notif_name == "directed":
-        return False if notif_val == "False" else True
+        return False if notif_val in ("False", "0") else True
     else:
         return notif_val
 
 
-def _get_notif(lines, notifier, attributes):
+def _get_notif(lines, notifier, attributes, fmt=None, attributes_types=None):
     di_notif = {
         "node_attributes": [], "edge_attributes": [], "node_attr_types": [],
         "edge_attr_types": [],
     }
 
-    for line in lines:
-        if line.startswith(notifier):
-            idx_eq = line.find("=")
-            notif_name = line[len(notifier):idx_eq]
-            notif_val = line[idx_eq+1:]
-            di_notif[notif_name] = _format_notif(notif_name, notif_val)
-        else:
-            break
+    # special case for GML
+    if fmt == "gml":
+        # nodes
+        nodes = [i for i, l in enumerate(lines) if l == "node"]
+        num_nodes = len(nodes)
 
-    if attributes is not None:
-        di_notif["edge_attributes"] = attributes
+        di_notif["size"]  = num_nodes
+        di_notif["nodes"] = nodes
+
+        # graph attributes
+        for line in lines[:nodes[0]]:
+            first_space = line.find(" ")
+            key, val = line[:first_space], line[first_space + 1:]
+
+            di_notif[key] = _format_notif(key, val)
+
+        # edges
+        edges = [i for i, l in enumerate(lines) if l == "edge"]
+
+        di_notif["edges"] = edges
+
+        diff = np.diff(edges[:-1]) - 5  # number of lines other than edge spec
+
+        num_eattr = diff[0]
+
+        if not np.all(diff == num_eattr):
+            raise RuntimeError("All edges should have the same attributes.")
+
+        if num_eattr > len(di_notif["edge_attributes"]):
+            for i in range(edges[0] + 4, edges[0] + num_eattr + 4):
+                di_notif["edge_attributes"].append(lines[i].split(" ")[0])
+    else:
+        for line in lines:
+            if line.startswith(notifier):
+                idx_eq = line.find("=")
+                notif_name = line[len(notifier):idx_eq]
+                notif_val = line[idx_eq+1:]
+                di_notif[notif_name] = _format_notif(notif_name, notif_val)
+            else:
+                break
+
+        if attributes is not None:
+            di_notif["edge_attributes"] = attributes
+
+    # special attribute conversion
+    if attributes_types is not None:
+        for i, elt in enumerate(di_notif["node_attributes"]):
+            if elt in attributes_types:
+                di_notif["node_attr_types"] = attributes_types["elt"]
+
+        for i, elt in enumerate(di_notif["edge_attributes"]):
+            if elt in attributes_types:
+                di_notif["edge_attr_types"] = attributes_types["elt"]
 
     return di_notif
 
@@ -670,7 +786,7 @@ def _to_string(byte_string):
     return byte_string
 
 
-def _gen_convert(attributes, attr_types):
+def _gen_convert(attributes, attr_types, attributes_types=None):
     '''
     Generate a conversion dictionary that associates the right type to each
     attribute
@@ -678,13 +794,16 @@ def _gen_convert(attributes, attr_types):
     di_convert = {}
 
     if attributes and not attr_types:
-        attr_types.extend(("float" for _ in attributes))
+        attr_types.extend(("string" for _ in attributes))
 
     for attr, attr_type in zip(attributes, attr_types):
-        if attr_type in ("double", "float", "real"):
+        if attributes_types is not None and attr in attributes_types:
+            # user defined converter
+            di_convert[attr] = attributes_types[attr]
+        elif attr_type in ("double", "float", "real"):
             di_convert[attr] = float
         elif attr_type in ("str", "string"):
-            di_convert[attr] = str
+            di_convert[attr] = lambda x: str(x).strip("\"'")
         elif attr_type in ("int", "integer"):
             di_convert[attr] = _to_int
         elif attr_type in ("lst", "list", "tuple", "array"):
@@ -703,71 +822,149 @@ def _np_dtype(attribute_type):
         return float
     elif attribute_type in ("int", "integer"):
         return int
-    else:
-        return object
+
+    return object
 
 
-def _get_edges_neighbour(line, attributes, separator, secondary, edges,
-                         di_attributes, di_convert):
+def _type_converter(attribute_type):
+    if not isinstance(attribute_type, str):
+        return attribute_type
+
+    return _np_dtype(attribute_type)
+
+
+def _get_edges_neighbour(lst_lines, attributes, ignore, notifier, separator,
+                         secondary, di_attributes, di_convert, **kwargs):
     '''
     Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
     format.
     '''
-    len_first_delim = line.find(separator)
-    source = int(line[:len_first_delim])
-    len_first_delim += 1
+    edges = []
 
-    if len_first_delim:
-        neighbours = line[len_first_delim:].split(separator)
+    while lst_lines:
+        line = lst_lines.pop()
 
-        for stub in neighbours:
-            content = stub.split(secondary)
-            target = int(content[0])
+        if line and not (line.startswith(notifier) or line.startswith(ignore)):
+            len_first_delim = line.find(separator)
+            source = int(line[:len_first_delim])
+            len_first_delim += 1
 
+            if len_first_delim:
+                neighbours = line[len_first_delim:].split(separator)
+
+                for stub in neighbours:
+                    content = stub.split(secondary)
+                    target = int(content[0])
+
+                    edges.append((source, target))
+
+                    attr_val = content[1:] if len(content) > 1 else []
+
+                    for name, val in zip(attributes, attr_val):
+                        di_attributes[name].append(di_convert[name](val))
+
+    return edges
+
+
+def _get_edges_elist(lst_lines, attributes, ignore, notifier, separator,
+                     secondary, di_attributes, di_convert, **kwargs):
+    '''
+    Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
+    format.
+    '''
+    edges = []
+
+    while lst_lines:
+        line = lst_lines.pop()
+
+        if line and not (line.startswith(notifier) or line.startswith(ignore)):
+            data = line.split(separator)
+            source, target = int(data[0]), int(data[1])
             edges.append((source, target))
 
-            attr_val = content[1:] if len(content) > 1 else []
+            # different ways of loading the attributes
+            if len(data) == 3 and secondary in data[2]:  # secondary notifier
+                attr_data = data[2].split(secondary)
+                for name, val in zip(attributes, attr_data):
+                    di_attributes[name].append(di_convert[name](val))
+            elif len(data) == len(attributes) + 2:  # regular columns
+                for name, val in zip(attributes, data[2:]):
+                    di_attributes[name].append(di_convert[name](val))
 
-            for name, val in zip(attributes, attr_val):
-                di_attributes[name].append(di_convert[name](val))
+    return edges
 
 
-def _get_edges_elist(line, attributes, separator, secondary, edges,
-                     di_attributes, di_convert):
+def _get_edges_gml(lst_lines, attributes, *args, di_attributes=None,
+                   di_convert=None, di_notif=None):
     '''
     Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
     format.
     '''
-    data = line.split(separator)
-    source, target = int(data[0]), int(data[1])
-    edges.append((source, target))
+    edges = []
 
-    # different ways of loading the attributes
-    if len(data) == 3 and secondary in data[2]:  # secondary notifier
-        attr_data = data[2].split(secondary)
-        for name, val in zip(attributes, attr_data):
-            di_attributes[name].append(di_convert[name](val))
-    elif len(data) == len(attributes) + 2:  # regular columns
-        for name, val in zip(attributes, data[2:]):
-            di_attributes[name].append(di_convert[name](val))
+    edge_lines = di_notif["edges"]
+    num_eattr  = len(di_attributes)
+
+    for line_num in edge_lines:
+        source = int(lst_lines[line_num + 2][7:])
+        target = int(lst_lines[line_num + 3][7:])
+
+        edges.append((source, target))
+
+        for i, name in zip(range(num_eattr), attributes):
+            lnum  = line_num + 4 + i
+            start = lst_lines[lnum].find(" ") + 1
+            attr  = lst_lines[lnum][start:]
+            di_attributes[name].append(di_convert[name](attr))
+
+    return edges
 
 
-def _get_node_attr(di_notif, separator):
+def _get_node_attr(di_notif, separator, fmt=None, lines=None):
     '''
     Return node attributes.
-    Attributes are stored under @na_{attr_name} in the file, so they are
-    stored under the coresponding key in `di_notif`.
+
+    For custom formats, attributes are stored under @na_{attr_name} in the
+    file, so they are stored under the coresponding key in `di_notif`.
+
+    For GML, need to get them from the nodes.
     '''
     di_nattr   = {}
-    nattr_name = {str("na_" + k): k for k in di_notif["node_attributes"]}
-    nattr_type = di_notif["node_attr_types"]
 
-    for k, s in di_notif.items():
-        if k in nattr_name:
-            attr           = nattr_name[k]
-            idx            = di_notif["node_attributes"].index(attr)
-            dtype          = _np_dtype(nattr_type[idx])
-            di_nattr[attr] = np.fromstring(s, sep=separator, dtype=dtype)
+    if fmt == "gml":
+        node_lines = di_notif["nodes"]
+        num_nattr  = node_lines[1] - node_lines[0] - 3  # lines other than attr
+
+        has_types = len(di_notif["node_attr_types"]) == num_nattr
+
+        if num_nattr:
+            for line_num in node_lines:
+                for i in range(num_nattr):
+                    l = lines[line_num + i + 2]
+                    first_space = l.find(" ")
+
+                    attr_name = l[:first_space]
+                    attr_val  = l[first_space + 1:]
+
+                    if attr_name not in di_nattr:
+                        di_nattr[attr_name] = []
+
+                    dtype = str
+
+                    if has_types:
+                        dtype = _type_converter(di_notif["node_attr_types"][i])
+
+                    di_nattr[attr_name].append(dtype(attr_val))
+    else:
+        nattr_name = {str("na_" + k): k for k in di_notif["node_attributes"]}
+        nattr_type = di_notif["node_attr_types"]
+
+        for k, s in di_notif.items():
+            if k in nattr_name:
+                attr           = nattr_name[k]
+                idx            = di_notif["node_attributes"].index(attr)
+                dtype          = _np_dtype(nattr_type[idx])
+                di_nattr[attr] = np.fromstring(s, sep=separator, dtype=dtype)
 
     return di_nattr
 
@@ -789,11 +986,15 @@ def _cleanup_line(string, char):
 
 di_get_edges = {
     "neighbour": _get_edges_neighbour,
-    "edge_list": _get_edges_elist
+    "edge_list": _get_edges_elist,
+    "gml": _get_edges_gml,
 }
 
 di_format = {
     "neighbour": _neighbour_list,
-    "edge_list": _edge_list
+    "edge_list": _edge_list,
+    "gml": _gml
 }
 
+format_graph_info = defaultdict(lambda: _custom_info)
+format_graph_info["gml"] = _gml_info
