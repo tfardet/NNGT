@@ -246,7 +246,8 @@ if not _libs:
 
 # import some tools into main namespace
 
-from .lib.io_tools import load_from_file, save_to_file
+from .io.graph_loading import load_from_file
+from .io.graph_saving import save_to_file
 from .lib.rng_tools import seed
 from .lib.test_functions import on_master_process, num_mpi_processes
 
@@ -264,6 +265,7 @@ from . import analysis
 from . import core
 from . import generation
 from . import geometry
+from . import io
 from . import lib
 
 
