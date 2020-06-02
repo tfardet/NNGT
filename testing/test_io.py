@@ -58,7 +58,8 @@ class TestIO(TestBasis):
         if "." in graph_name:
             abspath = network_dir + graph_name
             di_instructions = self.parser.get_graph_options(graph_name)
-            graph = nngt.Graph.from_file(abspath, **di_instructions)
+            graph = nngt.Graph.from_file(abspath, **di_instructions,
+                                         cleanup=True)
             graph.set_name(graph_name)
             return graph, None
         else:

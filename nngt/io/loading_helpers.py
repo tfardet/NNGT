@@ -364,8 +364,10 @@ def _gen_convert(attributes, attr_types, attributes_types=None):
             di_convert[attr] = _to_int
         elif attr_type in ("lst", "list", "tuple", "array"):
             di_convert[attr] = _to_list
+        elif attr_type == "object":
+            di_convert[attr] = lambda x: x
         else:
-            raise TypeError("Invalid attribute type.")
+            raise TypeError("Invalid attribute type: '{}'.".format(attr_type))
 
     return di_convert
 
