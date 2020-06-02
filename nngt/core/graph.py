@@ -22,20 +22,23 @@
 
 """ Graph class for graph generation and management """
 
-from copy import deepcopy
 import logging
 import weakref
+
+from copy import deepcopy
 
 import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt import save_to_file
 import nngt.analysis as na
+
+from nngt import save_to_file
+from nngt.io.graph_loading import _load_from_file
+from nngt.io.graph_saving import _as_string
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.connect_tools import _set_degree_type
 from nngt.lib.graph_helpers import _edge_prop
-from nngt.lib.io_tools import _as_string, _load_from_file
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import graph_tool_check, deprecated, is_integer
 
@@ -91,7 +94,8 @@ class Graph(nngt.core.GraphObject):
         return graph
 
     @classmethod
-    def from_matrix(cls, matrix, weighted=True, directed=True):
+    def from_matrix(cls, matrix, weighted=True, directed=True, population=None,
+                    shape=None, positions=None, name=None):
         '''
         Creates a :class:`~nngt.Graph` from a :mod:`scipy.sparse` matrix or
         a dense matrix.
@@ -104,31 +108,56 @@ class Graph(nngt.core.GraphObject):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
+        population : :class:`~nngt.NeuralPop`
+            Population to associate to the new :class:`~nngt.Network`.
+        shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+            Shape to associate to the new :class:`~nngt.SpatialGraph`.
+        positions : (N, 2) array
+            Positions, in a 2D space, of the N neurons.
+        name : str, optional
+            Graph name.
 
         Returns
         -------
         :class:`~nngt.Graph`
         '''
-        shape = matrix.shape
+        mshape = matrix.shape
+
         graph_name = "FromYMatrix_Z"
-        nodes = max(shape[0], shape[1])
+
+        nodes = max(mshape[0], mshape[1])
+
         if issubclass(matrix.__class__, ssp.spmatrix):
             graph_name = graph_name.replace('Y', 'Sparse')
             if not directed:
-                if shape[0] != shape[1] or not (matrix.T != matrix).nnz == 0:
+                if mshape[0] != mshape[1] or not (matrix.T != matrix).nnz == 0:
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
-                if shape[0] != shape[1] or not (matrix.T == matrix).all():
+                if mshape[0] != mshape[1] or not (matrix.T == matrix).all():
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
+
         edges = np.array(matrix.nonzero()).T
-        graph = cls(nodes, name=graph_name.replace("Z", str(cls.__num_graphs)),
-                    weighted=weighted, directed=directed)
+
+        graph_name = graph_name.replace("Z", str(cls.__num_graphs))
+
+        # overwrite default name if necessary
+        if name is not None:
+            graph_name = name
+
+        graph = cls(nodes, name=graph_name, weighted=weighted,
+                    directed=directed)
+
+        if population is not None:
+            cls.make_network(graph, population)
+
+        if shape is not None:
+            cls.make_spatial(graph, shape, positions)
 
         weights = None
 
@@ -145,27 +174,29 @@ class Graph(nngt.core.GraphObject):
 
     @staticmethod
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
-                  attributes=None, notifier="@", ignore="#",
-                  from_string=False):
+                  attributes=None, attributes_types=None, notifier="@",
+                  ignore="#", from_string=False, name="LoadedGraph",
+                  directed=True, cleanup=False):
         '''
         Import a saved graph from a file.
-        @todo: implement gml, dot, xml, gt
+
+        .. versionchanged :: 2.0
+            Added optional `attributes_types` and `cleanup` arguments.
 
         Parameters
         ----------
         filename: str
             The path to the file.
-        fmt : str, optional (default: "neighbour")
+        fmt : str, optional (default: deduced from filename)
             The format used to save the graph. Supported formats are:
-            "neighbour" (neighbour list, default if format cannot be deduced
-            automatically), "ssp" (scipy.sparse), "edge_list" (list of all the
-            edges in the graph, one edge per line, represented by a ``source
-            target``-pair), "gml" (gml format, default if `filename` ends with
-            '.gml'), "graphml" (graphml format, default if `filename` ends
-            with '.graphml' or '.xml'), "dot" (dot format, default if
-            `filename` ends with '.dot'), "gt" (only when using
-            `graph_tool`<http://graph-tool.skewed.de/>_ as library, detected
-            if `filename` ends with '.gt').
+            "neighbour" (neighbour list), "ssp" (scipy.sparse), "edge_list"
+            (list of all the edges in the graph, one edge per line,
+            represented by a ``source target``-pair), "gml" (gml format,
+            default if `filename` ends with '.gml'), "graphml" (graphml format,
+            default if `filename` ends with '.graphml' or '.xml'), "dot" (dot
+            format, default if `filename` ends with '.dot'), "gt" (only
+            when using `graph_tool <http://graph-tool.skewed.de/>`_ as library,
+            detected if `filename` ends with '.gt').
         separator : str, optional (default " ")
             separator used to separate inputs in the case of custom formats
             (namely "neighbour" and "edge_list")
@@ -176,19 +207,34 @@ class Graph(nngt.core.GraphObject):
             List of names for the attributes present in the file. If a
             `notifier` is present in the file, names will be deduced from it;
             otherwise the attributes will be numbered.
-            This argument can also be used to load only a subset of the saved
-            attributes.
+            For "edge_list", attributes may also be present as additional
+            columns after the source and the target.
+        attributes_types : dict, optional (default: str)
+            Backup information if the type of the attributes is not specified
+            in the file. Values must be callables (types or functions) that
+            will take the argument value as a string input and convert it to
+            the proper type.
         notifier : str, optional (default: "@")
             Symbol specifying the following as meaningfull information.
-            Relevant information is formatted ``@info_name=info_value``, where
+            Relevant information are formatted ``@info_name=info_value``, where
             ``info_name`` is in ("attributes", "directed", "name", "size") and
-            associated ``info_value`` are of type (``list``, ``bool``,
-            ``str``, ``int``).
-            Additional notifiers are ``@type=SpatialGraph/Network/
-            SpatialNetwork``, which must be followed by the relevant notifiers
-            among ``@shape``, ``@population``, and ``@graph``.
+            associated ``info_value`` are of type (``list``, ``bool``, ``str``,
+            ``int``).
+            Additional notifiers are
+            ``@type=SpatialGraph/Network/SpatialNetwork``, which must be
+            followed by the relevant notifiers among ``@shape``,
+            ``@population``, and ``@graph``.
         from_string : bool, optional (default: False)
             Load from a string instead of a file.
+        ignore : str, optional (default: "#")
+            Ignore lines starting with the `ignore` string.
+        name : str, optional (default: from file information or 'LoadedGraph')
+            The name of the graph.
+        directed : bool, optional (default: from file information or True)
+            Whether the graph is directed or not.
+        cleanup : bool, optional (default: False)
+           If true, removes nodes before the first one that appears in the
+           edges and after the last one and renumber the nodes from 0.
 
         Returns
         -------
@@ -196,19 +242,23 @@ class Graph(nngt.core.GraphObject):
             Loaded graph.
         '''
         info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
-            filename=filename, fmt=fmt, separator=separator,
-            secondary=secondary, attributes=attributes, notifier=notifier)
+            filename=filename, fmt=fmt, separator=separator, ignore=ignore,
+            secondary=secondary, attributes=attributes,
+            attributes_types=attributes_types, notifier=notifier,
+            cleanup=cleanup)
 
         # create the graph
-        graph = Graph(nodes=info["size"], name=info["name"],
-                      directed=info["directed"])
+        graph = Graph(nodes=info["size"], name=info.get("name", name),
+                      directed=info.get("directed", directed))
 
         # make the nodes attributes
         lst_attr, dtpes, lst_values = [], [], []
+
         if info["node_attributes"]:  # node attributes to add to the graph
             lst_attr   = info["node_attributes"]
             dtpes      = info["node_attr_types"]
             lst_values = [nattr[name] for name in info["node_attributes"]]
+
         for nattr, dtype, values in zip(lst_attr, dtpes, lst_values):
             graph.new_node_attribute(nattr, dtype, values=values)
 

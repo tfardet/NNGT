@@ -8,10 +8,7 @@ source = nngt/
 exclude_lines =
     pragma: no cover
     def __repr__
-    raise AssertionError
-    raise NotImplementedError
-    raise AttributeError
-    raise InvalidArgument
+    raise
     if __name__ == .__main__.:
     def _repr_pretty_
 

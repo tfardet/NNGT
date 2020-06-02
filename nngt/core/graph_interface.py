@@ -33,8 +33,8 @@ from scipy.sparse import csr_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param, _to_np_array
-from nngt.lib.io_tools import _np_dtype
+from nngt.lib.graph_helpers import _get_edge_attr, _get_syn_param
+from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
 
 
