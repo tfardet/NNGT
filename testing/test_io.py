@@ -111,11 +111,14 @@ class TestIO(TestBasis):
         else:  # working with loaded graph
             nodes = self.get_expected_result(graph, "nodes")
             edges = self.get_expected_result(graph, "edges")
+            directed = self.get_expected_result(graph, "directed")
             # check
             self.assertEqual(
                 nodes, graph.node_nb(), err.format(val='node number'))
             self.assertEqual(
                 edges, graph.edge_nb(), err.format(val='edge number'))
+            self.assertTrue(directed == graph.is_directed(),
+                            err.format(val='directedness'))
 
     @unittest.skipIf(nngt.get_config('mpi'), 'Not checking for MPI')
     def test_custom_attributes(self):
@@ -169,4 +172,5 @@ class TestIO(TestBasis):
 suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
+    nngt.use_backend("networkx")
     unittest.main()

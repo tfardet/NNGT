@@ -45,7 +45,8 @@
             <name>small_erdos_lognormal_weights</name>
             <name>p2p-Gnutella04.txt</name>
             <name>opsahl-usairport.el</name>
-            <name>celegansneural.gml</name>
+            <name>karate.gml</name>
+            <name>power.gml</name>
         </graph_list>
 	</test>
 
@@ -75,6 +76,7 @@
             <int name="nodes_largest_scc">4317</int>
             <int name="edges_largest_scc">18742</int>
             <float name="clustering">0.0062</float>
+            <bool name="directed">True</bool>
         </graph>
 
         <graph name="opsahl-usairport.el">
@@ -85,14 +87,34 @@
             </load_options>
             <int name="nodes">1574</int>
             <int name="edges">28236</int>
+            <bool name="directed">True</bool>
         </graph>
 
-        <graph name="celegansneural.gml">
+        <graph name="karate.gml">
             <load_options>
                 <string name="fmt">gml</string>
             </load_options>
-            <int name="nodes">297</int>
-            <int name="edges">2359</int>
+            <int name="nodes">34</int>
+            <int name="edges">78</int>
+            <bool name="directed">True</bool>
+        </graph>
+
+        <graph name="karate.gml">
+            <load_options>
+                <string name="fmt">gml</string>
+            </load_options>
+            <int name="nodes">34</int>
+            <int name="edges">78</int>
+            <bool name="directed">True</bool>
+        </graph>
+
+        <graph name="power.gml">
+            <load_options>
+                <string name="fmt">gml</string>
+            </load_options>
+            <int name="nodes">4941</int>
+            <int name="edges">6594</int>
+            <bool name="directed">False</bool>
         </graph>
 
         <!-- testing graph generation -->
