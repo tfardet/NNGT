@@ -136,24 +136,37 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
         size_t num_targets = len(target_ids)
         cnp.ndarray[float, ndim=2, mode="c"] vectors
         cnp.ndarray[float, ndim=1] x, y
-        size_t s
+        size_t s, next_enum
 
     # find common nodes
     edges  = None
     common = set(source_ids).intersection(target_ids)
 
+    num_edges = int(0.5*(1 + directed)*num_sources*num_targets)
+
     if common:
-        num_edges     = num_sources*num_targets - len(common)
+        num_edges -= int(0.5*(1 + directed)*len(common))
+
         edges         = np.full((num_edges, 2), -1, dtype=DTYPE)
         current_edges = 0
         next_enum     = 0
+
         for s in source_ids:
             if s in common:
-                idx       = np.where(target_ids == s)[0][0]
-                tgts      = target_ids[np.arange(num_targets) != idx]
-                next_enum = current_edges + num_targets - 1
+                if directed:
+                    next_enum = current_edges + num_targets - 1
+
+                    edges[current_edges:next_enum, 1] = \
+                        target_ids[target_ids != s]
+                else:
+                    tgts = [t for t in target_ids if t not in common or t > s]
+
+                    next_enum = current_edges + len(tgts)
+
+                    edges[current_edges:next_enum, 1] = tgts
+
                 edges[current_edges:next_enum, 0] = s
-                edges[current_edges:next_enum, 1] = tgts
+
                 current_edges = next_enum
             else:
                 next_enum = current_edges + num_targets
