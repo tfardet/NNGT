@@ -70,7 +70,7 @@ def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
     if common:
         num_edges -= int(0.5*(1 + directed)*len(common))
 
-        edges = np.empty((num_edges, 2))
+        edges = np.full((num_edges, 2), -1, dtype=int)
 
         current_edges = 0
         next_enum     = 0
