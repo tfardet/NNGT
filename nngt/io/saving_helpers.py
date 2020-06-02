@@ -149,7 +149,7 @@ def _gml_info(graph_info, *args, **kwargs):
         if not key.startswith("na_"):
             val = 1 if val is True else (0 if val is False else val)
 
-            info_str += "  {} {}\n".format(indent, key, val)
+            info_str += "  {} {}\n".format(key, val)
 
     return info_str
 
