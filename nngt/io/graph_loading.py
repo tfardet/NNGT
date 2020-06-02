@@ -199,8 +199,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     fmt = _get_format(fmt, filename)
 
     with open(filename, "r") as filegraph:
-        lst_lines = [_cleanup_line(line, separator)
-                     for line in filegraph.readlines()]
+        lst_lines = _process_file(filegraph, fmt, separator)
 
     # notifier lines
     di_notif = _get_notif(lst_lines, notifier, attributes, fmt=fmt,

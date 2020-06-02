@@ -33,7 +33,35 @@ __all__ = [
     "_get_edges_neighbour",
     "_get_node_attr",
     "_get_notif",
+    "_process_file",
 ]
+
+
+# ----------------------- #
+# Initial file processing #
+# ----------------------- #
+
+def _process_file(f, fmt, separator):
+    if fmt == "gml":
+        # format gml input to expected one
+        lines = []
+
+        for l in f.readlines():
+            clean_line = _cleanup_line(l, separator)
+
+            if clean_line.endswith("[") and len(clean_line) > 1:
+                lines.append(clean_line[:-1].strip())
+                lines.append("[")
+            elif clean_line.endswith("]") and len(clean_line) > 1:
+                lines.append(clean_line[:-1].strip())
+                lines.append("]")
+            else:
+                lines.append(clean_line)
+
+        return lines
+
+    # otherwise just cleanup the lines
+    return [_cleanup_line(line, separator) for line in f.readlines()]
 
 
 # ---------------- #
