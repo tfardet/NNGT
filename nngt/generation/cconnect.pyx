@@ -178,7 +178,7 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
         edges[:, 0] = np.repeat(source_ids, num_targets)
         edges[:, 1] = np.tile(target_ids, num_sources)
 
-    if distance is not None:
+    if distance is not None and 'positions' in kwargs:
         pos       = kwargs['positions']
         x, y      = pos[0], pos[1]
         vectors   = np.array((x[edges[:, 1]] - x[edges[:, 0]],

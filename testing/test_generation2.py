@@ -280,6 +280,8 @@ def test_total_undirected_connectivities():
 def test_all_to_all():
     ''' Test all-to-all connection scheme '''
     num_nodes = 4
+
+    # via direct generation call
     g = ng.all_to_all(nodes=num_nodes, directed=False)
 
     assert np.array_equal(
@@ -290,6 +292,20 @@ def test_all_to_all():
     assert np.array_equal(
         g.edges_array, [(0, 1), (0, 2), (0, 3), (1, 0), (1, 2), (1, 3),
                         (2, 0), (2, 1), (2, 3), (3, 0), (3, 1), (3, 2)])
+
+    # via connector call
+    g = nngt.Graph(num_nodes)
+
+    ng.connect_nodes(g, [0, 1], [2, 3], "all_to_all")
+
+    assert np.array_equal(g.edges_array, [(0, 2), (0, 3), (1, 2), (1, 3)])
+
+    g = nngt.Graph(num_nodes)
+
+    ng.connect_nodes(g, [0, 1], [1, 2, 3], "all_to_all")
+
+    assert np.array_equal(g.edges_array,
+                          [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3)])
 
 
 if __name__ == "__main__":
