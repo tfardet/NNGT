@@ -170,6 +170,13 @@ def _get_notif(lines, notifier, attributes, fmt=None, atypes=None):
         if attributes is not None:
             di_notif["edge_attributes"] = attributes
 
+            if atypes is not None:
+                for attr in attributes:
+                    di_notif["edge_attr_types"].append(
+                        _string_from_object(atypes.get(attr, object)))
+            else:
+                di_notif["edge_attributes"] = ["object"]*len(attributes)
+
     return di_notif
 
 
