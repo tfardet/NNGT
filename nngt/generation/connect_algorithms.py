@@ -60,21 +60,37 @@ EPS = 0.00001
 def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
                 distance=None, **kwargs):
     num_sources, num_targets = len(source_ids), len(target_ids)
+
     # find common nodes
     edges  = None
     common = set(source_ids).intersection(target_ids)
+
+    num_edges = int(0.5*(1 + directed)*num_sources*num_targets)
+
     if common:
-        num_edges     = num_sources*num_targets - len(common)
-        edges         = np.empty((num_edges, 2))
+        num_edges -= int(0.5*(1 + directed)*len(common))
+
+        edges = np.full((num_edges, 2), -1, dtype=int)
+
         current_edges = 0
         next_enum     = 0
+
         for s in source_ids:
             if s in common:
-                idx       = np.where(target_ids == s)[0][0]
-                tgts      = target_ids[np.arange(num_targets) != idx]
-                next_enum = current_edges + num_targets - 1
+                if directed:
+                    next_enum = current_edges + num_targets - 1
+
+                    edges[current_edges:next_enum, 1] = \
+                        target_ids[target_ids != s]
+                else:
+                    tgts = [t for t in target_ids if t not in common or t > s]
+
+                    next_enum = current_edges + len(tgts)
+
+                    edges[current_edges:next_enum, 1] = tgts
+
                 edges[current_edges:next_enum, 0] = s
-                edges[current_edges:next_enum, 1] = tgts
+
                 current_edges = next_enum
             else:
                 next_enum = current_edges + num_targets
@@ -82,11 +98,11 @@ def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
                 edges[current_edges:next_enum, 1] = target_ids
                 current_edges = next_enum
     else:
-        edges       = np.empty((num_sources*num_targets, 2))
+        edges       = np.empty((num_edges, 2))
         edges[:, 0] = np.repeat(source_ids, num_targets)
         edges[:, 1] = np.tile(target_ids, num_sources)
 
-    if distance is not None:
+    if distance is not None and 'positions' in kwargs:
         pos       = kwargs['positions']
         x, y      = pos[0], pos[1]
         vectors   = np.array((x[edges[:, 1]] - x[edges[:, 0]],
