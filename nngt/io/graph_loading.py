@@ -198,6 +198,9 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     lst_lines, pop, shape, positions = None, None, None, None
     fmt = _get_format(fmt, filename)
 
+    if fmt not in ("neighbour", "edge_list", "gml"):
+        return [None]*7
+
     with open(filename, "r") as filegraph:
         lst_lines = _process_file(filegraph, fmt, separator)
 

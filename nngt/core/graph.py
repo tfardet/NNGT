@@ -35,6 +35,7 @@ import nngt.analysis as na
 
 from nngt import save_to_file
 from nngt.io.graph_loading import _load_from_file, _library_load
+from nngt.io.io_helpers import _get_format
 from nngt.io.graph_saving import _as_string
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.connect_tools import _set_degree_type
@@ -241,11 +242,7 @@ class Graph(nngt.core.GraphObject):
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
-        info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
-            filename=filename, fmt=fmt, separator=separator, ignore=ignore,
-            secondary=secondary, attributes=attributes,
-            attributes_types=attributes_types, notifier=notifier,
-            cleanup=cleanup)
+        fmt = _get_format(fmt, filename)
 
         if fmt not in ("neighbour", "edge_list", "gml"):
             # only partial support for these formats, relying on backend
@@ -254,6 +251,12 @@ class Graph(nngt.core.GraphObject):
             graph = Graph.from_library(libgraph, name=name, directed=directed)
 
             return graph
+
+        info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
+            filename=filename, fmt=fmt, separator=separator, ignore=ignore,
+            secondary=secondary, attributes=attributes,
+            attributes_types=attributes_types, notifier=notifier,
+            cleanup=cleanup)
 
         # create the graph
         graph = Graph(nodes=info["size"], name=info.get("name", name),
@@ -1135,9 +1138,12 @@ class Graph(nngt.core.GraphObject):
         '''
         if self.is_weighted():
             if edges is None:
-                return self._eattr["weight"]
+                return np.asarray(self._eattr["weight"])
             else:
-                return self._eattr[edges]["weight"]
+                if len(edges) == 0:
+                    return np.array([])
+
+                return np.asarray(self._eattr[edges]["weight"])
         else:
             size = self.edge_nb() if edges is None else len(edges)
             return np.ones(size)

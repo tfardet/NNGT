@@ -142,6 +142,9 @@ class _NxEProperty(BaseProperty):
         if isinstance(name, slice):
             edges = self.parent().edges_array[name]
         elif nonstring_container(name):
+            if len(name) == 0:
+                return []
+
             if nonstring_container(name[0]):
                 edges = name
             else:
@@ -693,19 +696,52 @@ class _NxGraph(GraphInterface):
 
     def _from_library_graph(self, graph, copy=True):
         ''' Initialize `self._graph` from existing library object. '''
-        # @todo check if nodes start from 0 and are continuous
-        nodes = graph.number_of_nodes()
-        edges = graph.number_of_edges()
+        import networkx as nx
 
-        self._graph = nngt._config["graph"](graph) if copy else graph
+        nodes = {n: i for i, n in enumerate(graph)}
+
+        num_nodes = graph.number_of_nodes()
+        num_edges = graph.number_of_edges()
+
+        # check if nodes start from 0 and are continuous
+        if set(nodes.keys()) != set(range(num_nodes)):
+            # forced copy to restore nodes to [0, num_nodes[
+            g = None
+
+            if graph.is_directed():
+                g = nx.DiGraph()
+            else:
+                g = nx.Graph()
+
+            # add nodes
+            for i, (n, attr) in enumerate(graph.nodes(data=True)):
+                attr["id"] = n
+                g.add_node(i, **attr)
+
+            # add edges
+            [g.add_edge(nodes[u], nodes[v], **attr)
+             for u, v, attr in graph.edges(data=True)]
+
+            # make edges ids
+            def set_eid(e, eid):
+                g.edges[e]["eid"] = eid
+
+            [set_eid(e, i) for i, e in enumerate(g.edges)]
+
+            graph = g
+
+            self._graph = g
+        else:
+            # all good
+            self._graph = graph.copy() if copy else graph
 
         # get attributes names and "types" and initialize them
-        if nodes:
-            for key, val in graph[0].items():
+        if num_nodes:
+            for key, val in graph.nodes[0].items():
                 super(type(self._nattr), self._nattr).__setitem__(
                     key, _get_dtype(val))
 
-        if edges:
+        if num_edges:
             e0 = next(iter(graph.edges))
             for key, val in graph.edges[e0].items():
                 super(type(self._eattr), self._eattr).__setitem__(
