@@ -25,7 +25,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 from ..lib.test_functions import nonstring_container, is_integer
-from ..lib.graph_helpers import _get_ig_weights
+from ..lib.graph_helpers import _get_ig_weights, _get_ig_graph
 
 
 def global_clustering_binary_undirected(g):

@@ -138,6 +138,10 @@ def _get_dtype(value):
     return "object"
 
 
+# ------------------ #
+# Graph-tool helpers #
+# ------------------ #
+
 def _get_gt_weights(g, weights):
     if nonstring_container(weights):
         # user-provided array (test must come first since non hashable)
@@ -154,6 +158,27 @@ def _get_gt_weights(g, weights):
 
     raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
 
+
+def _get_gt_graph(g, directed, weights):
+    ''' Returns the correct graph(view) given the options '''
+    import graph_tool as gt
+    from graph_tool.stats import label_parallel_edges
+
+    if not directed and g.is_directed():
+        if weights is not None:
+            raise ValueError(
+                "Cannot make graph undirected if `weights` are used.")
+
+        graph = gt.GraphView(g.graph, directed=False)
+
+        return gt.GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+
+    return g.graph
+
+
+# -------------- #
+# IGraph helpers #
+# -------------- #
 
 def _get_ig_weights(g, weights):
     if nonstring_container(weights):

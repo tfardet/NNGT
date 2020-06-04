@@ -616,6 +616,9 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
         W  = g.adjacency_matrix(weights=weights)
         W /= W.max()
 
+        # remove potential self-loops
+        W.setdiag(0.)
+
         if exponent is not None:
             W = W.power(exponent)
 
@@ -640,6 +643,10 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
 
     # binary undirected
     A  = g.adjacency_matrix()
+
+    # remove potential self-loops
+    A.setdiag(0.)
+
     Au = A
 
     if g.is_directed():

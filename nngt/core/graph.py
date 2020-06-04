@@ -34,7 +34,7 @@ import nngt
 import nngt.analysis as na
 
 from nngt import save_to_file
-from nngt.io.graph_loading import _load_from_file
+from nngt.io.graph_loading import _load_from_file, _library_load
 from nngt.io.graph_saving import _as_string
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.connect_tools import _set_degree_type
@@ -246,6 +246,14 @@ class Graph(nngt.core.GraphObject):
             secondary=secondary, attributes=attributes,
             attributes_types=attributes_types, notifier=notifier,
             cleanup=cleanup)
+
+        if fmt not in ("neighbour", "edge_list", "gml"):
+            # only partial support for these formats, relying on backend
+            libgraph = _library_load(filename, fmt)
+
+            graph = Graph.from_library(libgraph, name=name, directed=directed)
+
+            return graph
 
         # create the graph
         graph = Graph(nodes=info["size"], name=info.get("name", name),

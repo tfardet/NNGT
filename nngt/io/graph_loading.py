@@ -288,3 +288,27 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
 
     return (di_notif, edges, di_nattributes, di_eattributes, pop, shape,
             positions)
+
+
+def _library_load(filename, fmt):
+    ''' Load the file using the library functions '''
+    if nngt.get_config("backend") == "networkx":
+        import networkx as nx
+
+        if fmt == "graphml":
+            return nx.read_graphml(filename)
+        else:
+            raise NotImplementedError
+    elif nngt.get_config("backend") == "igraph":
+        import igraph as ig
+
+        if fmt == "graphml":
+            return ig.Graph.Read_GraphML(filename)
+        else:
+            raise NotImplementedError
+    elif nngt.get_config("backend") == "graph-tool":
+        import graph_tool as gt
+
+        return gt.load_graph(filename, fmt=fmt)
+    else:
+        raise NotImplementedError
