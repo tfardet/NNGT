@@ -56,6 +56,11 @@ class TestIO(TestBasis):
     def gen_graph(self, graph_name):
         # check whether we are loading from file
         if "." in graph_name:
+            with_nngt = nngt.get_config("backend") == "nngt"
+
+            if "graphml" in graph_name and with_nngt:
+                return None
+
             abspath = network_dir + graph_name
             di_instructions = self.parser.get_graph_options(graph_name)
             graph = nngt.Graph.from_file(abspath, **di_instructions,
@@ -172,5 +177,4 @@ class TestIO(TestBasis):
 suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
-    nngt.use_backend("networkx")
     unittest.main()

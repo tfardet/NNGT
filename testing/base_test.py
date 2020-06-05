@@ -89,7 +89,11 @@ class XmlHandler:
         for child in graph_elt:
             if child.tag in ("load_options", "generate_options"):
                 elt_options = child
-        return _xml_to_dict(elt_options, self.di_type)
+
+        if elt_options:
+            return _xml_to_dict(elt_options, self.di_type)
+
+        return {}
 
     def get_result(self, graph, result_name):
         elt_test = self.graphs.find('./graph[@name="{}"]'.format(graph))

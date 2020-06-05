@@ -24,7 +24,7 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
 from matplotlib.patches import Arc, RegularPolygon, PathPatch
 from matplotlib.collections import PatchCollection
-from matplotlib.colors import ListedColormap, Normalize, cnames, ColorConverter
+from matplotlib.colors import ListedColormap, Normalize, ColorConverter
 from matplotlib.markers import MarkerStyle
 from matplotlib.transforms import Affine2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -80,7 +80,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     nsize : float, array of float or string, optional (default: "total-degree")
         Size of the nodes as a percentage of the canvas length. Otherwise, it
         can be a string that correlates the size to a node attribute among
-        "in/out/total-degree", or "betweenness".
+        "in/out/total-degree", "in/out/total-strength", or "betweenness".
     ncolor : float, array of floats or string, optional (default: 0.5)
         Color of the nodes; if a float in [0, 1], position of the color in the
         current palette, otherwise a string that correlates the color to a node
@@ -207,6 +207,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                            else decimate_connections
 
     markers = nshape
+
     if nonstring_container(nshape):
         if isinstance(nshape[0], nngt.NeuralGroup):
             # check disjunction
@@ -240,15 +241,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     nsize *= 0.01 * size[0]
 
     if isinstance(esize, str) and e:
-        # @todo check why this "if" is here
-        # ~ if isinstance(ecolor, str):
-            # ~ raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
-                               # ~ "and ecolor='{}'.".format(ecolor))
-        esize  = _edge_size(network, restrict_nodes, esize)
+        esize  = _edge_size(network, list(restrict_nodes), esize)
         esize *= max_esize
         esize[esize < threshold] = 0.
-    #~ elif isinstance(esize, float):
-        #~ esize = np.repeat(esize, e)
+
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
 
     # node color information
@@ -262,6 +258,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         assert len(ncolor) == n, "For color arrays, one " +\
             "color per node is required."
         ncolor = "custom"
+
     c = node_color
 
     if not nonstring_container(nborder_color):
@@ -301,7 +298,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         if show_environment:
             nngt.geometry.plot.plot_shape(network.shape, axis=axis,
                                           show=False)
-        pos = network.get_positions(neurons=restrict_nodes)
+
+        neurons = None if restrict_nodes is None else list(restrict_nodes)
+
+        pos = network.get_positions(neurons=neurons)
     else:
         pos[:, 0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)
@@ -309,7 +309,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # make nodes
     nodes = []
 
-    if nonstring_container(c):
+    if nonstring_container(c) and not isinstance(c[0], str):
         # make the colorbar for the nodes
         cmap = ncmap
         if colorbar:
@@ -342,13 +342,16 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 c = (c - cmin)/(cmax - cmin)
         c = cmap(c)
     else:
-        if not isinstance(c, str):
+        if not nonstring_container(c) and not isinstance(c, str):
             minc = np.min(node_color)
-            c    = ncmap((node_color - minc)/(np.max(node_color) - minc))
-        c = np.array([c for _ in range(n)])
+
+            c = np.array(
+                [ncmap((node_color - minc)/(np.max(node_color) - minc))]*n)
 
     # plot nodes
-    if kwargs.get("simple_nodes", False):
+    simple_nodes = kwargs.get("simple_nodes", False)
+
+    if simple_nodes:
         if nonstring_container(nshape):
             # matplotlib scatter does not support marker arrays
             if isinstance(nshape[0], nngt.NeuralGroup):
@@ -365,15 +368,11 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                     axis.plot(pos[i, 0], pos[i, 1], c=c[i], ms=0.5*nsize[i],
                               marker=markers[ids[0]], ls="")
         else:
-            clist = c if restrict_nodes is None else c[restrict_nodes]
-            xlist = pos[:, 0] if restrict_nodes is None \
-                    else pos[restrict_nodes, 0]
-            ylist = pos[:, 1] if restrict_nodes is None \
-                    else pos[restrict_nodes, 1]
-
-            axis.scatter(xlist, ylist, c=clist, s=0.5*np.array(nsize),
+            axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize),
                          marker=nshape)
     else:
+        axis.set_aspect(1.)
+
         if network.is_network():
             for group in network.population.values():
                 idx = group.ids if restrict_nodes is None \
@@ -470,45 +469,89 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                                         length_includes_head=True,
                                         alpha=ealpha, fc=ec, lw=0.5))
         else:
-            s_min, s_max, t_min, t_max = 0, n, 0, n
-            if restrict_sources is not None:
-                s_min = min(restrict_sources)
-                s_max = min(max(restrict_sources) + 1, n)
-            if restrict_targets is not None:
-                t_min = min(restrict_targets)
-                t_max = min(max(restrict_targets) + 1, n)
-            edges = np.array(
-                adj_mat[s_min:s_max, t_min:t_max].nonzero(), dtype=int)
-            edges[0, :] += s_min
-            edges[1, :] += t_min
-            # keep only large edges
-            if nonstring_container(esize):
-                keep = (esize > 0)
-                edges  = edges[:, keep]
-                if nonstring_container(ecolor):
-                    ecolor = ecolor[keep]
-                esize = esize[keep]
-            if decimate_connections > 1:
-                edges = edges[:, ::decimate_connections]
+            edges = []
+
+            if e and decimate_connections != -1:
+                # ~ edges = network.edges_array
+                sources = (None if restrict_sources is None
+                           else list(restrict_sources))
+
+                targets = (None if restrict_targets is None
+                           else list(restrict_targets))
+
+                edges = network.get_edges(source_node=sources,
+                                          target_node=targets)
+
+                # keep only large edges
                 if nonstring_container(esize):
-                    esize = esize[::decimate_connections]
-                if nonstring_container(ecolor):
-                    ecolor = ecolor[::decimate_connections]
+                    keep = (esize > 0)
+                    edges  = edges[keep]
+                    if nonstring_container(ecolor):
+                        ecolor = ecolor[keep]
+                    esize = esize[keep]
+
+                if decimate_connections > 1:
+                    edges = edges[::decimate_connections]
+                    if nonstring_container(esize):
+                        esize = esize[::decimate_connections]
+                    if nonstring_container(ecolor):
+                        ecolor = ecolor[::decimate_connections]
+
+                # keep only desired edges
+                if None not in (restrict_sources, restrict_targets):
+                    new_edges = []
+
+                    for edge in edges:
+                        s, t = edge
+
+                        if s in restrict_sources and t in restrict_targets:
+                            new_edges.append(edge)
+
+                    edges = np.array(new_edges, dtype=int)
+
+                    if restrict_nodes is not None:
+                        nodes = list(restrict_nodes)
+                        nodes.sort()
+
+                        for i, node in enumerate(nodes):
+                            edges[edges == node] = i
+                elif restrict_sources is not None:
+                    new_edges = []
+
+                    for edge in edges:
+                        s, _ = edge
+
+                        if s in restrict_sources:
+                            new_edges.append(edge)
+
+                    edges = np.array(new_edges, dtype=int)
+                elif restrict_targets is not None:
+                    new_edges = []
+
+                    for edge in edges:
+                        _, t = edge
+
+                        if t in restrict_targets:
+                            new_edges.append(edge)
+
+                    edges = np.array(new_edges, dtype=int)
+
             if isinstance(ecolor, str):
                 ecolor = [ecolor for i in range(0, e, decimate_connections)]
 
-            if fast:
-                dl       = 0.5*np.max(nsize)
-                arrow_x  = pos[edges[1], 0] - pos[edges[0], 0]
+            if len(edges) and fast:
+                dl = 0.5*np.max(nsize) if not simple_nodes else 0.
+
+                arrow_x  = pos[edges[:, 1], 0] - pos[edges[:, 0], 0]
                 arrow_x -= np.sign(arrow_x) * dl
-                arrow_y  = pos[edges[1], 1] - pos[edges[0], 1]
+                arrow_y  = pos[edges[:, 1], 1] - pos[edges[:, 0], 1]
                 arrow_x -= np.sign(arrow_y) * dl
-                axis.quiver(pos[edges[0], 0], pos[edges[0], 1], arrow_x,
+                axis.quiver(pos[edges[:, 0], 0], pos[edges[:, 0], 1], arrow_x,
                             arrow_y, scale_units='xy', angles='xy', scale=1,
                             alpha=0.5, width=1.5e-3, linewidths=0.5*esize,
                             edgecolors=ecolor, zorder=1)
-            else:
-                for i, (s, t) in enumerate(zip(edges[0], edges[1])):
+            elif len(edges):
+                for i, (s, t) in enumerate(edges):
                     xs, ys = pos[s, 0], pos[s, 1]
                     xt, yt = pos[t, 0], pos[t, 1]
 
@@ -579,6 +622,14 @@ def _node_size(network, restrict_nodes, nsize):
             size[np.isclose(size, 0)] = 0.5
         if size.max() > 15*size.min():
             size = np.power(size, 0.4)
+    elif "strength" in nsize:
+        deg_type = nsize[:nsize.index("-")]
+        size = network.get_degrees(deg_type, weights='weight',
+                                   nodes=restrict_nodes)
+        if np.isclose(size.min(), 0):
+            size[np.isclose(size, 0)] = 0.5
+        if size.max() > 15*size.min():
+            size = np.power(size, 0.4)
     elif nsize == "betweenness":
         betw = None
 
@@ -617,21 +668,27 @@ def _edge_size(network, restrict_nodes, esize):
     else:
         edges = network.get_edges(source_node=restrict_nodes,
                               target_node=restrict_nodes)
-        num_edges = e.shape[1]
+        num_edges = len(edges)
 
     size = np.repeat(1., num_edges)
 
-    if esize == "betweenness":
-        if restrict_nodes is None:
-            size = network.betweenness_list("edge")
-        else:
-            size = network.betweenness_list("edge")[restrict_nodes]
+    if num_edges:
+        max_size = None
 
-    if esize == "weight":
-        size = network.get_weights(edges=edges)
+        if esize == "betweenness":
+            betw = network.betweenness_list("edge")
 
-    if np.any(size):
-        size /= size.max()
+            max_size = np.max(betw)
+
+            size = betw if restrict_nodes is None else betw[restrict_nodes]
+
+        if esize == "weight":
+            size = network.get_weights(edges=edges)
+
+            max_size = np.max(network.get_weights())
+
+        if np.any(size):
+            size /= max_size
 
     return size
 
@@ -692,7 +749,9 @@ def _node_color(network, restrict_nodes, ncolor):
                     values = nngt.analyze_graph[ncolor](network)
                 else:
                     values = nngt.analyze_graph[ncolor](network)[list(restrict_nodes)]
-            elif ncolor not in cnames and ncolor not in ColorConverter.colors:
+            elif ncolor in ColorConverter.colors:
+                color = np.repeat(ncolor, n)
+            else:
                 raise RuntimeError("Invalid `ncolor`: {}.".format(ncolor))
 
             if values is not None:

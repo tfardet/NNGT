@@ -162,14 +162,17 @@ def _get_gt_weights(g, weights):
 
 def _get_gt_graph(g, directed, weights):
     ''' Returns the correct graph(view) given the options '''
+    import graph_tool as gt
+    from graph_tool.stats import label_parallel_edges
+
     if not directed and g.is_directed():
         if weights is not None:
             raise ValueError(
                 "Cannot make graph undirected if `weights` are used.")
 
-        graph = GraphView(g.graph, directed=False)
+        graph = gt.GraphView(g.graph, directed=False)
 
-        return GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+        return gt.GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
 
     return g.graph
 

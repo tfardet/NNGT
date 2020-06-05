@@ -64,6 +64,15 @@ def test_binary_undirected_clustering():
         nngt.analyze_graph["global_clustering"](g, directed=False),
         glob_clst)
 
+    # check that self-loops are ignore
+    g.new_edge(0, 0, self_loop=True)
+
+    assert np.all(np.isclose(
+        na.local_clustering_binary_undirected(g), loc_clst))
+
+    assert np.isclose(
+        na.global_clustering_binary_undirected(g), glob_clst)
+
     # sanity check for local clustering on undirected unweighted graph
     g = ng.erdos_renyi(avg_deg=10, nodes=100, directed=False)
 
