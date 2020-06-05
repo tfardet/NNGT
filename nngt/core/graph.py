@@ -88,7 +88,7 @@ class Graph(nngt.core.GraphObject):
         **kwargs
             Other standard arguments (see :func:`~nngt.Graph.__init__`)
         '''
-        graph = cls(name=name, **kwargs)
+        graph = cls(name=name, weighted=False, **kwargs)
 
         graph._from_library_graph(library_graph, copy=False)
 

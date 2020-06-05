@@ -241,15 +241,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     nsize *= 0.01 * size[0]
 
     if isinstance(esize, str) and e:
-        # @todo check why this "if" is here
-        # ~ if isinstance(ecolor, str):
-            # ~ raise RuntimeError("Cannot use esize='{}' ".format(esize) +\
-                               # ~ "and ecolor='{}'.".format(ecolor))
         esize  = _edge_size(network, list(restrict_nodes), esize)
         esize *= max_esize
         esize[esize < threshold] = 0.
-    #~ elif isinstance(esize, float):
-        #~ esize = np.repeat(esize, e)
+
     esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
 
     # node color information
@@ -376,6 +371,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize),
                          marker=nshape)
     else:
+        axis.set_aspect(1.)
+
         if network.is_network():
             for group in network.population.values():
                 idx = group.ids if restrict_nodes is None \
@@ -542,7 +539,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             if isinstance(ecolor, str):
                 ecolor = [ecolor for i in range(0, e, decimate_connections)]
 
-            if fast:
+            if len(edges) and fast:
                 dl = 0.5*np.max(nsize) if not simple_nodes else 0.
 
                 arrow_x  = pos[edges[:, 1], 0] - pos[edges[:, 0], 0]
@@ -553,7 +550,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                             arrow_y, scale_units='xy', angles='xy', scale=1,
                             alpha=0.5, width=1.5e-3, linewidths=0.5*esize,
                             edgecolors=ecolor, zorder=1)
-            else:
+            elif len(edges):
                 for i, (s, t) in enumerate(edges):
                     xs, ys = pos[s, 0], pos[s, 1]
                     xt, yt = pos[t, 0], pos[t, 1]
@@ -675,17 +672,23 @@ def _edge_size(network, restrict_nodes, esize):
 
     size = np.repeat(1., num_edges)
 
-    if esize == "betweenness":
-        if restrict_nodes is None:
-            size = network.betweenness_list("edge")
-        else:
-            size = network.betweenness_list("edge")[restrict_nodes]
+    if num_edges:
+        max_size = None
 
-    if esize == "weight":
-        size = network.get_weights(edges=edges)
+        if esize == "betweenness":
+            betw = network.betweenness_list("edge")
 
-    if np.any(size):
-        size /= size.max()
+            max_size = np.max(betw)
+
+            size = betw if restrict_nodes is None else betw[restrict_nodes]
+
+        if esize == "weight":
+            size = network.get_weights(edges=edges)
+
+            max_size = np.max(network.get_weights())
+
+        if np.any(size):
+            size /= max_size
 
     return size
 

@@ -595,10 +595,13 @@ def edge_attributes_distribution(network, attributes, edges=None,
 
 
 def correlation_to_attribute(network, reference_attribute, other_attributes,
-                             nodes=None, title=None, show=True):
+                             nodes=None, fig=None, title=None, show=True):
     '''
     For each node plot the value of `reference_attributes` against each of the
     `other_attributes` to check for correlations.
+
+    .. versionchanged :: 2.0
+        Added `fig` argument.
 
     Parameters
     ----------
@@ -610,6 +613,7 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
         * "betweenness"
         * "clustering"
         * "in-degree", "out-degree", "total-degree"
+        * "in-strength", "out-strength", "total-strength"
         * "subgraph_centrality"
         * "b2" (requires NEST)
         * "firing_rate" (requires NEST)
@@ -619,29 +623,45 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
         Attributes that will be compared to the reference.
     nodes : list, optional (default: all nodes)
         Nodes for which the attributes should be returned.
+    fig : :class:`matplotlib.figure.Figure`, optional (default: new Figure)
+        Figure to which the plot should be added.
+    title : str, optional (default: automatic).
+        Custom title, use "" to remove the automatic title.
+    show : bool, optional (default: True)
+        Whether the plot should be displayed immediately.
     '''
     import matplotlib.pyplot as plt
+
     if not nonstring_container(other_attributes):
         other_attributes = [other_attributes]
-    fig = plt.figure()
+
+    fig = plt.figure() if fig is None else fig
     fig.patch.set_visible(False)
+
     # get reference data
     ref_data = reference_attribute
+
     if isinstance(reference_attribute, str):
         ref_data = node_attributes(network, reference_attribute, nodes=nodes)
     else:
         reference_attribute = "user defined attribute"
+
     # plot the remaining attributes
     assert isinstance(other_attributes, (str, list)), \
         "Only attribute names are allowed for `other_attributes`"
+
     values = node_attributes(network, other_attributes, nodes=nodes)
+
     fig, axes = _set_new_plot(fignum=fig.number, names=other_attributes)
+
     for i, (attr, val) in enumerate(values.items()):
         end_attr = attr[1:]
         end_ref_attr = reference_attribute[1:]
+
         if nngt._config["use_tex"]:
             end_attr = end_attr.replace("_", "\\_")
             end_ref_attr = end_ref_attr.replace("_", "\\_")
+
         # reference nodes
         axes[i].plot(val, ref_data, ls="", marker="o")
         axes[i].set_xlabel(attr[0].upper() + end_attr)
@@ -652,6 +672,7 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
                 end_attr, network.name) + \
             "node in {}".format(network.name),
             loc='left', x=0., y=1.05)
+
     # adjust space, set title, and show
     _format_and_show(fig, 0, values, title, show)
 

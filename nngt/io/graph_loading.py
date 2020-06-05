@@ -64,6 +64,10 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     .. versionchanged :: 2.0
         Added optional `attributes_types` and `cleanup` arguments.
 
+    .. warning ::
+       Support for GraphML and DOT formats are currently limited and require
+       one of the non-default backends (DOT requires graph-tool).
+
     Parameters
     ----------
     filename: str
