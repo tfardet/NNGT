@@ -200,6 +200,7 @@ def _get_ig_weights(g, weights):
 
 def _get_ig_graph(g, directed, weights):
     ''' Returns the correct graph(view) given the options '''
+
     if not directed and g.is_directed():
         if weights is not None:
             raise ValueError(

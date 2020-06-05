@@ -470,9 +470,13 @@ class _GtGraph(GraphInterface):
             return nodes[0]
         return nodes
 
-    def new_edge(self, source, target, attributes=None, ignore=False):
+    def new_edge(self, source, target, attributes=None, ignore=False,
+                 self_loop=False):
         '''
         Adding a connection to the graph, with optional properties.
+
+        .. versionchanged :: 2.0
+            Added `self_loop` argument to enable adding self-loops.
 
         Parameters
         ----------
@@ -487,10 +491,12 @@ class _GtGraph(GraphInterface):
         ignore : bool, optional (default: False)
             If set to True, ignore attempts to add an existing edge and accept
             self-loops; otherwise an error is raised.
+        self_loop : bool, optional (default: False)
+            Whether to allow self-loops or not.
 
         Returns
         -------
-        The new connection.
+        The new connection or None if nothing was added.
         '''
         g = self._graph
 
@@ -511,8 +517,14 @@ class _GtGraph(GraphInterface):
             raise InvalidArgument("`source` or `target` does not exist.")
 
         if edge is None:
-            if not ignore and source == target:
-                raise InvalidArgument("Trying to add a self-loop.")
+            if source == target:
+                if not ignore and not self_loop:
+                    raise InvalidArgument("Trying to add a self-loop.")
+                elif ignore:
+                    _log_message(logger, "WARNING",
+                                 "Self-loop on {} ignored.".format(source))
+
+                    return None
 
             g.add_edge(source, target, add_missing=False)
 
@@ -524,6 +536,8 @@ class _GtGraph(GraphInterface):
 
             _log_message(logger, "WARNING",
                          "Existing edge {} ignored.".format((source, target)))
+
+            return None
 
         return (source, target)
 

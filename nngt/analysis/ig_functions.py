@@ -44,7 +44,13 @@ def global_clustering_binary_undirected(g):
     ----------
     .. [ig-global-clustering] :igdoc:`transitivity_undirected`
     '''
-    return np.array(g.graph.as_undirected().transitivity_undirected())
+    graph = g.graph
+
+    if graph.is_loop():
+        graph = graph.copy()
+        graph.simplify(multiple=False, loops=True)
+
+    return np.array(graph.as_undirected().transitivity_undirected())
 
 
 def local_clustering_binary_undirected(g, nodes=None):
@@ -70,10 +76,16 @@ def local_clustering_binary_undirected(g, nodes=None):
     ----------
     .. [ig-local-clustering] :igdoc:`transitivity_local_undirected`
     '''
-    u = g.graph.as_undirected()
+    graph = g.graph
 
-    return np.array(u.transitivity_local_undirected(nodes, mode="zero",
-                                                    weights=None))
+    if graph.is_loop():
+        graph = graph.copy()
+        graph.simplify(multiple=False, loops=True)
+
+    u = graph.as_undirected()
+
+    return np.array(
+        u.transitivity_local_undirected(nodes, mode="zero", weights=None))
 
 
 def assortativity(g, degree, weights=None):

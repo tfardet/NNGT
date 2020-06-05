@@ -433,9 +433,13 @@ class _NxGraph(GraphInterface):
 
         return new_nodes
 
-    def new_edge(self, source, target, attributes=None, ignore=False):
+    def new_edge(self, source, target, attributes=None, ignore=False,
+                 self_loop=False):
         '''
         Adding a connection to the graph, with optional properties.
+
+        .. versionchanged :: 2.0
+            Added `self_loop` argument to enable adding self-loops.
 
         Parameters
         ----------
@@ -450,10 +454,12 @@ class _NxGraph(GraphInterface):
         ignore : bool, optional (default: False)
             If set to True, ignore attempts to add an existing edge and accept
             self-loops; otherwise an error is raised.
+        self_loop : bool, optional (default: False)
+            Whether to allow self-loops or not.
 
         Returns
         -------
-        The new connection.
+        The new connection or None if nothing was added.
         '''
         g = self._graph
 
@@ -483,13 +489,20 @@ class _NxGraph(GraphInterface):
             _log_message(logger, "WARNING",
                          "Existing edge {} ignored.".format((source, target)))
         else:
-            if not ignore and source == target:
-                raise InvalidArgument("Trying to add a self-loop.")
+            if source == target:
+                if not ignore and not self_loop:
+                    raise InvalidArgument("Trying to add a self-loop.")
+                elif ignore:
+                    _log_message(logger, "WARNING",
+                                 "Self-loop on {} ignored.".format(source))
+
+                    return None
 
             for attr in attributes:
                 if "_corr" in attr:
                     raise NotImplementedError("Correlated attributes are not "
                                               "available with networkx.")
+
             if self.is_weighted() and "weight" not in attributes:
                 attributes["weight"] = 1.
 
