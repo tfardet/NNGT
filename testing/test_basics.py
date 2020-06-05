@@ -175,20 +175,20 @@ def test_edge_creation():
     assert error_raised
 
     # working calls
-    g.new_edge(4, 4, ignore=True)
-    assert g.edge_id((4, 4)) == 2
+    g.new_edge(0, 1, ignore=True)
+    assert g.edge_id((0, 1)) == 0
 
     g.set_weights(5.)
     g.new_edge(0, 1, attributes={"weight": 3.}, ignore=True)
     assert g.get_weights(edges=(0, 1)) == 5
 
     g.new_edges(lst_edges[0], check_self_loops=False)
-    assert g.edge_nb() == 6
+    assert g.edge_nb() == 5
 
     for elist in lst_edges[:-1]:
         g.new_edges(elist, ignore_invalid=True)
 
-    assert g.edge_nb() == 9
+    assert g.edge_nb() == 8
 
     # UNDIRECTED
     g = nngt.Graph(num_nodes, directed=False)
@@ -224,21 +224,21 @@ def test_edge_creation():
         assert error_raised
 
     # working calls
-    g.new_edge(4, 4, ignore=True)
-    assert g.edge_id((4, 4)) == 2
+    g.new_edge(0, 1, ignore=True)
+    assert g.edge_id((0, 1)) == 0
 
     g.set_weights(5.)
     g.new_edge(1, 0, attributes={"weight": 3.}, ignore=True)
     assert g.get_weights(edges=(0, 1)) == 5
 
     g.new_edges(lst_edges[0], check_self_loops=False)
-    assert g.edge_nb() == 6
+    assert g.edge_nb() == 5
 
 
     for elist in lst_edges:
         g.new_edges(elist, ignore_invalid=True)
 
-    assert g.edge_nb() == 11
+    assert g.edge_nb() == 10
 
 
 @pytest.mark.mpi_skip
