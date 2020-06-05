@@ -25,7 +25,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 from ..lib.test_functions import nonstring_container, is_integer
-from ..lib.graph_helpers import _get_ig_weights
+from ..lib.graph_helpers import _get_ig_weights, _get_ig_graph
 
 
 def global_clustering_binary_undirected(g):
@@ -44,7 +44,13 @@ def global_clustering_binary_undirected(g):
     ----------
     .. [ig-global-clustering] :igdoc:`transitivity_undirected`
     '''
-    return np.array(g.graph.as_undirected().transitivity_undirected())
+    graph = g.graph
+
+    if graph.is_loop():
+        graph = graph.copy()
+        graph.simplify(multiple=False, loops=True)
+
+    return np.array(graph.as_undirected().transitivity_undirected())
 
 
 def local_clustering_binary_undirected(g, nodes=None):
@@ -70,10 +76,16 @@ def local_clustering_binary_undirected(g, nodes=None):
     ----------
     .. [ig-local-clustering] :igdoc:`transitivity_local_undirected`
     '''
-    u = g.graph.as_undirected()
+    graph = g.graph
 
-    return np.array(u.transitivity_local_undirected(nodes, mode="zero",
-                                                    weights=None))
+    if graph.is_loop():
+        graph = graph.copy()
+        graph.simplify(multiple=False, loops=True)
+
+    u = graph.as_undirected()
+
+    return np.array(
+        u.transitivity_local_undirected(nodes, mode="zero", weights=None))
 
 
 def assortativity(g, degree, weights=None):

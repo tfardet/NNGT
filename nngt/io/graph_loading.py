@@ -64,6 +64,10 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     .. versionchanged :: 2.0
         Added optional `attributes_types` and `cleanup` arguments.
 
+    .. warning ::
+       Support for GraphML and DOT formats are currently limited and require
+       one of the non-default backends (DOT requires graph-tool).
+
     Parameters
     ----------
     filename: str
@@ -198,6 +202,9 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     lst_lines, pop, shape, positions = None, None, None, None
     fmt = _get_format(fmt, filename)
 
+    if fmt not in ("neighbour", "edge_list", "gml"):
+        return [None]*7
+
     with open(filename, "r") as filegraph:
         lst_lines = _process_file(filegraph, fmt, separator)
 
@@ -288,3 +295,27 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
 
     return (di_notif, edges, di_nattributes, di_eattributes, pop, shape,
             positions)
+
+
+def _library_load(filename, fmt):
+    ''' Load the file using the library functions '''
+    if nngt.get_config("backend") == "networkx":
+        import networkx as nx
+
+        if fmt == "graphml":
+            return nx.read_graphml(filename)
+        else:
+            raise NotImplementedError
+    elif nngt.get_config("backend") == "igraph":
+        import igraph as ig
+
+        if fmt == "graphml":
+            return ig.Graph.Read_GraphML(filename)
+        else:
+            raise NotImplementedError
+    elif nngt.get_config("backend") == "graph-tool":
+        import graph_tool as gt
+
+        return gt.load_graph(filename, fmt=fmt)
+    else:
+        raise NotImplementedError

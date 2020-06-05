@@ -34,7 +34,8 @@ import nngt
 import nngt.analysis as na
 
 from nngt import save_to_file
-from nngt.io.graph_loading import _load_from_file
+from nngt.io.graph_loading import _load_from_file, _library_load
+from nngt.io.io_helpers import _get_format
 from nngt.io.graph_saving import _as_string
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.connect_tools import _set_degree_type
@@ -87,7 +88,7 @@ class Graph(nngt.core.GraphObject):
         **kwargs
             Other standard arguments (see :func:`~nngt.Graph.__init__`)
         '''
-        graph = cls(name=name, **kwargs)
+        graph = cls(name=name, weighted=False, **kwargs)
 
         graph._from_library_graph(library_graph, copy=False)
 
@@ -241,6 +242,16 @@ class Graph(nngt.core.GraphObject):
         graph : :class:`~nngt.Graph` or subclass
             Loaded graph.
         '''
+        fmt = _get_format(fmt, filename)
+
+        if fmt not in ("neighbour", "edge_list", "gml"):
+            # only partial support for these formats, relying on backend
+            libgraph = _library_load(filename, fmt)
+
+            graph = Graph.from_library(libgraph, name=name, directed=directed)
+
+            return graph
+
         info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
             filename=filename, fmt=fmt, separator=separator, ignore=ignore,
             secondary=secondary, attributes=attributes,
@@ -1127,9 +1138,12 @@ class Graph(nngt.core.GraphObject):
         '''
         if self.is_weighted():
             if edges is None:
-                return self._eattr["weight"]
+                return np.asarray(self._eattr["weight"])
             else:
-                return self._eattr[edges]["weight"]
+                if len(edges) == 0:
+                    return np.array([])
+
+                return np.asarray(self._eattr[edges]["weight"])
         else:
             size = self.edge_nb() if edges is None else len(edges)
             return np.ones(size)

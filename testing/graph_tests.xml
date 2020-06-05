@@ -47,6 +47,7 @@
             <name>opsahl-usairport.el</name>
             <name>karate.gml</name>
             <name>polbooks.gml</name>
+            <name>rat_brain.graphml</name>
         </graph_list>
 	</test>
 
@@ -106,6 +107,12 @@
             <int name="nodes">105</int>
             <int name="edges">441</int>
             <bool name="directed">False</bool>
+        </graph>
+
+        <graph name="rat_brain.graphml">
+            <int name="nodes">503</int>
+            <int name="edges">27667</int>
+            <bool name="directed">True</bool>
         </graph>
 
         <!-- testing graph generation -->

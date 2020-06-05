@@ -938,6 +938,9 @@ def _get_attribute(network, attribute, nodes=None, data=None):
                 dtype[1:], nodes=nodes, weights=True)
         else:
             return network.get_degrees(dtype, nodes=nodes)
+    elif "strength" in attribute.lower():
+        dtype = attribute[:attribute.index("-")]
+        return network.get_degrees(dtype, nodes=nodes, weights=True)
     elif attribute == "firing_rate":
         return get_firing_rate(network, nodes=nodes, data=data)
     elif attribute == "subgraph_centrality":
