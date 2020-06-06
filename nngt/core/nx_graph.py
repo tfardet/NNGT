@@ -32,8 +32,8 @@ import scipy.sparse as ssp
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.connect_tools import _cleanup_edges
-from nngt.lib.graph_helpers import _to_np_array, _get_dtype, _get_nx_weights
-from nngt.lib.io_tools import _np_dtype
+from nngt.lib.graph_helpers import _get_dtype, _get_nx_weights
+from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
 
@@ -142,6 +142,9 @@ class _NxEProperty(BaseProperty):
         if isinstance(name, slice):
             edges = self.parent().edges_array[name]
         elif nonstring_container(name):
+            if len(name) == 0:
+                return []
+
             if nonstring_container(name[0]):
                 edges = name
             else:
@@ -430,9 +433,13 @@ class _NxGraph(GraphInterface):
 
         return new_nodes
 
-    def new_edge(self, source, target, attributes=None, ignore=False):
+    def new_edge(self, source, target, attributes=None, ignore=False,
+                 self_loop=False):
         '''
         Adding a connection to the graph, with optional properties.
+
+        .. versionchanged :: 2.0
+            Added `self_loop` argument to enable adding self-loops.
 
         Parameters
         ----------
@@ -447,10 +454,12 @@ class _NxGraph(GraphInterface):
         ignore : bool, optional (default: False)
             If set to True, ignore attempts to add an existing edge and accept
             self-loops; otherwise an error is raised.
+        self_loop : bool, optional (default: False)
+            Whether to allow self-loops or not.
 
         Returns
         -------
-        The new connection.
+        The new connection or None if nothing was added.
         '''
         g = self._graph
 
@@ -480,13 +489,20 @@ class _NxGraph(GraphInterface):
             _log_message(logger, "WARNING",
                          "Existing edge {} ignored.".format((source, target)))
         else:
-            if not ignore and source == target:
-                raise InvalidArgument("Trying to add a self-loop.")
+            if source == target:
+                if not ignore and not self_loop:
+                    raise InvalidArgument("Trying to add a self-loop.")
+                elif ignore:
+                    _log_message(logger, "WARNING",
+                                 "Self-loop on {} ignored.".format(source))
+
+                    return None
 
             for attr in attributes:
                 if "_corr" in attr:
                     raise NotImplementedError("Correlated attributes are not "
                                               "available with networkx.")
+
             if self.is_weighted() and "weight" not in attributes:
                 attributes["weight"] = 1.
 
@@ -693,19 +709,52 @@ class _NxGraph(GraphInterface):
 
     def _from_library_graph(self, graph, copy=True):
         ''' Initialize `self._graph` from existing library object. '''
-        # @todo check if nodes start from 0 and are continuous
-        nodes = graph.number_of_nodes()
-        edges = graph.number_of_edges()
+        import networkx as nx
 
-        self._graph = nngt._config["graph"](graph) if copy else graph
+        nodes = {n: i for i, n in enumerate(graph)}
+
+        num_nodes = graph.number_of_nodes()
+        num_edges = graph.number_of_edges()
+
+        # check if nodes start from 0 and are continuous
+        if set(nodes.keys()) != set(range(num_nodes)):
+            # forced copy to restore nodes to [0, num_nodes[
+            g = None
+
+            if graph.is_directed():
+                g = nx.DiGraph()
+            else:
+                g = nx.Graph()
+
+            # add nodes
+            for i, (n, attr) in enumerate(graph.nodes(data=True)):
+                attr["id"] = n
+                g.add_node(i, **attr)
+
+            # add edges
+            [g.add_edge(nodes[u], nodes[v], **attr)
+             for u, v, attr in graph.edges(data=True)]
+
+            # make edges ids
+            def set_eid(e, eid):
+                g.edges[e]["eid"] = eid
+
+            [set_eid(e, i) for i, e in enumerate(g.edges)]
+
+            graph = g
+
+            self._graph = g
+        else:
+            # all good
+            self._graph = graph.copy() if copy else graph
 
         # get attributes names and "types" and initialize them
-        if nodes:
-            for key, val in graph[0].items():
+        if num_nodes:
+            for key, val in graph.nodes[0].items():
                 super(type(self._nattr), self._nattr).__setitem__(
                     key, _get_dtype(val))
 
-        if edges:
+        if num_edges:
             e0 = next(iter(graph.edges))
             for key, val in graph.edges[e0].items():
                 super(type(self._eattr), self._eattr).__setitem__(

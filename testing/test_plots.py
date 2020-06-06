@@ -26,7 +26,7 @@ dirpath = os.path.abspath(os.path.dirname(__file__))
 
 @pytest.mark.mpi_skip
 def test_plot_prop():
-    net = nngt.generation.erdos_renyi(nodes=100, avg_deg=10)
+    net = ng.erdos_renyi(nodes=100, avg_deg=10)
     net.set_weights(distribution="gaussian",
                     parameters={"avg": 5, "std": 0.5})
     net.new_node_attribute("attr", "int",
@@ -55,32 +55,46 @@ def test_plot_net():
 def test_draw_network_options():
     net = nngt.generation.erdos_renyi(nodes=100, avg_deg=10)
 
+    net.set_weights(np.random.randint(0, 20, net.edge_nb()))
+
     nplt.draw_network(net, ncolor="in-degree", nsize=3, esize=2, show=False)
 
-    nplt.draw_network(
-        net, ncolor="betweenness", nsize="total-degree",
-        decimate_connections=3, curved_edges=True, show=False)
+    if nngt.get_config("backend") != "nngt":
+        nplt.draw_network(net, ncolor="betweenness", nsize="total-degree",
+                          decimate_connections=3, curved_edges=True,
+                          show=False)
 
     nplt.draw_network(net, ncolor="g", nshape='s', ecolor="b",
                       restrict_targets=[1, 2, 3], show=False)
 
-    nplt.draw_network(net, restrict_nodes=[i for i in range(10)],
-                      fast=True, show=False)
-
-    nplt.draw_network(net, restrict_targets=[4, 5, 6, 7, 8],
+    nplt.draw_network(net, restrict_nodes=list(range(10)), fast=True,
                       show=False)
 
-    nplt.draw_network(net, restrict_sources=[4, 5, 6, 7, 8],
-                      show=False)
+    nplt.draw_network(net, restrict_targets=[4, 5, 6, 7, 8], show=False)
+
+    nplt.draw_network(net, restrict_sources=[4, 5, 6, 7, 8], show=False)
+
+    # plot on a single axis
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+
+    nplt.draw_network(net, simple_nodes=True, ncolor="k",
+                      decimate_connections=-1, axis=ax, show=False)
+
+    nplt.draw_network(net, simple_nodes=True, ncolor="r", nsize=2,
+                      restrict_nodes=list(range(10)), esize='weight',
+                      ecolor="b", fast=True, axis=ax, show=False)
 
 
 @pytest.mark.mpi_skip
 def test_library_plot():
     ''' Check that plotting with the underlying backend library works '''
-    nngt.use_backend("igraph")
+    nngt.use_backend("graph-tool")
     g = ng.newman_watts(4, 0.2, nodes=50)
 
-    nplt.library_draw(g, show=True)
+    nplt.library_draw(g, ncolor="total-degree", ecolor="k", show=True)
+    # ~ nplt.library_draw(g, show=True)
 
 
 if __name__ == "__main__":

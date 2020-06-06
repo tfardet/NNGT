@@ -43,6 +43,7 @@ __all__ = [
     "_price_scale_free",
     "_random_scale_free",
     "_unique_rows",
+    "_watts_strogatz",
     "price_network",
 ]
 
@@ -59,21 +60,37 @@ EPS = 0.00001
 def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
                 distance=None, **kwargs):
     num_sources, num_targets = len(source_ids), len(target_ids)
+
     # find common nodes
     edges  = None
     common = set(source_ids).intersection(target_ids)
+
+    num_edges = int(0.5*(1 + directed)*num_sources*num_targets)
+
     if common:
-        num_edges     = num_sources*num_targets - len(common)
-        edges         = np.empty((num_edges, 2))
+        num_edges -= int(0.5*(1 + directed)*len(common))
+
+        edges = np.full((num_edges, 2), -1, dtype=int)
+
         current_edges = 0
         next_enum     = 0
+
         for s in source_ids:
             if s in common:
-                idx       = np.where(target_ids == s)[0][0]
-                tgts      = target_ids[np.arange(num_targets) != idx]
-                next_enum = current_edges + num_targets - 1
+                if directed:
+                    next_enum = current_edges + num_targets - 1
+
+                    edges[current_edges:next_enum, 1] = \
+                        target_ids[target_ids != s]
+                else:
+                    tgts = [t for t in target_ids if t not in common or t > s]
+
+                    next_enum = current_edges + len(tgts)
+
+                    edges[current_edges:next_enum, 1] = tgts
+
                 edges[current_edges:next_enum, 0] = s
-                edges[current_edges:next_enum, 1] = tgts
+
                 current_edges = next_enum
             else:
                 next_enum = current_edges + num_targets
@@ -81,11 +98,11 @@ def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
                 edges[current_edges:next_enum, 1] = target_ids
                 current_edges = next_enum
     else:
-        edges       = np.empty((num_sources*num_targets, 2))
+        edges       = np.empty((num_edges, 2))
         edges[:, 0] = np.repeat(source_ids, num_targets)
         edges[:, 1] = np.tile(target_ids, num_sources)
 
-    if distance is not None:
+    if distance is not None and 'positions' in kwargs:
         pos       = kwargs['positions']
         x, y      = pos[0], pos[1]
         vectors   = np.array((x[edges[:, 1]] - x[edges[:, 0]],
@@ -717,7 +734,88 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
         num_test += 1
 
-    ia_edges = _no_self_loops(ia_edges)
+    return ia_edges
+
+
+def _watts_strogatz(source_ids, target_ids, coord_nb, proba_shortcut,
+                    reciprocity_circular, shuffle, directed=True,
+                    multigraph=False, **kwargs):
+    '''
+    Returns a numpy array of dimension (num_edges,2) that describes the edge
+    list of a Watts-Strogatz graph.
+
+    Note
+    ----
+    `source_ids` and `target_ids` are only there for compatibility with the
+    connect functions, this algorithm requires a single population.
+    This check (if necessary) is performed above.
+    '''
+    assert shuffle in ('sources', 'targets', 'random'), \
+        "Shuffle must be either 'sources', 'targets', or 'random'."
+
+    nodes      = len(source_ids)
+    source_ids = np.array(source_ids, dtype=int)
+    target_ids = np.array(target_ids, dtype=int)
+
+    # check the number of edges
+    direct_factor  = 0.5*(1 + directed)
+    recip_factor   = 0.5*(1 + reciprocity_circular)
+
+    deg   = int(coord_nb * recip_factor * direct_factor)
+    edges = nodes * deg
+
+    b_one_pop = _check_num_edges(
+        source_ids, target_ids, edges, directed, multigraph)
+
+    if not b_one_pop:
+        raise InvalidArgument("This graph model can only be used if source "
+                              "and target populations are the same.")
+
+    # generate the initial circular graph
+    ia_edges = _circular(source_ids, source_ids, coord_nb,
+                         reciprocity_circular, directed)
+
+    # randomize some of the outgoing connections
+    node_set = set(source_ids)
+
+    rng = nngt._rng
+
+    edge_hash = set(tuple(e) for e in ia_edges)
+
+    if not directed:
+        edge_hash.update([tuple(e) for e in ia_edges[:, ::-1]])
+
+    # compute how many we rewire in total, choose them
+    rewire = rng.binomial(edges, proba_shortcut)
+    chosen = rng.choice(edges, rewire, replace=False)
+
+    # rewire
+    keep = np.zeros(rewire, dtype=int)
+
+    if shuffle == "random":
+        keep = rng.integers(1, size=rewire, endpoint=True)
+    elif shuffle == "sources":
+        keep = np.ones(rewire, dtype=int)
+
+    new_targets = rng.integers(nodes, size=rewire)
+
+    for i in range(rewire):
+        idx1 = chosen[i]
+        idx2 = keep[i]
+
+        s = ia_edges[idx1, idx2]
+        t = new_targets[i]
+        e = (s, t)
+
+        while s == t or e in edge_hash:
+            t = rng.integers(nodes)
+            e = (s, t)
+
+        ia_edges[idx1, 1 - idx2] = t
+        edge_hash.add(e)
+
+        if not directed:
+            edge_hash.add(e[::-1])
 
     return ia_edges
 

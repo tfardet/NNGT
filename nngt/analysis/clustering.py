@@ -188,7 +188,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
 
     .. math::
 
-        C_i = \frac{W^3_{ii}}{\left(s^{[\frac{1}{2}]}_i\right)^2 - s_i}
+        C_i = \frac{\left(W^{\left[\frac{2}{3}\right]}\right)^3_{ii}}
+                   {\left(s^{\left[\frac{1}{2}\right]}_i\right)^2 - s_i}
 
     for undirected networks, with :math:`\tilde{W}` the adjacency matrix
     (normalized to have its highest weight set to 1 if weighted), :math:`s_i`
@@ -202,9 +203,10 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
 
     .. math::
 
-        C_i = \frac{\frac{1}{2}\left(W + W^T\right)^3_{ii}}{
-                    \left(s^{[\frac{1}{2}]}_i\right)^2 - 2s^{\leftrightarrow}_i
-                          - s_i}
+        C_i = \frac{\frac{1}{2}\left(W^{\left[\frac{2}{3}\right]}
+                    + W^{\left[\frac{2}{3}\right],T}\right)^3_{ii}}
+                   {\left(s^{\left[\frac{1}{2}\right]}_i\right)^2
+                    - 2s^{\leftrightarrow}_i - s_i}
 
     with :math:`s^{\leftrightarrow} = \sum_k \sqrt{w_{ik}w_{ki}}` the
     reciprocal strength (associated to reciprocal connections).
@@ -347,9 +349,16 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     directed *= g.is_directed()
     weighted  = weights not in (False, None)
 
+    exponent = None
+
+    if method == "onnela":
+        exponent = 1/3
+    elif method == "continuous":
+        exponent = 2/3
+
     # get relevant matrices (use directed=False to get both dir/undir mat)
     _, matsym = _get_matrices(g, directed, weights, weighted, combine_weights,
-                              onnela=(method=="onnela"))
+                              exponent=exponent)
 
     # if unweighted, adjsym is matsym
     adjsym = matsym
@@ -490,13 +499,16 @@ def _triangles_and_triplets(g, directed, weights, method, combine_weights,
 
     # check the method to get the relevant matrices
     if method == "continuous":
-        W, Wu = _get_matrices(g, directed, weights, True, combine_weights)
+        W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
+                              exponent=2/3)
+
+        Wtr, Wtru = _get_matrices(g, directed, weights, True, combine_weights)
 
         triplets = _triplet_count_weighted(
-            g, W, Wu, A, Au, method, directed, weights, nodes)
+            g, Wtr, Wtru, A, Au, method, directed, weights, nodes)
     elif method == "onnela":
         W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
-                              onnela=True)
+                              exponent=1/3)
 
         # onnela uses the binary triplets
         triplets = triplet_count(g, nodes=nodes, directed=directed,
@@ -593,7 +605,7 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
 
 
 def _get_matrices(g, directed, weights, weighted, combine_weights,
-                  onnela=False):
+                  exponent=None):
     '''
     Return the relevant matrices:
     * W, Wu if weighted
@@ -604,8 +616,11 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
         W  = g.adjacency_matrix(weights=weights)
         W /= W.max()
 
-        if onnela:
-            W = W.power(1/3)
+        # remove potential self-loops
+        W.setdiag(0.)
+
+        if exponent is not None:
+            W = W.power(exponent)
 
         Wu = W
 
@@ -628,6 +643,10 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
 
     # binary undirected
     A  = g.adjacency_matrix()
+
+    # remove potential self-loops
+    A.setdiag(0.)
+
     Au = A
 
     if g.is_directed():
