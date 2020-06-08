@@ -22,6 +22,7 @@ from itertools import cycle
 from collections import defaultdict
 
 import numpy as np
+from matplotlib.artist import Artist
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
 from matplotlib.patches import Arc, RegularPolygon, PathPatch
 from matplotlib.cm import get_cmap
@@ -66,7 +67,7 @@ __all__ = ["draw_network", "library_draw"]
 
 def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
-                 ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
+                 ealpha=0.5, max_nsize=None, max_esize=2., curved_edges=False,
                  threshold=0.5, decimate_connections=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
                  restrict_nodes=None, show_environment=True, fast=False,
@@ -207,9 +208,13 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                            else decimate_connections
 
     # get node and edge shape/size properties
+    simple_nodes = kwargs.get("simple_nodes", False)
+
+    max_nsize = 20 if simple_nodes else 5
+
     markers, nsize, esize = _node_edge_shape_size(
         network, nshape, nsize, max_nsize, esize, max_esize, restrict_nodes,
-        size)
+        size, threshold, simple_nodes=simple_nodes)
 
     # node color information
     default_ncmap = (palette_discrete() if ncolor == "group"
@@ -316,8 +321,6 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 [ncmap((node_color - minc)/(np.max(node_color) - minc))]*n)
 
     # plot nodes
-    simple_nodes = kwargs.get("simple_nodes", False)
-
     if simple_nodes:
         if nonstring_container(nshape):
             # matplotlib scatter does not support marker arrays
@@ -643,31 +646,76 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
     '''
     import matplotlib.pyplot as plt
 
+    # default plot
+    if nngt.get_config("backend") == "nngt":
+        draw_network(
+            network, nsize=nsize, ncolor=ncolor, nshape=nshape,
+            nborder_color=nborder_color, nborder_width=nborder_width,
+            esize=esize, ecolor=ecolor, ealpha=ealpha, max_nsize=max_nsize,
+            max_esize=max_esize, curved_edges=curved_edges,
+            threshold=threshold, decimate_connections=decimate_connections,
+            spatial=spatial, restrict_nodes=restrict_nodes,
+            show_environment=show_environment, size=size, axis=axis, show=show,
+            **kwargs)
+
+    # otherwise, preapre data
     restrict_nodes = _convert_to_nodes(restrict_nodes,
                                        "restrict_nodes", network)
 
     # shize and shape
     markers, nsize, esize = _node_edge_shape_size(
         network, nshape, nsize, max_nsize, esize, max_esize, restrict_nodes,
-        size)
+        size, threshold)
 
     # node color information
     default_ncmap = (palette_discrete() if ncolor == "group"
                      else palette_continuous())
 
     ncmap = get_cmap(kwargs.get("node_cmap", default_ncmap))
+
     node_color, nticks, ntickslabels, nlabel = \
         _node_color(network, restrict_nodes, ncolor)
 
-    # do th plot
-    if nngt.get_config("backend") == "graph-tool":
-        from graph_tool.draw import graph_draw
+    # edge color
+    ecolor = _edge_prop(network, ecolor)
+    esize  = _edge_prop(network, esize)
 
+    if nonstring_container(esize):
+        esize *= max_esize / np.max(esize)
+
+    # backend and axis
+    if nngt.get_config("backend") in ("graph-tool", "igraph"):
+        plt.switch_backend("GTK3Cairo")
+
+    if axis is None:
+        size_inches = (size[0]/float(dpi), size[1]/float(dpi))
+        fig, axis = plt.subplots(figsize=size_inches)
+        axis.axis('off')
+
+    # do the plot
+    if nngt.get_config("backend") == "graph-tool":
+        from graph_tool.draw import graph_draw, sfdp_layout
+
+        graph = network.graph
+
+        # resize
+        if nonstring_container(nsize):
+            nsize /= np.max(nsize)
+
+        nborder_width *= 0.1
+
+        esize *= 0.02
+
+        # positions
         pos = None
 
         if isinstance(network, nngt.SpatialGraph) and spatial:
             xy  = network.get_positions()
-            pos = network.graph.new_vp("vector<double>", vals=xy)
+            pos = graph.new_vp("vector<double>", vals=xy)
+        else:
+            weights = (None if not network.is_weighted()
+                       else graph.edge_properties['weight'])
+            pos = sfdp_layout(graph, eweight=weights)
 
         convert_shape = {
             "o": "circle",
@@ -686,19 +734,24 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
             shape_dict[k] = v
 
         vprops = {
-            "vertex_shape": shape_dict[nshape],
-            "vertex_fill_color": node_color,
-            "vertex_color": nborder_color,
-            "vertex_size": nsize,
-            "vertex_pen_width": nborder_width,
+            "shape": shape_dict[nshape],
+            "fill_color": _to_gt_prop(graph, node_color, ncmap, color=True),
+            "color": _to_gt_prop(graph, nborder_color, ncmap, color=True),
+            "size": _to_gt_prop(graph, nsize, ncmap),
+            "pen_width": _to_gt_prop(graph, nborder_width, ncmap),
         }
 
+        if vprops["fill_color"] is None:
+            vprops["fill_color"] = [0.640625, 0, 0, 0.9]
+
         eprops = {
-            "edge_color": ecolor,
+            "color": _to_gt_prop(graph, ecolor, palette_continuous(),
+                                 ptype='edge', color=True),
+            "pen_width": _to_gt_prop(graph, esize, None, ptype='edge'),
         }
 
         graph_draw(network.graph, pos=pos, vprops=vprops, eprops=eprops,
-                   output_size=size)
+                   output_size=size, mplfig=axis)
     elif nngt.get_config("backend") == "networkx":
         from networkx import draw_networkx
 
@@ -710,16 +763,15 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
         # normalize sizes compared to igraph
         nsize = _increase_nx_size(nsize)
-        esize = _increase_nx_size(esize)
 
         draw_networkx(
             network.graph, pos=pos, ax=axis, nodelist=restrict_nodes,
             node_size=nsize, node_color=node_color, node_shape=nshape,
             linewidths=nborder_width, edge_color=ecolor,
-            cmap=ncmap, with_labels=show_labels, arrowsize=esize)
+            edge_cmap=palette_continuous(), cmap=ncmap,
+            with_labels=show_labels, width=esize)
     elif nngt.get_config("backend") == "igraph":
         from igraph import Layout, PrecalculatedPalette
-        from igraph import plot as ig_plot
 
         layout = None
 
@@ -740,20 +792,11 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
             "edge_color": ecolor,
             "layout": layout,
             "palette": palette,
-            "bbox": size,
         }
 
-        ig_plot(network.graph, **visual_style)
-    else:
-        draw_network(
-            network, nsize=nsize, ncolor=ncolor, nshape=nshape,
-            nborder_color=nborder_color, nborder_width=nborder_width,
-            esize=esize, ecolor=ecolor, ealpha=ealpha, max_nsize=max_nsize,
-            max_esize=max_esize, curved_edges=curved_edges,
-            threshold=threshold, decimate_connections=decimate_connections,
-            spatial=spatial, restrict_nodes=restrict_nodes,
-            show_environment=show_environment, size=size, axis=axis, show=show,
-            **kwargs)
+        graph_artist = GraphArtist(network.graph, axis, **visual_style)
+
+        axis.artists.append(graph_artist)
 
     if show:
         plt.show()
@@ -764,8 +807,9 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 # ----- #
 
 def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
-                          restrict_nodes, size):
+                          restrict_nodes, size, threshold, simple_nodes=False):
     ''' Returns the shape and size of the nodes and edges '''
+    n = network.node_nb()
     e = network.edge_nb()
 
     # markers
@@ -781,9 +825,12 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
                                          "must be disjoint.")
 
             mm = cycle(MarkerStyle.filled_markers)
+
             shapes  = np.full(network.node_nb(), "", dtype=object)
+
             for g, m in zip(nshape, mm):
                 shapes[g.ids] = m
+
             markers = list(shapes)
         elif len(nshape) != network.node_nb():
             raise ValueError("When passing an array of markers to "
@@ -796,11 +843,13 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
     if isinstance(nsize, str):
         if e:
             nsize = _node_size(network, restrict_nodes, nsize)
-            nsize *= max_nsize
+            nsize *= max_nsize / np.max(nsize)
         else:
             nsize = np.ones(n, dtype=float)
     elif isinstance(nsize, (float, int, np.number)):
         nsize = np.full(n, nsize, dtype=float)
+    elif nonstring_container(nsize):
+        nsize *= max_nsize / np.max(nsize)
 
     nsize *= 0.01 * size[0]
 
@@ -856,9 +905,10 @@ def _node_size(network, restrict_nodes, nsize):
         betw = None
 
         if restrict_nodes is None:
-            betw = network.betweenness_list("node").astype(float)
+            betw = network.get_betweenness("node").astype(float)
         else:
-            betw = network.betweenness_list("node").astype(float)[restrict_nodes]
+            betw = network.get_betweenness(
+                "node").astype(float)[restrict_nodes]
 
         if network.is_connected("weak") == 1:
             size *= betw
@@ -898,7 +948,7 @@ def _edge_size(network, restrict_nodes, esize):
         max_size = None
 
         if esize == "betweenness":
-            betw = network.betweenness_list("edge")
+            betw = network.get_betweenness("edge")
 
             max_size = np.max(betw)
 
@@ -930,7 +980,7 @@ def _node_color(network, restrict_nodes, ncolor):
     if restrict_nodes is not None:
         restrict_nodes = set(restrict_nodes)
 
-    if isinstance(ncolor, np.float):
+    if isinstance(ncolor, float):
         color = np.repeat(ncolor, n)
     elif isinstance(ncolor, str):
         if ncolor == "group" or ncolor == "groups":
@@ -961,16 +1011,20 @@ def _node_color(network, restrict_nodes, ncolor):
                 if restrict_nodes is None:
                     values = network.get_betweenness("node")
                 else:
-                    values = network.get_betweenness("node")[list(restrict_nodes)]
+                    values = network.get_betweenness(
+                        "node")[list(restrict_nodes)]
             elif ncolor in network.node_attributes:
-                values = network.get_node_attributes(name=ncolor, nodes=restrict_nodes)
+                values = network.get_node_attributes(
+                    name=ncolor, nodes=restrict_nodes)
             elif ncolor == "clustering" :
-                values = nngt.analysis.local_clustering(network, nodes=restrict_nodes)
+                values = nngt.analysis.local_clustering(
+                    network, nodes=restrict_nodes)
             elif ncolor in nngt.analyze_graph:
                 if restrict_nodes is None:
                     values = nngt.analyze_graph[ncolor](network)
                 else:
-                    values = nngt.analyze_graph[ncolor](network)[list(restrict_nodes)]
+                    values = nngt.analyze_graph[ncolor](
+                        network)[list(restrict_nodes)]
             elif ncolor in ColorConverter.colors:
                 color = np.repeat(ncolor, n)
             else:
@@ -1000,6 +1054,22 @@ def _node_color(network, restrict_nodes, ncolor):
         ntickslabels = nticks
 
     return color, nticks, ntickslabels, nlabel
+
+
+def _edge_prop(network, value):
+    prop = value
+
+    enum = network.edge_nb()
+
+    if isinstance(value, str) and value not in ColorConverter.colors:
+        if value in network.edge_attributes:
+            color = network.edge_attributes[value]
+        elif value == "betweenness":
+            prop = network.get_betweenness("edge")
+        else:
+            raise RuntimeError("Invalid `value`: {}.".format(value))
+
+    return prop
 
 
 def _discrete_cmap(N, base_cmap=None, clist=None):
@@ -1128,3 +1198,83 @@ def _increase_nx_size(size):
             return 4*np.asarray(size)
 
     return size
+
+
+def _to_gt_prop(graph, value, cmap, ptype='node', color=False):
+    pmap = (graph.new_vertex_property if ptype == 'node'
+            else graph.new_edge_property)
+    
+    if nonstring_container(value) and len(value):
+        if isinstance(value[0], str):
+            if color:
+                # custom namedcolors
+                return pmap("vector<double>",
+                            vals=[ColorConverter.to_rgba(v) for v in value])
+            else:
+                return pmap("string", vals=value)
+        elif nonstring_container(value[0]):
+            # direct rgb(a) description
+            return pmap("vector<double>", vals=value)
+
+        # numbers
+        if color:
+            vmin, vmax = np.min(value), np.max(value)
+
+            normalized = None
+
+            if vmax - vmin > 0:
+                normalized = (np.array(value) - vmin) / (vmax - vmin)
+            else:
+                return normalized
+
+            return pmap("vector<double>", vals=[cmap(v) for v in normalized])
+
+        return pmap("double", vals=value)
+        
+
+    return value
+
+
+class GraphArtist(Artist):
+    """
+    Matplotlib artist class that draws igraph graphs.
+
+    Only Cairo-based backends are supported.
+
+    Adapted from: https://stackoverflow.com/a/36154077/5962321
+    """
+
+    def __init__(self, graph, axis, palette=None, *args, **kwds):
+        """Constructs a graph artist that draws the given graph within
+        the given bounding box.
+
+        `graph` must be an instance of `igraph.Graph`.
+        `bbox` must either be an instance of `igraph.drawing.BoundingBox`
+        or a 4-tuple (`left`, `top`, `width`, `height`). The tuple
+        will be passed on to the constructor of `BoundingBox`.
+        `palette` is an igraph palette that is used to transform
+        numeric color IDs to RGB values. If `None`, a default grayscale
+        palette is used from igraph.
+
+        All the remaining positional and keyword arguments are passed
+        on intact to `igraph.Graph.__plot__`.
+        """
+        from igraph import BoundingBox, palettes
+
+        super().__init__()
+
+        self.graph = graph
+        self.palette = palette or palettes["gray"]
+        self.bbox = BoundingBox(axis.bbox.bounds)
+        self.args = args
+        self.kwds = kwds
+
+    def draw(self, renderer):
+        from matplotlib.backends.backend_cairo import RendererCairo
+
+        if not isinstance(renderer, RendererCairo):
+            raise TypeError(
+                "graph plotting is supported only on Cairo backends")
+
+        self.graph.__plot__(renderer.gc.ctx, self.bbox, self.palette,
+                            *self.args, **self.kwds)

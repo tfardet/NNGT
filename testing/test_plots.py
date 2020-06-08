@@ -90,11 +90,18 @@ def test_draw_network_options():
 @pytest.mark.mpi_skip
 def test_library_plot():
     ''' Check that plotting with the underlying backend library works '''
-    nngt.use_backend("graph-tool")
     g = ng.newman_watts(4, 0.2, nodes=50)
+    g.set_weights(np.random.uniform(1, 5, g.edge_nb()))
 
-    nplt.library_draw(g, ncolor="total-degree", ecolor="k", show=True)
-    # ~ nplt.library_draw(g, show=True)
+    nplt.library_draw(g, show=False)
+
+    nplt.library_draw(g, ncolor="total-degree", ecolor="k", show=False)
+
+    if nngt.get_config("backend") != nngt:
+        nplt.library_draw(g, ncolor="in-degree", ecolor="betweenness",
+                          esize='weight', max_esize=5, show=False)
+
+    nplt.library_draw(g, ncolor="in-degree", esize="weight", show=False)
 
 
 if __name__ == "__main__":

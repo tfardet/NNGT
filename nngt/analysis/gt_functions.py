@@ -592,7 +592,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     ----------
     .. [gt-sd] :gtdoc:`topology.shortest_distance`
     '''
-    mat_dist = short_distance(g, sources=sources, targets=targets,
+    mat_dist = shortest_distance(g, sources=sources, targets=targets,
                               directed=directed, weights=weights)
 
     if not unconnected and np.any(np.isinf(mat_dist)):

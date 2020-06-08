@@ -313,7 +313,13 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
                 attr           = nattr_name[k]
                 idx            = di_notif["node_attributes"].index(attr)
                 dtype          = _np_dtype(nattr_type[idx])
-                di_nattr[attr] = np.fromstring(s, sep=separator, dtype=dtype)
+
+                if dtype == object:
+                    di_nattr[attr] = np.array(s.split(separator), dtype=dtype)
+                else:
+                    di_nattr[attr] = np.fromstring(s, sep=separator,
+                                                   dtype=dtype)
+                
 
     return di_nattr
 

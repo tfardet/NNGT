@@ -518,8 +518,8 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     ----------
     .. [ig-sp] :igdoc:`shortest_paths`
     '''
-    mat_dist = short_distance(g, sources=sources, targets=targets,
-                              directed=directed, weights=weights)
+    mat_dist = shortest_distance(g, sources=sources, targets=targets,
+                                 directed=directed, weights=weights)
 
     if not unconnected and np.any(np.isinf(mat_dist)):
         raise RuntimeError("`sources` and `target` do not belong to the "
