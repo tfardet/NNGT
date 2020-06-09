@@ -72,7 +72,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  restrict_sources=None, restrict_targets=None,
                  restrict_nodes=None, show_environment=True, fast=False,
                  size=(600, 600), xlims=None, ylims=None, dpi=75, axis=None,
-                 colorbar=False, show=False, **kwargs):
+                 colorbar=False, layout=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -134,12 +134,16 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         (width, height) tuple for the canvas size (in px).
     dpi : int, optional (default: 75)
         Resolution (dot per inch).
-    colorbar : bool, optional (default: False)
-        Whether to display a colorbar for the node colors or not.
-    show : bool, optional (default: True)
-        Display the plot immediately.
     axis : matplotlib axis, optional (default: create new axis)
         Axis on which the network will be plotted.
+    colorbar : bool, optional (default: False)
+        Whether to display a colorbar for the node colors or not.
+    layout : str, optional (default: random or spatial positions)
+        Name of a standard layout to structure the network. Available layouts
+        are: "circular" or "random". If no layout is provided and the network
+        is spatial, then node positions will be used by default.
+    show : bool, optional (default: True)
+        Display the plot immediately.
     **kwargs : dict
         Optional keyword arguments including `node_cmap` to set the
         nodes colormap (default is "magma" for continuous variables and
@@ -157,7 +161,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         axis = fig.add_subplot(111, frameon=0, aspect=1)
 
     axis.set_axis_off()
-    pos, layout = None, None
+
+    pos = None
 
     # restrict sources and targets
     restrict_sources = _convert_to_nodes(restrict_sources,
@@ -266,7 +271,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # draw
     pos = np.zeros((n, 2))
 
-    if spatial and network.is_spatial():
+    if layout == "circular":
+        pos = _circular_layout(network, nsize)
+    elif layout is None and spatial and network.is_spatial():
         if show_environment:
             nngt.geometry.plot.plot_shape(network.shape, axis=axis,
                                           show=False)
@@ -567,7 +574,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
                  restrict_sources=None, restrict_targets=None,
                  restrict_nodes=None, show_environment=True, size=(600, 600),
                  xlims=None, ylims=None, dpi=75, axis=None, colorbar=False,
-                 show_labels=False, show=False, **kwargs):
+                 show_labels=False, layout=None, show=False, **kwargs):
     '''
     Draw a given :class:`~nngt.Graph` using the underlying library's drawing
     functions.
@@ -634,17 +641,44 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         Resolution (dot per inch).
     colorbar : bool, optional (default: False)
         Whether to display a colorbar for the node colors or not.
-    show : bool, optional (default: True)
-        Display the plot immediately.
     axis : matplotlib axis, optional (default: create new axis)
         Axis on which the network will be plotted.
+    layout : str, optional (default: library-dependent or spatial positions)
+        Name of a standard layout to structure the network. Available layouts
+        are: "circular", "spring-block", "random". If no layout is
+        provided and the network is spatial, then node positions will be
+        used by default.
+    show : bool, optional (default: True)
+        Display the plot immediately.
     **kwargs : dict
         Optional keyword arguments including `node_cmap` to set the
         nodes colormap (default is "magma" for continuous variables and
         "Set1" for groups) and the boolean `simple_nodes` to make node
         plotting faster.
     '''
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
+
+    # backend and axis
+    if nngt.get_config("backend") in ("graph-tool", "igraph"):
+        mpl_backend = mpl.get_backend()
+
+        if mpl_backend.startswith("Qt4"):
+            if mpl_backend != "Qt4Cairo":
+                plt.switch_backend("Qt4Cairo")
+        elif mpl_backend.startswith("Qt5"):
+            if mpl_backend != "Qt5Cairo":
+                plt.switch_backend("Qt5Cairo")
+        elif mpl_backend.startswith("GTK"):
+            if mpl_backend != "GTK3Cairo":
+                plt.switch_backend("GTK3Cairo")
+        elif mpl_backend != "cairo":
+            plt.switch_backend("cairo")
+
+    if axis is None:
+        size_inches = (size[0]/float(dpi), size[1]/float(dpi))
+        fig, axis = plt.subplots(figsize=size_inches)
+        axis.axis('off')
 
     # default plot
     if nngt.get_config("backend") == "nngt":
@@ -655,8 +689,8 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
             max_esize=max_esize, curved_edges=curved_edges,
             threshold=threshold, decimate_connections=decimate_connections,
             spatial=spatial, restrict_nodes=restrict_nodes,
-            show_environment=show_environment, size=size, axis=axis, show=show,
-            **kwargs)
+            show_environment=show_environment, size=size, axis=axis,
+            layout=layout, show=show, **kwargs)
 
     # otherwise, preapre data
     restrict_nodes = _convert_to_nodes(restrict_nodes,
@@ -682,19 +716,15 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
     if nonstring_container(esize):
         esize *= max_esize / np.max(esize)
-
-    # backend and axis
-    if nngt.get_config("backend") in ("graph-tool", "igraph"):
-        plt.switch_backend("GTK3Cairo")
-
-    if axis is None:
-        size_inches = (size[0]/float(dpi), size[1]/float(dpi))
-        fig, axis = plt.subplots(figsize=size_inches)
-        axis.axis('off')
+    
+    # environment
+    if spatial and network.is_spatial():
+        if show_environment:
+            nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
 
     # do the plot
     if nngt.get_config("backend") == "graph-tool":
-        from graph_tool.draw import graph_draw, sfdp_layout
+        from graph_tool.draw import (graph_draw, sfdp_layout, random_layout)
 
         graph = network.graph
 
@@ -709,10 +739,21 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         # positions
         pos = None
 
-        if isinstance(network, nngt.SpatialGraph) and spatial:
-            xy  = network.get_positions()
-            pos = graph.new_vp("vector<double>", vals=xy)
+        if layout is None:
+            if isinstance(network, nngt.SpatialGraph) and spatial:
+                xy  = network.get_positions()
+                pos = graph.new_vp("vector<double>", vals=xy)
+            else:
+                weights = (None if not network.is_weighted()
+                           else graph.edge_properties['weight'])
+                pos = sfdp_layout(graph, eweight=weights)
+        elif layout == "random":
+            pos = random_layout(graph)
+        elif layout == "circular":
+            pos = graph.new_vp("vector<double>",
+                               vals=_circular_layout(network, nsize))
         else:
+            # spring block
             weights = (None if not network.is_weighted()
                        else graph.edge_properties['weight'])
             pos = sfdp_layout(graph, eweight=weights)
@@ -753,31 +794,45 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         graph_draw(network.graph, pos=pos, vprops=vprops, eprops=eprops,
                    output_size=size, mplfig=axis)
     elif nngt.get_config("backend") == "networkx":
-        from networkx import draw_networkx
+        import networkx as nx
 
         pos = None
 
-        if isinstance(network, nngt.SpatialGraph) and spatial:
-            xy  = network.get_positions()
-            pos = {i: coords for coords in xy}
+        if layout is None:
+            if isinstance(network, nngt.SpatialGraph) and spatial:
+                xy  = network.get_positions()
+                pos = {i: coords for coords in xy}
+        elif layout == "circular":
+            pos = nx.circular_layout(network.graph)
+        elif layout == "random":
+            pos = nx.random_layout(network.graph)
+        else:
+            pos = nx.spring_layout(network.graph)
 
         # normalize sizes compared to igraph
         nsize = _increase_nx_size(nsize)
 
-        draw_networkx(
+        nborder_width = _increase_nx_size(nborder_width, 2)
+
+        nx.draw_networkx(
             network.graph, pos=pos, ax=axis, nodelist=restrict_nodes,
             node_size=nsize, node_color=node_color, node_shape=nshape,
             linewidths=nborder_width, edge_color=ecolor,
             edge_cmap=palette_continuous(), cmap=ncmap,
-            with_labels=show_labels, width=esize)
+            with_labels=show_labels, width=esize, edgecolors=nborder_color)
     elif nngt.get_config("backend") == "igraph":
         from igraph import Layout, PrecalculatedPalette
 
-        layout = None
+        pos = None
 
-        if isinstance(network, nngt.SpatialGraph) and spatial:
-            xy  = network.get_positions()
-            layout = Layout(xy)
+        if layout is None:
+            if isinstance(network, nngt.SpatialGraph) and spatial:
+                xy  = network.get_positions()
+                pos = Layout(xy)
+        elif layout == "circular":
+            pos = network.graph.layout_circle()
+        elif layout == "random":
+            pos = network.graph.layout_random()
 
         palette = PrecalculatedPalette(ncmap(np.linspace(0, 1, 256)))
 
@@ -785,12 +840,26 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         node_color = _to_ig_color(node_color)
         ecolor     = _to_ig_color(ecolor)
 
+        convert_shape = {
+            "o": "circle",
+            "v": "triangle-down",
+            "^": "triangle-up",
+            "s": "rectangle",
+        }
+
+        shape_dict = defaultdict(
+            lambda k: "circle" if k not in convert_shape.values() else k)
+
+        for k, v in convert_shape.items():
+            shape_dict[k] = v
+
         visual_style = {
             "vertex_size": nsize,
             "vertex_color": node_color,
+            "vertex_shape": shape_dict[nshape],
             "edge_width": esize,
             "edge_color": ecolor,
-            "layout": layout,
+            "layout": pos,
             "palette": palette,
         }
 
@@ -1190,12 +1259,13 @@ def _to_ig_color(color):
     return color
 
 
-def _increase_nx_size(size):
+def _increase_nx_size(size, factor=4):
+    
     if isinstance(size, float) or is_integer(size):
-        return 4*size
+        return factor*size
     elif nonstring_container(size) and len(size):
         if isinstance(size[0], float) or is_integer(size[0]):
-            return 4*np.asarray(size)
+            return factor*np.asarray(size)
 
     return size
 
@@ -1278,3 +1348,18 @@ class GraphArtist(Artist):
 
         self.graph.__plot__(renderer.gc.ctx, self.bbox, self.palette,
                             *self.args, **self.kwds)
+
+
+def _circular_layout(graph, node_size):
+    max_nsize = np.max(node_size)
+
+    # chose radius such that r*dtheta > max_nsize
+    dtheta = 2*np.pi / graph.node_nb()
+
+    r = 1.1*max_nsize / dtheta
+
+    thetas = np.array([i*dtheta for i in range(graph.node_nb())])
+    x = r*np.cos(thetas)
+    y = r*np.sin(thetas)
+
+    return np.array((x, y)).T

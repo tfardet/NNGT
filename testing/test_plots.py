@@ -97,15 +97,22 @@ def test_library_plot():
 
     nplt.library_draw(g, ncolor="total-degree", ecolor="k", show=False)
 
-    if nngt.get_config("backend") != nngt:
+    if nngt.get_config("backend") != "nngt":
         nplt.library_draw(g, ncolor="in-degree", ecolor="betweenness",
                           esize='weight', max_esize=5, show=False)
 
-    nplt.library_draw(g, ncolor="in-degree", esize="weight", show=False)
+    nplt.library_draw(g, nshape="s", esize="weight", layout="random",
+                      show=False)
+
+    nplt.library_draw(g, nshape="s", esize="weight", layout="random",
+                      show=False)
+
+    nplt.library_draw(g, ncolor="in-degree", esize="weight", layout="circular",
+                      show=False)
 
 
 if __name__ == "__main__":
-    # ~ test_plot_prop()
-    # ~ test_plot_net()
-    # ~ test_draw_network_options()
+    test_plot_prop()
+    test_plot_net()
+    test_draw_network_options()
     test_library_plot()
