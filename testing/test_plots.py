@@ -23,6 +23,14 @@ dirpath = os.path.abspath(os.path.dirname(__file__))
 
 
 # tests
+@pytest.mark.mpi_skip
+def test_plot_config():
+    ''' Test the default plot configuration '''
+    nngt.set_config("color_lib", "seaborn")
+    nngt.set_config("palette", "viridis")
+    nngt.set_config("palette_discrete", "Set3")
+    nngt.set_config("palette_continuous", "magma")
+
 
 @pytest.mark.mpi_skip
 def test_plot_prop():
@@ -43,21 +51,13 @@ def test_plot_prop():
 
 
 @pytest.mark.mpi_skip
-def test_plot_net():
-    fname = dirpath + "/Networks/p2p-Gnutella04.txt"
-
-    net = nngt.load_from_file(fname, fmt="edge_list", separator="\t")
-
-    nplt.draw_network(net, show=False)
-
-
-@pytest.mark.mpi_skip
 def test_draw_network_options():
     net = nngt.generation.erdos_renyi(nodes=100, avg_deg=10)
 
     net.set_weights(np.random.randint(0, 20, net.edge_nb()))
 
-    nplt.draw_network(net, ncolor="in-degree", nsize=3, esize=2, show=False)
+    nplt.draw_network(net, ncolor="in-degree", nsize=3, esize=2,
+                      colorbar=True, show=False)
 
     if nngt.get_config("backend") != "nngt":
         nplt.draw_network(net, ncolor="betweenness", nsize="total-degree",
@@ -90,7 +90,9 @@ def test_draw_network_options():
 @pytest.mark.mpi_skip
 def test_library_plot():
     ''' Check that plotting with the underlying backend library works '''
-    g = ng.newman_watts(4, 0.2, nodes=50)
+    pop = nngt.NeuralPop.exc_and_inhib(50)
+    g   = ng.newman_watts(4, 0.2, population=pop)
+
     g.set_weights(np.random.uniform(1, 5, g.edge_nb()))
 
     nplt.library_draw(g, show=False)
@@ -112,7 +114,7 @@ def test_library_plot():
 
 
 if __name__ == "__main__":
+    test_plot_config()
     test_plot_prop()
-    test_plot_net()
     test_draw_network_options()
     test_library_plot()
