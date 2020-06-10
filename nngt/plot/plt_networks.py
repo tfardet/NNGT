@@ -1004,11 +1004,13 @@ def _node_size(network, restrict_nodes, nsize):
 def _edge_size(network, restrict_nodes, esize):
     edges, num_edges = None, None
 
+    restrict_nodes = None if restrict_nodes is None else list(restrict_nodes)
+
     if restrict_nodes is None:
         num_edges = network.edge_nb()
     else:
         edges = network.get_edges(source_node=restrict_nodes,
-                              target_node=restrict_nodes)
+                                  target_node=restrict_nodes)
         num_edges = len(edges)
 
     size = np.repeat(1., num_edges)

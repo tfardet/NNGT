@@ -70,7 +70,7 @@ before_install:
     - pip3 install --upgrade pip
     - pip3 install --upgrade setuptools
     - pip3 install --upgrade cython
-    - pip3 install --upgrade numpy scipy matplotlib shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls pycairo
+    - pip3 install --upgrade numpy scipy matplotlib shapely numpy mpi4py svg.path dxfgrabber pathlib pytest pytest-mpi cov-core coverage coveralls
     # install graph-tool, igraph, and networkx
     - if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
         sudo apt-get install -y python3-graph-tool;
