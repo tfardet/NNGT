@@ -10,7 +10,7 @@ highly distributed activity simulators.
 
 ## Principle
 
-NNGT provides a unified interface which act as a wrapper for the 3 main graph
+NNGT provides a unified interface that acts as a wrapper for 3 major graph
 libraries in Python: [networkx](https://networkx.github.io/),
 [igraph](https://igraph.org/python/), and
 [graph-tool](https://graph-tool.skewed.de/).
@@ -30,8 +30,26 @@ Eventually, NNGT is also able to import neuronal networks generated using the
 
 ## Install and use the library
 
-NNGT requires Python 3.4+, make sure you have a valid Python installation, then
-do:
+### Version 2.0 (recommended)
+
+NNGT 2.0 is currently under active development (not available on PyPi) and
+requires Python 3.4+. To use it, make sure you have a valid Python
+installation, then do:
+
+```
+pip install --user git+https://github.com:Silmathoron/NNGT.git@master
+```
+
+Then in a Python terminal or script type
+
+```python
+import nngt
+```
+
+### Stable version (1.2.3)
+
+Version 1.2 is available on PyPi and still supports Python 2.
+Make sure you have a valid Python installation, then do:
 
 ```
 pip install --user nngt

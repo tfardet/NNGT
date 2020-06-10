@@ -567,7 +567,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     return np.sum(mat_dist) / num_paths
 
 
-def diameter(g, directed=True, weights=False, is_connected=False):
+def diameter(g, directed=True, weights=None, is_connected=False):
     '''
     Returns the diameter of the graph.
 

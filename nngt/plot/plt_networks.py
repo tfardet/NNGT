@@ -19,10 +19,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from itertools import cycle
+from collections import defaultdict
 
 import numpy as np
+from matplotlib.artist import Artist
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
 from matplotlib.patches import Arc, RegularPolygon, PathPatch
+from matplotlib.cm import get_cmap
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import ListedColormap, Normalize, ColorConverter
 from matplotlib.markers import MarkerStyle
@@ -30,7 +33,7 @@ from matplotlib.transforms import Affine2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import nngt
-from nngt.lib import POS, nonstring_container
+from nngt.lib import POS, nonstring_container, is_integer
 from .custom_plt import palette_continuous, palette_discrete, format_exponent
 
 
@@ -55,7 +58,7 @@ If edges have varying size, plot only those that are visible (size > min)
 
 '''
 
-__all__ = ["draw_network"]
+__all__ = ["draw_network", "library_draw"]
 
 
 # ------- #
@@ -64,12 +67,12 @@ __all__ = ["draw_network"]
 
 def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
-                 ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
+                 ealpha=0.5, max_nsize=None, max_esize=2., curved_edges=False,
                  threshold=0.5, decimate_connections=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
                  restrict_nodes=None, show_environment=True, fast=False,
                  size=(600, 600), xlims=None, ylims=None, dpi=75, axis=None,
-                 colorbar=False, show=False, **kwargs):
+                 colorbar=False, layout=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -131,20 +134,22 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         (width, height) tuple for the canvas size (in px).
     dpi : int, optional (default: 75)
         Resolution (dot per inch).
-    colorbar : bool, optional (default: False)
-        Whether to display a colorbar for the node colors or not.
-    show : bool, optional (default: True)
-        Display the plot immediately.
     axis : matplotlib axis, optional (default: create new axis)
         Axis on which the network will be plotted.
+    colorbar : bool, optional (default: False)
+        Whether to display a colorbar for the node colors or not.
+    layout : str, optional (default: random or spatial positions)
+        Name of a standard layout to structure the network. Available layouts
+        are: "circular" or "random". If no layout is provided and the network
+        is spatial, then node positions will be used by default.
+    show : bool, optional (default: True)
+        Display the plot immediately.
     **kwargs : dict
         Optional keyword arguments including `node_cmap` to set the
         nodes colormap (default is "magma" for continuous variables and
         "Set1" for groups) and the boolean `simple_nodes` to make node
         plotting faster.
     '''
-    from matplotlib.cm import get_cmap
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
     import matplotlib.pyplot as plt
 
     # figure and axes
@@ -156,7 +161,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         axis = fig.add_subplot(111, frameon=0, aspect=1)
 
     axis.set_axis_off()
-    pos, layout = None, None
+
+    pos = None
 
     # restrict sources and targets
     restrict_sources = _convert_to_nodes(restrict_sources,
@@ -206,50 +212,19 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     decimate_connections = 1 if decimate_connections is None\
                            else decimate_connections
 
-    markers = nshape
+    # get node and edge shape/size properties
+    simple_nodes = kwargs.get("simple_nodes", False)
 
-    if nonstring_container(nshape):
-        if isinstance(nshape[0], nngt.NeuralGroup):
-            # check disjunction
-            for i, g in enumerate(nshape):
-                for j in range(i + 1, len(nshape)):
-                    if not set(g.ids).isdisjoint(nshape[j].ids):
-                        raise ValueError("Groups passed to `nshape` "
-                                         "must be disjoint.")
+    max_nsize = 20 if simple_nodes else 5
 
-            mm = cycle(MarkerStyle.filled_markers)
-            shapes  = np.full(network.node_nb(), "", dtype=object)
-            for g, m in zip(nshape, mm):
-                shapes[g.ids] = m
-            markers = list(shapes)
-        elif len(nshape) != network.node_nb():
-            raise ValueError("When passing an array of markers to "
-                             "`nshape`, one entry per node in the "
-                             "network must be provided.")
-    else:
-        markers = [nshape for _ in range(network.node_nb())]
-
-    if isinstance(nsize, str):
-        if e:
-            nsize = _node_size(network, restrict_nodes, nsize)
-            nsize *= max_nsize
-        else:
-            nsize = np.ones(n, dtype=float)
-    elif isinstance(nsize, (float, int, np.number)):
-        nsize = np.full(n, nsize, dtype=float)
-
-    nsize *= 0.01 * size[0]
-
-    if isinstance(esize, str) and e:
-        esize  = _edge_size(network, list(restrict_nodes), esize)
-        esize *= max_esize
-        esize[esize < threshold] = 0.
-
-    esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
+    markers, nsize, esize = _node_edge_shape_size(
+        network, nshape, nsize, max_nsize, esize, max_esize, restrict_nodes,
+        size, threshold, simple_nodes=simple_nodes)
 
     # node color information
     default_ncmap = (palette_discrete() if ncolor == "group"
                      else palette_continuous())
+
     ncmap = get_cmap(kwargs.get("node_cmap", default_ncmap))
     node_color, nticks, ntickslabels, nlabel = \
         _node_color(network, restrict_nodes, ncolor)
@@ -266,8 +241,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 
     # check edge color
     group_based = False
+
     default_ecmap = (palette_discrete() if ecolor == "group"
                      else palette_continuous())
+
     if isinstance(ecolor, float):
         ecolor = np.repeat(ecolor, e)
     elif ecolor == "groups" or ecolor == "group":
@@ -294,7 +271,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # draw
     pos = np.zeros((n, 2))
 
-    if spatial and network.is_spatial():
+    if layout == "circular":
+        pos = _circular_layout(network, nsize)
+    elif layout is None and spatial and network.is_spatial():
         if show_environment:
             nngt.geometry.plot.plot_shape(network.shape, axis=axis,
                                           show=False)
@@ -349,8 +328,6 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 [ncmap((node_color - minc)/(np.max(node_color) - minc))]*n)
 
     # plot nodes
-    simple_nodes = kwargs.get("simple_nodes", False)
-
     if simple_nodes:
         if nonstring_container(nshape):
             # matplotlib scatter does not support marker arrays
@@ -379,14 +356,16 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                       else list(set(restrict_nodes).intersection(group.ids))
                 for i, fc in zip(idx, c[idx]):
                     m = MarkerStyle(markers[i]).get_path()
-                    transform = Affine2D().scale(0.5*nsize[i]).translate(pos[i][0], pos[i][1])
+                    transform = Affine2D().scale(
+                        0.5*nsize[i]).translate(pos[i][0], pos[i][1])
                     patch = PathPatch(m.transformed(transform), facecolor=fc,
                                       edgecolor=nborder_color[i])
                     nodes.append(patch)
         else:
             for i, ci in enumerate(c):
                 m = MarkerStyle(markers[i]).get_path()
-                transform = Affine2D().scale(0.5*nsize[i]).translate(pos[i][0], pos[i][1])
+                transform = Affine2D().scale(0.5*nsize[i]).translate(
+                    pos[i][0], pos[i][1])
                 patch = PathPatch(m.transformed(transform), facecolor=ci,
                                   edgecolor=nborder_color[i])
                 nodes.append(patch)
@@ -588,9 +567,370 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         plt.show()
 
 
+def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
+                 nborder_color="k", nborder_width=0.5, esize=1., ecolor="k",
+                 ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
+                 threshold=0.5, decimate_connections=None, spatial=True,
+                 restrict_sources=None, restrict_targets=None,
+                 restrict_nodes=None, show_environment=True, size=(600, 600),
+                 xlims=None, ylims=None, dpi=75, axis=None, colorbar=False,
+                 show_labels=False, layout=None, show=False, **kwargs):
+    '''
+    Draw a given :class:`~nngt.Graph` using the underlying library's drawing
+    functions.
+
+    .. versionadded:: 2.0
+
+    Parameters
+    ----------
+    network : :class:`~nngt.Graph` or subclass
+        The graph/network to plot.
+    nsize : float, array of float or string, optional (default: "total-degree")
+        Size of the nodes as a percentage of the canvas length. Otherwise, it
+        can be a string that correlates the size to a node attribute among
+        "in/out/total-degree", or "betweenness".
+    ncolor : float, array of floats or string, optional (default: 0.5)
+        Color of the nodes; if a float in [0, 1], position of the color in the
+        current palette, otherwise a string that correlates the color to a node
+        attribute among "in/out/total-degree", "betweenness" or "group".
+    nshape : char, array of chars, or groups, optional (default: "o")
+        Shape of the nodes (see `Matplotlib markers <http://matplotlib.org/api/
+        markers_api.html?highlight=marker#module-matplotlib.markers>`_).
+        When using groups, they must be pairwise disjoint; markers will be
+        selected iteratively from the matplotlib default markers.
+    nborder_color : char, float or array, optional (default: "k")
+        Color of the node's border using predefined `Matplotlib colors
+        <http://matplotlib.org/api/colors_api.html?highlight=color
+        #module-matplotlib.colors>`_).
+        or floats in [0, 1] defining the position in the palette.
+    nborder_width : float or array of floats, optional (default: 0.5)
+        Width of the border in percent of canvas size.
+    esize : float, str, or array of floats, optional (default: 0.5)
+        Width of the edges in percent of canvas length. Available string values
+        are "betweenness" and "weight".
+    ecolor : str, char, float or array, optional (default: "k")
+        Edge color. If ecolor="groups", edges color will depend on the source
+        and target groups, i.e. only edges from and toward same groups will
+        have the same color.
+    max_esize : float, optional (default: 5.)
+        If a custom property is entered as `esize`, this normalizes the edge
+        width between 0. and `max_esize`.
+    threshold : float, optional (default: 0.5)
+        Size under which edges are not plotted.
+    decimate_connections : int, optional (default: keep all connections)
+        Plot only one connection every `decimate_connections`.
+        Use -1 to hide all edges.
+    spatial : bool, optional (default: True)
+        If True, use the neurons' positions to draw them.
+    restrict_sources : str, group, or list, optional (default: all)
+        Only draw edges starting from a restricted set of source nodes.
+    restrict_targets : str, group, or list, optional (default: all)
+        Only draw edges ending on a restricted set of target nodes.
+    restrict_nodes : str, group, or list, optional (default: plot all nodes)
+        Only draw a subset of nodes.
+    show_environment : bool, optional (default: True)
+        Plot the environment if the graph is spatial.
+    fast : bool, optional (default: False)
+        Use a faster algorithm to plot the edges. This method leads to less
+        pretty plots and zooming on the graph will make the edges start or
+        ending in places that will differ more or less strongly from the actual
+        node positions.
+    size : tuple of ints, optional (default: (600, 600))
+        (width, height) tuple for the canvas size (in px).
+    dpi : int, optional (default: 75)
+        Resolution (dot per inch).
+    colorbar : bool, optional (default: False)
+        Whether to display a colorbar for the node colors or not.
+    axis : matplotlib axis, optional (default: create new axis)
+        Axis on which the network will be plotted.
+    layout : str, optional (default: library-dependent or spatial positions)
+        Name of a standard layout to structure the network. Available layouts
+        are: "circular", "spring-block", "random". If no layout is
+        provided and the network is spatial, then node positions will be
+        used by default.
+    show : bool, optional (default: True)
+        Display the plot immediately.
+    **kwargs : dict
+        Optional keyword arguments including `node_cmap` to set the
+        nodes colormap (default is "magma" for continuous variables and
+        "Set1" for groups) and the boolean `simple_nodes` to make node
+        plotting faster.
+    '''
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+
+    # backend and axis
+    if nngt.get_config("backend") in ("graph-tool", "igraph"):
+        mpl_backend = mpl.get_backend()
+
+        if mpl_backend.startswith("Qt4"):
+            if mpl_backend != "Qt4Cairo":
+                plt.switch_backend("Qt4Cairo")
+        elif mpl_backend.startswith("Qt5"):
+            if mpl_backend != "Qt5Cairo":
+                plt.switch_backend("Qt5Cairo")
+        elif mpl_backend.startswith("GTK"):
+            if mpl_backend != "GTK3Cairo":
+                plt.switch_backend("GTK3Cairo")
+        elif mpl_backend != "cairo":
+            plt.switch_backend("cairo")
+
+    if axis is None:
+        size_inches = (size[0]/float(dpi), size[1]/float(dpi))
+        fig, axis = plt.subplots(figsize=size_inches)
+        axis.axis('off')
+
+    # default plot
+    if nngt.get_config("backend") == "nngt":
+        draw_network(
+            network, nsize=nsize, ncolor=ncolor, nshape=nshape,
+            nborder_color=nborder_color, nborder_width=nborder_width,
+            esize=esize, ecolor=ecolor, ealpha=ealpha, max_nsize=max_nsize,
+            max_esize=max_esize, curved_edges=curved_edges,
+            threshold=threshold, decimate_connections=decimate_connections,
+            spatial=spatial, restrict_nodes=restrict_nodes,
+            show_environment=show_environment, size=size, axis=axis,
+            layout=layout, show=show, **kwargs)
+
+    # otherwise, preapre data
+    restrict_nodes = _convert_to_nodes(restrict_nodes,
+                                       "restrict_nodes", network)
+
+    # shize and shape
+    markers, nsize, esize = _node_edge_shape_size(
+        network, nshape, nsize, max_nsize, esize, max_esize, restrict_nodes,
+        size, threshold)
+
+    # node color information
+    default_ncmap = (palette_discrete() if ncolor == "group"
+                     else palette_continuous())
+
+    ncmap = get_cmap(kwargs.get("node_cmap", default_ncmap))
+
+    node_color, nticks, ntickslabels, nlabel = \
+        _node_color(network, restrict_nodes, ncolor)
+
+    # edge color
+    ecolor = _edge_prop(network, ecolor)
+    esize  = _edge_prop(network, esize)
+
+    if nonstring_container(esize):
+        esize *= max_esize / np.max(esize)
+    
+    # environment
+    if spatial and network.is_spatial():
+        if show_environment:
+            nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
+
+    # do the plot
+    if nngt.get_config("backend") == "graph-tool":
+        from graph_tool.draw import (graph_draw, sfdp_layout, random_layout)
+
+        graph = network.graph
+
+        # resize
+        if nonstring_container(nsize):
+            nsize /= np.max(nsize)
+
+        nborder_width *= 0.1
+
+        esize *= 0.02
+
+        # positions
+        pos = None
+
+        if layout is None:
+            if isinstance(network, nngt.SpatialGraph) and spatial:
+                xy  = network.get_positions()
+                pos = graph.new_vp("vector<double>", vals=xy)
+            else:
+                weights = (None if not network.is_weighted()
+                           else graph.edge_properties['weight'])
+                pos = sfdp_layout(graph, eweight=weights)
+        elif layout == "random":
+            pos = random_layout(graph)
+        elif layout == "circular":
+            pos = graph.new_vp("vector<double>",
+                               vals=_circular_layout(network, nsize))
+        else:
+            # spring block
+            weights = (None if not network.is_weighted()
+                       else graph.edge_properties['weight'])
+            pos = sfdp_layout(graph, eweight=weights)
+
+        convert_shape = {
+            "o": "circle",
+            "v": "triangle",
+            "^": "triangle",
+            "s": "square",
+            "p": "pentagon",
+            "h": "hexagon",
+            "H": "hexagon",
+        }
+
+        shape_dict = defaultdict(
+            lambda k: "circle" if k not in convert_shape.values() else k)
+
+        for k, v in convert_shape.items():
+            shape_dict[k] = v
+
+        vprops = {
+            "shape": shape_dict[nshape],
+            "fill_color": _to_gt_prop(graph, node_color, ncmap, color=True),
+            "color": _to_gt_prop(graph, nborder_color, ncmap, color=True),
+            "size": _to_gt_prop(graph, nsize, ncmap),
+            "pen_width": _to_gt_prop(graph, nborder_width, ncmap),
+        }
+
+        if vprops["fill_color"] is None:
+            vprops["fill_color"] = [0.640625, 0, 0, 0.9]
+
+        eprops = {
+            "color": _to_gt_prop(graph, ecolor, palette_continuous(),
+                                 ptype='edge', color=True),
+            "pen_width": _to_gt_prop(graph, esize, None, ptype='edge'),
+        }
+
+        graph_draw(network.graph, pos=pos, vprops=vprops, eprops=eprops,
+                   output_size=size, mplfig=axis)
+    elif nngt.get_config("backend") == "networkx":
+        import networkx as nx
+
+        pos = None
+
+        if layout is None:
+            if isinstance(network, nngt.SpatialGraph) and spatial:
+                xy  = network.get_positions()
+                pos = {i: coords for coords in xy}
+        elif layout == "circular":
+            pos = nx.circular_layout(network.graph)
+        elif layout == "random":
+            pos = nx.random_layout(network.graph)
+        else:
+            pos = nx.spring_layout(network.graph)
+
+        # normalize sizes compared to igraph
+        nsize = _increase_nx_size(nsize)
+
+        nborder_width = _increase_nx_size(nborder_width, 2)
+
+        nx.draw_networkx(
+            network.graph, pos=pos, ax=axis, nodelist=restrict_nodes,
+            node_size=nsize, node_color=node_color, node_shape=nshape,
+            linewidths=nborder_width, edge_color=ecolor,
+            edge_cmap=palette_continuous(), cmap=ncmap,
+            with_labels=show_labels, width=esize, edgecolors=nborder_color)
+    elif nngt.get_config("backend") == "igraph":
+        from igraph import Layout, PrecalculatedPalette
+
+        pos = None
+
+        if layout is None:
+            if isinstance(network, nngt.SpatialGraph) and spatial:
+                xy  = network.get_positions()
+                pos = Layout(xy)
+        elif layout == "circular":
+            pos = network.graph.layout_circle()
+        elif layout == "random":
+            pos = network.graph.layout_random()
+
+        palette = PrecalculatedPalette(ncmap(np.linspace(0, 1, 256)))
+
+        # convert color to igraph-format
+        node_color = _to_ig_color(node_color)
+        ecolor     = _to_ig_color(ecolor)
+
+        convert_shape = {
+            "o": "circle",
+            "v": "triangle-down",
+            "^": "triangle-up",
+            "s": "rectangle",
+        }
+
+        shape_dict = defaultdict(
+            lambda k: "circle" if k not in convert_shape.values() else k)
+
+        for k, v in convert_shape.items():
+            shape_dict[k] = v
+
+        visual_style = {
+            "vertex_size": nsize,
+            "vertex_color": node_color,
+            "vertex_shape": shape_dict[nshape],
+            "edge_width": esize,
+            "edge_color": ecolor,
+            "layout": pos,
+            "palette": palette,
+        }
+
+        graph_artist = GraphArtist(network.graph, axis, **visual_style)
+
+        axis.artists.append(graph_artist)
+
+    if show:
+        plt.show()
+
+
 # ----- #
 # Tools #
 # ----- #
+
+def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
+                          restrict_nodes, size, threshold, simple_nodes=False):
+    ''' Returns the shape and size of the nodes and edges '''
+    n = network.node_nb() if restrict_nodes is None else len(restrict_nodes)
+    e = network.edge_nb()
+
+    # markers
+    markers = nshape
+
+    if nonstring_container(nshape):
+        if isinstance(nshape[0], nngt.NeuralGroup):
+            # check disjunction
+            for i, g in enumerate(nshape):
+                for j in range(i + 1, len(nshape)):
+                    if not set(g.ids).isdisjoint(nshape[j].ids):
+                        raise ValueError("Groups passed to `nshape` "
+                                         "must be disjoint.")
+
+            mm = cycle(MarkerStyle.filled_markers)
+
+            shapes  = np.full(network.node_nb(), "", dtype=object)
+
+            for g, m in zip(nshape, mm):
+                shapes[g.ids] = m
+
+            markers = list(shapes)
+        elif len(nshape) != network.node_nb():
+            raise ValueError("When passing an array of markers to "
+                             "`nshape`, one entry per node in the "
+                             "network must be provided.")
+    else:
+        markers = [nshape for _ in range(network.node_nb())]
+
+    # size
+    if isinstance(nsize, str):
+        if e:
+            nsize = _node_size(network, restrict_nodes, nsize)
+            nsize *= max_nsize / np.max(nsize)
+        else:
+            nsize = np.ones(n, dtype=float)
+    elif isinstance(nsize, (float, int, np.number)):
+        nsize = np.full(n, nsize, dtype=float)
+    elif nonstring_container(nsize):
+        nsize *= max_nsize / np.max(nsize)
+
+    nsize *= 0.01 * size[0]
+
+    if isinstance(esize, str) and e:
+        esize  = _edge_size(network, restrict_nodes, esize)
+        esize *= max_esize
+        esize[esize < threshold] = 0.
+
+    esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
+
+    return markers, nsize, esize
+
 
 def _set_ax_lim(ax, xdata, ydata, xlims, ylims):
     if xlims is not None:
@@ -634,9 +974,10 @@ def _node_size(network, restrict_nodes, nsize):
         betw = None
 
         if restrict_nodes is None:
-            betw = network.betweenness_list("node").astype(float)
+            betw = network.get_betweenness("node").astype(float)
         else:
-            betw = network.betweenness_list("node").astype(float)[restrict_nodes]
+            betw = network.get_betweenness(
+                "node").astype(float)[restrict_nodes]
 
         if network.is_connected("weak") == 1:
             size *= betw
@@ -663,11 +1004,13 @@ def _node_size(network, restrict_nodes, nsize):
 def _edge_size(network, restrict_nodes, esize):
     edges, num_edges = None, None
 
+    restrict_nodes = None if restrict_nodes is None else list(restrict_nodes)
+
     if restrict_nodes is None:
         num_edges = network.edge_nb()
     else:
         edges = network.get_edges(source_node=restrict_nodes,
-                              target_node=restrict_nodes)
+                                  target_node=restrict_nodes)
         num_edges = len(edges)
 
     size = np.repeat(1., num_edges)
@@ -676,7 +1019,7 @@ def _edge_size(network, restrict_nodes, esize):
         max_size = None
 
         if esize == "betweenness":
-            betw = network.betweenness_list("edge")
+            betw = network.get_betweenness("edge")
 
             max_size = np.max(betw)
 
@@ -708,7 +1051,7 @@ def _node_color(network, restrict_nodes, ncolor):
     if restrict_nodes is not None:
         restrict_nodes = set(restrict_nodes)
 
-    if isinstance(ncolor, np.float):
+    if isinstance(ncolor, float):
         color = np.repeat(ncolor, n)
     elif isinstance(ncolor, str):
         if ncolor == "group" or ncolor == "groups":
@@ -739,16 +1082,20 @@ def _node_color(network, restrict_nodes, ncolor):
                 if restrict_nodes is None:
                     values = network.get_betweenness("node")
                 else:
-                    values = network.get_betweenness("node")[list(restrict_nodes)]
+                    values = network.get_betweenness(
+                        "node")[list(restrict_nodes)]
             elif ncolor in network.node_attributes:
-                values = network.get_node_attributes(name=ncolor, nodes=restrict_nodes)
+                values = network.get_node_attributes(
+                    name=ncolor, nodes=restrict_nodes)
             elif ncolor == "clustering" :
-                values = nngt.analysis.local_clustering(network, nodes=restrict_nodes)
+                values = nngt.analysis.local_clustering(
+                    network, nodes=restrict_nodes)
             elif ncolor in nngt.analyze_graph:
                 if restrict_nodes is None:
                     values = nngt.analyze_graph[ncolor](network)
                 else:
-                    values = nngt.analyze_graph[ncolor](network)[list(restrict_nodes)]
+                    values = nngt.analyze_graph[ncolor](
+                        network)[list(restrict_nodes)]
             elif ncolor in ColorConverter.colors:
                 color = np.repeat(ncolor, n)
             else:
@@ -778,6 +1125,22 @@ def _node_color(network, restrict_nodes, ncolor):
         ntickslabels = nticks
 
     return color, nticks, ntickslabels, nlabel
+
+
+def _edge_prop(network, value):
+    prop = value
+
+    enum = network.edge_nb()
+
+    if isinstance(value, str) and value not in ColorConverter.colors:
+        if value in network.edge_attributes:
+            color = network.edge_attributes[value]
+        elif value == "betweenness":
+            prop = network.get_betweenness("edge")
+        else:
+            raise RuntimeError("Invalid `value`: {}.".format(value))
+
+    return prop
 
 
 def _discrete_cmap(N, base_cmap=None, clist=None):
@@ -873,3 +1236,132 @@ def _custom_arrows(sources, targets, angle):
             #~ color=color_
         #~ )
     #~ )
+
+
+def _to_ig_color(color):
+    import igraph as ig
+
+    if isinstance(color, str) and color not in ig.known_colors:
+        color = str(ColorConverter.to_rgb(color))[1:-1]
+    elif nonstring_container(color) and len(color):
+        # need to convert floating point colors to [0, 255] integers
+        if is_integer(color[0]) or isinstance(color[0], float):
+            vmin = np.min(color)
+            vmax = np.max(color)
+            vint = vmax - vmin
+            if vint > 0:
+                color = [int(255 * (v - vmin) / vint) for v in color]
+            else:
+                color = [0]*len(color)
+        else:
+            for i, c in enumerate(color):
+                if isinstance(color, str) and color not in ig.known_colors:
+                    color[i] = str(ColorConverter.to_rgb(color))[1:-1]
+
+    return color
+
+
+def _increase_nx_size(size, factor=4):
+    
+    if isinstance(size, float) or is_integer(size):
+        return factor*size
+    elif nonstring_container(size) and len(size):
+        if isinstance(size[0], float) or is_integer(size[0]):
+            return factor*np.asarray(size)
+
+    return size
+
+
+def _to_gt_prop(graph, value, cmap, ptype='node', color=False):
+    pmap = (graph.new_vertex_property if ptype == 'node'
+            else graph.new_edge_property)
+    
+    if nonstring_container(value) and len(value):
+        if isinstance(value[0], str):
+            if color:
+                # custom namedcolors
+                return pmap("vector<double>",
+                            vals=[ColorConverter.to_rgba(v) for v in value])
+            else:
+                return pmap("string", vals=value)
+        elif nonstring_container(value[0]):
+            # direct rgb(a) description
+            return pmap("vector<double>", vals=value)
+
+        # numbers
+        if color:
+            vmin, vmax = np.min(value), np.max(value)
+
+            normalized = None
+
+            if vmax - vmin > 0:
+                normalized = (np.array(value) - vmin) / (vmax - vmin)
+            else:
+                return normalized
+
+            return pmap("vector<double>", vals=[cmap(v) for v in normalized])
+
+        return pmap("double", vals=value)
+        
+
+    return value
+
+
+class GraphArtist(Artist):
+    """
+    Matplotlib artist class that draws igraph graphs.
+
+    Only Cairo-based backends are supported.
+
+    Adapted from: https://stackoverflow.com/a/36154077/5962321
+    """
+
+    def __init__(self, graph, axis, palette=None, *args, **kwds):
+        """Constructs a graph artist that draws the given graph within
+        the given bounding box.
+
+        `graph` must be an instance of `igraph.Graph`.
+        `bbox` must either be an instance of `igraph.drawing.BoundingBox`
+        or a 4-tuple (`left`, `top`, `width`, `height`). The tuple
+        will be passed on to the constructor of `BoundingBox`.
+        `palette` is an igraph palette that is used to transform
+        numeric color IDs to RGB values. If `None`, a default grayscale
+        palette is used from igraph.
+
+        All the remaining positional and keyword arguments are passed
+        on intact to `igraph.Graph.__plot__`.
+        """
+        from igraph import BoundingBox, palettes
+
+        super().__init__()
+
+        self.graph = graph
+        self.palette = palette or palettes["gray"]
+        self.bbox = BoundingBox(axis.bbox.bounds)
+        self.args = args
+        self.kwds = kwds
+
+    def draw(self, renderer):
+        from matplotlib.backends.backend_cairo import RendererCairo
+
+        if not isinstance(renderer, RendererCairo):
+            raise TypeError(
+                "graph plotting is supported only on Cairo backends")
+
+        self.graph.__plot__(renderer.gc.ctx, self.bbox, self.palette,
+                            *self.args, **self.kwds)
+
+
+def _circular_layout(graph, node_size):
+    max_nsize = np.max(node_size)
+
+    # chose radius such that r*dtheta > max_nsize
+    dtheta = 2*np.pi / graph.node_nb()
+
+    r = 1.1*max_nsize / dtheta
+
+    thetas = np.array([i*dtheta for i in range(graph.node_nb())])
+    x = r*np.cos(thetas)
+    y = r*np.sin(thetas)
+
+    return np.array((x, y)).T

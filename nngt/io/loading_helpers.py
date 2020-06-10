@@ -24,6 +24,9 @@ import types
 
 import numpy as np
 
+from ..lib.converters import (_np_dtype, _to_int, _to_string, _to_list,
+                              _string_from_object)
+
 
 __all__ = [
     "_cleanup_line",
@@ -320,7 +323,13 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
                 attr           = nattr_name[k]
                 idx            = di_notif["node_attributes"].index(attr)
                 dtype          = _np_dtype(nattr_type[idx])
-                di_nattr[attr] = np.fromstring(s, sep=separator, dtype=dtype)
+
+                if dtype == object:
+                    di_nattr[attr] = np.array(s.split(separator), dtype=dtype)
+                else:
+                    di_nattr[attr] = np.fromstring(s, sep=separator,
+                                                   dtype=dtype)
+                
 
     return di_nattr
 
@@ -328,54 +337,6 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
 # ---------- #
 # Converters #
 # ---------- #
-
-def _to_list(string):
-    separators = (';', ',', ' ', '\t')
-    count = -np.Inf
-    chosen = -1
-    for i, delim in enumerate(separators):
-        current = string.count(delim)
-        if count < current:
-            count = current
-            chosen = separators[i]
-            break
-    return string.split(chosen)
-
-
-def _to_int(string):
-    try:
-        return int(string)
-    except ValueError:
-        return int(float(string))
-
-
-def _to_string(byte_string):
-    ''' Convert bytes to string '''
-    if isinstance(byte_string, bytes):
-        return str(byte_string.decode())
-    return byte_string
-
-
-def _string_from_object(obj):
-    ''' Return a type string from an object (usually a class) '''
-    if obj.__class__ == type:
-        # dealing with a class
-        if issubclass(obj, float):
-            return "double"
-
-        if issubclass(obj, (int, np.integer)):
-            return "int"
-
-        if issubclass(obj, str):
-            return "string"
-
-        return "object"
-    elif issubclass(obj.__class__, (types.FunctionType, types.MethodType)):
-        # dealing with a function
-        return "object"
-
-    raise ValueError("Cannot deduce class string from '{}'.".format(obj))
-
 
 def _gen_convert(attributes, attr_types, attributes_types=None):
     '''
@@ -405,25 +366,6 @@ def _gen_convert(attributes, attr_types, attributes_types=None):
             raise TypeError("Invalid attribute type: '{}'.".format(attr_type))
 
     return di_convert
-
-
-def _np_dtype(attribute_type):
-    '''
-    Return a relevant numpy dtype entry.
-    '''
-    if attribute_type in ("double", "float", "real"):
-        return float
-    elif attribute_type in ("int", "integer"):
-        return int
-
-    return object
-
-
-def _type_converter(attribute_type):
-    if not isinstance(attribute_type, str):
-        return attribute_type
-
-    return _np_dtype(attribute_type)
 
 
 def _cleanup_line(string, char):
