@@ -24,6 +24,9 @@ import types
 
 import numpy as np
 
+from ..lib.converters import (_np_dtype, _to_int, _to_string, _to_list,
+                              _string_from_object)
+
 
 __all__ = [
     "_cleanup_line",
