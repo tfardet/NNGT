@@ -63,7 +63,9 @@ before_install:
     - if [[ "$GL" == "gt" || "$GL" == "all" ]]; then
         sudo apt-get install -y python3-pip python3-matplotlib python3-tk;
         alias pip3='sudo -H pip3';
-      fi    
+      fi
+    # installing tools to detect and use GTK3
+    - sudo apt-get install -y python3-gi gobject-introspection gir1.2-gtk-3.0 python3-gi-cairo
     # Pip install dependencies
     - pip3 install --upgrade pip
     - pip3 install --upgrade setuptools
