@@ -213,8 +213,8 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                           atypes=attributes_types)
 
     # get nodes attributes
-    di_nattributes  = _get_node_attr(di_notif, separator, fmt=fmt,
-                                     lines=lst_lines, atypes=attributes_types)
+    di_nattributes = _get_node_attr(di_notif, separator, fmt=fmt,
+                                    lines=lst_lines, atypes=attributes_types)
 
     # make edges and attributes
     eattributes     = di_notif["edge_attributes"]

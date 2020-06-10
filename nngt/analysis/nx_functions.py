@@ -563,7 +563,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
     '''
     if sources is None and targets is None and not unconnected:
-        w = _nx_get_weights(weights)
+        w = _get_nx_weights(g, weights)
 
         return nx.average_shortest_path_length(g.graph, weight=w)
 
@@ -584,33 +584,6 @@ def average_path_length(g, sources=None, targets=None, directed=True,
         return np.nansum(mat_dist) / num_paths
 
     return np.sum(mat_dist) / num_paths
-
-def average_path_length(g, weights=None):
-    r'''
-    Returns the average shortest path length.
-
-    The average shortest path length is
-
-    .. math::
-
-       L = \sum_{u,v} \frac{d(u, v)}{N(N-1)}
-
-    where :math:`N` is the number of nodes in `g` and :math:`d(u, v)` is the
-    shortest path distance from u to v.
-
-    Parameters
-    ----------
-    g : :class:`~nngt.Graph`
-        Graph to analyze.
-    weights : str, optional (default: binary)
-        Whether to use weighted edges to compute the distances. By default,
-        all edges are considered to have distance 1.
-
-    References
-    ----------
-    .. [nx-apl] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
-    '''
-    return nx.average_shortest_path_length(g.graph, weight=weights)
 
 
 def diameter(g, weights=None):
