@@ -878,7 +878,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
                           restrict_nodes, size, threshold, simple_nodes=False):
     ''' Returns the shape and size of the nodes and edges '''
-    n = network.node_nb()
+    n = network.node_nb() if restrict_nodes is None else len(restrict_nodes)
     e = network.edge_nb()
 
     # markers
