@@ -39,6 +39,13 @@ from nngt.lib.rng_tools import _generate_random
 from nngt.lib.sorting import _sort_groups
 
 
+try:
+    from nest import NodeCollection
+    nest_version = 3
+except ImportError:
+    nest_version = 2
+
+
 __all__ = [
     'monitor_groups',
     'monitor_nodes',
@@ -74,9 +81,11 @@ def set_noise(gids, mean, std):
     noise : tuple
         The NEST gid of the noise_generator.
     '''
-    noise = nest.Create("noise_generator", params={"mean": mean, "std": std },
+    noise = nest.Create("noise_generator", params={"mean": mean, "std": std},
                         _warn=False)
+
     nest.Connect(noise, list(gids), _warn=False)
+
     return noise
 
 
@@ -110,7 +119,9 @@ def set_poisson_input(gids, rate, syn_spec=None, **kwargs):
     poisson_input = nest.Create(
         "poisson_generator", params=params, _warn=False)
 
-    nest.Connect(poisson_input, list(gids), syn_spec=syn_spec, _warn=False)
+    gids = _get_nest_gids(gids)
+
+    nest.Connect(poisson_input, gids, syn_spec=syn_spec, _warn=False)
 
     return poisson_input
 
@@ -162,6 +173,9 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
     elif nodes is not None:
         gids = network.nest_gids[nodes]
 
+    # convert gids if necessary
+    gids = _get_nest_gids(gids)
+
     if nonstring_container(weight):
         assert len(weight) == len(gids)
     else:
@@ -178,7 +192,10 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
 
     # connect
     for i, n in enumerate(nodes):
-        gid, d = (gids[i],), degrees[n]
+        gid, d = gids[i], degrees[n]
+
+        if nest_version == 2:
+            gid = (gid,)
 
         w  = weight[i]
         pg = [pgs[map_deg_pg[d]]]
@@ -209,9 +226,15 @@ def set_step_currents(gids, times, currents):
     if len(times) != len(currents):
         raise InvalidArgument('Length of `times` and `currents` must be the '
                               'same')
-    params = { "amplitude_times": times, "amplitude_values":currents }
-    scg = nest.Create("step_current_generator", 1, params, _warn=False)
-    nest.Connect(scg, list(gids), _warn=False)
+
+    params = {"amplitude_times": times, "amplitude_values":currents}
+
+    scg = nest.Create("step_current_generator", params, _warn=False)
+
+    gids = _get_nest_gids(gids)
+
+    nest.Connect(scg, gids, _warn=False)
+
     return scg
 
 
@@ -257,6 +280,7 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
             raise AttributeError(
                 '`network` has not been sent to NEST yet.')
     gids = []
+
     if nodes is not None and groups is not None:
         raise InvalidArgument('`nodes` and `groups` cannot be set together.')
     elif groups is not None:
@@ -266,13 +290,21 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
     else:
         gids.extend(
             network.nest_gids if nodes is None else network.nest_gids[nodes])
+
+    # convert gids
+    gids = _get_nest_gids(gids)
+
     num_neurons = len(gids)
+
     for key, val in instructions.items():
         state = _generate_random(num_neurons, val)
+
         # set the values in NEST
         nest.SetStatus(gids, key, state, _warn=False)
+
         if nodes is None:
             nodes = network.id_from_nest_gid(gids)
+
         # store the values in the node attributes
         if key not in ("V_m", "w"):
             if key not in network.node_attributes:
@@ -304,25 +336,30 @@ def monitor_groups(group_names, network, nest_recorder=None, params=None):
 
     Returns
     -------
-    recorders : tuple
-        Tuple of the recorders' gids
-    recordables : tuple
-        Tuple of the recordables' names.
+    recorders : list or NodeCollection of the recorders' gids
+    recordables : list of the recordables' names.
     '''
     if nest_recorder is None:
         nest_recorder = ["spike_detector"]
     elif not nonstring_container(nest_recorder):
         nest_recorder = [nest_recorder]
+
     if params is None:
         params = [{}]
     elif isinstance(params, dict):
         params = [params]
-    recorders, recordables = [], []
+
+    recorders   = NodeCollection([]) if nest_version == 3 else []
+    recordables = []
+
     for name in group_names:
-        gids = tuple(network.population[name].nest_gids)
+        gids = network.population[name].nest_gids
+
         recdr, recdbls = _monitor(gids, nest_recorder, params)
-        recorders.extend(recdr)
+
+        recorders += recdr
         recordables.extend(recdbls)
+
     return recorders, recordables
 
 
@@ -347,36 +384,42 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
 
     Returns
     -------
-    recorders : tuple
-        Tuple of the recorders' gids
-    recordables : tuple
-        Tuple of the recordables' names.
+    recorders : list or NodeCollection containing the recorders' gids
+    recordables : list of the recordables' names.
     '''
     if nest_recorder is None:
         nest_recorder = ["spike_detector"]
     elif not nonstring_container(nest_recorder):
         nest_recorder = [nest_recorder]
+
     if params is None:
         params = [{}]
     elif isinstance(params, dict):
         params = [params]
+
     return _monitor(gids, nest_recorder, params)
 
 
 def _monitor(gids, nest_recorder, params):
     new_record = []
-    recorders = []
+    recorders  = NodeCollection([]) if nest_version == 3 else []
+
+    gids = _get_nest_gids(gids)
+
     for i, rec in enumerate(nest_recorder):
         # multi/volt/conductancemeter
         if "meter" in rec:
             device = None
             di_spec = {"rule": "all_to_all"}
+
             if not params[i].get("to_accumulator", True):
                 device = nest.Create(rec, len(gids), _warn=False)
                 di_spec["rule"] = "one_to_one"
             else:
                 device = nest.Create(rec, _warn=False)
-            recorders.append(device)
+
+            recorders += device if nest_version == 3 else list(device)
+
             device_params = nest.GetDefaults(rec)
             device_params.update(params[i])
             new_record.append(device_params["record_from"])
@@ -385,14 +428,16 @@ def _monitor(gids, nest_recorder, params):
         # event detectors
         elif "detector" in rec:
             device = nest.Create(rec, _warn=False)
-            recorders.append(device)
+
+            recorders += device if nest_version == 3 else list(device)
+
             new_record.append("spikes")
-            nest.SetStatus(device,params[i], _warn=False)
+            nest.SetStatus(device, params[i], _warn=False)
             nest.Connect(gids, device, _warn=False)
         else:
             raise InvalidArgument('Invalid recorder item in `nest_recorder`: '
                                   '{} is unknown.'.format(nest_recorder))
-    return tuple(recorders), new_record
+    return recorders, new_record
 
 
 # ------------------- #
@@ -420,24 +465,46 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
         requires `network` to be provided.
     **kwargs : see :func:`numpy.savetxt`
     '''
-    lst_rec = []
+    rcrdrs = NodeCollection([]) if nest_version == 3 else []
+
     delim = kwargs.get('delimiter', ' ')
+
     if 'fmt' not in kwargs:
         kwargs['fmt'] = '%d{}%.6f'.format(delim)
     if 'header' not in kwargs:
         kwargs['header'] = 'Neuron{}Time'.format(delim)
+
     # normalize recorders and recordables
     if recorder is not None:
         for rec in recorder:
-            if isinstance(recorder[0], tuple):
-                lst_rec.append(rec[0])
+            if nest_version == 3:
+                if isinstance(rec, NodeCollection):
+                    rcrdrs += rec
+                elif nonstring_container(rec):
+                    rcrdrs += NodeCollection(rec)
+                else:
+                    rcrdrs += NodeCollection([rec])
+            elif nonstring_container(rec):
+                rcrdrs.append(rec)
             else:
-                lst_rec.append(rec)
-            assert (nest.GetStatus([lst_rec[-1]], 'model')[0]
-                    == 'spike_detector'), 'Only spike_detectors are supported.'
+                rcrdrs.append([rec])
+
+            if nest_version == 3:
+                if len(rcrdrs) == 1:
+                    assert recrdrs.model == "spike_detector", \
+                        'Only spike_detectors are supported.'
+                    assert recrdrs.model == ("spike_detector",)*len(rcrdrs), \
+                        'Only spike_detectors are supported.'
+            else:
+                assert (nest.GetStatus(rcrdrs, 'model')
+                        == ('spike_detector',)*len(rcrdrs)), \
+                       'Only spike_detectors are supported.'
     else:
-        lst_rec = nest.GetNodes(
-            (0,), properties={'model': 'spike_detector'})[0]
+        if nest_version == 3:
+            rcrdrs = nest.GetNodes(properties={'model': 'spike_detector'})
+        else:
+            rcrdrs = nest.GetNodes(
+                (0,), properties={'model': 'spike_detector'})[0]
 
     if network is not None and network.is_spatial() and save_positions:
         save_positions = True
@@ -448,22 +515,35 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
         save_positions = False
 
     with open(filename, "wb") as f:
-        for rec in lst_rec:
-            data = nest.GetStatus([rec], "events")[0]
+        for rec in rcrdrs:
+            data = nest.GetStatus(rec, "events")[0]
             if len(data['senders']):
                 if save_positions:
                     gids = np.unique(data['senders'])
                     gid_to_id = np.zeros(gids[-1] + 1, dtype=int)
+
                     for gid in gids:
                         gid_to_id[gid] = network.id_from_nest_gid(gid)
-                    pos = network.get_positions()
-                    ids = gid_to_id[data['senders']]
+
+                    pos  = network.get_positions()
+                    ids  = gid_to_id[data['senders']]
                     data = np.array(
                         (data['senders'], data['times'], pos[ids, 0],
                          pos[ids, 1])).T
                 else:
                     data = np.array((data['senders'], data['times'])).T
+
                 s = BytesIO()
                 np.savetxt(s, data, **kwargs)
                 f.write(s.getvalue())
 
+
+def _get_nest_gids(gids):
+    ''' Convert nodes to NodeCollection if NEST is version 3+ '''
+    if nest_version == 3:
+        if isinstance(gids, NodeCollection):
+            return gids
+
+        return NodeCollection(gids)
+
+    return list(gids)

@@ -28,6 +28,7 @@ import nest
 import numpy as np
 
 from nngt.lib import InvalidArgument, nonstring_container
+from .nest_utils import nest_version, _get_nest_gids
 
 
 __all__ = [
@@ -38,10 +39,9 @@ __all__ = [
 ]
 
 
-#-----------------------------------------------------------------------------#
-# Finding the various activities
-#------------------------
-#
+# ------------------------------ #
+# Finding the various activities #
+# ------------------------------ #
 
 class ActivityRecord:
 
@@ -167,26 +167,39 @@ def get_recording(network, record, recorder=None, nodes=None):
     '''
     if nodes is None:
         nodes = [network.id_from_nest_gid(n) for n in network.nest_gids]
-    gids = [network.nest_gids[n] for n in nodes]
+
+    gids = _get_nest_gids([network.nest_gids[n] for n in nodes])
+
     if not nonstring_container(record):
         record = [record]
+
     values = {rec: {} for rec in record}
+
     if recorder is None:
-        recorder = nest.GetNodes(
-            (0,), properties={'model': 'multimeter'})
+        if nest_version == 3:
+            recorder = nest.GetNodes(properties={'model': 'multimeter'})
+        else:
+            recorder = nest.GetNodes((0,), properties={'model': 'multimeter'})
+
     times = None
+
     for rec in recorder:
-        events = nest.GetStatus(rec, "events")[0]
+        events  = nest.GetStatus(rec, "events")[0]
         senders = events["senders"]
+
         if times is not None:
             assert times == events["times"], "Different times between the " +\
                                              "recorders; check the params."
+
         times = events["times"]
         values["times"] = times[senders == senders[0]]
+
         for rec_name in record:
             for idx, gid in zip(nodes, gids):
-                ids = senders == senders[gid]
+                ids = (senders == senders[gid])
+
                 values[rec_name][idx] = events[rec_name][ids]
+
     return values
 
 
@@ -256,6 +269,7 @@ def activity_types(spike_detector, limits, network=None,
     '''
     # check if there are several recorders
     senders, times = [], []
+
     if True in nest.GetStatus(spike_detector, "to_file"):
         for fpath in nest.GetStatus(spike_detector, "record_to"):
             data = _get_data(fpath)
@@ -265,15 +279,20 @@ def activity_types(spike_detector, limits, network=None,
         for events in nest.GetStatus(spike_detector, "events"):
             times.extend(events["times"])
             senders.extend(events["senders"])
+
         idx_sort = np.argsort(times)
         times = np.array(times)[idx_sort]
         senders = np.array(senders)[idx_sort]
+
     # compute phases and properties
     data = np.array((senders, times))
+
     phases, fr = _analysis(times, senders, limits, network=network,
               phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
               simplify=simplify)
+
     properties = _compute_properties(data, phases, fr, skip_bursts)
+
     kwargs = {
         "limits": limits,
         "phase_coeff": phase_coeff,
@@ -282,9 +301,11 @@ def activity_types(spike_detector, limits, network=None,
         "mflb": mflb,
         "simplify": simplify
     }
+
     # plot if required
     if show:
         _plot_phases(phases, fignums)
+
     return ActivityRecord(data, phases, properties, kwargs)
 
 
@@ -347,9 +368,11 @@ def analyze_raster(raster=None, limits=None, network=None,
         from these phases.
     '''
     data = _get_data(raster) if isinstance(raster, str) else raster
+
     if data.any():
         if limits is None:
             limits = [np.min(data[:, 1]), np.max(data[:, 1])]
+
         kwargs = {
             "limits": limits,
             "phase_coeff": phase_coeff,
@@ -358,23 +381,28 @@ def analyze_raster(raster=None, limits=None, network=None,
             "mflb": mflb,
             "simplify": simplify
         }
+
         # compute phases and properties
         phases, fr = _analysis(data[:, 1], data[:, 0], limits, network=network,
                   phase_coeff=phase_coeff, mbis=mbis, mfb=mfb, mflb=mflb,
                   simplify=simplify)
+
         properties = _compute_properties(data.T, phases, fr, skip_bursts)
+
         # plot if required
         if show:
             import matplotlib.pyplot as plt
+
             if fignums:
                 _plot_phases(phases, fignums)
             else:
                 fig, ax = plt.subplots()
                 ax.scatter(data[:, 1], data[:, 0])
                 _plot_phases(phases, [fig.number])
+
         return ActivityRecord(data, phases, properties, kwargs)
-    else:
-        return ActivityRecord(data, {}, {})
+
+    return ActivityRecord(data, {}, {})
 
 
 # ----- #
@@ -395,11 +423,14 @@ def _get_data(source):
     data : 2D array of shape (N, 2)
     '''
     data = [[],[]]
+
     is_string = isinstance(source, str)
+
     if is_string:
         source = [source]
     elif nonstring_container(source) and isinstance(source[0], str):
         is_string = True
+
     if is_string:
         for path in source:
             tmp = np.loadtxt(path)
@@ -407,6 +438,7 @@ def _get_data(source):
             data[1].extend(tmp[:, 1])
     else:
         source_shape = np.shape(np.squeeze(source))
+
         if len(source_shape) == 2:
             # source is directly the data
             if source_shape[0] == 2 and source_shape[1] != 2:
@@ -415,7 +447,9 @@ def _get_data(source):
                 return np.array(source)
         else:
             # source contains gids
+            source = _get_nest_gids(source)
             events = None
+
             if nonstring_container(source[0]):
                 events = [nest.GetStatus(gid, "events")[0] for gid in source]
             else:
@@ -423,7 +457,9 @@ def _get_data(source):
             for ev in events:
                 data[0].extend(ev["senders"])
                 data[1].extend(ev["times"])
+
     idx_sort = np.argsort(data[1])
+
     return np.array(data)[:, idx_sort].T
 
 
@@ -433,7 +469,8 @@ def _find_phases(times, phases, lim_burst, lim_quiet, simplify):
     '''
     diff = np.diff(times).tolist()[::-1]
     i = 0
-    previous = { "bursting": -2, "mixed": -2, "quiescent": -2 }
+    previous = {"bursting": -2, "mixed": -2, "quiescent": -2}
+
     while diff:
         tau = diff.pop()
         while True:
