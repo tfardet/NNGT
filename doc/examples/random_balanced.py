@@ -119,12 +119,12 @@ pop = nngt.NeuralPop.exc_and_inhib(
 net = nngt.Network(population=pop)
 
 ng.connect_groups(net, "excitatory", ["excitatory", "inhibitory"],
-                  "gaussian_degree", avg=CE, std=0.2*CE, weights=J_ex,
-                  delays=delay)
+                  "gaussian_degree", degree_type="out", avg=CE, std=0.2*CE,
+                  weights=J_ex, delays=delay)
 
 ng.connect_groups(net, "inhibitory", ["excitatory", "inhibitory"],
-                  "gaussian_degree", avg=CI, std=0.2*CI, weights=J_in,
-                  delays=delay)
+                  "gaussian_degree", degree_type="out", avg=CI, std=0.2*CI,
+                  weights=J_in, delays=delay)
 
 
 '''
@@ -181,8 +181,8 @@ if nngt.get_config('with_nest'):
     nest.Simulate(simtime)
 
     if nngt.get_config('with_plot'):
-        ideg = net.get_degrees("in", syn_type="inhibitory")
-        edeg = net.get_degrees("in", syn_type="excitatory")
+        ideg = net.get_degrees("in", edge_type="inhibitory")
+        edeg = net.get_degrees("in", edge_type="excitatory")
 
         # plot the basic activity
         ns.plot_activity(
@@ -208,8 +208,8 @@ if nngt.get_config('with_nest'):
             show=True)
 
         # print the CV and CC
-        data_exc = nest.GetStatus(recorders[0], "events")[0]
-        data_inh = nest.GetStatus(recorders[1], "events")[0]
+        data_exc = nest.GetStatus([recorders[0]], "events")[0]
+        data_inh = nest.GetStatus([recorders[1]], "events")[0]
 
         spikes = {
             "times": list(data_exc["times"]) + list(data_inh["times"]),

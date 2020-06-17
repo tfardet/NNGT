@@ -31,6 +31,7 @@ from nngt.lib import InvalidArgument, nonstring_container, WEIGHT, DELAY
 from nngt.lib.sorting import _sort_groups
 from nngt.lib.test_functions import mpi_checker
 from nngt.lib.graph_helpers import _get_syn_param
+from .nest_utils import nest_version, _get_nest_gids
 
 
 __all__ = [
@@ -72,9 +73,10 @@ def make_nest_network(network, send_only=None, weights=True):
         GIDs of the neurons in the network.
     '''
     gids = []
-    pop = network.population
+    pop  = network.population
 
     send = list(network.population.keys())
+
     if send_only in (-1, 1):
         send = [g for g in send if pop[g].neuron_type == send_only]
     elif isinstance(send_only, str):
@@ -85,8 +87,8 @@ def make_nest_network(network, send_only=None, weights=True):
     send = [g for g in send if pop[g].ids]
 
     # link NEST Gids to nngt.Network ids as neurons are created
-    num_neurons = network.node_nb()
-    ia_nngt_ids = np.full(num_neurons, -1, dtype=int)
+    num_neurons  = network.node_nb()
+    ia_nngt_ids  = np.full(num_neurons, -1, dtype=int)
     ia_nest_gids = np.full(num_neurons, -1, dtype=int)
     ia_nngt_nest = np.full(num_neurons, -1, dtype=int)
     current_size = 0
@@ -94,27 +96,34 @@ def make_nest_network(network, send_only=None, weights=True):
     for name in send:
         group = pop[name]
         group_size = len(group.ids)
+
         if group_size:
             ia_nngt_ids[current_size:current_size + group_size] = group.ids
+
             # clean up neuron_param dict, separate scalar and non-scalar
             defaults     = nest.GetDefaults(group.neuron_model)
             scalar_param = {}
             ns_param     = {}
+
             for key, val in group.neuron_param.items():
                 if key in defaults and key != "model":
                     if nonstring_container(val):
                         ns_param[key] = val
                     else:
                         scalar_param[key] = val
+
             # create neurons:
             gids_tmp = nest.Create(group.neuron_model, group_size,
                                    scalar_param, _warn=False)
+
             # set non-scalar properties
             for k, v in ns_param.items():
                 nest.SetStatus(gids_tmp, k, v, _warn=False)
+
             # create ids
-            idx_nest = ia_nngt_ids[np.arange(
-                current_size, current_size + group_size)]
+            idx_nest = ia_nngt_ids[
+                np.arange(current_size, current_size + group_size)]
+
             ia_nest_gids[current_size:current_size + group_size] = gids_tmp
             ia_nngt_nest[idx_nest] = gids_tmp
             current_size += group_size
@@ -226,9 +235,13 @@ def get_nest_adjacency(id_converter=None):
     mat_adj : :class:`~scipy.sparse.lil_matrix`
         Adjacency matrix of the network.
     '''
-    gids = nest.GetNodes()[0]
+    gids = (nest.GetNodes()[0] if nest_version == 2
+            else np.asarray(nest.GetNodes()))
+
     n = len(gids)
+
     mat_adj = ssp.lil_matrix((n,n))
+
     if id_converter is None:
         id_converter = {idx: i for i, idx in enumerate(gids)}
 
@@ -277,19 +290,27 @@ def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
     '''
     min_weight = np.min(weights)
     max_weight = np.max(weights)
+
     # get corrected weights
-    min_corr, max_corr = _find_extremal_weights(min_weight, max_weight,
-                    neuron_model, di_param, timestep=timestep, simtime=simtime)
-    #~ # bin them
+    min_corr, max_corr = _find_extremal_weights(
+        min_weight, max_weight, neuron_model, di_param, timestep=timestep,
+        simtime=simtime)
+
+    # bin them
     bins = None
+
     if log:
         log_min = np.log10(min_corr)
         log_max = np.log10(max_corr)
         bins = np.logspace(log_min, log_max, num_bins)
     else:
         bins = np.linspace(min_corr, max_corr, num_bins)
-    binned_weights = _get_psp_list(bins,neuron_model,di_param,timestep,simtime)
+
+    binned_weights = _get_psp_list(
+        bins, neuron_model, di_param, timestep, simtime)
+
     idx_binning = np.digitize(weights, binned_weights)
+
     return bins[ idx_binning ]
 
 
@@ -298,8 +319,9 @@ def reproducible_weights(weights, neuron_model, di_param={}, timestep=0.05,
 # ----- #
 
 def _value_psp(weight, neuron_model, di_param, timestep, simtime):
-    nest.ResetKernel()
+    nest.ResetKernel(_warn=False)
     nest.SetKernelStatus({"resolution": timestep})
+
     # create neuron and recorder
     neuron = nest.Create(neuron_model, params=di_param, _warn=False)
     V_rest = nest.GetStatus(neuron)[0]["E_L"]
@@ -311,12 +333,15 @@ def _value_psp(weight, neuron_model, di_param, timestep, simtime):
         "spike_generator", params={'spike_times': [timestep],
                                    'spike_weights': weight},
         _warn=False)
+
     nest.Connect(sg, neuron, _warn=False)
     nest.Simulate(simtime)
+
     # get the max and its time
     dvm = nest.GetStatus(vm)[0]
     da_voltage = dvm["events"]["V_m"]
     idx = np.argmax(da_voltage)
+
     if idx == len(da_voltage - 1):
         raise InvalidArgument("simtime too short: PSP maximum is out of range")
     else:
@@ -372,7 +397,7 @@ def _get_psp_list(bins, neuron_model, di_param, timestep, simtime):
     Return the list of effective weights from a list of NEST connection
     weights.
     '''
-    nest.ResetKernel()
+    nest.ResetKernel(_warn=False)
     nest.SetKernelStatus({"resolution": timestep})
     # create neuron and recorder
     neuron = nest.Create(neuron_model, params=di_param, _warn=False)

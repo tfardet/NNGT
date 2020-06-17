@@ -54,7 +54,7 @@ pop = nngt.NeuralPop.exc_and_inhib(
     syn_spec=synapses)
 
 # create the network and send it to NEST
-w_prop = {"distribution": "gaussian", "avg": 0.1, "std": .05}
+w_prop = {"distribution": "gaussian", "avg": 0.2, "std": .05}
 net = nngt.generation.gaussian_degree(
     avg_degree, std_degree, population=pop, weights=w_prop)
 
@@ -71,7 +71,9 @@ if nngt.get_config('with_nest'):
 
     # add noise to the excitatory neurons
     excs = list(pop["excitatory"].nest_gids)
+    inhs = list(pop["inhibitory"].nest_gids)
     ns.set_noise(excs, 10., 2.)
+    ns.set_noise(inhs, 5., 1.)
 
     # record
     groups = [key for key in net.population]

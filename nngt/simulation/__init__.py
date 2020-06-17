@@ -88,11 +88,11 @@ except ImportError:
 
 # store old functions
 if not _nngt._old_nest_func:
-    _nngt._old_nest_func["ResetKernel"]  = _rk
-    _nngt._old_nest_func["Connect"]      = _conn
-    _nngt._old_nest_func["Disconnect"]   = _disc
-    _nngt._old_nest_func["Create"]       = _cr
-    _nngt._old_nest_func["SetStatus"]    = _setstat
+    _nngt._old_nest_func["ResetKernel"] = _rk
+    _nngt._old_nest_func["Connect"]     = _conn
+    _nngt._old_nest_func["Disconnect"]  = _disc
+    _nngt._old_nest_func["Create"]      = _cr
+    _nngt._old_nest_func["SetStatus"]   = _setstat
 
     try:
         _nngt._old_nest_func["ResetNetwork"] = _rn
@@ -129,18 +129,21 @@ def _new_nest_func(old_nest_func):
                          "with NNGT, making your Network obsolete compared to "
                          "the one in NEST... make sure to check what is "
                          "modified!")
+
         if "_warn" in kwargs:
             del kwargs["_warn"]
+
         return old_nest_func(*args, **kwargs)
+
     return wrapper
 
 
 # nest is in sysmodules because it was imported in the main __init__.py
-_sys.modules["nest"].ResetKernel  = _new_reset_kernel
-_sys.modules["nest"].Connect      = _new_nest_func(_conn)
-_sys.modules["nest"].Disconnect   = _new_nest_func(_disc)
-_sys.modules["nest"].Create       = _new_nest_func(_cr)
-_sys.modules["nest"].SetStatus    = _new_nest_func(_setstat)
+_sys.modules["nest"].ResetKernel = _new_reset_kernel
+_sys.modules["nest"].Connect     = _new_nest_func(_conn)
+_sys.modules["nest"].Disconnect  = _new_nest_func(_disc)
+_sys.modules["nest"].Create      = _new_nest_func(_cr)
+_sys.modules["nest"].SetStatus   = _new_nest_func(_setstat)
 
 try:
     _sys.modules["nest"].ResetNetwork = _new_nest_func(_rn)

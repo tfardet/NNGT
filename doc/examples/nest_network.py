@@ -29,14 +29,15 @@ import nngt.generation as ng
 ''' Create groups with different parameters '''
 # adaptive spiking neurons
 base_params = {
-    'E_L': -60., 'V_th': -57., 'b': 20., 'tau_w': 100.,
+    'E_L': -60., 'V_th': -58., 'b': 20., 'tau_w': 100.,
     'V_reset': -65., 't_ref': 2., 'g_L': 10., 'C_m': 250.
 }
 # oscillators
 params1, params2 = base_params.copy(), base_params.copy()
-params1.update({'E_L': -65., 'b': 40., 'I_e': 200., 'tau_w': 400.})
+params1.update(
+    {'E_L': -65., 'b': 40., 'I_e': 200., 'tau_w': 400., "V_th": -57.})
 # bursters
-params2.update({'b': 30., 'V_reset': -50., 'tau_w': 500.})
+params2.update({'b': 25., 'V_reset': -55., 'tau_w': 300.})
 
 oscill = nngt.NeuralGroup(
     nodes=400, neuron_model='aeif_psc_alpha', neuron_type=1,
@@ -70,7 +71,7 @@ Create the network from this population,
 using a Gaussian in-degree
 '''
 net = ng.gaussian_degree(
-    100., 15., population=pop, weights=250., delays=5.)
+    100., 15., population=pop, weights=155., delays=5.)
 
 
 '''
