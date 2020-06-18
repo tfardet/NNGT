@@ -73,6 +73,7 @@ def get_b2(network=None, spike_detector=None, data=None, nodes=None):
     else:
         if nodes is None:
             nodes = np.unique(data[:, 0])
+
     return _b2_from_data(nodes, data)
 
 
@@ -104,6 +105,7 @@ def get_firing_rate(network=None, spike_detector=None, data=None, nodes=None):
     else:
         if nodes is None:
             nodes = np.unique(data[:, 0])
+
     return _fr_from_data(nodes, data)
 
 
@@ -150,12 +152,15 @@ def total_firing_rate(network=None, spike_detector=None, nodes=None, data=None,
         The times associated to the firing rate values.
     '''
     times, kernel_size = None, None
+
     if data is None:
         data, _ = _set_data_nodes(network, data, nodes)
         data    = _set_spike_data(data, spike_detector)
+
     # set resolution and kernel properties + generate the times
     if resolution is None:
         resolution = 0.1*kernel_std
+
     if nonstring_container(resolution):
         dt = np.diff(resolution)
         assert np.allclose(dt - dt[0], 0.), 'If `resolution` is an array, ' +\
@@ -163,22 +168,29 @@ def total_firing_rate(network=None, spike_detector=None, nodes=None, data=None,
                                             'times.'
         times = np.array(resolution)
         resolution = dt[0]
+
     bin_std = int(kernel_std / float(resolution))
     kernel_size = int(2. * cut_gaussian * bin_std)
+
     if times is None:
         delta_T = resolution * 0.5 * kernel_size
         times = np.arange(np.min(data[:, 1]) - delta_T,
                           np.max(data[:, 1]) + delta_T, resolution)
+
     rate = np.zeros(len(times))
+
     # counts the spikes at each time
     pos = find_idx_nearest(times, data[:, 1])
     bins = np.linspace(0, len(times), len(times)+1)
     counts, _ = np.histogram(pos, bins=bins)
+
     # initialize with delta rate in Hz
     rate += 1000. * counts / (kernel_std*np.sqrt(np.pi))
     fr = _smooth(rate, kernel_size, bin_std, mode='same')
+
     # translate times
     times += kernel_center
+
     return fr, times
 
 
