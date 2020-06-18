@@ -139,9 +139,9 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
         coord_nb = 2*int(num_edges / (num_nodes*(1 + target_reciprocity)))
         e_reglat = int(0.5*num_nodes*(1 + target_reciprocity)*coord_nb)
     else:
-        # coordination number must be even
-        coord_nb = 2*int(0.5*num_edges / num_nodes)
-        e_reglat = num_nodes*coord_nb
+        # coordination number must be even and resulting edges are half
+        coord_nb = 2*int(num_edges / num_nodes)
+        e_reglat = int(0.5*num_nodes*coord_nb)
 
     # generate the edges of the regular lattice
     ids = range(num_nodes)

@@ -1574,10 +1574,8 @@ class Connections:
         return wlist
 
     @staticmethod
-    def types(graph, inhib_nodes=None, inhib_frac=None):
+    def types(graph, inhib_nodes=None, inhib_frac=None, values=None):
         '''
-        @todo
-
         Define the type of a set of neurons.
         If no arguments are given, all edges will be set as excitatory.
 
@@ -1585,7 +1583,7 @@ class Connections:
         ----------
         graph : :class:`~nngt.Graph` or subclass
             Graph on which edge types will be created.
-        inhib_nodes : int, float or list, optional (default: `None`)
+        inhib_nodes : int or list, optional (default: `None`)
             If `inhib_nodes` is an int, number of inhibitory nodes in the graph
             (all connections from inhibitory nodes are inhibitory); if it is a
             float, ratio of inhibitory nodes in the graph; if it is a list, ids
@@ -1601,15 +1599,19 @@ class Connections:
         t_list : :class:`~numpy.ndarray`
             List of the edges' types.
         '''
-        t_list = np.repeat(1., graph.edge_nb())
-        edges = graph.edges_array
         num_inhib = 0
         idx_inhib = []
-        if inhib_nodes is None and inhib_frac is None:
-            graph.new_edge_attribute("type", "double", val=1.)
-            return t_list
+
+        if values is not None:
+            graph.new_edge_attribute("type", "int", values=values)
+            return values
+        elif inhib_nodes is None and inhib_frac is None:
+            graph.new_edge_attribute("type", "int", val=1)
+            return np.ones(graph.edge_nb())
         else:
+            t_list = np.repeat(1, graph.edge_nb())
             n = graph.node_nb()
+
             if inhib_nodes is None:
                 # set inhib_frac*num_edges random inhibitory connections
                 num_edges = graph.edge_nb()
@@ -1619,46 +1621,46 @@ class Connections:
                     new = randint(0,num_edges,num_inhib-num_current)
                     idx_inhib = np.unique(np.concatenate((idx_inhib, new)))
                     num_current = len(idx_inhib)
-                t_list[idx_inhib.astype(int)] *= -1.
+                t_list[idx_inhib.astype(int)] *= -1
             else:
+                edges  = graph.edges_array
                 # get the dict of inhibitory nodes
                 num_inhib_nodes = 0
                 idx_nodes = {}
                 if nonstring_container(inhib_nodes):
                     idx_nodes = {i: -1 for i in inhib_nodes}
                     num_inhib_nodes = len(idx_nodes)
-                if isinstance(inhib_nodes, np.float):
-                    if inhib_nodes > 1:
-                        raise InvalidArgument(
-                            "Inhibitory ratio (float value for `inhib_nodes`) "
-                            "must be smaller than 1.")
-                    num_inhib_nodes = int(inhib_nodes*n)
                 if is_integer(inhib_nodes):
                     num_inhib_nodes = int(inhib_nodes)
                 while len(idx_nodes) != num_inhib_nodes:
                     indices = randint(0,n,num_inhib_nodes-len(idx_nodes))
-                    di_tmp = { i:-1 for i in indices }
+                    di_tmp  = {i: -1 for i in indices}
                     idx_nodes.update(di_tmp)
-                for v in edges[:,0]:
+                for v in edges[:, 0]:
                     if v in idx_nodes:
                         idx_inhib.append(v)
                 idx_inhib = np.unique(idx_inhib)
+
                 # set the inhibitory edge indices
                 for v in idx_inhib:
-                    idx_edges = np.argwhere(edges[:,0]==v)
+                    idx_edges = np.argwhere(edges[:, 0] == v)
+
                     n = len(idx_edges)
+
                     if inhib_frac is not None:
                         idx_inh = []
                         num_inh = n*inhib_frac
                         i = 0
                         while i != num_inh:
-                            ids = randint(0,n,num_inh-i)
+                            ids = randint(0, n, num_inh-i)
                             idx_inh = np.unique(np.concatenate((idx_inh,ids)))
                             i = len(idx_inh)
-                        t_list[idx_inh] *= -1.
+                        t_list[idx_inh] *= -1
                     else:
-                        t_list[idx_edges] *= -1.
-            graph.set_edge_attribute("type", value_type="double", values=t_list)
+                        t_list[idx_edges] *= -1
+
+            graph.set_edge_attribute("type", value_type="int", values=t_list)
+
             return t_list
 
 

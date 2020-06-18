@@ -752,15 +752,28 @@ def test_subgraph_centrality():
     g = nngt.Graph(num_nodes, directed=False)
     g.new_edges(edge_list)
 
+    # test full centralities
     import networkx as nx
 
     sc_nx = nx.subgraph_centrality(g.graph)
-    sc_nx = [sc_nx[i] for i in range(num_nodes)]
+    sc_nx = np.array([sc_nx[i] for i in range(num_nodes)])
 
     sc_nngt = nngt.analysis.subgraph_centrality(g, weights=False,
                                                 normalize=False)
 
     assert np.all(np.isclose(sc_nx, sc_nngt))
+
+    # test max_centrality
+    sc_nngt = nngt.analysis.subgraph_centrality(g, weights=False,
+                                                normalize="max_centrality")
+
+    assert np.all(np.isclose(sc_nx / sc_nx.max(), sc_nngt))
+
+    # test subpart
+    sc_nngt = nngt.analysis.subgraph_centrality(g, weights=False,
+                                                normalize=False, nodes=[0, 1])
+
+    assert np.all(np.isclose(sc_nx[:2], sc_nngt))
 
 
 if __name__ == "__main__":
