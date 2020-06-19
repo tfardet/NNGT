@@ -19,6 +19,8 @@ import nngt.analysis as na
 import nngt.generation as ng
 
 
+nngt_backend = (nngt.get_config("backend") == "nngt")
+
 methods = ('barrat', 'continuous', 'onnela')
 
 
@@ -364,6 +366,7 @@ def test_iedges():
 
 
 @pytest.mark.mpi_skip
+@pytest.mark.skipif(nngt_backend, reason="Not implemented")
 def test_swp():
     ''' Check small-world propensity '''
     num_nodes = 500
