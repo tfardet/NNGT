@@ -133,11 +133,11 @@ def reciprocity(g):
     raise NotImplementedError(_backend_required)
 
 
-def transitivity(g, weights=None):
+def transitivity(g, directed=True, weights=None):
     '''
     Same as :func:`~nngt.analysis.global_clustering`.
     '''
-    return global_clustering(g, weights=weights)
+    return global_clustering(g, directed=directed, weights=weights)
 
 
 def num_iedges(graph):

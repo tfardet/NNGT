@@ -57,7 +57,7 @@ def test_binary_undirected_clustering():
     assert np.isclose(
         na.global_clustering(g, directed=False), glob_clst)
 
-    assert np.isclose(na.transitivity(g), glob_clst)
+    assert np.isclose(na.transitivity(g, directed=False), glob_clst)
 
     assert np.isclose(
         na.global_clustering_binary_undirected(g), glob_clst)
@@ -332,6 +332,7 @@ def test_reciprocity():
     assert nngt.analyze_graph["reciprocity"](g) == 1.
 
 
+@pytest.mark.mpi_skip
 def test_iedges():
     ''' Check the computation of the number of inhibitory edges '''
     num_nodes = 5
@@ -362,6 +363,7 @@ def test_iedges():
         assert na.num_iedges(g) == 3
 
 
+@pytest.mark.mpi_skip
 def test_swp():
     ''' Check small-world propensity '''
     num_nodes = 500
