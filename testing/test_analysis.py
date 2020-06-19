@@ -19,6 +19,8 @@ import nngt.analysis as na
 import nngt.generation as ng
 
 
+nngt_backend = (nngt.get_config("backend") == "nngt")
+
 methods = ('barrat', 'continuous', 'onnela')
 
 
@@ -53,9 +55,11 @@ def test_binary_undirected_clustering():
         nngt.analyze_graph["local_clustering"](g, directed=False),
         loc_clst))
 
-    # check all 3 ways of computing the global clustering
+    # check all 4 ways of computing the global clustering
     assert np.isclose(
         na.global_clustering(g, directed=False), glob_clst)
+
+    assert np.isclose(na.transitivity(g, directed=False), glob_clst)
 
     assert np.isclose(
         na.global_clustering_binary_undirected(g), glob_clst)
@@ -330,9 +334,83 @@ def test_reciprocity():
     assert nngt.analyze_graph["reciprocity"](g) == 1.
 
 
+@pytest.mark.mpi_skip
+def test_iedges():
+    ''' Check the computation of the number of inhibitory edges '''
+    num_nodes = 5
+    edge_list = [(0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3)]
+
+    types = [1, -1, 1, 1, -1, 1]
+
+    for directed in (True, False):
+        g = nngt.Graph(nodes=num_nodes, directed=directed)
+        g.new_edges(edge_list)
+
+        # from list
+        g.set_types(types)
+
+        assert na.num_iedges(g) == 2
+
+        # from node list
+        nodes = [1, 2]
+        num_inhib = 3
+
+        g.set_types(-1, nodes=nodes)
+
+        assert na.num_iedges(g) == 3
+
+        # from edge fraction
+        g.set_types(-1, fraction=0.5)
+
+        assert na.num_iedges(g) == 3
+
+
+@pytest.mark.mpi_skip
+@pytest.mark.skipif(nngt_backend, reason="Not implemented")
+def test_swp():
+    ''' Check small-world propensity '''
+    num_nodes = 500
+    k_latt = 16
+
+    # SWP for different extreme p values (0, 1)
+    expected = 1 - 1/np.sqrt(2)
+
+    weights  = {"distribution": "uniform", "lower": 0.5, "upper": 5}
+
+    for directed in (True, False):
+        for w in (None, weights):
+            for p in (0, 1):
+                use_weights = None if w is None else "weight"
+                g = ng.watts_strogatz(k_latt, p, nodes=num_nodes,
+                                      directed=directed, weights=w)
+
+                if w is None:
+                    assert np.isclose(
+                        na.small_world_propensity(g, use_diameter=True,
+                                                  weights=use_weights),
+                        expected, atol=0.01)
+                else:
+                    assert np.isclose(
+                        na.small_world_propensity(g, use_diameter=True,
+                                                  weights=use_weights),
+                        expected, atol=0.02)
+
+    # check options for binary only
+    g = ng.watts_strogatz(k_latt, 0, nodes=num_nodes, directed=True)
+
+    assert np.isclose(
+        na.small_world_propensity(g, use_global_clustering=False),
+        expected, atol=0.01)
+
+    assert np.isclose(
+        na.small_world_propensity(g, use_diameter=False), expected, atol=0.01)
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
         test_binary_undirected_clustering()
         test_weighted_undirected_clustering()
         test_weighted_directed_clustering()
         test_reciprocity()
+        test_iedges()
+        test_swp()

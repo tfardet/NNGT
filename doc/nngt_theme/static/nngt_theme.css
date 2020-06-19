@@ -60,6 +60,10 @@ img.logo {
 Documentation functions
 */
 
+table {
+    font-size: 100%;
+}
+
 dl {
     margin: 0;
     padding: 0;
@@ -139,6 +143,10 @@ table.citation td.label {
     vertical-align: baseline;
     border: none;
     color: #000000;
+}
+
+.citation td {
+    width: 100%;
 }
 
 .admonition a {

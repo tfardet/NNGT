@@ -30,7 +30,8 @@ import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
 from nngt.lib.connect_tools import _set_options
 from nngt.lib.logger import _log_message
-from nngt.lib.test_functions import mpi_checker, mpi_random, deprecated
+from nngt.lib.test_functions import (mpi_checker, mpi_random, deprecated,
+                                     on_master_process)
 
 
 # do default import
@@ -68,7 +69,7 @@ if nngt.get_config("multithreading"):
             # wait for compilation to finish
             nngt.lib.mpi_barrier()
 
-            if nngt.on_master_process():
+            if on_master_process():
                 from .cconnect import *
     
             nngt.lib.mpi_barrier()

@@ -35,7 +35,7 @@ import graph_tool.topology as gtt
 import graph_tool.clustering as gtc
 
 from ..lib.test_functions import nonstring_container
-from ..lib.graph_helpers import _get_gt_weights
+from ..lib.graph_helpers import _get_gt_weights, _get_gt_graph
 
 
 def global_clustering_binary_undirected(g):
@@ -345,8 +345,6 @@ def shortest_path(g, source, target, directed=True, weights=None):
     ----------
     .. [gt-sp] :gtdoc:`topology.shortest_path`
     '''
-    graph = g.graph
-
     # source == target case
     if source == target:
         return [source]
@@ -354,13 +352,7 @@ def shortest_path(g, source, target, directed=True, weights=None):
     # non-trivial cases
     w = _get_gt_weights(g, weights)
 
-    if not directed and graph.is_directed():
-        if w is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = GraphView(g.graph, directed=False)
-        graph = GraphView(graph, efilt=label_parallel_edges(u).fa == 0)
+    graph = _get_gt_graph(g, directed, w)
 
     path, _ = gtt.shortest_path(graph, source, target, weights=w)
 
@@ -397,8 +389,6 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
     ----------
     .. [gt-sd] :gtdoc:`topology.all_shortest_paths`
     '''
-    graph = g.graph
-
     # source == target case
     if source == target:
         return ([source] for _ in range(1))
@@ -406,13 +396,7 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
     # not trivial cases
     w = _get_gt_weights(g, weights)
 
-    if not directed and graph.is_directed():
-        if w is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = GraphView(g.graph, directed=False)
-        graph = GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+    graph = _get_gt_graph(g, directed, w)
 
     all_paths = gtt.all_shortest_paths(graph, source, target, weights=w)
 
@@ -452,21 +436,11 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     ----------
     .. [gt-sd] :gtdoc:`topology.shortest_distance`
     '''
-    # graph-tool returns infinity for unconnected nodes so there is no need
-    # to check connectedness
-    graph = g.graph
-
     num_nodes = g.node_nb()
 
     w = _get_gt_weights(g, weights)
 
-    if not directed and graph.is_directed():
-        if w is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
-
-        graph = GraphView(g.graph, directed=False)
-        graph = GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+    graph = _get_gt_graph(g, directed, w)
 
     dist_emap = None
     tgt_vtx   = None
@@ -593,7 +567,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     .. [gt-sd] :gtdoc:`topology.shortest_distance`
     '''
     mat_dist = shortest_distance(g, sources=sources, targets=targets,
-                              directed=directed, weights=weights)
+                                 directed=directed, weights=weights)
 
     if not unconnected and np.any(np.isinf(mat_dist)):
         raise RuntimeError("`sources` and `target` do not belong to the "
@@ -611,22 +585,37 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     return np.sum(mat_dist) / num_paths
 
 
-def diameter(g, weights=None):
+def diameter(g, directed=True, weights=None, is_connected=False):
     '''
-    Returns the pseudo-diameter of the graph.
+    Returns the diameter of the graph.
 
-    This function returns an approximmation of the graph diameter.
+    .. versionchanged:: 2.0
+        Added `directed` and `is_connected` arguments.
+
     It returns infinity if the graph is not connected (strongly connected for
-    directed graphs).
+    directed graphs) unless `is_connected` is True, in which case it returns
+    the longest existing shortest distance.
 
     Parameters
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
+    directed : bool, optional (default: True)
+        Whether to compute the directed diameter if the graph is directed.
+        If False, then the graph is treated as undirected. The option switches
+        to False automatically if `g` is undirected.
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
+    is_connected : bool, optional (default: False)
+        If False, check whether the graph is connected or not and return
+        infinite diameter if graph is unconnected. If True, the graph is
+        assumed to be connected.
+
+    See also
+    --------
+    :func:`nngt.analysis.shortest_distance`
 
     References
     ----------
@@ -634,13 +623,18 @@ def diameter(g, weights=None):
     '''
     ww = _get_gt_weights(g, weights)
 
+    graph = _get_gt_graph(g, directed, ww)
+
     # first check whether the graph is fully connected
-    cc, hist = connected_components(g)
+    ctype = "scc" if directed else "wcc"
 
-    if len(hist) > 1:
-        return np.inf
+    if not is_connected:
+        cc, hist = connected_components(g, ctype)
 
-    return gtt.pseudo_diameter(g.graph, weights=ww)[0]
+        if len(hist) > 1:
+            return np.inf
+
+    return gtt.pseudo_diameter(graph, weights=ww)[0]
 
 
 def adj_mat(g, weights=None, mformat="csr"):

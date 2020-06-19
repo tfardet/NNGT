@@ -165,7 +165,7 @@ def test_watts_strogatz():
     g = ng.watts_strogatz(k_lattice, p_shortcut, nodes=num_nodes,
                           directed=False)
 
-    assert g.edge_nb() == 0.5*k_lattice*num_nodes
+    assert g.edge_nb() == int(0.5*k_lattice*num_nodes)
 
     # directed
     reciprocity = 0.
@@ -189,12 +189,25 @@ def test_watts_strogatz():
     assert np.all(g.get_degrees("out") == k_lattice)
 
     reciprocity = 0.5
+
     g = ng.watts_strogatz(k_lattice, p_shortcut, reciprocity, nodes=num_nodes,
                           directed=True)
 
     recip_fact = 0.5*(1 + reciprocity)
 
     assert g.edge_nb() == int(recip_fact*k_lattice*num_nodes)
+
+    # limit cases
+    for p_shortcut in (0, 1):
+        g = ng.watts_strogatz(k_lattice, p_shortcut, nodes=num_nodes,
+                              directed=False)
+
+        assert g.edge_nb() == 0.5*k_lattice*num_nodes
+
+        g = ng.watts_strogatz(k_lattice, p_shortcut, nodes=num_nodes,
+                              directed=True)
+
+        assert g.edge_nb() == k_lattice*num_nodes
 
 
 @pytest.mark.mpi

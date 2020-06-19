@@ -1431,7 +1431,7 @@ class Graph(nngt.core.GraphObject):
 
         Parameters
         ----------
-        edge_type : int or string
+        edge_type : int, string, or array of ints
             Type of the connection among 'excitatory' (also `1`) or
             'inhibitory' (also `-1`).
         nodes : int, float or list, optional (default: `None`)
@@ -1450,17 +1450,26 @@ class Graph(nngt.core.GraphObject):
             List of the types in an order that matches the `edges` attribute of
             the graph.
         '''
-        inhib_nodes = nodes
-        if edge_type == 'excitatory' or edge_type == 1:
+        inhib_nodes = None
+
+        if nonstring_container(edge_type):
+            return nngt.core.Connections.types(self, values=edge_type)
+        elif edge_type in ('excitatory', 1):
             if is_integer(nodes):
                 inhib_nodes = self.node_nb() - nodes
-            elif isinstance(nodes, np.float):
-                inhib_nodes = 1. / nodes
             elif nonstring_container(nodes):
                 inhib_nodes = list(range(self.node_nb()))
                 nodes.sort()
                 for node in nodes[::-1]:
                     del inhib_nodes[node]
+            elif nodes is not None:
+                raise ValueError("`nodes` should be integer or array of ids.")
+        elif edge_type in ('inhibitory', -1):
+            if is_integer(nodes) or nonstring_container(nodes):
+                inhib_nodes = nodes
+            elif nodes is not None:
+                raise ValueError("`nodes` should be integer or array of ids.")
+
         return nngt.core.Connections.types(self, inhib_nodes, fraction)
 
     def set_delays(self, delay=None, elist=None, distribution=None,

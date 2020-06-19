@@ -139,9 +139,9 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
         coord_nb = 2*int(num_edges / (num_nodes*(1 + target_reciprocity)))
         e_reglat = int(0.5*num_nodes*(1 + target_reciprocity)*coord_nb)
     else:
-        # coordination number must be even
-        coord_nb = 2*int(0.5*num_edges / num_nodes)
-        e_reglat = num_nodes*coord_nb
+        # coordination number must be even and resulting edges are half
+        coord_nb = 2*int(num_edges / num_nodes)
+        e_reglat = int(0.5*num_nodes*coord_nb)
 
     # generate the edges of the regular lattice
     ids = range(num_nodes)
@@ -156,15 +156,19 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     if e_remaining:
         last_edges = np.full((e_remaining, 2), -1, dtype=np.int64)
 
-        # new connectins are one step above the max regular lattive distance
+        # new connections are one step above the max regular lattice distance
         dist = int(0.5*coord_nb) + 1
 
         if directed:
             # make reciprocal edges
             num_recip  = int(0.5*target_reciprocity*e_remaining)
 
-            last_edges[:num_recip] = [(i, i + dist) for i in range(num_recip)]
-            last_edges[num_recip:2*num_recip] = last_edges[:num_recip, ::-1]
+            if num_recip:
+                last_edges[:num_recip] = \
+                    [(i, i + dist) for i in range(num_recip)]
+
+                last_edges[num_recip:2*num_recip] = \
+                    last_edges[:num_recip, ::-1]
 
             # make remaning non-reciprocal edges
             e_final = e_remaining - 2*num_recip
@@ -174,10 +178,10 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
                     [(i, i + dist) for i in range(num_recip,
                                                   num_recip + e_final)]
         else:
-            last_edges = [(i, i + dist) for i in range(e_remaning)]
+            last_edges[:] = [(i, i + dist) for i in range(e_remaning)]
 
-            # put targets back into [0, num_nodes[
-            last_edges[:, last_edges[:, 1] >= num_nodes] -= num_nodes
+        # put nodes back into [0, num_nodes[
+        last_edges[last_edges >= num_nodes] -= num_nodes
 
         ia_edges[e_reglat:] = last_edges
 
