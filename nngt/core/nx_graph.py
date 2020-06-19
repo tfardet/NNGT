@@ -31,7 +31,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.connect_tools import _cleanup_edges
+from nngt.lib.connect_tools import _cleanup_edges, _set_dist_new_edges
 from nngt.lib.graph_helpers import _get_dtype, _get_nx_weights
 from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
@@ -506,6 +506,9 @@ class _NxGraph(GraphInterface):
             if self.is_weighted() and "weight" not in attributes:
                 attributes["weight"] = 1.
 
+            # check distance
+            _set_dist_new_edges(attributes, self, [(source, target)])
+
             g.add_edge(source, target)
 
             g[source][target]["eid"] = g.number_of_edges() - 1
@@ -607,6 +610,9 @@ class _NxGraph(GraphInterface):
 
             # create the edges with an eid attribute
             g.add_weighted_edges_from(arr_edges, weight="eid")
+
+            # check distance
+            _set_dist_new_edges(new_attr, self, edge_list)
 
             # call parent function to set the attributes
             self._attr_new_edges(edge_list, attributes=new_attr)

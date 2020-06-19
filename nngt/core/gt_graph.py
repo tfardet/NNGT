@@ -29,7 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.connect_tools import _cleanup_edges
+from nngt.lib.connect_tools import _cleanup_edges, _set_dist_new_edges
 from nngt.lib.converters import _to_np_array
 from nngt.lib.graph_helpers import _get_dtype, _get_gt_weights
 from nngt.lib.logger import _log_message
@@ -528,6 +528,9 @@ class _GtGraph(GraphInterface):
 
             g.add_edge(source, target, add_missing=False)
 
+            # check distance
+            _set_dist_new_edges(new_attr, self, [edge])
+
             # set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
         else:
@@ -611,6 +614,9 @@ class _GtGraph(GraphInterface):
         else:
             edge_list = np.asarray(edge_list)
             new_attr  = attributes
+
+        # check distance
+        _set_dist_new_edges(new_attr, self, edge_list)
 
         # create the edges
         if len(edge_list):

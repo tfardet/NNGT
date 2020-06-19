@@ -29,7 +29,7 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT, is_integer
-from nngt.lib.connect_tools import _cleanup_edges
+from nngt.lib.connect_tools import _cleanup_edges, _set_dist_new_edges
 from nngt.lib.graph_helpers import _get_dtype, _get_ig_weights
 from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
@@ -516,6 +516,9 @@ class _IGraph(GraphInterface):
             new_attr = attributes
 
         self._graph.add_edges(edge_list)
+
+        # check distance
+        _set_dist_new_edges(new_attr, self, edge_list)
 
         # call parent function to set the attributes
         self._attr_new_edges(edge_list, attributes=new_attr)

@@ -30,7 +30,7 @@ from scipy.sparse import coo_matrix, lil_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
-from nngt.lib.connect_tools import _cleanup_edges
+from nngt.lib.connect_tools import _cleanup_edges, _set_dist_new_edges
 from nngt.lib.graph_helpers import _get_edge_attr, _get_dtype
 from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
@@ -547,6 +547,9 @@ class _NNGTGraph(GraphInterface):
             g._out_deg[source] += 1
             g._in_deg[target]  += 1
 
+            # check distance
+            _set_dist_new_edges(new_attr, self, [edge])
+
             # attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
 
@@ -671,6 +674,9 @@ class _NNGTGraph(GraphInterface):
 
                 g._out_deg[e[1]] += 1
                 g._in_deg[e[0]]  += 1
+
+        # check distance
+        _set_dist_new_edges(new_attr, self, edge_list)
 
         # call parent function to set the attributes
         self._attr_new_edges(edge_list, attributes=new_attr)

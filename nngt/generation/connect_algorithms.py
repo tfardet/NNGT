@@ -23,7 +23,6 @@
 import logging
 import numpy as np
 import scipy.sparse as ssp
-from scipy.spatial.distance import cdist
 from numpy.random import randint
 
 import nngt
