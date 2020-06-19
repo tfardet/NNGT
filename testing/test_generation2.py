@@ -310,16 +310,45 @@ def test_all_to_all():
 
 def test_distances():
     ''' Check that distances are properly generated for SpatialGraphs '''
-    pass
+    # simple graph
+    num_nodes = 4
+
+    pos = [(0, 0), (1, 0), (2, 0), (3, 0)]
+    
+    g = nngt.SpatialGraph(num_nodes, positions=pos)
+
+    edges = [(0, 1), (0, 3), (1, 2), (2, 3)]
+
+    g.new_edges(edges)
+
+    dist = g.edge_attributes["distance"]
+
+    expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
+
+    assert np.array_equal(dist, expected)
+
+    # distance rule
+    g = ng.distance_rule(2.5, rule="lin", nodes=num_nodes, avg_deg=2,
+                         positions=pos)
+
+    dist = g.edge_attributes["distance"]
+
+    expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
+
+    assert np.array_equal(dist, expected)
+    assert np.all(dist < 3)
+
+    # using the connector functions
 
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        test_newman_watts()
-        test_from_degree_list()
-        test_total_undirected_connectivities()
-        test_watts_strogatz()
-        test_all_to_all()
+        # ~ test_newman_watts()
+        # ~ test_from_degree_list()
+        # ~ test_total_undirected_connectivities()
+        # ~ test_watts_strogatz()
+        # ~ test_all_to_all()
+        test_distances()
 
     if nngt.get_config("mpi"):
         test_mpi_from_degree_list()

@@ -116,9 +116,13 @@ class SpatialGraph(Graph):
         Create the positions of the neurons from the graph `shape` attribute
         and computes the connections distances.
         '''
+        positions = None if positions is None else np.asarray(positions)
+
         self.new_edge_attribute('distance', 'double')
-        if positions is not None and positions.shape[0] != self.node_nb():
+
+        if positions is not None and len(positions) != self.node_nb():
             raise InvalidArgument("Wrong number of neurons in `positions`.")
+
         if shape is not None:
             shape.set_parent(self)
             self._shape = shape
@@ -146,8 +150,11 @@ class SpatialGraph(Graph):
             else:
                 minx, maxx = np.min(positions[:, 0]), np.max(positions[:, 0])
                 miny, maxy = np.min(positions[:, 1]), np.max(positions[:, 1])
+
                 height, width = 1.01*(maxy - miny), 1.01*(maxx - minx)
+
                 centroid = (0.5*(maxx + minx), 0.5*(maxy + miny))
+
                 self._shape = nngt.geometry.Shape.rectangle(
                     height, width, centroid=centroid, parent=self)
 

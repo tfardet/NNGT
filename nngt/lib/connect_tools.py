@@ -356,13 +356,13 @@ def max_proba_dist_rule(rule, scale, max_proba, pos_src, pos_targets,
 
 def _set_dist_new_edges(new_attr, graph, edge_list):
     ''' Add the distances to the edge attributes '''
-    if graph.is_spatial():
+    if graph.is_spatial() and "distance" not in new_attr:
         if len(edge_list) == 1:
             positions = graph.get_positions(edge_list[0])
             new_attr["distance"] = cdist([positions[0]], [positions[1]])[0][0]
         else:
             positions = graph.get_positions()
             mat = cdist(positions, positions)
-            distances = [mat[*e] for e in edges]
+            distances = [mat[e[0], e[1]] for e in edge_list]
 
-            new_attr["distance"] = values
+            new_attr["distance"] = distances

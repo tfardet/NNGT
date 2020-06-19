@@ -601,7 +601,7 @@ class _GtGraph(GraphInterface):
                 dtype = self.get_attribute_type(k)
                 if dtype == "string":
                     attributes[k] = ["" for _ in range(num_edges)]
-                elif dtype == "double" and k != "weight":
+                elif dtype == "double" and k not in ("weight", "distance"):
                     attributes[k] = [np.NaN for _ in range(num_edges)]
 
         # check edges
