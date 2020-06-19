@@ -308,6 +308,11 @@ def test_all_to_all():
                           [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3)])
 
 
+def test_distances():
+    ''' Check that distances are properly generated for SpatialGraphs '''
+    pass
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
         test_newman_watts()
