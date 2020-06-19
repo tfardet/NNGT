@@ -787,35 +787,79 @@ def _watts_strogatz(source_ids, target_ids, coord_nb, proba_shortcut,
 
     # compute how many we rewire in total, choose them
     rewire = rng.binomial(edges, proba_shortcut)
-    chosen = rng.choice(edges, rewire, replace=False)
+    chosen = rng.choice(edges, rewire, replace=False).tolist()
 
     # rewire
-    keep = np.zeros(rewire, dtype=int)
+    keep = [0]*rewire
 
     if shuffle == "random":
-        keep = rng.integers(1, size=rewire, endpoint=True)
+        keep = rng.integers(1, size=rewire, endpoint=True).tolist()
     elif shuffle == "sources":
-        keep = np.ones(rewire, dtype=int)
+        keep = [1]*rewire
 
-    new_targets = rng.integers(nodes, size=rewire)
+    new_targets = rng.integers(nodes, size=rewire).tolist()
 
-    for i in range(rewire):
-        idx1 = chosen[i]
-        idx2 = keep[i]
+    max_tests   = 50*rewire
+    num_test    = 0
+    num_rewired = 0
 
-        s = ia_edges[idx1, idx2]
-        t = new_targets[i]
-        e = (s, t)
+    while num_rewired < rewire and num_test < max_tests:
+        # if used all previous chosen, regenerate some
+        if not chosen:
+            remaining = rewire - num_rewired
 
-        while s == t or e in edge_hash:
+            chosen = rng.choice(edges, remaining, replace=False).tolist()
+
+            keep = [0]*remaining
+            if shuffle == "random":
+                keep = rng.integers(1, size=remaining, endpoint=True).tolist()
+            elif shuffle == "sources":
+                keep = [1]*remaining
+
+            new_targets = rng.integers(nodes, size=remaining).tolist()
+
+        # try to rewire
+        idx1 = chosen.pop()
+        idx2 = keep.pop()
+
+        old_edge = tuple(ia_edges[idx1])
+
+        s = old_edge[idx2]
+        t = new_targets.pop()
+        e = (s, t) if idx2 == 0 else (t, s)
+
+        mtests = 50*nodes
+        ntest  = 0
+
+        while (s == t or e in edge_hash) and ntest < mtests:
             t = rng.integers(nodes)
-            e = (s, t)
+            e = (s, t) if idx2 == 0 else (t, s)
+            ntest += 1
 
+        # update test here to count skips
+        num_test += 1
+
+        # chosen node may already reached max degree, skip
+        if ntest == mtests:
+            continue
+
+        # rewire edge if successful
         ia_edges[idx1, 1 - idx2] = t
+
+        # add new edge and remove old one
         edge_hash.add(e)
+
+        edge_hash -= {old_edge}
 
         if not directed:
             edge_hash.add(e[::-1])
+
+            edge_hash -= {old_edge[::-1]}
+
+        num_rewired += 1
+
+    if max_tests and num_test == max_tests:
+        raise RuntimeError("Algorithm did not converge.")
 
     return ia_edges
 
