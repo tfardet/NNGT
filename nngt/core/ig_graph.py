@@ -29,7 +29,8 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, BWEIGHT, is_integer
-from nngt.lib.connect_tools import _cleanup_edges
+from nngt.lib.connect_tools import (_cleanup_edges, _set_dist_new_edges,
+                                    _set_default_edge_attributes)
 from nngt.lib.graph_helpers import _get_dtype, _get_ig_weights
 from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
@@ -420,17 +421,6 @@ class _IGraph(GraphInterface):
         '''
         attributes = {} if attributes is None else deepcopy(attributes)
 
-        # set default values for attributes that were not passed
-        for k in self.edge_attributes:
-            if k not in attributes:
-                dtype = self.get_attribute_type(k)
-                if dtype == "string":
-                    attributes[k] = [""]
-                elif dtype == "double" and k != "weight":
-                    attributes[k] = [np.NaN]
-                elif dtype == "int":
-                    attributes[k] = [0]
-
         if source == target:
             if not ignore and not self_loop:
                 raise InvalidArgument("Trying to add a self-loop.")
@@ -495,15 +485,7 @@ class _IGraph(GraphInterface):
             raise InvalidArgument("Some nodes do no exist.")
 
         # set default values for attributes that were not passed
-        for k in self.edge_attributes:
-            if k not in attributes:
-                dtype = self.get_attribute_type(k)
-                if dtype == "string":
-                    attributes[k] = ["" for _ in range(num_edges)]
-                elif dtype == "double" and k != "weight":
-                    attributes[k] = [np.NaN for _ in range(num_edges)]
-                elif dtype == "int":
-                    attributes[k] = [0 for _ in range(num_edges)]
+        _set_default_edge_attributes(self, attributes, num_edges)
 
         # check edges
         new_attr = None
@@ -516,6 +498,9 @@ class _IGraph(GraphInterface):
             new_attr = attributes
 
         self._graph.add_edges(edge_list)
+
+        # check distance
+        _set_dist_new_edges(new_attr, self, edge_list)
 
         # call parent function to set the attributes
         self._attr_new_edges(edge_list, attributes=new_attr)

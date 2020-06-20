@@ -352,3 +352,34 @@ def max_proba_dist_rule(rule, scale, max_proba, pos_src, pos_targets,
         return max_proba*np.divide(scale - dist_tmp, scale).clip(min=0.)
     else:
         raise InvalidArgument('Unknown rule "' + rule + '".')
+
+
+def _set_dist_new_edges(new_attr, graph, edge_list):
+    ''' Add the distances to the edge attributes '''
+    if graph.is_spatial() and "distance" not in new_attr:
+        if len(edge_list) == 1:
+            positions = graph.get_positions(list(edge_list[0]))
+            new_attr["distance"] = cdist([positions[0]], [positions[1]])[0][0]
+        else:
+            positions = graph.get_positions()
+            mat = cdist(positions, positions)
+            distances = [mat[e[0], e[1]] for e in edge_list]
+
+            new_attr["distance"] = distances
+
+
+def _set_default_edge_attributes(g, attributes, num_edges):
+    ''' Set default edge attributes values '''
+    for k in g.edge_attributes:
+        skip = k in ("weight", "distance")
+
+        if k not in attributes:
+            dtype = g.get_attribute_type(k)
+            if dtype == "string":
+                attributes[k] = ["" for _ in range(num_edges)]
+            elif dtype == "double" and not skip:
+                attributes[k] = [np.NaN for _ in range(num_edges)]
+            elif dtype == "int":
+                attributes[k] = [0 for _ in range(num_edges)]
+            elif not skip:
+                attributes[k] = [None for _ in range(num_edges)]

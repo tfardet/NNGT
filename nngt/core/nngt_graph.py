@@ -30,7 +30,8 @@ from scipy.sparse import coo_matrix, lil_matrix
 
 import nngt
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
-from nngt.lib.connect_tools import _cleanup_edges
+from nngt.lib.connect_tools import (_cleanup_edges, _set_dist_new_edges,
+                                    _set_default_edge_attributes)
 from nngt.lib.graph_helpers import _get_edge_attr, _get_dtype
 from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
@@ -511,17 +512,7 @@ class _NNGTGraph(GraphInterface):
         attributes = {} if attributes is None else deepcopy(attributes)
 
         # set default values for attributes that were not passed
-        for k in self.edge_attributes:
-            if k not in attributes:
-                dtype = self.get_attribute_type(k)
-                if dtype == "string":
-                    attributes[k] = [""]
-                elif dtype == "double" and k != "weight":
-                    attributes[k] = [np.NaN]
-                elif dtype == "int":
-                    attributes[k] = [0]
-                else:
-                    attributes[k] = [None]
+        _set_default_edge_attributes(self, attributes, num_edges=1)
 
         # check that the edge does not already exist
         edge = (source, target)
@@ -546,6 +537,9 @@ class _NNGTGraph(GraphInterface):
             g._unique[edge]     = edge_id
             g._out_deg[source] += 1
             g._in_deg[target]  += 1
+
+            # check distance
+            _set_dist_new_edges(attributes, self, [edge])
 
             # attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
@@ -616,18 +610,7 @@ class _NNGTGraph(GraphInterface):
         g = self._graph
 
         # set default values for attributes that were not passed
-        for k in self.edge_attributes:
-            if k not in attributes:
-                dtype = self.get_attribute_type(k)
-                if dtype == "string":
-                    attributes[k] = ["" for _ in range(num_edges)]
-                elif dtype == "double":
-                    if k != "weight":
-                        attributes[k] = [np.NaN for _ in range(num_edges)]
-                elif dtype == "int":
-                    attributes[k] = [0 for _ in range(num_edges)]
-                else:
-                    attributes[k] = [None for _ in range(num_edges)]
+        _set_default_edge_attributes(self, attributes, num_edges)
 
         # check that all nodes exist
         if np.max(edge_list) >= self.node_nb():
@@ -671,6 +654,9 @@ class _NNGTGraph(GraphInterface):
 
                 g._out_deg[e[1]] += 1
                 g._in_deg[e[0]]  += 1
+
+        # check distance
+        _set_dist_new_edges(new_attr, self, edge_list)
 
         # call parent function to set the attributes
         self._attr_new_edges(edge_list, attributes=new_attr)

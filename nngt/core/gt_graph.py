@@ -29,7 +29,8 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.connect_tools import _cleanup_edges
+from nngt.lib.connect_tools import (_cleanup_edges, _set_dist_new_edges,
+                                    _set_default_edge_attributes)
 from nngt.lib.converters import _to_np_array
 from nngt.lib.graph_helpers import _get_dtype, _get_gt_weights
 from nngt.lib.logger import _log_message
@@ -502,13 +503,7 @@ class _GtGraph(GraphInterface):
 
         attributes = {} if attributes is None else deepcopy(attributes)
 
-        for k in self.edge_attributes:
-            if k not in attributes:
-                dtype = self.get_attribute_type(k)
-                if dtype == "string":
-                    attributes[k] = [""]
-                elif dtype == "double" and k != "weight":
-                    attributes[k] = [np.NaN]
+        _set_default_edge_attributes(self, attributes, num_edges=1)
 
         # check that the edge does not already exist and that nodes are valid
         try:
@@ -527,6 +522,9 @@ class _GtGraph(GraphInterface):
                     return None
 
             g.add_edge(source, target, add_missing=False)
+
+            # check distance
+            _set_dist_new_edges(attributes, self, [(source, target)])
 
             # set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
@@ -593,14 +591,7 @@ class _GtGraph(GraphInterface):
             raise InvalidArgument("Some nodes do no exist.")
 
         # set default values for attributes that were not passed
-        # (only string and double, others are handled correctly by default)
-        for k in self.edge_attributes:
-            if k not in attributes:
-                dtype = self.get_attribute_type(k)
-                if dtype == "string":
-                    attributes[k] = ["" for _ in range(num_edges)]
-                elif dtype == "double" and k != "weight":
-                    attributes[k] = [np.NaN for _ in range(num_edges)]
+        _set_default_edge_attributes(self, attributes, num_edges)
 
         # check edges
         new_attr = None
@@ -612,6 +603,9 @@ class _GtGraph(GraphInterface):
         else:
             edge_list = np.asarray(edge_list)
             new_attr  = attributes
+
+        # check distance
+        _set_dist_new_edges(new_attr, self, edge_list)
 
         # create the edges
         if len(edge_list):

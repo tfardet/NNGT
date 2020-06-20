@@ -31,7 +31,8 @@ import scipy.sparse as ssp
 
 import nngt
 from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
-from nngt.lib.connect_tools import _cleanup_edges
+from nngt.lib.connect_tools import (_cleanup_edges, _set_dist_new_edges,
+                                    _set_default_edge_attributes)
 from nngt.lib.graph_helpers import _get_dtype, _get_nx_weights
 from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
@@ -410,13 +411,14 @@ class _NxGraph(GraphInterface):
             old_pos      = self._pos
             self._pos    = np.full((self.node_nb(), 2), np.NaN)
             num_existing = len(old_pos) if old_pos is not None else 0
+
             if num_existing != 0:
-                self._pos[:num_existing, :] = old_pos
+                self._pos[:num_existing] = old_pos
 
         if positions is not None and len(positions):
             assert self.is_spatial(), \
                 "`positions` argument requires a SpatialGraph/SpatialNetwork."
-            self._pos[new_nodes, :] = positions
+            self._pos[new_nodes] = positions
 
         if groups is not None:
             assert self.is_network(), \
@@ -472,15 +474,7 @@ class _NxGraph(GraphInterface):
             raise InvalidArgument("`source` or `target` does not exist.")
 
         # set default values for attributes that were not passed
-        for k in self.edge_attributes:
-            if k not in attributes:
-                dtype = self.get_attribute_type(k)
-                if dtype == "string":
-                    attributes[k] = [""]
-                elif dtype == "double" and k != "weight":
-                    attributes[k] = [np.NaN]
-                elif dtype == "int":
-                    attributes[k] = [0]
+        _set_default_edge_attributes(self, attributes, num_edges=1)
 
         if g.has_edge(source, target):
             if not ignore:
@@ -505,6 +499,9 @@ class _NxGraph(GraphInterface):
 
             if self.is_weighted() and "weight" not in attributes:
                 attributes["weight"] = 1.
+
+            # check distance
+            _set_dist_new_edges(attributes, self, [(source, target)])
 
             g.add_edge(source, target)
 
@@ -573,15 +570,7 @@ class _NxGraph(GraphInterface):
                                           "available with networkx.")
 
         # set default values for attributes that were not passed
-        for k in self.edge_attributes:
-            if k not in attributes:
-                dtype = self.get_attribute_type(k)
-                if dtype == "string":
-                    attributes[k] = ["" for _ in range(num_edges)]
-                elif dtype == "double" and k != "weight":
-                    attributes[k] = [np.NaN for _ in range(num_edges)]
-                elif dtype == "int":
-                    attributes[k] = [0 for _ in range(num_edges)]
+        _set_default_edge_attributes(self, attributes, num_edges)
 
         # check edges
         new_attr = None
@@ -607,6 +596,9 @@ class _NxGraph(GraphInterface):
 
             # create the edges with an eid attribute
             g.add_weighted_edges_from(arr_edges, weight="eid")
+
+            # check distance
+            _set_dist_new_edges(new_attr, self, edge_list)
 
             # call parent function to set the attributes
             self._attr_new_edges(edge_list, attributes=new_attr)

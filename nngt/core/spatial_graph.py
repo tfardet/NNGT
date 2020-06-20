@@ -116,9 +116,13 @@ class SpatialGraph(Graph):
         Create the positions of the neurons from the graph `shape` attribute
         and computes the connections distances.
         '''
+        positions = None if positions is None else np.asarray(positions)
+
         self.new_edge_attribute('distance', 'double')
-        if positions is not None and positions.shape[0] != self.node_nb():
+
+        if positions is not None and len(positions) != self.node_nb():
             raise InvalidArgument("Wrong number of neurons in `positions`.")
+
         if shape is not None:
             shape.set_parent(self)
             self._shape = shape
@@ -146,8 +150,11 @@ class SpatialGraph(Graph):
             else:
                 minx, maxx = np.min(positions[:, 0]), np.max(positions[:, 0])
                 miny, maxy = np.min(positions[:, 1]), np.max(positions[:, 1])
+
                 height, width = 1.01*(maxy - miny), 1.01*(maxx - minx)
+
                 centroid = (0.5*(maxx + minx), 0.5*(maxy + miny))
+
                 self._shape = nngt.geometry.Shape.rectangle(
                     height, width, centroid=centroid, parent=self)
 
@@ -161,7 +168,7 @@ class SpatialGraph(Graph):
 
     def get_positions(self, neurons=None):
         '''
-        Returns the neurons' positions as a (N, 2) array.
+        Returns a copy of the neurons' positions as a (N, 2) array.
 
         Parameters
         ----------
@@ -169,6 +176,10 @@ class SpatialGraph(Graph):
             List of the neurons for which the position should be returned.
         '''
         if neurons is not None:
+            if isinstance(neurons, tuple):
+                # numpy mulitple slicing does not work with tuples
+                neurons = list(neurons)
+
             return np.array(self._pos[neurons])
 
         return np.array(self._pos)
