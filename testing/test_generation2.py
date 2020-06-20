@@ -327,6 +327,11 @@ def test_distances():
 
     assert np.array_equal(dist, expected)
 
+    g.new_node(positions=[(4, 0)])
+    g.new_edge(1, 4)
+
+    assert g.get_edge_attributes((1, 4), "distance") == 3
+
     # distance rule
     g = ng.distance_rule(2.5, rule="lin", nodes=num_nodes, avg_deg=2,
                          positions=pos)
@@ -339,15 +344,34 @@ def test_distances():
     assert np.all(dist < 3)
 
     # using the connector functions
+    num_nodes = 20
+
+    pop = nngt.NeuralPop.exc_and_inhib(num_nodes)
+    pos = np.array([(i, 0) for i in range(num_nodes)])
+
+    net = nngt.SpatialNetwork(pop, positions=pos)
+
+    inh = pop["inhibitory"]
+    exc = pop["excitatory"]
+
+    ng.connect_groups(net, exc, pop, "erdos_renyi", avg_deg=5)
+    ng.connect_groups(net, inh, pop, "random_scale_free", in_exp=2.1,
+                      out_exp=2.1, avg_deg=5)
+
+    dist = net.edge_attributes["distance"]
+
+    expected = np.abs(np.diff(net.edges_array, axis=1)).ravel()
+
+    assert np.array_equal(dist, expected)
 
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        # ~ test_newman_watts()
-        # ~ test_from_degree_list()
-        # ~ test_total_undirected_connectivities()
-        # ~ test_watts_strogatz()
-        # ~ test_all_to_all()
+        test_newman_watts()
+        test_from_degree_list()
+        test_total_undirected_connectivities()
+        test_watts_strogatz()
+        test_all_to_all()
         test_distances()
 
     if nngt.get_config("mpi"):

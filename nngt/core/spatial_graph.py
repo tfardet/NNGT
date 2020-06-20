@@ -168,7 +168,7 @@ class SpatialGraph(Graph):
 
     def get_positions(self, neurons=None):
         '''
-        Returns the neurons' positions as a (N, 2) array.
+        Returns a copy of the neurons' positions as a (N, 2) array.
 
         Parameters
         ----------
@@ -176,6 +176,10 @@ class SpatialGraph(Graph):
             List of the neurons for which the position should be returned.
         '''
         if neurons is not None:
+            if isinstance(neurons, tuple):
+                # numpy mulitple slicing does not work with tuples
+                neurons = list(neurons)
+
             return np.array(self._pos[neurons])
 
         return np.array(self._pos)
