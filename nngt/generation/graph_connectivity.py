@@ -249,8 +249,6 @@ def from_degree_list(degrees, degree_type='in', weighted=True,
             graph_dl.new_edges(ia_edges, check_duplicates=False,
                                check_self_loops=False, check_existing=False)
 
-        
-
     graph_dl._graph_type = "from_{}_degree_list".format(degree_type)
 
     return graph_dl
