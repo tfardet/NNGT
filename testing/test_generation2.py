@@ -308,6 +308,7 @@ def test_all_to_all():
                           [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3)])
 
 
+@pytest.mark.mpi_skip
 def test_distances():
     ''' Check that distances are properly generated for SpatialGraphs '''
     # simple graph
