@@ -5,6 +5,7 @@
 #ifndef FUNC_CONNECT_H
 #define FUNC_CONNECT_H
 
+#include <string>
 #include <vector>
 #include <tuple>
 #include <unordered_set>

@@ -159,14 +159,11 @@ setup_params = dict(
     ]},
 
     # Requirements
-    install_requires = ['numpy', 'scipy>=0.11'],
-    python_requires = '>=2.7, <4',
+    install_requires = ['numpy>=1.17', 'scipy>=0.11'],
+    python_requires = '>=3.5, <4',
     extras_require = {
         'matplotlib': 'matplotlib',
-        'PySide': ['PySide'],
-        'PDF':  ["ReportLab>=1.2", "RXP"],
-        'reST': ["docutils>=0.3"],
-        'nx': ['networkx>=2.0'],
+        'nx': ['networkx>=2.4'],
         'ig': ['python-igraph']
     },
 
@@ -181,8 +178,8 @@ setup_params = dict(
     keywords = 'network graph structure simulation neuron NEST DeNSE topology '
                'growth',
     long_description = long_descr,
-    classifiers=[
-        'Development Status :: 4 - Beta',
+    classifiers = [
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Natural Language :: English',
@@ -190,7 +187,7 @@ setup_params = dict(
         'Programming Language :: Cython',
         'Programming Language :: C++',
         'Operating System :: OS Independent',
-        'Topic :: Scientific/Engineering :: Bio-Informatics'
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Topic :: Scientific/Engineering :: Physics'
     ]
 )
