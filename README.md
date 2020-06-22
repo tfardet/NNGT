@@ -8,6 +8,7 @@ The Neural Network Growth and Topology (NNGT) module provides tools to grow and
 study detailed biological networks by interfacing efficient graph libraries with
 highly distributed activity simulators.
 
+
 ## Principle
 
 NNGT provides a unified interface that acts as a wrapper for 3 major graph
@@ -28,37 +29,27 @@ NNGT.
 Eventually, NNGT is also able to import neuronal networks generated using the
 [DeNSE](https://dense.readthedocs.io/) simulator for neuronal growth.
 
+
 ## Install and use the library
 
-### Version 2.0 (recommended)
-
-NNGT 2.0 is currently under active development (not available on PyPi) and
-requires Python 3.4+. To use it, make sure you have a valid Python
-installation, then do:
-
-```
-pip install --user git+https://github.com:Silmathoron/NNGT.git@master
-```
-
-Then in a Python terminal or script type
-
-```python
-import nngt
-```
-
-### Stable version (1.2.3)
-
-Version 1.2 is available on PyPi and still supports Python 2.
-Make sure you have a valid Python installation, then do:
+NNGT requires Python 3.5+ since version 2.0, and is directly available on Pypi.
+To install it, make sure you have a valid Python installation, then do:
 
 ```
 pip install --user nngt
 ```
 
-Then in a Python terminal or script type
+To use it, once installed, open a Python terminal or script file and type
 
 ```python
 import nngt
+```
+
+If you want to have the latest updates before they are released into a stable
+version, you can install directly from ``master`` via:
+
+```
+pip install --user git+https://github.com:Silmathoron/NNGT.git@master
 ```
 
 
@@ -89,8 +80,10 @@ To update your local repository, do:
   [DeNSE](https://dense.readthedocs.io/).
 
 **Status**
-* Standard functions and graph generation algorithms implemented.
+* Standard functions and graph generation algorithms.
+* Special methods for graph analysis on weighted directed networks.
 * Full support for node and edge attributes.
+* Extended I/O features as well as graphical representations.
 * Advanced methods to design neuronal networks.
 * Supports complex 2D structures with shapely.
 
