@@ -45,6 +45,13 @@ To use it, once installed, open a Python terminal or script file and type
 import nngt
 ```
 
+If you want to have the latest updates before they are released into a stable
+version, you can install directly from ``master`` via:
+
+```
+pip install --user git+https://github.com:Silmathoron/NNGT.git@master
+```
+
 
 ## Cloning/updating the repository
 
