@@ -39,7 +39,7 @@ to build NNGT
     set -e -x
 
     # Compile wheels
-    for PYBIN in /opt/python/*/bin; do
+    for PYBIN in /opt/python/cp3[5-9]*/bin; do
         "${PYBIN}/pip" install -r requirements.txt
         "${PYBIN}/pip" wheel NNGT/ -w wheelhouse/
     done
@@ -51,9 +51,9 @@ to build NNGT
 
 associated to a ``requirements.txt`` file
 
-scipy
-numpy
-cython
+    numpy>=1.17
+    scipy
+    cython
 
 Save these as on the same level as the root ``NNGT`` folder (the one containing
 the ``setup.py``), and create a ``wheelhouse`` folder also next to it, then
@@ -62,7 +62,7 @@ just run ``build_wheels.sh``.
 Once the "repaired" wheels have been saved, you can extract them from the
 docker container using
 
-    docker cp manylinux:/home/wheelhouse/* /where/you/want/them
+    docker cp manylinux:/home/wheelhouse/ /where/you/want/it
 
 NB: unfortunately one must remove manually all unnecessary files from the
 wheels before running the build to prevent them from being included...
@@ -74,7 +74,7 @@ https://twine.readthedocs.io/en/latest/
 
 First test it:
 
-    twine upload --repository-url https://test.pypi.org/simple/ dist/*
+    twine upload --repository-url https://test.pypi.org/legacy/ *
     pip install --user --index-url https://test.pypi.org/simple/ nngt
 
 Then upload "for real"
