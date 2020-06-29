@@ -574,7 +574,7 @@ def _random_init(omp):
         nngt._config["seeds"] = seeds
     elif nngt._used_local:
         # the initial seeds have already been used so we generate new ones
-        msd   = np.random.randint(0, 2**32 - omp - 1)
+        msd   = np.random.randint(0, 2**31 - omp - 1)
         seeds = [msd + i + 1 for i in range(omp)]
     else:
         seeds = nngt.get_config('seeds')
