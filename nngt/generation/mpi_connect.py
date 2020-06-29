@@ -374,7 +374,7 @@ def _mpi_and_random_init():
     else:
         # local seeds were generated and used, generate new ones from new msd
         if rank == 0:
-            msd = np.random.randint(0, 2**32 - size - 1)
+            msd = np.random.randint(0, 2**31 - size - 1)
         else:
             msd = None
 
@@ -397,7 +397,7 @@ def _finalize_random(rank):
     comm = MPI.COMM_WORLD
 
     if rank == 0:
-        new_seed = np.random.randint(0, 2**32 - 1)
+        new_seed = np.random.randint(0, 2**31 - 1)
     else:
         new_seed = None
 

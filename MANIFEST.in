@@ -20,3 +20,4 @@ recursive-exclude * __pycache__
 # include setup.py (this makes no sense to me)
 # but without it, sdist does not include it...
 include setup.py
+include nngt/nngt.conf.default
