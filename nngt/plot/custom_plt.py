@@ -38,7 +38,7 @@ def palette_discrete(numbers=None):
         return pal(numbers)
 
 # markers list
-markers = itertools.cycle([m for m in MS().filled_markers if m != '.'])
+markers = [m for m in MS().filled_markers if m != '.']
 
 if nngt._config["color_lib"] == "seaborn":
     try:

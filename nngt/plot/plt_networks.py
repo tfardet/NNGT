@@ -70,7 +70,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  ealpha=0.5, max_nsize=None, max_esize=2., curved_edges=False,
                  threshold=0.5, decimate_connections=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
-                 restrict_nodes=None, show_environment=True, fast=False,
+                 restrict_nodes=None, restrict_edges=None,
+                 show_environment=True, fast=False,
                  size=(600, 600), xlims=None, ylims=None, dpi=75, axis=None,
                  colorbar=False, layout=None, show=False, **kwargs):
     '''
@@ -123,6 +124,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Only draw edges ending on a restricted set of target nodes.
     restrict_nodes : str, group, or list, optional (default: plot all nodes)
         Only draw a subset of nodes.
+    restrict_edges : list of edges, optional (default: all)
+        Only draw a subset of edges.
     show_environment : bool, optional (default: True)
         Plot the environment if the graph is spatial.
     fast : bool, optional (default: False)
@@ -195,18 +198,21 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     if restrict_sources is not None:
         remove = np.array(
             [1 if node not in restrict_sources else 0
-             for node in range(n)],
+             for node in range(network.node_nb())],
             dtype=bool)
         adj_mat[remove] = 0
 
     if restrict_targets is not None:
         remove = np.array(
             [1 if node not in restrict_targets else 0
-             for node in range(n)],
+             for node in range(network.node_nb())],
             dtype=bool)
         adj_mat[:, remove] = 0
 
-    e = len(adj_mat.nonzero()[0])  # avoid calling `eliminate_zeros`
+    edges = (np.array(adj_mat.nonzero()).T if restrict_edges is None else
+             restrict_edges)
+
+    e = len(edges)
 
     # compute properties
     decimate_connections = 1 if decimate_connections is None\
@@ -215,11 +221,14 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # get node and edge shape/size properties
     simple_nodes = kwargs.get("simple_nodes", False)
 
+    if fast:
+        simple_nodes = True
+
     max_nsize = 20 if simple_nodes else 5
 
     markers, nsize, esize = _node_edge_shape_size(
         network, nshape, nsize, max_nsize, esize, max_esize, restrict_nodes,
-        size, threshold, simple_nodes=simple_nodes)
+        edges, size, threshold, simple_nodes=simple_nodes)
 
     # node color information
     default_ncmap = (palette_discrete() if ncolor == "group"
@@ -337,16 +346,16 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                           else list(set(g.ids).intersection(restrict_nodes))
                     axis.scatter(pos[ids, 0], pos[ids, 1], c=c[ids],
                                  s=0.5*np.array(nsize)[ids],
-                                 marker=markers[ids[0]])
+                                 marker=markers[ids[0]], zorder=2)
             else:
                 ids = range(network.node_nb()) if restrict_nodes is None \
                       else restrict_nodes
                 for i in ids:
                     axis.plot(pos[i, 0], pos[i, 1], c=c[i], ms=0.5*nsize[i],
-                              marker=markers[ids[0]], ls="")
+                              marker=markers[ids[0]], ls="", zorder=2)
         else:
             axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize),
-                         marker=nshape)
+                         marker=nshape, zorder=2)
     else:
         axis.set_aspect(1.)
 
@@ -448,19 +457,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                                         length_includes_head=True,
                                         alpha=ealpha, fc=ec, lw=0.5))
         else:
-            edges = []
-
             if e and decimate_connections != -1:
-                # ~ edges = network.edges_array
-                sources = (None if restrict_sources is None
-                           else list(restrict_sources))
-
-                targets = (None if restrict_targets is None
-                           else list(restrict_targets))
-
-                edges = network.get_edges(source_node=sources,
-                                          target_node=targets)
-
                 # keep only large edges
                 if nonstring_container(esize):
                     keep = (esize > 0)
@@ -876,10 +873,11 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 # ----- #
 
 def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
-                          restrict_nodes, size, threshold, simple_nodes=False):
+                          restrict_nodes, edges, size, threshold,
+                          simple_nodes=False):
     ''' Returns the shape and size of the nodes and edges '''
     n = network.node_nb() if restrict_nodes is None else len(restrict_nodes)
-    e = network.edge_nb()
+    e = len(edges)
 
     # markers
     markers = nshape
@@ -923,7 +921,7 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
     nsize *= 0.01 * size[0]
 
     if isinstance(esize, str) and e:
-        esize  = _edge_size(network, restrict_nodes, esize)
+        esize  = _edge_size(network, edges, esize)
         esize *= max_esize
         esize[esize < threshold] = 0.
 
@@ -1001,17 +999,8 @@ def _node_size(network, restrict_nodes, nsize):
     return size.astype(float)
 
 
-def _edge_size(network, restrict_nodes, esize):
-    edges, num_edges = None, None
-
-    restrict_nodes = None if restrict_nodes is None else list(restrict_nodes)
-
-    if restrict_nodes is None:
-        num_edges = network.edge_nb()
-    else:
-        edges = network.get_edges(source_node=restrict_nodes,
-                                  target_node=restrict_nodes)
-        num_edges = len(edges)
+def _edge_size(network, edges, esize):
+    num_edges = len(edges)
 
     size = np.repeat(1., num_edges)
 
