@@ -224,7 +224,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     if fast:
         simple_nodes = True
 
-    max_nsize = 20 if simple_nodes else 5
+    max_nsize = (20 if simple_nodes else 5) if max_nsize is None else max_nsize
 
     markers, nsize, esize = _node_edge_shape_size(
         network, nshape, nsize, max_nsize, esize, max_esize, restrict_nodes,
@@ -346,16 +346,19 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                           else list(set(g.ids).intersection(restrict_nodes))
                     axis.scatter(pos[ids, 0], pos[ids, 1], c=c[ids],
                                  s=0.5*np.array(nsize)[ids],
-                                 marker=markers[ids[0]], zorder=2)
+                                 marker=markers[ids[0]], zorder=2,
+                                 mec=nborder_color, mew=nborder_width)
             else:
                 ids = range(network.node_nb()) if restrict_nodes is None \
                       else restrict_nodes
                 for i in ids:
                     axis.plot(pos[i, 0], pos[i, 1], c=c[i], ms=0.5*nsize[i],
-                              marker=markers[ids[0]], ls="", zorder=2)
+                              marker=markers[ids[0]], ls="", zorder=2,
+                              mec=nborder_color, mew=nborder_width)
         else:
             axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize),
-                         marker=nshape, zorder=2)
+                         marker=nshape, zorder=2, edgecolor=nborder_color,
+                         linewidths=nborder_width)
     else:
         axis.set_aspect(1.)
 
