@@ -26,6 +26,7 @@
 
 """ Utility functions to plot NEST simulated activity """
 
+import itertools
 import logging
 
 from matplotlib.colors import ColorConverter
@@ -368,10 +369,10 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
             t_min, t_max, idx_min, idx_max = np.inf, -np.inf, np.inf, -np.inf
 
             for l in ax.lines:
-                t_max = max(l.get_xdata().max(), t_max)
-                t_min = min(l.get_xdata().min(), t_max)
-                idx_min = min(l.get_ydata().min(), idx_min)
-                idx_max = max(l.get_ydata().max(), idx_max)
+                t_max = max(np.max(l.get_xdata()), t_max)
+                t_min = min(np.min(l.get_xdata()), t_max)
+                idx_min = min(np.min(l.get_ydata()), idx_min)
+                idx_max = max(np.max(l.get_ydata()), idx_max)
 
             dt   = t_max - t_min
             didx = idx_max - idx_min
@@ -500,6 +501,14 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
             else:
                 ax1 = axis
                 ax2 = kwargs["hist_ax"]
+
+            if limits is not None:
+                start, stop = limits
+
+                keep    = (times >= start)&(times <= stop)
+                times   = times[keep]
+                senders = senders[keep]
+
             lines.extend(ax1.plot(
                 times, senders, c=color, marker="o", linestyle='None',
                 mec="k", mew=0.5, ms=4, **mpl_kwargs))
@@ -571,10 +580,18 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
                     old_ax.change_geometry(num_axes + 1, 1, i+1)
                 ax = fig.add_subplot(num_axes + 1, 1, num_axes + 1)
 
+            if limits is not None:
+                start, stop = limits
+
+                keep    = (times >= start)&(times <= stop)
+                times   = times[keep]
+                senders = senders[keep]
+
             if network is not None:
                 pop = network.population
                 colors = palette_discrete(np.linspace(0, 1, len(pop)))
-                for m, (k, v), c in zip(markers, pop.items(), colors):
+                mm = itertools.cycle(markers)
+                for m, (k, v), c in zip(mm, pop.items(), colors):
                     keep = np.where(
                         np.in1d(senders, network.nest_gids[v.ids]))[0]
                     if len(keep):
@@ -587,22 +604,28 @@ def raster_plot(times, senders, limits=None, title="Spike raster",
                 lines.extend(ax.plot(
                     times, senders, c=color, marker="o", linestyle='None',
                     mec="k", mew=0.5, ms=4, **mpl_kwargs))
+
             ax.set_ylabel(ylabel)
             ax.set_xlabel(xlabel)
+
             if limits is not None:
                 ax.set_xlim(limits)
             else:
                 _set_ax_lims(ax, np.max(times), np.min(times), np.max(senders),
                              np.min(senders))
+
             if label is not None:
                 ax.legend(bbox_to_anchor=(1.1, 1.2))
             _second_axis(sort, sort_attribute, ax)
+
         fig.suptitle(title)
+
         if show:
             plt.show()
     else:
         _log_message(logger, "WARNING",
                      "No activity was detected during the simulation.")
+
     return lines
 
 
