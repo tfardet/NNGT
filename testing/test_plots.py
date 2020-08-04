@@ -112,6 +112,11 @@ def test_library_plot():
     nplt.library_draw(g, ncolor="in-degree", esize="weight", layout="circular",
                       show=False)
 
+    edges = g.edges_array[::5]
+
+    nplt.library_draw(g, ncolor="in-degree", esize="weight", layout="circular",
+                      restrict_edges=edges, show=False)
+
 
 if __name__ == "__main__":
     test_plot_config()
