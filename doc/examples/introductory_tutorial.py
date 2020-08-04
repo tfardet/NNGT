@@ -92,14 +92,14 @@ g3.new_node_attribute('size', 'double',
 print(g3.node_attributes['size'][:5], '\n')
 
 # edges attributes
-edges = g3.new_edges(np.random.randint(0, 50, (10, 2)))
+edges = g3.new_edges(np.random.randint(0, 50, (10, 2)), ignore_invalid=True)
 g3.new_edge_attribute('rank', 'int')
 g3.set_edge_attribute('rank', val=2, edges=edges[:3, :])
 print(g3.edge_attributes['rank'], '\n')
 
 # check default values
 e = g3.new_edge(99, 98)
-g3.new_edges(np.random.randint(50, 100, (5, 2)))
+g3.new_edges(np.random.randint(50, 100, (5, 2)), ignore_invalid=True)
 print(g3.edge_attributes['rank'], '\n')
 
 
