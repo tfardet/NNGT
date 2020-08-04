@@ -71,9 +71,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  threshold=0.5, decimate_connections=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
                  restrict_nodes=None, restrict_edges=None,
-                 show_environment=True, fast=True, size=(600, 600), xlims=None,
-                 ylims=None, dpi=75, axis=None, colorbar=False, cb_label=None,
-                 layout=None, show=False, **kwargs):
+                 show_environment=True, fast=False, size=(600, 600),
+                 xlims=None, ylims=None, dpi=75, axis=None, colorbar=False,
+                 cb_label=None, layout=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -129,10 +129,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     show_environment : bool, optional (default: True)
         Plot the environment if the graph is spatial.
     fast : bool, optional (default: False)
-        Use a faster algorithm to plot the edges. This method leads to less
-        pretty plots and zooming on the graph will make the edges start or
-        ending in places that will differ more or less strongly from the actual
-        node positions.
+        Use a faster algorithm to plot the edges. Zooming on the drawing made
+        using this method leaves the size of the nodes and edges unchanged, it
+        is therefore not recommended when size consistency matters, e.g. for
+        some spatial representations.
     size : tuple of ints, optional (default: (600,600))
         (width, height) tuple for the canvas size (in px).
     dpi : int, optional (default: 75)
