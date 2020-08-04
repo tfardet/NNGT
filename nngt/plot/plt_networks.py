@@ -70,9 +70,10 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  ealpha=0.5, max_nsize=None, max_esize=2., curved_edges=False,
                  threshold=0.5, decimate_connections=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
-                 restrict_nodes=None, show_environment=True, fast=False,
-                 size=(600, 600), xlims=None, ylims=None, dpi=75, axis=None,
-                 colorbar=False, layout=None, show=False, **kwargs):
+                 restrict_nodes=None, restrict_edges=None,
+                 show_environment=True, fast=False, size=(600, 600),
+                 xlims=None, ylims=None, dpi=75, axis=None, colorbar=False,
+                 cb_label=None, layout=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -123,13 +124,15 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Only draw edges ending on a restricted set of target nodes.
     restrict_nodes : str, group, or list, optional (default: plot all nodes)
         Only draw a subset of nodes.
+    restrict_edges : list of edges, optional (default: all)
+        Only draw a subset of edges.
     show_environment : bool, optional (default: True)
         Plot the environment if the graph is spatial.
     fast : bool, optional (default: False)
-        Use a faster algorithm to plot the edges. This method leads to less
-        pretty plots and zooming on the graph will make the edges start or
-        ending in places that will differ more or less strongly from the actual
-        node positions.
+        Use a faster algorithm to plot the edges. Zooming on the drawing made
+        using this method leaves the size of the nodes and edges unchanged, it
+        is therefore not recommended when size consistency matters, e.g. for
+        some spatial representations.
     size : tuple of ints, optional (default: (600,600))
         (width, height) tuple for the canvas size (in px).
     dpi : int, optional (default: 75)
@@ -138,6 +141,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Axis on which the network will be plotted.
     colorbar : bool, optional (default: False)
         Whether to display a colorbar for the node colors or not.
+    cb_label : str, optional (default: None)
+        A label for the colorbar.
     layout : str, optional (default: random or spatial positions)
         Name of a standard layout to structure the network. Available layouts
         are: "circular" or "random". If no layout is provided and the network
@@ -195,18 +200,21 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     if restrict_sources is not None:
         remove = np.array(
             [1 if node not in restrict_sources else 0
-             for node in range(n)],
+             for node in range(network.node_nb())],
             dtype=bool)
         adj_mat[remove] = 0
 
     if restrict_targets is not None:
         remove = np.array(
             [1 if node not in restrict_targets else 0
-             for node in range(n)],
+             for node in range(network.node_nb())],
             dtype=bool)
         adj_mat[:, remove] = 0
 
-    e = len(adj_mat.nonzero()[0])  # avoid calling `eliminate_zeros`
+    edges = (np.array(adj_mat.nonzero()).T if restrict_edges is None else
+             restrict_edges)
+
+    e = len(edges)
 
     # compute properties
     decimate_connections = 1 if decimate_connections is None\
@@ -215,15 +223,18 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # get node and edge shape/size properties
     simple_nodes = kwargs.get("simple_nodes", False)
 
-    max_nsize = 20 if simple_nodes else 5
+    if fast:
+        simple_nodes = True
+
+    max_nsize = (20 if simple_nodes else 5) if max_nsize is None else max_nsize
 
     markers, nsize, esize = _node_edge_shape_size(
         network, nshape, nsize, max_nsize, esize, max_esize, restrict_nodes,
-        size, threshold, simple_nodes=simple_nodes)
+        edges, size, threshold, simple_nodes=simple_nodes)
 
     # node color information
-    default_ncmap = (palette_discrete() if ncolor == "group"
-                     else palette_continuous())
+    default_ncmap = (palette_discrete() if not nonstring_container(ncolor) and
+                     ncolor == "group" else palette_continuous())
 
     ncmap = get_cmap(kwargs.get("node_cmap", default_ncmap))
     node_color, nticks, ntickslabels, nlabel = \
@@ -315,6 +326,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                     cb.set_label(nlabel)
             else:
                 cb = plt.colorbar(sm, cax=cax, shrink=0.8)
+
+                if cb_label is not None:
+                    cb.ax.set_ylabel(cb_label)
         else:
             cmin, cmax = np.min(c), np.max(c)
             if cmin != cmax:
@@ -337,16 +351,19 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                           else list(set(g.ids).intersection(restrict_nodes))
                     axis.scatter(pos[ids, 0], pos[ids, 1], c=c[ids],
                                  s=0.5*np.array(nsize)[ids],
-                                 marker=markers[ids[0]])
+                                 marker=markers[ids[0]], zorder=2,
+                                 mec=nborder_color, mew=nborder_width)
             else:
                 ids = range(network.node_nb()) if restrict_nodes is None \
                       else restrict_nodes
                 for i in ids:
                     axis.plot(pos[i, 0], pos[i, 1], c=c[i], ms=0.5*nsize[i],
-                              marker=markers[ids[0]], ls="")
+                              marker=markers[ids[0]], ls="", zorder=2,
+                              mec=nborder_color, mew=nborder_width)
         else:
             axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize),
-                         marker=nshape)
+                         marker=nshape, zorder=2, edgecolor=nborder_color,
+                         linewidths=nborder_width)
     else:
         axis.set_aspect(1.)
 
@@ -448,19 +465,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                                         length_includes_head=True,
                                         alpha=ealpha, fc=ec, lw=0.5))
         else:
-            edges = []
-
             if e and decimate_connections != -1:
-                # ~ edges = network.edges_array
-                sources = (None if restrict_sources is None
-                           else list(restrict_sources))
-
-                targets = (None if restrict_targets is None
-                           else list(restrict_targets))
-
-                edges = network.get_edges(source_node=sources,
-                                          target_node=targets)
-
                 # keep only large edges
                 if nonstring_container(esize):
                     keep = (esize > 0)
@@ -572,8 +577,9 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
                  ealpha=0.5, max_nsize=5., max_esize=2., curved_edges=False,
                  threshold=0.5, decimate_connections=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
-                 restrict_nodes=None, show_environment=True, size=(600, 600),
-                 xlims=None, ylims=None, dpi=75, axis=None, colorbar=False,
+                 restrict_nodes=None, restrict_edges=None,
+                 show_environment=True, size=(600, 600), xlims=None,
+                 ylims=None, dpi=75, axis=None, colorbar=False,
                  show_labels=False, layout=None, show=False, **kwargs):
     '''
     Draw a given :class:`~nngt.Graph` using the underlying library's drawing
@@ -628,6 +634,8 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         Only draw edges ending on a restricted set of target nodes.
     restrict_nodes : str, group, or list, optional (default: plot all nodes)
         Only draw a subset of nodes.
+    restrict_edges : list of edges, optional (default: all)
+        Only draw a subset of edges.
     show_environment : bool, optional (default: True)
         Plot the environment if the graph is spatial.
     fast : bool, optional (default: False)
@@ -699,7 +707,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
     # shize and shape
     markers, nsize, esize = _node_edge_shape_size(
         network, nshape, nsize, max_nsize, esize, max_esize, restrict_nodes,
-        size, threshold)
+        restrict_edges, size, threshold)
 
     # node color information
     default_ncmap = (palette_discrete() if ncolor == "group"
@@ -791,8 +799,21 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
             "pen_width": _to_gt_prop(graph, esize, None, ptype='edge'),
         }
 
+        if restrict_edges is not None:
+            efilt = network.graph.new_ep(
+                "bool", vals=np.zeros(network.edge_nb(), dtype=bool))
+            eids = [network.edge_id(e) for e in restrict_edges]
+
+            efilt.a[eids] = 1
+
+            network.graph.set_edge_filter(efilt)
+
         graph_draw(network.graph, pos=pos, vprops=vprops, eprops=eprops,
                    output_size=size, mplfig=axis)
+
+        if restrict_edges is not None:
+            # clear edge filter
+            network.graph.set_edge_filter(None)
     elif nngt.get_config("backend") == "networkx":
         import networkx as nx
 
@@ -814,10 +835,12 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
         nborder_width = _increase_nx_size(nborder_width, 2)
 
+        edges = None if restrict_edges is None else list(restrict_edges)
+
         nx.draw_networkx(
             network.graph, pos=pos, ax=axis, nodelist=restrict_nodes,
-            node_size=nsize, node_color=node_color, node_shape=nshape,
-            linewidths=nborder_width, edge_color=ecolor,
+            edgelist=edges, node_size=nsize, node_color=node_color,
+            node_shape=nshape, linewidths=nborder_width, edge_color=ecolor,
             edge_cmap=palette_continuous(), cmap=ncmap,
             with_labels=show_labels, width=esize, edgecolors=nborder_color)
     elif nngt.get_config("backend") == "igraph":
@@ -863,7 +886,13 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
             "palette": palette,
         }
 
-        graph_artist = GraphArtist(network.graph, axis, **visual_style)
+        graph = network.graph
+
+        if restrict_edges is not None:
+            eids  = [network.edge_id(e) for e in restrict_edges]
+            graph = network.graph.subgraph_edges(eids, delete_vertices=False)
+
+        graph_artist = GraphArtist(graph, axis, **visual_style)
 
         axis.artists.append(graph_artist)
 
@@ -876,10 +905,11 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 # ----- #
 
 def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
-                          restrict_nodes, size, threshold, simple_nodes=False):
+                          restrict_nodes, edges, size, threshold,
+                          simple_nodes=False):
     ''' Returns the shape and size of the nodes and edges '''
     n = network.node_nb() if restrict_nodes is None else len(restrict_nodes)
-    e = network.edge_nb()
+    e = len(edges) if edges is not None else network.edge_nb()
 
     # markers
     markers = nshape
@@ -923,7 +953,7 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
     nsize *= 0.01 * size[0]
 
     if isinstance(esize, str) and e:
-        esize  = _edge_size(network, restrict_nodes, esize)
+        esize  = _edge_size(network, edges, esize)
         esize *= max_esize
         esize[esize < threshold] = 0.
 
@@ -1001,17 +1031,8 @@ def _node_size(network, restrict_nodes, nsize):
     return size.astype(float)
 
 
-def _edge_size(network, restrict_nodes, esize):
-    edges, num_edges = None, None
-
-    restrict_nodes = None if restrict_nodes is None else list(restrict_nodes)
-
-    if restrict_nodes is None:
-        num_edges = network.edge_nb()
-    else:
-        edges = network.get_edges(source_node=restrict_nodes,
-                                  target_node=restrict_nodes)
-        num_edges = len(edges)
+def _edge_size(network, edges, esize):
+    num_edges = len(edges) if edges is not None else network.edge_nb()
 
     size = np.repeat(1., num_edges)
 

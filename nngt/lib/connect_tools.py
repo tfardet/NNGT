@@ -32,11 +32,10 @@ __all__ = [
 
 
 def _set_options(graph, population, shape, positions):
-    #~ if issubclass(graph.__class__, nngt.Network):
-        #~ Connections.delays(graph)
+    ''' Make a graph a network or spatial '''
     if population is not None:
         nngt.Graph.make_network(graph, population)
-    if shape is not None:
+    if shape is not None or positions is not None:
         nngt.Graph.make_spatial(graph, shape, positions)
 
 
