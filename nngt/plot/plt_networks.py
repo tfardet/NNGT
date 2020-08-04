@@ -71,9 +71,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                  threshold=0.5, decimate_connections=None, spatial=True,
                  restrict_sources=None, restrict_targets=None,
                  restrict_nodes=None, restrict_edges=None,
-                 show_environment=True, fast=False,
-                 size=(600, 600), xlims=None, ylims=None, dpi=75, axis=None,
-                 colorbar=False, layout=None, show=False, **kwargs):
+                 show_environment=True, fast=True, size=(600, 600), xlims=None,
+                 ylims=None, dpi=75, axis=None, colorbar=False, cb_label=None,
+                 layout=None, show=False, **kwargs):
     '''
     Draw a given graph/network.
 
@@ -141,6 +141,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         Axis on which the network will be plotted.
     colorbar : bool, optional (default: False)
         Whether to display a colorbar for the node colors or not.
+    cb_label : str, optional (default: None)
+        A label for the colorbar.
     layout : str, optional (default: random or spatial positions)
         Name of a standard layout to structure the network. Available layouts
         are: "circular" or "random". If no layout is provided and the network
@@ -231,8 +233,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         edges, size, threshold, simple_nodes=simple_nodes)
 
     # node color information
-    default_ncmap = (palette_discrete() if ncolor == "group"
-                     else palette_continuous())
+    default_ncmap = (palette_discrete() if not nonstring_container(ncolor) and
+                     ncolor == "group" else palette_continuous())
 
     ncmap = get_cmap(kwargs.get("node_cmap", default_ncmap))
     node_color, nticks, ntickslabels, nlabel = \
@@ -324,6 +326,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                     cb.set_label(nlabel)
             else:
                 cb = plt.colorbar(sm, cax=cax, shrink=0.8)
+
+                if cb_label is not None:
+                    cb.ax.set_ylabel(cb_label)
         else:
             cmin, cmax = np.min(c), np.max(c)
             if cmin != cmax:
