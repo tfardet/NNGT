@@ -57,7 +57,7 @@ def global_clustering_binary_undirected(g):
 
 
 def global_clustering(g, directed=True, weights=None, method="continuous",
-                      combine_weights="mean"):
+                      mode="total", combine_weights="mean"):
     '''
     Returns the global clustering coefficient.
 
@@ -78,6 +78,9 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
         [Barrat2004]_, 'continuous', or 'onnela' [Onnela2005]_.
+    mode : str, optional (default: "total")
+        Type of clustering to use for directed graphs, among "total", "fan-in",
+        "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
@@ -102,6 +105,9 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
     .. [Onnela2005] Onnela, Saramäki, Kertész, Kaski. Intensity and Coherence
         of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
         065103. :doi:`10.1103/physreve.71.065103`, arxiv:`cond-mat/0408629`.
+    .. [Fagiolo2007] Fagiolo. Clustering in Complex Directed Networks.
+        Phys. Rev. E 2007, 76, (2), 026107. :doi:`10.1103/PhysRevE.76.026107`,
+        :arxiv:`physics/0612169`.
 
     See also
     --------
@@ -172,7 +178,7 @@ def local_clustering_binary_undirected(g, nodes=None):
 
 
 def local_clustering(g, nodes=None, directed=True, weights=None,
-                     method="continuous", combine_weights="mean"):
+                     method="continuous", mode="total", combine_weights="mean"):
     r'''
     Local (weighted directed) clustering coefficient of the nodes.
 
@@ -199,7 +205,7 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     :math:`W^{[\frac{1}{2}]} = \{\sqrt{w_{ij}}\}`.
 
     For directed networks, we used the total clustering defined in
-    [Fagiolo2007]_, hence the second equation becomes:
+    [Fagiolo2007]_ by default, hence the second equation becomes:
 
     .. math::
 
@@ -210,6 +216,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
 
     with :math:`s^{\leftrightarrow} = \sum_k \sqrt{w_{ik}w_{ki}}` the
     reciprocal strength (associated to reciprocal connections).
+
+    For the other modes, see the generalized definitions in [Fagiolo2007]_.
 
     Contrary to 'barrat' and 'onnela' [Saramaki2007]_, this method displays
     *all* following properties:
@@ -234,6 +242,9 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
         [Barrat2004]_/[Clemente2018]_, 'continuous', or 'onnela' [Onnela2005]_.
+    mode : str, optional (default: "total")
+        Type of clustering to use for directed graphs, among "total", "fan-in",
+        "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
@@ -290,15 +301,15 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         return local_clustering_binary_undirected(g, nodes=nodes)
     elif not weighted:
         # directed clustering
-        triangles = triangle_count(g, nodes=nodes)
-        triplets  = triplet_count(g, nodes).astype(float)
+        triangles = triangle_count(g, nodes=nodes, mode=mode)
+        triplets  = triplet_count(g, nodes, mode=mode).astype(float)
 
         triplets[triangles == 0] = 1
 
         return triangles / triplets
 
-    triangles, triplets = _triangles_and_triplets(g, directed, weights, method,
-                                                  combine_weights, nodes)
+    triangles, triplets = _triangles_and_triplets(
+        g, directed, weights, method, mode, combine_weights, nodes)
 
     triplets[triangles == 0] = 1
 
@@ -306,7 +317,7 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
 
 
 def triangle_count(g, nodes=None, directed=True, weights=None,
-                   method="normal", combine_weights="mean"):
+                   method="normal", mode="total", combine_weights="mean"):
     '''
     Returns the number or the strength (also called intensity) of triangles
     for each node.
@@ -328,6 +339,9 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
         the weights are directly used, or the definitions associated to the
         weighted clustering: 'barrat' [Barrat2004]_, 'continuous', or 'onnela'
         [Onnela2005]_.
+    mode : str, optional (default: "total")
+        Type of clustering to use for directed graphs, among "total", "fan-in",
+        "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
@@ -345,6 +359,18 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     -------
     tr : array
         Number or weight of triangles to which each node belongs.
+
+    References
+    ----------
+    .. [Barrat2004] Barrat, Barthelemy, Pastor-Satorras, Vespignani. The
+        Architecture of Complex Weighted Networks. PNAS 2004, 101 (11).
+        :doi:`10.1073/pnas.0400087101`.
+    .. [Fagiolo2007] Fagiolo. Clustering in Complex Directed Networks.
+        Phys. Rev. E 2007, 76, (2), 026107. :doi:`10.1103/PhysRevE.76.026107`,
+        :arxiv:`physics/0612169`.
+    .. [Onnela2005] Onnela, Saramäki, Kertész, Kaski. Intensity and Coherence
+        of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
+        065103. :doi:`10.1103/physreve.71.065103`, :arxiv:`cond-mat/0408629`.
     '''
     directed *= g.is_directed()
     weighted  = weights not in (False, None)
@@ -357,21 +383,22 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
         exponent = 2/3
 
     # get relevant matrices (use directed=False to get both dir/undir mat)
-    _, matsym = _get_matrices(g, directed, weights, weighted, combine_weights,
-                              exponent=exponent)
+    mat, matsym = _get_matrices(g, directed, weights, weighted,
+                                combine_weights, exponent=exponent)
 
-    # if unweighted, adjsym is matsym
-    adjsym = matsym
+    # if unweighted, afj is mat, adjsym is matsym
+    adj, adjsym = mat, matsym
 
     # for barrat, we need both weighted and binary matrices
     if method == "barrat" and weighted:
-        _, adjsym = _get_matrices(g, directed, None, False, combine_weights)
+        adj, adjsym = _get_matrices(g, directed, None, False, combine_weights)
 
-    return _triangle_count(matsym, adjsym, method, weighted, directed, nodes)
+    return _triangle_count(mat, matsym, adj, adjsym, method, mode, weighted,
+                           directed, nodes)
 
 
 def triplet_count(g, nodes=None, directed=True, weights=None,
-                method="normal", combine_weights="mean"):
+                  method="normal", mode="total", combine_weights="mean"):
     r'''
     Returns the number or the strength (also called intensity) of triplets for
     each node.
@@ -399,6 +426,9 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
         the edge weights are directly used, or the definitions used for
         weighted clustering coefficients, 'barrat' [Barrat2004]_ or
         'continuous'.
+    mode : str, optional (default: "total")
+        Type of clustering to use for directed graphs, among "total", "fan-in",
+        "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
     combine_weights : str, optional (default: 'mean')
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
@@ -416,6 +446,15 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
     -------
     tr : array
         Number or weight of triplets to which each node belongs.
+
+    References
+    ----------
+    .. [Barrat2004] Barrat, Barthelemy, Pastor-Satorras, Vespignani. The
+        Architecture of Complex Weighted Networks. PNAS 2004, 101 (11).
+        :doi:`10.1073/pnas.0400087101`.
+    .. [Fagiolo2007] Fagiolo. Clustering in Complex Directed Networks.
+        Phys. Rev. E 2007, 76, (2), 026107. :doi:`10.1103/PhysRevE.76.026107`,
+        :arxiv:`physics/0612169`.
     '''
     directed *= g.is_directed()
     weighted  = weights not in (False, None)
@@ -437,17 +476,30 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
             return (0.5*deg*(deg - 1)).astype(int)
 
         # directed
-        adj = g.adjacency_matrix()
+        if mode in ("total", "cycle", "middleman"):
+            adj = g.adjacency_matrix()
 
-        d_recip = (adj*adj).diagonal()
-        dtot    = g.get_degrees("total", nodes=nodes)
+            d_recip = (adj*adj).diagonal()
 
-        tr = dtot*(dtot - 1) - 2*d_recip
+            if nodes is not None:
+                d_recip = d_recip[nodes]
 
-        if nodes is None:
-            return tr
+            din  = g.get_degrees("in", nodes=nodes)
+            dout = g.get_degrees("out", nodes=nodes)
 
-        return tr[nodes]
+            if mode == "total":
+                dtot = din + dout
+
+                return dtot*(dtot - 1) - 2*d_recip
+
+            return din*dout - d_recip
+        else:
+            assert mode in ("fan-in", "fan-out"), \
+                "Unknown mode '{}'".format(mode)
+
+            deg = g.get_degrees(mode[4:], nodes=nodes)
+
+            return deg*(deg - 1)
 
     # check method for weighted
     W, Wu, A, Au = None, None, None, None
@@ -465,7 +517,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
                          "or 'normal' (identical, recommended options).")
 
     return _triplet_count_weighted(
-        g, W, Wu, A, Au, method, directed, weights, nodes)
+        g, W, Wu, A, Au, method, mode, directed, weights, nodes)
 
 
 # ---------------------------------------------------------- #
@@ -490,8 +542,8 @@ if nngt._config["backend"] == "graph-tool":
 # -------------- #
 
 
-def _triangles_and_triplets(g, directed, weights, method, combine_weights,
-                            nodes):
+def _triangles_and_triplets(g, directed, weights, method, mode,
+                            combine_weights, nodes):
     ''' Return the triangles and triplets '''
     # weighted clustering
     W, Wu, A, Au = None, None, None, None
@@ -505,43 +557,67 @@ def _triangles_and_triplets(g, directed, weights, method, combine_weights,
         Wtr, Wtru = _get_matrices(g, directed, weights, True, combine_weights)
 
         triplets = _triplet_count_weighted(
-            g, Wtr, Wtru, A, Au, method, directed, weights, nodes)
+            g, Wtr, Wtru, A, Au, method, mode, directed, weights, nodes)
     elif method == "onnela":
         W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
                               exponent=1/3)
 
         # onnela uses the binary triplets
         triplets = triplet_count(g, nodes=nodes, directed=directed,
-                                 weights=None)
+                                 mode=mode, weights=None)
     elif method == "barrat":
         # we need all matrices
         W, Wu = _get_matrices(g, directed, weights, True, combine_weights)
         A, Au = _get_matrices(g, directed, None, False, combine_weights)
 
         triplets = _triplet_count_weighted(
-            g, W, Wu, A, Au, method, directed, weights, nodes)
+            g, W, Wu, A, Au, method, mode, directed, weights, nodes)
 
     # get triangles and triplet strength
-    triangles = _triangle_count(Wu, Au, method, weighted=True,
+    triangles = _triangle_count(W, Wu, A, Au, method, mode, weighted=True,
                                 directed=directed, nodes=nodes)
 
     return triangles, triplets
 
 
-def _triangle_count(matsym, adjsym, method, weighted, directed, nodes):
+def _triangle_count(mat, matsym, adj, adjsym, method, mode, weighted, directed,
+                    nodes):
     '''
     (Un)weighted (un)directed triangle count.
     '''
     tr = None
 
-    if not weighted:
-        tr = (0.5*(adjsym*adjsym*adjsym).diagonal()).astype(int)
-    elif method in ("continuous", "normal", "onnela"):
-        tr = 0.5*(matsym*matsym*matsym).diagonal()
-    elif method == "barrat":
-        tr = 0.5*(matsym*adjsym*adjsym).diagonal()
+    if method == "barrat":
+        if mode == "total":
+            tr = 0.5*(matsym*adjsym*adjsym).diagonal()
+        elif mode == "cycle":
+            tr = 0.5*(mat*adj*adj + mat.T*adj.T*adj.T).diagonal()
+        elif mode == "middleman":
+            tr = 0.5*(mat.T*adj*adj.T + mat*adj.T*adj).diagonal()
+        elif mode == "fan-in":
+            tr = 0.5*(mat.T*adjsym*adj).diagonal()
+        elif mode == "fan-out":
+            tr = 0.5*(mat*adjsym*adj.T).diagonal()
+        else:
+            raise ValueError("Unknown mode ''.".format(mode))
     else:
-        raise ValueError("Invalid `method`: '{}'".format(method))
+        if not weighted:
+            mat, matsym = adj, adjsym
+        elif method not in ("continuous", "normal", "onnela"):
+            raise ValueError("Invalid `method`: '{}'".format(method))
+
+        if mode == "total":
+            tr = 0.5*(matsym*matsym*matsym).diagonal()
+        elif mode == "cycle":
+            tr = (mat*mat*mat).diagonal()
+        elif mode == "middleman":
+            tr = (mat*mat.T*mat).diagonal()
+        elif mode == "fan-in":
+            tr = (mat.T*mat*mat).diagonal()
+        elif mode == "fan-out":
+            tr = (mat*mat*mat.T).diagonal()
+        else:
+            raise ValueError("Unknown mode ''.".format(mode))
 
     if nodes is None:
         return tr
@@ -549,8 +625,8 @@ def _triangle_count(matsym, adjsym, method, weighted, directed, nodes):
     return tr[nodes]
 
 
-def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
-                            weights, nodes):
+def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
+                            directed, weights, nodes):
     '''
     triplet count, weighted only.
     '''
@@ -562,11 +638,27 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
         if directed:
             sqmat = mat.sqrt()
 
-            s2_sq_tot = np.square(sqmat.sum(axis=0).A1 + sqmat.sum(axis=1).A1)
-            s_tot     = matsym.sum(axis=0).A1
-            s_recip   = 2*(sqmat*sqmat).diagonal()
+            if mode == "total":
+                s2_sq_tot = np.square(sqmat.sum(axis=0).A1 +
+                                      sqmat.sum(axis=1).A1)
+                s_tot     = matsym.sum(axis=0).A1
+                s_recip   = 2*(sqmat*sqmat).diagonal()
 
-            tr = s2_sq_tot - s_tot - s_recip
+                tr = s2_sq_tot - s_tot - s_recip
+            elif mode in ("cycle", "middleman"):
+                s2_sq_out = np.square(sqmat.sum(axis=0).A1)
+                s2_sq_in  = np.square(sqmat.sum(axis=1).A1)
+                s_recip   = (sqmat*sqmat).diagonal()
+
+                tr = s2_sq_in*s2_sq_out - s_recip
+            elif mode in ("fan-in", "fan-out"):
+                axis  = 0 if mode == "fan-in" else 1
+                s2_sq = np.square(sqmat.sum(axis=axis).A1)
+                sgth  = mat.sum(axis=axis).A1
+
+                tr = s2_sq - sgth
+            else:
+                raise ValueError("Unknown mode ''.".format(mode))
         else:
             sqmat = matsym.sqrt()
 
@@ -577,13 +669,30 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, directed,
     elif method == "barrat":
         if directed:
             # specifc definition of the reciprocal strength from Clemente
-            s_recip = 0.5*(mat*adj + adj*mat).diagonal()
+            if mode == "total":
+                s_recip = 0.5*(mat*adj + adj*mat).diagonal()
 
-            dtot = g.get_degrees("total")
-            wmax = np.max(g.get_weights())
-            stot = g.get_degrees("total", weights=weights) / wmax
+                dtot = g.get_degrees("total")
+                wmax = np.max(g.get_weights())
+                stot = g.get_degrees("total", weights=weights) / wmax
 
-            tr = stot*(dtot - 1) - 2*s_recip
+                tr = stot*(dtot - 1) - 2*s_recip
+            elif mode in ("cycle", "middleman"):
+                s_recip = 0.5*(mat*adj + adj*mat).diagonal()
+                s_in    = mat.sum(axis=1).A1
+                s_out   = mat.sum(axis=0).A1
+                d_in    = g.get_degrees("in")
+                d_out   = g.get_degrees("out")
+
+                tr = 0.5*(s_in*d_out + s_out*d_in) - s_recip
+            elif mode in ("fan-in", "fan-out"):
+                axis = 0 if mode == "fan-in" else 1
+                sgth = mat.sum(axis=axis).A1
+                deg  = g.get_degrees(mode[4:])
+
+                tr = sgth*(deg - 1)
+            else:
+                raise ValueError("Unknown mode ''.".format(mode))
         elif g.is_directed():
             d = adjsym.sum(axis=0).A1
             s = matsym.sum(axis=0).A1
