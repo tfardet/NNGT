@@ -128,7 +128,7 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         return np.sum(triangles) / np.sum(triplets)
 
     triangles, triplets = _triangles_and_triplets(g, directed, weights, method,
-                                                  combine_weights, None)
+                                                  mode, combine_weights, None)
 
     return np.sum(triangles) / np.sum(triplets)
 
@@ -646,11 +646,11 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
 
                 tr = s2_sq_tot - s_tot - s_recip
             elif mode in ("cycle", "middleman"):
-                s2_sq_out = np.square(sqmat.sum(axis=0).A1)
-                s2_sq_in  = np.square(sqmat.sum(axis=1).A1)
-                s_recip   = (sqmat*sqmat).diagonal()
+                s_sq_out = sqmat.sum(axis=0).A1
+                s_sq_in  = sqmat.sum(axis=1).A1
+                s_recip  = (sqmat*sqmat).diagonal()
 
-                tr = s2_sq_in*s2_sq_out - s_recip
+                tr = s_sq_in*s_sq_out - s_recip
             elif mode in ("fan-in", "fan-out"):
                 axis  = 0 if mode == "fan-in" else 1
                 s2_sq = np.square(sqmat.sum(axis=axis).A1)
@@ -679,8 +679,8 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
                 tr = stot*(dtot - 1) - 2*s_recip
             elif mode in ("cycle", "middleman"):
                 s_recip = 0.5*(mat*adj + adj*mat).diagonal()
-                s_in    = mat.sum(axis=1).A1
-                s_out   = mat.sum(axis=0).A1
+                s_in    = mat.sum(axis=0).A1
+                s_out   = mat.sum(axis=1).A1
                 d_in    = g.get_degrees("in")
                 d_out   = g.get_degrees("out")
 
