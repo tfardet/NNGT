@@ -312,6 +312,154 @@ def test_weighted_directed_clustering():
 
 
 @pytest.mark.mpi_skip
+def test_partial_directed_clustering():
+    # cycle
+    num_nodes = 3
+    edge_list = [
+        (0, 1), (1, 2), (2, 0)
+    ]
+
+    g = nngt.Graph(num_nodes)
+    g.new_edges(edge_list)
+
+    for m in ("continuous", "barrat", "onnela"):
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="cycle", method=m),
+            [1, 1, 1])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="cycle", method=m,
+                                           weights="weight"),
+            [1, 1, 1])
+
+    # middleman, fan-in, fan-out
+    num_nodes = 3
+    edge_list = [
+        (0, 1), (0, 2), (1, 2)
+    ]
+
+    g = nngt.Graph(num_nodes)
+    g.new_edges(edge_list)
+
+    for m in ("continuous", "barrat", "onnela"):
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="cycle", method=m),
+            [0, 0, 0])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="cycle", method=m,
+                                           weights="weight"),
+            [0, 0, 0])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="middleman", method=m),
+            [0, 1, 0])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="middleman", method=m,
+                                           weights="weight"),
+            [0, 1, 0])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="fan-in", method=m),
+            [0, 0, 0.5])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="fan-in", method=m,
+                                           weights="weight"),
+            [0, 0, 0.5])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="fan-out", method=m),
+            [0.5, 0, 0])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="fan-out", method=m,
+                                           weights="weight"),
+            [0.5, 0, 0])
+
+    # complex graph
+    g = nngt.Graph(4)
+    g.new_edges([(0, 3), (1, 0), (1, 2), (1, 3), (2, 1), (3, 2)])
+
+
+    for m in ("continuous", "barrat", "onnela"):
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="cycle", method=m),
+            [0, 0.5, 1, 0.5])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="middleman", method=m),
+            [1, 0, 0, 0.5])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="fan-in", method=m),
+            [0, 0, 0.5, 0.5])
+
+        assert np.array_equal(
+            nngt.analysis.local_clustering(g, mode="fan-out", method=m),
+            [0, 1/3, 0, 0])
+
+    # weighted (barrat)
+    g.set_weights([1, 0.5, 0.4, 1, 0.6, 1])
+
+    assert np.all(np.isclose(
+        nngt.analysis.local_clustering(g, mode="fan-out", weights="weight",
+                                       method="barrat"), [0, 1.45/3.8, 0, 0]))
+
+    assert np.array_equal(
+        nngt.analysis.local_clustering(g, mode="fan-in", weights="weight",
+                                       method="barrat"), [0, 0, 0.5, 0.5])
+
+    assert np.all(np.isclose(
+        nngt.analysis.local_clustering(
+            g, mode="cycle", weights="weight", method="barrat"),
+        [0, 0.8/1.35, 1, 0.5]))
+
+    assert np.array_equal(
+        nngt.analysis.local_clustering(g, mode="middleman", weights="weight",
+                                       method="barrat"), [1, 0, 0, 0.5])
+
+    # weighted (onnela)
+    g.set_weights([1, 1/8, 1, 1, 1, 1/8])
+
+    assert np.array_equal(
+        nngt.analysis.local_clustering(g, mode="middleman", weights="weight",
+                                       method="onnela"), [0.5, 0, 0, 0.25])
+
+    assert np.array_equal(
+        nngt.analysis.local_clustering(g, mode="cycle", weights="weight",
+                                       method="onnela"), [0, 0.25, 0.5, 0.25])
+
+    assert np.all(np.isclose(
+        nngt.analysis.local_clustering(g, mode="fan-out", weights="weight",
+                                       method="onnela"), [0, 1/6, 0, 0]))
+
+    assert np.array_equal(
+        nngt.analysis.local_clustering(g, mode="fan-in", weights="weight",
+                                       method="onnela"), [0, 0, 0.25, 0.25])
+
+    # weighted (continuous)
+    g.set_weights([1, 1/64, 1/64, 1, 1, 1])
+
+    assert np.all(np.isclose(
+        nngt.analysis.local_clustering(g, mode="fan-out", weights="weight"),
+        [0, 4/17, 0, 0]))
+
+    assert np.all(np.isclose(
+        nngt.analysis.local_clustering(g, mode="fan-in", weights="weight"),
+        [0, 0, 0.25, 1/32]))
+
+    assert np.all(np.isclose(
+        nngt.analysis.local_clustering(g, mode="cycle", weights="weight"),
+        [0, 8/9, 1, 0.5]))
+
+    assert np.all(np.isclose(
+        nngt.analysis.local_clustering(g, mode="middleman", weights="weight"),
+        [0.5, 0, 0, 1/32]))
+
+
+@pytest.mark.mpi_skip
 def test_reciprocity():
     ''' Check reciprocity result '''
     num_nodes  = 5
@@ -414,3 +562,4 @@ if __name__ == "__main__":
         test_reciprocity()
         test_iedges()
         test_swp()
+        test_partial_directed_clustering()
