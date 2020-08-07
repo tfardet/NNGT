@@ -49,13 +49,12 @@ def _get_edge_attr(graph, elist, attribute, prop=None, last_edges=False):
     if "weight" == attribute:
         weights = np.ones(len(elist))
         if graph.is_weighted():
-            if prop is None:
-                prop = graph._w
-            else:
-                prop = _edge_prop(prop)
+            prop = graph._w if prop is None else _edge_prop(prop)
+
             params = {
                 k: v for (k, v) in prop.items() if k != "distribution"
             }
+
             weights = _eprop_distribution(
                 graph, prop["distribution"], elist=elist,
                 last_edges=last_edges, **params)

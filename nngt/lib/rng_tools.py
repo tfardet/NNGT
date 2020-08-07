@@ -102,6 +102,7 @@ def _eprop_distribution(graph, distrib_type, matrix=False, elist=None,
     ra_values = di_dfunc[distrib_type](graph, elist=elist,
                                        last_edges=last_edges, **kw)
     num_edges = graph.edge_nb()
+
     if matrix:
         return _make_matrix(graph, num_edges, ra_values, elist)
     else:
@@ -267,6 +268,9 @@ def log_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
 
 
 def custom(graph, values=None, elist=None, **kwargs):
+    if values is None and elist is not None:
+        return np.ones(len(elist))
+
     return values
 
 

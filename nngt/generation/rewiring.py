@@ -178,7 +178,7 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
                     [(i, i + dist) for i in range(num_recip,
                                                   num_recip + e_final)]
         else:
-            last_edges[:] = [(i, i + dist) for i in range(e_remaning)]
+            last_edges[:] = [(i, i + dist) for i in range(e_remaining)]
 
         # put nodes back into [0, num_nodes[
         last_edges[last_edges >= num_nodes] -= num_nodes
