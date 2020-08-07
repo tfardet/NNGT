@@ -553,6 +553,12 @@ def test_swp():
     assert np.isclose(
         na.small_world_propensity(g, use_diameter=False), expected, atol=0.01)
 
+    # run a random version just to check with remaining edges in the
+    # algorithm
+    for directed in (False, True):
+        g = ng.newman_watts(10, 0.03, nodes=num_nodes, directed=directed)
+        na.small_world_propensity(g, use_diameter=True, weights=use_weights)
+
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
