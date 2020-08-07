@@ -253,8 +253,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     # check edge color
     group_based = False
 
-    default_ecmap = (palette_discrete() if ecolor == "group"
-                     else palette_continuous())
+    default_ecmap = (palette_discrete() if not nonstring_container(ncolor) and
+                     ecolor == "group" else palette_continuous())
 
     if isinstance(ecolor, float):
         ecolor = np.repeat(ecolor, e)
@@ -710,8 +710,8 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         restrict_edges, size, threshold)
 
     # node color information
-    default_ncmap = (palette_discrete() if ncolor == "group"
-                     else palette_continuous())
+    default_ncmap = (palette_discrete() if not nonstring_container(ncolor) and
+                     ncolor == "group" else palette_continuous())
 
     ncmap = get_cmap(kwargs.get("node_cmap", default_ncmap))
 
@@ -1117,7 +1117,7 @@ def _node_color(network, restrict_nodes, ncolor):
                 else:
                     values = nngt.analyze_graph[ncolor](
                         network)[list(restrict_nodes)]
-            elif ncolor in ColorConverter.colors:
+            elif ncolor in ColorConverter.colors or ncolor.startswith("#"):
                 color = np.repeat(ncolor, n)
             else:
                 raise RuntimeError("Invalid `ncolor`: {}.".format(ncolor))

@@ -543,6 +543,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
         if colors is not None:
             del colors[idx]
         num_plot += 1
+
     # plot weights and delays if needed
     if "weight" in attributes:
         idx     = attributes.index("weight")
@@ -556,6 +557,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
         del logy[idx]
         if colors is not None:
             del colors[idx]
+
     if "delay" in attributes:
         idx     = attributes.index("delay")
         d       = network.get_delays(edges=edges)
@@ -568,6 +570,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
         del logy[idx]
         if colors is not None:
             del colors[idx]
+
     # plot the remaining attributes
     for i, attr in enumerate(attributes):
         val = network.get_edge_attributes(edges=edges, name=attr)
@@ -590,6 +593,7 @@ def edge_attributes_distribution(network, attributes, edges=None,
             _set_scale(ax[0], bins.max(), bins.min(), np.min(counts[counts>0]),
                        counts.max(), logx[i], logy[i])
         num_plot += 1
+
     # adjust space, set title, and show
     _format_and_show(fig, num_plot, attributes, title, show)
 
