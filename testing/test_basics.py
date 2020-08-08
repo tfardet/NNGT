@@ -287,6 +287,7 @@ def test_new_node_attr():
             g.name, *g.get_positions(n))
 
 
+@pytest.mark.mpi_skip
 def test_graph_copy():
     '''
     Test partial and full graph copy.
