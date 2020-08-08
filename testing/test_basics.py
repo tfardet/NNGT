@@ -11,8 +11,10 @@ Test the validity of the most basic graph functions.
 import pytest
 
 import numpy as np
+import numpy.testing as npt
 
 import nngt
+import nngt.generation as ng
 from nngt.lib import InvalidArgument
 
 
@@ -294,7 +296,7 @@ def test_graph_copy():
     avg = 20
     std = 4
 
-    g = nngt.generation.gaussian_degree(avg, std, nodes=100)
+    g = ng.gaussian_degree(avg, std, nodes=100)
 
     h = nngt.Graph(copy_graph=g)
 
@@ -307,8 +309,8 @@ def test_graph_copy():
     pop   = nngt.NeuralPop.exc_and_inhib(100)
     shape = nngt.geometry.Shape.rectangle(1000., 1000.)
 
-    g = nngt.generation.gaussian_degree(avg, std, population=pop, shape=shape,
-                                        name="new_node_spatial")
+    g = ng.gaussian_degree(avg, std, population=pop, shape=shape,
+                           name="new_node_spatial")
 
     h = nngt.Graph(copy_graph=g)
 
@@ -321,18 +323,39 @@ def test_graph_copy():
     assert not h.is_spatial()
     
     # full copy
+    rng = np.random.default_rng()
+
+    g.set_weights(rng.uniform(0, 10, g.edge_nb()))
+
+    g.new_node_attribute("plop", "int", rng.integers(1, 50, g.node_nb()))
+    g.new_node_attribute("bip", "double", rng.uniform(0, 1, g.node_nb()))
+    g.new_edge_attribute("test", "int", rng.integers(1, 200, g.edge_nb()))
+
     copy = g.copy()
 
-    assert g.node_nb() == h.node_nb()
-    assert g.edge_nb() == h.edge_nb()
+    assert g.node_nb() == copy.node_nb()
+    assert g.edge_nb() == copy.edge_nb()
 
-    assert np.array_equal(g.edges_array, h.edges_array)
+    assert np.array_equal(g.edges_array, copy.edges_array)
+
+    for k, v in g.edge_attributes.items():
+        npt.assert_array_equal(v, copy.edge_attributes[k])
+
+    for k, v in g.node_attributes.items():
+        npt.assert_array_equal(v, copy.node_attributes[k])
 
     assert g.population == copy.population
     assert g.population is not copy.population
 
     assert g.shape == copy.shape
     assert g.shape is not copy.shape
+
+    # check that undirected graph stays undirected
+    g = ng.erdos_renyi(nodes=100, avg_deg=10, directed=False)
+
+    h = g.copy()
+
+    assert g.is_directed() == h.is_directed() == False
 
 
 def test_degrees_neighbors():
