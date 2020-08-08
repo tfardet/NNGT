@@ -433,14 +433,22 @@ class Graph(nngt.core.GraphObject):
                          directed=directed, weighted=weighted)
 
         # take care of the weights and delays
-        if weighted:
-            self.new_edge_attribute('weight', 'double')
-            self._w = _edge_prop(kwargs.get("weights", None))
-        if "delays" in kwargs:
-            self.new_edge_attribute('delay', 'double')
-            self._d = _edge_prop(kwargs.get("delays", None))
-        if 'inh_weight_factor' in kwargs:
-            self._iwf = kwargs['inh_weight_factor']
+        if copy_graph is None:
+            if weighted:
+                self.new_edge_attribute('weight', 'double')
+                self._w = _edge_prop(kwargs.get("weights", None))
+            if "delays" in kwargs:
+                self.new_edge_attribute('delay', 'double')
+                self._d = _edge_prop(kwargs.get("delays", None))
+            if 'inh_weight_factor' in kwargs:
+                self._iwf = kwargs['inh_weight_factor']
+        else:
+            self._w   = getattr(copy_graph, "_w", None)
+            self._d   = getattr(copy_graph, "_d", None)
+            self._iwf = getattr(copy_graph, "_iwf", None)
+
+            self._eattr._num_values_set = \
+                copy_graph._eattr._num_values_set.copy()
 
         # update the counters
         self.__class__.__num_graphs += 1
@@ -507,8 +515,11 @@ class Graph(nngt.core.GraphObject):
         Returns a deepcopy of the current :class:`~nngt.Graph`
         instance
         '''
+        if nngt.get_config("mpi"):
+            raise NotImplementedError("`copy` is not MPI-safe yet.")
         gc_instance = Graph(name=self._name + '_copy',
-                            weighted=self.is_weighted(), copy_graph=self)
+                            weighted=self.is_weighted(), copy_graph=self,
+                            directed=self.is_directed())
 
         if self.is_spatial():
             nngt.SpatialGraph.make_spatial(

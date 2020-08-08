@@ -336,6 +336,7 @@ class _GtGraph(GraphInterface):
                 g.set_directed(False)
                 remove_parallel_edges(g)
             elif directed and not g.is_directed():
+                g = g.copy()
                 g.set_directed(True)
 
             self._from_library_graph(g, copy=True)
@@ -701,7 +702,7 @@ class _GtGraph(GraphInterface):
         edges = graph.num_edges()
 
         if copy:
-            self._graph = nngt._config["graph"](g=graph, directed=True)
+            self._graph = nngt._config["graph"](g=graph)
         else:
             self._graph = graph
 
@@ -711,8 +712,9 @@ class _GtGraph(GraphInterface):
                 try:
                     super(type(self._nattr), self._nattr).__setitem__(
                         key, _get_dtype(val.a[0]))
-                except:
-                    pass
+                except TypeError:
+                    super(type(self._nattr), self._nattr).__setitem__(
+                        key, _get_dtype(val.get_2d_array([0])))
 
         if edges:
             for key, val in graph.edge_properties.items():

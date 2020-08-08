@@ -748,6 +748,7 @@ class _NxGraph(GraphInterface):
 
         if num_edges:
             e0 = next(iter(graph.edges))
+
             for key, val in graph.edges[e0].items():
                 super(type(self._eattr), self._eattr).__setitem__(
                     key, _get_dtype(val))
