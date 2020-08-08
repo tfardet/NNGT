@@ -709,8 +709,12 @@ class _GtGraph(GraphInterface):
         # get attributes names and "types" and initialize them
         if nodes:
             for key, val in graph.vertex_properties.items():
-                super(type(self._nattr), self._nattr).__setitem__(
-                    key, _get_dtype(val.a[0]))
+                try:
+                    super(type(self._nattr), self._nattr).__setitem__(
+                        key, _get_dtype(val.a[0]))
+                except TypeError:
+                    super(type(self._nattr), self._nattr).__setitem__(
+                        key, _get_dtype(val.get_2d_array([0])))
 
         if edges:
             for key, val in graph.edge_properties.items():
