@@ -587,6 +587,12 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
     .. versionadded:: 2.0
 
+    .. warning::
+        When using igraph or graph-tool, if you want to use the `axis`
+        argument, then you must first switch the matplotlib backend to its
+        cairo version using e.g. ``plt.switch_backend("Qt5Cairo")`` if your
+        normal backend is Qt5 ("Qt5Agg").
+
     Parameters
     ----------
     network : :class:`~nngt.Graph` or subclass
@@ -738,7 +744,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
         # resize
         if nonstring_container(nsize):
-            nsize /= np.max(nsize)
+            nsize *= 0.05
 
         nborder_width *= 0.1
 
@@ -793,7 +799,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         if vprops["fill_color"] is None:
             vprops["fill_color"] = [0.640625, 0, 0, 0.9]
 
-        eprops = {
+        eprops = None if network.edge_nb() == 0 else {
             "color": _to_gt_prop(graph, ecolor, palette_continuous(),
                                  ptype='edge', color=True),
             "pen_width": _to_gt_prop(graph, esize, None, ptype='edge'),
@@ -963,7 +969,7 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
 
         esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
     else:
-        esize = []
+        esize = np.array([])
 
     return markers, nsize, esize
 
