@@ -779,11 +779,7 @@ class Graph(nngt.core.GraphObject):
             # then use the list of nodes to get the original ids back
             # to do that we first convert source/target_node to lists
             # (note that this has no significant speed impact)
-            mat = self.adjacency_matrix()
-
-            if not self.is_directed():
-                from scipy.sparse import tril
-                mat = tril(mat, format="csr")
+            nnz = None
 
             if source_node is None:
                 source_node = np.array(
@@ -801,7 +797,31 @@ class Graph(nngt.core.GraphObject):
             else:
                 target_node = np.sort(target_node)
 
-            nnz = mat[source_node].tocsc()[:, target_node].nonzero()
+            # check graph directedness
+            if self.is_directed():
+                mat = self.adjacency_matrix()
+
+                nnz = mat[source_node].tocsc()[:, target_node].nonzero()
+            else:
+                from scipy.sparse import triu
+
+                mat = triu(self.adjacency_matrix(), format="csr")
+
+                nodes = set()
+
+                if is_integer(source_node):
+                    nodes.add(source_node)
+                elif source_node is not None:
+                    nodes.update(source_node)
+
+                if is_integer(target_node):
+                    nodes.add(target_node)
+                elif target_node is not None:
+                    nodes.update(target_node)
+
+                nnz = mat[list(nodes)].nonzero()
+
+            print(nnz)
 
             edges = np.array(
                 [source_node[nnz[0]], target_node[nnz[1]]], dtype=int).T
