@@ -722,7 +722,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
     ecolor = _edge_prop(network, ecolor)
     esize  = _edge_prop(network, esize)
 
-    if nonstring_container(esize):
+    if nonstring_container(esize) and len(esize):
         esize *= max_esize / np.max(esize)
     
     # environment
@@ -896,6 +896,9 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
         axis.artists.append(graph_artist)
 
+    if "title" in kwargs:
+        axis.set_title(kwargs["title"])
+
     if show:
         plt.show()
 
@@ -952,12 +955,15 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
 
     nsize *= 0.01 * size[0]
 
-    if isinstance(esize, str) and e:
-        esize  = _edge_size(network, edges, esize)
-        esize *= max_esize
-        esize[esize < threshold] = 0.
+    if e:
+        if isinstance(esize, str):
+            esize  = _edge_size(network, edges, esize)
+            esize *= max_esize
+            esize[esize < threshold] = 0.
 
-    esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
+        esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
+    else:
+        esize = []
 
     return markers, nsize, esize
 
@@ -1037,16 +1043,17 @@ def _edge_size(network, edges, esize):
     size = np.repeat(1., num_edges)
 
     if num_edges:
-        max_size = None
+        max_size = 1.
 
-        if esize == "betweenness":
+        if nonstring_container(esize):
+            max_size = np.max(esize)
+        elif esize == "betweenness":
             betw = network.get_betweenness("edge")
 
             max_size = np.max(betw)
 
             size = betw if restrict_nodes is None else betw[restrict_nodes]
-
-        if esize == "weight":
+        elif esize == "weight":
             size = network.get_weights(edges=edges)
 
             max_size = np.max(network.get_weights())

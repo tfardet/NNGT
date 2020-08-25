@@ -63,12 +63,17 @@ class _GtNProperty(BaseProperty):
         return _to_np_array(g.vertex_properties[name].a, dtype)
 
     def __setitem__(self, name, value):
+        dtype = super(_GtNProperty, self).__getitem__(name)
+
         g = self.parent()._graph
 
         if name in self:
             size = g.num_vertices()
             if len(value) == size:
-                g.vertex_properties[name].a = np.array(value)
+                if dtype == "string":
+                    g.vertex_properties[name].set_2d_array(value)
+                else:
+                    g.vertex_properties[name].a = np.array(value)
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "node in the graph is required")
