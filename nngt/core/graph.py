@@ -781,6 +781,10 @@ class Graph(nngt.core.GraphObject):
             # (note that this has no significant speed impact)
             mat = self.adjacency_matrix()
 
+            if not self.is_directed():
+                from scipy.sparse import tril
+                mat = tril(mat, format="csr")
+
             if source_node is None:
                 source_node = np.array(
                     [i for i in range(self.node_nb())], dtype=int)
