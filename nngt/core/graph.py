@@ -38,7 +38,7 @@ from nngt.io.graph_loading import _load_from_file, _library_load
 from nngt.io.io_helpers import _get_format
 from nngt.io.graph_saving import _as_string
 from nngt.lib import InvalidArgument, nonstring_container
-from nngt.lib.connect_tools import _set_degree_type
+from nngt.lib.connect_tools import _set_degree_type, _unique_rows
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import graph_tool_check, deprecated, is_integer
@@ -779,52 +779,35 @@ class Graph(nngt.core.GraphObject):
             # then use the list of nodes to get the original ids back
             # to do that we first convert source/target_node to lists
             # (note that this has no significant speed impact)
-            nnz = None
+            src, tgt = None, None
 
             if source_node is None:
-                source_node = np.array(
+                src = np.array(
                     [i for i in range(self.node_nb())], dtype=int)
             elif is_integer(source_node):
-                source_node = np.array([source_node], dtype=int)
+                src = np.array([source_node], dtype=int)
             else:
-                source_node = np.sort(source_node)
+                src = np.sort(source_node)
 
             if target_node is None:
-                target_node = np.array(
+                tgt = np.array(
                     [i for i in range(self.node_nb())], dtype=int)
             elif is_integer(target_node):
-                target_node = np.array([target_node], dtype=int)
+                tgt = np.array([target_node], dtype=int)
             else:
-                target_node = np.sort(target_node)
+                tgt = np.sort(target_node)
 
-            # check graph directedness
-            if self.is_directed():
-                mat = self.adjacency_matrix()
+            mat = self.adjacency_matrix()
 
-                nnz = mat[source_node].tocsc()[:, target_node].nonzero()
-            else:
-                from scipy.sparse import triu
+            nnz = mat[src].tocsc()[:, tgt].nonzero()
 
-                mat = triu(self.adjacency_matrix(), format="csr")
+            edges = np.array([src[nnz[0]], tgt[nnz[1]]], dtype=int).T
 
-                nodes = set()
+            # remove reciprocal if graph is undirected
+            if not self.is_directed():
+                edges.sort()
 
-                if is_integer(source_node):
-                    nodes.add(source_node)
-                elif source_node is not None:
-                    nodes.update(source_node)
-
-                if is_integer(target_node):
-                    nodes.add(target_node)
-                elif target_node is not None:
-                    nodes.update(target_node)
-
-                nnz = mat[list(nodes)].nonzero()
-
-            print(nnz)
-
-            edges = np.array(
-                [source_node[nnz[0]], target_node[nnz[1]]], dtype=int).T
+                edges = _unique_rows(edges)
 
         # check attributes
         if attribute is None:
