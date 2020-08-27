@@ -569,6 +569,39 @@ def test_undirected_adjacency():
         g.adjacency_matrix(types=True, weights=True).todense(), wt_mat))
 
 
+@pytest.mark.mpi_skip
+def test_get_edges():
+    ''' Check that correct edges are returned '''
+    # directed
+    g = nngt.Graph(4, directed=True)
+
+    edges = [(0, 1), (1, 0), (1, 2), (2, 3)]
+
+    g.new_edges(edges)
+
+    assert np.array_equal(g.get_edges(source_node=[0, 1]), edges[:3])
+    assert np.array_equal(g.get_edges(target_node=[0, 1]), edges[:2])
+    assert np.array_equal(g.get_edges(source_node=[0, 2], target_node=[0, 1]),
+                          [(0, 1)])
+
+    # undirected
+    g = nngt.Graph(4, directed=False)
+
+    edges = [(0, 1), (1, 2), (2, 3)]
+
+    g.new_edges(edges)
+    
+    res = [(0, 1), (1, 2)]
+
+    assert np.array_equal(g.get_edges(source_node=[0, 1]), res)
+    assert np.array_equal(g.get_edges(target_node=[0, 1]), res)
+    assert np.array_equal(g.get_edges(source_node=[0, 2], target_node=[0, 1]),
+                          res)
+
+    assert np.array_equal(g.get_edges(source_node=0, target_node=1), [(0, 1)])
+    assert np.array_equal(g.get_edges(source_node=0, target_node=[0, 1]),
+                          [(0, 1)])
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -580,6 +613,7 @@ if __name__ == "__main__":
     test_new_node_attr()
     test_graph_copy()
     test_degrees_neighbors()
+    test_get_edges()
 
     if not nngt.get_config('mpi'):
         test_node_creation()
