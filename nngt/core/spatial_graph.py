@@ -25,6 +25,8 @@
 import numpy as np
 
 import nngt
+from nngt.lib import InvalidArgument
+
 from .graph import Graph
 
 

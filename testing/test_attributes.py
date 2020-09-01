@@ -9,8 +9,11 @@ Test the validity of graph, node, and edge attributes as well as the
 distribution generators.
 """
 
+import os
 import unittest
+
 import numpy as np
+import pytest
 
 import nngt
 
@@ -280,6 +283,66 @@ class TestAttributes(TestBasis):
             #~ gids = make_nest_network(graph)
 
 
+# ---------------------- #
+# Pytest formatted tests #
+# ---------------------- #
+
+@pytest.mark.mpi_skip
+def test_str_attr():
+    ''' Check string attributes '''
+    g = nngt.Graph(5)
+
+    # set node attribute
+    node_names = ["aa", "b", "c", "dddd", "eee"]
+
+    g.new_node_attribute("name", "string", values=node_names)
+
+    # set edges
+    edges = [(0, 1), (1, 3), (1, 4), (2, 0), (3, 2), (4, 1)]
+
+    g.new_edges(edges)
+
+    # set edge attribute
+    eattr = ["a"*i for i in range(len(edges))]
+
+    g.new_edge_attribute("edata", "string", values=eattr)
+
+    # check attributes
+    assert list(g.node_attributes["name"]) == node_names
+    assert list(g.edge_attributes["edata"]) == eattr
+
+    # save and load string attributes
+    current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
+
+    filename = current_dir + "g.el"
+
+    g.to_file(filename)
+
+    h = nngt.load_from_file(filename)
+
+    assert list(h.node_attributes["name"]) == node_names
+    assert list(h.edge_attributes["edata"]) == eattr
+
+    os.remove(filename)
+
+    # change an attribute
+    node_names[2] = "cc"
+    h.set_node_attribute("name", values=node_names)
+
+    assert not np.array_equal(h.node_attributes["name"],
+                              g.node_attributes["name"])
+
+    assert list(h.node_attributes["name"]) == node_names
+
+    eattr[0] = "l"
+    h.set_edge_attribute("edata", values=eattr)
+
+    assert not np.array_equal(h.edge_attributes["edata"],
+                              g.edge_attributes["edata"])
+
+    assert list(h.edge_attributes["edata"]) == eattr
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -289,3 +352,4 @@ if not nngt.get_config('mpi'):
 
     if __name__ == "__main__":
         unittest.main()
+        test_str_attr()

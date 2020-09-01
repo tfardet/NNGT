@@ -152,8 +152,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     **kwargs : dict
         Optional keyword arguments including `node_cmap` to set the
         nodes colormap (default is "magma" for continuous variables and
-        "Set1" for groups) and the boolean `simple_nodes` to make node
-        plotting faster.
+        "Set1" for groups) and "title" to add a title to the plot.
     '''
     import matplotlib.pyplot as plt
 
@@ -587,6 +586,12 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
     .. versionadded:: 2.0
 
+    .. warning::
+        When using igraph or graph-tool, if you want to use the `axis`
+        argument, then you must first switch the matplotlib backend to its
+        cairo version using e.g. ``plt.switch_backend("Qt5Cairo")`` if your
+        normal backend is Qt5 ("Qt5Agg").
+
     Parameters
     ----------
     network : :class:`~nngt.Graph` or subclass
@@ -722,7 +727,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
     ecolor = _edge_prop(network, ecolor)
     esize  = _edge_prop(network, esize)
 
-    if nonstring_container(esize):
+    if nonstring_container(esize) and len(esize):
         esize *= max_esize / np.max(esize)
     
     # environment
@@ -738,7 +743,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
         # resize
         if nonstring_container(nsize):
-            nsize /= np.max(nsize)
+            nsize *= 0.05
 
         nborder_width *= 0.1
 
@@ -793,7 +798,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         if vprops["fill_color"] is None:
             vprops["fill_color"] = [0.640625, 0, 0, 0.9]
 
-        eprops = {
+        eprops = None if network.edge_nb() == 0 else {
             "color": _to_gt_prop(graph, ecolor, palette_continuous(),
                                  ptype='edge', color=True),
             "pen_width": _to_gt_prop(graph, esize, None, ptype='edge'),
@@ -896,6 +901,9 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
         axis.artists.append(graph_artist)
 
+    if "title" in kwargs:
+        axis.set_title(kwargs["title"])
+
     if show:
         plt.show()
 
@@ -952,12 +960,15 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
 
     nsize *= 0.01 * size[0]
 
-    if isinstance(esize, str) and e:
-        esize  = _edge_size(network, edges, esize)
-        esize *= max_esize
-        esize[esize < threshold] = 0.
+    if e:
+        if isinstance(esize, str):
+            esize  = _edge_size(network, edges, esize)
+            esize *= max_esize
+            esize[esize < threshold] = 0.
 
-    esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
+        esize *= 0.005 * size[0]  # border on each side (so 0.5 %)
+    else:
+        esize = np.array([])
 
     return markers, nsize, esize
 
@@ -1037,16 +1048,17 @@ def _edge_size(network, edges, esize):
     size = np.repeat(1., num_edges)
 
     if num_edges:
-        max_size = None
+        max_size = 1.
 
-        if esize == "betweenness":
+        if nonstring_container(esize):
+            max_size = np.max(esize)
+        elif esize == "betweenness":
             betw = network.get_betweenness("edge")
 
             max_size = np.max(betw)
 
             size = betw if restrict_nodes is None else betw[restrict_nodes]
-
-        if esize == "weight":
+        elif esize == "weight":
             size = network.get_weights(edges=edges)
 
             max_size = np.max(network.get_weights())

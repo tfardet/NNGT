@@ -235,10 +235,12 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
 
     # add node attributes to the notifications
     for nattr in additional_notif["node_attributes"]:
-        key                   = "na_" + nattr
-        additional_notif[key] = np.array2string(
-                graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
-                separator=separator)[1:-1]
+        key = "na_" + nattr
+        elt = np.array2string(
+            graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
+            separator=separator)[1:-1].replace("'", "")
+
+        additional_notif[key] = elt
 
     # save positions for SpatialGraph (and shape if Shapely is available)
     if graph.is_spatial():
