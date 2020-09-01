@@ -1,3 +1,6 @@
 [submodule "nngt/geometry"]
 	path = nngt/geometry
 	url = https://github.com/SENeC-Initiative/PyNCulture.git
+[submodule "nngt/plot/chord_diag"]
+	path = nngt/plot/chord_diag
+	url = https://github.com/Silmathoron/mpl_chord_diagram

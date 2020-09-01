@@ -18,6 +18,6 @@ omit =
     **/setup.py
     nngt/geometry/*
     nngt/database/*
-    nngt/testing/*
     nngt/simulation/*
     nngt/lib/db_tools.py
+    nngt/plot/chord_diag/*

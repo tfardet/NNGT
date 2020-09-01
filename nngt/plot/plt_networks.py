@@ -35,6 +35,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import nngt
 from nngt.lib import POS, nonstring_container, is_integer
 from .custom_plt import palette_continuous, palette_discrete, format_exponent
+from .chord_diag import chord_diagram as _chord_diag
 
 
 
@@ -906,6 +907,55 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
     if show:
         plt.show()
+
+
+def chord_diagram(network, weights=True, names=None, width=0.1, pad=2.,
+                  gap=0.03, chordwidth=0.7, axis=None, colors=None, cmap=None,
+                  alpha=0.7, use_gradient=False, show=False, **kwargs):
+    """
+    Plot a chord diagram.
+
+    Parameters
+    ----------
+    network : a :class:`nngt.Graph` object
+        Network used to plot the chord diagram.
+    weights : bool or str, optional (default: 'weight' attribute)
+        Weights used to plot the connections.
+    names : str or list of str, optional (default: no names)
+        Names of the nodes that will be displayed, either a node attribute
+        or a custom list.
+    width : float, optional (default: 0.1)
+        Width/thickness of the ideogram arc.
+    pad : float, optional (default: 2)
+        Distance between two neighboring ideogram arcs. Unit: degree.
+    gap : float, optional (default: 0.03)
+        Distance between the arc and the beginning of the cord.
+    chordwidth : float, optional (default: 0.7)
+        Position of the control points for the chords, controlling their shape.
+    axis : matplotlib axis, optional (default: new axis)
+        Matplotlib axis where the plot should be drawn.
+    colors : list, optional (default: from `cmap`)
+        List of user defined colors or floats.
+    cmap : str or colormap object (default: viridis)
+        Colormap to use.
+    alpha : float in [0, 1], optional (default: 0.7)
+        Opacity of the chord diagram.
+    use_gradient : bool, optional (default: False)
+        Whether a gradient should be use so that chord extremities have the
+        same color as the arc they belong to.
+    **kwargs : keyword arguments
+        Available kwargs are "fontsize" and "sort" (either "size" or
+        "distance"), "zero_entry_size" (in degrees, default: 0.5).
+    """
+    ww = 'weight' if weights is True else weights
+    nn = network.node_attributes[names] if isinstance(names, str) else names
+
+    mat = network.adjacency_matrix(weights=ww)
+
+    return _chord_diag(
+        mat, nn, width=width, pad=pad, gap=gap, chordwidth=chordwidth,
+        ax=axis, colors=colors, cmap=cmap, alpha=alpha,
+        use_gradient=use_gradient, show=show, **kwargs)
 
 
 # ----- #
