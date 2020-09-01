@@ -152,8 +152,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     **kwargs : dict
         Optional keyword arguments including `node_cmap` to set the
         nodes colormap (default is "magma" for continuous variables and
-        "Set1" for groups) and the boolean `simple_nodes` to make node
-        plotting faster.
+        "Set1" for groups) and "title" to add a title to the plot.
     '''
     import matplotlib.pyplot as plt
 
