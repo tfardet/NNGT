@@ -71,9 +71,9 @@ class _GtNProperty(BaseProperty):
             size = g.num_vertices()
             if len(value) == size:
                 if dtype == "string":
-                    g.vertex_properties[name].set_2d_array(value)
+                    g.vertex_properties[name].set_2d_array(np.asarray(value))
                 else:
-                    g.vertex_properties[name].a = np.array(value)
+                    g.vertex_properties[name].a = np.asarray(value)
             else:
                 raise ValueError("A list or a np.array with one entry per "
                                  "node in the graph is required")
@@ -223,7 +223,11 @@ class _GtEProperty(BaseProperty):
                     value = [value]
 
                 if len(value) == size:
-                    g.edge_properties[name].a = _to_np_array(value, dtype)
+                    if dtype == "string":
+                        g.edge_properties[name].set_2d_array(
+                            np.asarray(value, object))
+                    else:
+                        g.edge_properties[name].a = np.asarray(value, dtype)
                 else:
                     raise ValueError("A list or a np.array with one entry per "
                                  "edge in the graph is required")
