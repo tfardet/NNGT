@@ -43,6 +43,8 @@ from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import graph_tool_check, deprecated, is_integer
 
+from .connections import Connections
+
 
 logger = logging.getLogger(__name__)
 
@@ -1429,7 +1431,7 @@ class Graph(nngt.core.GraphObject):
         if parameters is None:
             parameters = self._w
 
-        nngt.core.Connections.weights(
+        Connections.weights(
             self, elist=elist, wlist=weight, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
 
@@ -1471,7 +1473,7 @@ class Graph(nngt.core.GraphObject):
         inhib_nodes = None
 
         if nonstring_container(edge_type):
-            return nngt.core.Connections.types(self, values=edge_type)
+            return Connections.types(self, values=edge_type)
         elif edge_type in ('excitatory', 1):
             if is_integer(nodes):
                 inhib_nodes = self.node_nb() - nodes
@@ -1488,7 +1490,7 @@ class Graph(nngt.core.GraphObject):
             elif nodes is not None:
                 raise ValueError("`nodes` should be integer or array of ids.")
 
-        return nngt.core.Connections.types(self, inhib_nodes, fraction)
+        return Connections.types(self, inhib_nodes, fraction)
 
     def set_delays(self, delay=None, elist=None, distribution=None,
                    parameters=None, noise_scale=None):
@@ -1540,6 +1542,6 @@ class Graph(nngt.core.GraphObject):
                     "Invalid `parameters` value: cannot be None if default"
                     " delays were not set at graph creation.")
 
-        return nngt.core.Connections.delays(
+        return Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)

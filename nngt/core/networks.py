@@ -302,7 +302,7 @@ class Network(Graph):
 
     @population.setter
     def population(self, population):
-        if issubclass(population.__class__, nngt.NeuralPop):
+        if issubclass(population.__class__, nngt.Structure):
             if self.node_nb() == population.size:
                 if population.is_valid:
                     self._population = population

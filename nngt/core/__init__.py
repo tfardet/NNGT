@@ -31,7 +31,6 @@ from .gt_graph import _GtGraph
 from .ig_graph import _IGraph
 from .nx_graph import _NxGraph
 from .nngt_graph import _NNGTGraph
-from .graph_datastruct import Connections
 
 
 _graphlib = {
@@ -48,6 +47,5 @@ GraphObject = _graphlib[nngt._config["backend"]]
 
 
 __all__ = [
-    "Connections",
     "GraphObject"
 ]

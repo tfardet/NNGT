@@ -251,8 +251,9 @@ from .io.graph_saving import save_to_file
 from .lib.rng_tools import seed
 from .lib.test_functions import on_master_process, num_mpi_processes
 
-from .core.graph_datastruct import (GroupProperty, MetaGroup, NeuralGroup,
-                                    NeuralPop)
+from .core.group_structure import Group, MetaGroup, Structure
+from .core.neural_pop_group import (GroupProperty, MetaNeuralGroup,
+                                    NeuralGroup, NeuralPop)
 from .core.graph import Graph
 from .core.spatial_graph import SpatialGraph
 from .core.networks import Network, SpatialNetwork
