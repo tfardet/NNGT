@@ -899,6 +899,28 @@ class NeuralGroup(Group):
 
         NeuralGroup.__num_created += 1
 
+    def __reduce__(self):
+        '''
+        Overwrite this function to make Structure pickable.
+        OrderedDict.__reduce__ returns a 3 to 5 tuple:
+        - the first is the class
+        - the second is the init args in Py2, empty sequence in Py3
+        - the third can be used to store attributes
+        - the fourth is None and needs to stay None
+        - the last must be kept unchanged: odict_iterator in Py3
+        '''
+        state    = super().__reduce__()
+        last     = state[4] if len(state) == 5 else None
+        dic      = state[2]
+        od_args  = state[1][0] if state[1] else state[1]
+        args     = (dic.get("_size", None), dic.get("_parent", None),
+                    dic.get("_meta_groups", {}), dic.get("_has_models", True),
+                    od_args)
+
+        newstate = (Structure, args, dic, None, last)
+
+        return newstate
+
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
             same_size = self.size == other.size
@@ -975,7 +997,7 @@ class NeuralGroup(Group):
             raise RuntimeError("Ids cannot be changed after the "
                                "network has been sent to NEST!")
 
-        super().ids = values
+        super().ids = value
 
     @property
     def nest_gids(self):

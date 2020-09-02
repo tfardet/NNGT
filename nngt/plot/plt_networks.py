@@ -348,17 +348,20 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                 for g in nshape:
                     ids = g.ids if restrict_nodes is None \
                           else list(set(g.ids).intersection(restrict_nodes))
+
                     axis.scatter(pos[ids, 0], pos[ids, 1], c=c[ids],
                                  s=0.5*np.array(nsize)[ids],
                                  marker=markers[ids[0]], zorder=2,
-                                 mec=nborder_color, mew=nborder_width)
+                                 edgecolors=nborder_color,
+                                 linewidths=nborder_width)
             else:
                 ids = range(network.node_nb()) if restrict_nodes is None \
                       else restrict_nodes
+
                 for i in ids:
                     axis.plot(pos[i, 0], pos[i, 1], c=c[i], ms=0.5*nsize[i],
-                              marker=markers[ids[0]], ls="", zorder=2,
-                              mec=nborder_color, mew=nborder_width)
+                              marker=nshape[i], ls="", zorder=2,
+                              mec=nborder_color[i], mew=nborder_width)
         else:
             axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize),
                          marker=nshape, zorder=2, edgecolor=nborder_color,

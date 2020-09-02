@@ -286,6 +286,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
                     pickle.dumps(graph.population, protocol=2),
                                  "base64").decode().replace('\n', '~')
         else:
+            print(graph.population)
             additional_notif["population"] = codecs.encode(
                 pickle.dumps(graph.population, protocol=2),
                              "base64").decode().replace('\n', '~')

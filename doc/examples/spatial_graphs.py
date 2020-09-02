@@ -35,7 +35,7 @@ from nngt.geometry import Shape
 # Generate the spatial network #
 # ---------------------------- #
 
-ell        = Shape.ellipse(radii=(3000., 5000.))
+ell = Shape.ellipse(radii=(3000., 5000.))
 
 num_nodes  = 1000
 population = nngt.NeuralPop.uniform(num_nodes)

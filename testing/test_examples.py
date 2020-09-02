@@ -61,7 +61,7 @@ class TestExamples(unittest.TestCase):
     def test_name(self):
         return "test_examples"
 
-    @unittest.skipIf(int(environ.get("OMP", 1)) == 1, 'Check only with OMP')
+    # ~ @unittest.skipIf(int(environ.get("OMP", 1)) == 1, 'Check only with OMP')
     def test_examples(self):
         '''
         Test that the example files execute correctly.
