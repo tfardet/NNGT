@@ -35,7 +35,7 @@ from nngt.geometry import Shape
 # Generate the spatial network #
 # ---------------------------- #
 
-ell        = Shape.ellipse(radii=(3000., 5000.))
+ell = Shape.ellipse(radii=(3000., 5000.))
 
 num_nodes  = 1000
 population = nngt.NeuralPop.uniform(num_nodes)
@@ -80,5 +80,4 @@ os.remove('sp_graph.el')
 # ---- #
 
 if nngt.get_config('with_plot'):
-    print(g2.edge_nb(), g2.node_nb())
     nngt.plot.draw_network(g2, decimate_connections=100, show=True)

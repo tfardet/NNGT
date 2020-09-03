@@ -1,12 +1,12 @@
 .. _neural_groups:
 
-=============================
-Neural groups and populations
-=============================
+============================================
+Groups, structures, and neuronal populations
+============================================
 
-One of the key features of NNGT is to enable users to group nodes (neurons)
+One notable feature of NNGT is to enable users to group nodes (neurons)
 into groups sharing common properties in order to facilitate the generation of
-network, the analysis of its properties, or complex simulations with NEST_.
+a network, the analysis of its properties, or complex simulations with NEST_.
 
 The complete example file containing the code discussed here, as well as
 additional information on how to access :class:`~nngt.NeuralGroup` and
@@ -37,30 +37,45 @@ see the section about meta-groups below: `Complex populations and metagroups`_.
 Creating simple groups
 ----------------------
 
-Neural groups can be created easily through calls to :class:`nngt.NeuralGroup`.
+Groups can be created easily through calls to :class:`~nngt.Group` or
+:class:`~nngt.NeuralGroup`.
 
->>> group = nngt.NeuralGroup()
+>>> group  = nngt.Group()
+>>> ngroup = nngt.NeuralGroup()
 
-creates a single empty group (nothing very interesting).
+create empty groups (nothing very interesting).
 
-Minimally, any useful group requires at least neuron ids and a type (excitatory
-or inhibitory) to be useful.
+Minimally, any useful group requires at least neuron ids and, for a neuronal
+group, a type (excitatory or inhibitory) to be useful.
 
-To create a useful group, one can therefore either just tell how many neurons
-it should contain:
+To create a useful group, one can therefore either just tell how many
+nodes/neurons it should contain:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 40
+   :lines: 41
 
 or directly pass it a list of ids (to avoid typing ``nngt.`` all
-the time, we do ``from nngt import NeuralGroup`` at the beginning)
+the time, we do ``from nngt import Group, NeuralGroup`` at the beginning)
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 46
+   :lines: 47
+
+Note that if you set ids directly you will be responsible for their
+consistency.
 
 
-More realistic groups
----------------------
+Creating a structured graph
+---------------------------
+
+To create a structured graph, the groups are gathered into a :class:`Structure`
+which can then be used to create a graph and connect the nodes.
+
+.. literalinclude:: ../examples/introduction_to_groups.py
+   :lines: 55-74
+
+
+More realistic neuronal groups
+------------------------------
 
 When designing neuronal networks, one usually cares about their type
 (excitatory or inhibitory for instance), their properties, etc.
@@ -69,19 +84,19 @@ By default, neural groups are created excitatory and the following lines are
 therefore equivalent:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 59-60
+   :lines: 89-90
 
 To create an inhibitory group, the neural type must be set to -1:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 61
+   :lines: 91
 
 Moving towards really realistic groups to run simulation on NEST afterwards,
 the last step is to associate a neuronal model and set the properties of these
 neurons (and optionally give them names):
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 73-78
+   :lines: 103-108
 
 
 Populations
@@ -101,7 +116,7 @@ To create a population, you can start from scratch by creating an empty
 population, then adding groups to it:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 86-88
+   :lines: 116-118
 
 NNGT also provides a two default routine to create simple populations:
 
@@ -116,13 +131,13 @@ the time.
 To create such populations, just use:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 94-95
+   :lines: 124-125
 
 Eventually, a population can be created from exiting groups using
 :func:`~nngt.NeuralPop.from_groups`:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 107-108
+   :lines: 137-138
 
 Note that, here, we pass ``with_models=False`` to the population because these
 groups were created without the information necessary to create a network in
@@ -142,7 +157,7 @@ Otherwise, one can build the population from groups that already contain these
 properties, e.g. the previous ``pyr`` and ``fsi`` groups:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 126-132
+   :lines: 156-152
 
 .. warning::
     `syn_spec` can contain any synaptic model and parameters associated to the
@@ -174,22 +189,28 @@ and same with pyramidal neurons or interneurons.
 First create the normal groups:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 144-158
+   :lines: 174-188
 
 Then make the metagroups for the layers:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 162-166
+   :lines: 192-196
+
+Note that I used :class:`MetaNeuralGroup` for layers 3 and 5 because it enables
+to differenciate inhibitory and excitatory neurons using
+:py:obj:`~nngt.MetaNeuralGroup.inhibitory` and
+:py:obj:`~nngt.MetaNeuralGroup.excitatory`.
+Otherwise normal :class:`~nngt.MetaGroup` are equivalent and sufficient.
 
 Create the population:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 169-170
+   :lines: 199-200
 
 Then add additional metagroups for cell types:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 174-179
+   :lines: 204-209
 
 ----
 

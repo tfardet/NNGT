@@ -307,14 +307,14 @@ class Network(Graph):
                 if population.is_valid:
                     self._population = population
                 else:
-                    raise AttributeError("NeuralPop is not valid (not all \
-                    neurons are associated to a group).")
+                    raise AttributeError("NeuralPop is not valid (not all "
+                                         "neurons are associated to a group).")
             else:
-                raise AttributeError("{} and NeuralPop must have same number \
-                    of neurons".format(self.__class__.__name__))
+                raise AttributeError("Network and NeuralPop must have same "
+                                     "number of neurons.")
         else:
-            raise AttributeError("Expecting NeuralPop but received \
-                    {}".format(pop.__class__.__name__))
+            raise AttributeError("Expecting NeuralPop but received "
+                                 "'{}'".format(population.__class__.__name__))
 
     @property
     def nest_gids(self):

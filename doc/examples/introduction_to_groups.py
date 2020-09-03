@@ -23,7 +23,8 @@
 import numpy as np
 
 import nngt
-from nngt import MetaGroup, NeuralGroup, NeuralPop
+from nngt import Group, MetaGroup, Structure
+from nngt import MetaNeuralGroup, NeuralGroup, NeuralPop
 
 
 ''' ------------- #
@@ -31,20 +32,49 @@ from nngt import MetaGroup, NeuralGroup, NeuralPop
 # ------------- '''
 
 # the default group is empty, which is not very useful in general
-empty_group = nngt.NeuralGroup()
+empty_group = nngt.Group()
 print(empty_group)
 print("Group is empty?", empty_group.size == 0, "\nIt is therefore invalid?",
       "No!" if empty_group.is_valid else "Yes!", "\n")
 
-# to create a useful group, one can just say how many neurons it should contain
-group1 = NeuralGroup(500)  # a group with 500 neurons
+# to create a useful group, one can just say how many nodes it should contain
+group1 = Group(500)  # a group with 500 nodes
 print("Ids are not created", group1.ids,
       "but the size is stored:", group1.size, "\n")
 
 # if you want to set the ids directly, you can pass them directly, otherwise
-# they will be determine automatically when a Network is created using the group
-group2 = NeuralGroup(range(10, 20))  # 10 neurons with ids from 10 to 19
+# they will be determine automatically when a Network is created with the group
+group2 = NeuralGroup(range(10, 20))  # neurons with ids from 10 to 19
 print("Neuron ids are:", group2.ids, "\n")
+
+
+''' ------------------------- #
+# Creating a structured graph #
+# ------------------------- '''
+
+room1 = nngt.Group(25)
+room2 = nngt.Group(50)
+room3 = nngt.Group(40)
+room4 = nngt.Group(35)
+
+names = ["R1", "R2", "R3", "R4"]
+
+struct = nngt.Structure.from_groups((room1, room2, room3, room4), names)
+
+g = nngt.Graph(structure=struct)
+
+for room in struct:
+    nngt.generation.connect_groups(g, room, room, "all_to_all")
+
+nngt.generation.connect_groups(g, (room1, room2), struct, "erdos_renyi",
+                               avg_deg=5, ignore_invalid=True)
+
+nngt.generation.connect_groups(g, room3, room1, "erdos_renyi", avg_deg=10)
+
+nngt.generation.connect_groups(g, room4, room3, "erdos_renyi", avg_deg=5)
+
+if nngt.get_config("with_plot"):
+    nngt.plot.library_draw(g, show=True)
 
 
 ''' ------------------- #
@@ -52,10 +82,10 @@ print("Neuron ids are:", group2.ids, "\n")
 # ------------------- '''
 
 # group can have names
-named_group = NeuralGroup(500, name="named_group")
+named_group = Group(500, name="named_group")
 print("I'm a named group!", named_group, "\n")
 
-# more importantly, they can store whether neurons are excitatory or inhibitory
+# NeuralGroups can store whether neurons are excitatory or inhibitory
 exc   = NeuralGroup(800, neuron_type=1)   # excitatory group
 exc2  = NeuralGroup(800, neuron_type=1)   # also excitatory
 inhib = NeuralGroup(200, neuron_type=-1)  # inhibitory group
@@ -67,8 +97,8 @@ print("'exc2' is an excitatory group:", exc2.neuron_type == 1,
 # Complete groups for NEST simulations #
 # ---------------------------------- '''
 
-# to make a complete group, one must include a valid neuronal type, model and
-# (optionally) associated parameters
+# to make a complete neuronal group, one must include a valid neuronal type,
+# model and (optionally) associated parameters
 
 pyr = NeuralGroup(800, neuron_type=1, neuron_model="iaf_psc_alpha",
                   neuron_param={"tau_m": 50.}, name="pyramidal_cells")
@@ -78,9 +108,9 @@ fsi = NeuralGroup(200, neuron_type=-1, neuron_model="iaf_psc_alpha",
                   name="fast_spiking_interneurons")
 
 
-''' ------------------ #
-# Creating populations #
-# ------------------ '''
+''' --------------------------- #
+# Creating neuronal populations #
+# --------------------------- '''
 
 # making populations from scratch
 pop = nngt.NeuralPop(with_models=False)              # empty population
@@ -160,9 +190,9 @@ L6c  = NeuralGroup(idsL6,   neuron_model=nmod, name="L6c",  neuron_type=1)
 # We can also group them by layers using metagroups (for L2/L3/L6 it is not
 # really useful but it gives a coherent notation)
 L2 = MetaGroup(idsL2gc, name="L2")
-L3 = MetaGroup(L3Py.ids + L3I.ids, name="L3")
+L3 = MetaNeuralGroup(L3Py.ids + L3I.ids, name="L3")
 L4 = MetaGroup(idsL4gc, name="L4")
-L5 = MetaGroup(L5Py.ids + L5I.ids, name="L5")
+L5 = MetaNeuralGroup(L5Py.ids + L5I.ids, name="L5")
 L6 = MetaGroup(idsL6, name="L6")
 
 # Then we create the population from the groups
@@ -178,4 +208,9 @@ pop_column.create_meta_group(L3I.ids + L5I.ids, "interneurons")  # single line
 
 pop_column.create_meta_group(L2GC.ids + L4GC.ids, "granule")
 
-print("Column has meta-groups:", pop_column.meta_groups.keys())
+print("Column has meta-groups:", pop_column.meta_groups.keys(), "\n")
+
+# Note that we used MetaNeuralGroups for L3 and L5 because they can separate
+# excitatory and inhibitory neurons
+print("Excitatory L3 neurons:", L3.excitatory, "\n")
+print("Inhibitory L3 neurons:", L3.inhibitory)

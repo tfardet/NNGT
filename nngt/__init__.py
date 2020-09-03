@@ -22,14 +22,16 @@
 NNGT
 ====
 
-Package aimed at facilitating the analysis of Neural Networks Growth and
-Topology.
+Package aimed at facilitating the analysis of Neural Networks and Graphs'
+Topologies in Python by providing a unified interface for network generation
+and analysis.
 
 The library mainly provides algorithms for
 
 1. generating networks
-2. analyzing their activity
-3. studying the graph theoretical properties of those networks
+2. studying their topological properties
+3. doing some basic spatial, topological, and statistical visualizations
+4. interacting with neuronal simulators and analyzing neuronal activity
 
 
 Available modules
@@ -54,7 +56,7 @@ simulation
   Tools to provide complex network generation with NEST and help analyze the
   influence of the network structure on neuronal activity.
 plot
-  plot data or graphs using matplotlib and graph_tool.
+  Plot data or graphs using matplotlib.
 
 
 Units
@@ -251,8 +253,9 @@ from .io.graph_saving import save_to_file
 from .lib.rng_tools import seed
 from .lib.test_functions import on_master_process, num_mpi_processes
 
-from .core.graph_datastruct import (GroupProperty, MetaGroup, NeuralGroup,
-                                    NeuralPop)
+from .core.group_structure import Group, MetaGroup, Structure
+from .core.neural_pop_group import (GroupProperty, MetaNeuralGroup,
+                                    NeuralGroup, NeuralPop)
 from .core.graph import Graph
 from .core.spatial_graph import SpatialGraph
 from .core.networks import Network, SpatialNetwork

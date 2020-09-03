@@ -345,21 +345,24 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     if simple_nodes:
         if nonstring_container(nshape):
             # matplotlib scatter does not support marker arrays
-            if isinstance(nshape[0], nngt.NeuralGroup):
+            if isinstance(nshape[0], nngt.Group):
                 for g in nshape:
                     ids = g.ids if restrict_nodes is None \
                           else list(set(g.ids).intersection(restrict_nodes))
+
                     axis.scatter(pos[ids, 0], pos[ids, 1], c=c[ids],
                                  s=0.5*np.array(nsize)[ids],
                                  marker=markers[ids[0]], zorder=2,
-                                 mec=nborder_color, mew=nborder_width)
+                                 edgecolors=nborder_color,
+                                 linewidths=nborder_width)
             else:
                 ids = range(network.node_nb()) if restrict_nodes is None \
                       else restrict_nodes
+
                 for i in ids:
                     axis.plot(pos[i, 0], pos[i, 1], c=c[i], ms=0.5*nsize[i],
-                              marker=markers[ids[0]], ls="", zorder=2,
-                              mec=nborder_color, mew=nborder_width)
+                              marker=nshape[i], ls="", zorder=2,
+                              mec=nborder_color[i], mew=nborder_width)
         else:
             axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize),
                          marker=nshape, zorder=2, edgecolor=nborder_color,
@@ -973,7 +976,7 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
     markers = nshape
 
     if nonstring_container(nshape):
-        if isinstance(nshape[0], nngt.NeuralGroup):
+        if isinstance(nshape[0], nngt.Group):
             # check disjunction
             for i, g in enumerate(nshape):
                 for j in range(i + 1, len(nshape)):
@@ -1139,11 +1142,11 @@ def _node_color(network, restrict_nodes, ncolor):
     elif isinstance(ncolor, str):
         if ncolor == "group" or ncolor == "groups":
             color = np.zeros(n)
-            if hasattr(network, "population"):
-                l = len(network.population)
+            if network.structure is not None:
+                l = len(network.structure)
                 c = np.linspace(0, 1, l)
                 tmp = 0
-                for i, group in enumerate(network.population.values()):
+                for i, group in enumerate(network.structure.values()):
                     if restrict_nodes is None:
                         color[group.ids] = c[i]
                     else:
@@ -1153,9 +1156,9 @@ def _node_color(network, restrict_nodes, ncolor):
                         tmp += len(ids)
 
                 nlabel       = "Neuron groups"
-                nticks       = list(range(len(network.population)))
+                nticks       = list(range(len(network.structure)))
                 ntickslabels = [s.replace("_", " ")
-                                for s in network.population.keys()]
+                                for s in network.structure.keys()]
         else:
             values = None
             if "degree" in ncolor:
@@ -1255,13 +1258,14 @@ def _discrete_cmap(N, base_cmap=None, clist=None):
 def _convert_to_nodes(node_restriction, name, network):
     if nonstring_container(node_restriction):
         if isinstance(node_restriction[0], str):
-            assert network.is_network(), \
-                "`" + name + "` can be string only for Network."
+            assert network.structure is not None, \
+                "`" + name + "` can be string only for Network or graph " \
+                "with a `structure`."
             ids = set()
             for name in node_restriction:
-                ids.update(network.population[name].ids)
+                ids.update(network.structure[name].ids)
             return ids
-        elif isinstance(node_restriction[0], nngt.NeuralGroup):
+        elif isinstance(node_restriction[0], nngt.Group):
             ids = set()
             for g in node_restriction:
                 ids.update(g.ids)
@@ -1271,8 +1275,8 @@ def _convert_to_nodes(node_restriction, name, network):
     elif isinstance(node_restriction, str):
         assert network.is_network(), \
             "`" + name + "` can be string only for Network."
-        return set(network.population[node_restriction].ids)
-    elif isinstance(node_restriction, nngt.NeuralGroup):
+        return set(network.structure[node_restriction].ids)
+    elif isinstance(node_restriction, nngt.Group):
         return set(node_restriction.ids)
     elif node_restriction is not None:
         raise ValueError(
