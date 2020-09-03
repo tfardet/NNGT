@@ -166,11 +166,6 @@ class Structure(OrderedDict):
     
         return struct
 
-    @classmethod
-    def copy(cls, struct):
-        ''' Copy an existing Structure '''
-        return struct.copy()
-
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
 
