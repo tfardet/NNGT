@@ -111,7 +111,7 @@ from nngt import generation as ng
 from nngt import analysis as na
 from nngt import plot as nplt
 
-# check an ER network
+# make an ER network
 g = ng.erdos_renyi(nodes=1000, avg_deg=100)
 
 if nngt.get_config("with_plot"):

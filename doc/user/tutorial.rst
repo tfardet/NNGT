@@ -158,14 +158,14 @@ NNGT implements some fast generation tools to create several of the standard
 networks, such as Erdős-Rényi:
 
 .. literalinclude:: ../examples/introductory_tutorial.py
-   :lines: 115-118,121
+   :lines: 115-120
 
 More heterogeneous networks, with scale-free degree distribution (but no
 correlations like in Barabasi-Albert networks and user-defined exponents) are
 also implemented:
 
 .. literalinclude:: ../examples/introductory_tutorial.py
-   :lines: 124-128,131
+   :lines: 123-129
 
 For more details, see the full page on :ref:`graph_gen`.
 
@@ -212,8 +212,8 @@ groups and connect them with specific connectivities using the
 For more details, see the full page on :ref:`neural_groups`.
 
 
-The same with neurons: :class:`~nngt.NeuralGroup` and :class:`~nngt.NeuralPop`
-==============================================================================
+The same with neurons: :class:`~nngt.NeuralGroup`, :class:`~nngt.NeuralPop`
+===========================================================================
 
 The :class:`~nngt.NeuralGroup` allows the creation of nodes that belong
 together. You can then make a population from these groups and connect them

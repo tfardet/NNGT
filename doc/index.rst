@@ -60,13 +60,15 @@ community:
 Generation of graphs
 --------------------
 
-Structured connectivity:
+Structured graphs and connectivity:
   connectivity between the nodes can be chosen from various well-known graph
-  models
+  models, specific groups and structures can be generated to simplify edge
+  generation
 Populations:
-  populations of neurons are distributed afterwards on the structured
-  connectivity, and can be set to respect various constraints (for instance a
-  given fraction of inhibitory neurons and synapses)
+  populations of neurons can be used and be set to respect various constraints
+  (for instance a given fraction of inhibitory neurons), they simplify
+  network generation and make it highly efficient to interact with the NEST_
+  simulator
 Synaptic properties:
   synaptic weights and delays can be set from various distributions or
   correlated to edge properties
@@ -76,7 +78,7 @@ Interacting with NEST
 ---------------------
 
 The generated graphs can be used to easily create complex networks using the
-NEST simulator, on which you can then simulate their activity.
+NEST_ simulator, on which you can then simulate their activity.
 
 
 The docs
@@ -126,3 +128,4 @@ Indices and tables
 .. _`graph-tool`: http://graph-tool.skewed.de
 .. _igraph: http://igraph.org/
 .. _networkx: https://networkx.github.io/
+.. _NEST: nest-simulator.readthedocs.io/

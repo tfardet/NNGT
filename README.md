@@ -4,9 +4,11 @@
 
 [![Build Status](https://travis-ci.org/Silmathoron/NNGT.svg?branch=master)](https://travis-ci.org/Silmathoron/NNGT) [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html) [![Coverage Status](https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master)](https://coveralls.io/github/Silmathoron/NNGT?branch=master)<br>[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg)](https://doi.org/10.5281/zenodo.3402493)  ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Silmathoron/NNGT) ![PyPI](https://img.shields.io/pypi/v/nngt)
 
-The Neural Network Growth and Topology (NNGT) module provides tools to grow and
-study detailed biological networks by interfacing efficient graph libraries with
-highly distributed activity simulators.
+The Neural Networks and Graphs' Topology (NNGT) module provides tools to
+generate and study graphs and detailed biological networks.
+It also lets user interface efficient graph libraries with highly distributed
+activity simulators to make the study of neuronal activity as easy and
+efficient as possible.
 
 
 ## Principle
