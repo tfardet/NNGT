@@ -174,8 +174,7 @@ class Structure(OrderedDict):
     #-------------------------------------------------------------------------#
     # Contructor and instance attributes
 
-    def __init__(self, size=None, parent=None, meta_groups=None, *args,
-                 **kwargs):
+    def __init__(self, size=None, parent=None, meta_groups=None, **kwargs):
         '''
         Initialize Structure instance.
 
@@ -190,7 +189,6 @@ class Structure(OrderedDict):
             define the structure and must be disjoint, meta groups can
             overlap: a neuron can belong to several different meta
             groups.
-        *args : items for OrderedDict parent
         **kwargs : :obj:`dict`
 
         Returns
@@ -235,7 +233,7 @@ class Structure(OrderedDict):
             self.update(dic)
 
         # init the OrderedDict
-        super(Structure, self).__init__(*args)
+        super().__init__()
 
         # update class properties
         self.__id = self.__class__.__num_created
@@ -252,12 +250,11 @@ class Structure(OrderedDict):
         - the fourth is None and needs to stay None
         - the last must be kept unchanged: odict_iterator in Py3
         '''
-        state    = super(Structure, self).__reduce__()
-        last     = state[4] if len(state) == 5 else None
-        dic      = state[2]
-        od_args  = state[1][0] if state[1] else state[1]
-        args     = (dic.get("_size", None), dic.get("_parent", None),
-                    dic.get("_meta_groups", {}), od_args)
+        state = super().__reduce__()
+        last  = state[4] if len(state) == 5 else None
+        dic   = state[2]
+        args  = (dic.get("_size", None), dic.get("_parent", None),
+                    dic.get("_meta_groups", {}))
 
         newstate = (Structure, args, dic, None, last)
 
@@ -449,7 +446,7 @@ class Structure(OrderedDict):
                            "exists. Use `replace=True` to overwrite it.")
 
         if not group.is_metagroup:
-            raise ValueError("`Group is not a meta-group.")
+            raise ValueError("`Group '" + group.name + "' is no meta-group.")
 
         # check that meta_groups are compatible with the structure size
         if group.ids:
@@ -659,7 +656,8 @@ class Group:
     def __new__(cls, *args, **kwargs):
         obj = super().__new__(cls)
 
-        metagroup = kwargs.get("metagroup", False)
+        metagroup = \
+            kwargs.get("metagroup", False) or issubclass(cls, MetaGroup)
 
         if metagroup:
             obj.__class__ = nngt.MetaGroup

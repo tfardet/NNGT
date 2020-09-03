@@ -34,15 +34,15 @@ Make the population
 '''
 
 # two groups of neurons
-g1 = nngt.NeuralGroup(500, neuron_type=1)  # neurons 0 to 499
-g2 = nngt.NeuralGroup(500, neuron_type=1)  # neurons 500 to 999
+g1 = nngt.Group(500)  # neurons 0 to 499
+g2 = nngt.Group(500)  # neurons 500 to 999
 
 # make population (without NEST models)
-pop = nngt.NeuralPop.from_groups(
+struct = nngt.Structure.from_groups(
     (g1, g2), ("left", "right"), with_models=False)
 
 # create network from this population
-net = nngt.Network(population=pop)
+net = nngt.Network(structure=struct)
 
 
 '''

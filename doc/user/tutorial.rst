@@ -198,8 +198,22 @@ If needed, these sub-RNGs can also be seeded manually using (for 4 threads) ::
     details.
 
 
-Complex populations: :class:`~nngt.NeuralGroup` and :class:`~nngt.NeuralPop`
-============================================================================
+Structuring nodes: :class:`~nngt.Group` and :class:`~nngt.Structure`
+====================================================================
+
+The :class:`~nngt.Group` allows the creation of nodes that belong
+together. You can then make a complex :class:`~nngt.Structure` from these
+groups and connect them with specific connectivities using the
+:func:`~nngt.generation.connect_groups` function.
+
+.. literalinclude:: ../examples/introduction_to_groups.py
+   :lines: 51-77
+
+For more details, see the full page on :ref:`neural_groups`.
+
+
+The same with neurons: :class:`~nngt.NeuralGroup` and :class:`~nngt.NeuralPop`
+==============================================================================
 
 The :class:`~nngt.NeuralGroup` allows the creation of nodes that belong
 together. You can then make a population from these groups and connect them
@@ -207,13 +221,13 @@ with specific connectivities using the
 :func:`~nngt.generation.connect_groups` function.
 
 .. literalinclude:: ../examples/multi_groups_network.py
-   :lines: 32-63
+   :lines: 32-64
 
 For more details, see the full page on :ref:`neural_groups`.
 
 
-Real neuronal culture and NEST interaction: the :class:`~nngt.Network`
-======================================================================
+Real neuronal networks and NEST interaction: the :class:`~nngt.Network`
+=======================================================================
 
 Besides connectivity, the main interest of the :class:`~nngt.NeuralGroup` is
 that you can pass it the biological properties that the neurons belonging to
@@ -227,7 +241,7 @@ Since we are using NEST, these properties are:
 * the type of the neurons (``1`` for excitatory or ``-1`` for inhibitory)
 
 .. literalinclude:: ../examples/nest_network.py
-   :lines: 29-73
+   :lines: 29-74
 
 Once this network is created, it can simply be sent to nest through the
 command: ``gids = net.to_nest()``, and the NEST gids are returned.

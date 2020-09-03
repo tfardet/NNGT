@@ -293,8 +293,8 @@ class Graph(nngt.core.GraphObject):
             nngt.Network.make_network(graph, pop)
             pop._parent = weakref.ref(graph)
             for g in pop.values():
-                g._pop = weakref.ref(pop)
-                g._net = weakref.ref(graph)
+                g._struct = weakref.ref(pop)
+                g._net    = weakref.ref(graph)
 
         if pos is not None or shape is not None:
             nngt.SpatialGraph.make_spatial(graph, shape=shape, positions=pos)
@@ -388,13 +388,16 @@ class Graph(nngt.core.GraphObject):
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
 
-    def __init__(self, nodes=0, name="Graph", weighted=True, directed=True,
-                 copy_graph=None, **kwargs):
+    def __init__(self, nodes=None, name="Graph", weighted=True, directed=True,
+                 copy_graph=None, structure=None, **kwargs):
         '''
         Initialize Graph instance
 
         .. versionchanged:: 2.0
             Renamed `from_graph` to `copy_graph`.
+
+        .. versionchanged:: 2.2
+            Added `structure` argument.
 
         Parameters
         ----------
@@ -408,6 +411,10 @@ class Graph(nngt.core.GraphObject):
             Whether the graph is directed or undirected.
         copy_graph : :class:`~nngt.Graph`, optional
             An optional :class:`~nngt.Graph` that will be copied.
+        structure : :class:`~nngt.Structure`, optional (default: None)
+            A structure dividing the graph into specific groups, which can
+            be used to generate specific connectivities and visualise the
+            connections in a more coarse-grained manner.
         kwargs : optional keywords arguments
             Optional arguments that can be passed to the graph, e.g. a dict
             containing information on the synaptic weights
@@ -429,6 +436,16 @@ class Graph(nngt.core.GraphObject):
         self.__id = self.__class__.__max_id
         self._name = name
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
+
+        # check the structure
+        if structure is not None:
+            if nodes is None:
+                nodes = structure.size
+            else:
+                assert nodes == structure.size, \
+                    "`nodes` and `structure.size` must be the same."
+
+        self._struct = structure
 
         # Init the core.GraphObject
         super().__init__(nodes=nodes, copy_graph=copy_graph,
@@ -493,6 +510,44 @@ class Graph(nngt.core.GraphObject):
         :ref:`graph-analysis`.
         '''
         return self._graph
+
+    @property
+    def structure(self):
+        '''
+        Object structuring the graph into specific groups.
+
+        .. versionadded: 2.2
+
+        Note
+        ----
+        Points to :py:obj:`~nngt.Network.population` if the graph is a
+        :class:`~nngt.Network`.
+        '''
+        if self.is_network():
+            return self.population
+
+        return self._struct
+
+    @structure.setter
+    def structure(self, structure):
+        if self.is_network():
+            self.population = structure
+        else:
+            if issubclass(structure.__class__, nngt.Structure):
+                if self.node_nb() == structure.size:
+                    if structure.is_valid:
+                        self._struct = structure
+                    else:
+                        raise AttributeError(
+                            "Structure is not valid (not all  nodes are "
+                            "associated to a group).")
+                else:
+                    raise AttributeError("Graph and Structure must have same "
+                                         "number of nodes.")
+            else:
+                raise AttributeError(
+                    "Expecting Structure but received '{}'.".format(
+                        structure.__class__.__name__))
 
     @property
     def graph_id(self):

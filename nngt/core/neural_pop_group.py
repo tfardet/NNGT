@@ -191,11 +191,12 @@ class NeuralPop(Structure):
 
         for name, g in zip(names, groups):
             pop[name] = g
-            g._pop    = weakref.ref(pop)
+            g._struct = weakref.ref(pop)
             g._net    = weakref.ref(parent) if parent is not None else None
 
         # take care of synaptic connections
         pop._syn_spec = deepcopy(syn_spec if syn_spec is not None else {})
+
         return pop
 
     @classmethod
@@ -344,7 +345,7 @@ class NeuralPop(Structure):
     # Contructor and instance attributes
 
     def __init__(self, size=None, parent=None, meta_groups=None,
-                 with_models=True, *args, **kwargs):
+                 with_models=True, **kwargs):
         '''
         Initialize NeuralPop instance.
 
@@ -369,7 +370,7 @@ class NeuralPop(Structure):
         pop : :class:`~nngt.NeuralPop` object.
         '''
         super().__init__(size=size, parent=parent, meta_groups=meta_groups,
-                         *args, **kwargs)
+                         **kwargs)
 
         self._syn_spec = {}
         self._has_models = with_models
@@ -392,15 +393,11 @@ class NeuralPop(Structure):
         - the fourth is None and needs to stay None
         - the last must be kept unchanged: odict_iterator in Py3
         '''
-        state    = super(NeuralPop, self).__reduce__()
-        last     = state[4] if len(state) == 5 else None
-        dic      = state[2]
-        od_args  = state[1][0] if state[1] else state[1]
-        args     = (dic.get("_size", None), dic.get("_parent", None),
-                    dic.get("_meta_groups", {}), dic.get("_has_models", True),
-                    od_args)
-
-        newstate = (NeuralPop, args, dic, None, last)
+        state    = super().__reduce__()
+        newstate = (
+            NeuralPop, state[1][:3] + (self._has_models,) + state[1][3:],
+            state[2], state[3], state[4]
+        )
 
         return newstate
 
@@ -894,32 +891,10 @@ class NeuralGroup(Group):
         self._to_nest = False
 
         # parents
-        self._pop = None
-        self._net = None
+        self._struct = None
+        self._net    = None
 
         NeuralGroup.__num_created += 1
-
-    def __reduce__(self):
-        '''
-        Overwrite this function to make Structure pickable.
-        OrderedDict.__reduce__ returns a 3 to 5 tuple:
-        - the first is the class
-        - the second is the init args in Py2, empty sequence in Py3
-        - the third can be used to store attributes
-        - the fourth is None and needs to stay None
-        - the last must be kept unchanged: odict_iterator in Py3
-        '''
-        state    = super().__reduce__()
-        last     = state[4] if len(state) == 5 else None
-        dic      = state[2]
-        od_args  = state[1][0] if state[1] else state[1]
-        args     = (dic.get("_size", None), dic.get("_parent", None),
-                    dic.get("_meta_groups", {}), dic.get("_has_models", True),
-                    od_args)
-
-        newstate = (Structure, args, dic, None, last)
-
-        return newstate
 
     def __eq__ (self, other):
         if isinstance(other, NeuralGroup):
@@ -948,16 +923,6 @@ class NeuralGroup(Group):
                            neuron_param=self._neuron_param, name=self._name)
 
         return copy
-
-    @property
-    def parent(self):
-        '''
-        Return the parent :class:`~nngt.NeuralPop` of the group
-        '''
-        if self._pop is not None:
-            return self._pop()
-
-        return None
 
     @property
     def neuron_model(self):
@@ -997,7 +962,7 @@ class NeuralGroup(Group):
             raise RuntimeError("Ids cannot be changed after the "
                                "network has been sent to NEST!")
 
-        super().ids = value
+        self._ids = value
 
     @property
     def nest_gids(self):
@@ -1152,3 +1117,41 @@ def _make_groups(graph, group_prop):
     @todo
     '''
     pass
+
+
+# ----- #
+# Tools #
+# ----- #
+
+def _check_syn_spec(syn_spec, group_names, groups):
+    gsize = len(groups)
+    # test if all types syn_spec are contained
+    alltypes = set(((1, 1), (1, -1), (-1, 1), (-1, -1))).issubset(
+        syn_spec.keys())
+    # is there more than 1 type?
+    types = list(set(g.neuron_type for g in groups))
+    mt_type = len(types) > 1
+    # check that only allowed entries are present
+    edge_keys = []
+    for k in syn_spec.keys():
+        if isinstance(k, tuple):
+            edge_keys.extend(k)
+    edge_keys = set(edge_keys)
+    allkeys = group_names + types
+    assert edge_keys.issubset(allkeys), \
+        '`syn_spec` edge entries can only be made from {}.'.format(allkeys)
+    # warn if connections might be missing
+    nspec = len(edge_keys)
+    has_default = len(syn_spec) > nspec
+    if mt_type and nspec < gsize**2 and not alltypes and not has_default:
+        _log_message(
+            logger, "WARNING",
+            'There is not one synaptic specifier per inter-group'
+            'connection in `syn_spec` and no default model was provided. '
+            'Therefore, {} or 4 entries were expected but only {} were '
+            'provided. It might be right, but make sure all cases are '
+            'covered. Missing connections will be set as "static_'
+            'synapse".'.format(gsize**2, nspec))
+    for val in syn_spec.values():
+        assert 'weight' not in val, '`weight` cannot be set here.'
+        assert 'delay' not in val, '`delay` cannot be set here.'

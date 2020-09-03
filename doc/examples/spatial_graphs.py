@@ -80,5 +80,4 @@ os.remove('sp_graph.el')
 # ---- #
 
 if nngt.get_config('with_plot'):
-    print(g2.edge_nb(), g2.node_nb())
     nngt.plot.draw_network(g2, decimate_connections=100, show=True)

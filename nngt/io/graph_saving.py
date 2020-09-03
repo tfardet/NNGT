@@ -277,8 +277,8 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         # temporarily remove weakrefs
         graph.population._parent = None
         for g in graph.population.values():
-            g._pop = None
-            g._net = None
+            g._struct = None
+            g._net    = None
         # save as string
         if nngt.get_config("mpi"):
             if nngt.get_config("mpi_comm").Get_rank() == 0:
@@ -286,15 +286,14 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
                     pickle.dumps(graph.population, protocol=2),
                                  "base64").decode().replace('\n', '~')
         else:
-            print(graph.population)
             additional_notif["population"] = codecs.encode(
                 pickle.dumps(graph.population, protocol=2),
                              "base64").decode().replace('\n', '~')
         # restore weakrefs
         graph.population._parent = weakref.ref(graph)
         for g in graph.population.values():
-            g._pop = weakref.ref(graph.population)
-            g._net = weakref.ref(graph)
+            g._struct = weakref.ref(graph.population)
+            g._net    = weakref.ref(graph)
 
     str_graph = di_format[fmt](graph, separator=separator,
                                secondary=secondary, attributes=attributes)
