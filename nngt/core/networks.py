@@ -376,53 +376,6 @@ class Network(Graph):
         else:
             raise RuntimeError("NEST is not present.")
 
-    def get_population_graph(self):
-        '''
-        Return a coarse-grained version of the graph containing one node
-        per :class:`nngt.Group`.
-        Connections between groups are associated to the sum of all connection
-        weights and average delays.
-        '''
-        pop   = self.population
-        names = list(pop.keys())
-        nodes = len(pop)
-
-        g = nngt.Graph(nodes,
-                       name="Population graph of '{}'".format(self.name))
-
-        eattr = {"weight": [], "delay": []}
-
-        pop_edges = []
-
-        for i, n1 in enumerate(names):
-            g1 = pop[n1]
-
-            for j, n2 in enumerate(names):
-                g2 = pop[n2]
-
-                edges = self.get_edges(source_node=g1.ids, target_node=g2.ids)
-
-                if len(edges):
-                    weights = self.get_weights(edges=edges)
-                    delays  = self.get_delays(edges=edges)
-
-                    w = np.sum(weights)
-                    d = np.average(delays)
-
-                    pop_edges.append((i, j))
-                    eattr["weight"].append(w)
-                    eattr["delay"].append(d)
-
-        # add edges and attributes
-        g.new_edge_attribute("delay", "double")
-
-        g.new_edges(pop_edges, attributes=eattr, check_self_loops=False)
-
-        # set node attributes
-        g.new_node_attribute("name", "string", values=names)
-
-        return g
-
     #-------------------------------------------------------------------------#
     # Init tool
 

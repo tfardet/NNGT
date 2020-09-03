@@ -634,6 +634,63 @@ class Graph(nngt.core.GraphObject):
         #~ self.clear_filters()
         #~ return exc_graph
 
+    def get_structure_graph(self):
+        '''
+        Return a coarse-grained version of the graph containing one node
+        per :class:`nngt.Group`.
+        Connections between groups are associated to the sum of all connection
+        weights.
+        If no structure is present, returns an empty Graph.
+        '''
+        struct = self.structure
+
+        if struct is None:
+            return Graph()
+
+        names = list(struct.keys())
+        nodes = len(struct)
+
+        g = nngt.Graph(nodes,
+                       name="Structure-graph of '{}'".format(self.name))
+
+        eattr = {"weight": []}
+
+        if self.is_network():
+            eattr["delay"] = []
+
+        new_edges = []
+
+        for i, n1 in enumerate(names):
+            g1 = struct[n1]
+
+            for j, n2 in enumerate(names):
+                g2 = struct[n2]
+
+                edges = self.get_edges(source_node=g1.ids, target_node=g2.ids)
+
+                if len(edges):
+                    weights = self.get_weights(edges=edges)
+                    w = np.sum(weights)
+                    eattr["weight"].append(w)
+
+                    if self.is_network():
+                        delays  = self.get_delays(edges=edges)
+                        d = np.average(delays)
+                        eattr["delay"].append(d)
+
+                    new_edges.append((i, j))
+
+        # add edges and attributes
+        if self.is_network():
+            g.new_edge_attribute("delay", "double")
+
+        g.new_edges(new_edges, attributes=eattr, check_self_loops=False)
+
+        # set node attributes
+        g.new_node_attribute("name", "string", values=names)
+
+        return g
+
     #-------------------------------------------------------------------------#
     # Getters
 

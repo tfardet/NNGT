@@ -67,14 +67,21 @@ for room in struct:
     nngt.generation.connect_groups(g, room, room, "all_to_all")
 
 nngt.generation.connect_groups(g, (room1, room2), struct, "erdos_renyi",
-                               avg_deg=5, ignore_invalid=True)
+                               avg_deg=10, ignore_invalid=True)
 
-nngt.generation.connect_groups(g, room3, room1, "erdos_renyi", avg_deg=10)
+nngt.generation.connect_groups(g, room3, room1, "erdos_renyi", avg_deg=20)
 
-nngt.generation.connect_groups(g, room4, room3, "erdos_renyi", avg_deg=5)
+nngt.generation.connect_groups(g, room4, room3, "erdos_renyi", avg_deg=10)
 
 if nngt.get_config("with_plot"):
-    nngt.plot.library_draw(g, show=True)
+    # chord diagram
+    sg = g.get_structure_graph()
+
+    nngt.plot.chord_diagram(sg, names="name", sort="distance",
+                            use_gradient=True, show=True)
+
+    # spring-block layout    
+    nngt.plot.library_draw(g, node_cmap="viridis", show=True)
 
 
 ''' ------------------- #
