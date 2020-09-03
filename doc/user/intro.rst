@@ -56,9 +56,9 @@ Description
 The graph objects
 -----------------
 
-Neural networks are described by four graph classes which inherit from the main
-class of the chosen graph library (:class:`gt.Graph`,
-:class:`igraph.Graph` or :class:`networkx.DiGraph`):
+Neural networks are described by four graph classes which contain a graph
+object from the chosen graph library (e.g. :class:`gt.Graph`,
+:class:`igraph.Graph`, or :class:`networkx.Graph`):
 
 - :class:`~nngt.Graph`: base for simple topological graphs with no spatial
   structure, nor biological properties
@@ -82,14 +82,16 @@ properties and those of the connections between them.
 
 The graph objects can have other attributes, such as:
 
-- ``shape`` for :class:`~nngt.SpatialGraph` and :class:`~nngt.SpatialNetwork`,
-  which describes the spatial delimitations of the neurons' environment (e.g.
-  many *in vitro* culture are contained in circular dishes),
-- ``population``, for :class:`~nngt.Network`, which contains informations on
-  the various groups of neurons that exist in the network (for instance
-  inhibitory and excitatory neurons can be grouped together),
-- ``connections`` which stores the informations about the synaptic connections
-  between the neurons.
+- :py:obj:`~nngt.SpatialGraph.shape`, for :class:`~nngt.SpatialGraph` and
+  :class:`~nngt.SpatialNetwork`, describes the spatial delimitations of
+  the nodes' environment (e.g. many *in vitro* culture of neurons are
+  contained in circular dishes),
+- :py:obj:`~nngt.Graph.structure` divides the graph into groups and can
+  facilitate graph generation and analysis,
+- :py:obj:`~nngt.Network.population`, for :class:`~nngt.Network`, contains
+  informations on the various groups of neurons that exist in the network
+  (for instance inhibitory and excitatory neurons can be grouped together),
+  and is the updated version of ``structure`` for neuroscientific projects.
 
 
 Graph-theoretical models

@@ -158,14 +158,14 @@ NNGT implements some fast generation tools to create several of the standard
 networks, such as Erdős-Rényi:
 
 .. literalinclude:: ../examples/introductory_tutorial.py
-   :lines: 115-118,121
+   :lines: 115-120
 
 More heterogeneous networks, with scale-free degree distribution (but no
 correlations like in Barabasi-Albert networks and user-defined exponents) are
 also implemented:
 
 .. literalinclude:: ../examples/introductory_tutorial.py
-   :lines: 124-128,131
+   :lines: 123-129
 
 For more details, see the full page on :ref:`graph_gen`.
 
@@ -198,22 +198,36 @@ If needed, these sub-RNGs can also be seeded manually using (for 4 threads) ::
     details.
 
 
-Complex populations: :class:`~nngt.NeuralGroup` and :class:`~nngt.NeuralPop`
-============================================================================
+Structuring nodes: :class:`~nngt.Group` and :class:`~nngt.Structure`
+====================================================================
+
+The :class:`~nngt.Group` allows the creation of nodes that belong
+together. You can then make a complex :class:`~nngt.Structure` from these
+groups and connect them with specific connectivities using the
+:func:`~nngt.generation.connect_groups` function.
+
+.. literalinclude:: ../examples/introduction_to_groups.py
+   :lines: 51-77
+
+For more details, see the full page on :ref:`neural_groups`.
+
+
+The same with neurons: :class:`~nngt.NeuralGroup`, :class:`~nngt.NeuralPop`
+===========================================================================
 
 The :class:`~nngt.NeuralGroup` allows the creation of nodes that belong
 together. You can then make a population from these groups and connect them
 with specific connectivities using the
 :func:`~nngt.generation.connect_groups` function.
 
-.. literalinclude:: ../examples/multi_groups_network.py
-   :lines: 32-63
+.. literalinclude:: ../examples/introduction_to_groups.py
+   :lines: 100-109, 150-162
 
 For more details, see the full page on :ref:`neural_groups`.
 
 
-Real neuronal culture and NEST interaction: the :class:`~nngt.Network`
-======================================================================
+Real neuronal networks and NEST interaction: the :class:`~nngt.Network`
+=======================================================================
 
 Besides connectivity, the main interest of the :class:`~nngt.NeuralGroup` is
 that you can pass it the biological properties that the neurons belonging to
@@ -227,7 +241,7 @@ Since we are using NEST, these properties are:
 * the type of the neurons (``1`` for excitatory or ``-1`` for inhibitory)
 
 .. literalinclude:: ../examples/nest_network.py
-   :lines: 29-73
+   :lines: 29-74
 
 Once this network is created, it can simply be sent to nest through the
 command: ``gids = net.to_nest()``, and the NEST gids are returned.

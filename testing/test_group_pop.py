@@ -8,6 +8,7 @@ Test the population and group functions.
 """
 
 import numpy as np
+import pytest
 
 import nngt
 
@@ -120,7 +121,31 @@ def test_failed_pop():
     assert failed
 
 
+@pytest.mark.mpi_skip
+def test_group_structure():
+    metagroup = nngt.Group(100, metagroup=True)
+
+    g1 = nngt.Group(50)
+    g2 = nngt.Group(80, name="group2")
+
+    struct = nngt.Structure.from_groups((g1, g2))
+
+    with pytest.raises(AssertionError):
+        g = nngt.Graph(100, structure=struct)
+
+    g = nngt.Graph(structure=struct)
+
+    nngt.generation.connect_groups(g, g1, g1, "all_to_all")
+
+    nngt.generation.connect_groups(g, struct, g1, "erdos_renyi", avg_deg=5,
+                                   ignore_invalid=True)
+
+    nngt.generation.connect_groups(g, g2, struct, "erdos_renyi", avg_deg=5,
+                                   ignore_invalid=True)
+
+
 if __name__ == "__main__":
     test_groups()
     test_population()
     test_failed_pop()
+    test_group_structure()

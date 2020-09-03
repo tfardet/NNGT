@@ -20,28 +20,24 @@
 
 """ Graph data strctures in NNGT """
 
-from collections import OrderedDict, defaultdict
 import logging
 import weakref
 from copy import deepcopy
 
 import numpy as np
-from numpy.random import randint, uniform
-import scipy.sparse as ssp
-import scipy.spatial as sptl
 
 import nngt
 from nngt.lib import (InvalidArgument, nonstring_container, is_integer,
-                      default_neuron, default_synapse, POS, WEIGHT,
-                      DELAY, DIST, TYPE, BWEIGHT)
+                      default_neuron, default_synapse)
 from nngt.lib._frozendict import _frozendict
-from nngt.lib.rng_tools import _eprop_distribution
 from nngt.lib.logger import _log_message
+
+from .group_structure import Structure, Group, MetaGroup
 
 
 __all__ = [
     'GroupProperty',
-    'MetaGroup',
+    'MetaNeuralGroup',
     'NeuralGroup',
     'NeuralPop',
 ]
@@ -49,12 +45,11 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-#-----------------------------------------------------------------------------#
-# NeuralPop
-#------------------------
-#
+# --------- #
+# NeuralPop #
+# --------- #
 
-class NeuralPop(OrderedDict):
+class NeuralPop(Structure):
 
     """
     The basic class that contains groups of neurons and their properties.
@@ -196,11 +191,12 @@ class NeuralPop(OrderedDict):
 
         for name, g in zip(names, groups):
             pop[name] = g
-            g._pop    = weakref.ref(pop)
+            g._struct = weakref.ref(pop)
             g._net    = weakref.ref(parent) if parent is not None else None
 
         # take care of synaptic connections
         pop._syn_spec = deepcopy(syn_spec if syn_spec is not None else {})
+
         return pop
 
     @classmethod
@@ -333,11 +329,6 @@ class NeuralPop(OrderedDict):
         return pop
 
     @classmethod
-    def copy(cls, pop):
-        ''' Copy an existing NeuralPop '''
-        return new_pop.copy()
-
-    @classmethod
     def _nest_reset(cls):
         '''
         Reset the _to_nest bool and potential parent networks.
@@ -354,7 +345,7 @@ class NeuralPop(OrderedDict):
     # Contructor and instance attributes
 
     def __init__(self, size=None, parent=None, meta_groups=None,
-                 with_models=True, *args, **kwargs):
+                 with_models=True, **kwargs):
         '''
         Initialize NeuralPop instance.
 
@@ -378,51 +369,14 @@ class NeuralPop(OrderedDict):
         -------
         pop : :class:`~nngt.NeuralPop` object.
         '''
-        # check meta groups
-        meta_groups = {} if meta_groups is None else meta_groups
-
-        if not isinstance(meta_groups, dict):
-            for g in meta_groups:
-                if not g.name:
-                    raise ValueError(
-                        "When providing a list for `meta_groups`, "
-                        "all meta groups should be named")
-            meta_groups = {g.name: g for g in meta_groups}
-
-        # set main properties
-        self._is_valid = False
-        self._desired_size = size if parent is None else parent.node_nb()
-        self._size = 0
-        self._parent = None if parent is None else weakref.ref(parent)
-        self._meta_groups = {}
-
-        # create `_neuron_group`: an array containing the id of the group
-        # associated to the index of each neuron, which 'maps' neurons to the
-        # primary group they belong to
-        if self._desired_size is None:
-            self._neuron_group = None
-            self._max_id       = 0
-        else:
-            self._neuron_group = np.repeat(-1, self._desired_size)
-            self._max_id       = len(self._neuron_group) - 1
-
-        # add meta groups
-        for nmg, mg in meta_groups.items():
-            self.add_meta_group(mg, nmg)
-
-        if parent is not None and 'group_prop' in kwargs:
-            dic = _make_groups(parent, kwargs["group_prop"])
-            self._is_valid = True
-            self.update(dic)
+        super().__init__(size=size, parent=parent, meta_groups=meta_groups,
+                         **kwargs)
 
         self._syn_spec = {}
         self._has_models = with_models
 
         # whether the network this population represents was sent to NEST
         self._to_nest = False
-
-        # init the OrderedDict
-        super(NeuralPop, self).__init__(*args)
 
         # update class properties
         self.__id = self.__class__.__num_created
@@ -439,64 +393,19 @@ class NeuralPop(OrderedDict):
         - the fourth is None and needs to stay None
         - the last must be kept unchanged: odict_iterator in Py3
         '''
-        state    = super(NeuralPop, self).__reduce__()
-        last     = state[4] if len(state) == 5 else None
-        dic      = state[2]
-        od_args  = state[1][0] if state[1] else state[1]
-        args     = (dic.get("_size", None), dic.get("_parent", None),
-                    dic.get("_meta_groups", {}), dic.get("_has_models", True),
-                    od_args)
-        newstate = (NeuralPop, args, dic, None, last)
-        return newstate
+        state    = super().__reduce__()
+        newstate = (
+            NeuralPop, state[1][:3] + (self._has_models,) + state[1][3:],
+            state[2], state[3], state[4]
+        )
 
-    def __getitem__(self, key):
-        if isinstance(key, (int, np.integer)):
-            assert key >= 0, "Index must be positive, not {}.".format(key)
-            new_key = tuple(self.keys())[key]
-            return OrderedDict.__getitem__(self, new_key)
-        else:
-            if key in self:
-                return OrderedDict.__getitem__(self, key)
-            elif key in self._meta_groups:
-                return self._meta_groups[key]
-            else:
-                raise KeyError("Not (meta) group named '{}'.".format(key))
+        return newstate
 
     def __setitem__(self, key, value):
         if self._to_nest:
             raise RuntimeError("Populations items can no longer be modified "
                                "once the network has been sent to NEST!")
-        self._validity_check(key, value)
-
-        int_key = None
-        if is_integer(key):
-            new_key = tuple(self.keys())[key]
-            int_key = key
-            OrderedDict.__setitem__(self, new_key, value)
-        else:
-            OrderedDict.__setitem__(self, key, value)
-            int_key = list(super(NeuralPop, self).keys()).index(key)
-
-        # set name and parents
-        value._name = key
-        value._pop  = weakref.ref(self)
-        value._net  = self._parent
-
-        # update pop size/max_id
-        group_size = len(value.ids)
-        max_id     = np.max(value.ids) if group_size != 0 else 0
-
-        _update_max_id_and_size(self, max_id)
-
-        self._neuron_group[value.ids] = int_key
-
-        if -1 in list(self._neuron_group):
-            self._is_valid = False
-        else:
-            if self._desired_size is not None:
-                self._is_valid = (self._desired_size == self._size)
-            else:
-                self._is_valid = True
+        super().__setitem__(key, value)
 
     def copy(self):
         '''
@@ -512,27 +421,6 @@ class NeuralPop(OrderedDict):
             parent=None, meta_groups=metagroups, with_models=self._has_models)
 
         return copy
-
-    @property
-    def size(self):
-        '''
-        Number of neurons in this population.
-        '''
-        return self._size
-
-    @property
-    def ids(self):
-        '''
-        Return all the ids of the nodes inside the population.
-
-        .. versionadded:: 1.2
-        '''
-        ids = []
-
-        for g in self.values():
-            ids.extend(g.ids)
-
-        return ids
 
     @property
     def nest_gids(self):
@@ -579,13 +467,6 @@ class NeuralPop(OrderedDict):
         return ids
 
     @property
-    def parent(self):
-        '''
-        Parent :class:`~nngt.Network`, if it exists, otherwise ``None``.
-        '''
-        return None if self._parent is None else self._parent()
-
-    @property
     def syn_spec(self):
         '''
         The properties of the synaptic connections between groups.
@@ -621,19 +502,8 @@ class NeuralPop(OrderedDict):
         raise NotImplementedError('`syn_spec` is not settable yet.')
 
     @property
-    def meta_groups(self):
-        return self._meta_groups.copy()
-
-    @property
     def has_models(self):
         return self._has_models
-
-    @property
-    def is_valid(self):
-        '''
-        Whether the population can be used to create a NEST network.
-        '''
-        return self._is_valid
 
     #-------------------------------------------------------------------------#
     # Methods
@@ -701,58 +571,11 @@ class NeuralPop(OrderedDict):
         '''
         neuron_param = {} if neuron_param is None else neuron_param.copy()
 
-        group = MetaGroup(neurons, name=name, neuron_param=neuron_param)
+        group = MetaNeuralGroup(neurons, name=name, neuron_param=neuron_param)
 
         self.add_meta_group(group, replace=replace)
 
         return group
-
-    def add_meta_group(self, group, name=None, replace=False):
-        '''
-        Add an existing meta group to the population.
-
-        Parameters
-        ----------
-        group : :class:`NeuralGroup`
-            Meta group.
-        name : str, optional (default: group name)
-            Name of the meta group.
-        replace : bool, optional (default: False)
-            Whether to override previous exiting meta group with same name.
-
-        Note
-        ----
-        The name of the group is automatically updated to match the `name`
-        argument.
-        '''
-        name = name if name else group.name
-
-        if not name:
-            raise ValueError("Group is not named, but no `name` entry was "
-                             "provided.")
-
-        if name in self._meta_groups and not replace:
-            raise KeyError("Cannot add meta group with name '" + name +\
-                           "': primary group with that name already exists.")
-
-        if name in self._meta_groups and not replace:
-            raise KeyError("Meta group with name '" + name + "' already " +\
-                           "exists. Use `replace=True` to overwrite it.")
-
-        if group.neuron_type is not None:
-            raise AttributeError("Meta groups must have `neuron_type` "
-                                 "attribute set to None.")
-
-        # check that meta_groups are compatible with the population size
-        if group.ids:
-            assert np.max(group.ids) <= self._max_id, \
-                "The meta group contains ids larger than the population size."
-
-        group._name = name
-        group._pop  = weakref.ref(self)
-        group._net  = self._parent
-
-        self._meta_groups[name] = group
 
     def set_model(self, model, group=None):
         '''
@@ -921,33 +744,6 @@ class NeuralPop(OrderedDict):
                 param.append(self[group].properties[key])
             return param
 
-    def get_group(self, neurons, numbers=False):
-        '''
-        Return the group of the neurons.
-
-        Parameters
-        ----------
-        neurons : int or array-like
-            IDs of the neurons for which the group should be returned.
-        numbers : bool, optional (default: False)
-            Whether the group identifier should be returned as a number; if
-            ``False``, the group names are returned.
-        '''
-        names = np.array(tuple(self.keys()), dtype=object)
-        if numbers:
-            return self._neuron_group[neurons]
-        else:
-            if self._is_valid:
-                return names[self._neuron_group[neurons]]
-            else:
-                groups = []
-                for i in self._neuron_group[neurons]:
-                    if i >= 0:
-                        groups.append(names[i])
-                    else:
-                        groups.append(None)
-                return groups
-
     def add_to_group(self, group_name, ids):
         '''
         Add neurons to a specific group.
@@ -962,22 +758,7 @@ class NeuralPop(OrderedDict):
         if self._to_nest:
             raise RuntimeError("Groups cannot be changed after the "
                                "network has been sent to NEST!")
-        idx = None
-        if is_integer(group_name):
-            assert 0 <= group_name < len(self), "Group index does not exist."
-            idx = group_name
-        else:
-            idx = list(self.keys()).index(group_name)
-        if ids:
-            self[group_name].ids += list(ids)
-            # update number of neurons
-            max_id = np.max(ids)
-            _update_max_id_and_size(self, max_id)
-            self._neuron_group[np.array(ids)] = idx
-            if -1 in list(self._neuron_group):
-                self._is_valid = False
-            else:
-                self._is_valid = True
+        super().add_to_group(group_name, ids)
 
     def _validity_check(self, name, group):
         if self._has_models and not group.has_model:
@@ -996,9 +777,7 @@ class NeuralPop(OrderedDict):
             raise AttributeError("Valid neuron type must be -1 or 1.")
 
         # check pairwise disjoint
-        for n, g in self.items():
-            assert set(g.ids).isdisjoint(group.ids), \
-                "New group overlaps with existing group '{}'".format(n)
+        super()._validity_check(name, group)
 
     def _sent_to_nest(self):
         '''
@@ -1007,6 +786,7 @@ class NeuralPop(OrderedDict):
         be modified.
         '''
         self._to_nest = True
+
         for g in self.values():
             g._to_nest = True
 
@@ -1015,7 +795,7 @@ class NeuralPop(OrderedDict):
 # NeuralGroup and GroupProperty #
 # ----------------------------- #
 
-class NeuralGroup:
+class NeuralGroup(Group):
 
     """
     Class defining groups of neurons.
@@ -1046,8 +826,6 @@ class NeuralGroup:
     __num_created = 0
 
     def __new__(cls, *args, **kwargs):
-        obj = super(NeuralGroup, cls).__new__(cls)
-
         # check neuron type for MetaGroup
         neuron_type = None
 
@@ -1056,36 +834,23 @@ class NeuralGroup:
         elif len(args) > 1 and is_integer(args[1]):
             neuron_type = arg[1]
 
-        if neuron_type is None:
-            # will need to remove all but nodes and name from args
+        metagroup = (neuron_type is None)
 
-            nodes = kwargs.get("nodes", args[0] if args else None)
-            name  = kwargs.get("name",
-                               args[4] if len(args) == 5 else None)
+        kwargs["metagroup"] = metagroup
 
-            if "nodes" in kwargs:
-                args = []
+        obj = super().__new__(cls, *args, **kwargs)
 
-            if "name" in kwargs:
-                if args:
-                    args = [args[0]]
-
-            if len(args) > 2:
-                args = args[:2]
-
-            obj.__class__ = nngt.MetaGroup
+        if metagroup:
+            obj.__class__ = nngt.MetaNeuralGroup
 
         return obj
 
     def __init__(self, nodes=None, neuron_type=1, neuron_model=None,
-                 neuron_param=None, name=None):
+                 neuron_param=None, name=None, **kwargs):
         '''
         Calling the class creates a group of neurons.
         The default is an empty group but it is not a valid object for
         most use cases.
-
-        .. versionchanged:: 0.8
-            Removed `syn_model` and `syn_param`.
 
         Parameters
         ----------
@@ -1104,6 +869,8 @@ class NeuralGroup:
         -------
         A new :class:`~nngt.core.NeuralGroup` instance.
         '''
+        super().__init__(nodes, **kwargs)
+
         assert neuron_type in (1, -1, None), \
             "`neuron_type` can either be 1 or -1."
 
@@ -1111,18 +878,6 @@ class NeuralGroup:
 
         self._has_model = False if neuron_model is None else True
         self._neuron_model = neuron_model
-
-        if nodes is None:
-            self._desired_size = None
-            self._ids = []
-        elif nonstring_container(nodes):
-            self._desired_size = None
-            self._ids = list(nodes)
-        elif is_integer(nodes):
-            self._desired_size = nodes
-            self._ids = []
-        else:
-            raise InvalidArgument('`nodes` must be either array-like or int.')
 
         group_num  = NeuralGroup.__num_created + 1
         self._name = "Group {}".format(group_num) if name is None \
@@ -1136,8 +891,8 @@ class NeuralGroup:
         self._to_nest = False
 
         # parents
-        self._pop = None
-        self._net = None
+        self._struct = None
+        self._net    = None
 
         NeuralGroup.__num_created += 1
 
@@ -1151,9 +906,6 @@ class NeuralGroup:
             return same_size*same_nmodel*same_type
 
         return False
-
-    def __len__(self):
-        return self.size
 
     def __str__(self):
         return "NeuralGroup({}size={})".format(
@@ -1171,22 +923,6 @@ class NeuralGroup:
                            neuron_param=self._neuron_param, name=self._name)
 
         return copy
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def parent(self):
-        '''
-        Return the parent :class:`~nngt.NeuralPop` of the group
-
-        .. versionadded: 1.3
-        '''
-        if self._pop is not None:
-            return self._pop()
-
-        return None
 
     @property
     def neuron_model(self):
@@ -1220,29 +956,13 @@ class NeuralGroup:
                                "network has been sent to NEST!")
         self._neuron_param = value
 
-    @property
-    def size(self):
-        if self._desired_size is not None:
-            return self._desired_size
-        return len(self._ids)
-
-    @property
-    def ids(self):
-        return self._ids
-
-    @ids.setter
+    @Group.ids.setter
     def ids(self, value):
         if self._to_nest:
             raise RuntimeError("Ids cannot be changed after the "
                                "network has been sent to NEST!")
-        if self._desired_size != len(value):
-            _log_message(logger, "WARNING",
-                         'The length of the `ids` passed is not the same as '
-                         'the initial size that was declared: {} before '
-                         'vs {} now. Setting `ids` anyway, but check your '
-                         'code!'.format(self._desired_size, len(value)))
+
         self._ids = value
-        self._desired_size = None
 
     @property
     def nest_gids(self):
@@ -1261,23 +981,8 @@ class NeuralGroup:
         }
         return dic
 
-    @property
-    def is_valid(self):
-        '''
-        Whether the group can be used in a population: i.e. if it has
-        either a size or some ids associated to it.
 
-        .. versionadded:: 1.0
-        '''
-        return (True if (self._desired_size is not None)
-                or self._ids else False)
-
-    @property
-    def is_metagroup(self):
-        return self._neuron_type is None
-
-
-class MetaGroup(NeuralGroup):
+class MetaNeuralGroup(MetaGroup, NeuralGroup):
 
     """
     Class defining a meta-group of neurons.
@@ -1291,9 +996,7 @@ class MetaGroup(NeuralGroup):
         ``None`` for meta-groups)
     """
 
-    __num_created = 0
-
-    def __init__(self, nodes=None, name=None, **kwargs):
+    def __init__(self, nodes=None, name=None, properties=None, **kwargs):
         '''
         Calling the class creates a group of neurons.
         The default is an empty group but it is not a valid object for
@@ -1309,19 +1012,15 @@ class MetaGroup(NeuralGroup):
 
         Returns
         -------
-        A new :class:`~nngt.MetaGroup` object.
+        A new :class:`~nngt.MetaNeuralGroup` object.
         '''
-        group_num = MetaGroup.__num_created + 1
-        name = "MetaGroup {}".format(group_num) if name is None \
-                                                else name
+        kwargs["neuron_type"] = kwargs.get("neuron_type",None)
 
-        super(MetaGroup, self).__init__(nodes=nodes, neuron_type=None,
-                                        name=name)
-
-        MetaGroup.__num_created += 1
+        super().__init__(nodes=nodes, name=name, properties=properties,
+                         **kwargs)
 
     def __str__(self):
-        return "MetaGroup({}size={})".format(
+        return "MetaNeuralGroup({}size={})".format(
             self._name + ": " if self._name else "", self.size)
 
     @property
@@ -1359,6 +1058,10 @@ class MetaGroup(NeuralGroup):
             return ids[gtype[parents] == -1]
 
         return []
+
+    @property
+    def properties(self):
+        return self._prop
 
 
 class GroupProperty:
@@ -1416,254 +1119,6 @@ def _make_groups(graph, group_prop):
     pass
 
 
-# ----------- #
-# Connections #
-# ----------- #
-
-class Connections:
-
-    """
-    The basic class that computes the properties of the connections between
-    neurons for graphs.
-    """
-
-    #-------------------------------------------------------------------------#
-    # Class methods
-
-    @staticmethod
-    def distances(graph, elist=None, pos=None, dlist=None, overwrite=False):
-        '''
-        Compute the distances between connected nodes in the graph. Try to add
-        only the new distances to the graph. If they overlap with previously
-        computed distances, recomputes everything.
-
-        Parameters
-        ----------
-        graph : class:`~nngt.Graph` or subclass
-            Graph the nodes belong to.
-        elist : class:`numpy.array`, optional (default: None)
-            List of the edges.
-        pos : class:`numpy.array`, optional (default: None)
-            Positions of the nodes; note that if `graph` has a "position"
-            attribute, `pos` will not be taken into account.
-        dlist : class:`numpy.array`, optional (default: None)
-            List of distances (for user-defined distances)
-
-        Returns
-        -------
-        new_dist : class:`numpy.array`
-            Array containing *ONLY* the newly-computed distances.
-        '''
-        elist = graph.edges_array if elist is None else elist
-
-        if dlist is not None:
-            dlist = np.array(dlist)
-            graph.set_edge_attribute(DIST, value_type="double", values=dlist)
-            return dlist
-        else:
-            pos = graph._pos if hasattr(graph, "_pos") else pos
-            # compute the new distances
-            if graph.edge_nb():
-                ra_x = pos[elist[:,0], 0] - pos[elist[:,1], 0]
-                ra_y = pos[elist[:,0], 1] - pos[elist[:,1], 1]
-                ra_dist = np.sqrt( np.square(ra_x) + np.square(ra_y) )
-                #~ ra_dist = np.tile( , 2)
-                # update graph distances
-                graph.set_edge_attribute(DIST, value_type="double",
-                                         values=ra_dist, edges=elist)
-                return ra_dist
-            else:
-                return []
-
-    @staticmethod
-    def delays(graph=None, dlist=None, elist=None, distribution="constant",
-               parameters=None, noise_scale=None):
-        '''
-        Compute the delays of the neuronal connections.
-
-        Parameters
-        ----------
-        graph : class:`~nngt.Graph` or subclass
-            Graph the nodes belong to.
-        dlist : class:`numpy.array`, optional (default: None)
-            List of user-defined delays).
-        elist : class:`numpy.array`, optional (default: None)
-            List of the edges which value should be updated.
-        distribution : class:`string`, optional (default: "constant")
-            Type of distribution (choose among "constant", "uniform",
-            "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
-        parameters : class:`dict`, optional (default: {})
-            Dictionary containing the distribution parameters.
-        noise_scale : class:`int`, optional (default: None)
-            Scale of the multiplicative Gaussian noise that should be applied
-            on the weights.
-
-        Returns
-        -------
-        new_delays : class:`scipy.sparse.lil_matrix`
-            A sparse matrix containing *ONLY* the newly-computed weights.
-        '''
-        elist = np.array(elist) if elist is not None else elist
-        if dlist is not None:
-            dlist = np.array(dlist)
-            num_edges = graph.edge_nb() if elist is None else elist.shape[0]
-            if len(dlist) != num_edges:
-                raise InvalidArgument("`dlist` must have one entry per edge.")
-        else:
-            parameters["btype"] = parameters.get("btype", "edge")
-            parameters["weights"] = parameters.get("weights", None)
-            dlist = _eprop_distribution(graph, distribution, elist=elist,
-                                        **parameters)
-        # add to the graph container
-        if graph is not None:
-            graph.set_edge_attribute(
-                DELAY, value_type="double", values=dlist, edges=elist)
-        return dlist
-
-    @staticmethod
-    def weights(graph=None, elist=None, wlist=None, distribution="constant",
-                parameters={}, noise_scale=None):
-        '''
-        Compute the weights of the graph's edges.
-
-        Parameters
-        ----------
-        graph : class:`~nngt.Graph` or subclass
-            Graph the nodes belong to.
-        elist : class:`numpy.array`, optional (default: None)
-            List of the edges (for user defined weights).
-        wlist : class:`numpy.array`, optional (default: None)
-            List of the weights (for user defined weights).
-        distribution : class:`string`, optional (default: "constant")
-            Type of distribution (choose among "constant", "uniform",
-            "lognormal", "gaussian", "user_def", "lin_corr", "log_corr").
-        parameters : class:`dict`, optional (default: {})
-            Dictionary containing the distribution parameters.
-        noise_scale : class:`int`, optional (default: None)
-            Scale of the multiplicative Gaussian noise that should be applied
-            on the weights.
-
-        Returns
-        -------
-        new_weights : class:`scipy.sparse.lil_matrix`
-            A sparse matrix containing *ONLY* the newly-computed weights.
-        '''
-        parameters["btype"] = parameters.get("btype", "edge")
-        parameters["weights"] = parameters.get("weights", None)
-        elist = np.array(elist) if elist is not None else elist
-        if wlist is not None:
-            wlist = np.array(wlist)
-            num_edges = graph.edge_nb() if elist is None else elist.shape[0]
-            if len(wlist) != num_edges:
-                raise InvalidArgument("`wlist` must have one entry per edge.")
-        else:
-            wlist = _eprop_distribution(graph, distribution, elist=elist,
-                                        **parameters)
-
-        # normalize by the inhibitory weight factor
-        if graph is not None and graph.is_network():
-            if not np.isclose(graph._iwf, 1.):
-                adj = graph.adjacency_matrix(types=True, weights=False)
-                keep = (adj[elist[:, 0], elist[:, 1]] < 0).A1
-                wlist[keep] *= graph._iwf
-
-        if graph is not None:
-            graph.set_edge_attribute(
-                WEIGHT, value_type="double", values=wlist, edges=elist)
-
-        return wlist
-
-    @staticmethod
-    def types(graph, inhib_nodes=None, inhib_frac=None, values=None):
-        '''
-        Define the type of a set of neurons.
-        If no arguments are given, all edges will be set as excitatory.
-
-        Parameters
-        ----------
-        graph : :class:`~nngt.Graph` or subclass
-            Graph on which edge types will be created.
-        inhib_nodes : int or list, optional (default: `None`)
-            If `inhib_nodes` is an int, number of inhibitory nodes in the graph
-            (all connections from inhibitory nodes are inhibitory); if it is a
-            float, ratio of inhibitory nodes in the graph; if it is a list, ids
-            of the inhibitory nodes.
-        inhib_frac : float, optional (default: `None`)
-            Fraction of the selected edges that will be set as refractory (if
-            `inhib_nodes` is not `None`, it is the fraction of the nodes' edges
-            that will become inhibitory, otherwise it is the fraction of all
-            the edges in the graph).
-
-        Returns
-        -------
-        t_list : :class:`~numpy.ndarray`
-            List of the edges' types.
-        '''
-        num_inhib = 0
-        idx_inhib = []
-
-        if values is not None:
-            graph.new_edge_attribute("type", "int", values=values)
-            return values
-        elif inhib_nodes is None and inhib_frac is None:
-            graph.new_edge_attribute("type", "int", val=1)
-            return np.ones(graph.edge_nb())
-        else:
-            t_list = np.repeat(1, graph.edge_nb())
-            n = graph.node_nb()
-
-            if inhib_nodes is None:
-                # set inhib_frac*num_edges random inhibitory connections
-                num_edges = graph.edge_nb()
-                num_inhib = int(num_edges*inhib_frac)
-                num_current = 0
-                while num_current < num_inhib:
-                    new = randint(0,num_edges,num_inhib-num_current)
-                    idx_inhib = np.unique(np.concatenate((idx_inhib, new)))
-                    num_current = len(idx_inhib)
-                t_list[idx_inhib.astype(int)] *= -1
-            else:
-                edges  = graph.edges_array
-                # get the dict of inhibitory nodes
-                num_inhib_nodes = 0
-                idx_nodes = {}
-                if nonstring_container(inhib_nodes):
-                    idx_nodes = {i: -1 for i in inhib_nodes}
-                    num_inhib_nodes = len(idx_nodes)
-                if is_integer(inhib_nodes):
-                    num_inhib_nodes = int(inhib_nodes)
-                while len(idx_nodes) != num_inhib_nodes:
-                    indices = randint(0,n,num_inhib_nodes-len(idx_nodes))
-                    di_tmp  = {i: -1 for i in indices}
-                    idx_nodes.update(di_tmp)
-                for v in edges[:, 0]:
-                    if v in idx_nodes:
-                        idx_inhib.append(v)
-                idx_inhib = np.unique(idx_inhib)
-
-                # set the inhibitory edge indices
-                for v in idx_inhib:
-                    idx_edges = np.argwhere(edges[:, 0] == v)
-
-                    n = len(idx_edges)
-
-                    if inhib_frac is not None:
-                        idx_inh = []
-                        num_inh = n*inhib_frac
-                        i = 0
-                        while i != num_inh:
-                            ids = randint(0, n, num_inh-i)
-                            idx_inh = np.unique(np.concatenate((idx_inh,ids)))
-                            i = len(idx_inh)
-                        t_list[idx_inh] *= -1
-                    else:
-                        t_list[idx_edges] *= -1
-
-            graph.set_edge_attribute("type", value_type="int", values=t_list)
-
-            return t_list
-
-
 # ----- #
 # Tools #
 # ----- #
@@ -1700,31 +1155,3 @@ def _check_syn_spec(syn_spec, group_names, groups):
     for val in syn_spec.values():
         assert 'weight' not in val, '`weight` cannot be set here.'
         assert 'delay' not in val, '`delay` cannot be set here.'
-
-
-def _update_max_id_and_size(neural_pop, max_id):
-    '''
-    Update NeuralPop after modification of a NeuralGroup ids.
-    '''
-    old_max_id   = neural_pop._max_id
-    neural_pop._max_id = max(neural_pop._max_id, max_id)
-    # update size
-    neural_pop._size   = 0
-    for g in neural_pop.values():
-        neural_pop._size += g.size
-    # update the group node property
-    if neural_pop._neuron_group is None:
-        neural_pop._neuron_group = np.repeat(-1, neural_pop._max_id + 1)
-    elif neural_pop._max_id >= len(neural_pop._neuron_group):
-        ngroup_tmp = np.repeat(-1, neural_pop._max_id + 1)
-        ngroup_tmp[:old_max_id + 1] = neural_pop._neuron_group
-        neural_pop._neuron_group = ngroup_tmp
-
-
-def _disjoint(groups):
-    ''' Check that groups form pairwise disjoint sets '''
-    ids = []
-    for g in groups:
-        ids.extend(g.ids)
-
-    return len(ids) == len(set(ids))

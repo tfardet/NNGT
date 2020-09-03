@@ -175,6 +175,8 @@ def connect_neural_types(network, source_type, target_type, graph_model,
     specific degree (e.g. :func:`~nngt.generation.gaussian_degree`), the
     nodes which have their property sets are the `source_type`.
     '''
+    assert network.is_network(), "This function requires a Network object."
+
     elist, source_ids, target_ids = None, [], []
 
     if network.is_spatial() and 'positions' not in kwargs:
@@ -224,15 +226,10 @@ def connect_groups(network, source_groups, target_groups, graph_model,
                    weighted=True, directed=True, multigraph=False,
                    check_existing=True, ignore_invalid=False, **kwargs):
     '''
-    Function to connect excitatory and inhibitory population with a given graph
-    model.
+    Function to connect groups with a given graph model.
 
     .. versionchanged:: 2.0
         Added `check_existing` and `ignore_invalid` arguments.
-
-    .. versionchanged:: 1.2.0
-        Allow to use :class:`NeuralGroup` as `source_groups` and
-        `target_groups` arguments.
 
     Parameters
     ----------
@@ -278,16 +275,20 @@ def connect_groups(network, source_groups, target_groups, graph_model,
         target_groups = [target_groups]
 
     for s in source_groups:
-        if isinstance(s, nngt.NeuralGroup):
+        if isinstance(s, nngt.Structure):
+            source_ids.extend(s.ids)
+        elif isinstance(s, nngt.Group):
             source_ids.extend(s.ids)
         else:
-            source_ids.extend(network.population[s].ids)
+            source_ids.extend(network.structure[s].ids)
 
     for t in target_groups:
-        if isinstance(t, nngt.NeuralGroup):
+        if isinstance(t, nngt.Structure):
+            target_ids.extend(t.ids)
+        elif isinstance(t, nngt.Group):
             target_ids.extend(t.ids)
         else:
-            target_ids.extend(network.population[t].ids)
+            target_ids.extend(network.structure[t].ids)
 
     source_ids = np.array(source_ids, dtype=np.uint)
     target_ids = np.array(target_ids, dtype=np.uint)

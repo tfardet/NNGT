@@ -43,6 +43,8 @@ from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import graph_tool_check, deprecated, is_integer
 
+from .connections import Connections
+
 
 logger = logging.getLogger(__name__)
 
@@ -291,8 +293,8 @@ class Graph(nngt.core.GraphObject):
             nngt.Network.make_network(graph, pop)
             pop._parent = weakref.ref(graph)
             for g in pop.values():
-                g._pop = weakref.ref(pop)
-                g._net = weakref.ref(graph)
+                g._struct = weakref.ref(pop)
+                g._net    = weakref.ref(graph)
 
         if pos is not None or shape is not None:
             nngt.SpatialGraph.make_spatial(graph, shape=shape, positions=pos)
@@ -386,13 +388,16 @@ class Graph(nngt.core.GraphObject):
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
 
-    def __init__(self, nodes=0, name="Graph", weighted=True, directed=True,
-                 copy_graph=None, **kwargs):
+    def __init__(self, nodes=None, name="Graph", weighted=True, directed=True,
+                 copy_graph=None, structure=None, **kwargs):
         '''
         Initialize Graph instance
 
         .. versionchanged:: 2.0
             Renamed `from_graph` to `copy_graph`.
+
+        .. versionchanged:: 2.2
+            Added `structure` argument.
 
         Parameters
         ----------
@@ -406,6 +411,10 @@ class Graph(nngt.core.GraphObject):
             Whether the graph is directed or undirected.
         copy_graph : :class:`~nngt.Graph`, optional
             An optional :class:`~nngt.Graph` that will be copied.
+        structure : :class:`~nngt.Structure`, optional (default: None)
+            A structure dividing the graph into specific groups, which can
+            be used to generate specific connectivities and visualise the
+            connections in a more coarse-grained manner.
         kwargs : optional keywords arguments
             Optional arguments that can be passed to the graph, e.g. a dict
             containing information on the synaptic weights
@@ -427,6 +436,18 @@ class Graph(nngt.core.GraphObject):
         self.__id = self.__class__.__max_id
         self._name = name
         self._graph_type = kwargs["type"] if "type" in kwargs else "custom"
+
+        # check the structure
+        if structure is not None:
+            if nodes is None:
+                nodes = structure.size
+            else:
+                assert nodes == structure.size, \
+                    "`nodes` and `structure.size` must be the same."
+        else:
+            nodes = 0 if nodes is None else nodes
+
+        self._struct = structure
 
         # Init the core.GraphObject
         super().__init__(nodes=nodes, copy_graph=copy_graph,
@@ -491,6 +512,44 @@ class Graph(nngt.core.GraphObject):
         :ref:`graph-analysis`.
         '''
         return self._graph
+
+    @property
+    def structure(self):
+        '''
+        Object structuring the graph into specific groups.
+
+        .. versionadded: 2.2
+
+        Note
+        ----
+        Points to :py:obj:`~nngt.Network.population` if the graph is a
+        :class:`~nngt.Network`.
+        '''
+        if self.is_network():
+            return self.population
+
+        return self._struct
+
+    @structure.setter
+    def structure(self, structure):
+        if self.is_network():
+            self.population = structure
+        else:
+            if issubclass(structure.__class__, nngt.Structure):
+                if self.node_nb() == structure.size:
+                    if structure.is_valid:
+                        self._struct = structure
+                    else:
+                        raise AttributeError(
+                            "Structure is not valid (not all  nodes are "
+                            "associated to a group).")
+                else:
+                    raise AttributeError("Graph and Structure must have same "
+                                         "number of nodes.")
+            else:
+                raise AttributeError(
+                    "Expecting Structure but received '{}'.".format(
+                        structure.__class__.__name__))
 
     @property
     def graph_id(self):
@@ -1429,7 +1488,7 @@ class Graph(nngt.core.GraphObject):
         if parameters is None:
             parameters = self._w
 
-        nngt.core.Connections.weights(
+        Connections.weights(
             self, elist=elist, wlist=weight, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)
 
@@ -1471,7 +1530,7 @@ class Graph(nngt.core.GraphObject):
         inhib_nodes = None
 
         if nonstring_container(edge_type):
-            return nngt.core.Connections.types(self, values=edge_type)
+            return Connections.types(self, values=edge_type)
         elif edge_type in ('excitatory', 1):
             if is_integer(nodes):
                 inhib_nodes = self.node_nb() - nodes
@@ -1488,7 +1547,7 @@ class Graph(nngt.core.GraphObject):
             elif nodes is not None:
                 raise ValueError("`nodes` should be integer or array of ids.")
 
-        return nngt.core.Connections.types(self, inhib_nodes, fraction)
+        return Connections.types(self, inhib_nodes, fraction)
 
     def set_delays(self, delay=None, elist=None, distribution=None,
                    parameters=None, noise_scale=None):
@@ -1540,6 +1599,6 @@ class Graph(nngt.core.GraphObject):
                     "Invalid `parameters` value: cannot be None if default"
                     " delays were not set at graph creation.")
 
-        return nngt.core.Connections.delays(
+        return Connections.delays(
             self, elist=elist, dlist=delay, distribution=distribution,
             parameters=parameters, noise_scale=noise_scale)

@@ -127,7 +127,8 @@ for root, dirnames, filenames in os.walk('.'):
 # list of classes to ignore for each module
 ignore = {
     'nngt.core': ("Graph", "Network", "SpatialGraph", "SpatialNetwork",
-                  "NeuralPop", "NeuralGroup"),
+                  "Group", "MetaGroup", "MetaNeuralGroup", "NeuralPop",
+                  "NeuralGroup"),
     'nngt.lib': ("custom", "decorate", "deprecated", "graph_tool_check",
                  "mpi_barrier", "mpi_checker", "mpi_random", "not_implemented",
                  "num_mpi_processes", "on_master_process", "seed"),

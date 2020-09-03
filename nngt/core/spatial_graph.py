@@ -27,6 +27,7 @@ import numpy as np
 import nngt
 from nngt.lib import InvalidArgument
 
+from .connections import Connections
 from .graph import Graph
 
 
@@ -163,7 +164,7 @@ class SpatialGraph(Graph):
         b_rnd_pos = True if not self.node_nb() or positions is None else False
         self._pos = self._shape.seed_neurons() if b_rnd_pos else positions
 
-        nngt.core.Connections.distances(self)
+        Connections.distances(self)
 
     #-------------------------------------------------------------------------#
     # Getters
