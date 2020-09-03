@@ -444,6 +444,8 @@ class Graph(nngt.core.GraphObject):
             else:
                 assert nodes == structure.size, \
                     "`nodes` and `structure.size` must be the same."
+        else:
+            nodes = 0 if nodes is None else nodes
 
         self._struct = structure
 
