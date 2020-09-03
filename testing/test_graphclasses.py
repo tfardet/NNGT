@@ -11,11 +11,14 @@ Test the main methods of the :class:`~nngt.Graph` class and its subclasses.
 """
 
 import unittest
+import pytest
 
 import numpy as np
 import scipy.sparse as ssp
 
 import nngt
+import nngt.generation as ng
+
 from base_test import TestBasis, XmlHandler, network_dir
 from tools_testing import foreach_graph
 
@@ -82,6 +85,79 @@ class TestGraphClasses(TestBasis):
             ".format(graph.name, ref_result, computed_result))
 
 
+@pytest.mark.mpi_skip
+def test_structure_graph():
+    gclass = (nngt.Group, nngt.NeuralGroup)
+    sclass = (nngt.Structure, nngt.NeuralPop)
+    nclass = (nngt.Graph, nngt.Network)
+
+    for gc, sc, nc in zip(gclass, sclass, nclass):
+        room1 = gc(25, neuron_type=1)
+        room2 = gc(50, neuron_type=1)
+        room3 = gc(40, neuron_type=1)
+        room4 = gc(35, neuron_type=1)
+
+        names = ["R1", "R2", "R3", "R4"]
+
+        kwargs = {"with_models": False} if sc == nngt.NeuralPop else {}
+        struct = sc.from_groups((room1, room2, room3, room4), names, **kwargs)
+
+        kwargs = ({"population": struct} if nc == nngt.Network
+                  else {"structure": struct})
+
+        g = nc(**kwargs)
+
+        # connect groups
+        for room in struct:
+            ng.connect_groups(g, room, room, "all_to_all")
+
+        d1 = 5
+        ng.connect_groups(g, room1, room2, "erdos_renyi", avg_deg=d1)
+        ng.connect_groups(g, room1, room3, "erdos_renyi", avg_deg=d1)
+        ng.connect_groups(g, room1, room4, "erdos_renyi", avg_deg=d1)
+
+        d2 = 5
+        ng.connect_groups(g, room2, room3, "erdos_renyi", avg_deg=d2)
+        ng.connect_groups(g, room2, room4, "erdos_renyi", avg_deg=d2,
+                                       weights=2)
+
+        d3 = 20
+        ng.connect_groups(g, room3, room1, "erdos_renyi", avg_deg=d3)
+
+        d4 = 10
+        ng.connect_groups(g, room4, room3, "erdos_renyi", avg_deg=d4)
+
+        # get structure graph
+        sg = g.get_structure_graph()
+
+        assert sg.node_nb() == len(struct)
+
+        eset = set([tuple(e) for e in sg.edges_array])
+        expected = [
+            (0, 0), (0, 1), (0, 2), (0, 3),
+            (1, 1), (1, 2), (1, 3),
+            (2, 0), (2, 2),
+            (3, 2), (3, 3)
+        ]
+
+        assert eset == set(expected)
+
+        # check weights
+        w1 = room1.size * d1
+        w2 = room2.size * d2
+        w3 = room3.size * d3
+        w4 = room4.size * d4
+
+        expected_weights = [
+            room1.size*(room1.size - 1), w1, w1, w1,
+            room2.size*(room2.size - 1), w2, w2*2,
+            w3, room3.size*(room3.size - 1),
+            w4, room4.size*(room4.size - 1)
+        ]
+
+        assert np.array_equal(sg.get_weights(edges=expected), expected_weights)
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -91,3 +167,4 @@ if not nngt.get_config('mpi'):
 
     if __name__ == "__main__":
         unittest.main()
+        test_structure_graph()

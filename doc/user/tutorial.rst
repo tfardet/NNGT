@@ -207,7 +207,7 @@ groups and connect them with specific connectivities using the
 :func:`~nngt.generation.connect_groups` function.
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 51-77
+   :lines: 51-84
 
 For more details, see the full page on :ref:`neural_groups`.
 
@@ -221,7 +221,7 @@ with specific connectivities using the
 :func:`~nngt.generation.connect_groups` function.
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 100-109, 150-162
+   :lines: 114-123, 164-176
 
 For more details, see the full page on :ref:`neural_groups`.
 

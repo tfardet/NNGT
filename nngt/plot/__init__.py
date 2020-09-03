@@ -39,7 +39,7 @@ import nngt as _nngt
 
 from .custom_plt import palette_continuous, palette_discrete, markers
 from .animations import Animation2d, AnimationNetwork
-from .plt_networks import draw_network, library_draw
+from .plt_networks import draw_network, library_draw, chord_diagram
 from .plt_properties import *
 from . import plt_properties as _plt_prop
 
@@ -47,6 +47,7 @@ from . import plt_properties as _plt_prop
 __all__ = [
     "Animation2d",
     "AnimationNetwork",
+    "chord_diagram",
     "draw_network",
     "library_draw",
     "palette_continuous",

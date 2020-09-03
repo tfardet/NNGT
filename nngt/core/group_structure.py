@@ -849,12 +849,3 @@ def _update_max_id_and_size(neural_pop, max_id):
         ngroup_tmp = np.repeat(-1, neural_pop._max_id + 1)
         ngroup_tmp[:old_max_id + 1] = neural_pop._groups
         neural_pop._groups = ngroup_tmp
-
-
-def _disjoint(groups):
-    ''' Check that groups form pairwise disjoint sets '''
-    ids = []
-    for g in groups:
-        ids.extend(g.ids)
-
-    return len(ids) == len(set(ids))
