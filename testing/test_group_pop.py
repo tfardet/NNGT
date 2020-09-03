@@ -121,6 +121,7 @@ def test_failed_pop():
     assert failed
 
 
+@pytest.mark.mpi_skip
 def test_group_structure():
     metagroup = nngt.Group(100, metagroup=True)
 
