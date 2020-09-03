@@ -220,8 +220,8 @@ together. You can then make a population from these groups and connect them
 with specific connectivities using the
 :func:`~nngt.generation.connect_groups` function.
 
-.. literalinclude:: ../examples/multi_groups_network.py
-   :lines: 32-64
+.. literalinclude:: ../examples/introduction_to_groups.py
+   :lines: 100-109, 150-162
 
 For more details, see the full page on :ref:`neural_groups`.
 

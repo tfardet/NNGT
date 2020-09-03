@@ -33,16 +33,15 @@ num_nodes = 1000
 Make the population
 '''
 
-# two groups of neurons
-g1 = nngt.Group(500)  # neurons 0 to 499
-g2 = nngt.Group(500)  # neurons 500 to 999
+# two groups
+g1 = nngt.Group(500)  # nodes 0 to 499
+g2 = nngt.Group(500)  # nodes 500 to 999
 
-# make population (without NEST models)
-struct = nngt.Structure.from_groups(
-    (g1, g2), ("left", "right"), with_models=False)
+# make structure
+struct = nngt.Structure.from_groups((g1, g2), ("left", "right"))
 
 # create network from this population
-net = nngt.Network(structure=struct)
+net = nngt.Graph(structure=struct)
 
 
 '''
