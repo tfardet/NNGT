@@ -26,7 +26,7 @@ from matplotlib.artist import Artist
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
 from matplotlib.patches import Arc, RegularPolygon, PathPatch
 from matplotlib.cm import get_cmap
-from matplotlib.collections import PatchCollection
+from matplotlib.collections import PatchCollection, PathCollection
 from matplotlib.colors import ListedColormap, Normalize, ColorConverter
 from matplotlib.markers import MarkerStyle
 from matplotlib.transforms import Affine2D
@@ -577,15 +577,17 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 
 def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
               axes_angles=None, axes_labels=None, axes_units=None,
-              intra_connections=True, node_size=None, max_nsize=0.05,
-              axes_colors=None, edge_colors=None, axis=None, show=False):
+              intra_connections=True, highlight_nodes=None, node_size=None,
+              max_nsize=10, axes_colors=None, edge_colors=None,
+              edge_alpha=0.05, axis=None, nborder_color="k", nborder_width=0.2,
+              show=False):
     '''
     Draw a hive plot of the graph.
 
     Note
     ----
     For directed networks, the direction of intra-axis connections is
-    clockwise.
+    counter-clockwise.
     For inter-axes connections, the default edge color is closest to the color
     of the source group (i.e. from a red group to a blue group, edge color will
     be a reddish violet , while from blue to red, it will be a blueish violet).
@@ -635,6 +637,9 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
     intra_connections : bool, optional (default: True)
         Show connections between nodes belonging to the same axis. If true,
         then each axis is duplicated to display intra-axis connections.
+    highlight_nodes : list of nodes, optional (default: all nodes)
+        Highlight a subset of nodes and their connections, all other nodes
+        and connections will be gray.
     node_size : float, str, or array-like, optional (default: automatic)
         Size of the nodes on the axes. Either a fixed size, the name of a
         node attribute, or a list of user-defined values.
@@ -642,12 +647,19 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
         Maximum node size if `node_size` is an attribute or a list of
         user-defined values.
     axes_colors : valid matplotlib color/colormap, optional (default: viridis)
-        Color associated to the nodes on each axis.
+        Color associated to each axis.
+    nborder_color : matplotlib color, optional (default: "k")
+        Color of the node's border.
+        or floats in [0, 1] defining the position in the palette.
+    nborder_width : float, optional (default: 0.2)
+        Width of the border.
     edge_colors : valid matplotlib color/colormap, optional (default: auto)
         Color of the edges. By default it is the intermediate color between
         two axes colors. To provide custom colors, they must be provided as
         a dictionnary of axes edges ``{(0, 0): "r", (0, 1): "g", (1, 0): "b"}``
         with default color being black.
+    edge_alpha : float, optional (default: 0.05)
+        Edge opacity.
     axis : matplotlib axis, optional (default: create new axis)
         Axis on which the network will be plotted.
     show : bool, optional (default: True)
@@ -702,28 +714,32 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
     max_radii = []
 
     for i, (nn, rr) in enumerate(zip(ax_nodes, radial_values)):
-        ss = node_size[nn]
-        aa = [angles[2*i] if intra_connections else angles[i]]
+        if len(nn):
+            ss = node_size[nn]
+            aa = [angles[2*i] if intra_connections else angles[i]]
 
-        if intra_connections:
-            aa += [angles[2*i+1]]
+            if intra_connections:
+                aa += [angles[2*i+1]]
 
-        for a in aa:
-            xx = rr*np.cos(a)
-            yy = rr*np.sin(a)
+            for a in aa:
+                xx = rr*np.cos(a)
+                yy = rr*np.sin(a)
 
-            node_pos.append(np.array([xx, yy]).T)
+                node_pos.append(np.array([xx, yy]).T)
 
-            rax = np.array([RMIN, rr[nn].max()])
-            axis.plot(rax*np.cos(a), rax*np.sin(a), color="k", lw=1.2,
-                      zorder=1)
+                rax = np.array([RMIN, rr[nn].max()])
+                axis.plot(rax*np.cos(a), rax*np.sin(a), color="k", lw=1.2,
+                          zorder=1)
 
-            max_radii.append(rax[1])
+                max_radii.append(rax[1])
 
-            axis.scatter(xx[nn], yy[nn], ss, color=ncolors[i],
-                         linewidth=0.8, zorder=3)
+                axis.scatter(xx[nn], yy[nn], ss, color=ncolors[i],
+                             linewidth=nborder_width, edgecolors=nborder_color,
+                             zorder=3)
+        else:
+            max_radii.append(RMIN)
 
-    _set_names(ax_names, angles, max_radii, intra_connections, axis)
+    _set_names_lims(ax_names, angles, max_radii, intra_connections, axis)
 
     # plot the edges
     for i, n1 in enumerate(ax_nodes):
@@ -744,13 +760,21 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
             if len(edges):
                 color = ecolors[(i, j)]
 
+                paths = []
+
                 for (ns, nt) in edges:
                     pstart = node_pos[idx_s][ns]
                     pstop = node_pos[idx_t][nt]
 
-                    _plot_bezier(pstart, pstop, angles[idx_s], angles[idx_t],
-                                 radial_values[i][ns], radial_values[j][nt],
-                                 color, i, j, num_axes, axis)
+                    paths.append(_plot_bezier(
+                        pstart, pstop, angles[idx_s], angles[idx_t],
+                        radial_values[i][ns], radial_values[j][nt], i, j,
+                        num_axes))
+
+                pcol = PathCollection(paths, facecolors="none",
+                                      edgecolors=color, alpha=edge_alpha)
+
+                axis.add_collection(pcol)
 
     axis.set_aspect(1)
     axis.axis('off')
