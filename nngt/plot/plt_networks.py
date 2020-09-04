@@ -36,7 +36,7 @@ import nngt
 from nngt.lib import POS, nonstring_container, is_integer
 from .custom_plt import palette_continuous, palette_discrete, format_exponent
 from .chord_diag import chord_diagram as _chord_diag
-
+from .hive_helpers import *
 
 
 '''
@@ -59,7 +59,7 @@ If edges have varying size, plot only those that are visible (size > min)
 
 '''
 
-__all__ = ["draw_network", "library_draw"]
+__all__ = ["chord_diagram", "draw_network", "hive_plot", "library_draw"]
 
 
 # ------- #
@@ -570,6 +570,192 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         plt.subplots_adjust(
             hspace=0., wspace=0., left=0., right=0.95 if colorbar else 1.,
             top=1., bottom=0.)
+
+    if show:
+        plt.show()
+
+
+def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
+              axes_angles=None, axes_labels=None, axes_units=None,
+              intra_connections=True, node_size=None, max_nsize=0.05,
+              axes_colors=None, edge_colors=None, axis=None, show=False):
+    '''
+    Draw a hive plot of the graph.
+
+    Note
+    ----
+    For directed networks, the direction of intra-axis connections is
+    clockwise.
+    For inter-axes connections, the default edge color is closest to the color
+    of the source group (i.e. from a red group to a blue group, edge color will
+    be a reddish violet , while from blue to red, it will be a blueish violet).
+
+    Parameters
+    ----------
+    network : :class:`~nngt.Graph`
+        Graph to plot.
+    radial : str, list of str or array-like
+        Values that will be used to place the nodes on the axes. Either one
+        identical property is used for all axes (traditional hive plot) or
+        one radial coordinate per axis is used (custom hive plot).
+        If radial is a string or a list of strings, then these must correspond
+        to the names of node attributes stored in the graph.
+    axes : str, or list of str, optional (default: one per radial coordinate)
+        Name of the attribute(s) that will be used to make each of the axes
+        (i.e. each group of nodes).
+        This can be either "groups" if the graph has a structure or is a
+        :class:`~nngt.Network`, or any (list of) node attribute(s).
+        If a single node attribute is used, `axes_bins` must be provided to
+        make one axis for each range of values.
+        If there are multiple radial coordinates, then leaving `axes` blanck
+        will plot all nodes on each of the axes (one per radial coordinate).
+    axes_bins : int or array-like, optional (default: all nodes on each axis)
+        Required if there is a single radial coordinate and a single axis
+        entry: provides the bins that will be used to separate the nodes
+        into groups (one per axis). For N axes, there must therefore be N + 1
+        entries in `axes_bins`, or `axis_bins` must be equal to N, in which
+        case the nodes are separated into N evenly sized bins.
+    axes_units : str, optional
+        Units used to scale the axes. Either "native" to have them scaled
+        between the minimal and maximal radial coordinates among all axes,
+        "rank", to use the min and max ranks of the nodes on all axes, or
+        "normed", to have each axis go from zero (minimal local radial
+        coordinate) to one (maximal local radial coordinate).
+        "native" is the default if there is a single radial coordinate,
+        "normed" is the default for multiple coordinates.
+    axes_angles : list of angles, optional (default: automatic)
+        Angles for each of the axes, by increasing degree. If
+        `intra_connections` is True, then angles of duplicate axes must be
+        adjacent, e.g. ``[a1, a1bis, a2, a2bis, a3, a3bis]``.
+    axes_labels : str or list of str, optional
+        Label of each axis. For binned axes, it can be automatically formatted
+        via the three entries ``{name}``, ``{start}``, ``{stop}``.
+        E.g. "{name} in [{start}, {stop}]" would give "CC in [0, 0.2]" for
+        a first axis and "CC in [0.2, 0.4]" for a second axis.
+    intra_connections : bool, optional (default: True)
+        Show connections between nodes belonging to the same axis. If true,
+        then each axis is duplicated to display intra-axis connections.
+    node_size : float, str, or array-like, optional (default: automatic)
+        Size of the nodes on the axes. Either a fixed size, the name of a
+        node attribute, or a list of user-defined values.
+    max_nsize : float, optional (default: 0.05)
+        Maximum node size if `node_size` is an attribute or a list of
+        user-defined values.
+    axes_colors : valid matplotlib color/colormap, optional (default: viridis)
+        Color associated to the nodes on each axis.
+    edge_colors : valid matplotlib color/colormap, optional (default: auto)
+        Color of the edges. By default it is the intermediate color between
+        two axes colors. To provide custom colors, they must be provided as
+        a dictionnary of axes edges ``{(0, 0): "r", (0, 1): "g", (1, 0): "b"}``
+        with default color being black.
+    axis : matplotlib axis, optional (default: create new axis)
+        Axis on which the network will be plotted.
+    show : bool, optional (default: True)
+        Display the plot immediately.
+    '''
+    import matplotlib.pyplot as plt
+    # get numer of axes and radial coordinates
+    num_axes, num_radial = _get_axes_radial_coord(
+        radial, axes, axes_bins, network)
+
+    # get axes names, associated nodes, and radial values
+    ax_names, ax_nodes, ax_radco = _get_axes_nodes(
+        network, radial, axes, axes_bins, num_axes, num_radial)
+
+    # get units, maximum values for the axes, renormalize radial values
+    if axes_units is None:
+        axes_units = "normed" if num_radial > 1 else "native"
+
+    rmin, rmax = None, None
+
+    radial_values = _get_radial_values(ax_radco, axes_units, network)
+
+    # compute the angles
+    angles = None
+
+    if axes_angles is None:
+        dtheta = 2 * np.pi / num_axes
+
+        if intra_connections:
+            angles = []
+
+            for i in range(num_axes):
+                angles.extend(((i - 0.125)*dtheta, (i + 0.125)*dtheta))
+        else:
+            angles = [i*dtheta for i in range(num_axes)]
+    else:
+        angles = [a*np.pi/180 for a in ax_angles]
+
+    # renormalize the sizes
+    node_size = _get_size(node_size, max_nsize, ax_nodes, network)
+
+    # get the colors
+    ncolors, ecolors = _get_colors(axes_colors, edge_colors, angles, num_axes,
+                                   intra_connections, network)
+
+    # make the figure
+    if axis is None:
+        _, axis = plt.subplots()
+
+    # plot the nodes and axes
+    node_pos  = []
+    max_radii = []
+
+    for i, (nn, rr) in enumerate(zip(ax_nodes, radial_values)):
+        ss = node_size[nn]
+        aa = [angles[2*i] if intra_connections else angles[i]]
+
+        if intra_connections:
+            aa += [angles[2*i+1]]
+
+        for a in aa:
+            xx = rr*np.cos(a)
+            yy = rr*np.sin(a)
+
+            node_pos.append(np.array([xx, yy]).T)
+
+            rax = np.array([RMIN, rr[nn].max()])
+            axis.plot(rax*np.cos(a), rax*np.sin(a), color="k", lw=1.2,
+                      zorder=1)
+
+            max_radii.append(rax[1])
+
+            axis.scatter(xx[nn], yy[nn], ss, color=ncolors[i],
+                         linewidth=0.8, zorder=3)
+
+    _set_names(ax_names, angles, max_radii, intra_connections, axis)
+
+    # plot the edges
+    for i, n1 in enumerate(ax_nodes):
+        targets = ax_nodes if network.is_directed() else ax_nodes[i:]
+
+        for j, n2 in enumerate(ax_nodes):
+            # ignore i = j if intra_connections is True
+            if i == j and not intra_connections:
+                continue
+
+            # find which axes should be used
+            idx_s, idx_t = _get_ax_angles(
+                angles, i, j, intra_connections)
+
+            # get the sources
+            edges = network.get_edges(source_node=n1, target_node=n2)
+
+            if len(edges):
+                color = ecolors[(i, j)]
+
+                for (ns, nt) in edges:
+                    pstart = node_pos[idx_s][ns]
+                    pstop = node_pos[idx_t][nt]
+
+                    _plot_bezier(pstart, pstop, angles[idx_s], angles[idx_t],
+                                 radial_values[i][ns], radial_values[j][nt],
+                                 color, i, j, num_axes, axis)
+
+    axis.set_aspect(1)
+    axis.axis('off')
+
+    plt.tight_layout()
 
     if show:
         plt.show()

@@ -49,6 +49,7 @@ __all__ = [
     "AnimationNetwork",
     "chord_diagram",
     "draw_network",
+    "hive_plot",
     "library_draw",
     "palette_continuous",
     "palette_discrete",
