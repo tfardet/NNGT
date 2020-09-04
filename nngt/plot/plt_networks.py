@@ -579,8 +579,8 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
               axes_angles=None, axes_labels=None, axes_units=None,
               intra_connections=True, highlight_nodes=None, node_size=None,
               max_nsize=10, axes_colors=None, edge_colors=None,
-              edge_alpha=0.05, axis=None, nborder_color="k", nborder_width=0.2,
-              show=False):
+              edge_alpha=0.05, nborder_color="k", nborder_width=0.2,
+              show_names=True, axis=None, show=False):
     '''
     Draw a hive plot of the graph.
 
@@ -660,6 +660,8 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
         with default color being black.
     edge_alpha : float, optional (default: 0.05)
         Edge opacity.
+    show_names : bool, optional (default: True)
+        Show axes names and properties.
     axis : matplotlib axis, optional (default: create new axis)
         Axis on which the network will be plotted.
     show : bool, optional (default: True)
@@ -739,7 +741,8 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
         else:
             max_radii.append(RMIN)
 
-    _set_names_lims(ax_names, angles, max_radii, intra_connections, axis)
+    _set_names_lims(ax_names, angles, max_radii, intra_connections, show_names,
+                    axis)
 
     # plot the edges
     for i, n1 in enumerate(ax_nodes):
