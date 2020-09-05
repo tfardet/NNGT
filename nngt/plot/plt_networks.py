@@ -676,11 +676,13 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
     ax_names, ax_nodes, ax_radco = _get_axes_nodes(
         network, radial, axes, axes_bins, num_axes, num_radial)
 
+    # get highlighted nodes
+    if highlight_nodes is not None:
+        highlight_nodes = set(highlight_nodes)
+
     # get units, maximum values for the axes, renormalize radial values
     if axes_units is None:
         axes_units = "normed" if num_radial > 1 else "native"
-
-    rmin, rmax = None, None
 
     radial_values = _get_radial_values(ax_radco, axes_units, network)
 
@@ -717,29 +719,43 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
 
     for i, (nn, rr) in enumerate(zip(ax_nodes, radial_values)):
         if len(nn):
-            ss = node_size[nn]
+            # max radii
+            rax = np.array([RMIN, rr[nn].max()])
+
+            max_radii.extend([rax[-1]]*(1 + intra_connections))
+
+            # comppute angles
             aa = [angles[2*i] if intra_connections else angles[i]]
 
             if intra_connections:
                 aa += [angles[2*i+1]]
 
-            for a in aa:
+            for j, a in enumerate(aa):
+                # plot axes lines
+                lw = 1.2 if i % 2 else 2
+
+                axis.plot(rax*np.cos(a), rax*np.sin(a), color="grey", lw=lw,
+                          zorder=1)
+
+                # compute node positions
                 xx = rr*np.cos(a)
                 yy = rr*np.sin(a)
 
                 node_pos.append(np.array([xx, yy]).T)
 
-                rax = np.array([RMIN, rr[nn].max()])
-                axis.plot(rax*np.cos(a), rax*np.sin(a), color="k", lw=1.2,
-                          zorder=1)
+                if highlight_nodes is not None:
+                    greys = list(set(nn).difference(highlight_nodes))
 
-                max_radii.append(rax[1])
+                    _plot_nodes(greys, node_size, xx, yy, "grey",
+                                nborder_width, nborder_color, axis)
 
-                axis.scatter(xx[nn], yy[nn], ss, color=ncolors[i],
-                             linewidth=nborder_width, edgecolors=nborder_color,
-                             zorder=3)
+                hlght = (nn if highlight_nodes is None
+                         else list(highlight_nodes.difference(nn)))
+
+                _plot_nodes(hlght, node_size, xx, yy, ncolors[i],
+                            nborder_width, nborder_color, axis)
         else:
-            max_radii.append(RMIN)
+            max_radii.append([RMIN]*(1 + intra_connections))
 
     _set_names_lims(ax_names, angles, max_radii, intra_connections, show_names,
                     axis)
@@ -763,19 +779,34 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
             if len(edges):
                 color = ecolors[(i, j)]
 
-                paths = []
+                paths_greys = []
+                paths_hghlt = []
 
                 for (ns, nt) in edges:
                     pstart = node_pos[idx_s][ns]
                     pstop = node_pos[idx_t][nt]
 
-                    paths.append(_plot_bezier(
-                        pstart, pstop, angles[idx_s], angles[idx_t],
-                        radial_values[i][ns], radial_values[j][nt], i, j,
-                        num_axes))
+                    if ns in highlight_nodes or nt in highlight_nodes:
+                        paths_hghlt.append(_plot_bezier(
+                            pstart, pstop, angles[idx_s], angles[idx_t],
+                            radial_values[i][ns], radial_values[j][nt], i, j,
+                            num_axes))
+                    else:
+                        paths_greys.append(_plot_bezier(
+                            pstart, pstop, angles[idx_s], angles[idx_t],
+                            radial_values[i][ns], radial_values[j][nt], i, j,
+                            num_axes))
 
-                pcol = PathCollection(paths, facecolors="none",
-                                      edgecolors=color, alpha=edge_alpha)
+                if paths_greys:
+                    pcol = PathCollection(paths_greys, facecolors="none",
+                                          edgecolors="grey", alpha=edge_alpha)
+
+                    axis.add_collection(pcol)
+
+                alpha = edge_alpha if highlight_nodes is None else 1
+
+                pcol = PathCollection(paths_hghlt, facecolors="none",
+                                      edgecolors=color, alpha=alpha)
 
                 axis.add_collection(pcol)
 
