@@ -60,7 +60,7 @@ def test_draw_network_options():
                       colorbar=True, show=False)
 
     if nngt.get_config("backend") != "nngt":
-        nplt.draw_network(net, ncolor="SC", nsize="total-degree",
+        nplt.draw_network(net, ncolor="betweenness", nsize="total-degree",
                           decimate_connections=3, curved_edges=True,
                           show=False)
 
@@ -100,7 +100,7 @@ def test_library_plot():
     nplt.library_draw(g, ncolor="total-degree", ecolor="k", show=False)
 
     if nngt.get_config("backend") != "nngt":
-        nplt.library_draw(g, ncolor="in-degree", ecolor="SC",
+        nplt.library_draw(g, ncolor="in-degree", ecolor="betweenness",
                           esize='weight', max_esize=5, show=False)
 
     nplt.library_draw(g, nshape="s", esize="weight", layout="random",
