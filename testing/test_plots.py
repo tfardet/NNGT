@@ -119,7 +119,7 @@ def test_library_plot():
 
 
 @pytest.mark.mpi_skip
-@pytest.mark.skipif(nngt.get_config("backend") == "nngt", "Library needed.")
+@pytest.mark.skipif(nngt.get_config("backend") == "nngt", reason="Lib needed.")
 def test_hive_plot():
     g = nngt.load_from_file(dirpath + "/Networks/rat_brain.graphml",
                             attributes=["weight"], cleanup=True,
