@@ -580,7 +580,8 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
               intra_connections=True, highlight_nodes=None, node_size=None,
               max_nsize=10, axes_colors=None, edge_colors=None,
               edge_alpha=0.05, nborder_color="k", nborder_width=0.2,
-              show_names=True, axis=None, show=False):
+              show_names=True, show_circles=False, axis=None, tight=True,
+              show=False):
     '''
     Draw a hive plot of the graph.
 
@@ -662,8 +663,13 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
         Edge opacity.
     show_names : bool, optional (default: True)
         Show axes names and properties.
+    show_circles : bool, optional (default: False)
+        Show the circles associated to the maximum value of each axis.
     axis : matplotlib axis, optional (default: create new axis)
         Axis on which the network will be plotted.
+    tight : bool, optional (default: True)
+        Set figure layout to tight (set to False if plotting multiple axes on
+        a single figure).
     show : bool, optional (default: True)
         Display the plot immediately.
     '''
@@ -677,8 +683,10 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
         network, radial, axes, axes_bins, num_axes, num_radial)
 
     # get highlighted nodes
-    if highlight_nodes is not None:
+    if highlight_nodes:
         highlight_nodes = set(highlight_nodes)
+    else:
+        highlight_nodes= set()
 
     # get units, maximum values for the axes, renormalize radial values
     if axes_units is None:
@@ -724,6 +732,13 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
 
             max_radii.extend([rax[-1]]*(1 + intra_connections))
 
+            # plot max radii
+            if show_circles:
+                aa = np.arange(0, 2*np.pi, 0.02)
+                xx = rax[-1]*np.cos(aa)
+                yy = rax[-1]*np.sin(aa)
+                axis.plot(xx, yy, color="grey", alpha=0.2, zorder=1)
+
             # comppute angles
             aa = [angles[2*i] if intra_connections else angles[i]]
 
@@ -732,7 +747,7 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
 
             for j, a in enumerate(aa):
                 # plot axes lines
-                lw = 1.2 if i % 2 else 2
+                lw = 1 if j % 2 else 2
 
                 axis.plot(rax*np.cos(a), rax*np.sin(a), color="grey", lw=lw,
                           zorder=1)
@@ -743,24 +758,23 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
 
                 node_pos.append(np.array([xx, yy]).T)
 
-                if highlight_nodes is not None:
+                if highlight_nodes:
                     greys = list(set(nn).difference(highlight_nodes))
 
                     _plot_nodes(greys, node_size, xx, yy, "grey",
-                                nborder_width, nborder_color, axis)
+                                nborder_width, nborder_color, axis, zorder=3)
 
-                hlght = (nn if highlight_nodes is None
-                         else list(highlight_nodes.difference(nn)))
+                hlght = (nn if not highlight_nodes
+                         else list(highlight_nodes.intersection(nn)))
 
                 _plot_nodes(hlght, node_size, xx, yy, ncolors[i],
-                            nborder_width, nborder_color, axis)
+                            nborder_width, nborder_color, axis, zorder=4)
         else:
-            max_radii.append([RMIN]*(1 + intra_connections))
-
-    _set_names_lims(ax_names, angles, max_radii, intra_connections, show_names,
-                    axis)
+            max_radii.extend([RMIN]*(1 + intra_connections))
 
     # plot the edges
+    xs, ys = [], []
+
     for i, n1 in enumerate(ax_nodes):
         targets = ax_nodes if network.is_directed() else ax_nodes[i:]
 
@@ -786,34 +800,42 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
                     pstart = node_pos[idx_s][ns]
                     pstop = node_pos[idx_t][nt]
 
-                    if ns in highlight_nodes or nt in highlight_nodes:
+                    contains = ns in highlight_nodes or nt in highlight_nodes
+
+                    if not highlight_nodes or contains:
                         paths_hghlt.append(_plot_bezier(
                             pstart, pstop, angles[idx_s], angles[idx_t],
                             radial_values[i][ns], radial_values[j][nt], i, j,
-                            num_axes))
+                            num_axes, xs, ys))
                     else:
                         paths_greys.append(_plot_bezier(
                             pstart, pstop, angles[idx_s], angles[idx_t],
                             radial_values[i][ns], radial_values[j][nt], i, j,
-                            num_axes))
+                            num_axes, xs, ys))
 
                 if paths_greys:
-                    pcol = PathCollection(paths_greys, facecolors="none",
-                                          edgecolors="grey", alpha=edge_alpha)
+                    pcol = PathCollection(
+                        paths_greys, facecolors="none", edgecolors="grey",
+                        alpha=0.1*edge_alpha)
 
                     axis.add_collection(pcol)
 
-                alpha = edge_alpha if highlight_nodes is None else 1
+                alpha = 0.7 if highlight_nodes else edge_alpha
 
                 pcol = PathCollection(paths_hghlt, facecolors="none",
                                       edgecolors=color, alpha=alpha)
 
                 axis.add_collection(pcol)
 
+    _set_names_lims(ax_names, angles, max_radii, xs, ys, intra_connections,
+                    show_names, axis, show_circles)
+
+
     axis.set_aspect(1)
     axis.axis('off')
 
-    plt.tight_layout()
+    if tight:
+        plt.tight_layout()
 
     if show:
         plt.show()
