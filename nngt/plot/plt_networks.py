@@ -770,6 +770,7 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
                 _plot_nodes(hlght, node_size, xx, yy, ncolors[i],
                             nborder_width, nborder_color, axis, zorder=4)
         else:
+            node_pos.extend([[]]*(1 + intra_connections))
             max_radii.extend([RMIN]*(1 + intra_connections))
 
     # plot the edges
@@ -798,7 +799,7 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
 
                 for (ns, nt) in edges:
                     pstart = node_pos[idx_s][ns]
-                    pstop = node_pos[idx_t][nt]
+                    pstop  = node_pos[idx_t][nt]
 
                     contains = ns in highlight_nodes or nt in highlight_nodes
 

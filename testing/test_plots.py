@@ -47,7 +47,7 @@ def test_plot_prop():
     nplt.node_attributes_distribution(net, "attr", show=False)
 
     if nngt.get_config("backend") != "nngt":
-        nplt.betweenness_distribution(net, show=False)
+        nplt.SC_distribution(net, show=False)
 
 
 @pytest.mark.mpi_skip
@@ -60,7 +60,7 @@ def test_draw_network_options():
                       colorbar=True, show=False)
 
     if nngt.get_config("backend") != "nngt":
-        nplt.draw_network(net, ncolor="betweenness", nsize="total-degree",
+        nplt.draw_network(net, ncolor="SC", nsize="total-degree",
                           decimate_connections=3, curved_edges=True,
                           show=False)
 
@@ -100,7 +100,7 @@ def test_library_plot():
     nplt.library_draw(g, ncolor="total-degree", ecolor="k", show=False)
 
     if nngt.get_config("backend") != "nngt":
-        nplt.library_draw(g, ncolor="in-degree", ecolor="betweenness",
+        nplt.library_draw(g, ncolor="in-degree", ecolor="SC",
                           esize='weight', max_esize=5, show=False)
 
     nplt.library_draw(g, nshape="s", esize="weight", layout="random",
@@ -133,8 +133,7 @@ def test_hive_plot():
                          values=g.get_degrees(weights="weight"))
 
     g.new_node_attribute(
-        "betweenness", "double", values=nngt.analysis.betweenness(g,
-            btype="node"))
+        "SC", "double", values=nngt.analysis.subgraph_centrality(g))
 
     cc_bins = [0, 0.1, 0.25, 0.6]
 
@@ -143,10 +142,10 @@ def test_hive_plot():
     nplt.hive_plot(g, "strength", axes="cc", axes_bins=cc_bins,
                    axes_units="rank")
 
-    nplt.hive_plot(g, "strength", axes="betweenness", axes_bins=4,
+    nplt.hive_plot(g, "strength", axes="SC", axes_bins=4,
                    axes_colors="brg")
 
-    rad_axes = ["cc", "strength", "betweenness"]
+    rad_axes = ["cc", "strength", "SC"]
     nplt.hive_plot(g, rad_axes, rad_axes,
                    node_size=g.get_degrees(), max_nsize=50, show=True)
 
