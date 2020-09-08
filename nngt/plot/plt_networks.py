@@ -647,7 +647,7 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
     max_nsize : float, optional (default: 0.05)
         Maximum node size if `node_size` is an attribute or a list of
         user-defined values.
-    axes_colors : valid matplotlib color/colormap, optional (default: viridis)
+    axes_colors : valid matplotlib color/colormap, optional (default: Set1)
         Color associated to each axis.
     nborder_color : matplotlib color, optional (default: "k")
         Color of the node's border.

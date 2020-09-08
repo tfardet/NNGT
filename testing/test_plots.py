@@ -139,17 +139,31 @@ def test_hive_plot():
     cc_bins = [0, 0.1, 0.25, 0.6]
 
     nplt.hive_plot(g, g.get_degrees(), axes="cc", axes_bins=cc_bins)
+
     nplt.hive_plot(g, "strength", axes="cc", axes_bins=cc_bins,
                    axes_units="rank")
 
+    nplt.hive_plot(g, "strength", axes="closeness", axes_bins=4,
+                   axes_colors="brg")
+
     rad_axes = ["cc", "strength", "closeness"]
     nplt.hive_plot(g, rad_axes, rad_axes,
-                   node_size=g.get_degrees())
+                   node_size=g.get_degrees(), max_nsize=50)
+
+    # check errors
+    with pytest.raises(ValueError):
+        nplt.hive_plot(g, [cc, "closeness", "strength"])
+        nplt.hive_plot(g, 124)
+
+    with pytest.raises(AssertionError):
+        nplt.hive_plot(g, cc, axes=[1, 2, 3])
+        nplt.hive_plot(g, cc, axes=1)
+        nplt.hive_plot(g, cc, axes="groups")
 
 
 if __name__ == "__main__":
-    # ~ test_plot_config()
-    # ~ test_plot_prop()
-    # ~ test_draw_network_options()
-    # ~ test_library_plot()
+    test_plot_config()
+    test_plot_prop()
+    test_draw_network_options()
+    test_library_plot()
     test_hive_plot()
