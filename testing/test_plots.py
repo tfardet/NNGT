@@ -47,7 +47,7 @@ def test_plot_prop():
     nplt.node_attributes_distribution(net, "attr", show=False)
 
     if nngt.get_config("backend") != "nngt":
-        nplt.SC_distribution(net, show=False)
+        nplt.betweenness_distribution(net, show=False)
 
 
 @pytest.mark.mpi_skip
