@@ -133,8 +133,8 @@ def test_hive_plot():
                          values=g.get_degrees(weights="weight"))
 
     g.new_node_attribute(
-        "closeness", "double", values=nngt.analysis.closeness(g,
-            weights="weight"))
+        "betweenness", "double", values=nngt.analysis.betweenness(g,
+            btype="node"))
 
     cc_bins = [0, 0.1, 0.25, 0.6]
 
@@ -143,12 +143,12 @@ def test_hive_plot():
     nplt.hive_plot(g, "strength", axes="cc", axes_bins=cc_bins,
                    axes_units="rank")
 
-    nplt.hive_plot(g, "strength", axes="closeness", axes_bins=4,
+    nplt.hive_plot(g, "strength", axes="betweenness", axes_bins=4,
                    axes_colors="brg")
 
-    rad_axes = ["cc", "strength", "closeness"]
+    rad_axes = ["cc", "strength", "betweenness"]
     nplt.hive_plot(g, rad_axes, rad_axes,
-                   node_size=g.get_degrees(), max_nsize=50)
+                   node_size=g.get_degrees(), max_nsize=50, show=True)
 
     # check errors
     with pytest.raises(ValueError):

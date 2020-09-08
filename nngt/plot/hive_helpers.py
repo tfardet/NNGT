@@ -252,7 +252,15 @@ def _get_colors(axes_colors, edge_colors, angles, num_axes, intra_connections,
 
         cmap = cm.get_cmap(named_cmap)
 
-        values = np.array(list(range(num_axes))) / (num_axes - 1)
+        values = list(range(num_axes))
+
+        qualitative_cmaps = [
+            "Pastel1", "Pastel2", "Accent", "Dark2", "Set1", "Set2",
+            "Set3", "tab10"
+        ]
+
+        if named_cmap not in qualitative_cmaps:
+            values = np.array(values) / (num_axes - 1)
 
         ncolors = cmap(values)
         ecolors = {}
