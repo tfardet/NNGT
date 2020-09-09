@@ -13,3 +13,4 @@ scipy
 
 ##      Gallery      ##
 sphinx-gallery
+networkx
