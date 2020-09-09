@@ -962,7 +962,8 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
     if axis is None:
         size_inches = (size[0]/float(dpi), size[1]/float(dpi))
         fig, axis = plt.subplots(figsize=size_inches)
-        axis.axis('off')
+
+    axis.axis('off')
 
     # default plot
     if nngt.get_config("backend") == "nngt":

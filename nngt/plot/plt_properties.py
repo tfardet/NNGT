@@ -58,9 +58,10 @@ def degree_distribution(network, deg_type="total", nodes=None,
         Type of degree to consider ("in", "out", or "total")
     nodes : list or numpy.array of ints, optional (default: all nodes)
         Restrict the distribution to a set of nodes.
-    num_bins : int or N-tuple, optional (default: 'auto'):
-        Number of bins used to sample the distribution. Defaults to
-        unsupervised Bayesian blocks method.
+    num_bins : str, int or N-tuple, optional (default: 'doane'):
+        Number of bins used to sample the distribution. Defaults to 'doane'.
+        Use to 'auto' for numpy automatic selection or 'bayes' for unsupervised
+        Bayesian blocks method.
     weights : bool or str, optional (default: binary edges)
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
@@ -77,17 +78,25 @@ def degree_distribution(network, deg_type="total", nodes=None,
     **kwargs : keyword arguments for :func:`matplotlib.axes.Axes.bar`.
     '''
     import matplotlib.pyplot as plt
+
     if axis is None:
         fig, axis = plt.subplots()
+
     empty_axis = axis.has_data()
+
     axis.axis('tight')
+
     if "alpha" not in kwargs:
         kwargs["alpha"] = 1 if isinstance(deg_type, str) else 0.5
+
     labels = kwargs.get('label', None)
+
     if not nonstring_container(labels) and labels is not None:
         labels = [labels]
+
     # get degrees
-    mincounts, maxcounts, maxbins, minbins = np.inf, 0, 0, np.inf
+    mincounts, maxcounts, allbins = np.inf, 0, []
+
     if isinstance(deg_type, str):
         counts, bins = degree_distrib(network, deg_type, nodes,
                                       weights, logx, num_bins)
@@ -98,9 +107,11 @@ def degree_distribution(network, deg_type="total", nodes=None,
             counts = counts.astype(float)
             counts[counts<1] = 0.1
             counts = np.log(counts)
+
         max_nnz = np.where(counts > 0)[0][-1]
         maxcounts, mincounts = counts.max(), np.min(counts[counts > 0])
-        maxbins, minbins     = bins[max_nnz], bins.min()
+        allbins.extend(bins)
+
         if "label" not in kwargs:
             kwargs["label"] = deg_type[0].upper() + deg_type[1:] + " degree"
         axis.bar(
@@ -108,32 +119,39 @@ def degree_distribution(network, deg_type="total", nodes=None,
     else:
         if colors is None:
             colors = palette_continuous(np.linspace(0.,0.5, len(deg_type)))
+
         if not nonstring_container(num_bins):
             num_bins = [num_bins for _ in range(len(deg_type))]
+
         for i, s_type in enumerate(deg_type):
             counts, bins = degree_distrib(network, s_type, nodes,
                                           weights, logx, num_bins[i])
+
             bottom_count = -1 if logy else 0
+
             if norm:
                 counts = counts / float(np.sum(counts))
             if logy:
                 counts = counts.astype(float)
                 counts[counts<1] = 0.1
                 counts = np.log(counts) + 1
-            maxcounts_tmp, mincounts_tmp = counts.max(), np.min(counts[counts>0])
-            max_nnz = np.where(counts > 0)[0][-1]
-            maxbins_tmp, minbins_tmp = bins[max_nnz], bins.min()
+
+            maxcounts_tmp = counts.max()
+            mincounts_tmp = np.min(counts[counts>0])
+            
             mincounts = min(mincounts, mincounts_tmp)
             maxcounts = max(maxcounts, maxcounts_tmp)
-            maxbins = max(maxbins, maxbins_tmp)
-            minbins = min(minbins, minbins_tmp)
+
+            allbins.extend(bins)
+
             if labels is None:
                 kwargs['label'] = s_type[0].upper() + s_type[1:] + " degree"
             else:
                 kwargs['label'] = labels[i]
+
             axis.bar(
                 bins[:-1], counts, np.diff(bins), color=colors[i],
-                bottom=bottom_count, **kwargs)
+                bottom=bottom_count, align='edge', **kwargs)
 
     axis.set_xlabel("Degree")
     axis.set_ylabel("Node count")
@@ -145,9 +163,12 @@ def degree_distribution(network, deg_type="total", nodes=None,
             str_title = "{}egree distribution for {}".format(
                 title_start, network.name)
         axis.set_title(str_title, x=0., y=1.05, loc='left')
+
     # restore ylims and xlims and adapt if necessary
-    _set_scale(axis, maxbins, minbins, mincounts, maxcounts, logx, logy)
+    _set_scale(axis, np.array(allbins), mincounts, maxcounts, logx, logy)
+
     plt.legend()
+
     if show:
         plt.show()
 
@@ -180,9 +201,9 @@ def attribute_distribution(network, attribute, num_bins='auto', logx=False,
     import matplotlib.pyplot as plt
     if axis is None:
         axis = plt.gca()
-    axis.axis('tight')
-    # get attribute
-    mincounts, maxcounts, maxbins, np.inf, minbins = 0, 0, np.inf
+
+    mincounts, maxcounts, bins = 0, 0, None
+
     if isinstance(attribute, str):
         values = network.get_edge_attributes(name=attribute)
         counts, bins = _hist(
@@ -207,20 +228,27 @@ def attribute_distribution(network, attribute, num_bins='auto', logx=False,
         #~ ax1.legend(lines, legends)
     if nngt._config['use_tex']:
         axis.set_xlabel(attribute.replace("_", "\\_"))
+
     axis.set_ylabel("Node count")
-    _set_scale(ax1, maxbins, min_bins, mincounts, maxcounts, logx, logy)
+
+    _set_scale(ax1, bins, mincounts, maxcounts, logx, logy)
+
     axis.set_title(
         "Attribute distribution for {}".format(network.name), x=0., y=1.05,
         loc='left')
+
     plt.legend()
+
+    axis.axis('tight')
+
     if show:
         plt.show()
 
 
-def betweenness_distribution(network, btype="both", weights=False,
-                             nodes=None, logx=False, logy=False,
-                             num_nbins='auto', num_ebins=None, axes=None,
-                             colors=None, norm=False, show=True, **kwargs):
+def betweenness_distribution(
+    network, btype="both", weights=False, nodes=None, logx=False, logy=False,
+    num_nbins=None, num_ebins=None, axes=None, colors=None, norm=False,
+    legend_location='right', show=True, **kwargs):
     '''
     Plotting the betweenness distribution of a graph.
 
@@ -241,25 +269,31 @@ def betweenness_distribution(network, btype="both", weights=False,
         use log-spaced bins.
     logy : bool, optional (default: False)
         use logscale for the degree count.
-    num_nbins : int or 'auto', optional (default: 'auto'):
+    num_nbins : int or 'auto', optional (default: None):
         Number of bins used to sample the node distribution. Defaults to
-        unsupervised Bayesian blocks method.
+        `max(num_nodes / 50., 10)`.
     num_ebins : int or 'auto', optional (default: None):
         Number of bins used to sample the edge distribution. Defaults to
         `max(num_edges / 500., 10)` ('auto' method will be slow).
     axes : list of :class:`matplotlib.axis.Axis`, optional (default: new ones)
         Axes which should be used to plot the histogram, if None, new ones are
         created.
+    legend_location : str, optional (default; 'right')
+        Location of the legend.
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
     '''
     import matplotlib.pyplot as plt
+
     if btype not in ("node", "edge", "both"):
         raise InvalidArgument('`btype` must be one of the following: '
                               '"node", "edge", "both".')
+
     num_axes = 2 if btype == "both" else 1
+
     # create new axes or get them from existing ones
     ax = None
+
     if axes is None:
         fig, ax = plt.subplots()
         fig.patch.set_visible(False)
@@ -275,51 +309,79 @@ def betweenness_distribution(network, btype="both", weights=False,
             ax.set_yticks([])
     else:
         ax = axes[0]
+
     ax1 = axes[0]
-    ax1.axis('tight')
+
     ax1.yaxis.tick_left()
     ax1.yaxis.set_label_position("left")
     ax2 = axes[-1]
-    ax2.axis('tight')
+
     # get betweenness
     if num_ebins is None:
         num_ebins = int(max(network.edge_nb() / 500., 10))
+
+    if num_nbins is None:
+        num_nbins = int(max(network.node_nb() / 50., 10))
+
     ncounts, nbins, ecounts, ebins = betweenness_distrib(
         network, weights, nodes=nodes, num_nbins=num_nbins,
         num_ebins=num_ebins, log=logx)
+
     if norm:
         ncounts = ncounts / float(np.sum(ncounts))
         ecounts = ecounts / np.sum(ecounts)
-    # plot
+
     if colors is None:
-        colors = palette_continuous(np.linspace(0., 0.5, 2))
+        colors = palette_continuous(np.linspace(0.05, 0.5, 2))
+
+    alpha = kwargs.get("alpha", None)
+
+    if alpha is None:
+        kwargs["alpha"] = 0.5 if btype == "both" else 1
+
+    
+    x = 0 if legend_location == 'left' else 1
+
+    # plot
     if btype in ("node", "both"):
         ax1.bar(
-            nbins[:-1], ncounts, np.diff(nbins), color=colors[0], **kwargs)
+            nbins[:-1], ncounts, np.diff(nbins), color=colors[0], align='edge',
+            **kwargs)
+
         ax1.legend(
-            ["Node betweenness"], bbox_to_anchor=[1, 1], loc='upper right')
+            ["Node betweenness"], bbox_to_anchor=[x, 1],
+            loc='upper ' + legend_location)
+
         ax.set_xlabel("Node betweenness")
         ax1.set_ylabel("Node count")
         ax1.ticklabel_format(axis='x', style='sci', scilimits=(-3, 2))
-        _set_scale(ax1, nbins.max(), nbins.min(), np.min(ncounts[ncounts>0]),
-                   ncounts.max(), logx, logy)
+
+        _set_scale(ax1, nbins, np.min(ncounts[ncounts>0]), ncounts.max(),
+                   logx, logy)
     if btype in ("edge", "both"):
         ax2.bar(
-            ebins[:-1], ecounts, np.diff(ebins), color=colors[-1], **kwargs)
+            ebins[:-1], ecounts, np.diff(ebins), color=colors[-1],
+            align='edge', **kwargs)
+
         ax2.legend(
-            ["Edge betweenness"], bbox_to_anchor=[1, 1], loc='upper right')
+            ["Edge betweenness"], bbox_to_anchor=[x, 1],
+            loc='upper ' + legend_location)
+
         ax2.set_xlim([ebins.min(), ebins.max()])
         ax.set_ylim([0, 1.1*ecounts.max()])
         ax2.set_xlabel("Edge betweenness")
         ax.set_ylabel("Edge count")
         ax2.ticklabel_format(axis='x', style='sci', scilimits=(-3, 2))
-        _set_scale(ax2, ebins.max(), ebins.min(), np.min(ecounts[ecounts>0]),
-                   ecounts.max(), logx, logy)
+
+        _set_scale(ax2, ebins, np.min(ecounts[ecounts>0]), ecounts.max(),
+                   logx, logy)
     if btype == "both":
         ax2.legend(
-            ["Edge betweenness"], bbox_to_anchor=[1., 0.88], loc='upper right')
+            ["Edge betweenness"], bbox_to_anchor=[x, 0.88],
+            loc='upper ' + legend_location)
         ax1.legend(
-            ["Node betweenness"], bbox_to_anchor=[1., 0.88], loc='lower right')
+            ["Node betweenness"], bbox_to_anchor=[x, 0.88],
+            loc='lower ' + legend_location)
         #~ ax1.spines['top'].set_color('none')
         #~ ax1.spines['right'].set_color('none')
         plt.subplots_adjust(top=0.85)
@@ -329,9 +391,17 @@ def betweenness_distribution(network, btype="both", weights=False,
         if not logx:
             ax2 = format_exponent(ax2, 'x', (1., 1.1))
             ax1 = format_exponent(ax1, 'x', (1., -0.05))
+
+    y = 1.15 if btype == "both" else 1.05 
+
     ax1.set_title(
-        "Betweenness distribution for {}".format(network.name), x=0., y=1.05,
+        "Betweenness distribution for {}".format(network.name), x=0., y=y,
         loc='left')
+
+    # ~ ax1.axis('tight')
+    # ~ ax2.axis('tight')
+    plt.tight_layout()
+
     if show:
         plt.show()
 
@@ -472,7 +542,7 @@ def node_attributes_distribution(network, attributes, nodes=None,
                 attr[0].upper(), end_attr, network.name), y=1.05)
             ax[0].set_ylabel("Node count")
             ax[0].set_xlabel(attr[0].upper() + end_attr)
-            _set_scale(ax[0], bins.max(), bins.min(), np.min(counts[counts>0]),
+            _set_scale(ax[0], bins, np.min(counts[counts>0]),
                        counts.max(), logx[i], logy[i])
         num_plot += 1
     # adjust space, set title, and show
@@ -590,8 +660,8 @@ def edge_attributes_distribution(network, attributes, edges=None,
                 attr[0].upper(), end_attr, network.name), y=1.05)
             ax[0].set_ylabel("Node count")
             ax[0].set_xlabel(attr[0].upper() + end_attr)
-            _set_scale(ax[0], bins.max(), bins.min(), np.min(counts[counts>0]),
-                       counts.max(), logx[i], logy[i])
+            _set_scale(ax[0], bins, np.min(counts[counts>0]), counts.max(),
+                       logx[i], logy[i])
         num_plot += 1
 
     # adjust space, set title, and show
@@ -599,7 +669,8 @@ def edge_attributes_distribution(network, attributes, edges=None,
 
 
 def correlation_to_attribute(network, reference_attribute, other_attributes,
-                             nodes=None, fig=None, title=None, show=True):
+                             attribute_type="node", nodes=None, edges=None,
+                             fig=None, title=None, show=True):
     '''
     For each node plot the value of `reference_attributes` against each of the
     `other_attributes` to check for correlations.
@@ -625,8 +696,12 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
           is required.
     other_attributes : str or list
         Attributes that will be compared to the reference.
+    attribute_type : str, optional (default: 'node')
+        Whether we are dealing with 'node' or 'edge' attributes
     nodes : list, optional (default: all nodes)
         Nodes for which the attributes should be returned.
+    edges : list, optional (default: all edges)
+        Edges for which the attributes should be returned.
     fig : :class:`matplotlib.figure.Figure`, optional (default: new Figure)
         Figure to which the plot should be added.
     title : str, optional (default: automatic).
@@ -646,7 +721,12 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     ref_data = reference_attribute
 
     if isinstance(reference_attribute, str):
-        ref_data = node_attributes(network, reference_attribute, nodes=nodes)
+        if attribute_type == "node":
+            ref_data = node_attributes(network, reference_attribute,
+                                       nodes=nodes)
+        else:
+            ref_data = network.get_edge_attributes(edges=edges,
+                                                   name=reference_attribute)
     else:
         reference_attribute = "user defined attribute"
 
@@ -654,7 +734,13 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
     assert isinstance(other_attributes, (str, list)), \
         "Only attribute names are allowed for `other_attributes`"
 
-    values = node_attributes(network, other_attributes, nodes=nodes)
+    values = {}
+
+    if attribute_type == "node":
+        values = node_attributes(network, other_attributes, nodes=nodes)
+    else:
+        for name in other_attributes:
+            values[name] = network.get_edge_attributes(edges=edges, name=name)
 
     fig, axes = _set_new_plot(fignum=fig.number, names=other_attributes)
 
@@ -671,11 +757,14 @@ def correlation_to_attribute(network, reference_attribute, other_attributes,
         axes[i].set_xlabel(attr[0].upper() + end_attr)
         axes[i].set_ylabel(reference_attribute[0].upper() + end_ref_attr)
         axes[i].set_title(
-            "{}{} vs {} for each ".format(
+            "{}{} vs {}".format(
                 reference_attribute[0].upper(), end_ref_attr, attr[0] + \
-                end_attr, network.name) + \
-            "node in {}".format(network.name),
+                end_attr),
             loc='left', x=0., y=1.05)
+
+    fig.suptitle(network.name)
+
+    plt.tight_layout()
 
     # adjust space, set title, and show
     _format_and_show(fig, 0, values, title, show)
@@ -807,36 +896,23 @@ def _log_format(y, pos):
     return y
 
 
-def _set_scale(ax1, maxbins, minbins, mincounts, maxcounts, logx, logy):
-    import matplotlib as mpl
+def _set_scale(ax1, xbins, mincounts, maxcounts, logx, logy):
     if logx:
-        ax1.set_xscale("log")
-        next_power = np.ceil(np.log10(maxbins))
-        #~ ax1.set_xlim([max(0.8, 0.8*minbins), 10**next_power])
-        ax1.set_xlim([0.8*minbins, 10**next_power])
+        minposbin = xbins[xbins > 0][0]
+        ax1.set_xscale("symlog", linthresh=0.2*minposbin)
+        next_power = np.ceil(np.log10(xbins.max()))
+        ax1.set_xlim([0.8*xbins.min(), 10**next_power])
     else:
+        maxbins, minbins = xbins.max(), xbins.min()
         bin_margin = 0.05*(maxbins - minbins)
         if minbins - bin_margin < ax1.get_xlim()[0]:
             ax1.set_xlim(left=(minbins - bin_margin))
         if maxbins + bin_margin > ax1.get_xlim()[1]:
             ax1.set_xlim(right=(maxbins + bin_margin))
+
     if logy:
-        #~ ax1.set_ylim([-1, 1.05*maxcounts])
-        #~ # add 1 to power (log values incremented by one)
-        #~ max_power = int(np.ceil(np.log10(maxcounts))) + 2
-        #~ ticks = [-1, 0]
-        #~ ticks.extend([np.log(10**n) for n in range(1, max_power + 1)])
-        #~ arr_ticks = np.array(ticks[1:])
-        #~ minorticks = []
-        #~ for i in range(2, 10):
-            #~ minorticks.extend(np.log(i) + arr_ticks)
-        #~ ax1.set_yticks(ticks)
-        #~ # ~ ax1.set_yminorticks(minorticks)
-        #~ minorticks = mpl.ticker.FixedLocator(minorticks)
-        #~ ax1.yaxis.set_minor_locator(minorticks)
-        #~ ax1.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(_log_format))
-        ax1.set_ylim(mincounts*0.1, 2*maxcounts)
-        ax1.set_yscale("log")
+        ax1.set_ylim(0, 2*maxcounts)
+        ax1.set_yscale("symlog", linthresh=1)
     else:
         if 1.05*maxcounts > ax1.get_ylim()[1]:
             ax1.set_ylim([0, 1.05*maxcounts])

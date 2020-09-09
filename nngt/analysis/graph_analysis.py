@@ -1072,17 +1072,18 @@ def betweenness_distrib(graph, weights=None, nodes=None, num_nbins='bayes',
 
     if nodes is not None:
         ia_nbetw = ia_nbetw[nodes]
+
     ra_nbins, ra_ebins = None, None
+
     if num_ebins == 'bayes' or log:
         ra_ebins = binning(ia_ebetw, bins=num_ebins, log=log)
     else:
         ra_ebins = num_ebins
+
     if num_nbins == 'bayes' or log:
         ra_nbins = binning(ia_nbetw, bins=num_nbins, log=log)
     else:
         ra_nbins = num_nbins
-
-    ra_ebins = binning(ia_ebetw, bins=num_ebins, log=log)
 
     ncounts, nbetw = np.histogram(ia_nbetw, ra_nbins)
     ecounts, ebetw = np.histogram(ia_ebetw, ra_ebins)
