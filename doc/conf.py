@@ -208,6 +208,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'linksourcecode',
     'extlinks_fancy',
+    'sphinx_gallery.gen_gallery',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -548,3 +549,11 @@ extlinks_fancy = {
     'nxdoc': (['https://networkx.github.io/documentation/stable/reference/{0}generated/networkx.{1}.html'], ['networkx - {0}'])
 }
 
+# sphinx gallery parameters
+
+sphinx_gallery_conf = {
+     'examples_dirs': ['examples/graph_structure', 'examples/graph_properties'],  # path to your example scripts
+     'gallery_dirs': ['gallery/graph_structure', 'gallery/graph_properties'],  # path to where to save gallery generated output
+     'thumbnail_size': (400, 400),
+     'capture_repr': (),
+}

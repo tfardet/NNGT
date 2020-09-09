@@ -91,14 +91,7 @@ The docs
    user/install
    user/intro
    user/tutorial
-
-.. ~ .. toctree::
-.. ~    :glob:
-.. ~    :maxdepth: 2
-.. ~    :caption: Developer space
-
-.. ~    developer/detailed-structure
-.. ~    developer/graph-attributes
+   gallery/gallery
 
 .. toctree::
    :glob:
