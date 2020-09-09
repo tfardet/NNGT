@@ -118,8 +118,51 @@ def test_library_plot():
                       restrict_edges=edges, show=False)
 
 
+@pytest.mark.mpi_skip
+@pytest.mark.skipif(nngt.get_config("backend") == "nngt", reason="Lib needed.")
+def test_hive_plot():
+    g = nngt.load_from_file(dirpath + "/Networks/rat_brain.graphml",
+                            attributes=["weight"], cleanup=True,
+                            attributes_types={"weight": float})
+
+    cc = nngt.analysis.local_clustering(g, weights="weight")
+
+    g.new_node_attribute("cc", "double", values=cc)
+
+    g.new_node_attribute("strength", "double",
+                         values=g.get_degrees(weights="weight"))
+
+    g.new_node_attribute(
+        "SC", "double", values=nngt.analysis.subgraph_centrality(g))
+
+    cc_bins = [0, 0.1, 0.25, 0.6]
+
+    nplt.hive_plot(g, g.get_degrees(), axes="cc", axes_bins=cc_bins)
+
+    nplt.hive_plot(g, "strength", axes="cc", axes_bins=cc_bins,
+                   axes_units="rank")
+
+    nplt.hive_plot(g, "strength", axes="SC", axes_bins=4,
+                   axes_colors="brg")
+
+    rad_axes = ["cc", "strength", "SC"]
+    nplt.hive_plot(g, rad_axes, rad_axes,
+                   node_size=g.get_degrees(), max_nsize=50)
+
+    # check errors
+    with pytest.raises(ValueError):
+        nplt.hive_plot(g, [cc, "closeness", "strength"])
+        nplt.hive_plot(g, 124)
+
+    with pytest.raises(AssertionError):
+        nplt.hive_plot(g, cc, axes=[1, 2, 3])
+        nplt.hive_plot(g, cc, axes=1)
+        nplt.hive_plot(g, cc, axes="groups")
+
+
 if __name__ == "__main__":
     test_plot_config()
     test_plot_prop()
     test_draw_network_options()
     test_library_plot()
+    test_hive_plot()
