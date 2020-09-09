@@ -94,13 +94,6 @@ if on_rtd:
         def __bases__(self):
             return (object,)
 
-    mock_objects_modules = [
-        "shapely", "shapely.affinity", "shapely.geometry", "dxfgrabber"
-    ]
-
-    for mod in mock_objects_modules:
-        sys.modules[mod] = mock_object
-
     sys.modules["nest"] = Mock()
 
 
