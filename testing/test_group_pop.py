@@ -47,6 +47,9 @@ def test_add_nodes():
 
     assert nodes == g.ids
 
+    with pytest.raises(ValueError):
+        g.add_nodes(10)
+
 
 def test_population():
     # basic population
