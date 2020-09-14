@@ -34,13 +34,13 @@ from nngt import MetaNeuralGroup, NeuralGroup, NeuralPop
 # the default group is empty, which is not very useful in general
 empty_group = nngt.Group()
 print(empty_group)
-print("Group is empty?", empty_group.size == 0, "\nIt is therefore invalid?",
-      "No!" if empty_group.is_valid else "Yes!", "\n")
+print("Group is empty?", empty_group.size == 0, "\nIt has therefore no ids:",
+      empty_group.ids, "\n")
 
 # to create a useful group, one can just say how many nodes it should contain
 group1 = Group(500)  # a group with 500 nodes
-print("Ids are not created", group1.ids,
-      "but the size is stored:", group1.size, "\n")
+print("Ids are not created", group1.ids, "len(group1) is", len(group1),
+      "but the size is stored in group1.size:", group1.size, "\n")
 
 # if you want to set the ids directly, you can pass them directly, otherwise
 # they will be determine automatically when a Network is created with the group

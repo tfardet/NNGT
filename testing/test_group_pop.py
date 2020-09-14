@@ -36,6 +36,18 @@ def test_groups():
     assert g3.name == "test"
 
 
+def test_add_nodes():
+    g = nngt.Group()
+
+    assert not g.ids
+
+    nodes = list(range(10))
+
+    g.add_nodes(nodes)
+
+    assert nodes == g.ids
+
+
 def test_population():
     # basic population
     ids1 = [i for i in range(10)]
@@ -146,6 +158,7 @@ def test_group_structure():
 
 if __name__ == "__main__":
     test_groups()
+    test_add_nodes()
     test_population()
     test_failed_pop()
     test_group_structure()
