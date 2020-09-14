@@ -153,11 +153,6 @@ class NeuralPop(Structure):
         if not nonstring_container(groups):
             groups = [groups]
 
-        # check groups and names
-        for i, g in enumerate(groups):
-            name = " ('{}')".format(g.name) if g.name else ""
-            assert g.is_valid, "Group number " + str(i) + name + " is invalid."
-
         gsize = len(groups)
         names = [] if names is None else list(names)
 

@@ -28,7 +28,8 @@ from copy import deepcopy
 import numpy as np
 
 import nngt
-from nngt.lib import (InvalidArgument, nonstring_container, is_integer)
+from nngt.lib import InvalidArgument
+from nngt.lib.test_functions import deprecated, is_integer, nonstring_container
 from nngt.lib.logger import _log_message
 
 
@@ -125,11 +126,6 @@ class Structure(OrderedDict):
         '''
         if not nonstring_container(groups):
             groups = [groups]
-
-        # check groups and names
-        for i, g in enumerate(groups):
-            name = " ('{}')".format(g.name) if g.name else ""
-            assert g.is_valid, "Group number " + str(i) + name + " is invalid."
 
         gsize = len(groups)
         names = [] if names is None else list(names)
@@ -604,12 +600,15 @@ class Structure(OrderedDict):
             idx = list(self.keys()).index(group_name)
 
         if ids:
-            self[group_name].ids += list(ids)
+            self[group_name]._ids.update(ids)
 
             # update number of nodes
-            max_id = np.max(ids)
+            max_id = np.max(self[group_name].ids)
             _update_max_id_and_size(self, max_id)
             self._groups[np.array(ids)] = idx
+
+        if -1 not in list(self._groups):
+            self._is_valid = True
 
     def _validity_check(self, name, group):
         # check pairwise disjoint property for groups
@@ -632,11 +631,17 @@ class Group:
     Its main variables are:
 
     :ivar ~nngt.Group.ids: :obj:`list` of :obj:`int`
-        the ids of the nodes in this group.*
+        the ids of the nodes in this group.
     :ivar ~nngt.Group.properties: dict, optional (default: {})
         properties associated to the nodes
     :ivar ~nngt.Group.is_metagroup: :obj:`bool`
         whether the group is a meta-group or not.
+
+    Note
+    ----
+    A :class:`Group` contains a set of nodes that are unique;
+    the size of the group is the number of unique nodes contained in the group.
+    Passing non-unique nodes will automatically convert them to a unique set.
 
     Warning
     -------
@@ -683,13 +688,13 @@ class Group:
 
         if nodes is None:
             self._desired_size = None
-            self._ids = []
+            self._ids = set()
         elif nonstring_container(nodes):
             self._desired_size = None
-            self._ids = list(nodes)
+            self._ids = set(nodes)
         elif is_integer(nodes):
             self._desired_size = nodes
-            self._ids = []
+            self._ids = set()
         else:
             raise InvalidArgument('`nodes` must be either array-like or int.')
 
@@ -713,7 +718,7 @@ class Group:
         return False
 
     def __len__(self):
-        return self.size
+        return len(self.ids)
 
     def __str__(self):
         return "Group({}size={})".format(
@@ -729,6 +734,24 @@ class Group:
         copy = Group(nodes=self._ids, properties=self._props, name=self._name)
 
         return copy
+
+    def add_nodes(self, nodes):
+        '''
+        Add nodes to the group.
+
+        Parameters
+        ----------
+        nodes : list of ids
+        '''
+        if not nonstring_container(nodes):
+            raise ValueError("`nodes` must be a list of ids.")
+
+        parent = self.parent
+
+        if parent is not None:
+            parent.add_to_group(self.name, nodes)
+        else:
+            self._ids.update(nodes)
 
     @property
     def name(self):
@@ -753,27 +776,29 @@ class Group:
 
     @property
     def ids(self):
-        return self._ids
+        return list(self._ids)
 
     @ids.setter
     def ids(self, value):
-        if self._desired_size != len(value):
+        data = set(value)
+
+        if self._desired_size is not None and self._desired_size != len(data):
             _log_message(logger, "WARNING",
-                         'The length of the `ids` passed is not the same as '
-                         'the initial size that was declared: {} before '
+                         'The number of unique `ids` passed is not the same '
+                         'as the initial size that was declared: {} before '
                          'vs {} now. Setting `ids` anyway, but check your '
                          'code!'.format(self._desired_size, len(value)))
-        self._ids = value
+        self._ids = data
         self._desired_size = None
 
     @property
+    @deprecated("2.2", reason="it is not useful", removal="3.0")
     def is_valid(self):
         '''
         Whether the group can be used in a structure: i.e. if it has
         either a size or some ids associated to it.
         '''
-        return (True if (self._desired_size is not None)
-                or self._ids else False)
+        return True
 
     @property
     def is_metagroup(self):
@@ -836,12 +861,16 @@ def _update_max_id_and_size(neural_pop, max_id):
     '''
     Update Structure after modification of a Group ids.
     '''
-    old_max_id   = neural_pop._max_id
+    old_max_id = neural_pop._max_id
+
     neural_pop._max_id = max(neural_pop._max_id, max_id)
+
     # update size
-    neural_pop._size   = 0
+    neural_pop._size = 0
+
     for g in neural_pop.values():
         neural_pop._size += g.size
+
     # update the group node property
     if neural_pop._groups is None:
         neural_pop._groups = np.repeat(-1, neural_pop._max_id + 1)

@@ -41,7 +41,7 @@ from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.connect_tools import _set_degree_type, _unique_rows
 from nngt.lib.graph_helpers import _edge_prop
 from nngt.lib.logger import _log_message
-from nngt.lib.test_functions import graph_tool_check, deprecated, is_integer
+from nngt.lib.test_functions import graph_tool_check, is_integer
 
 from .connections import Connections
 
@@ -541,7 +541,7 @@ class Graph(nngt.core.GraphObject):
                         self._struct = structure
                     else:
                         raise AttributeError(
-                            "Structure is not valid (not all  nodes are "
+                            "Structure is not valid (not all nodes are "
                             "associated to a group).")
                 else:
                     raise AttributeError("Graph and Structure must have same "
@@ -787,38 +787,6 @@ class Graph(nngt.core.GraphObject):
 
     @property
     def edge_attributes(self):
-        '''
-        Access edge attributes.
-
-        See also
-        --------
-        :attr:`~nngt.Graph.node_attributes`,
-        :attr:`~nngt.Graph.get_edge_attributes`,
-        :attr:`~nngt.Graph.new_edge_attribute`,
-        :attr:`~nngt.Graph.set_edge_attribute`.
-        '''
-        return self._eattr
-
-    @property
-    @deprecated("2.0", reason="it was inconsistent with naming conventions",
-                alternative="node_attributes", removal="2.1")
-    def nodes_attributes(self):
-        '''
-        Access node attributes.
-
-        See also
-        --------
-        :attr:`~nngt.Graph.edge_attributes`,
-        :attr:`~nngt.Graph.get_node_attributes`,
-        :attr:`~nngt.Graph.new_node_attribute`,
-        :attr:`~nngt.Graph.set_node_attribute`.
-        '''
-        return self._nattr
-
-    @property
-    @deprecated("2.0", reason="it was inconsistent with naming conventions",
-                alternative="edge_attributes", removal="2.1")
-    def edges_attributes(self):
         '''
         Access edge attributes.
 
