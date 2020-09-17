@@ -734,19 +734,16 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
         Wu = W
 
         if g.is_directed():
-            Wu = W + W.T
-
-            if not directed:
-                # find reciprocal edges
-                if combine_weights != "sum":
-                    recip = (W*W).nonzero()
-
-                    if combine_weights == "mean":
-                        Wu[recip] *= 0.5
-                    elif combine_weights == "min":
-                        Wu[recip] = mat[recip].minimum(mat.T[recip])
-                    elif combine_weights == "max":
-                        Wu[recip] = mat[recip].maximum(mat.T[recip])
+            if directed or combine_weights == "sum":
+                Wu  = W + W.T
+                Wu /= Wu.max()
+            elif not directed:
+                if combine_weights == "min":
+                    Wu = W.minimum(W.T)
+                elif combine_weights == "max":
+                    Wu = W.maximum(W.T)
+                else:
+                    Wu = 0.5*(W + W.T)
 
         return W, Wu
 

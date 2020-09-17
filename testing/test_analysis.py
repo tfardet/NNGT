@@ -296,7 +296,7 @@ def test_weighted_directed_clustering():
     # onnela
     triplets_o  = np.array([8, 4, 10, 0, 0, 0])
     triangles_o = np.array(
-        [0.672764902429877, 0.672764902429877, 0.672764902429877, 0, 0, 0])
+        [0.3363824512149384, 0.3363824512149384, 0.3363824512149384, 0, 0, 0])
 
     assert np.array_equal(triplets_o, na.triplet_count(g))
 
@@ -309,6 +309,27 @@ def test_weighted_directed_clustering():
     cc = na.local_clustering(g, weights='weight', method='onnela')
 
     assert np.all(np.isclose(cc, expected))
+
+
+@pytest.mark.mpi_skip
+def test_clustering_parameters():
+    W = np.array([
+        [0, 1, 1, 1.],
+        [1, 0, 1, 0],
+        [1, 1, 0, 0],
+        [1, 0, 0, 0]
+    ])
+
+    g = nngt.Graph.from_matrix(W, directed=True)
+
+    cc_bu = na.local_clustering_binary_undirected(g)
+
+    for m in methods:
+        for combine in ("sum", "max", "min", "mean"):
+            cc_wu = na.local_clustering(g, directed=False, weights=True,
+                                        combine_weights=combine, method=m)
+
+            assert np.all(np.isclose(cc_wu, cc_bu))
 
 
 @pytest.mark.mpi_skip
@@ -569,3 +590,4 @@ if __name__ == "__main__":
         test_iedges()
         test_swp()
         test_partial_directed_clustering()
+        test_clustering_parameters()
