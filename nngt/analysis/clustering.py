@@ -641,7 +641,7 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
             if mode == "total":
                 s2_sq_tot = np.square(sqmat.sum(axis=0).A1 +
                                       sqmat.sum(axis=1).A1)
-                s_tot     = matsym.sum(axis=0).A1
+                s_tot     = mat.sum(axis=0).A1 + mat.sum(axis=1).A1
                 s_recip   = 2*(sqmat*sqmat).diagonal()
 
                 tr = s2_sq_tot - s_tot - s_recip
@@ -663,7 +663,7 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
             sqmat = matsym.sqrt()
 
             s2_sq = np.square(sqmat.sum(axis=0).A1)
-            s     = mat.sum(axis=0).A1
+            s     = matsym.sum(axis=0).A1
 
             tr = 0.5*(s2_sq - s)
     elif method == "barrat":
@@ -734,9 +734,8 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
         Wu = W
 
         if g.is_directed():
-            if directed or combine_weights == "sum":
+            if directed:
                 Wu  = W + W.T
-                Wu /= Wu.max()
             elif not directed:
                 if combine_weights == "min":
                     Wu = W.minimum(W.T)
