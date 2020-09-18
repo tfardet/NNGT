@@ -84,9 +84,8 @@ for i in range(len(todo)):
         size = todo[list(set([0, 1, 2]).difference([i, j]))[0]]
 
         nngt.plot.hive_plot(
-            g, radial, axes=ax_name, edge_alpha=0.1, node_size=size,
-            max_nsize=50, axes_bins=ax_bins, axes_units="native", axis=ax,
-            show_names=False)
+            g, radial, axes=ax_name, edge_alpha=0.1, nsize=size, max_nsize=50,
+            axes_bins=ax_bins, axes_units="native", axis=ax, show_names=False)
 
 for i in range(len(todo)):
     fig.text(0.03, 0.8 - i*0.33, todo[i], rotation=90, fontsize="large")

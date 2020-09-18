@@ -158,22 +158,22 @@ Sphinx gallery image size
 */
 
 .sphx-glr-thumbcontainer {
-    min-height: 320px !important;
+    min-height: 330px !important;
     margin-bottom: 10px !important;
 }
 
 .sphx-glr-thumbcontainer .figure {
-    width: 300px !important;
+    width: 320px !important;
 }
 
 .sphx-glr-thumbcontainer img {
-    max-height: 280px !important;
+    max-height: 300px !important;
     width: 300px !important;
     max-width: 300px !important;
 }
 
 .sphx-glr-thumbcontainer a.internal {
-    padding: 290px 10px 0 !important;
+    padding: 310px 10px 0 !important;
 }
 
 div.sphx-glr-download a {
