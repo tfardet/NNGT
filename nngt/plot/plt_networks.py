@@ -726,10 +726,11 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
     nsize = _get_size(nsize, max_nsize, ax_nodes, network)
 
     nedges = network.edge_nb()
-    esize  = [1]*nedges if esize is None else network.edge_attributes[esize]
+
+    esize = np.ones(nedges) if esize is None else network.edge_attributes[esize]
     esize *= max_esize / esize.max()
 
-    esize  = {tuple(e): s for e, s in zip(network.edges_array, esize)}
+    esize = {tuple(e): s for e, s in zip(network.edges_array, esize)}
 
     # get the colors
     ncolors, ecolors = _get_colors(axes_colors, edge_colors, angles, num_axes,
