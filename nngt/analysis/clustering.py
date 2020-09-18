@@ -249,14 +249,13 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
 
-        * "sum": the sum of the edge attribute values will be used for the new
-          edge.
-        * "mean": the mean of the edge attribute values will be used for the
-          new edge.
         * "min": the minimum of the edge attribute values will be used for the
           new edge.
         * "max": the maximum of the edge attribute values will be used for the
           new edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "sum": equivalent to mean due to weight normalization.
 
     Returns
     -------
@@ -641,7 +640,7 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
             if mode == "total":
                 s2_sq_tot = np.square(sqmat.sum(axis=0).A1 +
                                       sqmat.sum(axis=1).A1)
-                s_tot     = matsym.sum(axis=0).A1
+                s_tot     = mat.sum(axis=0).A1 + mat.sum(axis=1).A1
                 s_recip   = 2*(sqmat*sqmat).diagonal()
 
                 tr = s2_sq_tot - s_tot - s_recip
@@ -663,7 +662,7 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
             sqmat = matsym.sqrt()
 
             s2_sq = np.square(sqmat.sum(axis=0).A1)
-            s     = mat.sum(axis=0).A1
+            s     = matsym.sum(axis=0).A1
 
             tr = 0.5*(s2_sq - s)
     elif method == "barrat":
@@ -734,24 +733,20 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
         Wu = W
 
         if g.is_directed():
-            Wu = W + W.T
-
-            if not directed:
-                # find reciprocal edges
-                if combine_weights != "sum":
-                    recip = (W*W).nonzero()
-
-                    if combine_weights == "mean":
-                        Wu[recip] *= 0.5
-                    elif combine_weights == "min":
-                        Wu[recip] = mat[recip].minimum(mat.T[recip])
-                    elif combine_weights == "max":
-                        Wu[recip] = mat[recip].maximum(mat.T[recip])
+            if directed:
+                Wu  = W + W.T
+            elif not directed:
+                if combine_weights == "min":
+                    Wu = W.minimum(W.T)
+                elif combine_weights == "max":
+                    Wu = W.maximum(W.T)
+                else:
+                    Wu = 0.5*(W + W.T)
 
         return W, Wu
 
     # binary undirected
-    A  = g.adjacency_matrix()
+    A = g.adjacency_matrix()
 
     # remove potential self-loops
     A.setdiag(0.)
