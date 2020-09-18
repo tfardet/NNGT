@@ -170,7 +170,8 @@ class Graph(nngt.core.GraphObject):
             else:
                 weights = matrix[edges[:, 0], edges[:, 1]]
 
-        graph.new_edges(edges, {"weight": weights}, ignore_invalid=True)
+        graph.new_edges(edges, {"weight": weights}, check_self_loops=False,
+                        ignore_invalid=True)
 
         return graph
 
