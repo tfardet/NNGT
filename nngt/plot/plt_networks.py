@@ -577,11 +577,11 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
 
 def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
               axes_angles=None, axes_labels=None, axes_units=None,
-              intra_connections=True, highlight_nodes=None, node_size=None,
-              max_nsize=10, axes_colors=None, edge_colors=None,
-              edge_alpha=0.05, nborder_color="k", nborder_width=0.2,
-              show_names=True, show_circles=False, axis=None, tight=True,
-              show=False):
+              intra_connections=True, highlight_nodes=None,
+              highlight_edges=None, nsize=None, esize=None, max_nsize=10,
+              max_esize=1, axes_colors=None, edge_colors=None, edge_alpha=0.05,
+              nborder_color="k", nborder_width=0.2, show_names=True,
+              show_circles=False, axis=None, tight=True, show=False):
     '''
     Draw a hive plot of the graph.
 
@@ -607,7 +607,8 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
         Name of the attribute(s) that will be used to make each of the axes
         (i.e. each group of nodes).
         This can be either "groups" if the graph has a structure or is a
-        :class:`~nngt.Network`, or any (list of) node attribute(s).
+        :class:`~nngt.Network`, a list of (Meta)Group names, or any (list of)
+        node attribute(s).
         If a single node attribute is used, `axes_bins` must be provided to
         make one axis for each range of values.
         If there are multiple radial coordinates, then leaving `axes` blanck
@@ -641,12 +642,19 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
     highlight_nodes : list of nodes, optional (default: all nodes)
         Highlight a subset of nodes and their connections, all other nodes
         and connections will be gray.
-    node_size : float, str, or array-like, optional (default: automatic)
+    highlight_edges : list of edges, optional (default: all edges)
+        Highlight a subset of edges; all other connections will be gray.
+    nsize : float, str, or array-like, optional (default: automatic)
         Size of the nodes on the axes. Either a fixed size, the name of a
         node attribute, or a list of user-defined values.
-    max_nsize : float, optional (default: 0.05)
-        Maximum node size if `node_size` is an attribute or a list of
+    esize : float or str, optional (default: 1)
+        Size of the edges. Either a fixed size or the name of an edge
+        attribute.
+    max_nsize : float, optional (default: 10)
+        Maximum node size if `nsize` is an attribute or a list of
         user-defined values.
+    max_esize : float, optional (default: 1)
+        Maximum edge size if `esize` is an attribute.
     axes_colors : valid matplotlib color/colormap, optional (default: Set1)
         Color associated to each axis.
     nborder_color : matplotlib color, optional (default: "k")
@@ -683,11 +691,14 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
     ax_names, ax_nodes, ax_radco = _get_axes_nodes(
         network, radial, axes, axes_bins, num_axes, num_radial)
 
-    # get highlighted nodes
+    # get highlighted nodes and edges
     if highlight_nodes:
         highlight_nodes = set(highlight_nodes)
     else:
         highlight_nodes= set()
+
+    if highlight_edges is not None:
+        highlight_edges = {tuple(e) for e in highlight_edges}
 
     # get units, maximum values for the axes, renormalize radial values
     if axes_units is None:
@@ -712,7 +723,14 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
         angles = [a*np.pi/180 for a in ax_angles]
 
     # renormalize the sizes
-    node_size = _get_size(node_size, max_nsize, ax_nodes, network)
+    nsize = _get_size(nsize, max_nsize, ax_nodes, network)
+
+    nedges = network.edge_nb()
+
+    esize = np.ones(nedges) if esize is None else network.edge_attributes[esize]
+    esize *= max_esize / esize.max()
+
+    esize = {tuple(e): s for e, s in zip(network.edges_array, esize)}
 
     # get the colors
     ncolors, ecolors = _get_colors(axes_colors, edge_colors, angles, num_axes,
@@ -762,13 +780,13 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
                 if highlight_nodes:
                     greys = list(set(nn).difference(highlight_nodes))
 
-                    _plot_nodes(greys, node_size, xx, yy, "grey",
+                    _plot_nodes(greys, nsize, xx, yy, "grey",
                                 nborder_width, nborder_color, axis, zorder=3)
 
                 hlght = (nn if not highlight_nodes
                          else list(highlight_nodes.intersection(nn)))
 
-                _plot_nodes(hlght, node_size, xx, yy, ncolors[i],
+                _plot_nodes(hlght, nsize, xx, yy, ncolors[i],
                             nborder_width, nborder_color, axis, zorder=4)
         else:
             node_pos.extend([[]]*(1 + intra_connections))
@@ -789,7 +807,7 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
             idx_s, idx_t = _get_ax_angles(
                 angles, i, j, intra_connections)
 
-            # get the sources
+            # get the edges
             edges = network.get_edges(source_node=n1, target_node=n2)
 
             if len(edges):
@@ -798,17 +816,27 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
                 paths_greys = []
                 paths_hghlt = []
 
+                lw = []
+
                 for (ns, nt) in edges:
                     pstart = node_pos[idx_s][ns]
                     pstop  = node_pos[idx_t][nt]
 
-                    contains = ns in highlight_nodes or nt in highlight_nodes
+                    contains = True
 
-                    if not highlight_nodes or contains:
+                    if highlight_edges is not None:
+                        contains = (ns, nt) in highlight_edges
+                    elif highlight_nodes is not None:
+                        contains = \
+                            ns in highlight_nodes or nt in highlight_nodes
+
+                    if highlight_edges is None or contains:
                         paths_hghlt.append(_plot_bezier(
                             pstart, pstop, angles[idx_s], angles[idx_t],
                             radial_values[i][ns], radial_values[j][nt], i, j,
                             num_axes, xs, ys))
+
+                        lw.append(esize[(ns, nt)])
                     else:
                         paths_greys.append(_plot_bezier(
                             pstart, pstop, angles[idx_s], angles[idx_t],
@@ -818,14 +846,14 @@ def hive_plot(network, radial, axes=None, axes_bins=None, axes_range=None,
                 if paths_greys:
                     pcol = PathCollection(
                         paths_greys, facecolors="none", edgecolors="grey",
-                        alpha=0.1*edge_alpha)
+                        alpha=0.1*edge_alpha, zorder=1)
 
                     axis.add_collection(pcol)
 
                 alpha = 0.7 if highlight_nodes else edge_alpha
 
-                pcol = PathCollection(paths_hghlt, facecolors="none",
-                                      edgecolors=color, alpha=alpha)
+                pcol = PathCollection(paths_hghlt, facecolors="none", lw=lw,
+                                      edgecolors=color, alpha=alpha, zorder=2)
 
                 axis.add_collection(pcol)
 

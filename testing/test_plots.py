@@ -147,7 +147,7 @@ def test_hive_plot():
 
     rad_axes = ["cc", "strength", "SC"]
     nplt.hive_plot(g, rad_axes, rad_axes,
-                   node_size=g.get_degrees(), max_nsize=50)
+                   nsize=g.get_degrees(), max_nsize=50)
 
     # check errors
     with pytest.raises(ValueError):
