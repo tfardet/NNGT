@@ -331,28 +331,32 @@ def test_clustering_parameters():
 
             assert np.all(np.isclose(cc_wu, cc_bu))
 
-    W = np.array([
-        [0, 1, 1, 0.6],
-        [1, 0, 1, 0],
-        [1, 1, 0, 0],
-        [0.4, 0, 0, 0]
-    ])
+    # check different but equivalent matrices
+    for m in methods:
+        W = np.array([
+            [0, 1, 1, 0.6],
+            [1, 0, 1, 0],
+            [1, 1, 0, 0],
+            [0.4, 0, 0, 0]
+        ])
 
-    g = nngt.Graph.from_matrix(W, directed=True)
+        g = nngt.Graph.from_matrix(W, directed=True)
 
-    print(na.local_clustering(g, directed=False, weights=True,
-                                        combine_weights="sum", method="onnela"))
+        cc_sum = na.local_clustering(g, directed=False, weights="weight",
+                                     combine_weights="mean", method=m)
 
-    W = np.array([
-        [0, 1, 1, 0.5],
-        [1, 0, 1, 0],
-        [1, 1, 0, 0],
-        [0.5, 0, 0, 0]
-    ])
+        W = np.array([
+            [0, 1, 1, 0.5],
+            [1, 0, 1, 0],
+            [1, 1, 0, 0],
+            [0.5, 0, 0, 0]
+        ])
 
-    g = nngt.Graph.from_matrix(W, directed=False)
+        g = nngt.Graph.from_matrix(W, directed=False)
 
-    print(na.local_clustering(g, weights=True, method="onnela"))
+        cc_sym = na.local_clustering(g, weights="weight", method=m)
+
+        assert np.all(np.isclose(cc_sum, cc_sym))
 
 
 @pytest.mark.mpi_skip

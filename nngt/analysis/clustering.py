@@ -249,14 +249,13 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         How to combine the weights of reciprocal edges if the graph is directed
         but `directed` is set to False. It can be:
 
-        * "sum": the sum of the edge attribute values will be used for the new
-          edge.
-        * "mean": the mean of the edge attribute values will be used for the
-          new edge.
         * "min": the minimum of the edge attribute values will be used for the
           new edge.
         * "max": the maximum of the edge attribute values will be used for the
           new edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "sum": equivalent to mean due to weight normalization.
 
     Returns
     -------
@@ -747,7 +746,7 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
         return W, Wu
 
     # binary undirected
-    A  = g.adjacency_matrix()
+    A = g.adjacency_matrix()
 
     # remove potential self-loops
     A.setdiag(0.)
