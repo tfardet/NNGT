@@ -142,12 +142,18 @@ def test_hive_plot():
     nplt.hive_plot(g, "strength", axes="cc", axes_bins=cc_bins,
                    axes_units="rank")
 
-    nplt.hive_plot(g, "strength", axes="SC", axes_bins=4,
-                   axes_colors="brg")
+    # set colormap and highlight nodes
+    nodes = list(range(g.node_nb(), 3))
 
+    nplt.hive_plot(g, "strength", axes="SC", axes_bins=4,
+                   axes_colors="brg", highlight_nodes=nodes)
+
+    # multiple radial axes and edge highlight
     rad_axes = ["cc", "strength", "SC"]
+    edges    = g.get_edges(source_node=nodes)
+
     nplt.hive_plot(g, rad_axes, rad_axes,
-                   node_size=g.get_degrees(), max_nsize=50)
+                   nsize=g.get_degrees(), max_nsize=50, highlight_edges=edges)
 
     # check errors
     with pytest.raises(ValueError):

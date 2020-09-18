@@ -251,16 +251,19 @@ class Structure(OrderedDict):
 
         return newstate
 
+    def __contains__(self, key):
+        return super().__contains__(key) or key in self._meta_groups
+
     def __getitem__(self, key):
         if isinstance(key, (int, np.integer)):
             assert key >= 0, "Index must be positive, not {}.".format(key)
             new_key = tuple(self.keys())[key]
             return OrderedDict.__getitem__(self, new_key)
         else:
-            if key in self:
-                return OrderedDict.__getitem__(self, key)
-            elif key in self._meta_groups:
+            if key in self._meta_groups:
                 return self._meta_groups[key]
+            elif key in self:
+                return OrderedDict.__getitem__(self, key)
             else:
                 raise KeyError("Not (meta) group named '{}'.".format(key))
 

@@ -118,10 +118,22 @@ def _get_axes_nodes(network, radial, axes, axes_bins, num_axes, num_radial):
 
     if num_radial == 1:
         if axes_bins is None:
+            struct = network.structure
+
             # each axis is a node attribute or a group
             if axes == 'groups':
                 ax_names = list(network.structure)
                 ax_nodes = [g.ids for g in network.structure.values()]
+                ax_radco = (radial if nonstring_container(radial)
+                            else network.node_attributes[radial]
+                            for _ in range(num_axes))
+            elif struct is not None and axes[0] in struct:
+                for elt in axes:
+                    assert elt in struct, \
+                        "'{}' is not in the graph Structure.".format(elt)
+
+                ax_names = list(axes)
+                ax_nodes = [struct[n].ids for n in axes]
                 ax_radco = (radial if nonstring_container(radial)
                             else network.node_attributes[radial]
                             for _ in range(num_axes))
@@ -239,7 +251,7 @@ def _get_size(node_size, max_nsize, ax_nodes, network):
     elif isinstance(node_size, float):
         return np.repeat(node_size, network.node_nb())
 
-    raise ValueError("`node_size` must be float, str, or array-like")
+    raise ValueError("`nsize` must be float, attribute name, or array-like")
 
 
 def _get_colors(axes_colors, edge_colors, angles, num_axes, intra_connections,
