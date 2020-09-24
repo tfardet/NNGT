@@ -202,22 +202,24 @@ def _get_edges_neighbour(lst_lines, attributes, ignore, notifier, separator,
 
         if line and not (line.startswith(notifier) or line.startswith(ignore)):
             len_first_delim = line.find(separator)
-            source = int(line[:len_first_delim])
-            len_first_delim += 1
 
-            if len_first_delim:
-                neighbours = line[len_first_delim:].split(separator)
+            if len_first_delim > 0:
+                source = int(line[:len_first_delim])
+                len_first_delim += 1
 
-                for stub in neighbours:
-                    content = stub.split(secondary)
-                    target = int(content[0])
+                if len_first_delim:
+                    neighbours = line[len_first_delim:].split(separator)
 
-                    edges.append((source, target))
+                    for stub in neighbours:
+                        content = stub.split(secondary)
+                        target = int(content[0])
 
-                    attr_val = content[1:] if len(content) > 1 else []
+                        edges.append((source, target))
 
-                    for name, val in zip(attributes, attr_val):
-                        di_attributes[name].append(di_convert[name](val))
+                        attr_val = content[1:] if len(content) > 1 else []
+
+                        for name, val in zip(attributes, attr_val):
+                            di_attributes[name].append(di_convert[name](val))
 
     return edges
 
