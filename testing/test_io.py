@@ -193,10 +193,10 @@ def test_str_attributes():
 
     g.new_edge(0, 1)
 
-    g.new_edge_attribute("type", "str")
+    g.new_edge_attribute("type", "string")
     g.set_edge_attribute("type", val='odd')
 
-    g.new_node_attribute("rnd", "str")
+    g.new_node_attribute("rnd", "string")
     g.set_node_attribute("rnd", values=["sadf", "sdfr"])
 
     for fmt in ("neighbour", "edge_list"):
@@ -206,8 +206,6 @@ def test_str_attributes():
 
         assert np.array_equal(g.edges_array, h.edges_array)
 
-
-        print(h.edge_attributes["type"])
         assert np.array_equal(g.edge_attributes["type"],
                               h.edge_attributes["type"])
 
@@ -227,6 +225,6 @@ def test_str_attributes():
 suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
-    unittest.main()
-    test_empty_out_degree()
+    # ~ unittest.main()
+    # ~ test_empty_out_degree()
     test_str_attributes()

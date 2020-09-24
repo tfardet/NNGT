@@ -38,7 +38,7 @@ from nngt.lib.logger import _log_message
 from ..geometry import Shape, _shapely_support
 from .io_helpers import _get_format
 from .saving_helpers import (_neighbour_list, _edge_list, _gml, _custom_info,
-                           _gml_info)
+                           _gml_info, _str_bytes_len)
 
 
 logger = logging.getLogger(__name__)
