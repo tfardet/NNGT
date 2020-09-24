@@ -15,6 +15,7 @@ import os
 import unittest
 
 import numpy as np
+import pytest
 
 import nngt
 from nngt.lib.test_functions import _old_graph_tool
@@ -169,7 +170,7 @@ class TestIO(TestBasis):
 
             self.assertTrue(allclose)
 
-
+@pytest.mark.mpi_skip
 def test_empty_out_degree():
     g = nngt.Graph(2)
 
@@ -188,6 +189,7 @@ def test_empty_out_degree():
         pass
 
 
+@pytest.mark.mpi_skip
 def test_str_attributes():
     g = nngt.Graph(2)
 
