@@ -15,6 +15,7 @@ import os
 import unittest
 
 import numpy as np
+import pytest
 
 import nngt
 from nngt.lib.test_functions import _old_graph_tool
@@ -169,6 +170,55 @@ class TestIO(TestBasis):
 
             self.assertTrue(allclose)
 
+@pytest.mark.mpi_skip
+def test_empty_out_degree():
+    g = nngt.Graph(2)
+
+    g.new_edge(0, 1)
+
+    for fmt in ("neighbour", "edge_list"):
+        nngt.save_to_file(g, current_dir + "g.graph", fmt=fmt)
+
+        h = nngt.load_from_file(current_dir + "g.graph", fmt=fmt)
+
+        assert np.array_equal(g.edges_array, h.edges_array)
+
+    try:
+        os.remove(current_dir + 'g.graph')
+    except:
+        pass
+
+
+@pytest.mark.mpi_skip
+def test_str_attributes():
+    g = nngt.Graph(2)
+
+    g.new_edge(0, 1)
+
+    g.new_edge_attribute("type", "string")
+    g.set_edge_attribute("type", val='odd')
+
+    g.new_node_attribute("rnd", "string")
+    g.set_node_attribute("rnd", values=["sadf", "sdfr"])
+
+    for fmt in ("neighbour", "edge_list"):
+        nngt.save_to_file(g, current_dir + "g.graph", fmt=fmt)
+
+        h = nngt.load_from_file(current_dir + "g.graph", fmt=fmt)
+
+        assert np.array_equal(g.edges_array, h.edges_array)
+
+        assert np.array_equal(g.edge_attributes["type"],
+                              h.edge_attributes["type"])
+
+        assert np.array_equal(g.node_attributes["rnd"],
+                              h.node_attributes["rnd"])
+
+    try:
+        os.remove(current_dir + 'g.graph')
+    except:
+        pass
+
 
 # ---------- #
 # Test suite #
@@ -178,3 +228,5 @@ suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
     unittest.main()
+    test_empty_out_degree()
+    test_str_attributes()
