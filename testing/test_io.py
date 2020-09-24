@@ -225,6 +225,6 @@ def test_str_attributes():
 suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
-    # ~ unittest.main()
-    # ~ test_empty_out_degree()
+    unittest.main()
+    test_empty_out_degree()
     test_str_attributes()
