@@ -344,8 +344,8 @@ def test_str_attr():
 
 
 def test_delays():
-    dmin  = 1.
-    dmax  = 8.
+    dmin = 1.
+    dmax = 8.
 
     d = {
         "distribution": "lin_corr", "correl_attribute": "distance",
