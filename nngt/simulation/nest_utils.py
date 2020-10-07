@@ -503,8 +503,8 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
         if nest_version == 3:
             rcrdrs = nest.GetNodes(properties={'model': 'spike_detector'})
         else:
-            rcrdrs = nest.GetNodes(
-                (0,), properties={'model': 'spike_detector'})[0]
+            rcrdrs = [[n] for n in nest.GetNodes(
+                (0,), properties={'model': 'spike_detector'})[0]]
 
     if network is not None and network.is_spatial() and save_positions:
         save_positions = True
