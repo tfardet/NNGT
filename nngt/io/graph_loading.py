@@ -107,7 +107,7 @@ def load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         ``int``).
         Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
         which must be followed by the relevant notifiers among ``@shape``,
-        ``@population``, and ``@graph``.
+        ``@structure``, and ``@graph``.
     ignore : str, optional (default: "#")
         Ignore lines starting with the `ignore` string.
     name : str, optional (default: from file information or 'LoadedGraph')
@@ -173,7 +173,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         ``int``).
         Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
         which must be followed by the relevant notifiers among ``@shape``,
-        ``@population``, and ``@graph``.
+        ``@structure``, and ``@graph``.
     ignore : str, optional (default: "#")
         Ignore lines starting with the `ignore` string.
     cleanup : bool, optional (default: False)
@@ -182,12 +182,16 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
 
     Returns
     -------
+    di_notif : dict
+        Dictionary containing the main graph arguments.
     edges : list of 2-tuples
         Edges of the graph.
-    di_attributes : dict
-        Dictionary containing the attribute name as key and its value as a
-        list sorted in the same order as `edges`.
-    pop : :class:`~nngt.NeuralPop`
+    di_nattributes : dict
+        Dictionary containing the node attributes.
+    di_eattributes : dict
+        Dictionary containing the edge attributes (name as key, value as a
+        list sorted in the same order as `edges`).
+    struct : :class:`~nngt.NeuralPop`
         Population (``None`` if not present in the file).
     shape : :class:`~nngt.geometry.Shape`
         Shape of the graph (``None`` if not present in the file).
@@ -199,7 +203,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         raise NotImplementedError("This function is not ready for MPI yet.")
 
     # load
-    lst_lines, pop, shape, positions = None, None, None, None
+    lst_lines, struct, shape, positions = None, None, None, None
     fmt = _get_format(fmt, filename)
 
     if fmt not in ("neighbour", "edge_list", "gml"):
@@ -275,14 +279,14 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
                          'A Shape object was present in the file but could '
                          'not be loaded because Shapely is not installed.')
 
-    # check whether a population is present
-    if 'population' in di_notif:
-        str_enc = di_notif['population'].replace('~', '\n').encode()
+    # check whether a structure is present
+    if 'structure' in di_notif:
+        str_enc = di_notif['structure'].replace('~', '\n').encode()
         str_dec = codecs.decode(str_enc, "base64")
         try:
-            pop = pickle.loads(str_dec)
+            struct = pickle.loads(str_dec)
         except UnicodeError:
-            pop = pickle.loads(str_dec, encoding="latin1")
+            struct = pickle.loads(str_dec, encoding="latin1")
 
     if 'x' in di_notif:
         x = np.fromstring(di_notif['x'], sep=separator)
@@ -293,7 +297,7 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
         else:
             positions = np.array((x, y)).T
 
-    return (di_notif, edges, di_nattributes, di_eattributes, pop, shape,
+    return (di_notif, edges, di_nattributes, di_eattributes, struct, shape,
             positions)
 
 

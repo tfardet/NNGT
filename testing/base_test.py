@@ -40,10 +40,9 @@ from tools_testing import _bool_from_string, _xml_to_dict, _list_from_string
 
 
 
-#-----------------------------------------------------------------------------#
-# Path to input files
-#------------------------
-#
+# ------------------- #
+# Path to input files #
+# ------------------- #
 
 # folder containing all networks
 test_dir = dirname(abspath(__file__)) + "/"
@@ -53,10 +52,9 @@ network_dir = test_dir + "Networks/"
 xml_file = test_dir + "graph_tests.xml"
 
 
-#-----------------------------------------------------------------------------#
-# XmlResultParser
-#------------------------
-#
+# --------------- #
+# XmlResultParser #
+# --------------- #
 
 class XmlHandler:
 

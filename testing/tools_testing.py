@@ -7,9 +7,9 @@
 # Distributed as a free software, in the hope that it will be useful, under the
 # terms of the GNU General Public License.
 
-import xml.etree.ElementTree as xmlet
-import unittest
 import logging
+import unittest
+import xml.etree.ElementTree as xmlet
 
 import nngt
 from nngt.lib.test_functions import mpi_checker
