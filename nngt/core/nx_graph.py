@@ -224,7 +224,7 @@ class _NxEProperty(BaseProperty):
         self[name] = values
         self._num_values_set[name] = len(values)
 
-    def set_attribute(self, name, values, edges=None):
+    def set_attribute(self, name, values, edges=None, last_edges=False):
         '''
         Set the edge property.
 
@@ -243,21 +243,26 @@ class _NxEProperty(BaseProperty):
         num_edges = g.number_of_edges()
         num_e = len(edges) if edges is not None else num_edges
 
-        if num_e == num_edges:
+        if num_e != len(values):
+            raise ValueError("`edges` and `values` must have the same "
+                             "size; got respectively " + str(num_e) + \
+                             " and " + str(len(values)) + " entries.")
+
+        if edges is None:
             self[name] = values
         else:
-            if num_e != len(values):
-                raise ValueError("`edges` and `values` must have the same "
-                                 "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + " entries.")
             for i, e in enumerate(edges):
                 try:
                     edict = g[e[0]][e[1]]
                 except:
                     edict = {}
+
                 edict[name] = values[i]
+
                 g.add_edge(e[0], e[1], **edict)
-        self._num_values_set[name] = num_edges
+
+        if num_e:
+            self._num_values_set[name] = num_edges
 
 
 # ----- #

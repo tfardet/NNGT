@@ -163,7 +163,9 @@ class Connections:
         '''
         parameters["btype"] = parameters.get("btype", "edge")
         parameters["weights"] = parameters.get("weights", None)
+
         elist = np.array(elist) if elist is not None else elist
+
         if wlist is not None:
             wlist = np.array(wlist)
             num_edges = graph.edge_nb() if elist is None else elist.shape[0]

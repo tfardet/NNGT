@@ -237,7 +237,7 @@ class _GtEProperty(BaseProperty):
 
         self._num_values_set[name] = len(value)
 
-    def set_attribute(self, name, values, edges=None):
+    def set_attribute(self, name, values, edges=None, last_edges=False):
         '''
         Set the edge property.
 
@@ -256,22 +256,24 @@ class _GtEProperty(BaseProperty):
         num_edges = g.num_edges()
         num_e     = len(edges) if edges is not None else num_edges
 
-        if num_e == num_edges:
+        if num_e != len(values):
+            raise ValueError(
+                "`edges` and `values` must have the same  size; got "
+                "respectively " + str(num_e) + " and " + str(len(values))
+                + " entries.")
+
+        if edges is None:
             self[name] = values
-            self._num_values_set[name] = num_edges
-        elif num_e:
-            if num_e != len(values):
-                raise ValueError("`edges` and `values` must have the same "
-                                 "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + " entries.")
-            if self._num_values_set[name] == num_edges - num_e:
+        else:
+            if last_edges:
                 g.edge_properties[name].a[-num_e:] = values
-                self._num_values_set[name] = num_edges
             else:
                 for e, val in zip(edges, values):
                     gt_e = g.edge(*e)
                     g.edge_properties[name][gt_e] = val
-                self._num_values_set[name] += num_e
+
+        if num_e:
+            self._num_values_set[name] = num_edges
 
     def new_attribute(self, name, value_type, values=None, val=None):
         g = self.parent()._graph

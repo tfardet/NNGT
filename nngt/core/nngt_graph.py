@@ -186,7 +186,7 @@ class _EProperty(BaseProperty):
                                   "set_attribute to create it.")
         self._num_values_set[name] = len(value)
 
-    def set_attribute(self, name, values, edges=None):
+    def set_attribute(self, name, values, edges=None, last_edges=False):
         '''
         Set the edge property.
 
@@ -203,23 +203,25 @@ class _EProperty(BaseProperty):
         num_edges = self.parent().edge_nb()
         num_e     = len(edges) if edges is not None else num_edges
 
-        if num_e == num_edges:
+        if num_e != len(values):
+            raise ValueError("`edges` and `values` must have the same "
+                             "size; got respectively " + str(num_e) + \
+                             " and " + str(len(values)) + " entries.")
+
+        if edges is None:
             self[name] = list(values)
-            self._num_values_set[name] = num_edges
         else:
-            if num_e != len(values):
-                raise ValueError("`edges` and `values` must have the same "
-                                 "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + " entries.")
-            if self._num_values_set[name] == num_edges - num_e:
+            if last_edges:
                 self.prop[name].extend(values)
-                self._num_values_set[name] = num_edges
             else:
                 eid  = self.parent().edge_id
                 prop = self.prop[name]
 
                 # using list comprehension for fast loop
                 [_set_prop(prop, eid(e), val) for e, val in zip(edges, values)]
+
+        if num_e:
+            self._num_values_set[name] = num_edges
 
     def new_attribute(self, name, value_type, values=None, val=None):
         num_edges = self.parent().edge_nb()

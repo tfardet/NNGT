@@ -370,7 +370,7 @@ def _set_dist_new_edges(new_attr, graph, edge_list):
 def _set_default_edge_attributes(g, attributes, num_edges):
     ''' Set default edge attributes values '''
     for k in g.edge_attributes:
-        skip = k in ("weight", "distance")
+        skip = k in ("weight", "distance", "delay")
 
         if k not in attributes:
             dtype = g.get_attribute_type(k)

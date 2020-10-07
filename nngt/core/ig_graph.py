@@ -194,7 +194,7 @@ class _IgEProperty(BaseProperty):
         self[name] = values
         self._num_values_set[name] = len(values)
 
-    def set_attribute(self, name, values, edges=None):
+    def set_attribute(self, name, values, edges=None, last_edges=False):
         '''
         Set the edge property.
 
@@ -213,19 +213,23 @@ class _IgEProperty(BaseProperty):
         num_edges = g.ecount()
         num_e = len(edges) if edges is not None else num_edges
 
-        if num_e == num_edges:
+        if num_e != len(values):
+            raise ValueError(
+                "`edges` and `values` must have the same  size; got "
+                "respectively " + str(num_e) + " and " + str(len(values))
+                + " entries.")
+
+        if edges is None:
             self[name] = values
-        elif num_e:
-            if num_e != len(values):
-                raise ValueError("`edges` and `values` must have the same "
-                                 "size; got respectively " + str(num_e) + \
-                                 " and " + str(len(values)) + " entries.")
-            if self._num_values_set[name] == num_edges - num_e:
+        else:
+            if last_edges:
                 g.es[-num_e:][name] = values
             else:
                 for e, val in zip(edges, values):
                     eid = g.get_eid(*e)
                     g.es[eid][name] = val
+
+                self._num_values_set[name] += num_e
 
         if num_e:
             self._num_values_set[name] = num_edges
