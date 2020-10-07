@@ -343,6 +343,33 @@ def test_str_attr():
     assert list(h.edge_attributes["edata"]) == eattr
 
 
+def test_delays():
+    dmin  = 1.
+    dmax  = 8.
+
+    d = {
+        "distribution": "lin_corr", "correl_attribute": "distance",
+        "lower": dmin, "upper": dmax
+    }
+
+    g = nngt.generation.distance_rule(200., nodes=100, avg_deg=10, delays=d)
+
+    delays = g.get_delays()
+
+    assert np.isclose(delays.min(), dmin)
+    assert np.isclose(delays.max(), dmax)
+
+    distances = g.edge_attributes["distance"]
+
+    slope = 0.003
+
+    g.set_delays(dmin + slope*distances)
+
+    delays = g.get_delays()
+
+    assert np.all(np.isclose(delays, dmin + slope*distances))
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -353,3 +380,4 @@ if not nngt.get_config('mpi'):
     if __name__ == "__main__":
         unittest.main()
         test_str_attr()
+        test_delays()
