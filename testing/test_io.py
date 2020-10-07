@@ -18,14 +18,26 @@ import numpy as np
 import pytest
 
 import nngt
-from nngt.lib.test_functions import _old_graph_tool
 from base_test import TestBasis, XmlHandler, network_dir
-from tools_testing import foreach_graph, cleanup_file
+from tools_testing import foreach_graph
+
+
+# --------------------- #
+# File creation/removal #
+# --------------------- #
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
 error = 'Wrong {{val}} for {graph}.'
 
 gfilename = current_dir + 'g.graph'
+
+
+def teardown_function(function):
+    ''' Cleanup the file '''
+    try:
+        os.remove(gfilename)
+    except:
+        pass
 
 
 # ---------- #
@@ -172,7 +184,7 @@ class TestIO(TestBasis):
 
             self.assertTrue(allclose)
 
-@cleanup_file(gfilename)
+
 @pytest.mark.mpi_skip
 def test_empty_out_degree():
     g = nngt.Graph(2)
@@ -187,7 +199,6 @@ def test_empty_out_degree():
         assert np.array_equal(g.edges_array, h.edges_array)
 
 
-@cleanup_file(gfilename)
 @pytest.mark.mpi_skip
 def test_str_attributes():
     g = nngt.Graph(2)
@@ -214,7 +225,6 @@ def test_str_attributes():
                               h.node_attributes["rnd"])
 
 
-@cleanup_file(gfilename)
 @pytest.mark.mpi_skip
 def test_structure():
     # with a structure
@@ -253,6 +263,7 @@ suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
+        print("\n\n\nsdfqsdf\n\n\n")
         unittest.main()
         test_empty_out_degree()
         test_str_attributes()
