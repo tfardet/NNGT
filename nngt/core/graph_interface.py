@@ -181,13 +181,13 @@ class GraphInterface:
                 values = _get_edge_attr(
                     self, edge_list, 'distance', prop, last_edges=True)
                 self._eattr.set_attribute(
-                    "distance", values, edges=edge_list)
+                    "distance", values, edges=edge_list, last_edges=True)
 
             # first check for potential syn_spec if Network
             if self.is_network():
                 for syn_param in self.population.syn_spec.values():
                     bio_weights += ("weight" in syn_param)
-                    bio_delays += ("delay" in syn_param)
+                    bio_delays  += ("delay" in syn_param)
 
             # then weights
             if bio_weights:
@@ -228,23 +228,28 @@ class GraphInterface:
                 values = _get_edge_attr(
                     self, edge_list, 'weight', attributes.get("weight", None),
                     last_edges=True)
+
                 self._eattr.set_attribute(
-                    "weight", values, edges=edge_list)
+                    "weight", values, edges=edge_list, last_edges=True)
 
             # then delay
             if self.is_network() or "delay" in self.edge_attributes:
                 prop = attributes.get("delay", None)
+
                 values = _get_edge_attr(
                     self, edge_list, 'delay', prop, last_edges=True)
+
                 self._eattr.set_attribute(
-                    "delay", values, edges=edge_list)
+                    "delay", values, edges=edge_list, last_edges=True)
 
             for k in attributes.keys():
                 if k not in specials:
                     if k in self.edge_attributes:
                         values = _get_edge_attr(
                             self, edge_list, k, attributes[k], last_edges=True)
-                        self._eattr.set_attribute(k, values, edges=edge_list)
+
+                        self._eattr.set_attribute(k, values, edges=edge_list,
+                                                  last_edges=True)
                     else:
                         raise RuntimeError("Unknown attribute: '" + k + "'.")
 

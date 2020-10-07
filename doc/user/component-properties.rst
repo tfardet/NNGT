@@ -204,11 +204,32 @@ lognormal
    - parameters: ``"position"`` (:math:`\mu`) and ``"scale"`` (:math:`\sigma`).
 
 linearly correlated
+   - distribution name: ``"lin_corr"``
    - a distribution which evolves linearly between two values depending on the
      value of a reference variable
    - parameters: ``"correl_attribute"`` (the reference variable, usually
      another attribute), ``"lower"`` and ``"upper"``, the minimum and maximum
      values.
+
+
+Example
+-------
+
+Generating a graph with delays that are linearly correlated to the distance
+between nodes.
+
+.. code-block:: python
+
+    dmin = 1.
+    dmax = 8.
+
+    d = {
+        "distribution": "lin_corr", "correl_attribute": "distance",
+        "lower": dmin, "upper": dmax
+    }
+
+    g = nngt.generation.distance_rule(200., nodes=100, avg_deg=10, delays=d)
+
 
 ----
 

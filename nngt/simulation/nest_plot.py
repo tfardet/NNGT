@@ -55,7 +55,7 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                   title=None, fignum=None, label=None, sort=None,
                   average=False, normalize=1., decimate=None, transparent=True,
                   kernel_center=0., kernel_std=None, resolution=None,
-                  cut_gaussian=5.):
+                  cut_gaussian=5., **kwargs):
     '''
     Plot the monitored activity.
 
@@ -125,6 +125,8 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
         By default, we consider the 5-sigma range. Decreasing this value will
         increase speed at the cost of lower fidelity; increasing it with
         increase the fidelity at the cost of speed.
+    **kwargs : dict
+        "color" and "alpha" values can be overriden here.
 
     Warning
     -------
@@ -332,6 +334,8 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                     axes = _set_new_plot(fig.number, names=var)[1]
                 labels_tmp = [lbl for _ in range(len(var))]
                 for subvar, c in zip(var, m_colors):
+                    c = kwargs.get('color', c)
+                    alpha = kwargs.get('alpha', 1)
                     for ax in axes:
                         if ax.name == subvar:
                             da_subvar = info["events"][subvar]
@@ -342,7 +346,8 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                             elif normalize is not None:
                                 da_subvar /= normalize
                             lines_tmp.extend(
-                                ax.plot(da_time, da_subvar, color=c))
+                                ax.plot(da_time, da_subvar, color=c,
+                                        alpha=alpha))
                             ax.set_ylabel(subvar)
                             ax.set_xlabel("time")
                             if limits is not None:
@@ -352,7 +357,10 @@ def plot_activity(gid_recorder=None, record=None, network=None, gids=None,
                 if axis is None:
                     ax = fig.add_subplot(num_axes + 1, 1, num_axes + 1)
                 da_var = info["events"][var]
-                lines_tmp.extend(ax.plot(da_time, da_var/normalize))
+                c = kwargs.get('color', None)
+                alpha = kwargs.get('alpha', 1)
+                lines_tmp.extend(ax.plot(da_time, da_var/normalize, color=c,
+                                         alpha=alpha))
                 labels_tmp.append(lbl)
                 ax.set_ylabel(var)
                 ax.set_xlabel("time")
