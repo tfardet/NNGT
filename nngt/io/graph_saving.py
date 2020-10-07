@@ -101,7 +101,7 @@ def save_to_file(graph, filename, fmt="auto", separator=" ",
         "size").
         Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
         which are followed by the relevant notifiers among ``@shape``,
-        ``@population``, and ``@graph`` to separate the sections.
+        ``@structure``, and ``@graph`` to separate the sections.
 
     Note
     ----
@@ -192,7 +192,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         "size").
         Additional notifiers are ``@type=SpatialGraph/Network/SpatialNetwork``,
         which are followed by the relevant notifiers among ``@shape``, ``@x``,
-        ``@y``, ``@z``, ``@population``, and ``@graph`` to separate the
+        ``@y``, ``@z``, ``@structure``, and ``@graph`` to separate the
         sections.
 
     Returns

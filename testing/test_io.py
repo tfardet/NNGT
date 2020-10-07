@@ -172,8 +172,8 @@ class TestIO(TestBasis):
 
             self.assertTrue(allclose)
 
-@pytest.mark.mpi_skip
 @cleanup_file(gfilename)
+@pytest.mark.mpi_skip
 def test_empty_out_degree():
     g = nngt.Graph(2)
 
@@ -187,8 +187,8 @@ def test_empty_out_degree():
         assert np.array_equal(g.edges_array, h.edges_array)
 
 
-@pytest.mark.mpi_skip
 @cleanup_file(gfilename)
+@pytest.mark.mpi_skip
 def test_str_attributes():
     g = nngt.Graph(2)
 
@@ -214,8 +214,8 @@ def test_str_attributes():
                               h.node_attributes["rnd"])
 
 
-@pytest.mark.mpi_skip
 @cleanup_file(gfilename)
+@pytest.mark.mpi_skip
 def test_structure():
     # with a structure
     room1 = nngt.Group(25)
@@ -252,7 +252,8 @@ def test_structure():
 suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
-    # ~ unittest.main()
-    # ~ test_empty_out_degree()
-    # ~ test_str_attributes()
-    test_structure()
+    if not nngt.get_config("mpi"):
+        unittest.main()
+        test_empty_out_degree()
+        test_str_attributes()
+        test_structure()
