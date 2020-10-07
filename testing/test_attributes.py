@@ -343,6 +343,7 @@ def test_str_attr():
     assert list(h.edge_attributes["edata"]) == eattr
 
 
+@pytest.mark.mpi_skip
 def test_delays():
     dmin = 1.
     dmax = 8.
