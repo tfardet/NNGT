@@ -273,26 +273,26 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
             additional_notif['z'] = np.array2string(
                 pos[:, 2], max_line_width=np.NaN, separator=separator)[1:-1]
 
-    if graph.is_network():
+    if graph.structure is not None:
         # temporarily remove weakrefs
-        graph.population._parent = None
-        for g in graph.population.values():
+        graph.structure._parent = None
+        for g in graph.structure.values():
             g._struct = None
             g._net    = None
         # save as string
         if nngt.get_config("mpi"):
             if nngt.get_config("mpi_comm").Get_rank() == 0:
-                additional_notif["population"] = codecs.encode(
-                    pickle.dumps(graph.population, protocol=2),
+                additional_notif["structure"] = codecs.encode(
+                    pickle.dumps(graph.structure, protocol=2),
                                  "base64").decode().replace('\n', '~')
         else:
-            additional_notif["population"] = codecs.encode(
-                pickle.dumps(graph.population, protocol=2),
+            additional_notif["structure"] = codecs.encode(
+                pickle.dumps(graph.structure, protocol=2),
                              "base64").decode().replace('\n', '~')
         # restore weakrefs
-        graph.population._parent = weakref.ref(graph)
-        for g in graph.population.values():
-            g._struct = weakref.ref(graph.population)
+        graph.structure._parent = weakref.ref(graph)
+        for g in graph.structure.values():
+            g._struct = weakref.ref(graph.structure)
             g._net    = weakref.ref(graph)
 
     str_graph = di_format[fmt](graph, separator=separator,

@@ -254,7 +254,7 @@ class Graph(nngt.core.GraphObject):
 
             return graph
 
-        info, edges, nattr, eattr, pop, shape, pos = _load_from_file(
+        info, edges, nattr, eattr, struct, shape, pos = _load_from_file(
             filename=filename, fmt=fmt, separator=separator, ignore=ignore,
             secondary=secondary, attributes=attributes,
             attributes_types=attributes_types, notifier=notifier,
@@ -283,17 +283,23 @@ class Graph(nngt.core.GraphObject):
             dtpes      = info["edge_attr_types"]
             lst_values = [eattr[name] for name in info["edge_attributes"]]
 
-        graph.new_edges(edges, check_duplicates=False, check_self_loops=False,
-                        check_existing=False)
+        if len(edges):
+            graph.new_edges(edges, check_duplicates=False,
+                            check_self_loops=False, check_existing=False)
 
         for eattr, dtype, values in zip(lst_attr, dtpes, lst_values):
             graph.new_edge_attribute(eattr, dtype, values=values)
 
-        if pop is not None:
-            nngt.Network.make_network(graph, pop)
-            pop._parent = weakref.ref(graph)
-            for g in pop.values():
-                g._struct = weakref.ref(pop)
+        if struct is not None:
+            if isinstance(struct, nngt.NeuralPop):
+                nngt.Network.make_network(graph, struct)
+            else:
+                graph.structure = struct
+
+            struct._parent = weakref.ref(graph)
+
+            for g in struct.values():
+                g._struct = weakref.ref(struct)
                 g._net    = weakref.ref(graph)
 
         if pos is not None or shape is not None:

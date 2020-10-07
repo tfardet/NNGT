@@ -20,10 +20,12 @@ import pytest
 import nngt
 from nngt.lib.test_functions import _old_graph_tool
 from base_test import TestBasis, XmlHandler, network_dir
-from tools_testing import foreach_graph
+from tools_testing import foreach_graph, cleanup_file
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
 error = 'Wrong {{val}} for {graph}.'
+
+gfilename = current_dir + 'g.graph'
 
 
 # ---------- #
@@ -171,25 +173,22 @@ class TestIO(TestBasis):
             self.assertTrue(allclose)
 
 @pytest.mark.mpi_skip
+@cleanup_file(gfilename)
 def test_empty_out_degree():
     g = nngt.Graph(2)
 
     g.new_edge(0, 1)
 
     for fmt in ("neighbour", "edge_list"):
-        nngt.save_to_file(g, current_dir + "g.graph", fmt=fmt)
+        nngt.save_to_file(g, gfilename, fmt=fmt)
 
-        h = nngt.load_from_file(current_dir + "g.graph", fmt=fmt)
+        h = nngt.load_from_file(gfilename, fmt=fmt)
 
         assert np.array_equal(g.edges_array, h.edges_array)
 
-    try:
-        os.remove(current_dir + 'g.graph')
-    except:
-        pass
-
 
 @pytest.mark.mpi_skip
+@cleanup_file(gfilename)
 def test_str_attributes():
     g = nngt.Graph(2)
 
@@ -202,9 +201,9 @@ def test_str_attributes():
     g.set_node_attribute("rnd", values=["sadf", "sdfr"])
 
     for fmt in ("neighbour", "edge_list"):
-        nngt.save_to_file(g, current_dir + "g.graph", fmt=fmt)
+        nngt.save_to_file(g, gfilename, fmt=fmt)
 
-        h = nngt.load_from_file(current_dir + "g.graph", fmt=fmt)
+        h = nngt.load_from_file(gfilename, fmt=fmt)
 
         assert np.array_equal(g.edges_array, h.edges_array)
 
@@ -214,10 +213,36 @@ def test_str_attributes():
         assert np.array_equal(g.node_attributes["rnd"],
                               h.node_attributes["rnd"])
 
-    try:
-        os.remove(current_dir + 'g.graph')
-    except:
-        pass
+
+@pytest.mark.mpi_skip
+@cleanup_file(gfilename)
+def test_structure():
+    # with a structure
+    room1 = nngt.Group(25)
+    room2 = nngt.Group(50)
+    room3 = nngt.Group(40)
+    room4 = nngt.Group(35)
+
+    names = ["R1", "R2", "R3", "R4"]
+
+    struct = nngt.Structure.from_groups((room1, room2, room3, room4), names)
+
+    g = nngt.Graph(structure=struct)
+
+    g.to_file(gfilename, fmt="edge_list")
+
+    h = nngt.load_from_file(gfilename, fmt="edge_list")
+
+    assert g.structure == h.structure
+
+    # with a neuronal population
+    g = nngt.Network.exc_and_inhib(100)
+
+    g.to_file(gfilename, fmt="edge_list")
+
+    h = nngt.load_from_file(gfilename, fmt="edge_list")
+
+    assert g.population == h.population
 
 
 # ---------- #
@@ -227,6 +252,7 @@ def test_str_attributes():
 suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
-    unittest.main()
-    test_empty_out_degree()
-    test_str_attributes()
+    # ~ unittest.main()
+    # ~ test_empty_out_degree()
+    # ~ test_str_attributes()
+    test_structure()

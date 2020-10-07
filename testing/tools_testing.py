@@ -7,9 +7,10 @@
 # Distributed as a free software, in the hope that it will be useful, under the
 # terms of the GNU General Public License.
 
-import xml.etree.ElementTree as xmlet
-import unittest
+import os
 import logging
+import unittest
+import xml.etree.ElementTree as xmlet
 
 import nngt
 from nngt.lib.test_functions import mpi_checker
@@ -17,6 +18,28 @@ from nngt.lib.logger import _log_message
 
 
 logger = logging.getLogger()
+
+
+# ---------------------- #
+# File-removal decorator #
+# ---------------------- #
+
+def cleanup_file(filename):
+    '''
+    Decorator to remove files.
+    '''
+    def decorator(func):
+        def wrapper(func, *args, **kwargs):
+            func(*args, **kwargs)
+
+            try:
+                os.remove(filename)
+            except:
+                pass
+
+        return wrapper(func)
+
+    return decorator
 
 
 # --------- #
