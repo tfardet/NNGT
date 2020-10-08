@@ -644,7 +644,10 @@ class _NxGraph(GraphInterface):
         else:
             raise ValueError("Unknown `mode` '{}'".format(mode))
 
-        return np.array([di_deg[i] for i in nodes], dtype=dtype)
+        if nonstring_container(nodes):
+            return np.array([di_deg[i] for i in nodes], dtype=dtype)
+
+        return di_deg
 
     def is_connected(self, mode="strong"):
         '''

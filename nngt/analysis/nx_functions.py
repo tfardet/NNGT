@@ -72,12 +72,23 @@ def local_clustering_binary_undirected(g, nodes=None):
     ----------
     .. [nx-local-clustering] :nxdoc:`algorithms.cluster.clustering`
     '''
+    num_nodes = g.node_nb()
+
+    if nonstring_container(nodes):
+        num_nodes = len(nodes)
+    elif nodes is not None:
+        num_nodes = 1
+
     lc = nx.clustering(g.graph.to_undirected(as_view=True), nodes=nodes,
                        weight=None)
-       
-    lc = np.array([lc[i] for i in range(g.node_nb())], dtype=float)
 
-    return lc
+    if num_nodes == 1:
+        return lc
+
+    if nodes is None:
+        nodes = list(range(num_nodes))
+
+    return np.array([lc[n] for n in nodes], dtype=float)
 
 
 def assortativity(g, degree, weights=None):

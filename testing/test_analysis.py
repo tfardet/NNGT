@@ -640,4 +640,5 @@ if __name__ == "__main__":
         # ~ test_iedges()
         # ~ test_swp()
         # ~ test_partial_directed_clustering()
+        nngt.use_backend("nngt")
         test_clustering_parameters()
