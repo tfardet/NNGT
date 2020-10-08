@@ -633,12 +633,12 @@ def test_swp():
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        # ~ test_binary_undirected_clustering()
-        # ~ test_weighted_undirected_clustering()
-        # ~ test_weighted_directed_clustering()
-        # ~ test_reciprocity()
-        # ~ test_iedges()
-        # ~ test_swp()
-        # ~ test_partial_directed_clustering()
+        test_binary_undirected_clustering()
+        test_weighted_undirected_clustering()
+        test_weighted_directed_clustering()
+        test_reciprocity()
+        test_iedges()
+        test_swp()
+        test_partial_directed_clustering()
         nngt.use_backend("nngt")
         test_clustering_parameters()
