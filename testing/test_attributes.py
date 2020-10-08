@@ -371,6 +371,56 @@ def test_delays():
     assert np.all(np.isclose(delays, dmin + slope*distances))
 
 
+@pytest.mark.mpi_skip
+def test_attributes_are_copied():
+    ''' Check that the attributes returned are a copy '''
+    rng = np.random.default_rng()
+
+    nnodes = 100
+    nedges = 1000
+
+    wghts = rng.uniform(0, 5, nedges)
+
+    g = nngt.generation.erdos_renyi(nodes=nnodes, edges=nedges, weights=wghts)
+
+    # check weights
+    ww = g.get_weights()
+
+    assert np.all(np.isclose(wghts, ww))
+
+    rng.shuffle(ww)
+
+    assert np.all(np.isclose(wghts, g.get_weights()))
+    assert not np.all(np.isclose(ww, g.get_weights()))
+
+    # check edge attribute
+    g.new_edge_attribute("etest", "double", values=2*ww)
+
+    etest = g.edge_attributes["etest"]
+
+    assert np.all(np.isclose(etest, 2*ww))
+
+    rng.shuffle(etest)
+
+    assert np.all(np.isclose(2*ww, g.edge_attributes["etest"]))
+    assert not np.all(np.isclose(2*ww, etest))
+
+    # check node attribute
+    vv = rng.uniform(2, 3, nnodes)
+
+    g.new_node_attribute("ntest", "double", values=vv)
+
+    ntest = g.node_attributes["ntest"]
+
+    assert np.all(np.isclose(ntest, vv))
+
+    rng.shuffle(ntest)
+
+    assert np.all(np.isclose(vv, g.node_attributes["ntest"]))
+    assert not np.all(np.isclose(vv, ntest))
+    
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -382,3 +432,4 @@ if not nngt.get_config('mpi'):
         unittest.main()
         test_str_attr()
         test_delays()
+        test_attributes_are_copied()

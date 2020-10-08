@@ -37,7 +37,7 @@ def _to_np_array(data, dtype):
         arr[:] = data
         return arr
 
-    return np.asarray(data, dtype=dtype)
+    return np.array(data, dtype=dtype)
 
 
 def _to_list(string):

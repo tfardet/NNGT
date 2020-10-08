@@ -1246,7 +1246,7 @@ class Graph(nngt.core.GraphObject):
         '''
         if self.is_weighted():
             if edges is None:
-                return np.asarray(self._eattr["weight"])
+                return self._eattr["weight"]
             else:
                 if len(edges) == 0:
                     return np.array([])
