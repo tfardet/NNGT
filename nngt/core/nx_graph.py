@@ -159,8 +159,11 @@ class _NxEProperty(BaseProperty):
             dtype = _np_dtype(super(_NxEProperty, self).__getitem__(name))
             eprop = np.empty(g.number_of_edges(), dtype=dtype)
 
-            for d, eid in zip(g.edges(data=name), g.edges(data="eid")):
-                eprop[eid[2]] = d[2]
+            edges = list(g.edges(data=name))
+            eids  = np.asarray(list(g.edges(data="eid")))[:, 2]
+
+            for i in np.argsort(eids):
+                eprop[i] = edges[i][2]
 
             return eprop
 
@@ -168,11 +171,14 @@ class _NxEProperty(BaseProperty):
 
         for edge in edges:
             data = g.get_edge_data(edge[0], edge[1])
+
             if data is None:
                 raise ValueError("Edge {} does not exist.".format(edge))
+
             for k, v in data.items():
                 if k != "eid":
                     eprop[k].append(v)
+
         dtype = None
 
         for k, v in eprop.items():
@@ -639,7 +645,7 @@ class _NxGraph(GraphInterface):
         if nonstring_container(edges[0]):
             self._graph.remove_edges_from(edges)
         else:
-            self._graph.remove_edge(edges)
+            self._graph.remove_edge(*edges)
 
         for key in self._eattr:
             self._eattr._num_values_set[key] = self.edge_nb()

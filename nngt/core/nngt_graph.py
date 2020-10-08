@@ -50,11 +50,11 @@ class _NProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __init__(self, *args, **kwargs):
-        super(type(self), self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.prop = OrderedDict()
 
     def __getitem__(self, name):
-        dtype = _np_dtype(super(type(self), self).__getitem__(name))
+        dtype = _np_dtype(super().__getitem__(name))
         return _to_np_array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
@@ -94,7 +94,7 @@ class _NProperty(BaseProperty):
                              "node in the graph is required")
 
         # store name and value type in the dict
-        super(type(self), self).__setitem__(name, value_type)
+        super().__setitem__(name, value_type)
 
         # store the real values in the attribute
         self.prop[name] = list(values)
@@ -146,8 +146,9 @@ class _EProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __init__(self, *args, **kwargs):
-        super(type(self), self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.prop = OrderedDict()
+        self._edges_deleted = False
 
     def __getitem__(self, name):
         '''
@@ -158,7 +159,7 @@ class _EProperty(BaseProperty):
 
         if isinstance(name, slice):
             for k in self.keys():
-                dtype = _np_dtype(super(type(self), self).__getitem__(k))
+                dtype = _np_dtype(super().__getitem__(k))
                 eprop[k] = _to_np_array(self.prop[k], dtype)[name]
 
             return eprop
@@ -167,7 +168,7 @@ class _EProperty(BaseProperty):
                 eids = [graph.edge_id(e) for e in name]
 
                 for k in self.keys():
-                    dtype = _np_dtype(super(type(self), self).__getitem__(k))
+                    dtype = _np_dtype(super().__getitem__(k))
                     eprop[k] = _to_np_array(self.prop[k], dtype=dtype)[eids]
             else:
                 eid = graph.edge_id(name)
@@ -176,8 +177,12 @@ class _EProperty(BaseProperty):
                     eprop[k] = self.prop[k][eid]
 
             return eprop
+            
+        dtype = _np_dtype(super().__getitem__(name))
 
-        dtype = _np_dtype(super(type(self), self).__getitem__(name))
+        if self._edges_deleted:
+            eids = sorted(list(graph.graph._unique.values()))
+            return _to_np_array(self.prop[name], dtype=dtype)[eids]
 
         return _to_np_array(self.prop[name], dtype=dtype)
 
@@ -258,19 +263,19 @@ class _EProperty(BaseProperty):
                              "edge in the graph is required")
 
         # store name and value type in the dict
-        super(type(self), self).__setitem__(name, value_type)
+        super().__setitem__(name, value_type)
 
         # store the real values in the attribute
         self.prop[name] = list(values)
         self._num_values_set[name] = len(values)
 
-    def remove(self, eids):
+    def edges_deleted(self, eids):
         ''' Remove the attributes of a set of edge ids '''
         for key in self:
-            for eid in reversed(sorted(eids)):
-                self.prop[key].pop(eid)
-
             self._num_values_set[key] -= len(eids)
+
+        if len(eids):
+            self._edges_deleted = True
 
 
 # ----------------- #
@@ -537,15 +542,11 @@ class _NNGTGraph(GraphInterface):
 
         new_edges  = OrderedDict()
 
-        new_eid = 0
-
         for e, eid in g._unique.items():
             if e[0] in nodes or e[1] in nodes:
                 remove_eids.append(eid)
             else:
-                new_edges[(remapping[e[0]], remapping[e[1]])] = new_eid
-
-                new_eid += 1
+                new_edges[(remapping[e[0]], remapping[e[1]])] = eid
 
         g._unique = new_edges
 
@@ -555,8 +556,8 @@ class _NNGTGraph(GraphInterface):
         else:
             g._edges = g._unique
 
-        # remove edge attributes
-        self._eattr.remove(remove_eids)
+        # tell edge attributes
+        self._eattr.edges_deleted(remove_eids)
 
         # ~ # reindex
         # ~ for i, e in enumerate(g._unique):
@@ -766,8 +767,6 @@ class _NNGTGraph(GraphInterface):
         if not nonstring_container(edges[0]):
             edges = [edges]
 
-        edge_ids = self.edge_id(edges)
-
         directed = g._directed
 
         for e in edges:
@@ -779,7 +778,7 @@ class _NNGTGraph(GraphInterface):
                     del g._edges[e]
                     del g._edges[e[::-1]]
 
-        self._eattr.remove(edge_ids)
+        self._eattr.edges_deleted(edges)
 
     def clear_all_edges(self):
         g = self._graph
