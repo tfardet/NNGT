@@ -440,6 +440,30 @@ class _NxGraph(GraphInterface):
 
         return new_nodes
 
+    def delete_nodes(self, nodes):
+        '''
+        Remove nodes (and associated edges) from the graph.
+        '''
+        g = self._graph
+
+        if nonstring_container(nodes):
+            for n in nodes:
+                g.remove_node(n)
+        else:
+            g.remove_node(nodes)
+
+        # relabel nodes from zero
+        nx = nngt._config["library"]
+
+        nx.relabel_nodes(g, {n: i for i, n in enumerate(g.nodes)}, copy=False)
+
+        # update attributes
+        for key in self._nattr:
+            self._nattr._num_values_set[key] = self.node_nb()
+
+        for key in self._eattr:
+            self._eattr._num_values_set[key] = self.edge_nb()
+
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):
         '''
@@ -609,6 +633,16 @@ class _NxGraph(GraphInterface):
             self._attr_new_edges(edge_list, attributes=new_attr)
 
         return edge_list
+
+    def delete_edges(self, edges):
+        ''' Remove a list of edges '''
+        if nonstring_container(edges[0]):
+            self._graph.remove_edges_from(edges)
+        else:
+            self._graph.remove_edge(edges)
+
+        for key in self._eattr:
+            self._eattr._num_values_set[key] = self.edge_nb()
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''

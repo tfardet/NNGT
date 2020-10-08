@@ -602,20 +602,74 @@ def test_get_edges():
     assert np.array_equal(g.get_edges(source_node=0, target_node=[0, 1]),
                           [(0, 1)])
 
+
+@pytest.mark.mpi_skip
+def test_delete():
+    ''' Test node and edge deletion '''
+    mat = np.array([
+        [0.,  0.5, 0.,  0.2, 0., 1. ],
+        [0.,  0.,  0.5, 0.,  0., 0. ],
+        [0.1, 0.,  0.,  0.,  1., 0. ],
+        [0.,  0.,  1.,  0.,  0., 0. ],
+        [0.5, 0.,  0.,  0.,  0., 0.5],
+        [0.,  0.1, 0.,  0.,  0., 0. ],
+    ])
+
+    num_nodes = 6
+    num_edges = 10
+
+    g = nngt.Graph.from_matrix(mat)
+
+    g.new_node_attribute("test", "int", values=list(range(num_nodes)))
+
+    assert num_edges == g.edge_nb()
+
+    # ~ # delete one edge
+    # ~ g.delete_edges((0, 5))
+
+    # ~ num_edges -= 1
+
+    # ~ assert g.edge_nb() == num_edges
+
+    # ~ print(g.graph.edge_properties["weight"].a)
+    # ~ print(g.get_weights())
+    # ~ assert len(g.get_weights()) == num_edges
+
+    # deleting one node
+    g.delete_nodes([0])
+    adj = g.adjacency_matrix(weights=True, mformat="dense")
+
+    assert np.array_equal(adj, mat[1:, 1:])
+
+    assert np.array_equal(g.node_attributes["test"], [1, 2, 3, 4, 5])
+
+    # delete two nodes
+    g.delete_nodes([1, 2])
+
+    adj = g.adjacency_matrix(weights=True, mformat="dense")
+
+    assert np.array_equal(adj, mat[[1, 4, 5]][:, [1, 4, 5]])
+
+    assert np.array_equal(g.node_attributes["test"], [1, 4, 5])
+
+
 # ---------- #
 # Test suite #
 # ---------- #
 
 if __name__ == "__main__":
-    test_directed_adjacency()
-    test_undirected_adjacency()
-    test_config()
-    test_new_node_attr()
-    test_graph_copy()
-    test_degrees_neighbors()
-    test_get_edges()
+    # ~ test_directed_adjacency()
+    # ~ test_undirected_adjacency()
+    # ~ test_config()
+    # ~ test_new_node_attr()
+    # ~ test_graph_copy()
+    # ~ test_degrees_neighbors()
+    # ~ test_get_edges()
 
     if not nngt.get_config('mpi'):
-        test_node_creation()
-        test_edge_creation()
-        test_has_edges_edge_id()
+        # ~ test_node_creation()
+        # ~ test_edge_creation()
+        # ~ test_has_edges_edge_id()
+        # ~ nngt.use_backend("graph-tool")
+        nngt.use_backend("nngt")
+        test_delete()

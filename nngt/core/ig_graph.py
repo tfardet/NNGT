@@ -395,6 +395,18 @@ class _IGraph(GraphInterface):
 
         return nodes
 
+    def delete_nodes(self, nodes):
+        '''
+        Remove nodes (and associated edges) from the graph.
+        '''
+        self._graph.delete_vertices(nodes)
+
+        for key in self._nattr:
+            self._nattr._num_values_set[key] = self.node_nb()
+
+        for key in self._eattr:
+            self._eattr._num_values_set[key] = self.edge_nb()
+
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):
         '''
@@ -515,6 +527,16 @@ class _IGraph(GraphInterface):
             return edge_list[0]
 
         return edge_list
+
+    def delete_edges(self, edges):
+        ''' Remove a list of edges '''
+        if nonstring_container(edges[0]):
+            self._graph.delete_edges(edges)
+        else:
+            self._graph.delete_edges([edges])
+
+        for key in self._eattr:
+            self._eattr._num_values_set[key] = self.edge_nb()
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''

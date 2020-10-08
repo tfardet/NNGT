@@ -483,6 +483,22 @@ class _GtGraph(GraphInterface):
             return nodes[0]
         return nodes
 
+    def delete_nodes(self, nodes):
+        '''
+        Remove nodes (and associated edges) from the graph.
+        '''
+        if nonstring_container(nodes):
+            for v in reversed(sorted(nodes)):
+                self._graph.remove_vertex(v)
+        else:
+            self._graph.remove_node(nodes)
+
+        for key in self._nattr:
+            self._nattr._num_values_set[key] = self.node_nb()
+
+        for key in self._eattr:
+            self._eattr._num_values_set[key] = self.edge_nb()
+
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):
         '''
@@ -627,6 +643,19 @@ class _GtGraph(GraphInterface):
             self._attr_new_edges(edge_list, attributes=new_attr)
 
         return edge_list
+
+    def delete_edges(self, edges):
+        ''' Remove a list of edges '''
+        g = self._graph
+
+        if nonstring_container(edges[0]):
+            for e in edges:
+                self._graph.remove_edge(g.edge(*e))
+        else:
+            self._graph.remove_edge(g.edge(*edges))
+
+        for key in self._eattr:
+            self._eattr._num_values_set[key] = self.edge_nb()
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''
