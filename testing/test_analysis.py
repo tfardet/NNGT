@@ -325,11 +325,24 @@ def test_clustering_parameters():
     cc_bu = na.local_clustering_binary_undirected(g)
 
     for m in methods:
+        # combine
         for combine in ("sum", "max", "min", "mean"):
             cc_wu = na.local_clustering(g, directed=False, weights=True,
                                         combine_weights=combine, method=m)
 
             assert np.all(np.isclose(cc_wu, cc_bu))
+
+        # subset of nodes
+        nodes = [1, [1, 2]]
+
+        for n in nodes:
+            cc = na.local_clustering_binary_undirected(g, nodes=n)
+
+            assert np.all(np.isclose(cc, cc_bu[n]))
+
+            cc = na.local_clustering(g, nodes=n, method=m)
+
+            assert np.all(np.isclose(cc, cc_bu[n]))
 
     # check different but equivalent matrices
     for m in methods:
@@ -357,6 +370,16 @@ def test_clustering_parameters():
         cc_sym = na.local_clustering(g, weights="weight", method=m)
 
         assert np.all(np.isclose(cc_sum, cc_sym))
+
+        # subset of nodes
+        nodes = [1, [1, 2]]
+
+        cc_dir = na.local_clustering(g, weights="weight", method=m)
+
+        for n in nodes:
+            cc = na.local_clustering(g, nodes=n, weights="weight", method=m)
+
+            assert np.all(np.isclose(cc, cc_dir[n]))
 
 
 @pytest.mark.mpi_skip
@@ -610,11 +633,11 @@ def test_swp():
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        test_binary_undirected_clustering()
-        test_weighted_undirected_clustering()
-        test_weighted_directed_clustering()
-        test_reciprocity()
-        test_iedges()
-        test_swp()
-        test_partial_directed_clustering()
+        # ~ test_binary_undirected_clustering()
+        # ~ test_weighted_undirected_clustering()
+        # ~ test_weighted_directed_clustering()
+        # ~ test_reciprocity()
+        # ~ test_iedges()
+        # ~ test_swp()
+        # ~ test_partial_directed_clustering()
         test_clustering_parameters()
