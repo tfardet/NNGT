@@ -717,9 +717,12 @@ class _NNGTGraph(GraphInterface):
         if nodes is None:
             num_nodes = self.node_nb()
             nodes = slice(num_nodes)
-        else:
+        elif nonstring_container(nodes):
             nodes = list(nodes)
             num_nodes = len(nodes)
+        else:
+            nodes = [nodes]
+            num_nodes = 1
 
         # weighted
         if nonstring_container(weights) or weights in self._eattr:
@@ -749,6 +752,9 @@ class _NNGTGraph(GraphInterface):
                 degrees += g._out_deg[nodes]
             else:
                 degrees += [g._out_deg[i] for i in nodes]
+
+        if num_nodes == 1:
+            return degrees[0]
 
         return degrees
 

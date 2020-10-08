@@ -24,6 +24,7 @@
 import numpy as np
 
 import nngt
+from nngt.lib import nonstring_container
 
 
 __all__ = [
@@ -172,7 +173,10 @@ def local_clustering_binary_undirected(g, nodes=None):
     triangles = triangle_count(g, weights=None, nodes=nodes, directed=False)
     triplets  = triplet_count(g, weights=None, nodes=nodes, directed=False)
 
-    triplets[triangles == 0] = 1
+    if nonstring_container(triangles):
+        triplets[triangles == 0] = 1
+    elif triangles == 0:
+        return 0
 
     return triangles / triplets
 
@@ -295,6 +299,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     directed *= g.is_directed()
     weighted  = weights not in (None, False)
 
+    triplets, triangles = None, None
+
     if not directed and not weighted:
         # undirected binary clustering uses the library method
         return local_clustering_binary_undirected(g, nodes=nodes)
@@ -302,15 +308,14 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         # directed clustering
         triangles = triangle_count(g, nodes=nodes, mode=mode)
         triplets  = triplet_count(g, nodes, mode=mode).astype(float)
+    else:
+        triangles, triplets = _triangles_and_triplets(
+            g, directed, weights, method, mode, combine_weights, nodes)
 
+    if nonstring_container(triplets):
         triplets[triangles == 0] = 1
-
-        return triangles / triplets
-
-    triangles, triplets = _triangles_and_triplets(
-        g, directed, weights, method, mode, combine_weights, nodes)
-
-    triplets[triangles == 0] = 1
+    elif triangles == 0:
+        return 0
 
     return triangles / triplets
 
@@ -468,11 +473,17 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
                 _, adjsym = _get_matrices(g, directed, None, False,
                                           combine_weights)
 
-                deg = adjsym.sum(axis=0).A1
+                if nodes is None:
+                    deg = adjsym.sum(axis=0).A1
+                else:
+                    deg = adjsym.sum(axis=0).A1[nodes]
             else:
                 deg = g.get_degrees(nodes=nodes)
 
-            return (0.5*deg*(deg - 1)).astype(int)
+            if nodes is None or nonstring_container(nodes):
+                return (0.5*deg*(deg - 1)).astype(int)
+
+            return 0.5*deg*(deg - 1)
 
         # directed
         if mode in ("total", "cycle", "middleman"):
