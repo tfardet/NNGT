@@ -162,8 +162,8 @@ class _NxEProperty(BaseProperty):
             edges = list(g.edges(data=name))
             eids  = np.asarray(list(g.edges(data="eid")))[:, 2]
 
-            for i in np.argsort(eids):
-                eprop[i] = edges[i][2]
+            for i, eid in enumerate(np.argsort(eids)):
+                eprop[i] = edges[eid][2]
 
             return eprop
 
@@ -192,9 +192,16 @@ class _NxEProperty(BaseProperty):
 
         if name in self:
             size = g.number_of_edges()
+
             if len(value) == size:
-                for e in g.edges(data="eid"):
-                    g.edges[e[0], e[1]][name] = value[e[2]]
+                edges = np.asarray(list(g.edges(data="eid")))
+
+                if size:
+                    order = np.argsort(edges[:, 2])
+
+                    for i, idx in enumerate(order):
+                        s, t, _ = edges[idx]
+                        g.edges[s, t][name] = value[i]
             else:
                 raise ValueError(
                     "A list or a np.array with one entry per edge in the "
@@ -244,7 +251,9 @@ class _NxEProperty(BaseProperty):
             Edges for which the value of the property should be set. If `edges`
             is not None, it must be an array of shape `(len(values), 2)`.
         '''
-        g = self.parent()._graph
+        graph = self.parent()
+
+        g = graph._graph
 
         num_edges = g.number_of_edges()
         num_e = len(edges) if edges is not None else num_edges
@@ -257,13 +266,18 @@ class _NxEProperty(BaseProperty):
         if edges is None:
             self[name] = values
         else:
-            for i, e in enumerate(edges):
-                try:
-                    edict = g[e[0]][e[1]]
-                except:
-                    edict = {}
+            order = range(num_e)
 
-                edict[name] = values[i]
+            if not last_edges:
+                get_eid = graph.edge_id
+
+                eids  = [get_eid(e) for e in edges]
+                order = np.argsort(np.argsort(eids))
+
+            for i, e in zip(order, edges):
+                edict = g[e[0]][e[1]]
+
+                edict[name]  = values[i]
 
                 g.add_edge(e[0], e[1], **edict)
 

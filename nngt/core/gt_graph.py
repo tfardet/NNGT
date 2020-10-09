@@ -401,7 +401,7 @@ class _GtGraph(GraphInterface):
             if is_integer(edge[0]):
                 return g.edge_index[g.edge(*edge)]
             elif nonstring_container(edge[0]):
-                Edge = g.Edge
+                Edge = g.edge
                 return [g.edge_index[Edge(*e)] for e in edge]
 
         raise AttributeError("`edge` must be either a 2-tuple of ints or "
