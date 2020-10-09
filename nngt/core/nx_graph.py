@@ -160,10 +160,12 @@ class _NxEProperty(BaseProperty):
             eprop = np.empty(g.number_of_edges(), dtype=dtype)
 
             edges = list(g.edges(data=name))
-            eids  = np.asarray(list(g.edges(data="eid")))[:, 2]
 
-            for i, eid in enumerate(np.argsort(eids)):
-                eprop[i] = edges[eid][2]
+            if len(edges):
+                eids  = np.asarray(list(g.edges(data="eid")))[:, 2]
+
+                for i, eid in enumerate(np.argsort(eids)):
+                    eprop[i] = edges[eid][2]
 
             return eprop
 

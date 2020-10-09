@@ -221,7 +221,7 @@ def test_mpi_from_degree_list():
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
 
-    deg_list = np.random.randint(0, 100, size=num_nodes)
+    deg_list = np.random.randint(0, int(0.1*num_nodes), size=num_nodes)
 
     # test for in
     g = ng.from_degree_list(deg_list, degree_type="in", nodes=num_nodes)

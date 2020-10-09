@@ -356,7 +356,7 @@ def _mpi_and_random_init():
     '''
     Init MPI comm and information and seed the RNGs
     '''
-    comm = MPI.COMM_WORLD
+    comm = MPI.COMM_WORLD.Clone()
     size = comm.Get_size()
     rank = comm.Get_rank()
 
