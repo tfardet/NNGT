@@ -126,6 +126,10 @@ class GraphInterface:
         pass
 
     @abstractmethod
+    def delete_nodes(self, nodes):
+        pass
+
+    @abstractmethod
     def new_edge(self, source, target, attributes=None, ignore=False):
         pass
 
@@ -133,6 +137,10 @@ class GraphInterface:
     def new_edges(self, edge_list, attributes=None, check_duplicates=False,
                   check_self_loops=True, check_existing=True,
                   ignore_invalid=False):
+        pass
+
+    @abstractmethod
+    def delete_edges(self, edges):
         pass
 
     @abstractmethod

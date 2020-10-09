@@ -159,8 +159,13 @@ class _NxEProperty(BaseProperty):
             dtype = _np_dtype(super(_NxEProperty, self).__getitem__(name))
             eprop = np.empty(g.number_of_edges(), dtype=dtype)
 
-            for d, eid in zip(g.edges(data=name), g.edges(data="eid")):
-                eprop[eid[2]] = d[2]
+            edges = list(g.edges(data=name))
+
+            if len(edges):
+                eids  = np.asarray(list(g.edges(data="eid")))[:, 2]
+
+                for i, eid in enumerate(np.argsort(eids)):
+                    eprop[i] = edges[eid][2]
 
             return eprop
 
@@ -168,11 +173,14 @@ class _NxEProperty(BaseProperty):
 
         for edge in edges:
             data = g.get_edge_data(edge[0], edge[1])
+
             if data is None:
                 raise ValueError("Edge {} does not exist.".format(edge))
+
             for k, v in data.items():
                 if k != "eid":
                     eprop[k].append(v)
+
         dtype = None
 
         for k, v in eprop.items():
@@ -186,9 +194,16 @@ class _NxEProperty(BaseProperty):
 
         if name in self:
             size = g.number_of_edges()
+
             if len(value) == size:
-                for e in g.edges(data="eid"):
-                    g.edges[e[0], e[1]][name] = value[e[2]]
+                edges = np.asarray(list(g.edges(data="eid")))
+
+                if size:
+                    order = np.argsort(edges[:, 2])
+
+                    for i, idx in enumerate(order):
+                        s, t, _ = edges[idx]
+                        g.edges[s, t][name] = value[i]
             else:
                 raise ValueError(
                     "A list or a np.array with one entry per edge in the "
@@ -238,7 +253,9 @@ class _NxEProperty(BaseProperty):
             Edges for which the value of the property should be set. If `edges`
             is not None, it must be an array of shape `(len(values), 2)`.
         '''
-        g = self.parent()._graph
+        graph = self.parent()
+
+        g = graph._graph
 
         num_edges = g.number_of_edges()
         num_e = len(edges) if edges is not None else num_edges
@@ -251,13 +268,18 @@ class _NxEProperty(BaseProperty):
         if edges is None:
             self[name] = values
         else:
-            for i, e in enumerate(edges):
-                try:
-                    edict = g[e[0]][e[1]]
-                except:
-                    edict = {}
+            order = range(num_e)
 
-                edict[name] = values[i]
+            if not last_edges:
+                get_eid = graph.edge_id
+
+                eids  = [get_eid(e) for e in edges]
+                order = np.argsort(np.argsort(eids))
+
+            for i, e in zip(order, edges):
+                edict = g[e[0]][e[1]]
+
+                edict[name]  = values[i]
 
                 g.add_edge(e[0], e[1], **edict)
 
@@ -440,6 +462,30 @@ class _NxGraph(GraphInterface):
 
         return new_nodes
 
+    def delete_nodes(self, nodes):
+        '''
+        Remove nodes (and associated edges) from the graph.
+        '''
+        g = self._graph
+
+        if nonstring_container(nodes):
+            for n in nodes:
+                g.remove_node(n)
+        else:
+            g.remove_node(nodes)
+
+        # relabel nodes from zero
+        nx = nngt._config["library"]
+
+        nx.relabel_nodes(g, {n: i for i, n in enumerate(g.nodes)}, copy=False)
+
+        # update attributes
+        for key in self._nattr:
+            self._nattr._num_values_set[key] = self.node_nb()
+
+        for key in self._eattr:
+            self._eattr._num_values_set[key] = self.edge_nb()
+
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):
         '''
@@ -609,6 +655,16 @@ class _NxGraph(GraphInterface):
             self._attr_new_edges(edge_list, attributes=new_attr)
 
         return edge_list
+
+    def delete_edges(self, edges):
+        ''' Remove a list of edges '''
+        if nonstring_container(edges[0]):
+            self._graph.remove_edges_from(edges)
+        else:
+            self._graph.remove_edge(*edges)
+
+        for key in self._eattr:
+            self._eattr._num_values_set[key] = self.edge_nb()
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''

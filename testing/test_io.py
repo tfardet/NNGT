@@ -34,6 +34,12 @@ gfilename = current_dir + 'g.graph'
 
 def teardown_function(function):
     ''' Cleanup the file '''
+    if nngt.get_config("mpi"):
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD.Clone()
+
+        comm.Barrier()
+
     try:
         os.remove(gfilename)
     except:
@@ -263,7 +269,6 @@ suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        print("\n\n\nsdfqsdf\n\n\n")
         unittest.main()
         test_empty_out_degree()
         test_str_attributes()

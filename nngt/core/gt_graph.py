@@ -157,6 +157,10 @@ class _GtEProperty(BaseProperty):
 
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._edges_deleted = False
+
     def __getitem__(self, name):
         '''
         Return the attributes of an edge or a list of edges.
@@ -198,14 +202,19 @@ class _GtEProperty(BaseProperty):
 
             return eprop
 
-        dtype = super(_GtEProperty, self).__getitem__(name)
+        dtype = super().__getitem__(name)
+
+        if self._edges_deleted:
+            data = g.edge_properties[name]
+
+            return _to_np_array([data[Edge(*e)] for e in g.get_edges()], dtype)
 
         if dtype == "string":
             return g.edge_properties[name].get_2d_array([0])[0]
         elif dtype == "object":
-            tmp   = g.edge_properties[name]
-            edges = g.get_edges()
-            return _to_np_array([tmp[Edge(*e)] for e in edges], dtype)
+            tmp = g.edge_properties[name]
+
+            return _to_np_array([tmp[Edge(*e)] for e in g.get_edges()], dtype)
 
         return _to_np_array(g.edge_properties[name].a, dtype)
 
@@ -268,8 +277,9 @@ class _GtEProperty(BaseProperty):
             if last_edges:
                 g.edge_properties[name].a[-num_e:] = values
             else:
+                Edge = g.edge
                 for e, val in zip(edges, values):
-                    gt_e = g.edge(*e)
+                    gt_e = Edge(*e)
                     g.edge_properties[name][gt_e] = val
 
         if num_e:
@@ -310,6 +320,15 @@ class _GtEProperty(BaseProperty):
         eprop = g.new_edge_property(value_type, vals=values)
         g.edge_properties[name] = eprop
         self._num_values_set[name] = len(values)
+
+    def edges_deleted(self):
+        ''' Notify that some edges were deleted '''
+        g = self.parent()
+
+        for key in self:
+            self._num_values_set[key] = g.edge_nb()
+
+        self._edges_deleted = True
 
 
 # ----- #
@@ -382,8 +401,8 @@ class _GtGraph(GraphInterface):
             if is_integer(edge[0]):
                 return g.edge_index[g.edge(*edge)]
             elif nonstring_container(edge[0]):
-                idx = [g.edge_index[g.edge(*e)] for e in edge]
-                return idx
+                Edge = g.edge
+                return [g.edge_index[Edge(*e)] for e in edge]
 
         raise AttributeError("`edge` must be either a 2-tuple of ints or "
                              "an array of 2-tuples of ints.")
@@ -482,6 +501,25 @@ class _GtGraph(GraphInterface):
         if n == 1:
             return nodes[0]
         return nodes
+
+    def delete_nodes(self, nodes):
+        '''
+        Remove nodes (and associated edges) from the graph.
+        '''
+        old_enum = self.edge_nb()
+
+        if nonstring_container(nodes):
+            for v in reversed(sorted(nodes)):
+                self._graph.remove_vertex(v)
+        else:
+            self._graph.remove_node(nodes)
+
+        for key in self._nattr:
+            self._nattr._num_values_set[key] = self.node_nb()
+
+        # tell eattr
+        if old_enum != self.edge_nb():
+            self._eattr.edges_deleted()
 
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):
@@ -627,6 +665,21 @@ class _GtGraph(GraphInterface):
             self._attr_new_edges(edge_list, attributes=new_attr)
 
         return edge_list
+
+    def delete_edges(self, edges):
+        ''' Remove a list of edges '''
+        g = self._graph
+
+        Edge = g.edge
+
+        if nonstring_container(edges[0]):
+            # fast loop
+            [self._graph.remove_edge(Edge(*e)) for e in edges]
+        else:
+            self._graph.remove_edge(Edge(*edges))
+
+        if len(edges):
+            self._eattr.edges_deleted()
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''

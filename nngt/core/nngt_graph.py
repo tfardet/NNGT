@@ -50,11 +50,11 @@ class _NProperty(BaseProperty):
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __init__(self, *args, **kwargs):
-        super(type(self), self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.prop = OrderedDict()
 
     def __getitem__(self, name):
-        dtype = _np_dtype(super(type(self), self).__getitem__(name))
+        dtype = _np_dtype(super().__getitem__(name))
         return _to_np_array(self.prop[name], dtype=dtype)
 
     def __setitem__(self, name, value):
@@ -94,7 +94,7 @@ class _NProperty(BaseProperty):
                              "node in the graph is required")
 
         # store name and value type in the dict
-        super(type(self), self).__setitem__(name, value_type)
+        super().__setitem__(name, value_type)
 
         # store the real values in the attribute
         self.prop[name] = list(values)
@@ -132,14 +132,23 @@ class _NProperty(BaseProperty):
                     self.prop[name][n] = val
         self._num_values_set[name] = num_nodes
 
+    def remove(self, nodes):
+        ''' Remove entries for a set of nodes '''
+        for key in self:
+            for n in reversed(sorted(nodes)):
+                self.prop[key].pop(n)
+
+            self._num_values_set[key] -= len(nodes)
+
 
 class _EProperty(BaseProperty):
 
     ''' Class for generic interactions with nodes properties (graph-tool)  '''
 
     def __init__(self, *args, **kwargs):
-        super(type(self), self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.prop = OrderedDict()
+        self._edges_deleted = False
 
     def __getitem__(self, name):
         '''
@@ -150,7 +159,7 @@ class _EProperty(BaseProperty):
 
         if isinstance(name, slice):
             for k in self.keys():
-                dtype = _np_dtype(super(type(self), self).__getitem__(k))
+                dtype = _np_dtype(super().__getitem__(k))
                 eprop[k] = _to_np_array(self.prop[k], dtype)[name]
 
             return eprop
@@ -159,7 +168,7 @@ class _EProperty(BaseProperty):
                 eids = [graph.edge_id(e) for e in name]
 
                 for k in self.keys():
-                    dtype = _np_dtype(super(type(self), self).__getitem__(k))
+                    dtype = _np_dtype(super().__getitem__(k))
                     eprop[k] = _to_np_array(self.prop[k], dtype=dtype)[eids]
             else:
                 eid = graph.edge_id(name)
@@ -168,8 +177,12 @@ class _EProperty(BaseProperty):
                     eprop[k] = self.prop[k][eid]
 
             return eprop
+            
+        dtype = _np_dtype(super().__getitem__(name))
 
-        dtype = _np_dtype(super(type(self), self).__getitem__(name))
+        if self._edges_deleted:
+            eids = sorted(list(graph.graph._unique.values()))
+            return _to_np_array(self.prop[name], dtype=dtype)[eids]
 
         return _to_np_array(self.prop[name], dtype=dtype)
 
@@ -250,11 +263,19 @@ class _EProperty(BaseProperty):
                              "edge in the graph is required")
 
         # store name and value type in the dict
-        super(type(self), self).__setitem__(name, value_type)
+        super().__setitem__(name, value_type)
 
         # store the real values in the attribute
         self.prop[name] = list(values)
         self._num_values_set[name] = len(values)
+
+    def edges_deleted(self, eids):
+        ''' Remove the attributes of a set of edge ids '''
+        for key in self:
+            self._num_values_set[key] -= len(eids)
+
+        if len(eids):
+            self._edges_deleted = True
 
 
 # ----------------- #
@@ -321,8 +342,10 @@ class _NNGTGraph(GraphInterface):
     def __init__(self, nodes=0, weighted=True, directed=True,
                  copy_graph=None, **kwargs):
         ''' Initialized independent graph '''
-        self._nattr    = _NProperty(self)
-        self._eattr    = _EProperty(self)
+        self._nattr = _NProperty(self)
+        self._eattr = _EProperty(self)
+
+        self._max_eid = 0
 
         # test if copying graph
         if copy_graph is not None:
@@ -481,6 +504,69 @@ class _NNGTGraph(GraphInterface):
 
         return nodes
 
+    def delete_nodes(self, nodes):
+        '''
+        Remove nodes (and associated edges) from the graph.
+        '''
+        g = self._graph
+
+        old_nodes = range(self.node_nb())
+
+        # update node set and degrees
+        if nonstring_container(nodes):
+            nodes = set(nodes)
+
+            g._nodes = g._nodes.difference(nodes)
+        else:
+            g._nodes.remove(nodes)
+            g._out_deg.pop(nodes)
+            g._in_deg.pop(nodes)
+
+            nodes = {nodes}
+
+        # remove node attributes
+        self._nattr.remove(nodes)
+
+        # map from old nodes to new node ids
+        idx = 0
+
+        remapping = {}
+
+        for n in old_nodes:
+            if n not in nodes:
+                remapping[n] = idx
+                idx += 1
+
+        # remove edges and remap edges
+        remove_eids = []
+
+        new_edges  = OrderedDict()
+
+        for e, eid in g._unique.items():
+            if e[0] in nodes or e[1] in nodes:
+                remove_eids.append(eid)
+            else:
+                new_edges[(remapping[e[0]], remapping[e[1]])] = eid
+
+        g._unique = new_edges
+
+        if not g._directed:
+            g._edges = new_edges.copy()
+            g._edges.update({e[::-1]: i for e, i in new_edges.items()})
+        else:
+            g._edges = g._unique
+
+        # tell edge attributes
+        self._eattr.edges_deleted(remove_eids)
+
+        # ~ # reindex
+        # ~ for i, e in enumerate(g._unique):
+            # ~ g._unique[e] = i
+
+            # ~ if not directed:
+                # ~ g._edges[e] = i
+                # ~ g._edges[e[::-1]] = i
+
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):
         '''
@@ -535,10 +621,13 @@ class _NNGTGraph(GraphInterface):
                 return None
 
         if (g._directed and edge not in g._unique) or edge not in g._edges:
-            edge_id             = len(g._unique)
+            edge_id             = self._max_eid
+            # ~ edge_id             = len(g._unique)
             g._unique[edge]     = edge_id
             g._out_deg[source] += 1
             g._in_deg[target]  += 1
+
+            self._max_eid += 1
 
             # check distance
             _set_dist_new_edges(attributes, self, [edge])
@@ -629,7 +718,7 @@ class _NNGTGraph(GraphInterface):
             new_attr = attributes
 
         # create the edges
-        initial_edges = self.edge_nb()
+        initial_eid = self._max_eid
 
         ws        = None
         num_added = len(edge_list)
@@ -643,19 +732,25 @@ class _NNGTGraph(GraphInterface):
             ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
 
         for i, (e, w) in enumerate(zip(edge_list, ws)):
-            g._unique[tuple(e)] = initial_edges + i
+            eid = self._max_eid
+
+            g._unique[tuple(e)] = eid
+
+            self._max_eid += 1
 
             g._out_deg[e[0]] += 1
             g._in_deg[e[1]]  += 1
 
             if not g._directed:
                 # edges and unique are different objects, so update _edges
-                g._edges[tuple(e)] = initial_edges + i
+                g._edges[tuple(e)] = eid
                 # reciprocal edge
-                g._edges[tuple(e[::-1])] = initial_edges + i
+                g._edges[tuple(e[::-1])] = eid
 
                 g._out_deg[e[1]] += 1
                 g._in_deg[e[0]]  += 1
+
+        
 
         # check distance
         _set_dist_new_edges(new_attr, self, edge_list)
@@ -664,6 +759,26 @@ class _NNGTGraph(GraphInterface):
         self._attr_new_edges(edge_list, attributes=new_attr)
 
         return edge_list
+
+    def delete_edges(self, edges):
+        ''' Remove a list of edges '''
+        g = self._graph
+
+        if not nonstring_container(edges[0]):
+            edges = [edges]
+
+        directed = g._directed
+
+        for e in edges:
+            if e in g._unique:
+                del g._unique[e]
+
+            if not directed:
+                if e in g._edges:
+                    del g._edges[e]
+                    del g._edges[e[::-1]]
+
+        self._eattr.edges_deleted(edges)
 
     def clear_all_edges(self):
         g = self._graph
