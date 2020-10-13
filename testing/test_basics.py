@@ -635,6 +635,7 @@ def test_delete():
 
     # delete one edge (eid = 2)
     edge = (0, 5)
+
     g.delete_edges(edge)
 
     num_edges -= 1
@@ -651,6 +652,7 @@ def test_delete():
 
     # delete several edges (eids = (3, 6))
     edges = [(1, 4), (3, 1)]
+
     g.delete_edges(edges)
 
     num_edges -= len(edges)
@@ -668,6 +670,7 @@ def test_delete():
 
     # deleting one node
     g.delete_nodes([0])
+
     adj = g.adjacency_matrix(weights=True, mformat="dense")
 
     assert g.node_nb() == 5
