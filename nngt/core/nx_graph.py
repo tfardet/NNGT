@@ -383,7 +383,6 @@ class _NxGraph(GraphInterface):
         # fast iteration using list comprehension
         # could also be done with deque and map (deque forces lazy map to run)
         # deque(map(lambda x: _gen_edges(edges, x), g.edges(data="eid")))
-
         [_gen_edges(edges, x) for x in g.edges(data="eid")]
 
         if self._max_eid > g.number_of_edges():
@@ -818,9 +817,9 @@ class _NxGraph(GraphInterface):
 
             [set_eid(e, i) for i, e in enumerate(g.edges)]
 
-            graph = g
+            self._max_eid = num_edges
 
-            self._graph = g
+            self._graph = graph = g
         else:
             # all good
             self._graph = graph.copy() if copy else graph

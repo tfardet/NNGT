@@ -25,7 +25,7 @@
 import numpy as np
 
 import nngt
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, nonstring_container
 
 from .connections import Connections
 from .graph import Graph
@@ -167,22 +167,42 @@ class SpatialGraph(Graph):
         Connections.distances(self)
 
     #-------------------------------------------------------------------------#
-    # Getters
+    # Positions
 
-    def get_positions(self, neurons=None):
+    def get_positions(self, nodes=None):
         '''
-        Returns a copy of the neurons' positions as a (N, 2) array.
+        Returns a copy of the nodes' positions as a (N, 2) array.
 
         Parameters
         ----------
-        neurons : int or array-like, optional (default: all neurons)
-            List of the neurons for which the position should be returned.
+        nodes : int or array-like, optional (default: all nodes)
+            List of the nodes for which the position should be returned.
         '''
-        if neurons is not None:
-            if isinstance(neurons, tuple):
-                # numpy mulitple slicing does not work with tuples
-                neurons = list(neurons)
+        if nodes is not None:
+            if nonstring_container(nodes):
+                # numpy slicing does not work with everything
+                nodes = np.asarray(nodes)
 
-            return np.array(self._pos[neurons])
+                return np.array(self._pos[nodes])
+            else:
+                return self._pos[nodes]
 
         return np.array(self._pos)
+
+    def set_positions(self, positions, nodes=None):
+        '''
+        Set the nodes' positions as a (N, 2) array.
+
+        Parameters
+        ----------
+        positions : array-like
+            List of positions, of shape (N, 2).
+        nodes : int or array-like, optional (default: all nodes)
+            List of the nodes for which the position should be set.
+        '''
+        if nodes is not None:
+            self._pos[nodes] = positions
+        else:
+            if len(positions) != self.node_nb():
+                raise ValueError("One position per node is required.")
+            self._pos = np.array(positions)

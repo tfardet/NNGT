@@ -289,9 +289,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
             nngt.geometry.plot.plot_shape(network.shape, axis=axis,
                                           show=False)
 
-        neurons = None if restrict_nodes is None else list(restrict_nodes)
+        nodes = None if restrict_nodes is None else list(restrict_nodes)
 
-        pos = network.get_positions(neurons=neurons)
+        pos = network.get_positions(nodes=nodes)
     else:
         pos[:, 0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)

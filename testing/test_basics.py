@@ -633,7 +633,7 @@ def test_delete():
 
     assert num_edges == g.edge_nb()
 
-    # delete one edge
+    # delete one edge (eid = 2)
     edge = (0, 5)
     g.delete_edges(edge)
 
@@ -645,7 +645,11 @@ def test_delete():
 
     mat[edge] = 0
 
-    # delete several edges
+    adj = g.adjacency_matrix(weights=True, mformat="dense")
+
+    assert np.all(np.isclose(mat, adj))
+
+    # delete several edges (eids = (3, 6))
     edges = [(1, 4), (3, 1)]
     g.delete_edges(edges)
 
@@ -657,6 +661,10 @@ def test_delete():
 
     for e in edges:
         mat[e] = 0
+
+    adj = g.adjacency_matrix(weights=True, mformat="dense")
+
+    assert np.all(np.isclose(mat, adj))
 
     # deleting one node
     g.delete_nodes([0])
@@ -692,6 +700,9 @@ def test_delete():
     assert g.edge_nb() == 4
 
     assert np.array_equal(g.edges_array, [(1, 2), (2, 0), (1, 4), (4, 3)])
+
+    assert np.all(np.isclose(
+        g.get_weights(), [0.5, 0.1, 1., 1.], equal_nan=True))
 
 
 # ---------- #
