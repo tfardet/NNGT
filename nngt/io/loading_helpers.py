@@ -322,12 +322,16 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
 
         for k, s in di_notif.items():
             if k in nattr_name:
-                attr           = nattr_name[k]
-                idx            = di_notif["node_attributes"].index(attr)
-                dtype          = _np_dtype(nattr_type[idx])
+                attr  = nattr_name[k]
+                idx   = di_notif["node_attributes"].index(attr)
+                dtype = _np_dtype(nattr_type[idx])
 
                 if dtype == object:
-                    di_nattr[attr] = np.array(s.split(separator), dtype=dtype)
+                    char = "" if s.strip()[0] != '"' else '"'
+                    nsep = char + separator + char
+
+                    di_nattr[attr] = np.array(
+                        [w for w in s[1:-1].split(nsep)], dtype=dtype)
                 else:
                     di_nattr[attr] = np.fromstring(s, sep=separator,
                                                    dtype=dtype)

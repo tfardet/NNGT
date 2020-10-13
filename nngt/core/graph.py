@@ -170,6 +170,9 @@ class Graph(nngt.core.GraphObject):
             else:
                 weights = matrix[edges[:, 0], edges[:, 1]]
 
+                if len(weights.shape) == 2:
+                    weights = weights.A1
+
         graph.new_edges(edges, {"weight": weights}, check_self_loops=False,
                         ignore_invalid=True)
 
@@ -1338,6 +1341,8 @@ class Graph(nngt.core.GraphObject):
         val : int, float or str , optional (default: None)
             Identical value for all edges.
         '''
+        assert name != "eid", "`eid` is a reserved internal edge-attribute."
+
         self._eattr.new_attribute(
             name, value_type, values=values, val=val)
 

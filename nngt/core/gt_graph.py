@@ -172,7 +172,15 @@ class _GtEProperty(BaseProperty):
         if isinstance(name, slice):
             eprop = {}
             for k in self:
-                eprop[k] = g.edge_properties[k].a[name]
+                ep = g.edge_properties[k]
+
+                if self._edges_deleted:
+                    Edge = g.edge
+                    data = [ep[Edge(*e)] for e in self.parent().edges_array]
+
+                    eprop[k] = data[name]
+                else:
+                    eprop[k] = ep.a[name]
 
             return eprop
         elif nonstring_container(name):
@@ -183,18 +191,13 @@ class _GtEProperty(BaseProperty):
             eprop = {}
             if nonstring_container(name[0]):
                 # name is a list of edges
-                eids = [g.edge_index[Edge(*e)] for e in name]
                 for k in self.keys():
-                    dtype = super(_GtEProperty, self).__getitem__(k)
-                    if dtype == "string":
-                        eprop[k] = \
-                            g.edge_properties[k].get_2d_array([0])[0][eids]
-                    elif dtype == "object":
-                        tmp = g.edge_properties[k]
-                        eprop[k] = _to_np_array(
-                            [tmp[Edge(*e)] for e in name], dtype)
-                    else:
-                        eprop[k] = g.edge_properties[k].a[eids]
+                    tmp = g.edge_properties[k]
+
+                    dtype = super().__getitem__(k)
+
+                    eprop[k] = _to_np_array(
+                        [tmp[Edge(*e)] for e in name], dtype)
             else:
                 # name is a single edge
                 for k in self.keys():
@@ -202,12 +205,14 @@ class _GtEProperty(BaseProperty):
 
             return eprop
 
+        # name is a string
         dtype = super().__getitem__(name)
 
         if self._edges_deleted:
-            data = g.edge_properties[name]
+            eprop = g.edge_properties[name]
+            edges = self.parent().edges_array
 
-            return _to_np_array([data[Edge(*e)] for e in g.get_edges()], dtype)
+            return _to_np_array([eprop[Edge(*e)] for e in edges], dtype)
 
         if dtype == "string":
             return g.edge_properties[name].get_2d_array([0])[0]
@@ -274,7 +279,7 @@ class _GtEProperty(BaseProperty):
         if edges is None:
             self[name] = values
         else:
-            if last_edges:
+            if last_edges and not self._edges_deleted:
                 g.edge_properties[name].a[-num_e:] = values
             else:
                 Edge = g.edge
@@ -357,6 +362,8 @@ class _GtGraph(GraphInterface):
         self._nattr = _GtNProperty(self)
         self._eattr = _GtEProperty(self)
 
+        self._edges_deleted = False
+
         g = copy_graph.graph if copy_graph is not None else None
 
         if g is not None:
@@ -370,11 +377,31 @@ class _GtGraph(GraphInterface):
                 g.set_directed(True)
 
             self._from_library_graph(g, copy=True)
+
+            num_edges = self.edge_nb()
+
+            # make edge id property map
+            if "eid" in g.edge_properties:
+                g.edge_properties["eid"].a = list(range(num_edges))
+            else:
+                eids = self._graph.new_edge_property(
+                    "int", vals=list(range(self._max_eid)))
+
+                g.edge_properties["eid"] = eids
+
+            self._max_eid = num_edges
         else:
             self._graph = nngt._config["graph"](directed=directed)
 
             if nodes:
                 self._graph.add_vertex(nodes)
+
+            # make edge id property map
+            self._max_eid = 0
+
+            eids = self._graph.new_edge_property("int")
+
+            self._graph.edge_properties["eid"] = eids
 
     #-------------------------------------------------------------------------#
     # Graph manipulation
@@ -430,7 +457,10 @@ class _GtGraph(GraphInterface):
         2-tuple.
         '''
         g = self._graph
-        edges = g.get_edges([g.edge_index])
+        if not "eid" in g.edge_properties:
+            print("eid not in edge properties")
+        edges = g.get_edges([g.edge_properties["eid"]])
+
         order = np.argsort(edges[:, 2])
 
         return edges[order, :2]
@@ -451,6 +481,12 @@ class _GtGraph(GraphInterface):
         value_types : dict, optional (default: None)
             Dict of the `attributes` types, necessary only if the `attributes`
             do not exist yet.
+        positions : array of shape (n, 2), optional (default: None)
+            Positions of the neurons. Valid only for
+            :class:`~nngt.SpatialGraph` or :class:`~nngt.SpatialNetwork`.
+        groups : str, int, or list, optional (default: None)
+            :class:`~nngt.core.NeuralGroup` to which the neurons belong. Valid
+            only for :class:`~nngt.Network` or :class:`~nngt.SpatialNetwork`.
 
         Returns
         -------
@@ -520,6 +556,7 @@ class _GtGraph(GraphInterface):
         # tell eattr
         if old_enum != self.edge_nb():
             self._eattr.edges_deleted()
+            self._edges_deleted = True
 
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):
@@ -578,6 +615,11 @@ class _GtGraph(GraphInterface):
 
             # set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
+
+            # set edge id
+            g.edge_properties["eid"][g.edge(source, target)] = self._max_eid
+
+            self._max_eid += 1
         else:
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
@@ -632,6 +674,8 @@ class _GtGraph(GraphInterface):
         -------
         Returns new edges only.
         '''
+        g = self._graph
+
         attributes = {} if attributes is None else deepcopy(attributes)
         num_edges  = len(edge_list)
         num_nodes  = self.node_nb()
@@ -659,10 +703,26 @@ class _GtGraph(GraphInterface):
 
         # create the edges
         if len(edge_list):
-            self._graph.add_edge_list(edge_list)
+            g.add_edge_list(edge_list)
 
             # call parent function to set the attributes
             self._attr_new_edges(edge_list, attributes=new_attr)
+
+            # set edge id
+            n_e = len(edge_list)
+
+            if self._edges_deleted:
+                Edge = g.edge
+
+                for e in edge_list:
+                    g.edge_properties["eid"][Edge(*e)] = self._max_eid
+
+                    self._max_eid += 1
+            else:
+                g.edge_properties["eid"].a[-n_e:] = \
+                    list(range(self._max_eid, self._max_eid + n_e))
+
+                self._max_eid += n_e
 
         return edge_list
 
@@ -680,6 +740,8 @@ class _GtGraph(GraphInterface):
 
         if len(edges):
             self._eattr.edges_deleted()
+
+            self._edges_deleted = True
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''
@@ -791,3 +853,9 @@ class _GtGraph(GraphInterface):
                 else:
                     super(type(self._eattr), self._eattr).__setitem__(
                         key, _get_dtype(val.a[0]))
+
+        # make edge ids
+        eids = self._graph.new_edge_property(
+            "int", vals=list(range(self.edge_nb())))
+
+        self._graph.edge_properties["eid"] = eids

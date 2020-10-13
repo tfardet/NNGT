@@ -46,11 +46,20 @@ def test_config():
     assert nngt.get_config("omp") == num_omp
 
     # set config (mpi)
-    nngt.set_config("mpi", True)
+    has_mpi = False
 
-    assert nngt.get_config("mpi")
-    assert not nngt.get_config("multithreading")
-    assert nngt.get_config("omp") == 1
+    try:
+        import mpi4py
+        has_mpi = True
+    except:
+        pass
+
+    if has_mpi:
+        nngt.set_config("mpi", True)
+
+        assert nngt.get_config("mpi")
+        assert not nngt.get_config("multithreading")
+        assert nngt.get_config("omp") == 1
 
     # key error
     key_error = False
@@ -624,8 +633,9 @@ def test_delete():
 
     assert num_edges == g.edge_nb()
 
-    # delete one edge
+    # delete one edge (eid = 2)
     edge = (0, 5)
+
     g.delete_edges(edge)
 
     num_edges -= 1
@@ -636,8 +646,13 @@ def test_delete():
 
     mat[edge] = 0
 
-    # delete several edges
+    adj = g.adjacency_matrix(weights=True, mformat="dense")
+
+    assert np.all(np.isclose(mat, adj))
+
+    # delete several edges (eids = (3, 6))
     edges = [(1, 4), (3, 1)]
+
     g.delete_edges(edges)
 
     num_edges -= len(edges)
@@ -649,9 +664,16 @@ def test_delete():
     for e in edges:
         mat[e] = 0
 
+    adj = g.adjacency_matrix(weights=True, mformat="dense")
+
+    assert np.all(np.isclose(mat, adj))
+
     # deleting one node
     g.delete_nodes([0])
+
     adj = g.adjacency_matrix(weights=True, mformat="dense")
+
+    assert g.node_nb() == 5
 
     assert np.array_equal(adj, mat[1:, 1:])
 
@@ -660,11 +682,30 @@ def test_delete():
     # delete two nodes
     g.delete_nodes([1, 2])
 
+    assert g.node_nb() == 3
+
     adj = g.adjacency_matrix(weights=True, mformat="dense")
 
     assert np.array_equal(adj, mat[[1, 4, 5]][:, [1, 4, 5]])
 
     assert np.array_equal(g.node_attributes["test"], [1, 4, 5])
+
+    # readd nodes
+    g.new_node(2, attributes={"test": [-1, 2]})
+
+    assert g.node_nb() == 5
+
+    assert np.array_equal(g.node_attributes["test"], [1, 4, 5, -1, 2])
+
+    # readd edges
+    g.new_edges([(1, 4), (4, 3)])
+
+    assert g.edge_nb() == 4
+
+    assert np.array_equal(g.edges_array, [(1, 2), (2, 0), (1, 4), (4, 3)])
+
+    assert np.all(np.isclose(
+        g.get_weights(), [0.5, 0.1, 1., 1.], equal_nan=True))
 
 
 # ---------- #

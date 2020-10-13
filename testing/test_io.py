@@ -215,7 +215,7 @@ def test_str_attributes():
     g.set_edge_attribute("type", val='odd')
 
     g.new_node_attribute("rnd", "string")
-    g.set_node_attribute("rnd", values=["sadf", "sdfr"])
+    g.set_node_attribute("rnd", values=["s'adf", 'sd fr"'])
 
     for fmt in ("neighbour", "edge_list"):
         nngt.save_to_file(g, gfilename, fmt=fmt)

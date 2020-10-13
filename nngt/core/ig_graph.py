@@ -330,6 +330,17 @@ class _IGraph(GraphInterface):
             Number of nodes to add.
         neuron_type : int, optional (default: 1)
             Type of neuron (1 for excitatory, -1 for inhibitory)
+        attributes : dict, optional (default: None)
+            Dictionary containing the attributes of the nodes.
+        value_types : dict, optional (default: None)
+            Dict of the `attributes` types, necessary only if the `attributes`
+            do not exist yet.
+        positions : array of shape (n, 2), optional (default: None)
+            Positions of the neurons. Valid only for
+            :class:`~nngt.SpatialGraph` or :class:`~nngt.SpatialNetwork`.
+        groups : str, int, or list, optional (default: None)
+            :class:`~nngt.core.NeuralGroup` to which the neurons belong. Valid
+            only for :class:`~nngt.Network` or :class:`~nngt.SpatialNetwork`.
 
         Returns
         -------
