@@ -303,7 +303,7 @@ class _NxGraph(GraphInterface):
     #-------------------------------------------------------------------------#
     # Class properties
 
-    di_value = { "string": "", "double": 0., "int": int(0) }
+    di_value = {"string": "", "double": 0., "int": int(0)}
 
     #-------------------------------------------------------------------------#
     # Constructor and instance properties
@@ -312,6 +312,8 @@ class _NxGraph(GraphInterface):
                  **kwargs):
         self._nattr = _NxNProperty(self)
         self._eattr = _NxEProperty(self)
+
+        self._max_eid = 0
 
         g = copy_graph.graph if copy_graph is not None else None
 
@@ -322,6 +324,8 @@ class _NxGraph(GraphInterface):
                 g = g.to_directed()
 
             self._from_library_graph(g, copy=True)
+
+            self._max_eid = copy_graph._max_eid
         else:
             nx = nngt._config["library"]
 
@@ -374,13 +378,15 @@ class _NxGraph(GraphInterface):
         2-tuple.
         '''
         g     = self._graph
-        edges = np.zeros((g.number_of_edges(), 2), dtype=int)
+        edges = np.full((self._max_eid, 2), -1)
 
         # fast iteration using list comprehension
         # could also be done with deque and map (deque forces lazy map to run)
         # deque(map(lambda x: _gen_edges(edges, x), g.edges(data="eid")))
-
         [_gen_edges(edges, x) for x in g.edges(data="eid")]
+
+        if self._max_eid > g.number_of_edges():
+            return edges[edges[:, 0] > -1]
 
         return edges
 
@@ -395,6 +401,17 @@ class _NxGraph(GraphInterface):
             Number of nodes to add.
         neuron_type : int, optional (default: 1)
             Type of neuron (1 for excitatory, -1 for inhibitory)
+        attributes : dict, optional (default: None)
+            Dictionary containing the attributes of the nodes.
+        value_types : dict, optional (default: None)
+            Dict of the `attributes` types, necessary only if the `attributes`
+            do not exist yet.
+        positions : array of shape (n, 2), optional (default: None)
+            Positions of the neurons. Valid only for
+            :class:`~nngt.SpatialGraph` or :class:`~nngt.SpatialNetwork`.
+        groups : str, int, or list, optional (default: None)
+            :class:`~nngt.core.NeuralGroup` to which the neurons belong. Valid
+            only for :class:`~nngt.Network` or :class:`~nngt.SpatialNetwork`.
 
         Returns
         -------
@@ -556,7 +573,9 @@ class _NxGraph(GraphInterface):
 
             g.add_edge(source, target)
 
-            g[source][target]["eid"] = g.number_of_edges() - 1
+            g[source][target]["eid"] = self._max_eid
+
+            self._max_eid += 1
 
             # call parent function to set the attributes
             self._attr_new_edges([(source, target)], attributes=attributes)
@@ -634,7 +653,7 @@ class _NxGraph(GraphInterface):
             new_attr = attributes
 
         # create the edges
-        initial_edges = g.number_of_edges()
+        initial_eid = self._max_eid
 
         num_added = len(edge_list)
 
@@ -642,8 +661,7 @@ class _NxGraph(GraphInterface):
             arr_edges = np.zeros((num_added, 3), dtype=int)
 
             arr_edges[:, :2] = edge_list
-            arr_edges[:, 2]  = np.arange(initial_edges,
-                initial_edges + num_added)
+            arr_edges[:, 2]  = np.arange(initial_eid, initial_eid + num_added)
 
             # create the edges with an eid attribute
             g.add_weighted_edges_from(arr_edges, weight="eid")
@@ -653,6 +671,8 @@ class _NxGraph(GraphInterface):
 
             # call parent function to set the attributes
             self._attr_new_edges(edge_list, attributes=new_attr)
+
+            self._max_eid += num_added
 
         return edge_list
 
@@ -797,9 +817,9 @@ class _NxGraph(GraphInterface):
 
             [set_eid(e, i) for i, e in enumerate(g.edges)]
 
-            graph = g
+            self._max_eid = num_edges
 
-            self._graph = g
+            self._graph = graph = g
         else:
             # all good
             self._graph = graph.copy() if copy else graph
