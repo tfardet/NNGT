@@ -46,11 +46,20 @@ def test_config():
     assert nngt.get_config("omp") == num_omp
 
     # set config (mpi)
-    nngt.set_config("mpi", True)
+    has_mpi = False
 
-    assert nngt.get_config("mpi")
-    assert not nngt.get_config("multithreading")
-    assert nngt.get_config("omp") == 1
+    try:
+        import mpi4py
+        has_mpi = True
+    except:
+        pass
+
+    if has_mpi:
+        nngt.set_config("mpi", True)
+
+        assert nngt.get_config("mpi")
+        assert not nngt.get_config("multithreading")
+        assert nngt.get_config("omp") == 1
 
     # key error
     key_error = False
@@ -653,8 +662,8 @@ def test_delete():
     g.delete_nodes([0])
     adj = g.adjacency_matrix(weights=True, mformat="dense")
 
-    # ~ print(adj)
-    # ~ print(mat[1:, 1:])
+    assert g.node_nb() == 5
+
     assert np.array_equal(adj, mat[1:, 1:])
 
     assert np.array_equal(g.node_attributes["test"], [1, 2, 3, 4, 5])
@@ -662,11 +671,27 @@ def test_delete():
     # delete two nodes
     g.delete_nodes([1, 2])
 
+    assert g.node_nb() == 3
+
     adj = g.adjacency_matrix(weights=True, mformat="dense")
 
     assert np.array_equal(adj, mat[[1, 4, 5]][:, [1, 4, 5]])
 
     assert np.array_equal(g.node_attributes["test"], [1, 4, 5])
+
+    # readd nodes
+    g.new_node(2, attributes={"test": [-1, 2]})
+
+    assert g.node_nb() == 5
+
+    assert np.array_equal(g.node_attributes["test"], [1, 4, 5, -1, 2])
+
+    # readd edges
+    g.new_edges([(1, 4), (4, 3)])
+
+    assert g.edge_nb() == 4
+
+    assert np.array_equal(g.edges_array, [(1, 2), (2, 0), (1, 4), (4, 3)])
 
 
 # ---------- #
@@ -686,5 +711,4 @@ if __name__ == "__main__":
         test_node_creation()
         test_edge_creation()
         test_has_edges_edge_id()
-        nngt.use_backend("graph-tool")
         test_delete()

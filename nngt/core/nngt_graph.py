@@ -130,6 +130,7 @@ class _NProperty(BaseProperty):
             else:
                 for n, val in zip(nodes, values):
                     self.prop[name][n] = val
+
         self._num_values_set[name] = num_nodes
 
     def remove(self, nodes):
@@ -350,6 +351,7 @@ class _NNGTGraph(GraphInterface):
         # test if copying graph
         if copy_graph is not None:
             self._from_library_graph(copy_graph, copy=True)
+            self._max_eid = copy_graph._max_eid
         else:
             self._graph = _NNGTGraphObject(
                 nodes=nodes, weighted=weighted, directed=directed)
@@ -400,7 +402,7 @@ class _NNGTGraph(GraphInterface):
         Edges of the graph, sorted by order of creation, as an array of
         2-tuple.
         '''
-        return np.array(list(self._graph._unique), dtype=int)
+        return np.asarray(list(self._graph._unique), dtype=int)
 
     def is_connected(self):
         raise NotImplementedError("Not available with 'nngt' backend, please "
@@ -559,13 +561,7 @@ class _NNGTGraph(GraphInterface):
         # tell edge attributes
         self._eattr.edges_deleted(remove_eids)
 
-        # ~ # reindex
-        # ~ for i, e in enumerate(g._unique):
-            # ~ g._unique[e] = i
-
-            # ~ if not directed:
-                # ~ g._edges[e] = i
-                # ~ g._edges[e[::-1]] = i
+        g._nodes = set(range(len(g._nodes)))
 
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):
