@@ -653,8 +653,6 @@ def test_delete():
     g.delete_nodes([0])
     adj = g.adjacency_matrix(weights=True, mformat="dense")
 
-    # ~ print(adj)
-    # ~ print(mat[1:, 1:])
     assert np.array_equal(adj, mat[1:, 1:])
 
     assert np.array_equal(g.node_attributes["test"], [1, 2, 3, 4, 5])
@@ -686,5 +684,4 @@ if __name__ == "__main__":
         test_node_creation()
         test_edge_creation()
         test_has_edges_edge_id()
-        nngt.use_backend("graph-tool")
         test_delete()

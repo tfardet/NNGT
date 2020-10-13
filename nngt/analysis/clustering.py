@@ -115,6 +115,9 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
     :func:`~nngt.analysis.triplet_count`
     :func:`~nngt.analysis.triangle_count`
     '''
+    assert method in ("barrat", "continuous", "onnela"), \
+        "Unknown method '{}'".format(method)
+
     # check directivity and weights
     directed *= g.is_directed()
     weighted  = weights not in (False, None)
@@ -123,8 +126,8 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         return global_clustering_binary_undirected(g)
     elif not weighted:
         # directed clustering
-        triangles = triangle_count(g)
-        triplets  = triplet_count(g)
+        triangles = triangle_count(g, mode=mode)
+        triplets  = triplet_count(g, mode=mode)
 
         return np.sum(triangles) / np.sum(triplets)
 
