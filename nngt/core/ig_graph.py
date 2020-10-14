@@ -326,10 +326,9 @@ class _IGraph(GraphInterface):
 
         if source_node is None:
             if is_integer(target_node):
-                edges = g.es.select(_target_eq=source_node)
+                edges = g.es.select(_target_eq=target_node)
             else:
-                edges = g.es.select(_target_in=source_node)
-                
+                edges = g.es.select(_target_in=target_node)
         elif is_integer(source_node):
             edges = g.es.select(_source_eq=source_node)
         else:

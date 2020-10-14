@@ -404,6 +404,46 @@ class _NNGTGraph(GraphInterface):
         '''
         return np.asarray(list(self._graph._unique), dtype=int)
 
+    def _get_edges(self, source_node=None, target_node=None):
+        g = self._graph
+
+        edges = None
+
+        if source_node is not None:
+            source_node = \
+                [source_node] if is_integer(source_node) else source_node
+
+            if g.is_directed():
+                edges = [e for e in g._unique if e[0] in source_node]
+            else:
+                edges = set()
+
+                for e in g._unique:
+                    if e[0] in source_node or e[1] in source_node:
+                        if e[::-1] not in edges:
+                            edges.add(e)
+
+                edges = list(edges)
+
+            return edges
+
+        target_node = \
+            [target_node] if is_integer(target_node) else target_node
+
+        if g.is_directed():
+            edges = [e for e in g._unique if e[1] in target_node]
+        else:
+            edges = set()
+
+            for e in g._unique:
+                if e[0] in target_node or e[1] in target_node:
+                    if e[::-1] not in edges:
+                        edges.add(e)
+
+            edges = list(edges)
+
+        return edges
+
     def is_connected(self):
         raise NotImplementedError("Not available with 'nngt' backend, please "
                                   "install a graph library (networkx, igraph, "

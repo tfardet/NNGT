@@ -868,11 +868,15 @@ class Graph(nngt.core.GraphObject):
             self.edge_id((source_node, target_node))
             edges = np.array([[source_node, target_node]])
         else:
-            # we need to use the adjacency matrix, get its subparts,
-            # then use the list of nodes to get the original ids back
-            # to do that we first convert source/target_node to lists
-            # (note that this has no significant speed impact)
-            if nngt.get_config('backend') == 'nngt':
+            if None in (source_node, target_node):
+                # backend-specific implementation for source or target
+                edges = self._get_edges(source_node=source_node,
+                                        target_node=target_node)
+            else:
+                # we need to use the adjacency matrix, get its subparts,
+                # then use the list of nodes to get the original ids back
+                # to do that we first convert source/target_node to lists
+                # (note that this has no significant speed impact)
                 src, tgt = None, None
 
                 if source_node is None:
@@ -902,9 +906,6 @@ class Graph(nngt.core.GraphObject):
                     edges.sort()
 
                     edges = _unique_rows(edges)
-            else:
-                edges = self._get_edges(source_node=source_node,
-                                        target_node=target_node)
 
         # check attributes
         if attribute is None:
