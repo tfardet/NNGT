@@ -872,35 +872,39 @@ class Graph(nngt.core.GraphObject):
             # then use the list of nodes to get the original ids back
             # to do that we first convert source/target_node to lists
             # (note that this has no significant speed impact)
-            src, tgt = None, None
+            if nngt.get_config('backend') == 'nngt':
+                src, tgt = None, None
 
-            if source_node is None:
-                src = np.array(
-                    [i for i in range(self.node_nb())], dtype=int)
-            elif is_integer(source_node):
-                src = np.array([source_node], dtype=int)
+                if source_node is None:
+                    src = np.array(
+                        [i for i in range(self.node_nb())], dtype=int)
+                elif is_integer(source_node):
+                    src = np.array([source_node], dtype=int)
+                else:
+                    src = np.sort(source_node)
+
+                if target_node is None:
+                    tgt = np.array(
+                        [i for i in range(self.node_nb())], dtype=int)
+                elif is_integer(target_node):
+                    tgt = np.array([target_node], dtype=int)
+                else:
+                    tgt = np.sort(target_node)
+
+                mat = self.adjacency_matrix()
+
+                nnz = mat[src].tocsc()[:, tgt].nonzero()
+
+                edges = np.array([src[nnz[0]], tgt[nnz[1]]], dtype=int).T
+
+                # remove reciprocal if graph is undirected
+                if not self.is_directed():
+                    edges.sort()
+
+                    edges = _unique_rows(edges)
             else:
-                src = np.sort(source_node)
-
-            if target_node is None:
-                tgt = np.array(
-                    [i for i in range(self.node_nb())], dtype=int)
-            elif is_integer(target_node):
-                tgt = np.array([target_node], dtype=int)
-            else:
-                tgt = np.sort(target_node)
-
-            mat = self.adjacency_matrix()
-
-            nnz = mat[src].tocsc()[:, tgt].nonzero()
-
-            edges = np.array([src[nnz[0]], tgt[nnz[1]]], dtype=int).T
-
-            # remove reciprocal if graph is undirected
-            if not self.is_directed():
-                edges.sort()
-
-                edges = _unique_rows(edges)
+                edges = self._get_edges(source_node=source_node,
+                                        target_node=target_node)
 
         # check attributes
         if attribute is None:
