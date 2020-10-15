@@ -465,6 +465,38 @@ class _GtGraph(GraphInterface):
 
         return edges[order, :2]
 
+    def _get_edges(self, source_node=None, target_node=None):
+        g = self._graph
+
+        edges = set()
+
+        if source_node is not None:
+            if is_integer(source_node):
+                return g.get_out_edges(source_node)
+
+            for s in source_node:
+                if g.is_directed():
+                    edges.update((tuple(e) for e in g.get_out_edges(s)))
+                else:
+                    for e in g.get_all_edges(s):
+                        if tuple(e[::-1]) not in edges:
+                            edges.add(tuple(e))
+
+            return list(edges)
+
+        if is_integer(target_node):
+            return g.get_in_edges(target_node)
+
+        for t in target_node:
+            if g.is_directed():
+                edges.update((tuple(e) for e in g.get_in_edges(t)))
+            else:
+                for e in g.get_all_edges(t):
+                    if tuple(e[::-1]) not in edges:
+                        edges.add(tuple(e))
+
+        return list(edges)
+
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''

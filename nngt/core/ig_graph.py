@@ -319,6 +319,23 @@ class _IGraph(GraphInterface):
         g = self._graph
         return np.array([(e.source, e.target) for e in g.es], dtype=int)
 
+    def _get_edges(self, source_node=None, target_node=None):
+        g = self._graph
+
+        edges = None
+
+        if source_node is None:
+            if is_integer(target_node):
+                edges = g.es.select(_target_eq=target_node)
+            else:
+                edges = g.es.select(_target_in=target_node)
+        elif is_integer(source_node):
+            edges = g.es.select(_source_eq=source_node)
+        else:
+            edges = g.es.select(_source_in=source_node)
+
+        return [e.tuple for e in edges]
+
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''

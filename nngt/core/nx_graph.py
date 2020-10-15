@@ -390,6 +390,24 @@ class _NxGraph(GraphInterface):
 
         return edges
 
+    def _get_edges(self, source_node=None, target_node=None):
+        g = self._graph
+
+        if source_node is not None:
+            source_node = \
+                [source_node] if is_integer(source_node) else source_node
+
+            return list(
+                g.out_edges(source_node) if g.is_directed()
+                else g.edges(source_node))
+
+        target_node = \
+            [target_node] if is_integer(target_node) else target_node
+
+        return list(
+            g.in_edges(target_node) if g.is_directed()
+            else g.edges(target_node))
+
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):
         '''

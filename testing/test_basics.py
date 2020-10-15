@@ -588,10 +588,13 @@ def test_get_edges():
 
     g.new_edges(edges)
 
-    assert np.array_equal(g.get_edges(source_node=[0, 1]), edges[:3])
-    assert np.array_equal(g.get_edges(target_node=[0, 1]), edges[:2])
-    assert np.array_equal(g.get_edges(source_node=[0, 2], target_node=[0, 1]),
-                          [(0, 1)])
+    def to_set(ee):
+        return {tuple(e) for e in ee}
+
+    assert to_set(g.get_edges(source_node=[0, 1])) == to_set(edges[:3])
+    assert to_set(g.get_edges(target_node=[0, 1])) == to_set(edges[:2])
+    assert to_set(g.get_edges(source_node=[0, 2],
+                  target_node=[0, 1])) == {(0, 1)}
 
     # undirected
     g = nngt.Graph(4, directed=False)
@@ -602,14 +605,13 @@ def test_get_edges():
     
     res = [(0, 1), (1, 2)]
 
-    assert np.array_equal(g.get_edges(source_node=[0, 1]), res)
-    assert np.array_equal(g.get_edges(target_node=[0, 1]), res)
-    assert np.array_equal(g.get_edges(source_node=[0, 2], target_node=[0, 1]),
-                          res)
+    assert to_set(g.get_edges(source_node=[0, 1])) == to_set(res)
+    assert to_set(g.get_edges(target_node=[0, 1])) == to_set(res)
+    assert to_set(g.get_edges(source_node=[0, 2],
+                              target_node=[0, 1])) == to_set(res)
 
-    assert np.array_equal(g.get_edges(source_node=0, target_node=1), [(0, 1)])
-    assert np.array_equal(g.get_edges(source_node=0, target_node=[0, 1]),
-                          [(0, 1)])
+    assert to_set(g.get_edges(source_node=0, target_node=1)) == {(0, 1)}
+    assert to_set(g.get_edges(source_node=0, target_node=[0, 1])) == {(0, 1)}
 
 
 @pytest.mark.mpi_skip
