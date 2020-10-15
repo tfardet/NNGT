@@ -715,13 +715,12 @@ def test_delete():
 # ---------- #
 
 if __name__ == "__main__":
-    # ~ test_directed_adjacency()
-    # ~ test_undirected_adjacency()
-    # ~ test_config()
-    # ~ test_new_node_attr()
-    # ~ test_graph_copy()
-    # ~ test_degrees_neighbors()
-    nngt.use_backend("nngt")
+    test_directed_adjacency()
+    test_undirected_adjacency()
+    test_config()
+    test_new_node_attr()
+    test_graph_copy()
+    test_degrees_neighbors()
     test_get_edges()
 
     if not nngt.get_config('mpi'):
