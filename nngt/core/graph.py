@@ -868,7 +868,7 @@ class Graph(nngt.core.GraphObject):
             self.edge_id((source_node, target_node))
             edges = np.array([[source_node, target_node]])
         else:
-            if None in (source_node, target_node):
+            if source_node is None or target_node is None:
                 # backend-specific implementation for source or target
                 edges = self._get_edges(source_node=source_node,
                                         target_node=target_node)
