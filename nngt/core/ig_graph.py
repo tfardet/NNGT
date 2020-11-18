@@ -651,8 +651,9 @@ class _IGraph(GraphInterface):
 
         if edges:
             for key, val in graph.es[0].attributes().items():
-                super(type(self._eattr), self._eattr).__setitem__(
-                    key, _get_dtype(val))
+                if key != 'eid':
+                    super(type(self._eattr), self._eattr).__setitem__(
+                        key, _get_dtype(val))
 
 
 def _get_weights(g, weights):

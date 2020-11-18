@@ -367,6 +367,9 @@ def test_graph_copy():
 
     assert g.is_directed() == h.is_directed() == False
 
+    # eid is protected and should not be copied to a visible edge attribute
+    assert "eid" not in h.edge_attributes
+
 
 def test_degrees_neighbors():
     '''

@@ -876,15 +876,16 @@ class _GtGraph(GraphInterface):
 
         if edges:
             for key, val in graph.edge_properties.items():
-                if val.value_type() == 'string':
-                    super(type(self._eattr), self._eattr).__setitem__(
-                        key, 'string')
-                elif val.value_type().startswith('vector'):
-                    super(type(self._eattr), self._eattr).__setitem__(
-                        key, 'object')
-                else:
-                    super(type(self._eattr), self._eattr).__setitem__(
-                        key, _get_dtype(val.a[0]))
+                if key != 'eid':
+                    if val.value_type() == 'string':
+                        super(type(self._eattr), self._eattr).__setitem__(
+                            key, 'string')
+                    elif val.value_type().startswith('vector'):
+                        super(type(self._eattr), self._eattr).__setitem__(
+                            key, 'object')
+                    else:
+                        super(type(self._eattr), self._eattr).__setitem__(
+                            key, _get_dtype(val.a[0]))
 
         # make edge ids
         eids = self._graph.new_edge_property(
