@@ -852,8 +852,9 @@ class _NxGraph(GraphInterface):
             e0 = next(iter(graph.edges))
 
             for key, val in graph.edges[e0].items():
-                super(type(self._eattr), self._eattr).__setitem__(
-                    key, _get_dtype(val))
+                if key != "eid":
+                    super(type(self._eattr), self._eattr).__setitem__(
+                        key, _get_dtype(val))
 
 
 # tool function to generate the edges_array
