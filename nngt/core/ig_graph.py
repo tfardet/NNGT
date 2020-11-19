@@ -559,7 +559,10 @@ class _IGraph(GraphInterface):
     def delete_edges(self, edges):
         ''' Remove a list of edges '''
         if nonstring_container(edges[0]):
-            self._graph.delete_edges(edges)
+            if isinstance(edges[0], tuple):
+                self._graph.delete_edges(edges)
+            else:
+                self._graph.delete_edges([tuple(e) for e in edges])
         else:
             self._graph.delete_edges([edges])
 
