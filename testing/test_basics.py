@@ -715,7 +715,7 @@ def test_delete():
     # test delete from get_edges (issue #136)
     edges = g.get_edges()
 
-    g.delete_edges(edge[:2])
+    g.delete_edges(edges[:2])
 
 
 # ---------- #
