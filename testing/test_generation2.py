@@ -379,6 +379,45 @@ def test_distances():
     assert np.array_equal(dist, expected)
 
 
+@pytest.mark.mpi_skip
+def test_price():
+    ''' Test Price network '''
+    # directed
+    m = 5
+    g = ng.price_scale_free(m, nodes=100)
+
+    in_degrees  = g.get_degrees("in")
+    out_degrees = g.get_degrees("out")
+
+    assert set(out_degrees) == {i for i in range(m + 1)}
+    assert in_degrees.min() == 0
+
+    # undirected
+    g = ng.price_scale_free(m, nodes=100, undirected=False)
+
+    degrees = g.get_degrees()
+
+    assert np.all(degrees >= m)
+
+    # reciprocity
+    g = ng.price_scale_free(m, nodes=100, reciprocity=1)
+
+    assert np.all(degrees >= m)
+    assert na.reciprocity(g) == 1
+
+    r = 0.3
+
+    g = ng.price_scale_free(m, nodes=100, reciprocity=r)
+
+    E  = g.edge_nb()
+    Er = 2 * r * E  / (1 + r)
+
+    rmin = (Er - 3*np.sqrt(Er)) / E
+    rmax = (Er + 3*np.sqrt(Er)) / E
+
+    assert rmin < na.reciprocity(g) < rmax
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
         test_newman_watts()
@@ -387,6 +426,7 @@ if __name__ == "__main__":
         test_watts_strogatz()
         test_all_to_all()
         test_distances()
+        test_price()
 
     if nngt.get_config("mpi"):
         test_mpi_from_degree_list()

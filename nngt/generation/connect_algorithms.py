@@ -533,8 +533,65 @@ def _erdos_renyi(source_ids, target_ids, density=None, edges=None,
     return ia_edges
 
 
-def _price_scale_free():
-    pass
+def _price_scale_free(ids, m, c, gamma, reciprocity, directed, multigraph):
+    '''
+    Generate a Price network.
+    '''
+    ids = np.array(ids).astype(int)
+
+    num_nodes = len(ids)
+
+    if directed:
+        assert c > 0, "`c` > 0 is required for directed graphs."
+    else:
+        assert c > -1, "`c` > -1 is required for undirected graphs."
+
+    assert 0 <= reciprocity <= 1, "`reciprocity` must be in [0, 1]."
+
+    in_degrees = np.zeros(num_nodes)
+
+    edges = []
+    edges_hash = set()
+    recip_hash = None if directed else set()
+
+    rng = nngt._rng
+
+    for i, n in zip(range(1, num_nodes), ids[1:]):
+        proba = None if i == 1 else np.power(in_degrees[:i], gamma) + c
+
+        if proba is not None:
+            proba /= proba.sum()
+
+        edges_i = []
+
+        m_i = min(i, m)
+
+        while len(edges_i) < m_i:
+            targets = rng.choice(i, size=m_i, replace=False, p=proba)
+
+            for t in targets:
+                e = (n, ids[t])
+
+                if e not in edges_hash:
+                    if directed:
+                        edges_i.append(e)
+                        in_degrees[t] += 1
+                    elif e not in recip_hash:
+                        edges_i.append(e)
+                        in_degrees[i] += 1
+                        in_degrees[t] += 1
+
+        edges.extend(edges_i)
+
+        if directed and reciprocity > 0:
+            make_recip = rng.random(m) < reciprocity
+
+            for b, e in zip(make_recip, edges_i):
+                if b:
+                    edges.append(e[::-1])
+                    in_degrees[i] += 1
+
+    return edges
 
 
 def _circular(source_ids, target_ids, coord_nb, reciprocity, directed,

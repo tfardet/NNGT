@@ -596,14 +596,10 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=None, edges=None,
     return graph_rsf
 
 
-def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
-                     seed_graph=None, multigraph=False, name="PriceSF",
-                     shape=None, positions=None, population=None,
-                     from_graph=None, **kwargs):
+def price_scale_free(m, c=None, gamma=1, nodes=0, reciprocity=0, weighted=True,
+                     directed=True, multigraph=False, name="PriceSF",
+                     shape=None, positions=None, population=None, **kwargs):
     """
-    @todo
-    make the algorithm.
-
     Generate a Price graph model (Barabasi-Albert if undirected).
 
     Parameters
@@ -616,6 +612,10 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
         Preferential attachment power.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
+    reciprocity : float, optional (default: 0)
+        Reciprocity of the graph (between 0 and 1). For directed graphs, this
+        will be the probability of the target node connecting back to the
+        source node when a new edge is added.
     weighted : bool, optional (default: True)
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
@@ -632,29 +632,73 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, weighted=True, directed=True,
     population : :class:`~nngt.NeuralPop`, optional (default: None)
         Population of neurons defining their biological properties (to create a
         :class:`~nngt.Network`).
-    from_graph : :class:`~nngt.Graph` or subclass, optional (default: None)
-        Initial graph whose nodes are to be connected.
 
     Returns
     -------
     graph_price : :class:`~nngt.Graph` or subclass.
 
-    Note
-    ----
+    Notes
+    -----
+
+    The (generalized) Price network is either a directed or undirected graph
+    (the latter is better known as the Barabási-Albert network).
+    It is generated via a growth process, adding a new node at each step and
+    connecting it to :math:`m` previous nodes, chosen with probability:
+
+    .. math::
+
+        p \propto k^\gamma + c
+
+    where :math:`k` is the (in-)degree of the vertex.
+
+    We must therefore have :math:`c \ge 0` for directed graphs and
+    :math:`c > -1` for undirected graphs.
+
+    If the `reciprocity` :math:`r` is non-zero, each targeted node reciprocates
+    the connection with probability :math:`r`.
+    Expected reciprocity of the final graph is :math:`2r / (1 + r)`.
+
+    If :math:`\gamma=1`, and `reciprocity` is zero, the tail of resulting
+    in-degree distribution of the directed case is given by
+
+    .. math::
+
+        P_{k_\text{in}} \sim k_\text{in}^{-(2 + c/m)},
+
+    or for the undirected case
+
+    .. math::
+
+        P_{k} \sim k^{-(3 + c/m)}.
+
+    However, if :math:`\gamma \ne 1`, the in-degree distribution is not
+    scale-free.
+
 	`nodes` is required unless `from_graph` or `population` is provided.
     """
-    nodes = ( ( population.size if population is not None else nodes )
-              if from_graph is None else from_graph.node_nb() )
-    #~ c = c if c is not None else 0 if directed else 1
+    c = c if c is not None else 1 if directed else 0
 
-    g = price_network(nodes, m, c, gamma, directed, seed_graph)
-    graph_obj_price = nngt.Graph.from_library(g)
+    # set node number and library graph
+    nodes = population.size if population is not None else nodes
 
-    graph_price = nngt.Graph.from_library(g)
+    graph_psf = nngt.Graph(
+        name=name, nodes=nodes, directed=directed, weighted=weighted,
+        **kwargs)
 
-    _set_options(graph_price, population, shape, positions)
-    graph_price._graph_type = "price_scale_free"
-    return graph_price
+    _set_options(graph_psf, population, shape, positions)
+
+    # add edges
+    if nodes > 1:
+        ids = range(nodes)
+        edges = _price_scale_free(ids, m, c, gamma, reciprocity, directed,
+                                     multigraph)
+
+        graph_psf.new_edges(edges, check_duplicates=False,
+                            check_self_loops=False, check_existing=False)
+
+    graph_psf._graph_type = "price_scale_free"
+
+    return graph_psf
 
 
 # -------------- #

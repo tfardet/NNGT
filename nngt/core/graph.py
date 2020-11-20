@@ -495,6 +495,7 @@ class Graph(nngt.core.GraphObject):
         t = self.type
         n = self.node_nb()
         e = self.edge_nb()
+
         return "<{directed}/{weighted} {obj} object of type '{net_type}' " \
                "with {nodes} nodes and {edges} edges at 0x{obj_id}>".format(
                     directed=d, weighted=w, obj=type(self).__name__,
