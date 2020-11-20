@@ -712,6 +712,11 @@ def test_delete():
     assert np.all(np.isclose(
         g.get_weights(), [0.5, 0.1, 1., 1.], equal_nan=True))
 
+    # test delete from get_edges (issue #136)
+    edges = g.get_edges()
+
+    g.delete_edges(edges[:2])
+
 
 # ---------- #
 # Test suite #

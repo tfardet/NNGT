@@ -803,6 +803,9 @@ class _NNGTGraph(GraphInterface):
         if not nonstring_container(edges[0]):
             edges = [edges]
 
+        if not isinstance(edges[0], tuple):
+            edges = [tuple(e) for e in edges]
+
         directed = g._directed
 
         for e in edges:
