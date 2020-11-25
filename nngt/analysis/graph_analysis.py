@@ -1118,11 +1118,16 @@ def binning(x, bins='bayes', log=False):
     if bins == 'bayes':
         return bayesian_blocks(x)
     elif nonstring_container(bins) or bins == "auto":
+        if log:
+            ordered = np.sort(x)
+            nonzero_min = ordered[ordered > 0][0]
+            return np.logspace(np.log10(nonzero_min), np.log10(x.max()), 20)
         return bins
     elif is_integer(bins):
         if log:
-            return np.logspace(np.log10(np.maximum(x.min(), 1e-10)),
-                               np.log10(x.max()), bins)
+            ordered = np.sort(x)
+            nonzero_min = ordered[ordered > 0][0]
+            return np.logspace(np.log10(nonzero_min), np.log10(x.max()), bins)
         else:
             return np.linspace(x.min(), x.max(), bins)
 

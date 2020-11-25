@@ -345,7 +345,6 @@ _newman_watts = _not_yet
 _price_scale_free = _not_yet
 _random_scale_free = _not_yet
 _unique_rows = _not_yet
-price_network = _not_yet
 
 
 # ----- #

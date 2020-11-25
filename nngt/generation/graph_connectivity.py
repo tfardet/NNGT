@@ -46,7 +46,6 @@ if nngt.get_config("multithreading"):
     logger = logging.getLogger(__name__)
     try:
         from .cconnect import *
-        from .connect_algorithms import price_network
         using_mt_algorithms = True
         _log_message(logger, "DEBUG",
                      "Using multithreaded algorithms compiled on install.")
@@ -75,7 +74,6 @@ if nngt.get_config("multithreading"):
             nngt.lib.mpi_barrier()
 
             from .cconnect import *
-            from .connect_algorithms import price_network
 
             using_mt_algorithms = True
 
@@ -599,16 +597,16 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=None, edges=None,
 def price_scale_free(m, c=None, gamma=1, nodes=0, reciprocity=0, weighted=True,
                      directed=True, multigraph=False, name="PriceSF",
                      shape=None, positions=None, population=None, **kwargs):
-    """
+    r'''
     Generate a Price graph model (Barabasi-Albert if undirected).
 
     Parameters
     ----------
     m : int
         The number of edges each new node will make.
-    c : double
+    c : double, optional (0 if undirected, else 1)
         Constant added to the probability of a vertex receiving an edge.
-    gamma : double
+    gamma : double, optional (default: 1)
         Preferential attachment power.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
@@ -637,9 +635,12 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, reciprocity=0, weighted=True,
     -------
     graph_price : :class:`~nngt.Graph` or subclass.
 
+    Note
+    ----
+    `nodes` is required unless `population` is provided.
+
     Notes
     -----
-
     The (generalized) Price network is either a directed or undirected graph
     (the latter is better known as the Barabási-Albert network).
     It is generated via a growth process, adding a new node at each step and
@@ -663,7 +664,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, reciprocity=0, weighted=True,
 
     .. math::
 
-        P_{k_\text{in}} \sim k_\text{in}^{-(2 + c/m)},
+        P_{k_{in}} \sim k_{in}^{-(2 + c/m)},
 
     or for the undirected case
 
@@ -673,9 +674,7 @@ def price_scale_free(m, c=None, gamma=1, nodes=0, reciprocity=0, weighted=True,
 
     However, if :math:`\gamma \ne 1`, the in-degree distribution is not
     scale-free.
-
-	`nodes` is required unless `from_graph` or `population` is provided.
-    """
+    '''
     c = c if c is not None else 1 if directed else 0
 
     # set node number and library graph
