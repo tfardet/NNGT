@@ -717,6 +717,11 @@ def test_delete():
 
     g.delete_edges(edges[:2])
 
+    # test copy after edge deletion
+    h = g.copy()
+
+    assert np.all(np.isclose(h.get_weights(), g.get_weights()))
+
 
 # ---------- #
 # Test suite #

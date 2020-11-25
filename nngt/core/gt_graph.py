@@ -367,7 +367,19 @@ class _GtGraph(GraphInterface):
         g = copy_graph.graph if copy_graph is not None else None
 
         if g is not None:
+            from graph_tool import Graph as GtGraph
             from graph_tool.stats import remove_parallel_edges
+
+            num_edges = copy_graph.edge_nb()
+
+            if copy_graph._edges_deleted:
+                # set edge filter for non-deleted edges
+                eprop = g.new_edge_property(
+                    "bool", vals=np.ones(num_edges, dtype=bool))
+
+                g.set_edge_filter(eprop)
+                g = GtGraph(g, directed=g.is_directed(), prune=True)
+
             if not directed and g.is_directed():
                 g = g.copy()
                 g.set_directed(False)
@@ -377,8 +389,6 @@ class _GtGraph(GraphInterface):
                 g.set_directed(True)
 
             self._from_library_graph(g, copy=True)
-
-            num_edges = self.edge_nb()
 
             # make edge id property map
             if "eid" in g.edge_properties:
