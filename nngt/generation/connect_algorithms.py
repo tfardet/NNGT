@@ -43,7 +43,6 @@ __all__ = [
     "_random_scale_free",
     "_unique_rows",
     "_watts_strogatz",
-    "price_network",
 ]
 
 logger = logging.getLogger(__name__)
@@ -540,6 +539,8 @@ def _price_scale_free(ids, m, c, gamma, reciprocity, directed, multigraph):
     ids = np.array(ids).astype(int)
 
     num_nodes = len(ids)
+
+    assert isinstance(m, int) and m >= 0, "`m` must be a positive integer."
 
     if directed:
         assert c > 0, "`c` > 0 is required for directed graphs."
@@ -1049,27 +1050,3 @@ def _distance_rule(source_ids, target_ids, density=None, edges=None,
         ia_edges = np.array([sources, targets]).T
 
     return ia_edges
-
-
-def price_network(*args, **kwargs):
-    #@todo: do it for other libraries
-    raise NotImplementedError("Not implemented except for graph-tool.")
-
-
-if nngt.get_config("backend") == "graph-tool":
-    from graph_tool.generation import price_network as _pn
-
-    def price_network(*args, **kwargs):
-        weighted   = kwargs.get("weighted", True)
-        directed   = kwargs.get("directed", True)
-        population = kwargs.get("population", None)
-        shape      = kwargs.get("shape", None)
-        for k in ("weighted", "directed", "population", "shape"):
-            try:
-                del kwargs[k]
-            except KeyError:
-                pass
-        g = _pn(*args, **kwargs)
-        return Graph.from_library(
-            g, weighted=weighted, directed=directed, population=population,
-            shape=shape, **kwargs)
