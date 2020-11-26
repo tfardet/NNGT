@@ -571,6 +571,11 @@ def _triangles_and_triplets(g, directed, weights, method, mode,
 
         triplets = _triplet_count_weighted(
             g, Wtr, Wtru, A, Au, method, mode, directed, weights, nodes)
+    if method == "zhang":
+        W, Wu = _get_matrices(g, directed, weights, True, combine_weights)
+
+        triplets = _triplet_count_weighted(
+            g, W, Wu, A, Au, method, mode, directed, weights, nodes)
     elif method == "onnela":
         W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
                               exponent=1/3)
@@ -616,7 +621,7 @@ def _triangle_count(mat, matsym, adj, adjsym, method, mode, weighted, directed,
     else:
         if not weighted:
             mat, matsym = adj, adjsym
-        elif method not in ("continuous", "normal", "onnela"):
+        elif method not in ("continuous", "zhang", "normal", "onnela"):
             raise ValueError("Invalid `method`: '{}'".format(method))
 
         if mode == "total":
@@ -677,6 +682,38 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
 
             s2_sq = np.square(sqmat.sum(axis=0).A1)
             s     = matsym.sum(axis=0).A1
+
+            tr = 0.5*(s2_sq - s)
+    elif method == "zhang":
+        if directed:
+            mat2 = mat.power(2)
+
+            if mode == "total":
+                s2_sq_tot = np.square(mat.sum(axis=0).A1 +
+                                      mat.sum(axis=1).A1)
+                s_tot     = mat2.sum(axis=0).A1 + mat2.sum(axis=1).A1
+                s_recip   = 2*(mat*mat).diagonal()
+
+                tr = s2_sq_tot - s_tot - s_recip
+            elif mode in ("cycle", "middleman"):
+                s_sq_out = mat.sum(axis=0).A1
+                s_sq_in  = mat.sum(axis=1).A1
+                s_recip  = (mat*mat).diagonal()
+
+                tr = s_sq_in*s_sq_out - s_recip
+            elif mode in ("fan-in", "fan-out"):
+                axis  = 0 if mode == "fan-in" else 1
+                s2_sq = np.square(mat.sum(axis=axis).A1)
+                sgth  = mat2.sum(axis=axis).A1
+
+                tr = s2_sq - sgth
+            else:
+                raise ValueError("Unknown mode ''.".format(mode))
+        else:
+            mat2 = matsym.power(2)
+
+            s2_sq = np.square(mat.sum(axis=0).A1)
+            s     = mat2.sum(axis=0).A1
 
             tr = 0.5*(s2_sq - s)
     elif method == "barrat":
