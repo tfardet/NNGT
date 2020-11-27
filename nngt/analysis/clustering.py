@@ -115,7 +115,7 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
     :func:`~nngt.analysis.triplet_count`
     :func:`~nngt.analysis.triangle_count`
     '''
-    assert method in ("barrat", "continuous", "onnela"), \
+    assert method in ("barrat", "continuous", "onnela", "zhang"), \
         "Unknown method '{}'".format(method)
 
     # check directivity and weights
@@ -393,7 +393,7 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     mat, matsym = _get_matrices(g, directed, weights, weighted,
                                 combine_weights, exponent=exponent)
 
-    # if unweighted, afj is mat, adjsym is matsym
+    # if unweighted, adj is mat, adjsym is matsym
     adj, adjsym = mat, matsym
 
     # for barrat, we need both weighted and binary matrices
@@ -517,7 +517,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
     # check method for weighted
     W, Wu, A, Au = None, None, None, None
 
-    if method in ("continuous", "normal"):
+    if method in ("continuous", "normal", "zhang"):
         # we need only the weighted matrices
         W, Wu = _get_matrices(g, directed, weights, weighted,
                               combine_weights=combine_weights)
@@ -526,8 +526,8 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
         W = g.adjacency_matrix(weights=weights)
         A = g.adjacency_matrix()
     else:
-        raise ValueError("`method` must be either 'barrat', 'continuous' "
-                         "or 'normal' (identical, recommended options).")
+        raise ValueError("`method` must be either 'barrat', 'zhang', or "
+                         "'continuous'/'normal' (identical options).")
 
     return _triplet_count_weighted(
         g, W, Wu, A, Au, method, mode, directed, weights, nodes)
@@ -712,7 +712,7 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
         else:
             mat2 = matsym.power(2)
 
-            s2_sq = np.square(mat.sum(axis=0).A1)
+            s2_sq = np.square(matsym.sum(axis=0).A1)
             s     = mat2.sum(axis=0).A1
 
             tr = 0.5*(s2_sq - s)

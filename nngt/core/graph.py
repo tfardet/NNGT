@@ -137,6 +137,7 @@ class Graph(nngt.core.GraphObject):
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
+                matrix = ssp.tril(matrix)
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
@@ -144,6 +145,7 @@ class Graph(nngt.core.GraphObject):
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
+                matrix = np.tril(matrix)
 
         edges = np.array(matrix.nonzero()).T
 
