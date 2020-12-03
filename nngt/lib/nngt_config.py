@@ -355,10 +355,9 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
     new_multithreading = new_config.get("multithreading", old_mt)
 
     if new_multithreading != old_mt:
-        # connectors.py and rewiring.py use directly
-        # nngt.generation.graph_connectivity so they always access the reloaded
-        # version and we don't need to reload them
         reload(sys.modules["nngt"].generation.graph_connectivity)
+        reload(sys.modules["nngt"].generation.connectors)
+        reload(sys.modules["nngt"].generation.rewiring)
 
     # if multithreading loading failed, set omp back to 1
     if not nngt._config['multithreading']:

@@ -111,7 +111,7 @@ def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
 
 
 def _total_degree_list(source_ids, target_ids, degree_list, directed=True,
-                       multigraph=False):
+                       multigraph=False, **kwargs):
     ''' Called from _from_degree_list '''
     degree_list = np.array(degree_list, dtype=int)
 
@@ -532,7 +532,8 @@ def _erdos_renyi(source_ids, target_ids, density=None, edges=None,
     return ia_edges
 
 
-def _price_scale_free(ids, m, c, gamma, reciprocity, directed, multigraph):
+def _price_scale_free(ids, m, c, gamma, reciprocity, directed, multigraph,
+                      **kwargs):
     '''
     Generate a Price network.
     '''
@@ -595,8 +596,8 @@ def _price_scale_free(ids, m, c, gamma, reciprocity, directed, multigraph):
     return edges
 
 
-def _circular(source_ids, target_ids, coord_nb, reciprocity, directed,
-              reciprocity_choice="random"):
+def _circular(source_ids, target_ids, coord_nb, reciprocity=1, directed=True,
+              reciprocity_choice="random", **kwargs):
     '''
     Circular graph.
 
@@ -625,7 +626,7 @@ def _circular(source_ids, target_ids, coord_nb, reciprocity, directed,
 
 
 def _circular_directed_recip(node_ids, coord_nb, reciprocity,
-                             reciprocity_choice="random"):
+                             reciprocity_choice="random", **kwargs):
     ''' Circular graph with given reciprocity '''
     nodes    = len(node_ids)
     edges    = int(0.5*nodes*coord_nb*(1 + reciprocity))
@@ -698,7 +699,7 @@ def _circular_directed_recip(node_ids, coord_nb, reciprocity,
     return np.array([sources, targets], dtype=int).T
 
 
-def _circular_full(node_ids, coord_nb, directed):
+def _circular_full(node_ids, coord_nb, directed, **kwargs):
     ''' Create a circular graph with all possible edges '''
     nodes = len(node_ids)
 

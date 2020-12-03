@@ -34,6 +34,21 @@ from nngt.lib.test_functions import (mpi_checker, mpi_random, deprecated,
                                      on_master_process)
 
 
+__all__ = [
+    'all_to_all',
+    'circular',
+	'distance_rule',
+	'erdos_renyi',
+    'fixed_degree',
+    'from_degree_list',
+    'gaussian_degree',
+	'newman_watts',
+	'random_scale_free',
+	'price_scale_free',
+    'watts_strogatz',
+]
+
+
 # do default import
 
 from .connect_algorithms import *
@@ -94,21 +109,6 @@ if nngt.get_config("mpi"):
     except ImportError as e:
         nngt._config['mpi'] = False
         raise e
-
-
-__all__ = [
-    'all_to_all',
-    'circular',
-	'distance_rule',
-	'erdos_renyi',
-    'fixed_degree',
-    'from_degree_list',
-    'gaussian_degree',
-	'newman_watts',
-	'random_scale_free',
-	'price_scale_free',
-    'watts_strogatz',
-]
 
 
 # ----------------------------- #
