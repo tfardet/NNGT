@@ -438,7 +438,7 @@ def test_connect_switch_distance_rule_max_proba():
 
     nngt.set_config("multithreading", False)
 
-    pop = nngt.NeuralPop.exc_and_inhib(100)
+    pop = nngt.NeuralPop.exc_and_inhib(1000)
 
     radius = 100.
 
@@ -448,11 +448,22 @@ def test_connect_switch_distance_rule_max_proba():
 
     max_proba = 0.1
 
+    avg, std = 10., 1.5
+
+    weights = {"distribution": "gaussian", "avg": avg, "std": std}
+
     ng.connect_nodes(net, pop.inhibitory, pop.excitatory, "distance_rule",
-                     scale=5*radius, max_proba=max_proba)
+                     scale=5*radius, max_proba=max_proba, weights=weights)
 
     assert net.edge_nb() <= len(pop.inhibitory)*len(pop.excitatory)*max_proba
 
+    # check weights
+    ww = net.get_weights()
+
+    assert avg - 0.5*std < ww.mean() < avg + 0.5*std
+    assert 0.75*std < ww.std() < 1.25*std
+
+    # restore mt parameters
     nngt.set_config("omp", num_omp)
     nngt.set_config("multithreading", mthread)
 
