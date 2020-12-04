@@ -388,10 +388,9 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
 
     # reload for mpi
     if new_config.get('mpi', old_mpi) != old_mpi:
-        # connectors.py and rewiring.py use directly
-        # nngt.generation.graph_connectivity so they always access the reloaded
-        # version and we don't need to reload them
         reload(sys.modules["nngt"].generation.graph_connectivity)
+        reload(sys.modules["nngt"].generation.connectors)
+        reload(sys.modules["nngt"].generation.rewiring)
 
     # set graph-tool config
     _set_gt_config(old_gl, new_config)

@@ -96,7 +96,7 @@ def _all_to_all(source_ids, target_ids, directed=True, multigraph=False,
                 edges[current_edges:next_enum, 1] = target_ids
                 current_edges = next_enum
     else:
-        edges       = np.empty((num_edges, 2))
+        edges       = np.empty((num_edges, 2), dtype=int)
         edges[:, 0] = np.repeat(source_ids, num_targets)
         edges[:, 1] = np.tile(target_ids, num_sources)
 

@@ -436,6 +436,7 @@ def test_connect_switch_distance_rule_max_proba():
     num_omp = nngt.get_config("omp")
     mthread = nngt.get_config("multithreading")
 
+    # switch multithreading to False
     nngt.set_config("multithreading", False)
 
     pop = nngt.NeuralPop.exc_and_inhib(1000)
@@ -464,6 +465,7 @@ def test_connect_switch_distance_rule_max_proba():
     assert 0.75*std < ww.std() < 1.25*std
 
     # restore mt parameters
+    nngt.set_config("mpi", False)
     nngt.set_config("omp", num_omp)
     nngt.set_config("multithreading", mthread)
 
