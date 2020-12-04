@@ -78,7 +78,8 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
-        [Barrat2004]_, 'continuous', or 'onnela' [Onnela2005]_.
+        [Barrat2004]_, 'continuous', 'onnela' [Onnela2005]_, or 'zhang'
+        [Zhang2005]_.
     mode : str, optional (default: "total")
         Type of clustering to use for directed graphs, among "total", "fan-in",
         "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
@@ -107,8 +108,13 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
         065103. :doi:`10.1103/physreve.71.065103`, arxiv:`cond-mat/0408629`.
     .. [Fagiolo2007] Fagiolo. Clustering in Complex Directed Networks.
-        Phys. Rev. E 2007, 76, (2), 026107. :doi:`10.1103/PhysRevE.76.026107`,
+        Phys. Rev. E 2007, 76 (2), 026107. :doi:`10.1103/PhysRevE.76.026107`,
         :arxiv:`physics/0612169`.
+    .. [Zhang2005] Zhang, Horvath. A General Framework for Weighted Gene
+        Co-Expression Network Analysis. Statistical Applications in Genetics
+        and Molecular Biology 2005, 4 (1). :doi:`10.2202/1544-6115.1128`,
+        `PDF <https://dibernardo.tigem.it/files/papers/2008/
+        zhangbin-statappsgeneticsmolbio.pdf>`_.
 
     See also
     --------
@@ -187,7 +193,8 @@ def local_clustering_binary_undirected(g, nodes=None):
 def local_clustering(g, nodes=None, directed=True, weights=None,
                      method="continuous", mode="total", combine_weights="mean"):
     r'''
-    Local (weighted directed) clustering coefficient of the nodes.
+    Local (weighted directed) clustering coefficient of the nodes, ignoring
+    self-loops.
 
     If no weights are requested and the graph is undirected, returns the
     undirected binary clustering.
@@ -201,15 +208,16 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
 
     .. math::
 
-        C_i = \frac{\left(W^{\left[\frac{2}{3}\right]}\right)^3_{ii}}
+        C_i = \frac{\sum_{jk} \sqrt[3]{w_{ij} w_{ik} w_{jk}}}
+                   {\sum_{j\neq k} \sqrt{w_{ij} w_{ik}}}
+            = \frac{\left(W^{\left[\frac{2}{3}\right]}\right)^3_{ii}}
                    {\left(s^{\left[\frac{1}{2}\right]}_i\right)^2 - s_i}
 
-    for undirected networks, with :math:`\tilde{W}` the adjacency matrix
-    (normalized to have its highest weight set to 1 if weighted), :math:`s_i`
-    the strength of node :math:`i`, and
-    :math:`s^{[\frac{1}{2}]}_i = \sum_k \sqrt{w_{ik}}`
-    the strength associated to the matrix
-    :math:`W^{[\frac{1}{2}]} = \{\sqrt{w_{ij}}\}`.
+    for undirected networks, with
+    :math:`W = \{ w_{ij}\} = \tilde{W} / \max(\tilde{W})` the normalized
+    weight matrix, :math:`s_i` the normalized strength of node :math:`i`, and
+    :math:`s^{[\frac{1}{2}]}_i = \sum_k \sqrt{w_{ik}}` the strength associated
+    to the matrix :math:`W^{[\frac{1}{2}]} = \{\sqrt{w_{ij}}\}`.
 
     For directed networks, we used the total clustering defined in
     [Fagiolo2007]_ by default, hence the second equation becomes:
@@ -234,6 +242,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     * equivalence between no-edge and zero-weight edge cases,
     * normalized (always between zero and 1).
 
+    Using either 'continuous' or 'zhang' is recommended for weighted graphs.
+
     Parameters
     ----------
     g : :class:`~nngt.Graph` object
@@ -248,7 +258,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
-        [Barrat2004]_/[Clemente2018]_, 'continuous', or 'onnela' [Onnela2005]_.
+        [Barrat2004]_/[Clemente2018]_, 'continuous', 'onnela' [Onnela2005]_/
+        [Fagiolo2007]_, or 'zhang' [Zhang2005]_.
     mode : str, optional (default: "total")
         Type of clustering to use for directed graphs, among "total", "fan-in",
         "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
@@ -344,8 +355,8 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     method : str, optional (default: 'normal')
         Method used to compute the weighted triangles, either 'normal', where
         the weights are directly used, or the definitions associated to the
-        weighted clustering: 'barrat' [Barrat2004]_, 'continuous', or 'onnela'
-        [Onnela2005]_.
+        weighted clustering: 'barrat' [Barrat2004]_, 'continuous', 'onnela'
+        [Onnela2005]_, or 'zhang' [Zhang2005]_.
     mode : str, optional (default: "total")
         Type of clustering to use for directed graphs, among "total", "fan-in",
         "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
@@ -378,6 +389,11 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
     .. [Onnela2005] Onnela, Saramäki, Kertész, Kaski. Intensity and Coherence
         of Motifs in Weighted Complex Networks. Phys. Rev. E 2005, 71 (6),
         065103. :doi:`10.1103/physreve.71.065103`, :arxiv:`cond-mat/0408629`.
+    .. [Zhang2005] Zhang, Horvath. A General Framework for Weighted Gene
+        Co-Expression Network Analysis. Statistical Applications in Genetics
+        and Molecular Biology 2005, 4 (1). :doi:`10.2202/1544-6115.1128`,
+        `PDF <https://dibernardo.tigem.it/files/papers/2008/
+        zhangbin-statappsgeneticsmolbio.pdf>`_.
     '''
     directed *= g.is_directed()
     weighted  = weights not in (False, None)
@@ -431,8 +447,8 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
     method : str, optional (default: 'continuous')
         Method used to compute the weighted triplets, either 'normal', where
         the edge weights are directly used, or the definitions used for
-        weighted clustering coefficients, 'barrat' [Barrat2004]_ or
-        'continuous'.
+        weighted clustering coefficients, 'barrat' [Barrat2004]_,
+        'continuous', 'onnela' [Onnela2005]_, or 'zhang' [Zhang2005]_.
     mode : str, optional (default: "total")
         Type of clustering to use for directed graphs, among "total", "fan-in",
         "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
@@ -462,6 +478,11 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
     .. [Fagiolo2007] Fagiolo. Clustering in Complex Directed Networks.
         Phys. Rev. E 2007, 76, (2), 026107. :doi:`10.1103/PhysRevE.76.026107`,
         :arxiv:`physics/0612169`.
+    .. [Zhang2005] Zhang, Horvath. A General Framework for Weighted Gene
+        Co-Expression Network Analysis. Statistical Applications in Genetics
+        and Molecular Biology 2005, 4 (1). :doi:`10.2202/1544-6115.1128`,
+        `PDF <https://dibernardo.tigem.it/files/papers/2008/
+        zhangbin-statappsgeneticsmolbio.pdf>`_.
     '''
     directed *= g.is_directed()
     weighted  = weights not in (False, None)
@@ -526,8 +547,9 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
         W = g.adjacency_matrix(weights=weights)
         A = g.adjacency_matrix()
     else:
-        raise ValueError("`method` must be either 'barrat', 'zhang', or "
-                         "'continuous'/'normal' (identical options).")
+        raise ValueError("`method` must be either 'barrat', 'onnela', "
+                         "'zhang', or 'continuous'/'normal' (identical "
+                         "options).")
 
     return _triplet_count_weighted(
         g, W, Wu, A, Au, method, mode, directed, weights, nodes)
