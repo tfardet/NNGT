@@ -34,6 +34,21 @@ from nngt.lib.test_functions import (mpi_checker, mpi_random, deprecated,
                                      on_master_process)
 
 
+__all__ = [
+    'all_to_all',
+    'circular',
+    'distance_rule',
+    'erdos_renyi',
+    'fixed_degree',
+    'from_degree_list',
+    'gaussian_degree',
+    'newman_watts',
+    'random_scale_free',
+    'price_scale_free',
+    'watts_strogatz',
+]
+
+
 # do default import
 
 from .connect_algorithms import *
@@ -96,21 +111,6 @@ if nngt.get_config("mpi"):
         raise e
 
 
-__all__ = [
-    'all_to_all',
-    'circular',
-	'distance_rule',
-	'erdos_renyi',
-    'fixed_degree',
-    'from_degree_list',
-    'gaussian_degree',
-	'newman_watts',
-	'random_scale_free',
-	'price_scale_free',
-    'watts_strogatz',
-]
-
-
 # ----------------------------- #
 # Specific degree distributions #
 # ----------------------------- #
@@ -149,7 +149,7 @@ def all_to_all(nodes=0, weighted=True, directed=True, multigraph=False,
 
     Note
     ----
-	`nodes` is required unless `population` is provided.
+    `nodes` is required unless `population` is provided.
 
     Returns
     -------
@@ -269,7 +269,7 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         The type of the fixed degree, among ``'in'``, ``'out'`` or ``'total'``.
 
         @todo
-			`'total'` not implemented yet.
+            `'total'` not implemented yet.
 
     nodes : int, optional (default: None)
         The number of nodes in the graph.
@@ -299,9 +299,9 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
 
     Note
     ----
-	`nodes` is required unless `from_graph` or `population` is provided.
-	If an `from_graph` is provided, all preexistant edges in the
-	object will be deleted before the new connectivity is implemented.
+    `nodes` is required unless `from_graph` or `population` is provided.
+    If an `from_graph` is provided, all preexistant edges in the
+    object will be deleted before the new connectivity is implemented.
 
     Returns
     -------
@@ -352,7 +352,7 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
     avg : float
         The value of the average degree.
     std : float
-		The standard deviation of the Gaussian distribution.
+        The standard deviation of the Gaussian distribution.
     degree_type : str, optional (default: 'in')
         The type of the fixed degree, among 'in', 'out' or 'total' (or the
         full version: 'in-degree'...)
@@ -390,9 +390,9 @@ def gaussian_degree(avg, std, degree_type='in', nodes=0, reciprocity=-1.,
 
     Note
     ----
-	`nodes` is required unless `from_graph` or `population` is provided.
-	If an `from_graph` is provided, all preexistant edges in the object
-	will be deleted before the new connectivity is implemented.
+    `nodes` is required unless `from_graph` or `population` is provided.
+    If an `from_graph` is provided, all preexistant edges in the object
+    will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
     graph_gd = from_graph
@@ -477,9 +477,9 @@ def erdos_renyi(density=None, nodes=0, edges=None, avg_deg=None,
 
     Note
     ----
-	`nodes` is required unless `from_graph` or `population` is provided.
-	If an `from_graph` is provided, all preexistant edges in the
-	object will be deleted before the new connectivity is implemented.
+    `nodes` is required unless `from_graph` or `population` is provided.
+    If an `from_graph` is provided, all preexistant edges in the
+    object will be deleted before the new connectivity is implemented.
     """
     # set node number and library graph
     graph_er = from_graph
@@ -563,11 +563,11 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=None, edges=None,
 
     Note
     ----
-	As reciprocity increases, requested values of `in_exp` and `out_exp`
-	will be less and less respected as the distribution will converge to a
-	common exponent :math:`\gamma = (\gamma_i + \gamma_o) / 2`.
-	Parameter `nodes` is required unless `from_graph` or `population` is
-	provided.
+    As reciprocity increases, requested values of `in_exp` and `out_exp`
+    will be less and less respected as the distribution will converge to a
+    common exponent :math:`\gamma = (\gamma_i + \gamma_o) / 2`.
+    Parameter `nodes` is required unless `from_graph` or `population` is
+    provided.
     """
     # set node number and library graph
     graph_rsf = from_graph
@@ -858,7 +858,7 @@ def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
 
     Note
     ----
-	`nodes` is required unless `from_graph` or `population` is provided.
+    `nodes` is required unless `from_graph` or `population` is provided.
     """
     if multigraph:
         raise ValueError("`multigraph` is not supported for Watts-Strogatz.")
@@ -954,7 +954,7 @@ def watts_strogatz(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
 
     Note
     ----
-	`nodes` is required unless `from_graph` or `population` is provided.
+    `nodes` is required unless `from_graph` or `population` is provided.
     """
     if multigraph:
         raise ValueError("`multigraph` is not supported for Newman-Watts.")
