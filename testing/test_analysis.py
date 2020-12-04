@@ -307,7 +307,28 @@ def test_weighted_directed_clustering():
     triangles_o = np.array(
         [0.672764902429877, 0.672764902429877, 0.672764902429877, 0, 0, 0])
 
-    assert np.array_equal(triplets_o, na.triplet_count(g))
+    assert np.array_equal(
+        triplets_o, na.triplet_count(g, weights='weight', method='onnela'))
+
+    assert np.all(np.isclose(
+        triangles_o, na.triangle_count(g, weights='weight', method="onnela")))
+    
+    triplets_o[-3:] = 1
+    expected = triangles_o / triplets_o
+
+    cc = na.local_clustering(g, weights='weight', method='onnela')
+
+    assert np.all(np.isclose(cc, expected))
+
+    # zhang
+    g.set_weights([1/2, 1/3, 1/2, 1/3, 1/2, 1/3, 1])
+
+    print(na.triangle_count(g, weights='weight', method='zhang'))
+
+    triplets_z = [5/18, 5/18, 5/18, 0, 0]
+
+    assert np.array_equal(
+        triplets_o, na.triplet_count(g, weights='weight', method='onnela'))
 
     assert np.all(np.isclose(
         triangles_o, na.triangle_count(g, weights='weight', method="onnela")))
@@ -649,12 +670,12 @@ def test_swp():
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        test_binary_undirected_clustering()
-        test_weighted_undirected_clustering()
+        # ~ test_binary_undirected_clustering()
+        # ~ test_weighted_undirected_clustering()
         test_weighted_directed_clustering()
-        test_reciprocity()
-        test_iedges()
-        test_swp()
-        test_partial_directed_clustering()
-        test_clustering_parameters()
-        test_global_clustering()
+        # ~ test_reciprocity()
+        # ~ test_iedges()
+        # ~ test_swp()
+        # ~ test_partial_directed_clustering()
+        # ~ test_clustering_parameters()
+        # ~ test_global_clustering()
