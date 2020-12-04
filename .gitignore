@@ -3,6 +3,8 @@ doc/.build/
 doc/_build/
 doc/examples/sp_graph
 doc/examples/.ipynb_checkpoints/
+doc/gallery/graph_properties/
+doc/gallery/graph_structure/
 
 # generated rst
 doc/modules/examples

@@ -418,7 +418,6 @@ def test_attributes_are_copied():
 
     assert np.all(np.isclose(vv, g.node_attributes["ntest"]))
     assert not np.all(np.isclose(vv, ntest))
-    
 
 
 # ---------- #

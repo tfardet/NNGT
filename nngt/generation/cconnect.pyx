@@ -191,7 +191,7 @@ def _all_to_all(cnp.ndarray[size_t, ndim=1] source_ids,
 def _total_degree_list(cnp.ndarray[int64, ndim=1] source_ids,
                        cnp.ndarray[int64, ndim=1] target_ids,
                        cnp.ndarray[int64, ndim=1] degree_list,
-                       bool directed=True, bool multigraph=False):
+                       bool directed=True, bool multigraph=False, **kwargs):
     ''' Called from _from_degree_list '''
     cdef:
         size_t num_source = len(source_ids)
