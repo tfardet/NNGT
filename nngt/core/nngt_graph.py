@@ -149,7 +149,6 @@ class _EProperty(BaseProperty):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.prop = OrderedDict()
-        self._edges_deleted = False
 
     def __getitem__(self, name):
         '''
@@ -180,10 +179,6 @@ class _EProperty(BaseProperty):
             return eprop
             
         dtype = _np_dtype(super().__getitem__(name))
-
-        if self._edges_deleted:
-            eids = sorted(list(graph.graph._unique.values()))
-            return _to_np_array(self.prop[name], dtype=dtype)[eids]
 
         return _to_np_array(self.prop[name], dtype=dtype)
 
@@ -272,11 +267,9 @@ class _EProperty(BaseProperty):
 
     def edges_deleted(self, eids):
         ''' Remove the attributes of a set of edge ids '''
-        for key in self:
+        for key, val in self.prop.items():
+            self.prop[key] = [v for i, v in enumerate(val) if i not in eids]
             self._num_values_set[key] -= len(eids)
-
-        if len(eids):
-            self._edges_deleted = True
 
 
 # ----------------- #
@@ -580,15 +573,18 @@ class _NNGTGraph(GraphInterface):
                 idx += 1
 
         # remove edges and remap edges
-        remove_eids = []
+        remove_eids = set()
 
         new_edges  = OrderedDict()
 
+        new_eid = 0
+
         for e, eid in g._unique.items():
             if e[0] in nodes or e[1] in nodes:
-                remove_eids.append(eid)
+                remove_eids.add(eid)
             else:
-                new_edges[(remapping[e[0]], remapping[e[1]])] = eid
+                new_edges[(remapping[e[0]], remapping[e[1]])] = new_eid
+                new_eid += 1
 
         g._unique = new_edges
 
@@ -803,12 +799,20 @@ class _NNGTGraph(GraphInterface):
         ''' Remove a list of edges '''
         g = self._graph
 
+        old_enum = len(g._unique)
+
         if not nonstring_container(edges[0]):
             edges = [edges]
 
         if not isinstance(edges[0], tuple):
             edges = [tuple(e) for e in edges]
 
+        # get edge ids
+        e_to_eid = g._unique
+
+        eids = {e_to_eid[e] for e in edges}
+
+        # remove
         directed = g._directed
 
         for e in edges:
@@ -820,7 +824,15 @@ class _NNGTGraph(GraphInterface):
                     del g._edges[e]
                     del g._edges[e[::-1]]
 
-        self._eattr.edges_deleted(edges)
+        # reset eids
+        for i, e in enumerate(g._unique):
+            g._unique[e] = i
+
+            if not directed:
+                e._edges[e] = i
+                e._edges[e[::-1]] = i
+
+        self._eattr.edges_deleted(eids)
 
     def clear_all_edges(self):
         g = self._graph

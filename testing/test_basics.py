@@ -714,7 +714,7 @@ def test_delete():
     assert np.array_equal(g.get_positions(), positions[[1, 4, 5]])
 
     # readd nodes
-    g.new_node(2, attributes={"test": [-1, 2]})
+    g.new_node(2, attributes={"test": [-1, 2]}, positions=[(-2, 1), (0.5, 3)])
 
     assert g.node_nb() == 5
 
@@ -736,9 +736,14 @@ def test_delete():
     g.delete_edges(edges[:2])
 
     # test copy after edge deletion
+    print("---")
+    print(g.node_nb())
+    print(g.edge_nb(), [len(attr) for attr in g.edge_attributes.values()])
     h = g.copy()
 
     assert np.all(np.isclose(h.get_weights(), g.get_weights()))
+    assert np.all(np.isclose(h.edge_attributes["distance"],
+                             g.edge_attributes["distance"]))
 
 
 # ---------- #
