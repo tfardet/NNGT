@@ -632,7 +632,16 @@ def test_delete():
     num_nodes = 6
     num_edges = 12
 
-    g = nngt.Graph.from_matrix(mat)
+    # make positions and structure
+    rng = np.random.default_rng()
+
+    positions = rng.uniform(-5, 5, size=(num_nodes, 2))
+
+    g1 = nngt.Group([1, 2, 3])
+    g2 = nngt.Group([0, 4, 5])
+    struct = nngt.Structure.from_groups([g1, g2], ["g1", "g2"])
+
+    g = nngt.Graph.from_matrix(mat, positions=positions, structure=struct)
 
     g.new_node_attribute("test", "int", values=list(range(num_nodes)))
 
@@ -684,6 +693,10 @@ def test_delete():
 
     assert np.array_equal(g.node_attributes["test"], [1, 2, 3, 4, 5])
 
+    assert set(g.structure["g2"].ids) == {3, 4}
+
+    assert np.array_equal(g.get_positions(), positions[1:])
+
     # delete two nodes
     g.delete_nodes([1, 2])
 
@@ -694,6 +707,11 @@ def test_delete():
     assert np.array_equal(adj, mat[[1, 4, 5]][:, [1, 4, 5]])
 
     assert np.array_equal(g.node_attributes["test"], [1, 4, 5])
+
+    assert set(g.structure["g1"].ids) == {0}
+    assert set(g.structure["g2"].ids) == {1, 2}
+
+    assert np.array_equal(g.get_positions(), positions[[1, 4, 5]])
 
     # readd nodes
     g.new_node(2, attributes={"test": [-1, 2]})

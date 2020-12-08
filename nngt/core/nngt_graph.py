@@ -32,7 +32,7 @@ import nngt
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
 from nngt.lib.connect_tools import (_cleanup_edges, _set_dist_new_edges,
                                     _set_default_edge_attributes)
-from nngt.lib.graph_helpers import _get_edge_attr, _get_dtype
+from nngt.lib.graph_helpers import _get_edge_attr, _get_dtype, _post_del_update
 from nngt.lib.converters import _np_dtype, _to_np_array
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
@@ -602,6 +602,9 @@ class _NNGTGraph(GraphInterface):
         self._eattr.edges_deleted(remove_eids)
 
         g._nodes = set(range(len(g._nodes)))
+
+        # check spatial and structure properties
+        _post_del_update(self, nodes, remapping=remapping)
 
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):

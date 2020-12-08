@@ -138,6 +138,53 @@ def _get_dtype(value):
     return "object"
 
 
+def _post_del_update(graph, nodes, remapping=None):
+    '''
+    Remove entries in positions and structure after node deletion.
+
+    Parameters
+    ----------
+    graph : the graph
+    nodes : set of nodes that have been deleted
+    remapping : dict mapping old to new node ids
+    '''
+    num_old = graph.node_nb() + len(nodes)
+
+    keep = np.ones(num_old, dtype=bool)
+    keep[list(nodes)] = 0
+
+    if graph.is_spatial():
+        graph._pos = graph._pos[keep]
+
+    if graph.structure is not None:
+        struct = graph.structure
+
+        # update structure
+        struct._size = struct._max_id = struct._desired_size = graph.node_nb()
+
+        struct._groups = struct._groups[keep]
+
+        # map old and new node ids
+        if remapping is None:
+            idx = 0
+
+            remapping = {}
+
+            for n in range(num_old):
+                if n not in nodes:
+                    remapping[n] = idx
+                    idx += 1
+
+        # update groups
+        for g in struct.values():
+            g._ids = {remapping[n] for n in g._ids if n not in nodes}
+            g._desired_size = len(g._ids)
+
+        for m in struct._meta_groups.values():
+            m._ids = {remapping[n] for n in m._ids if n not in nodes}
+            m._desired_size = len(m._ids)
+
+
 # ------------------ #
 # Graph-tool helpers #
 # ------------------ #
