@@ -32,7 +32,8 @@ from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
 from nngt.lib.connect_tools import (_cleanup_edges, _set_dist_new_edges,
                                     _set_default_edge_attributes)
 from nngt.lib.converters import _to_np_array
-from nngt.lib.graph_helpers import _get_dtype, _get_gt_weights
+from nngt.lib.graph_helpers import (_get_dtype, _get_gt_weights,
+                                    _post_del_update)
 from nngt.lib.logger import _log_message
 from .graph_interface import GraphInterface, BaseProperty
 
@@ -599,6 +600,9 @@ class _GtGraph(GraphInterface):
         if old_enum != self.edge_nb():
             self._eattr.edges_deleted()
             self._edges_deleted = True
+
+        # check spatial and structure properties
+        _post_del_update(self, nodes)
 
     def new_edge(self, source, target, attributes=None, ignore=False,
                  self_loop=False):

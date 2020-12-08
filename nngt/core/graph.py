@@ -98,7 +98,7 @@ class Graph(nngt.core.GraphObject):
 
     @classmethod
     def from_matrix(cls, matrix, weighted=True, directed=True, population=None,
-                    shape=None, positions=None, name=None):
+                    shape=None, positions=None, name=None, **kwargs):
         '''
         Creates a :class:`~nngt.Graph` from a :mod:`scipy.sparse` matrix or
         a dense matrix.
@@ -137,6 +137,8 @@ class Graph(nngt.core.GraphObject):
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
+
+                matrix = ssp.tril(matrix, format=matrix.format)
         else:
             graph_name = graph_name.replace('Y', 'Dense')
             if not directed:
@@ -144,6 +146,8 @@ class Graph(nngt.core.GraphObject):
                     raise InvalidArgument('Incompatible `directed=False` '
                                           'option provided for non symmetric '
                                           'matrix.')
+
+                matrix = np.tril(matrix)
 
         edges = np.array(matrix.nonzero()).T
 
@@ -154,12 +158,12 @@ class Graph(nngt.core.GraphObject):
             graph_name = name
 
         graph = cls(nodes, name=graph_name, weighted=weighted,
-                    directed=directed)
+                    directed=directed, **kwargs)
 
         if population is not None:
             cls.make_network(graph, population)
 
-        if shape is not None:
+        if shape is not None or positions is not None:
             cls.make_spatial(graph, shape, positions)
 
         weights = None
