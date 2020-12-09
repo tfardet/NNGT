@@ -241,7 +241,7 @@ def diameter(g, directed=True, weights=False, is_connected=False):
     raise NotImplementedError(_backend_required)
 
 
-def small_world_propensity(g, directed=True, use_global_clustering=True,
+def small_world_propensity(g, directed=True, use_global_clustering=False,
                            use_diameter=False, weights=None,
                            combine_weights="mean", clustering="continuous",
                            lattice=None, random=None, return_deviations=False):
@@ -255,15 +255,16 @@ def small_world_propensity(g, directed=True, use_global_clustering=True,
 
         \phi = 1 - \sqrt{\frac{\Pi_{[0, 1]}(\Delta_C^2) + \Pi_{[0, 1]}(\Delta_L^2)}{2}}
 
-    with :math:`\Delta_C` the clustering deviation, i.e. the relative global
-    clustering of `g` compared to two reference graphs
+    with :math:`\Delta_C` the clustering deviation, i.e. the relative global or
+    average clustering of `g` compared to two reference graphs
 
     .. math::
 
         \Delta_C = \frac{C_{latt} - C_g}{C_{latt} - C_{rand}}
 
-    and :math:`Delta_L` the deviation of the average path length, i.e. relative
-    average path length of `g` compared to that of the reference graphs
+    and :math:`Delta_L` the deviation of the average path length or diameter,
+    i.e. the relative average path length of `g` compared to that of the
+    reference graphs
 
     .. math::
 
@@ -273,9 +274,9 @@ def small_world_propensity(g, directed=True, use_global_clustering=True,
     Erdos-Renyi (ER) graphs obtained by rewiring `g` to obtain respectively the
     highest and lowest combination of clustering and average path length.
 
-    The rectangle function :math:`\Pi_{[0, 1]}` is used to clip both
-    deviations to the [0, 1] range in case some graphs have a higher clustering
-    than the lattice or a lower average path length than the ER graph.
+    Both deviations are clipped to the [0, 1] range in case some graphs have a
+    higher clustering than the lattice or a lower average path length than the
+    ER graph.
 
     Parameters
     ----------
@@ -329,9 +330,9 @@ def small_world_propensity(g, directed=True, use_global_clustering=True,
     If `weights` are provided, the distance calculation uses the inverse of
     the weights.
     This implementation differs slightly from the `original implementation
-    <https://github.com/KordingLab/nctpy>`_ as it uses the global instead of
-    the average clustering coefficient and it is generalized to directed
-    networks.
+    <https://github.com/KordingLab/nctpy>`_ as it can also use the global
+    instead of the average clustering coefficient, the diameter instead of
+    the avreage path length, and it is generalized to directed networks.
 
     References
     ----------

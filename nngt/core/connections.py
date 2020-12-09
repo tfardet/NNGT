@@ -75,12 +75,14 @@ class Connections:
             return dlist
         else:
             pos = graph._pos if hasattr(graph, "_pos") else pos
+
             # compute the new distances
             if graph.edge_nb():
                 ra_x = pos[elist[:,0], 0] - pos[elist[:,1], 0]
                 ra_y = pos[elist[:,0], 1] - pos[elist[:,1], 1]
+
                 ra_dist = np.sqrt( np.square(ra_x) + np.square(ra_y) )
-                #~ ra_dist = np.tile( , 2)
+
                 # update graph distances
                 graph.set_edge_attribute(DIST, value_type="double",
                                          values=ra_dist, edges=elist)
