@@ -24,7 +24,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 import nngt
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, nonstring_container
 from .test_functions import mpi_random
 
 
