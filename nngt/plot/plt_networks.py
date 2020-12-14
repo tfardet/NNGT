@@ -1128,7 +1128,7 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         if layout is None:
             if isinstance(network, nngt.SpatialGraph) and spatial:
                 xy  = network.get_positions()
-                pos = {i: coords for coords in xy}
+                pos = {i: coords for i, coords in enumerate(xy)}
         elif layout == "circular":
             pos = nx.circular_layout(network.graph)
         elif layout == "random":
