@@ -292,6 +292,9 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         nodes = None if restrict_nodes is None else list(restrict_nodes)
 
         pos = network.get_positions(nodes=nodes)
+    elif nonstring_container(layout):
+        assert np.shape(layout) == (n, 2), "One position per node is required."
+        pos = np.asarray(layout)
     else:
         pos[:, 0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)
@@ -350,7 +353,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                     ids = g.ids if restrict_nodes is None \
                           else list(set(g.ids).intersection(restrict_nodes))
 
-                    axis.scatter(pos[ids, 0], pos[ids, 1], c=c[ids],
+                    axis.scatter(pos[ids, 0], pos[ids, 1], color=c[ids],
                                  s=0.5*np.array(nsize)[ids],
                                  marker=markers[ids[0]], zorder=2,
                                  edgecolors=nborder_color,
@@ -360,11 +363,12 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                       else restrict_nodes
 
                 for i in ids:
-                    axis.plot(pos[i, 0], pos[i, 1], c=c[i], ms=0.5*nsize[i],
-                              marker=nshape[i], ls="", zorder=2,
-                              mec=nborder_color[i], mew=nborder_width)
+                    axis.plot(
+                        pos[i, 0], pos[i, 1], color=c[i], ms=0.5*nsize[i],
+                        marker=nshape[i], ls="", zorder=2,
+                        mec=nborder_color[i], mew=nborder_width)
         else:
-            axis.scatter(pos[:, 0], pos[:, 1], c=c, s=0.5*np.array(nsize),
+            axis.scatter(pos[:, 0], pos[:, 1], color=c, s=0.5*np.array(nsize),
                          marker=nshape, zorder=2, edgecolor=nborder_color,
                          linewidths=nborder_width)
     else:
@@ -1066,6 +1070,10 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         elif layout == "circular":
             pos = graph.new_vp("vector<double>",
                                vals=_circular_layout(network, nsize))
+        elif nonstring_container(layout):
+            assert np.shape(layout) == (network.node_nb(), 2), \
+                "One position per node in the network is required."
+            pos = graph.new_vp("vector<double>", vals=layout)
         else:
             # spring block
             weights = (None if not network.is_weighted()
@@ -1133,6 +1141,10 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
             pos = nx.circular_layout(network.graph)
         elif layout == "random":
             pos = nx.random_layout(network.graph)
+        elif nonstring_container(layout):
+            assert np.shape(layout) == (network.node_nb(), 2), \
+                "One position per node in the network is required."
+            pos = {i: coords for i, coords in enumerate(layout)}
         else:
             pos = nx.spring_layout(network.graph)
 
