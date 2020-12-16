@@ -184,7 +184,7 @@ class Graph(nngt.core.GraphObject):
     @staticmethod
     def from_file(filename, fmt="auto", separator=" ", secondary=";",
                   attributes=None, attributes_types=None, notifier="@",
-                  ignore="#", from_string=False, name="LoadedGraph",
+                  ignore="#", from_string=False, name=None,
                   directed=True, cleanup=False):
         '''
         Import a saved graph from a file.
@@ -256,6 +256,8 @@ class Graph(nngt.core.GraphObject):
             # only partial support for these formats, relying on backend
             libgraph = _library_load(filename, fmt)
 
+            name = "LoadedGraph" if name is None else name
+
             graph = Graph.from_library(libgraph, name=name, directed=directed)
 
             return graph
@@ -267,7 +269,9 @@ class Graph(nngt.core.GraphObject):
             cleanup=cleanup)
 
         # create the graph
-        graph = Graph(nodes=info["size"], name=info.get("name", name),
+        name = info.get("name", "LoadedGraph") if name is None else name
+
+        graph = Graph(nodes=info["size"], name=name,
                       directed=info.get("directed", directed))
 
         # make the nodes attributes
