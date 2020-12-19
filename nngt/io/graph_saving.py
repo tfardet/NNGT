@@ -239,7 +239,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
 
         tmp = np.array2string(
             graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
-            separator=separator)[2:-2].replace("'" + separator + "'",
+            separator=separator)[1:-1].replace("'" + separator + "'",
                                                '"' + separator + '"')
 
         # replace possible variants
@@ -247,7 +247,7 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         tmp = tmp.replace('"' + separator + "'", '"' + separator + '"')
 
         # make and store final string
-        additional_notif[key] = '"' + tmp + '"'
+        additional_notif[key] = tmp
 
     # save positions for SpatialGraph (and shape if Shapely is available)
     if graph.is_spatial():
