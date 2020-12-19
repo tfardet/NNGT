@@ -335,7 +335,6 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
                 else:
                     di_nattr[attr] = np.fromstring(s, sep=separator,
                                                    dtype=dtype)
-                
 
     return di_nattr
 

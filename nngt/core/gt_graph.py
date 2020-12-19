@@ -104,7 +104,9 @@ class _GtNProperty(BaseProperty):
 
         if len(values) != g.num_vertices():
             raise ValueError("A list or a np.array with one entry per "
-                             "node in the graph is required")
+                             "node in the graph is required, got "
+                             "{} values vs {} nodes for '{}'.".format(
+                                len(values), g.num_vertices(), name))
 
         # store name and value type in the dict
         super(_GtNProperty, self).__setitem__(name, value_type)
