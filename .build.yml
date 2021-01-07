@@ -34,9 +34,6 @@ tasks:
   - test: |
       cd NNGT
       export GL=all && coverage run -p -m pytest testing/library_compatibility.py
-      export GL=ig && coverage run -p -m pytest testing
-      export GL=nx && coverage run -p -m pytest testing
-      export GL=nngt && coverage run -p -m pytest testing
       export GL=gt && coverage run -p -m pytest testing
       export GL=gt && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
       export GL=gt && export OMP=4 && export MPI=0 && coverage run -p -m pytest testing
