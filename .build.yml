@@ -1,0 +1,44 @@
+image: ubuntu/lts
+packages:
+  - gcc
+  - cairo
+  - build-essential
+  - autoconf
+  - automake
+  - python3-all-dev
+  - libblas-dev
+  - liblapack-dev
+  - libatlas-base-dev
+  - gfortran
+  - libxml2-dev
+  - openmpi-bin
+  - libopenmpi-dev
+  - libgmp-dev
+  - python3-pip
+  - python3-tk
+  - libigraph0v5
+  - libigraph0-dev
+  - python3-graph-tool
+repositories:
+  - http://downloads.skewed.de/apt bionic main 612DEFB798507F25
+sources:
+  - https://github.com/Silmathoron/NNGT
+tasks:
+  - setup: |
+      pip3 install numpy scipy cython mpi4py
+      pip3 install networkx python-igraph
+      pip3 install pycairo matplotlib seaborn shapely svg.path dxfgrabber
+      pip3 install pytest pytest-mpi cov-core coverage coveralls
+      cd NNGT
+      python setup.py install --user
+  - test: |
+      cd NNGT
+      export GL=all && coverage run -p -m pytest testing/library_compatibility.py
+      export GL=ig && coverage run -p -m pytest testing
+      export GL=nx && coverage run -p -m pytest testing
+      export GL=nngt && coverage run -p -m pytest testing
+      export GL=gt && coverage run -p -m pytest testing
+      export GL=gt && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
+      export GL=gt && export OMP=4 && export MPI=0 && coverage run -p -m pytest testing
+      coverage combine
+      coveralls
