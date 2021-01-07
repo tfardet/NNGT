@@ -246,6 +246,12 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
         tmp = tmp.replace("'" + separator + '"', '"' + separator + '"')
         tmp = tmp.replace('"' + separator + "'", '"' + separator + '"')
 
+        if tmp.startswith("'"):
+            tmp = '"' + tmp[1:]
+
+        if tmp.endswith("'"):
+             tmp = tmp[:-1] + '"'
+
         # make and store final string
         additional_notif[key] = tmp
 
