@@ -1,41 +1,47 @@
 image: ubuntu/lts
 packages:
-  - gcc
-  - cairo
-  - build-essential
-  - autoconf
-  - automake
-  - python3-all-dev
-  - libblas-dev
-  - liblapack-dev
-  - libatlas-base-dev
-  - gfortran
-  - libxml2-dev
-  - openmpi-bin
-  - libopenmpi-dev
-  - libgmp-dev
-  - python3-pip
-  - python3-tk
-  - libigraph0v5
-  - libigraph0-dev
-  - python3-graph-tool
-repositories:
-  - http://downloads.skewed.de/apt bionic main 612DEFB798507F25
+    - gcc
+    - libcairo2-dev
+    - pkg-config
+    - build-essential
+    - autoconf
+    - automake
+    - python3-dev
+    - libblas-dev
+    - liblapack-dev
+    - libatlas-base-dev
+    - gfortran
+    - libxml2-dev
+    - openmpi-bin
+    - libopenmpi-dev
+    - libgmp-dev
+    - python3-pip
+    - python3-tk
+    - libigraph0v5
+    - libigraph0-dev
 sources:
-  - https://github.com/Silmathoron/NNGT
+    - https://github.com/Silmathoron/NNGT
 tasks:
-  - setup: |
-      pip3 install numpy scipy cython mpi4py
-      pip3 install networkx python-igraph
-      pip3 install pycairo matplotlib seaborn shapely svg.path dxfgrabber
-      pip3 install pytest pytest-mpi cov-core coverage coveralls
-      cd NNGT
-      python setup.py install --user
-  - test: |
-      cd NNGT
-      export GL=all && coverage run -p -m pytest testing/library_compatibility.py
-      export GL=gt && coverage run -p -m pytest testing
-      export GL=gt && export MPI=1 && mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
-      export GL=gt && export OMP=4 && export MPI=0 && coverage run -p -m pytest testing
-      coverage combine
-      coveralls
+    setup: |
+        sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt focal main\n" >> /etc/apt/sources.list'
+        sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25
+        sudo apt-get update -qq
+        sudo apt install -y python3-graph-tool
+        pip3 install numpy scipy cython mpi4py
+        pip3 install networkx python-igraph
+        pip3 install pycairo matplotlib seaborn shapely svg.path dxfgrabber
+        pip3 install pytest pytest-mpi cov-core coverage coveralls
+        cd NNGT
+        python3 setup.py install --user
+        echo 'export PATH=$PATH:/home/build/.local/bin' >> /home/build/.buildenv
+    test: |
+        cd NNGT
+        GL=all coverage run -p -m pytest testing/library_compatibility.py
+        GL=gt coverage run -p -m pytest testing
+        GL=nx coverage run -p -m pytest testing
+        GL=ig coverage run -p -m pytest testing
+        GL=nngt coverage run -p -m pytest testing
+        GL=gt MPI=1 mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
+        GL=gt OMP=4 MPI=0 && coverage run -p -m pytest testing
+        coverage combine
+        coveralls

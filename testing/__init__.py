@@ -54,6 +54,7 @@ import nngt
 
 # get the arguments for the graph library
 backend = environ.get("GL", None)
+
 if backend == "gt":
     nngt.use_backend("graph-tool")
     assert nngt.get_config('backend') == "graph-tool", \
@@ -74,13 +75,16 @@ elif backend == "nngt":
 
 # get the arguments for MPI/OpenMP + hide log
 omp = int(environ.get("OMP", 1))
-mpi = bool(environ.get("MPI", False))
+mpi = int(environ.get("MPI", 0))
 
-nngt.set_config({
-    "multithreading": omp > 1, "omp": omp,
+conf = {
+    "multithreading": omp > 1,
+    "omp": omp,
     "mpi": mpi,
     "log_level": "ERROR",
-}, silent=True)
+}
+
+nngt.set_config(conf, silent=True)
 
 
 # get the tests
