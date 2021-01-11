@@ -13,7 +13,7 @@ tasks:
         pip3 install numpy scipy cython mpi4py
         pip3 install networkx python-igraph
         pip3 install pycairo matplotlib seaborn shapely svg.path dxfgrabber
-        pip3 install pytest pytest-mpi cov-core coverage python-coveralls
+        pip3 install pytest pytest-mpi cov-core coverage
         cd NNGT
         python3 setup.py install --user
         echo 'export PATH=$PATH:/home/build/.local/bin' >> /home/build/.buildenv
@@ -27,3 +27,4 @@ tasks:
         GL=gt OMP=4 coverage run -p -m pytest testing
         GL=gt OMP=0 MPI=1 mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
         coverage combine
+        coverage report

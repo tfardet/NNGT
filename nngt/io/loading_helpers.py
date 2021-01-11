@@ -330,12 +330,17 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
                     char = "" if s.strip()[0] != '"' else '"'
                     nsep = char + separator + char
 
+                    if s.startswith(char):
+                        s = s[1:]
+
+                    if s.endswith(char):
+                        s = s[:-1]
+
                     di_nattr[attr] = np.array(
-                        [w for w in s[1:-1].split(nsep)], dtype=dtype)
+                        [w for w in s.split(nsep)], dtype=dtype)
                 else:
                     di_nattr[attr] = np.fromstring(s, sep=separator,
                                                    dtype=dtype)
-                
 
     return di_nattr
 
