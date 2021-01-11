@@ -19,8 +19,6 @@ packages:
     - python3-tk
     - libigraph0v5
     - libigraph0-dev
-secrets:
-    - cfc48d89-6c43-443b-aac0-ac2255da1494
 sources:
     - https://github.com/Silmathoron/NNGT
 tasks:
@@ -36,8 +34,13 @@ tasks:
         cd NNGT
         python3 setup.py install --user
         echo 'export PATH=$PATH:/home/build/.local/bin' >> /home/build/.buildenv
-        cp /home/build/.coverage.yml /home/build/NNGT/.coveralls.yml
     - test: |
         cd NNGT
         GL=all coverage run -p -m pytest testing/library_compatibility.py
         GL=gt coverage run -p -m pytest testing
+        GL=nx coverage run -p -m pytest testing
+        GL=ig coverage run -p -m pytest testing
+        GL=nngt coverage run -p -m pytest testing
+        GL=gt MPI=1 mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
+        GL=gt OMP=4 MPI=0 coverage run -p -m pytest testing
+        coverage combine
