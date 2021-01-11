@@ -2,7 +2,11 @@
 
 <img align="left" style="padding-top: 5px; margin-right: 15px;" src="doc/_static/nngt_logo.png" />
 
-[![Build Status](https://travis-ci.org/Silmathoron/NNGT.svg?branch=master)](https://travis-ci.org/Silmathoron/NNGT) [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html) [![Coverage Status](https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master)](https://coveralls.io/github/Silmathoron/NNGT?branch=master)<br>[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg)](https://doi.org/10.5281/zenodo.3402493)  ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Silmathoron/NNGT) ![PyPI](https://img.shields.io/pypi/v/nngt)
+[![builds.sr.ht status](https://builds.sr.ht/~tfardet/nngt/commits.svg)](https://builds.sr.ht/~tfardet/nngt/commits?)
+[![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html)<br>
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg)](https://doi.org/10.5281/zenodo.3402493)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Silmathoron/NNGT)
+![PyPI](https://img.shields.io/pypi/v/nngt)
 
 The Neural Networks and Graphs' Topology (NNGT) module provides tools to
 generate and study graphs and detailed biological networks.
