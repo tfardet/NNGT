@@ -1,34 +1,15 @@
 image: ubuntu/lts
-packages:
-    - gcc
-    - libcairo2-dev
-    - pkg-config
-    - build-essential
-    - autoconf
-    - automake
-    - python3-dev
-    - libblas-dev
-    - liblapack-dev
-    - libatlas-base-dev
-    - gfortran
-    - libxml2-dev
-    - openmpi-bin
-    - libopenmpi-dev
-    - libgmp-dev
-    - python3-pip
-    - python3-tk
-    - libigraph0v5
-    - libigraph0-dev
 sources:
     - https://github.com/Silmathoron/NNGT
 tasks:
-    - check: |
-        if [[ (-z $GITHUB_PR_NUMBER) && !($GITHUB_REF == *"master"*) ]]; then return 0; fi
     - setup: |
+        if [[ (-z $GITHUB_PR_NUMBER) && !("$GITHUB_REF" == *master) ]]; then complete-build(); fi
         sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt focal main\n" >> /etc/apt/sources.list'
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25
         sudo apt-get update -qq
-        sudo apt install -y python3-graph-tool
+        sudo apt install -y gcc libcairo2-dev pkg-config build-essential autoconf automake python3-dev libblas-dev
+        sudo apt install -y liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev libgmp-dev
+        sudo apt install -y python3-pip python3-tk libigraph0v5 libigraph0-dev python3-graph-tool
         pip3 install numpy scipy cython mpi4py
         pip3 install networkx python-igraph
         pip3 install pycairo matplotlib seaborn shapely svg.path dxfgrabber
