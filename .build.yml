@@ -22,6 +22,8 @@ packages:
 sources:
     - https://github.com/Silmathoron/NNGT
 tasks:
+    - check: |
+        if [[ (-z $GITHUB_PR_NUMBER) && !($GITHUB_REF == *"master"*) ]]; then return 0; fi
     - setup: |
         sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt focal main\n" >> /etc/apt/sources.list'
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25
