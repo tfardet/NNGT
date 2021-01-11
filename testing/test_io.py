@@ -261,6 +261,7 @@ def test_structure():
     assert g.population == h.population
 
 
+@pytest.mark.mpi_skip
 def test_node_attributes():
     num_nodes = 10
     g = nngt.generation.erdos_renyi(nodes=num_nodes, avg_deg=3, directed=False)
@@ -282,8 +283,8 @@ suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        test_empty_out_degree()
+        # ~ test_empty_out_degree()
         test_str_attributes()
-        test_structure()
-        test_node_attributes()
-        unittest.main()
+        # ~ test_structure()
+        # ~ test_node_attributes()
+        # ~ unittest.main()
