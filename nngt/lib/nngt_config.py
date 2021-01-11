@@ -143,7 +143,7 @@ def set_config(config, value=None, silent=False):
     for key, val in new_config.items():
         # support for previous "palette" keyword
         if key not in nngt._config:
-            if key != "palette":
+            if key == "palette":
                 _log_message(logger, "WARNING",
                              "`palette` argument is deprecated and will be "
                              "removed in version 3.")

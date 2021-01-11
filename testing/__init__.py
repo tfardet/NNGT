@@ -75,7 +75,7 @@ elif backend == "nngt":
 
 # get the arguments for MPI/OpenMP + hide log
 omp = int(environ.get("OMP", 1))
-mpi = int(environ.get("MPI", 0))
+mpi = bool(environ.get("MPI", False))
 
 conf = {
     "multithreading": omp > 1,
