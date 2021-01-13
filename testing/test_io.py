@@ -261,6 +261,20 @@ def test_structure():
     assert g.population == h.population
 
 
+@pytest.mark.mpi_skip
+def test_node_attributes():
+    num_nodes = 10
+    g = nngt.generation.erdos_renyi(nodes=num_nodes, avg_deg=3, directed=False)
+
+    g.new_node_attribute("size", "int", [2*(i+1) for i in range(num_nodes)])
+
+    g.to_file(gfilename, fmt="edge_list")
+
+    h = nngt.load_from_file(gfilename, fmt="edge_list")
+
+    assert np.array_equal(g.node_attributes["size"], h.node_attributes["size"])
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -269,7 +283,8 @@ suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        unittest.main()
-        test_empty_out_degree()
+        # ~ test_empty_out_degree()
         test_str_attributes()
-        test_structure()
+        # ~ test_structure()
+        # ~ test_node_attributes()
+        # ~ unittest.main()
