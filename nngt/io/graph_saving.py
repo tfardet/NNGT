@@ -158,10 +158,6 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     '''
     Full string representation of the graph.
 
-    .. versionchanged:: 0.7
-        Added support to write position and Shape when saving
-        :class:`~nngt.SpatialGraph`. Note that saving Shape requires shapely.
-
     Parameters
     ----------
     graph : :class:`~nngt.Graph` or subclass
