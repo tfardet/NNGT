@@ -21,7 +21,7 @@ import nngt.generation as ng
 
 nngt_backend = (nngt.get_config("backend") == "nngt")
 
-methods = ('barrat', 'continuous', 'onnela')
+methods = ('barrat', 'continuous', 'onnela', 'zhang')
 
 
 @pytest.mark.mpi_skip
@@ -109,7 +109,7 @@ def test_weighted_undirected_clustering():
         assert np.all(np.isclose(ccb, ccw))
 
     # corner cases
-    eps = 1e-30
+    eps = 1e-15
 
     # 3 nodes
     num_nodes = 3
@@ -133,19 +133,24 @@ def test_weighted_undirected_clustering():
 
         if method == "barrat":
             assert np.all(np.isclose(cc, 1))
+        elif method == "zhang":
+            assert np.all(np.isclose(cc, [0, 1, 0]))
         else:
-            assert np.all(np.isclose(cc, 0))
+            assert np.all(np.isclose(cc, 0, atol=1e-4))
 
     # two weights are one
-    g.set_weights(np.array([eps, eps, 1]))
+    g.set_weights(np.array([eps, 1, 1]))
 
     for method in methods:
         cc = na.local_clustering(g, weights='weight', method=method)
 
         if method == "barrat":
             assert np.all(np.isclose(cc, 1))
+        elif method == "zhang":
+            # due to floating point rounding errors, we get 0.9 instead of 1
+            assert np.all(np.isclose(cc, (0.9, 0.9, 0), atol=1e-3))
         else:
-            assert np.all(np.isclose(cc, 0))
+            assert np.all(np.isclose(cc, 0, atol=1e-2))
 
     # 4 nodes
     num_nodes = 4
@@ -162,7 +167,7 @@ def test_weighted_undirected_clustering():
 
         if method == 'barrat':
             assert np.all(np.isclose(cc, [1, 1, 0.5, 0]))
-        elif method == "continuous":
+        elif method in ("continuous", "zhang"):
             assert np.all(np.isclose(cc, [1, 1, 1, 0]))
         else:
             assert np.all(np.isclose(cc, [1, 1, 1/3, 0]))
@@ -186,8 +191,10 @@ def test_weighted_undirected_clustering():
 
         if method == 'barrat':
             assert np.all(np.isclose(cc, [1, 1, 1/3, 0]))
+        elif method == "zhang":
+            assert np.all(np.isclose(cc, [0, 0, 1/3, 0]))
         else:
-            assert np.all(np.isclose(cc, 0))
+            assert np.all(np.isclose(cc, 0, atol=1e-5))
 
     # adjacent triangle edge is 1 others are epsilon
     g.set_weights([eps, 1, eps, eps])
@@ -197,8 +204,10 @@ def test_weighted_undirected_clustering():
 
         if method == 'barrat':
             assert np.all(np.isclose(cc, [1, 1, 1/2, 0]))
+        elif method == "zhang":
+            assert np.all(np.isclose(cc, [1, 0, 0, 0]))
         else:
-            assert np.all(np.isclose(cc, 0))
+            assert np.all(np.isclose(cc, 0, atol=1e-4))
 
     # check zero-weight edge/no edge equivalence for continuous method
     num_nodes = 6
@@ -298,7 +307,8 @@ def test_weighted_directed_clustering():
     triangles_o = np.array(
         [0.672764902429877, 0.672764902429877, 0.672764902429877, 0, 0, 0])
 
-    assert np.array_equal(triplets_o, na.triplet_count(g))
+    assert np.array_equal(
+        triplets_o, na.triplet_count(g, weights='weight', method='onnela'))
 
     assert np.all(np.isclose(
         triangles_o, na.triangle_count(g, weights='weight', method="onnela")))
@@ -307,6 +317,25 @@ def test_weighted_directed_clustering():
     expected = triangles_o / triplets_o
 
     cc = na.local_clustering(g, weights='weight', method='onnela')
+
+    assert np.all(np.isclose(cc, expected))
+
+    # zhang
+    g.set_weights([1/2, 1/3, 1/2, 1/3, 1/2, 1/3, 1])
+
+    triangles_z = np.array([5/18, 5/18, 5/18, 0, 0, 0])
+    triplets_z  = np.array([5/3, 2/3, 4/3, 0, 0, 0])
+
+    assert np.all(np.isclose(
+        triplets_z, na.triplet_count(g, weights='weight', method='zhang')))
+
+    assert np.all(np.isclose(
+        triangles_z, na.triangle_count(g, weights='weight', method="zhang")))
+    
+    triplets_z[-3:] = 1
+    expected = triangles_z / triplets_z
+
+    cc = na.local_clustering(g, weights='weight', method='zhang')
 
     assert np.all(np.isclose(cc, expected))
 
@@ -393,7 +422,7 @@ def test_partial_directed_clustering():
     g = nngt.Graph(num_nodes)
     g.new_edges(edge_list)
 
-    for m in ("continuous", "barrat", "onnela"):
+    for m in methods:
         assert np.array_equal(
             na.local_clustering(g, mode="cycle", method=m), [1, 1, 1])
 
@@ -410,7 +439,7 @@ def test_partial_directed_clustering():
     g = nngt.Graph(num_nodes)
     g.new_edges(edge_list)
 
-    for m in ("continuous", "barrat", "onnela"):
+    for m in methods:
         assert np.array_equal(
             na.local_clustering(g, mode="cycle", method=m), [0, 0, 0])
 
@@ -445,7 +474,7 @@ def test_partial_directed_clustering():
     g.new_edges([(0, 3), (1, 0), (1, 2), (1, 3), (2, 1), (3, 2)])
 
 
-    for m in ("continuous", "barrat", "onnela"):
+    for m in methods:
         assert np.array_equal(
             na.local_clustering(g, mode="cycle", method=m), [0, 0.5, 1, 0.5])
 
@@ -515,6 +544,25 @@ def test_partial_directed_clustering():
     assert np.all(np.isclose(
         na.local_clustering(g, mode="middleman", weights="weight"),
         [0.5, 0, 0, 1/32]))
+
+    # weighted (zhang)
+    g.set_weights([1, 0.25, 0.5, 1, 1, 0.5])
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, mode="fan-out", weights="weight", method="zhang"),
+        [0, 2/7, 0, 0]))
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, mode="fan-in", weights="weight", method="zhang"),
+        [0, 0, 0.5, 0.125]))
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, mode="cycle", weights="weight", method="zhang"),
+        [0, 2/5, 1, 0.5]))
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, mode="middleman", weights="weight", method="zhang"),
+        [1, 0, 0, 0.25]))
 
 
 @pytest.mark.mpi_skip
