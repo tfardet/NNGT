@@ -178,7 +178,7 @@ def test_plot_spatial_alpha():
     nplt.draw_network(g, nsize=0.02, ealpha=1)
 
     nplt.draw_network(g, layout=[(y, x) for (x, y) in pos],
-                      show_environment=False, nsize=0.02, nalpha=0.5, show=True)
+                      show_environment=False, nsize=0.02, nalpha=0.5)
 
 
 if __name__ == "__main__":
