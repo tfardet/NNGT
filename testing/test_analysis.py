@@ -323,20 +323,19 @@ def test_weighted_directed_clustering():
     # zhang
     g.set_weights([1/2, 1/3, 1/2, 1/3, 1/2, 1/3, 1])
 
-    print(na.triangle_count(g, weights='weight', method='zhang'))
-
-    triplets_z = [5/18, 5/18, 5/18, 0, 0]
-
-    assert np.array_equal(
-        triplets_o, na.triplet_count(g, weights='weight', method='onnela'))
+    triangles_z = np.array([5/18, 5/18, 5/18, 0, 0, 0])
+    triplets_z  = np.array([5/3, 2/3, 4/3, 0, 0, 0])
 
     assert np.all(np.isclose(
-        triangles_o, na.triangle_count(g, weights='weight', method="onnela")))
-    
-    triplets_o[-3:] = 1
-    expected = triangles_o / triplets_o
+        triplets_z, na.triplet_count(g, weights='weight', method='zhang')))
 
-    cc = na.local_clustering(g, weights='weight', method='onnela')
+    assert np.all(np.isclose(
+        triangles_z, na.triangle_count(g, weights='weight', method="zhang")))
+    
+    triplets_z[-3:] = 1
+    expected = triangles_z / triplets_z
+
+    cc = na.local_clustering(g, weights='weight', method='zhang')
 
     assert np.all(np.isclose(cc, expected))
 
