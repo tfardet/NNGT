@@ -166,9 +166,25 @@ def test_hive_plot():
         nplt.hive_plot(g, cc, axes="groups")
 
 
+@pytest.mark.mpi_skip
+def test_plot_spatial_alpha():
+    ''' Test positional layout and alpha parameters '''
+    num_nodes = 4
+    pos = [(1, 1), (0, -1), (-1, -1), (-1, 1)]
+
+    g = nngt.SpatialGraph(num_nodes, positions=pos)
+    g.new_edges([(0, 1), (0, 2), (1, 3), (3, 2)])
+
+    nplt.draw_network(g, nsize=0.02, ealpha=1)
+
+    nplt.draw_network(g, layout=[(y, x) for (x, y) in pos],
+                      show_environment=False, nsize=0.02, nalpha=0.5)
+
+
 if __name__ == "__main__":
     test_plot_config()
     test_plot_prop()
     test_draw_network_options()
     test_library_plot()
     test_hive_plot()
+    test_plot_spatial_alpha()
