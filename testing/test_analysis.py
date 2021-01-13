@@ -422,7 +422,7 @@ def test_partial_directed_clustering():
     g = nngt.Graph(num_nodes)
     g.new_edges(edge_list)
 
-    for m in ("continuous", "barrat", "onnela"):
+    for m in methods:
         assert np.array_equal(
             na.local_clustering(g, mode="cycle", method=m), [1, 1, 1])
 
@@ -439,7 +439,7 @@ def test_partial_directed_clustering():
     g = nngt.Graph(num_nodes)
     g.new_edges(edge_list)
 
-    for m in ("continuous", "barrat", "onnela"):
+    for m in methods:
         assert np.array_equal(
             na.local_clustering(g, mode="cycle", method=m), [0, 0, 0])
 
@@ -474,7 +474,7 @@ def test_partial_directed_clustering():
     g.new_edges([(0, 3), (1, 0), (1, 2), (1, 3), (2, 1), (3, 2)])
 
 
-    for m in ("continuous", "barrat", "onnela"):
+    for m in methods:
         assert np.array_equal(
             na.local_clustering(g, mode="cycle", method=m), [0, 0.5, 1, 0.5])
 
@@ -544,6 +544,25 @@ def test_partial_directed_clustering():
     assert np.all(np.isclose(
         na.local_clustering(g, mode="middleman", weights="weight"),
         [0.5, 0, 0, 1/32]))
+
+    # weighted (zhang)
+    g.set_weights([1, 0.25, 0.5, 1, 1, 0.5])
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, mode="fan-out", weights="weight", method="zhang"),
+        [0, 2/7, 0, 0]))
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, mode="fan-in", weights="weight", method="zhang"),
+        [0, 0, 0.5, 0.125]))
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, mode="cycle", weights="weight", method="zhang"),
+        [0, 2/5, 1, 0.5]))
+
+    assert np.all(np.isclose(
+        na.local_clustering(g, mode="middleman", weights="weight", method="zhang"),
+        [1, 0, 0, 0.25]))
 
 
 @pytest.mark.mpi_skip
@@ -669,12 +688,12 @@ def test_swp():
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        # ~ test_binary_undirected_clustering()
-        # ~ test_weighted_undirected_clustering()
+        test_binary_undirected_clustering()
+        test_weighted_undirected_clustering()
         test_weighted_directed_clustering()
-        # ~ test_reciprocity()
-        # ~ test_iedges()
-        # ~ test_swp()
-        # ~ test_partial_directed_clustering()
-        # ~ test_clustering_parameters()
-        # ~ test_global_clustering()
+        test_reciprocity()
+        test_iedges()
+        test_swp()
+        test_partial_directed_clustering()
+        test_clustering_parameters()
+        test_global_clustering()
