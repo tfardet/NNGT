@@ -30,6 +30,7 @@ from nngt.lib import nonstring_container
 __all__ = [
 	"global_clustering",
     "global_clustering_binary_undirected",
+    "local_closure",
     "local_clustering",
     "local_clustering_binary_undirected",
     "triplet_count",
@@ -141,6 +142,106 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
                                                   mode, combine_weights, None)
 
     return np.sum(triangles) / np.sum(triplets)
+
+
+def local_closure(g, directed=True, weights=None, method=None,
+                  mode="cycle-out", combine_weights="mean"):
+    '''
+    Compute the closure of each node.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    directed : bool, optional (default: True)
+        Whether to compute the directed clustering if the graph is directed.
+    weights : bool or str, optional (default: binary edges)
+        Whether edge weights should be considered; if ``None`` or ``False``
+        then use binary edges; if ``True``, uses the 'weight' edge attribute,
+        otherwise uses any valid edge attribute required.
+    method : str, optional (default: 'continuous')
+        Method used to compute the weighted clustering, either 'normal' or
+        'continuous'.
+    mode : str, optional (default: "circle-out")
+        Type of clustering to use for directed graphs, among "circle-out",
+        "circle-in", "fan-in", or "fan-out".
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
+
+    References
+    ----------
+    '''
+    directed *= g.is_directed()
+    weighted  = weights not in (False, None)
+
+    mat, numer, denom = None, None, None
+
+    if not directed and g.is_directed():
+        _, mat = _get_matrices(g, directed, weights, weighted, combine_weights)
+    else:
+        mat = g.adjacency_matrix(weights=weights)
+        mat.setdiag(0)
+
+    mat2, mat3 = None, None
+
+    if directed:
+        # set correct matrix
+        if mode.endswith("-in"):
+            mat = mat.T
+
+        if method == "continuous" and weights is not None:
+            sqmat = mat.sqrt()
+            cbmat = mat.power(2/3)
+
+            mat2 = sqmat*sqmat
+
+            if mode in ("cycle-in", "cycle-out"):
+                mat3 = cbmat*cbmat*cbmat
+            elif mode in ("fan-in", "fan-out"):
+                mat3 = cbmat*cbmat*cbmat.T
+            else:
+                raise ValueError("Unknown `mode`: '" + mode + "'.'")
+        elif method in ("normal", None):
+            mat2 = mat*mat
+
+            if mode in ("cycle-in", "cycle-out"):
+                mat3 = mat2*mat
+            elif mode in ("fan-in", "fan-out"):
+                mat3 = mat2*mat.T
+            else:
+                raise ValueError("Unknown `mode`: '" + mode + "'.'")
+        else:
+            raise ValueError("Unknown `method`: '" + method + "'.'")
+    else:
+        # undirected
+        if method == "continuous" and weights is not None:
+            sqmat = mat.sqrt()
+            cbmat = mat.power(2/3)
+
+            mat2 = sqmat*sqmat
+            mat3 = cbmat*cbmat*cbmat
+        elif method in ("normal", None):
+            mat2 = mat*mat
+            mat3 = mat2*mat
+        else:
+            raise ValueError("Unknown `method`: '" + method + "'.'")
+
+    numer = mat3.diagonal()
+    denom = mat2.sum(axis=1).A1 - mat2.diagonal()
+
+    denom[denom == 0] = 1
+
+    return numer / denom
 
 
 def local_clustering_binary_undirected(g, nodes=None):
