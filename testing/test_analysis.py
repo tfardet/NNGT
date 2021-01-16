@@ -686,6 +686,90 @@ def test_swp():
         na.small_world_propensity(g, use_diameter=True, weights=use_weights)
 
 
+@pytest.mark.mpi_skip
+def test_local_closure():
+    # undirected
+    g = nngt.Graph(4, directed=False)
+
+    g.new_edges([(0, 1), (0, 3), (1, 2), (1, 3)])
+
+    assert np.all(np.isclose(na.local_closure(g), [2/3, 1, 0, 2/3]))
+
+    # undirected weighted (normal/zhang)
+    g.set_weights([1, 0.5, 0.25, 1])
+
+    assert np.all(np.isclose(
+        na.local_closure(g, weights="weight"),
+        [4/7, 1, 0, 4/7]))
+
+    # undirected weighted (continuous)
+    g.set_weights([1, 1/64, 1/4, 1])
+
+    assert np.all(np.isclose(
+        na.local_closure(g, weights="weight", method="continuous"),
+        [1/13, 0.5, 0, 1/13]))
+
+    # directed (circle)
+    g = nngt.Graph(3)
+
+    g.new_edges([(0, 1), (1, 2), (2, 0)])
+
+    assert np.array_equal(na.local_closure(g), [1, 1, 1])
+    assert np.array_equal(na.local_closure(g, mode="cycle-out"), [1, 1, 1])
+    assert np.array_equal(na.local_closure(g, mode="cycle-in"), [1, 1, 1])
+
+    for mode in ("fan-in", "fan-out"):
+        assert np.array_equal(na.local_closure(g, mode=mode), [0, 0, 0])
+    
+    with pytest.raises(ValueError):
+        na.local_closure(g, method="plop")
+    
+    with pytest.raises(ValueError):
+        na.local_closure(g, mode="circle")
+
+    # directed (fan-in/out)
+    g = nngt.Graph(3)
+
+    g.new_edges([(0, 1), (0, 2), (1, 2)])
+
+    assert np.array_equal(na.local_closure(g, mode="fan-out"), [1, 0, 0])
+    assert np.array_equal(na.local_closure(g, mode="fan-in"), [0, 0, 1])
+
+    for mode in ("cycle-in", "cycle-out"):
+        assert np.array_equal(na.local_closure(g, mode=mode), [0, 0, 0])
+
+    # directed weighted
+    g = nngt.Graph(4)
+
+    g.new_edges([(0, 1), (1, 2), (1, 3), (2, 1), (3, 0), (3, 1)])
+
+    # weights for normal/zhang
+    g.set_weights([1, 0.25, 0.5, 0.25, 0.5, 1])
+
+    modes = ("cycle-out", "cycle-in", "fan-in", "fan-out")
+    clsrs = [[1/3, 1, 0, 1/3], [1, 0.5, 0, 2/5], [0, 1, 0, 0], [0, 0, 0, 2/3]]
+
+    for mode, res in zip(modes, clsrs):
+        assert np.all(np.isclose(
+            na.local_closure(g, weights="weight", mode=mode), res))
+
+    # weights for continuous
+    g.set_weights([1, 0.25, 1, 0.25, 1/64, 1])
+    
+    clsrs = [
+        [1/24, 0.5, 0, 0.1],
+        [0.5, 0.5, 0, 1/24],
+        [0, 0.5, 0, 0],
+        [0, 0, 0, 0.1]
+    ]
+    
+    for mode, res in zip(modes, clsrs):
+        assert np.all(np.isclose(
+            na.local_closure(g, weights="weight", method="continuous",
+                             mode=mode),
+            res))
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
         test_binary_undirected_clustering()
@@ -697,3 +781,4 @@ if __name__ == "__main__":
         test_partial_directed_clustering()
         test_clustering_parameters()
         test_global_clustering()
+        test_local_closure()
