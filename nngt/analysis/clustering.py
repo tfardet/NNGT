@@ -146,8 +146,39 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
 
 def local_closure(g, directed=True, weights=None, method=None,
                   mode="cycle-out", combine_weights="mean"):
-    '''
-    Compute the closure of each node.
+    r'''
+    Compute the local closure for each node, as defined in [Yin2019]_ as the
+    fraction of 2-walks that are closed.
+
+    For undirected binary or weighted adjacency matrices
+    :math:`W = \{ w_{ij} \}`, the normal (or Zhang-like) definition is given
+    by:
+
+    .. math::
+
+        H_i^0 = \frac{\sum_{j\neq k} w_{ij} w_{jk} w_{ki}}
+                     {\sum_{j\neq k\neq i} w_{ij}w_{jk}}
+              = \frac{W^3_{ii}}{\sum_{j \neq i} W^2_{ij}}
+
+    While a continuous version of the local closure is also proposed as:
+
+    .. math::
+
+        H_i = \frac{\sum_{j\neq k} \sqrt[3]{w_{ij} w_{jk} w_{ki}}^2}
+                   {\sum_{j\neq k\neq i} \sqrt{w_{ij}w_{jk}}}
+            = \frac{\left( W^{\left[ \frac{2}{3} \right]} \right)_{ii}^3}
+                   {\sum_{j \neq i} \left( W^{\left[ \frac{1}{2} \right]}
+                                    \right)^2_{ij}}
+
+    with :math:`W^{[\alpha]} = \{ w^\alpha_{ij} \}`.
+
+    Directed versions of the local closure where defined as follow for a node
+    :math:`i` connected to nodes :math:`j` and :math:`k`:
+
+    * "cycle-out" is given by the pattern [(i, j), (j, k), (k, i)],
+    * "cycle-in" is given by the pattern [(k, j), (j, i), (i, k)],
+    * "fan-in" is given by the pattern [(k, j), (j, i), (k, i)],
+    * "fan-out" is given by the pattern [(i, j), (j, k), (i, k)].
 
     Parameters
     ----------
@@ -160,8 +191,8 @@ def local_closure(g, directed=True, weights=None, method=None,
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
-        Method used to compute the weighted clustering, either 'normal' or
-        'continuous'.
+        Method used to compute the weighted clustering, either 'normal'/'zhang'
+        or 'continuous'.
     mode : str, optional (default: "circle-out")
         Type of clustering to use for directed graphs, among "circle-out",
         "circle-in", "fan-in", or "fan-out".
@@ -180,6 +211,11 @@ def local_closure(g, directed=True, weights=None, method=None,
 
     References
     ----------
+    .. [Yin2019] Yin, Benson, and Leskovec. The Local Closure Coefficient: A
+        New Perspective On Network Clustering. Proceedings of the Twelfth ACM
+        International Conference on Web Search and Data Mining 2019, 303-311.
+        :doi:`10.1145/3289600.3290991`, `PDF <https://www.cs.cornell.edu/~arb/
+        papers/closure-coefficients-WSDM-2019.pdf>`_.
     '''
     directed *= g.is_directed()
     weighted  = weights not in (False, None)
@@ -211,7 +247,7 @@ def local_closure(g, directed=True, weights=None, method=None,
                 mat3 = cbmat*cbmat*cbmat.T
             else:
                 raise ValueError("Unknown `mode`: '" + mode + "'.'")
-        elif method in ("normal", None):
+        elif method in ("normal", "zhang", None):
             mat2 = mat*mat
 
             if mode in ("cycle-in", "cycle-out"):
@@ -230,7 +266,7 @@ def local_closure(g, directed=True, weights=None, method=None,
 
             mat2 = sqmat*sqmat
             mat3 = cbmat*cbmat*cbmat
-        elif method in ("normal", None):
+        elif method in ("normal", "zhang", None):
             mat2 = mat*mat
             mat3 = mat2*mat
         else:
