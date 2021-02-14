@@ -107,8 +107,11 @@ def draw_map(graph, node_names, geodata=None, geodata_names=None,
         axis = plt.axes(projection=proj)
 
     # underlying map (optional)
+    lw = kwargs.get("linewidth", 1)
+
     if all_geodata:
-        dataframe.boundary.plot(ax=axis, color=linecolor, alpha=0.2, zorder=0)
+        dataframe.boundary.plot(ax=axis, color=linecolor, alpha=0.2, zorder=0,
+                                linewidth=lw)
 
     # get existing elements
     mapping = None
@@ -123,14 +126,15 @@ def draw_map(graph, node_names, geodata=None, geodata_names=None,
 
     if hue is None:
         dataframe.iloc[elements].boundary.plot(ax=axis, color=linecolor,
-                                               zorder=1)
+                                               zorder=1, linewidth=lw)
     else:
         if hue not in dataframe:
             dataframe[hue] = np.full(len(dataframe), np.NaN)
 
             dataframe.loc[elements, hue] = graph.node_attributes[hue]
 
-        dataframe.iloc[elements].plot(column=hue, ax=axis, zorder=1)
+        dataframe.iloc[elements].plot(column=hue, ax=axis, zorder=1,
+                                      linewidth=lw)
 
     # get positions
     pos = []
