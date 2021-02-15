@@ -305,7 +305,7 @@ html_theme_options = {
     'navbar_links': [
         ("Modules", "py-modindex"),
         ("Index", "genindex"),
-        ("GitHub", "https://git.sr.ht/~tfardet/NNGT", True),
+        ("SourceHut", "https://git.sr.ht/~tfardet/NNGT", True),
         ("GitHub", "https://github.com/tfardet/NNGT", True),
     ],
 

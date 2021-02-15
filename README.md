@@ -1,6 +1,8 @@
 # NNGT: a unified interface for networks in python
 
-<img align="left" style="padding-top: 5px; margin-right: 15px;" src="doc/_static/nngt_logo.png" />
+<img align="left" style="padding-top: 5px; margin-right: 15px;"
+ src="./doc/_static/nngt_logo.png" alt="Logo of NNGT: a conceptual sketch of a
+ pyramidal neuron linked to three simple circular nodes to form a graph." />
 
 [![builds.sr.ht status](https://builds.sr.ht/~tfardet/nngt/commits.svg)](https://builds.sr.ht/~tfardet/nngt/commits?)
 [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html)<br>
