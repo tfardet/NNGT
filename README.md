@@ -1,8 +1,9 @@
 # NNGT: a unified interface for networks in python
 
 <img align="left" style="padding-top: 5px; margin-right: 15px;"
- src="./doc/_static/nngt_logo.png" alt="Logo of NNGT: a conceptual sketch of a
- pyramidal neuron linked to three simple circular nodes to form a graph." />
+ src="https://git.sr.ht/~tfardet/NNGT/blob/main/doc/_static/nngt_logo.png"
+ alt="Logo of NNGT: a conceptual sketch of a pyramidal neuron linked to three
+ simple circular nodes to form a graph." />
 
 [![builds.sr.ht status](https://builds.sr.ht/~tfardet/nngt/commits.svg)](https://builds.sr.ht/~tfardet/nngt/commits?)
 [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html)<br>
@@ -65,6 +66,15 @@ pip install --user git+https://git.sr.ht/~tfardet/NNGT@main
 ```
 
 
+## Support and bug reports
+
+For general questions or support, you can write the
+[mailing list](https://lists.sr.ht/~tfardet/nngt-users).
+
+If you stumble on bugs you can report them on the
+[issue tracker](https://github.com/tfardet/NNGT/issues).
+
+
 ## Cloning/updating the repository
 
 This repository includes the
@@ -73,6 +83,9 @@ the [SENeC](https://github.com/SENeC-Initiative/) initiative as its
 ``geometry`` module, using the
 [``git submodule``](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 feature.
+It also uses
+[``mpl_chord_diagram``](https://codeberg.org/tfardet/mpl_chord_diagram) whithin
+the plot module.
 Thus, when cloning the repository, you must do:
 
     git clone https://git.sr.ht/~tfardet/NNGT
