@@ -102,8 +102,13 @@ if on_rtd:
 # import nngt
 import nngt
 
-# import simulation explicitely to avoid import conflict with lazy load
+# import simulation & geography explicitely to avoid import conflict with
+# lazy load
 import nngt.simulation
+try:
+    import nngt.geography
+except:
+    pass
 
 from autosum import gen_autosum
 
@@ -300,7 +305,8 @@ html_theme_options = {
     'navbar_links': [
         ("Modules", "py-modindex"),
         ("Index", "genindex"),
-        ("GitHub", "https://github.com/Silmathoron/NNGT", True),
+        ("GitHub", "https://git.sr.ht/~tfardet/NNGT", True),
+        ("GitHub", "https://github.com/tfardet/NNGT", True),
     ],
 
     # Render the next and previous page links in navbar. (Default: true)
