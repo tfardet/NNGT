@@ -4,8 +4,8 @@
 
 [![builds.sr.ht status](https://builds.sr.ht/~tfardet/nngt/commits.svg)](https://builds.sr.ht/~tfardet/nngt/commits?)
 [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html)<br>
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg)](https://doi.org/10.5281/zenodo.3402493)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/Silmathoron/NNGT)
+[![DOI](https://zenodo.org/badge/45254730.svg)](https://zenodo.org/badge/latestdoi/45254730)
+![Release (latest by date)](https://img.shields.io/github/v/release/tfardet/NNGT)
 ![PyPI](https://img.shields.io/pypi/v/nngt)
 
 The Neural Networks and Graphs' Topology (NNGT) module provides tools to
@@ -13,6 +13,10 @@ generate and study graphs and detailed biological networks.
 It also lets user interface efficient graph libraries with highly distributed
 activity simulators to make the study of neuronal activity as easy and
 efficient as possible.
+
+Source code is available and contributions are accepted on
+[SourceHut](https://git.sr.ht/~tfardet/NNGT) and
+[GitHub](https://github.com/tfardet/NNGT).
 
 
 ## Principle
@@ -52,10 +56,10 @@ import nngt
 ```
 
 If you want to have the latest updates before they are released into a stable
-version, you can install directly from ``master`` via:
+version, you can install directly from ``main`` via:
 
 ```
-pip install --user git+https://github.com:Silmathoron/NNGT.git@master
+pip install --user git+https://git.sr.ht/~tfardet/NNGT@main
 ```
 
 
@@ -69,7 +73,7 @@ the [SENeC](https://github.com/SENeC-Initiative/) initiative as its
 feature.
 Thus, when cloning the repository, you must do:
 
-    git clone https://github.com/Silmathoron/NNGT.git
+    git clone https://git.sr.ht/~tfardet/NNGT
     cd NNGT && git submodule init && git submodule update
 
 To update your local repository, do:
@@ -93,4 +97,5 @@ To update your local repository, do:
 * Advanced methods to design neuronal networks.
 * Supports complex 2D structures with shapely.
 
-See doc on ReadTheDocs: [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest)
+See documentation on
+[ReadTheDocs](https://readthedocs.org/projects/nngt/badge/?version=latest).
