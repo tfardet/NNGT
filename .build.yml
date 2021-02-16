@@ -3,7 +3,6 @@ secrets:
   - ceb490c3-68b4-41f7-9aa9-eb2e4b91d424
 tasks:
     - setup: |
-        if [[ !($BUILD_SUBMITTER == "git.sr.ht") && !($BUILD_READON == "patchset") && (-z $GITHUB_PR_NUMBER) ]]; then complete-build; fi;
         sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt focal main\n" >> /etc/apt/sources.list'
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25
         sudo apt-get update -qq
@@ -30,4 +29,4 @@ tasks:
         coverage report
     - mirror_to_github: |
         cd NNGT
-        ./.builds/mirror.sh git@github.com:tfardet/NNGT.git
+        ./.mirror/mirror.sh git@github.com:tfardet/NNGT.git
