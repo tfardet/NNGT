@@ -4,14 +4,8 @@
 Welcome to NNGT's documentation!
 ================================
 
-.. image:: https://travis-ci.org/Silmathoron/NNGT.svg?branch=master
-    :target: https://travis-ci.org/Silmathoron/NNGT
-    :height: 20px
-    :width: 90px
-.. image:: https://coveralls.io/repos/github/Silmathoron/NNGT/badge.svg?branch=master
-    :target: https://coveralls.io/github/Silmathoron/NNGT?branch=master
-    :height: 20px
-    :width: 99px
+.. image:: https://builds.sr.ht/~tfardet/nngt/commits.svg
+    :target: https://builds.sr.ht/~tfardet/nngt
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg
    :target: https://doi.org/10.5281/zenodo.3402493
 
@@ -19,7 +13,7 @@ Welcome to NNGT's documentation!
 Overview
 ========
 
-The Neural Network Growth and Topology (NNGT) module provides a unified
+The Neural Networks and Graphs' Topology (NNGT) module provides a unified
 interface to access, generate, and analyze networks via any of the well-known
 Python graph libraries: networkx_, igraph_, and `graph-tool`_.
 

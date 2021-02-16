@@ -171,7 +171,7 @@ setup_params = dict(
     ext_modules = extensions,
 
     # Metadata
-    url = 'https://github.com/Silmathoron/NNGT',
+    url = 'https://sr.ht/~tfardet/NNGT',
     author = 'Tanguy Fardet',
     author_email = 'tanguy.fardet@tuebingen.mpg.de',
     license = 'GPL3',

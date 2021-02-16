@@ -1,5 +1,50 @@
 @import url("bootstrap-sphinx.css");
 
+:root {
+    --bg-color: #ffffff;
+    --fg-color: #000000;
+    --nv-color: #333333;
+    --hv-color: #eeeeee;
+    --sb-color: #f7f5fa;
+    --dt-color: #f3f3fb;
+    --img-invert: 0;
+    --alert-info: #5bc0de;
+    --admonition-a: #555555;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #222222;
+        --fg-color: #eeeeee;
+        --nv-color: #dddddd;
+        --hv-color: #333333;
+        --sb-color: #3f3f3f;
+        --dt-color: #111111;
+        --img-invert: 1;
+        --alert-info: #1e7bb3;
+        --admonition-a: #cccccc;
+    }
+}
+
+@media (prefers-color-scheme: no-preference) {
+    :root {
+        --bg-color: #ffffff;
+        --fg-color: #000000;
+        --nv-color: #333333;
+        --hv-color: #eeeeee;
+        --sb-color: #f7f5fa;
+        --dt-color: #f3f3fb;
+        --img-invert: 0;
+        --alert-info: #5bc0de;
+        --admonition-a: #555555;
+    }
+}
+
+body {
+    color: var(--fg-color) !important;
+    background-color: var(--bg-color) !important;
+}
+
 
 a.headerlink {
     visibility: hidden;
@@ -15,7 +60,23 @@ Left navbar
 
 #sidebar {
     border: solid 1px #cccccc;
-    background-color: #f7f5fa;
+    background-color: var(--sb-color);
+}
+
+.bs-sidenav {
+    text-shadow: 0 1px 0 var(--bg-color);
+}
+
+.bs-sidenav .nav > li > a {
+    color: var(--nv-color) !important;
+}
+
+nav > li > a:hover, .nav > li > a:focus {
+    background-color: var(--hv-color) !important;
+}
+
+nav > li > a:hover, .nav > li > a:hover {
+    background-color: var(--hv-color) !important;
 }
 
 div.col-md-3 {
@@ -96,20 +157,20 @@ dl.function dt, dl.class dt, dl.exception dt {
 }
 
 dl.function dt, dl.exception dt {
-    background-color: #f7f5fa;
+    background-color: var(--sb-color);
 }
 
 dl.class dt {
-    background-color: #f3f3fb;
+    background-color: var(--dt-color);
     border-radius: 3px;
 }
 
 dl.field-list dt, dl.simple dt {
-    background-color: #ffffff;
+    background-color: var(--bg-color);
 }
 
 dt.field-odd, dt.field-even {
-    background-color: #ffffff;
+    background-color: var(--bg-color);
 }
 
 table.longtable {
@@ -123,7 +184,7 @@ table.longtable {
 dl.citation dt.label {
     background-color: none;
     margin-right: 5px;
-    color: #000000;
+    color: var(--fg-color);
 }
 
 a.fn-backref {
@@ -150,8 +211,27 @@ table.citation td.label {
 }
 
 .admonition a {
-    color: #555555;
+    color: var(--admonition-a);
 }
+
+.alert-info {
+    background-color: var(--alert-info) !important;
+}
+
+div.highlight {
+   -webkit-filter: invert(var(--img-invert));
+   filter: invert(var(--img-invert));
+}
+
+code {
+   -webkit-filter: invert(var(--img-invert));
+   filter: invert(var(--img-invert));
+}
+
+.form-control {
+    background-color: var(--bg-color) !important;
+}
+
 
 /*
 Sphinx gallery image size
@@ -177,11 +257,24 @@ Sphinx gallery image size
 }
 
 div.sphx-glr-download a {
-    background-color: #fafafa !important;
+    background-color: var(--bg-color) !important;
     border-color: #aaaaaa !important;
-    background-image: linear-gradient(to bottom, #fafafa, #eeeeee) !important;
+    background-image: linear-gradient(to bottom, var(--bg-color), var(--sb-color)) !important;
 }
 
 div.sphx-glr-download a:hover {
-    background-image: linear-gradient(to top, #eeeeee, #eeeeee) !important;
+    background-image: linear-gradient(to top, var(--sb-color), var(--sb-color)) !important;
+}
+
+
+/* math */
+
+img.math {
+   -webkit-filter: invert(var(--img-invert));
+   filter: invert(var(--img-invert));
+}
+
+div.math img {
+   -webkit-filter: invert(var(--img-invert));
+   filter: invert(var(--img-invert));
 }
