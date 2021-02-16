@@ -1,6 +1,8 @@
 image: ubuntu/lts
+sources:
+    - https://git.sr.ht/~tfardet/NNGT
 secrets:
-  - ceb490c3-68b4-41f7-9aa9-eb2e4b91d424
+    - ceb490c3-68b4-41f7-9aa9-eb2e4b91d424
 tasks:
     - setup: |
         sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt focal main\n" >> /etc/apt/sources.list'
