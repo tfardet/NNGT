@@ -29,6 +29,3 @@ tasks:
         GL=gt OMP=0 MPI=1 mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
         coverage combine
         coverage report
-    - mirror_to_github: |
-        cd NNGT
-        ./.mirror/mirror.sh git@github.com:tfardet/NNGT.git

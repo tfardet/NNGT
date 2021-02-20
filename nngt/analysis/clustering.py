@@ -25,6 +25,7 @@ import numpy as np
 
 import nngt
 from nngt.lib import nonstring_container
+from nngt.lib.graph_helpers import _get_matrices
 
 
 __all__ = [
@@ -223,9 +224,11 @@ def local_closure(g, directed=True, weights=None, method=None,
     mat, numer, denom = None, None, None
 
     if not directed and g.is_directed():
-        _, mat = _get_matrices(g, directed, weights, weighted, combine_weights)
+        _, mat = _get_matrices(g, directed, weights, weighted, combine_weights,
+                               normed=True)
     else:
-        mat = g.adjacency_matrix(weights=weights)
+        mat = g.adjacency_matrix(weights=weights).astype(float)
+        mat /= mat.max()
         mat.setdiag(0)
 
     mat2, mat3 = None, None
@@ -543,8 +546,9 @@ def triangle_count(g, nodes=None, directed=True, weights=None,
         exponent = 2/3
 
     # get relevant matrices (use directed=False to get both dir/undir mat)
-    mat, matsym = _get_matrices(g, directed, weights, weighted,
-                                combine_weights, exponent=exponent)
+    mat, matsym = _get_matrices(
+        g, directed, weights, weighted, combine_weights, exponent=exponent,
+        normed=True)
 
     # if unweighted, adj is mat, adjsym is matsym
     adj, adjsym = mat, matsym
@@ -678,7 +682,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
     if method in ("continuous", "normal", "zhang"):
         # we need only the weighted matrices
         W, Wu = _get_matrices(g, directed, weights, weighted,
-                              combine_weights=combine_weights)
+                              combine_weights=combine_weights, normed=True)
     elif method == "barrat":
         # we need only the (potentially) directed matrices
         W = g.adjacency_matrix(weights=weights)
@@ -724,27 +728,30 @@ def _triangles_and_triplets(g, directed, weights, method, mode,
     # check the method to get the relevant matrices
     if method == "continuous":
         W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
-                              exponent=2/3)
+                              exponent=2/3, normed=True)
 
-        Wtr, Wtru = _get_matrices(g, directed, weights, True, combine_weights)
+        Wtr, Wtru = _get_matrices(g, directed, weights, True, combine_weights,
+                                  normed=True)
 
         triplets = _triplet_count_weighted(
             g, Wtr, Wtru, A, Au, method, mode, directed, weights, nodes)
     if method == "zhang":
-        W, Wu = _get_matrices(g, directed, weights, True, combine_weights)
+        W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
+                              normed=True)
 
         triplets = _triplet_count_weighted(
             g, W, Wu, A, Au, method, mode, directed, weights, nodes)
     elif method == "onnela":
         W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
-                              exponent=1/3)
+                              exponent=1/3, normed=True)
 
         # onnela uses the binary triplets
         triplets = triplet_count(g, nodes=nodes, directed=directed,
                                  mode=mode, weights=None)
     elif method == "barrat":
         # we need all matrices
-        W, Wu = _get_matrices(g, directed, weights, True, combine_weights)
+        W, Wu = _get_matrices(g, directed, weights, True, combine_weights,
+                              normed=True)
         A, Au = _get_matrices(g, directed, None, False, combine_weights)
 
         triplets = _triplet_count_weighted(
@@ -920,53 +927,3 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
         return tr
 
     return tr[nodes]
-
-
-def _get_matrices(g, directed, weights, weighted, combine_weights,
-                  exponent=None):
-    '''
-    Return the relevant matrices:
-    * W, Wu if weighted
-    * A, Au otherwise
-    '''
-    if weighted:
-        # weighted undirected
-        W  = g.adjacency_matrix(weights=weights)
-        W /= W.max()
-
-        # remove potential self-loops
-        W.setdiag(0.)
-
-        if exponent is not None:
-            W = W.power(exponent)
-
-        Wu = W
-
-        if g.is_directed():
-            if directed:
-                Wu  = W + W.T
-            elif not directed:
-                if combine_weights == "min":
-                    Wu = W.minimum(W.T)
-                elif combine_weights == "max":
-                    Wu = W.maximum(W.T)
-                else:
-                    Wu = 0.5*(W + W.T)
-
-        return W, Wu
-
-    # binary undirected
-    A = g.adjacency_matrix()
-
-    # remove potential self-loops
-    A.setdiag(0.)
-
-    Au = A
-
-    if g.is_directed():
-        Au = Au + Au.T
-
-        if not directed:
-            Au.data = np.ones(len(Au.data))
-
-    return A, Au

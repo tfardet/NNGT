@@ -185,6 +185,76 @@ def _post_del_update(graph, nodes, remapping=None):
             m._desired_size = len(m._ids)
 
 
+def _get_matrices(g, directed, weights, weighted, combine_weights,
+                  normed=False, exponent=None):
+    '''
+    Return the relevant matrices:
+    * W, Wu if weighted
+    * A, Au otherwise
+    '''
+    if weighted:
+        # weighted undirected
+        W  = g.adjacency_matrix(weights=weights)
+
+        if normed:
+            W /= W.max()
+
+        # remove potential self-loops
+        W.setdiag(0.)
+
+        if exponent is not None:
+            W = W.power(exponent)
+
+        Wu = W
+
+        if g.is_directed():
+            if directed:
+                Wu  = W + W.T
+            elif not directed:
+                if combine_weights == "sum":
+                    Wu = W + W.T
+
+                    if normed:
+                        Wu /= Wu.max()
+                elif combine_weights == "mean":
+                    A = g.adjacency_matrix().astype(float)
+                    A += A.T
+
+                    Wu = (W + W.T).multiply(A.power(-1))
+                elif combine_weights == "max":
+                    Wu = W.maximum(W.T)
+                elif combine_weights == "min":
+                    A = g.adjacency_matrix()
+
+                    s = A.multiply(A.T)
+                    a = (A - s).maximum(0)
+
+                    wa = W.multiply(a)
+
+                    Wu = wa + wa.T + W.multiply(s).minimum(W.T.multiply(s))
+                else:
+                    raise ValueError("Unknown `combine_weights`: '{}'.".format(
+                                     combine_weights))
+
+        return W, Wu
+
+    # binary undirected
+    A = g.adjacency_matrix()
+
+    # remove potential self-loops
+    A.setdiag(0.)
+
+    Au = A
+
+    if g.is_directed():
+        Au = Au + Au.T
+
+        if not directed:
+            Au.data = np.ones(len(Au.data))
+
+    return A, Au
+
+
 # ------------------ #
 # Graph-tool helpers #
 # ------------------ #

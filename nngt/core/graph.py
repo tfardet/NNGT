@@ -25,6 +25,7 @@
 import logging
 import weakref
 
+from collections import defaultdict
 from copy import deepcopy
 
 import numpy as np
@@ -39,7 +40,7 @@ from nngt.io.io_helpers import _get_format
 from nngt.io.graph_saving import _as_string
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.connect_tools import _set_degree_type, _unique_rows
-from nngt.lib.graph_helpers import _edge_prop
+from nngt.lib.graph_helpers import _edge_prop, _get_matrices
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import graph_tool_check, is_integer
 
@@ -176,7 +177,9 @@ class Graph(nngt.core.GraphObject):
                 if len(weights.shape) == 2:
                     weights = weights.A1
 
-        graph.new_edges(edges, {"weight": weights}, check_self_loops=False,
+        attributes = {"weight": weights} if weighted else None
+
+        graph.new_edges(edges, attributes, check_self_loops=False,
                         ignore_invalid=True)
 
         return graph
@@ -650,6 +653,117 @@ class Graph(nngt.core.GraphObject):
                              #~ graph=core.GraphObject(self.prune=True) )
         #~ self.clear_filters()
         #~ return exc_graph
+
+    def to_undirected(self, combine_numeric_eattr="sum"):
+        '''
+        Convert the graph to its undirected variant.
+
+        .. note::
+            All non-numeric edge attributes will be discarded from the returned
+            undirected graph.
+
+        Parameters
+        ----------
+        combine_numeric_eattr : str, optional (default: "sum")
+            How to combine numeric attributes from reciprocal edges.
+            Can be either:
+
+            - "sum" (attributes are summed)
+            - "min" (smallest value is kept)
+            - "max" (largest value is kept)
+            - "mean" (the average of both attributes is taken)
+
+            In addition, `combine_numeric_eattr` can be a dictionary with one
+            entry for each edge attribute.
+        '''
+        shape = self.shape if self.is_spatial() else None
+        pos   = self.get_positions() if self.is_spatial() else None
+
+        g = self.__class__(self.node_nb(), structure=self.structure,
+                           positions=pos, shape=shape,
+                           weighted=self.is_weighted(), directed=False)
+
+        # replicate node attributes
+        for nattr in self.node_attributes:
+            g.new_node_attribute(nattr, self.get_attribute_type(nattr, "node"),
+                                 self.node_attributes[nattr])
+
+        # prepare edges
+        eattrs = set(self.edge_attributes)
+
+        # prepare combine method
+        if isinstance(combine_numeric_eattr, str):
+            val = str(combine_numeric_eattr)
+            combine_numeric_eattr = defaultdict(lambda: val)
+        elif isinstance(combine_numeric_eattr, dict):
+            combine_numeric_eattr = defaultdict(
+                lambda: "sum", **combine_numeric_eattr)
+
+        # find integer eattr
+        integer_eattr = "weight" if "weight" in eattrs else None
+        integer_types = ("int", "double")
+
+        if integer_eattr is None:
+            for eattr in eattrs:
+                if self.get_attribute_type(eattr, "edge") in integer_types:
+                    integer_eattr = eattr
+                    break
+
+        if integer_eattr is not None:
+            eattrs.discard(integer_eattr)
+
+            combine = combine_numeric_eattr[integer_eattr]
+
+            _, umat = _get_matrices(
+                self, directed=False, weights=integer_eattr, weighted=True,
+                combine_weights=combine)
+
+            umat = ssp.tril(umat, format="csr")
+
+            # create the initial edge attribute
+            g.new_edge_attribute(
+                integer_eattr, self.get_attribute_type(integer_eattr, "edge"))
+
+            indptr = umat.indptr
+
+            diff = np.diff(indptr)
+            keep = np.where(diff)[0]
+            sources = np.repeat(keep, diff[keep])
+
+            # make and add the edges and the first eattr
+            edges = np.array((sources, umat.indices)).T
+
+            g.new_edges(edges, attributes={"weight": umat.data},
+                        check_self_loops=False)
+
+            # add all other edge attributes
+            for eattr in eattrs:
+                if self.get_attribute_type(eattr, "edge") in integer_types:
+                    combine = combine_numeric_eattr[eattr]
+
+                    _, umat = _get_matrices(
+                        self, directed=False, weights=eattr, weighted=True,
+                        combine_weights=combine)
+
+                    umat = ssp.tril(umat, format="csr")
+
+                    g.new_edge_attribute(
+                        eattr, self.get_attribute_type(eattr, "edge"),
+                        values=umat.data)
+        else:
+            # hide existing edge warning
+            from nngt.lib.connect_tools import logger as lg
+
+            old_loglevel = lg.level
+            lg.setLevel(logging.ERROR)
+
+            g.new_edges(self.edges_array, ignore_invalid=True)
+
+            # restore previous logging level
+            lg.setLevel(old_loglevel)
+
+        return g
+
 
     def get_structure_graph(self):
         '''
