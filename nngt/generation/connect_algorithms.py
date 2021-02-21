@@ -421,51 +421,56 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density=None,
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
 
-    ia_edges = np.full((edges, 2), -1, dtype=int)
+    arr_edges = np.full((edges, 2), -1, dtype=int)
     num_ecurrent, num_test = 0, 0
     edges_hash = set()
     recip_hash = None if not directed else set()
 
     # lists containing the in/out-degrees for all nodes
-    ia_in_deg = np.random.pareto(in_exp,num_target)+1
-    ia_out_deg = np.random.pareto(out_exp,num_source)+1
+    in_deg = np.random.pareto(in_exp, num_target) + 1
+    out_deg = np.random.pareto(out_exp, num_source) + 1
 
-    sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
+    sum_in, sum_out = np.sum(in_deg), np.sum(out_deg)
 
-    ia_in_deg = np.around(np.multiply(pre_recip_edges/sum_in,
-                                      ia_in_deg)).astype(int)
-    ia_out_deg = np.around(np.multiply(pre_recip_edges/sum_out,
-                                       ia_out_deg)).astype(int)
+    in_deg = np.around(np.multiply(
+        pre_recip_edges / sum_in, in_deg)).astype(int)
+    out_deg = np.around(np.multiply(
+        pre_recip_edges / sum_out, out_deg)).astype(int)
 
-    sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
+    sum_in, sum_out = np.sum(in_deg), np.sum(out_deg)
 
+    # correct
     while sum_in != pre_recip_edges or sum_out != pre_recip_edges:
-        diff_in = sum_in-pre_recip_edges
-        diff_out = sum_out-pre_recip_edges
-        idx_correct_in = randint(0,num_target,np.abs(diff_in))
-        idx_correct_out = randint(0,num_source,np.abs(diff_out))
-        ia_in_deg[idx_correct_in] -= 1*np.sign(diff_in)
-        ia_out_deg[idx_correct_out] -= 1*np.sign(diff_out)
-        sum_in, sum_out = np.sum(ia_in_deg), np.sum(ia_out_deg)
-        ia_in_deg[ia_in_deg<0] = 0
-        ia_out_deg[ia_out_deg<0] = 0
+        diff_in  = sum_in - pre_recip_edges
+        diff_out = sum_out - pre_recip_edges
+
+        idx_correct_in = randint(0, num_target, np.abs(diff_in))
+        idx_correct_out = randint(0, num_source, np.abs(diff_out))
+        in_deg[idx_correct_in] -= 1*np.sign(diff_in)
+        out_deg[idx_correct_out] -= 1*np.sign(diff_out)
+        in_deg[in_deg < 0] = 0
+        out_deg[out_deg < 0] = 0
+        sum_in, sum_out = np.sum(in_deg), np.sum(out_deg)
 
     # make the edges
-    ia_sources = np.repeat(source_ids, ia_out_deg)
-    ia_targets = np.repeat(target_ids, ia_in_deg)
-    np.random.shuffle(ia_targets)
-    ia_edges_tmp = np.array([ia_sources,ia_targets]).T
-    ia_edges, num_ecurrent = _filter(ia_edges, ia_edges_tmp, num_ecurrent,
+    sources = np.repeat(source_ids, out_deg)
+    targets = np.repeat(target_ids, in_deg)
+
+    np.random.shuffle(targets)
+
+    arr_edges_tmp = np.array((sources, targets)).T
+
+    arr_edges, num_ecurrent = _filter(arr_edges, arr_edges_tmp, num_ecurrent,
                                      edges_hash, b_one_pop, multigraph,
                                      directed=directed, recip_hash=recip_hash)
 
     while num_ecurrent != pre_recip_edges and num_test < MAXTESTS:
         num_desired = pre_recip_edges-num_ecurrent
-        ia_sources_tmp = np.random.choice(ia_sources, num_desired)
-        ia_targets_tmp = np.random.choice(ia_targets, num_desired)
-        ia_edges_tmp = np.array([ia_sources_tmp, ia_targets_tmp]).T
-        ia_edges, num_ecurrent = _filter(
-            ia_edges, ia_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
+        sources_tmp = np.random.choice(sources, num_desired)
+        targets_tmp = np.random.choice(targets, num_desired)
+        arr_edges_tmp = np.array([sources_tmp, targets_tmp]).T
+        arr_edges, num_ecurrent = _filter(
+            arr_edges, arr_edges_tmp, num_ecurrent, edges_hash, b_one_pop,
             multigraph, directed=directed, recip_hash=recip_hash)
         num_test += 1
 
@@ -473,15 +478,15 @@ def _random_scale_free(source_ids, target_ids, in_exp, out_exp, density=None,
         while num_ecurrent != edges and num_test < MAXTESTS:
             keep = np.random.choice(num_ecurrent, edges-num_ecurrent,
                                     replace=multigraph)
-            ia_edges[num_ecurrent:] = ia_edges[keep]
+            arr_edges[num_ecurrent:] = arr_edges[keep]
             num_ecurrent = edges
             if not multigraph:
-                ia_edges_tmp = _unique_rows(ia_edges)
-                num_ecurrent = ia_edges_tmp.shape[0]
-                ia_edges[:num_ecurrent,:] = ia_edges_tmp
+                arr_edges_tmp = _unique_rows(arr_edges)
+                num_ecurrent = arr_edges_tmp.shape[0]
+                arr_edges[:num_ecurrent,:] = arr_edges_tmp
             num_test += 1
 
-    return ia_edges
+    return arr_edges
 
 
 def _erdos_renyi(source_ids, target_ids, density=None, edges=None,
@@ -629,7 +634,8 @@ def _circular_directed_recip(node_ids, coord_nb, reciprocity,
                              reciprocity_choice="random", **kwargs):
     ''' Circular graph with given reciprocity '''
     nodes    = len(node_ids)
-    edges    = int(0.5*nodes*coord_nb*(1 + reciprocity))
+    edges    = int(np.round(0.5 * nodes * coord_nb *
+                   (1 + reciprocity / (2 - reciprocity))))
     init_deg = int(0.5*coord_nb)
 
     # sources and targets
@@ -665,14 +671,14 @@ def _circular_directed_recip(node_ids, coord_nb, reciprocity,
             # closest connections are the first ones, so if
             # num_recip = k*num_nodes + l then we reverse all first k*num_nodes
             # then we randomly chose the remaining l
-            remainder = num_recip % num_nodes
+            remainder = num_recip % nodes
             rounds    = num_recip - remainder
             
             sources[-num_recip:-num_recip + rounds] = targets[:rounds]
             targets[-num_recip:-num_recip + rounds] = sources[:rounds]
 
             # chose randomly the remaining connections
-            stop = min(rounds + num_nodes, edges)
+            stop = min(rounds + nodes, edges)
             chosen = rng.choice([i for i in range(rounds, stop)],
                                 size=remainder, replace=False)
 
@@ -682,19 +688,24 @@ def _circular_directed_recip(node_ids, coord_nb, reciprocity,
             # deterministic (ordered) closest connections, only for the
             # lattice rewiring (see function _lattice_shuffle_eattr)
             # closest connections are the first ones
-            remainder = num_recip % num_nodes
+            remainder = num_recip % nodes
             rounds    = num_recip - remainder
 
-            sources[-num_recip:-num_recip + rounds] = targets[:rounds]
-            targets[-num_recip:-num_recip + rounds] = sources[:rounds]
+            start = edges - num_recip
+            stop  = edges - num_recip + rounds
+
+            sources[start:stop] = targets[:rounds]
+            targets[start:stop] = sources[:rounds]
 
             # chose randomly the remaining connections
-            stop = min(rounds + num_nodes, edges)
-            chosen = rng.choice([i for i in range(rounds, stop)],
-                                size=remainder, replace=False)
+            start = stop
+            stop  = min(rounds + nodes, edges)
 
-            sources[-num_recip + rounds:] = targets[chosen]
-            targets[-num_recip + rounds:] = sources[chosen]
+            chosen = rng.choice(list(range(rounds, stop)), size=remainder,
+                                replace=False)
+
+            sources[start:] = targets[chosen]
+            targets[start:] = sources[chosen]
 
     return np.array([sources, targets], dtype=int).T
 
@@ -734,8 +745,8 @@ def _circular_full(node_ids, coord_nb, directed, **kwargs):
 
 
 def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
-                  reciprocity_circular, edges=None, directed=True,
-                  multigraph=False, **kwargs):
+                  reciprocity_circular=1, reciprocity_choice_circular="random",
+                  edges=None, directed=True, multigraph=False, **kwargs):
     '''
     Returns a numpy array of dimension (num_edges,2) that describes the edge
     list of a Newman-Watts graph.
@@ -752,12 +763,16 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
 
     # check the number of edges
     direct_factor  = 0.5*(1 + directed)
-    recip_factor   = 0.5*(1 + reciprocity_circular)
-    circular_edges = int(nodes * coord_nb * recip_factor * direct_factor)
+    recip_factor   = 1 + reciprocity_circular / (2 - reciprocity_circular)
+    circular_edges = int(np.round(
+        0.5 * direct_factor * nodes * coord_nb * recip_factor))
 
     if edges is None:
         rng   = nngt._rng
         edges = circular_edges + rng.binomial(circular_edges, proba_shortcut)
+    elif edges < circular_edges:
+        raise ValueError("`edges` must be greater or equal to "
+                         "{} given current arguments.".format(circular_edges))
 
     b_one_pop = _check_num_edges(
         source_ids, target_ids, edges, directed, multigraph)
@@ -769,8 +784,9 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     # generate the initial circular graph
     ia_edges = np.full((edges, 2), -1, dtype=int)
 
-    ia_edges[:circular_edges, :] = _circular(source_ids, source_ids, coord_nb,
-                                             reciprocity_circular, directed)
+    ia_edges[:circular_edges, :] = _circular(
+        source_ids, source_ids, coord_nb, reciprocity_circular, directed,
+        reciprocity_choice=reciprocity_choice_circular)
 
     # add the random connections
     num_test, num_ecurrent = 0, circular_edges
@@ -795,9 +811,10 @@ def _newman_watts(source_ids, target_ids, coord_nb, proba_shortcut,
     return ia_edges
 
 
-def _watts_strogatz(source_ids, target_ids, coord_nb, proba_shortcut,
-                    reciprocity_circular, shuffle, directed=True,
-                    multigraph=False, **kwargs):
+def _watts_strogatz(
+        source_ids, target_ids, coord_nb, proba_shortcut,
+        reciprocity_circular=1, reciprocity_choice_circular="random",
+        shuffle="random", directed=True, multigraph=False, **kwargs):
     '''
     Returns a numpy array of dimension (num_edges,2) that describes the edge
     list of a Watts-Strogatz graph.
@@ -830,8 +847,9 @@ def _watts_strogatz(source_ids, target_ids, coord_nb, proba_shortcut,
                               "and target populations are the same.")
 
     # generate the initial circular graph
-    ia_edges = _circular(source_ids, source_ids, coord_nb,
-                         reciprocity_circular, directed)
+    ia_edges = _circular(
+        source_ids, source_ids, coord_nb, reciprocity_circular, directed,
+        reciprocity_choice=reciprocity_choice_circular)
 
     # randomize some of the outgoing connections
     node_set = set(source_ids)

@@ -70,7 +70,7 @@ Plot the graph
 if nngt.get_config("with_plot"):
     nngt.plot.library_draw(net, show=False)
 
-    pop_graph = net.get_population_graph()
+    pop_graph = net.get_structure_graph()
 
     nngt.plot.chord_diagram(pop_graph, names="name", use_gradient=True,
                             show=True)
