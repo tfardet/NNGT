@@ -613,7 +613,7 @@ def adj_mat(g, weights=None, mformat="csr"):
 
         return coo_adj.asformat(mformat)
 
-    m = ssp.cco_matrix((n, n))
+    m = ssp.coo_matrix((n, n))
 
     return m.asformat(mformat)
 

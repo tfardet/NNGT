@@ -718,7 +718,7 @@ def circular(coord_nb, reciprocity=1., reciprocity_choice="random", nodes=0,
     connections will be created, so that no bidirectional edges exist; on the
     other hand, for ``reciprocity == 1.``, all possible edges are created; for
     intermediate values of `reciprocity`, the number of edges increases
-    linearly as ``0.5*(1 + reciprocity)*nodes*coord_nb``.
+    linearly as ``0.5*(1 + reciprocity / (2 - reciprocity))*nodes*coord_nb``.
 
     Parameters
     ----------
@@ -881,6 +881,7 @@ def newman_watts(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
 
         ia_edges = _newman_watts(
             ids, ids, coord_nb, proba_shortcut, reciprocity_circular,
+            reciprocity_choice_circular=reciprocity_choice_circular,
             edges=edges, directed=directed)
 
         graph_nw.new_edges(ia_edges, check_duplicates=False,
@@ -976,7 +977,7 @@ def watts_strogatz(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
 
         ia_edges = _watts_strogatz(
             ids, ids, coord_nb, proba_shortcut, reciprocity_circular,
-            shuffle, directed=directed)
+            reciprocity_choice_circular, shuffle, directed=directed)
 
         graph_nw.new_edges(ia_edges, check_duplicates=False,
                            check_self_loops=False, check_existing=False)

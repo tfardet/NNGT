@@ -283,8 +283,8 @@ suite = unittest.TestLoader().loadTestsFromTestCase(TestIO)
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        # ~ test_empty_out_degree()
+        test_empty_out_degree()
         test_str_attributes()
-        # ~ test_structure()
-        # ~ test_node_attributes()
-        # ~ unittest.main()
+        test_structure()
+        test_node_attributes()
+        unittest.main()

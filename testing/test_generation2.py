@@ -147,8 +147,9 @@ def test_newman_watts():
     g = ng.newman_watts(k_lattice, p_shortcut, reciprocity, nodes=num_nodes,
                         directed=True)
 
-    recip_fact = 0.5*(1 + reciprocity)
-    min_edges  = int(recip_fact*k_lattice*num_nodes)
+    recip_fact = 0.5*(1 + reciprocity / (2 - reciprocity))
+    min_edges  = int(np.round(recip_fact*k_lattice*num_nodes))
+
     assert min_edges <= g.edge_nb() <= 2*recip_fact*k_lattice*num_nodes
 
 
@@ -193,9 +194,9 @@ def test_watts_strogatz():
     g = ng.watts_strogatz(k_lattice, p_shortcut, reciprocity, nodes=num_nodes,
                           directed=True)
 
-    recip_fact = 0.5*(1 + reciprocity)
+    recip_fact = 0.5*(1 + reciprocity / (2 - reciprocity))
 
-    assert g.edge_nb() == int(recip_fact*k_lattice*num_nodes)
+    assert g.edge_nb() == int(np.round(recip_fact*k_lattice*num_nodes))
 
     # limit cases
     for p_shortcut in (0, 1):
@@ -470,8 +471,62 @@ def test_connect_switch_distance_rule_max_proba():
     nngt.set_config("multithreading", mthread)
 
 
+@pytest.mark.mpi_skip
+def test_circular():
+    ''' Test the circular graph generation methods. '''
+    num_nodes = 1000
+    coord_nb  = 4
+
+    # undirected
+    gc = ng.circular(coord_nb, nodes=num_nodes, directed=False)
+
+    assert gc.node_nb() == num_nodes
+    assert gc.edge_nb() == int(0.5*num_nodes*coord_nb)
+    assert np.array_equal(gc.get_degrees(), np.full(num_nodes, coord_nb))
+
+    # directed (reciprocity one)
+    gc = ng.circular(coord_nb, nodes=num_nodes)
+
+    assert gc.node_nb() == num_nodes
+    assert gc.edge_nb() == int(num_nodes*coord_nb)
+    assert np.array_equal(gc.get_degrees(), np.full(num_nodes, 2*coord_nb))
+    assert np.array_equal(gc.get_degrees("in"), np.full(num_nodes, coord_nb))
+    assert np.array_equal(gc.get_degrees("out"), np.full(num_nodes, coord_nb))
+
+    # directed reciprocity = 0.5
+    recip = 0.5
+    gc = ng.circular(coord_nb, nodes=num_nodes, reciprocity=recip)
+
+    num_edges = int(np.round(
+        0.5 * (1 + recip / (2 - recip)) * num_nodes * coord_nb))
+
+    num_recip = 2 * int(np.round(
+        0.5 * recip / (2 - recip) * num_nodes * coord_nb))
+
+    assert gc.node_nb() == num_nodes
+    assert gc.edge_nb() == num_edges
+    assert np.isclose(na.reciprocity(gc), num_recip / num_edges)
+    assert np.isclose(na.reciprocity(gc), recip, 1e-3)
+
+    # directed reciprocity = 0.5
+    recip = 0.3
+    gc = ng.circular(coord_nb, nodes=num_nodes, reciprocity=recip)
+
+    num_edges = int(np.round(
+        0.5 * (1 + recip / (2 - recip)) * num_nodes * coord_nb))
+
+    num_recip = 2 * int(np.round(
+        0.5 * recip / (2 - recip) * num_nodes * coord_nb))
+
+    assert gc.node_nb() == num_nodes
+    assert gc.edge_nb() == num_edges
+    assert np.isclose(na.reciprocity(gc), num_recip / num_edges)
+    assert np.isclose(na.reciprocity(gc), recip, 1e-3)
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
+        test_circular()
         test_newman_watts()
         test_from_degree_list()
         test_total_undirected_connectivities()

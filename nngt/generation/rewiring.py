@@ -122,7 +122,7 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
         raise ValueError("`distance_sort` must be either 'linear' or "
                          "'inverse'.")
 
-    if directed and target_reciprocity != 1:
+    if not directed and target_reciprocity != 1:
         raise ValueError("Reciprocity is always 1 for undirected graphs.")
 
     # init graph and edges
@@ -132,22 +132,24 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     ia_edges = np.full((num_edges, 2), -1, dtype=np.int64)
 
     # compute the coodination number of the closest regular lattice
-    coord_nb, e_reglat = None, None
+    coord_nb = None
 
     if directed:
         # coordination number must be even
-        coord_nb = 2*int(num_edges / (num_nodes*(1 + target_reciprocity)))
-        e_reglat = int(0.5*num_nodes*(1 + target_reciprocity)*coord_nb)
+        coord_nb = 2 * int(num_edges * (1 - 0.5 * target_reciprocity)
+                           / num_nodes)
     else:
         # coordination number must be even and resulting edges are half
         coord_nb = 2*int(num_edges / num_nodes)
-        e_reglat = int(0.5*num_nodes*coord_nb)
 
-    # generate the edges of the regular lattice
+    e_reglat = int(0.5*num_nodes*coord_nb)
+
+    # generate the edges of the regular lattice (setting 0 reciprocity for
+    # directed case, this is ignored if graph is undirected)
     ids = range(num_nodes)
 
     ia_edges[:e_reglat] = gc._circular(
-        ids, ids, coord_nb, target_reciprocity, directed=directed,
+        ids, ids, coord_nb, directed=False,
         reciprocity_choice="closest-ordered")
 
     # add the remaining edges (remaining edges strictly smaller than num_nodes)
@@ -156,28 +158,46 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
     if e_remaining:
         last_edges = np.full((e_remaining, 2), -1, dtype=np.int64)
 
-        # new connections are one step above the max regular lattice distance
-        dist = int(0.5*coord_nb) + 1
-
         if directed:
-            # make reciprocal edges
-            num_recip  = int(0.5*target_reciprocity*e_remaining)
+            # make reciprocal edges first
+            num_recip  = int(0.5 * target_reciprocity * num_edges)
 
-            if num_recip:
-                last_edges[:num_recip] = \
-                    [(i, i + dist) for i in range(num_recip)]
+            # check if recip are more numerous that regular lattice edges
+            first_recip = num_recip if num_recip <= e_reglat else e_reglat
 
-                last_edges[num_recip:2*num_recip] = \
-                    last_edges[:num_recip, ::-1]
+            if first_recip:
+                last_edges[:first_recip] = ia_edges[:first_recip, ::-1]
+                e_remaining -= first_recip
 
-            # make remaning non-reciprocal edges
-            e_final = e_remaining - 2*num_recip
+            if e_remaining:
+                # new connections are one step above the max regular lattice
+                # distance
+                dist = int(0.5*coord_nb) + 1
 
-            if e_final:
-                last_edges[2*num_recip:] = \
-                    [(i, i + dist) for i in range(num_recip,
-                                                  num_recip + e_final)]
+                # make reciprocal edges
+                num_recip -= first_recip
+
+                if num_recip:
+                    last_edges[first_recip:first_recip + num_recip] = \
+                        [(i, (i + dist) % num_nodes) for i in range(num_recip)]
+
+                    start = first_recip + num_recip
+                    stop  = first_recip + 2*num_recip
+
+                    last_edges[start:stop] = \
+                        last_edges[first_recip:start, ::-1]
+
+                # make remaning non-reciprocal edges
+                e_final = e_remaining - 2*num_recip
+
+                if e_final:
+                    last_edges[first_recip + 2*num_recip:] = \
+                        [(i, (i + dist) % num_nodes)
+                         for i in range(num_recip, num_recip + e_final)]
         else:
+            # new connections are one step above the max regular lattice
+            # distance
+            dist = int(0.5*coord_nb) + 1
             last_edges[:] = [(i, i + dist) for i in range(e_remaining)]
 
         # put nodes back into [0, num_nodes[
@@ -419,91 +439,54 @@ def _lattice_shuffle_eattr(name, old_graph, new_graph, coord_nb,
         directed = new_graph.is_directed()
 
         if directed:
-            if target_recip < 1:
-                # we need to find the reciprocal edges for the attribute
-                # assignment (this relies on the precise implementation of the
-                # function _circular_directed_recip that the closest distances
-                # come first, then the reciprocal edges are at the end in the
-                # same order)
-                init_edges = int(0.5*num_nodes*(1 + target_recip)*coord_nb)
-                num_recip  = init_edges - num_nodes*int(0.5*coord_nb)
+            # we need to find the reciprocal edges for the attribute
+            # assignment (this relies on the precise implementation of the
+            # function _circular_directed_recip that the closest distances
+            # come first, then the reciprocal edges are at the end in the
+            # same order)
+            init_edges = int(0.5*num_nodes*coord_nb)
+            num_recip  = int(0.5 * target_recip * num_edges)
 
-                # fill the order list in the following order
-                order = np.zeros(num_edges, dtype=int)
-                # the first entries are the initial edges that got a reciprocal
-                # connection, we order them with every other first indices
-                # since the reciprocal edges will come in between
-                order[:2*num_recip:2] = np.arange(num_recip)
-                # we enter the index of the reciprocal connection after each
-                order[1:2*num_recip + 1:2] = np.arange(init_edges,
-                                                       init_edges + num_recip)
-                # then we fill the last entries with the initial edges that did
-                # not get a reciprocal connection
-                order[2*num_recip + 1:] = np.arange(num_recip, init_edges)
+            first_recip = \
+                num_recip if num_recip <= init_edges else init_edges
 
-                if distance_sort == "inverse":
-                    order = order[::-1]
-            else:
-                # For the fully reciprocal lattice, the edges go both ways,
-                # with first the long-distance, left-pointing edges, then
-                # decreasing distances until the middle of the edges array,
-                # then increasing from the middle onward with the shortest
-                # right-pointing edges first (see _circular_full).
-                # Distances looks like [d_max, d_max... 1, 1... 1, 1... d_max].
-                # Therefore we proceed almost like for the partly reciprocal
-                # lattice but we start at the middle and the reciprocal edges
-                # are before the middle
-                e_reglat = int(0.5*num_nodes*(1 + target_recip)*coord_nb)
+            second_recip = num_recip - first_recip
 
-                # we work based on the middle of the edges of the regular
-                # lattice, other edges are added at the end
-                middle = int(0.5*e_reglat)
-                d_max  = int(0.5*coord_nb)
-                order  = np.full(num_edges, -1, dtype=int)
+            # fill the order list in the following order
+            order = np.zeros(num_edges, dtype=int)
+            # the first entries are the initial edges that got a reciprocal
+            # connection, we order them with every other first indices
+            # since the reciprocal edges will come in between
+            if first_recip:
+                order[:2*first_recip - 1:2] = np.arange(first_recip)
+                # we enter the index of the reciprocal connection
+                order[1:2*first_recip:2] = \
+                    np.arange(init_edges, init_edges + first_recip)
 
-                count = 0
+            # then (if needed) we fill the 2nd wave of reciprocal edges
+            if second_recip:
+                start = init_edges + first_recip
 
-                for d_n in range(1, d_max + 1):
-                    d_middle  = num_nodes*(d_n - 1)
+                order[2*first_recip:2*num_recip - 1:2] = \
+                    np.arange(start, start + second_recip)
 
-                    stop = count + 2*num_nodes
+                order[2*first_recip + 1:2*num_recip:2] = \
+                    np.arange(start + second_recip, start + 2*second_recip)
 
-                    # the entries from the middle shortest edges; we order them
-                    # with every other increasing indices since the reciprocal
-                    # edges will come in between
-                    order[count:stop:2] = np.arange(
-                        middle + d_middle, middle + d_middle + num_nodes)
+            # then we fill the last entries with the initial edges that did
+            # not get a reciprocal connection
+            end = 2*num_recip + init_edges - first_recip
+            order[2*num_recip:end] = np.arange(num_recip, init_edges)
 
-                    # we enter the index of the reciprocal connection after
-                    # however, here the first one (starting from zero) needs
-                    # to go at the end
-                    order[count + 1:stop - 1:2] = \
-                        np.arange(middle - (d_middle + num_nodes) + 1,
-                                  middle - d_middle)
-
-                    order[stop -  1] = middle - d_middle - num_nodes
-
-                    count = stop
-
-                # add remaining edges (those not in the regular lattice)
-                remaining = num_edges - count
-                num_recip = int(0.5*remaining)
-
-                order[count:count + 2*num_recip:2] = \
-                    np.arange(count, count + num_recip)
-
-                order[count + 1:count + 2*num_recip + 1:2] = \
-                    np.arange(count + num_recip, count + 2*num_recip)
-
-                if remaining - 2*num_recip:
-                    order[-1] = num_edges - 1
+            order[end:] = \
+                np.arange(init_edges + num_recip + second_recip, num_edges)
 
             order = np.argsort(order)
         else:
             # we don't need to sort the new edges because they are ordered by
             # distance by default in the circular algorithm
             order = slice(num_edges)
-                
+
         # sort the attribute
         if distance_sort == "linear":
             # order for other attributes if "together" is used

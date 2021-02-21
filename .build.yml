@@ -25,7 +25,7 @@ tasks:
         GL=nx coverage run -p -m pytest testing
         GL=ig coverage run -p -m pytest testing
         GL=nngt coverage run -p -m pytest testing
-        GL=gt OMP=4 coverage run -p -m pytest testing
-        GL=gt OMP=0 MPI=1 mpirun --mca btl ^openib -n 2 coverage run -p -m pytest --with-mpi testing
+        GL=gt OMP=2 coverage run -p -m pytest testing
+        GL=gt OMP=0 MPI=1 mpirun -n 2 coverage run -p -m pytest --with-mpi testing
         coverage combine
         coverage report
