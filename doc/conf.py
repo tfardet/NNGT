@@ -30,7 +30,6 @@ import sphinx_bootstrap_theme
 
 
 # Paths
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 current_directory = os.path.abspath('.')
 sys.path.append(current_directory)
 sys.path.append(current_directory + "/extensions")  # custom extensions folder
@@ -52,7 +51,9 @@ os.symlink(src, tgt)
 If on rtd, the graph libraries are not available so they need to be mocked
 '''
 
-if on_rtd:
+try:
+    import nest
+except:
     import mock
     mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
 

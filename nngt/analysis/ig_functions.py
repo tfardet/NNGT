@@ -299,7 +299,9 @@ def connected_components(g, ctype=None):
     ----------
     .. [ig-connected-components] :igdoc:`clusters`
     '''
-    ctype   = "scc" if ctype is None else ctype
+    if ctype is None:
+        ctype = "scc" if g.is_directed() else "wcc"
+
     ig_type = "strong"
 
     if ctype == "wcc":
@@ -319,7 +321,8 @@ def connected_components(g, ctype=None):
     return cc, hist
 
 
-def shortest_path(g, source, target, directed=True, weights=None):
+def shortest_path(g, source, target, directed=None, weights=None,
+                  combine_weights="mean"):
     '''
     Returns a shortest path between `source`and `target`.
     The algorithms returns an empty list if there is no path between the nodes.
@@ -332,12 +335,24 @@ def shortest_path(g, source, target, directed=True, weights=None):
         Node from which the path starts.
     target : int
         Node where the path ends.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -348,9 +363,10 @@ def shortest_path(g, source, target, directed=True, weights=None):
     ----------
     .. [ig-sp] :igdoc:`get_shortest_paths`
     '''
-    w = _get_ig_weights(g, weights)
+    g, graph, w = _get_ig_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_ig_graph(g, directed, w)
+    w = _get_ig_weights(g, w)
 
     path = graph.get_shortest_paths(source, target, mode="out", weights=w)[0]
 
@@ -361,7 +377,8 @@ def shortest_path(g, source, target, directed=True, weights=None):
     return path
 
 
-def all_shortest_paths(g, source, target, directed=True, weights=None):
+def all_shortest_paths(g, source, target, directed=None, weights=None,
+                       combine_weights="mean"):
     '''
     Yields all shortest paths from `source` to `target`.
     The algorithms returns an empty generator if there is no path between the
@@ -375,12 +392,24 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
         Node from which the paths starts.
     target : int, optional (default: all nodes)
         Node where the paths ends.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -391,15 +420,16 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
     ----------
     .. [ig-sp] :igdoc:`get_all_shortest_paths`
     '''
-    w = _get_ig_weights(g, weights)
+    g, graph, w = _get_ig_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_ig_graph(g, directed, w)
+    w = _get_ig_weights(g, w)
 
     return (p for p in graph.get_all_shortest_paths(source, target, weights=w))
 
 
-def shortest_distance(g, sources=None, targets=None, directed=True,
-                      weights=None):
+def shortest_distance(g, sources=None, targets=None, directed=None,
+                      weights=None, combine_weights="mean"):
     '''
     Returns the length of the shortest paths between `sources`and `targets`.
     The algorithms return infinity if there are no paths between nodes.
@@ -412,12 +442,24 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
         Nodes from which the paths must be computed.
     targets : list of nodes, optional (default: all)
         Nodes to which the paths must be computed.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -431,21 +473,20 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     ----------
     .. [ig-sp] :igdoc:`shortest_paths`
     '''
-    graph = g.graph
-
     # weighted or selective algorithm
-    ww = _get_ig_weights(g, weights)
+    g, graph, w = _get_ig_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_ig_graph(g, directed, ww)
+    w = _get_ig_weights(g, w)
 
     # special case for one source/one target
     if is_integer(sources) and is_integer(targets):
         return graph.shortest_paths(source=sources, target=targets,
-                                    weights=ww)[0][0]
+                                    weights=w)[0][0]
 
     # multiple sources/targets
     mat_dist = graph.shortest_paths(source=sources, target=targets,
-                                    weights=ww)
+                                    weights=w)
 
     mat_dist = np.array(mat_dist, dtype=float)
 
@@ -458,8 +499,9 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     return mat_dist
 
 
-def average_path_length(g, sources=None, targets=None, directed=True,
-                        weights=None, unconnected=False):
+def average_path_length(g, sources=None, targets=None, directed=None,
+                        weights=None, combine_weights="mean",
+                        unconnected=False):
     r'''
     Returns the average shortest path length between `sources` and `targets`.
     The algorithms raises an error if all nodes are not connected unless
@@ -485,12 +527,24 @@ def average_path_length(g, sources=None, targets=None, directed=True,
         Nodes from which the paths must be computed.
     targets : list of nodes, optional (default: all)
         Nodes to which the paths must be computed.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
     unconnected : bool, optional (default: False)
         If set to true, ignores unconnected nodes and returns the average path
         length of the existing paths.
@@ -499,6 +553,8 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     ----------
     .. [ig-sp] :igdoc:`shortest_paths`
     '''
+    directed = g.is_directed() if directed is None else directed
+
     mat_dist = shortest_distance(g, sources=sources, targets=targets,
                                  directed=directed, weights=weights)
 
@@ -518,9 +574,13 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     return np.sum(mat_dist) / num_paths
 
 
-def diameter(g, directed=True, weights=None, is_connected=False):
+def diameter(g, directed=None, weights=None, combine_weights="mean",
+             is_connected=False):
     '''
     Returns the diameter of the graph.
+
+    .. versionchanged:: 2.3
+        Added `combine_weights` argument.
 
     .. versionchanged:: 2.0
         Added `directed` and `is_connected` arguments.
@@ -533,7 +593,7 @@ def diameter(g, directed=True, weights=None, is_connected=False):
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether to compute the directed diameter if the graph is directed.
         If False, then the graph is treated as undirected. The option switches
         to False automatically if `g` is undirected.
@@ -541,6 +601,18 @@ def diameter(g, directed=True, weights=None, is_connected=False):
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
     is_connected : bool, optional (default: False)
         If False, check whether the graph is connected or not and return
         infinite diameter if graph is unconnected. If True, the graph is
@@ -554,9 +626,10 @@ def diameter(g, directed=True, weights=None, is_connected=False):
     ----------
     .. [ig-diameter] :igdoc:`diameter`
     '''
-    ww = _get_ig_weights(g, weights)
+    g, graph, w = _get_ig_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_ig_graph(g, directed, ww)
+    w = _get_ig_weights(g, w)
 
     if not is_connected:
         mode = "strong" if g.is_directed() else "weak"
@@ -564,7 +637,7 @@ def diameter(g, directed=True, weights=None, is_connected=False):
         if not graph.is_connected(mode):
             return np.inf
 
-    return graph.diameter(weights=ww, unconn=True)
+    return graph.diameter(weights=w, unconn=True)
 
 
 def adj_mat(g, weights=None, mformat="csr"):

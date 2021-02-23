@@ -313,7 +313,9 @@ def connected_components(g, ctype=None):
     .. [nx-scc] :nxdoc:`algorithms.components.strongly_connected_components`
     .. [nx-wcc] :nxdoc:`algorithms.components.weakly_connected_components`
     '''
-    ctype = "scc" if ctype is None else ctype
+    if ctype is None:
+        ctype = "scc" if g.is_directed() else "wcc"
+
     res   = None
 
     if not g.is_directed():
@@ -336,7 +338,8 @@ def connected_components(g, ctype=None):
     return cc, np.array(hist, dtype=int)
 
 
-def shortest_path(g, source, target, directed=True, weights=None):
+def shortest_path(g, source, target, directed=None, weights=None,
+                  combine_weights="mean"):
     '''
     Returns a shortest path between `source`and `target`.
     The algorithms returns an empty list if there is no path between the nodes.
@@ -349,12 +352,24 @@ def shortest_path(g, source, target, directed=True, weights=None):
         Node from which the path starts.
     target : int
         Node where the path ends.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -365,9 +380,10 @@ def shortest_path(g, source, target, directed=True, weights=None):
     ----------
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.shortest_path`
     '''
-    w = _get_nx_weights(g, weights)
+    g, graph, w = _get_nx_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_nx_graph(g, directed, w)
+    w = _get_nx_weights(g, w)
 
     try:
         return nx.shortest_path(graph, source, target, weight=w)
@@ -375,7 +391,8 @@ def shortest_path(g, source, target, directed=True, weights=None):
         return []
 
 
-def all_shortest_paths(g, source, target, directed=True, weights=None):
+def all_shortest_paths(g, source, target, directed=None, weights=None,
+                       combine_weights="mean"):
     '''
     Yields all shortest paths from `source` to `target`.
     The algorithms returns an empty generator if there is no path between the
@@ -389,12 +406,24 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
         Node from which the paths starts.
     target : int, optional (default: all nodes)
         Node where the paths ends.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -405,9 +434,10 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
     ----------
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.all_shortest_paths`
     '''
-    w = _get_nx_weights(g, weights)
+    g, graph, w = _get_nx_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_nx_graph(g, directed, w)
+    w = _get_nx_weights(g, w)
 
     try:
         return nx.all_shortest_paths(graph, source, target, weight=w)
@@ -415,8 +445,8 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
         return (_ for _ in [])
 
 
-def shortest_distance(g, sources=None, targets=None, directed=True,
-                      weights=None):
+def shortest_distance(g, sources=None, targets=None, directed=None,
+                      weights=None, combine_weights="mean"):
     '''
     Returns the length of the shortest paths between `sources`and `targets`.
     The algorithms return infinity if there are no paths between nodes.
@@ -429,12 +459,24 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
         Nodes from which the paths must be computed.
     targets : list of nodes, optional (default: all)
         Nodes to which the paths must be computed.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -451,9 +493,10 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     num_nodes = g.node_nb()
 
     # check consistency for weights and directed
-    w = _get_nx_weights(g, weights)
+    g, graph, w = _get_nx_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_nx_graph(g, directed, w)
+    w = _get_nx_weights(g, w)
 
     # check for single source/target case and convert sources and targets
     if is_integer(sources):
@@ -511,8 +554,9 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     return mat_dist
 
 
-def average_path_length(g, sources=None, targets=None, directed=True,
-                        weights=None, unconnected=False):
+def average_path_length(g, sources=None, targets=None, directed=None,
+                        weights=None, combine_weights="mean",
+                        unconnected=False):
     r'''
     Returns the average shortest path length between `sources` and `targets`.
     The algorithms raises an error if all nodes are not connected unless
@@ -538,12 +582,24 @@ def average_path_length(g, sources=None, targets=None, directed=True,
         Nodes from which the paths must be computed.
     targets : list of nodes, optional (default: all)
         Nodes to which the paths must be computed.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
     unconnected : bool, optional (default: False)
         If set to true, ignores unconnected nodes and returns the average path
         length of the existing paths.
@@ -552,10 +608,13 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     ----------
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
     '''
-    if sources is None and targets is None and not unconnected:
-        w = _get_nx_weights(g, weights)
+    directed = g.is_directed() if directed is None else directed
 
-        graph = _get_nx_graph(g, directed, w)
+    if sources is None and targets is None and not unconnected:
+        g, graph, w = _get_nx_graph(g, directed, weights, combine_weights,
+                                 return_all=True)
+
+        w = _get_nx_weights(g, w)
 
         return nx.average_shortest_path_length(graph, weight=w)
 
@@ -578,9 +637,13 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     return np.sum(mat_dist) / num_paths
 
 
-def diameter(g, directed=True, weights=None, is_connected=False):
+def diameter(g, directed=None, weights=None, combine_weights="mean",
+             is_connected=False):
     '''
     Returns the diameter of the graph.
+
+    .. versionchanged:: 2.3
+        Added `combine_weights` argument.
 
     .. versionchanged:: 2.0
         Added `directed` and `is_connected` arguments.
@@ -593,7 +656,7 @@ def diameter(g, directed=True, weights=None, is_connected=False):
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether to compute the directed diameter if the graph is directed.
         If False, then the graph is treated as undirected. The option switches
         to False automatically if `g` is undirected.
@@ -601,6 +664,18 @@ def diameter(g, directed=True, weights=None, is_connected=False):
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
     is_connected : bool, optional (default: False)
         If False, check whether the graph is connected or not and return
         infinite diameter if graph is unconnected. If True, the graph is
@@ -619,7 +694,8 @@ def diameter(g, directed=True, weights=None, is_connected=False):
 
     # weighted or "connected" cases
     if w is not None or is_connected:
-        dist = shortest_distance(g, directed=directed, weights=weights)
+        dist = shortest_distance(g, directed=directed, weights=weights,
+                                 combine_weights=combine_weights)
 
         if is_connected:
             return np.max(dist[~np.isinf(dist)])
@@ -627,7 +703,7 @@ def diameter(g, directed=True, weights=None, is_connected=False):
         return np.max(dist)
 
     # unweighted case
-    graph = _get_nx_graph(g, directed, w)
+    graph = _get_nx_graph(g, directed, w, combine_weights)
 
     try:
         return nx.diameter(graph)

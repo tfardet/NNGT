@@ -241,7 +241,7 @@ def diameter(g, directed=True, weights=False, is_connected=False):
     raise NotImplementedError(_backend_required)
 
 
-def small_world_propensity(g, directed=True, use_global_clustering=False,
+def small_world_propensity(g, directed=None, use_global_clustering=False,
                            use_diameter=False, weights=None,
                            combine_weights="mean", clustering="continuous",
                            lattice=None, random=None, return_deviations=False):
@@ -371,27 +371,33 @@ def small_world_propensity(g, directed=True, use_global_clustering=False,
 
         return np.NaN
 
+    # check graph directedness
+    directed = g.is_directed() if directed is None else directed
+
+    if g.is_directed() and not directed:
+        g = g.to_undirected(combine_weights)
+
     # rewired graph
     latt = ng.lattice_rewire(g, weight=weights) if lattice is None else lattice
     rand = ng.random_rewire(g) if random is None else random
 
     # compute average path-length using the inverse of the weights
-    inv_w = None
+    inv_w, inv_wl, inv_wr = None, None, None
 
-    if nonstring_container(weights):
-        inv_w = 1 / weights
-    elif weights not in (None, False):
+    if weights not in (None, False):
         inv_w = 1 / g.edge_attributes[weights]
+        inv_wl = 1 / latt.edge_attributes[weights]
+        inv_wr = 1 / rand.edge_attributes[weights]
 
     l_latt, l_rand, l_g = None, None, None
 
     if use_diameter:
-        l_latt = diameter(latt, directed=directed, weights=weights)
-        l_rand = diameter(rand, directed=directed, weights=weights)
-        l_g    = diameter(g, directed=directed, weights=weights)
+        l_latt = diameter(latt, directed=directed, weights=inv_wl)
+        l_rand = diameter(rand, directed=directed, weights=inv_wr)
+        l_g    = diameter(g, directed=directed, weights=inv_w)
     else:
-        l_latt = average_path_length(latt, directed=directed, weights=inv_w)
-        l_rand = average_path_length(rand, directed=directed, weights=inv_w)
+        l_latt = average_path_length(latt, directed=directed, weights=inv_wl)
+        l_rand = average_path_length(rand, directed=directed, weights=inv_wr)
         l_g    = average_path_length(g, directed=directed, weights=inv_w)
 
     # compute clustering
@@ -399,31 +405,26 @@ def small_world_propensity(g, directed=True, use_global_clustering=False,
 
     if use_global_clustering:
         c_latt = global_clustering(
-            latt, directed=directed, weights=weights, method=clustering,
-            combine_weights=combine_weights)
+            latt, directed=directed, weights=weights, method=clustering)
 
         c_rand = global_clustering(
-            rand, directed=directed, weights=weights, method=clustering,
-            combine_weights=combine_weights)
+            rand, directed=directed, weights=weights, method=clustering)
 
         c_g = global_clustering(
-            g, directed=directed, weights=weights, method=clustering,
-            combine_weights=combine_weights)
+            g, directed=directed, weights=weights, method=clustering)
     else:
         c_latt = np.average(local_clustering(
-            latt, directed=directed, weights=weights, method=clustering,
-            combine_weights=combine_weights))
+            latt, directed=directed, weights=weights, method=clustering))
 
         c_rand = np.average(local_clustering(
-            rand, directed=directed, weights=weights, method=clustering,
-            combine_weights=combine_weights))
+            rand, directed=directed, weights=weights, method=clustering))
 
         c_g = np.average(local_clustering(
-            g, directed=directed, weights=weights, method=clustering,
-            combine_weights=combine_weights))
+            g, directed=directed, weights=weights, method=clustering))
 
     # compute deltas
-    delta_l = (l_g - l_rand) / (l_latt - l_rand) if l_latt != l_rand else 1.
+    delta_l = (l_g - l_rand) / (l_latt - l_rand) if l_latt != l_rand \
+              else float(l_g > l_rand)
     delta_c = (c_latt - c_g) / (c_latt - c_rand)
 
     if return_deviations:
@@ -548,7 +549,7 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     raise NotImplementedError(_backend_required)
 
 
-def average_path_length(g, sources=None, targets=None, directed=True,
+def average_path_length(g, sources=None, targets=None, directed=None,
                         weights=None, unconnected=False):
     r'''
     Returns the average shortest path length between `sources` and `targets`.

@@ -37,7 +37,7 @@ __all__ = [
 
 
 def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
-                   edge_attr_constraints=None,  weight=None,
+                   edge_attr_constraints=None, weight=None,
                    weight_constraint="distance", distance_sort="inverse"):
     r'''
     Build a (generally irregular) lattice by rewiring the edges of a graph.

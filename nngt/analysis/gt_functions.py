@@ -89,7 +89,7 @@ def local_clustering_binary_undirected(g, nodes=None):
     u = GraphView(u, efilt=label_parallel_edges(u).fa == 0)
 
     # compute clustering
-    lc = gtc.local_clustering(u, weight=None, undirected=True).a
+    lc = gtc.local_clustering(u, weight=None, undirected=None).a
 
     if nodes is None:
         return lc
@@ -303,7 +303,8 @@ def connected_components(g, ctype=None):
     ----------
     .. [gt-connected-components] :gtdoc:`topology.label_components`
     '''
-    ctype = "scc" if ctype is None else ctype
+    if ctype is None:
+        ctype = "scc" if g.is_directed() else "wcc"
 
     if ctype not in ("scc", "wcc"):
         raise ValueError("`ctype` must be either 'scc' or 'wcc'.")
@@ -316,7 +317,8 @@ def connected_components(g, ctype=None):
     return cc.a, hist
 
 
-def shortest_path(g, source, target, directed=True, weights=None):
+def shortest_path(g, source, target, directed=None, weights=None,
+                  combine_weights="mean"):
     '''
     Returns a shortest path between `source`and `target`.
     The algorithms returns an empty list if there is no path between the nodes.
@@ -329,12 +331,24 @@ def shortest_path(g, source, target, directed=True, weights=None):
         Node from which the path starts.
     target : int
         Node where the path ends.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -350,16 +364,18 @@ def shortest_path(g, source, target, directed=True, weights=None):
         return [source]
 
     # non-trivial cases
-    w = _get_gt_weights(g, weights)
+    g, graph, w = _get_gt_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_gt_graph(g, directed, w)
+    w = _get_gt_weights(g, w)
 
     path, _ = gtt.shortest_path(graph, source, target, weights=w)
 
     return [int(v) for v in path]
 
 
-def all_shortest_paths(g, source, target, directed=True, weights=None):
+def all_shortest_paths(g, source, target, directed=None, weights=None,
+                       combine_weights="mean"):
     '''
     Yields all shortest paths from `source` to `target`.
     The algorithms returns an empty generator if there is no path between the
@@ -373,12 +389,24 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
         Node from which the paths starts.
     target : int, optional (default: all nodes)
         Node where the paths ends.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -394,17 +422,18 @@ def all_shortest_paths(g, source, target, directed=True, weights=None):
         return ([source] for _ in range(1))
 
     # not trivial cases
-    w = _get_gt_weights(g, weights)
+    g, graph, w = _get_gt_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_gt_graph(g, directed, w)
+    w = _get_gt_weights(g, w)
 
     all_paths = gtt.all_shortest_paths(graph, source, target, weights=w)
 
-    return ([int(v) for v in path] for path in all_paths) 
+    return ([int(v) for v in path] for path in all_paths)
 
 
-def shortest_distance(g, sources=None, targets=None, directed=True,
-                      weights=None):
+def shortest_distance(g, sources=None, targets=None, directed=None,
+                      weights=None, combine_weights="mean"):
     '''
     Returns the length of the shortest paths between `sources`and `targets`.
     The algorithms return infinity if there are no paths between nodes.
@@ -417,12 +446,24 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
         Nodes from which the paths must be computed.
     targets : list of nodes, optional (default: all)
         Nodes to which the paths must be computed.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
         Whether to use weighted edges to compute the distances. By default,
         all edges are considered to have distance 1.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     Returns
     -------
@@ -438,9 +479,10 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     '''
     num_nodes = g.node_nb()
 
-    w = _get_gt_weights(g, weights)
+    g, graph, w = _get_gt_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_gt_graph(g, directed, w)
+    w = _get_gt_weights(g, w)
 
     dist_emap = None
     tgt_vtx   = None
@@ -525,8 +567,9 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     return mat_dist
 
 
-def average_path_length(g, sources=None, targets=None, directed=True,
-                        weights=None, unconnected=False):
+def average_path_length(g, sources=None, targets=None, directed=None,
+                        weights=None, combine_weights="mean",
+                        unconnected=False):
     r'''
     Returns the average shortest path length between `sources` and `targets`.
     The algorithms raises an error if all nodes are not connected unless
@@ -552,7 +595,7 @@ def average_path_length(g, sources=None, targets=None, directed=True,
         Nodes from which the paths must be computed.
     targets : list of nodes, optional (default: all)
         Nodes to which the paths must be computed.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether the edges should be considered as directed or not
         (automatically set to False if `g` is undirected).
     weights : str or array, optional (default: binary)
@@ -561,11 +604,25 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     unconnected : bool, optional (default: False)
         If set to true, ignores unconnected nodes and returns the average path
         length of the existing paths.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
 
     References
     ----------
     .. [gt-sd] :gtdoc:`topology.shortest_distance`
     '''
+    directed = g.is_directed() if directed is None else directed
+
     mat_dist = shortest_distance(g, sources=sources, targets=targets,
                                  directed=directed, weights=weights)
 
@@ -585,9 +642,13 @@ def average_path_length(g, sources=None, targets=None, directed=True,
     return np.sum(mat_dist) / num_paths
 
 
-def diameter(g, directed=True, weights=None, is_connected=False):
+def diameter(g, directed=None, weights=None, combine_weights="mean",
+             is_connected=False):
     '''
     Returns the diameter of the graph.
+
+    .. versionchanged:: 2.3
+        Added `combine_weights` argument.
 
     .. versionchanged:: 2.0
         Added `directed` and `is_connected` arguments.
@@ -600,7 +661,7 @@ def diameter(g, directed=True, weights=None, is_connected=False):
     ----------
     g : :class:`~nngt.Graph`
         Graph to analyze.
-    directed : bool, optional (default: True)
+    directed : bool, optional (default: ``g.is_directed()``)
         Whether to compute the directed diameter if the graph is directed.
         If False, then the graph is treated as undirected. The option switches
         to False automatically if `g` is undirected.
@@ -608,6 +669,18 @@ def diameter(g, directed=True, weights=None, is_connected=False):
         Whether edge weights should be considered; if ``None`` or ``False``
         then use binary edges; if ``True``, uses the 'weight' edge attribute,
         otherwise uses any valid edge attribute required.
+    combine_weights : str, optional (default: 'mean')
+        How to combine the weights of reciprocal edges if the graph is directed
+        but `directed` is set to False. It can be:
+
+        * "sum": the sum of the edge attribute values will be used for the new
+          edge.
+        * "mean": the mean of the edge attribute values will be used for the
+          new edge.
+        * "min": the minimum of the edge attribute values will be used for the
+          new edge.
+        * "max": the maximum of the edge attribute values will be used for the
+          new edge.
     is_connected : bool, optional (default: False)
         If False, check whether the graph is connected or not and return
         infinite diameter if graph is unconnected. If True, the graph is
@@ -621,9 +694,10 @@ def diameter(g, directed=True, weights=None, is_connected=False):
     ----------
     .. [gt-diameter] :gtdoc:`topology.pseudo_diameter`
     '''
-    ww = _get_gt_weights(g, weights)
+    g, graph, w = _get_gt_graph(g, directed, weights, combine_weights,
+                             return_all=True)
 
-    graph = _get_gt_graph(g, directed, ww)
+    w = _get_gt_weights(g, w)
 
     # first check whether the graph is fully connected
     ctype = "scc" if directed else "wcc"
@@ -634,7 +708,7 @@ def diameter(g, directed=True, weights=None, is_connected=False):
         if len(hist) > 1:
             return np.inf
 
-    return gtt.pseudo_diameter(graph, weights=ww)[0]
+    return gtt.pseudo_diameter(graph, weights=w)[0]
 
 
 def adj_mat(g, weights=None, mformat="csr"):

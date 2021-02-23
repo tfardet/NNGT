@@ -88,6 +88,12 @@ The docs
    gallery/gallery
 
 .. toctree::
+   :maxdepth: 2
+   :caption: Contributing
+
+   developer/contributing
+
+.. toctree::
    :glob:
    :maxdepth: 1
    :caption: Modules

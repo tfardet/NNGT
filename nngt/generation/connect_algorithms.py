@@ -669,7 +669,7 @@ def _circular_directed_recip(node_ids, coord_nb, reciprocity,
             targets[-num_recip:] = sources[chosen]
         elif reciprocity_choice == "closest":
             # closest connections are the first ones, so if
-            # num_recip = k*num_nodes + l then we reverse all first k*num_nodes
+            # num_recip = k*nodes + l then we reverse all first k*nodes
             # then we randomly chose the remaining l
             remainder = num_recip % nodes
             rounds    = num_recip - remainder
