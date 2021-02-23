@@ -785,13 +785,13 @@ def test_local_closure():
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        test_binary_undirected_clustering()
-        test_weighted_undirected_clustering()
-        test_weighted_directed_clustering()
-        test_reciprocity()
-        test_iedges()
+        # ~ test_binary_undirected_clustering()
+        # ~ test_weighted_undirected_clustering()
+        # ~ test_weighted_directed_clustering()
+        # ~ test_reciprocity()
+        # ~ test_iedges()
         test_swp()
-        test_partial_directed_clustering()
-        test_clustering_parameters()
-        test_global_clustering()
-        test_local_closure()
+        # ~ test_partial_directed_clustering()
+        # ~ test_clustering_parameters()
+        # ~ test_global_clustering()
+        # ~ test_local_closure()
