@@ -86,7 +86,7 @@ import logging as _logging
 import numpy as _np
 
 
-__version__ = '2.2.1'
+__version__ = '2.3.0'
 
 
 # ----------------------- #
