@@ -21,6 +21,8 @@
 
 """ Tools for graph analysis using the graph libraries """
 
+import logging
+
 import numpy as np
 import scipy.sparse.linalg as spl
 
@@ -28,10 +30,14 @@ import nngt
 import nngt.generation as ng
 
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
+from nngt.lib.logger import _log_message
 from . import clustering
 from .activity_analysis import get_b2, get_firing_rate
 from .bayesian_blocks import bayesian_blocks
 from .clustering import *
+
+
+logger = logging.getLogger(__name__)
 
 
 # implemented function; import from proper backend is done at the bottom
@@ -426,6 +432,9 @@ def small_world_propensity(g, directed=None, use_global_clustering=False,
     delta_l = (l_g - l_rand) / (l_latt - l_rand) if l_latt != l_rand \
               else float(l_g > l_rand)
     delta_c = (c_latt - c_g) / (c_latt - c_rand)
+
+    if np.isinf(l_rand):
+        _log_message(logger, "WARNING", 'Randomized graph was unconnected.')
 
     if return_deviations:
         return 1 - np.sqrt(

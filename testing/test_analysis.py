@@ -644,7 +644,7 @@ def test_iedges():
 def test_swp():
     ''' Check small-world propensity '''
     num_nodes = 500
-    k_latt = 16
+    k_latt = 20
 
     # SWP for different extreme p values (0, 1)
     expected = 1 - 1/np.sqrt(2)
@@ -686,7 +686,7 @@ def test_swp():
     # algorithm
     for directed in (False, True):
         g = ng.newman_watts(10, 0.03, nodes=num_nodes, directed=directed)
-        na.small_world_propensity(g, use_diameter=True, weights=use_weights)
+        na.small_world_propensity(g, use_diameter=True)
 
     # check that undirected option works
     g = ng.newman_watts(10, 0.03, nodes=num_nodes, weighted=False)
@@ -695,7 +695,8 @@ def test_swp():
     swp_g = na.small_world_propensity(g, use_diameter=True, directed=False)
     swp_u = na.small_world_propensity(u, use_diameter=True)
 
-    if not (np.isnan(swp_g) and np.isnan(swp_u)):
+    if not (np.isnan(swp_g) or np.isnan(swp_u)):
+        # check is necessary as the rewired graph might be unconnected
         assert np.isclose(swp_g, swp_u, 0.01)
 
 
@@ -785,13 +786,13 @@ def test_local_closure():
 
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
-        # ~ test_binary_undirected_clustering()
-        # ~ test_weighted_undirected_clustering()
-        # ~ test_weighted_directed_clustering()
-        # ~ test_reciprocity()
-        # ~ test_iedges()
+        test_binary_undirected_clustering()
+        test_weighted_undirected_clustering()
+        test_weighted_directed_clustering()
+        test_reciprocity()
+        test_iedges()
         test_swp()
-        # ~ test_partial_directed_clustering()
-        # ~ test_clustering_parameters()
-        # ~ test_global_clustering()
-        # ~ test_local_closure()
+        test_partial_directed_clustering()
+        test_clustering_parameters()
+        test_global_clustering()
+        test_local_closure()
