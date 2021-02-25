@@ -10,7 +10,7 @@ from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
 
 
-SOURCE_URI = 'https://github.com/Silmathoron/NNGT/tree/master/{}'
+SOURCE_URI = 'https://git.sr.ht/~tfardet/NNGT/tree/main/item/{}'
 
 
 def source_role(typ, rawtext, text, lineno, inliner, options=None, content=None):

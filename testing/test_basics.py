@@ -736,14 +736,102 @@ def test_delete():
     g.delete_edges(edges[:2])
 
     # test copy after edge deletion
-    print("---")
-    print(g.node_nb())
-    print(g.edge_nb(), [len(attr) for attr in g.edge_attributes.values()])
     h = g.copy()
 
     assert np.all(np.isclose(h.get_weights(), g.get_weights()))
     assert np.all(np.isclose(h.edge_attributes["distance"],
                              g.edge_attributes["distance"]))
+
+
+def test_to_undirected():
+    mat = np.array([
+        [0,   2., 0.5, 0],
+        [0,   0,   1., 0],
+        [1.5, 0,    0, 1],
+        [0,   1,  0.5, 0]
+    ])
+
+    g = nngt.Graph.from_matrix(mat)
+
+    g.new_node_attribute("test", "int", [10, 20, 30, 40])
+    g.new_node_attribute("alph", "string", ["d", "c", "b", "a"])
+
+    g.new_edge_attribute("rnd", "int", [2, 6, 8, 4, 5, 3, 9])
+    g.new_edge_attribute("alph", "string",
+                         ["a", "e", "i", "o", "u", "y", "aa"])
+
+    # undirected sum
+    u = g.to_undirected()
+
+    assert np.array_equal(u.node_attributes["test"], g.node_attributes["test"])
+    assert list(u.node_attributes["alph"]) == list(g.node_attributes["alph"])
+
+    assert set(u.edge_attributes) == {"weight", "rnd"}
+
+    assert np.all(np.isclose(
+        mat + mat.T, u.adjacency_matrix(weights="weight").todense()
+    ))
+
+    assert np.array_equal(u.edge_attributes["rnd"], [2, 10, 8, 3, 14])
+
+    # undirected max
+    u = g.to_undirected("max")
+
+    m = np.maximum(mat, mat.T)
+
+    assert np.all(np.isclose(
+        m, u.adjacency_matrix(weights="weight").todense()
+    ))
+
+    assert np.array_equal(u.edge_attributes["rnd"], [2, 6, 8, 3, 9])
+
+    # undirected min
+    u = g.to_undirected("min")
+
+    nnz = np.where(np.multiply(mat, mat.T))
+    m   = mat + mat.T
+    m[nnz] = np.minimum(mat[nnz], mat.T[nnz])
+
+    assert np.all(np.isclose(
+        m, u.adjacency_matrix(weights="weight").todense()
+    ))
+
+    assert np.array_equal(u.edge_attributes["rnd"], [2, 4, 8, 3, 5])
+
+    # undirected mean
+    u = g.to_undirected("mean")
+
+    nnz = np.where(np.multiply(mat, mat.T))
+    m   = mat + mat.T
+    m[nnz] = 0.5*(mat[nnz] + mat.T[nnz])
+
+    assert np.all(np.isclose(
+        m, u.adjacency_matrix(weights="weight").todense()
+    ))
+
+    assert np.array_equal(u.edge_attributes["rnd"], [2, 5, 8, 3, 7])
+
+    # undirected mean/max
+    u = g.to_undirected({"weight": "mean", "rnd": "max"})
+
+    assert np.all(np.isclose(
+        m, u.adjacency_matrix(weights="weight").todense()
+    ))
+
+    assert np.array_equal(u.edge_attributes["rnd"], [2, 6, 8, 3, 9])
+
+    # for an unweighted graph
+    g = nngt.Graph.from_matrix(mat, weighted=False)
+    u = g.to_undirected()
+
+    assert not u.edge_attributes
+
+    m = mat + mat.T
+    nnz = np.where(m)
+    m[nnz] = 1
+
+    assert np.array_equal(u.adjacency_matrix().todense(), m)
+
 
 
 # ---------- #
@@ -758,6 +846,7 @@ if __name__ == "__main__":
     test_graph_copy()
     test_degrees_neighbors()
     test_get_edges()
+    test_to_undirected()
 
     if not nngt.get_config('mpi'):
         test_node_creation()

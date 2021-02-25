@@ -122,7 +122,7 @@ def test_random_rewire():
 
 @pytest.mark.mpi_skip
 def test_complete_lattice_rewire():
-    ''' Check lattice rewiring method.'''
+    ''' Check lattice rewiring method. '''
     num_nodes = 10
     degree = 4
 
@@ -155,14 +155,26 @@ def test_complete_lattice_rewire():
 
     # check the order of the first weights
     srt = np.sort(l1.get_weights())[::-1]
+    oth = -srt.astype(int)
+
+    all_other = True
 
     for i in range(num_nodes - 1):
-        assert l1.get_edge_attributes((i, i+1), name='weight') == srt[2*i]
-        assert l1.get_edge_attributes((i+1, i), name='weight') == srt[2*i + 1]
+        e = (i,  i + 1)
+        assert l1.get_edge_attributes(e, name='weight') == srt[2*i]
+        all_other *= l1.get_edge_attributes(e, name='my-edge-attr') == oth[2*i]
+        
+        e = (i + 1, i)
+        assert l1.get_edge_attributes(e, name='weight') == srt[2*i + 1]
+        all_other *= (l1.get_edge_attributes(e, name='my-edge-attr')
+                      == oth[2*i + 1])
+
+    assert not all_other
 
 
 @pytest.mark.mpi_skip
 def test_incomplete_lattice_rewire():
+    ''' Lattice rewire when node degrees are odd. '''
     num_nodes = 10
     degree = 7
 
@@ -199,10 +211,50 @@ def test_incomplete_lattice_rewire():
 
     # check the order of the first weights
     srt = np.sort(ww)
+    oth = -srt.astype(int)
 
     for i in range(num_nodes - 1):
-        assert l2.get_edge_attributes((i, i+1), name='weight') == srt[2*i]
-        assert l2.get_edge_attributes((i+1, i), name='weight') == srt[2*i + 1]
+        e = (i,  i + 1)
+        assert l2.get_edge_attributes(e, name='weight') == srt[2*i]
+        assert l2.get_edge_attributes(e, name='my-edge-attr') == oth[2*i]
+        
+        e = (i + 1, i)
+        assert l2.get_edge_attributes(e, name='weight') == srt[2*i + 1]
+        assert l2.get_edge_attributes(e, name='my-edge-attr') == oth[2*i + 1]
+
+
+@pytest.mark.mpi_skip
+def test_reciprocity_lattice_rewire():
+    ''' Lattice rewire with variable reciprocity. '''
+    num_nodes = 1000
+    degree = 7
+
+    g = ng.fixed_degree(degree, "total", nodes=num_nodes)
+
+    # edge attributes
+    ww = nngt._rng.uniform(1, 5, size=g.edge_nb())
+    g.set_weights(ww)
+    g.new_edge_attribute("my-edge-attr", "int", values=-ww.astype(int))
+
+    # rewire
+    reciprocity = 0.7
+
+    l = ng.lattice_rewire(g, weight="weight", target_reciprocity=reciprocity,
+                          edge_attr_constraints="together")
+
+    assert np.isclose(na.reciprocity(l), reciprocity)
+
+    srt = np.sort(ww)[::-1]
+    oth = -srt.astype(int)
+
+    for i in range(num_nodes - 1):
+        e = (i,  i + 1)
+        assert l.get_edge_attributes(e, name='weight') == srt[2*i]
+        assert l.get_edge_attributes(e, name='my-edge-attr') == oth[2*i]
+        
+        e = (i + 1, i)
+        assert l.get_edge_attributes(e, name='weight') == srt[2*i + 1]
+        assert l.get_edge_attributes(e, name='my-edge-attr') == oth[2*i + 1]
 
 
 if __name__ == "__main__":
@@ -210,3 +262,4 @@ if __name__ == "__main__":
         test_random_rewire()
         test_complete_lattice_rewire()
         test_incomplete_lattice_rewire()
+        test_reciprocity_lattice_rewire()

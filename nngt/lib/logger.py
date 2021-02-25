@@ -32,8 +32,10 @@ from .test_functions import mpi_checker
 
 
 # ignore scipy.sparse efficiency warnings
-
 warnings.filterwarnings("ignore", category=ssp.SparseEfficiencyWarning)
+
+# ignore igraph unconnected network warnings
+warnings.filterwarnings("ignore", message="Couldn't reach some vertices at")
 
 # check that log folder exists, otherwise create it
 

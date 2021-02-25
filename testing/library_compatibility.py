@@ -582,15 +582,10 @@ def test_weighted_shortest_distance():
 
         assert np.array_equal(mat_dist, directed_dist)
 
-        # check undirected from directed raises an error
-        error_raised = False
+        # check undirected from directed gives back undirected results
+        mat_dist = na.shortest_distance(g, directed=False, weights=weights)
 
-        try:
-            na.shortest_distance(g, directed=False, weights=weights)
-        except:
-            error_raised = True
-
-        assert error_raised
+        assert np.array_equal(mat_dist, undirected_dist)
 
         # single source
         g.set_weights(weights)
@@ -739,6 +734,35 @@ def test_weighted_shortest_paths():
             count += 1
 
         assert count == 1
+
+        # UNDIRECTED FROM DIRECTED
+        weights = [5, 0.1, 3., 0.5, 1, 3.5]
+        # reset weights
+        g.set_weights(weights)
+
+        assert na.shortest_path(g, 0, 0, False, weights='weight') == [0]
+        assert na.shortest_path(
+            g, 0, 1, False, weights='weight') == [0, 3, 2, 1]
+
+        sp = na.shortest_path(g, 1, 3, False, weights=weights)
+        assert sp in ([1, 4, 3], [1, 2, 3])
+
+        count = 0
+
+        for p in na.all_shortest_paths(g, 1, 3, False, weights='weight'):
+            assert p in ([1, 4, 3], [1, 2, 3])
+            count += 1
+
+        assert count == 2
+
+        count = 0
+
+        for p in na.all_shortest_paths(g, 1, 1, False, weights='weight'):
+            assert p == [1]
+            count += 1
+
+        assert count == 1
+
 
 
 def test_subgraph_centrality():

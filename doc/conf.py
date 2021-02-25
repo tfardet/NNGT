@@ -30,7 +30,6 @@ import sphinx_bootstrap_theme
 
 
 # Paths
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 current_directory = os.path.abspath('.')
 sys.path.append(current_directory)
 sys.path.append(current_directory + "/extensions")  # custom extensions folder
@@ -52,7 +51,9 @@ os.symlink(src, tgt)
 If on rtd, the graph libraries are not available so they need to be mocked
 '''
 
-if on_rtd:
+try:
+    import nest
+except:
     import mock
     mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
 
@@ -102,8 +103,13 @@ if on_rtd:
 # import nngt
 import nngt
 
-# import simulation explicitely to avoid import conflict with lazy load
+# import simulation & geography explicitely to avoid import conflict with
+# lazy load
 import nngt.simulation
+try:
+    import nngt.geography
+except:
+    pass
 
 from autosum import gen_autosum
 
@@ -300,7 +306,8 @@ html_theme_options = {
     'navbar_links': [
         ("Modules", "py-modindex"),
         ("Index", "genindex"),
-        ("GitHub", "https://github.com/Silmathoron/NNGT", True),
+        ("SourceHut", "https://git.sr.ht/~tfardet/NNGT", True),
+        ("GitHub", "https://github.com/tfardet/NNGT", True),
     ],
 
     # Render the next and previous page links in navbar. (Default: true)

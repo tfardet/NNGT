@@ -185,6 +185,76 @@ def _post_del_update(graph, nodes, remapping=None):
             m._desired_size = len(m._ids)
 
 
+def _get_matrices(g, directed, weights, weighted, combine_weights,
+                  normed=False, exponent=None):
+    '''
+    Return the relevant matrices:
+    * W, Wu if weighted
+    * A, Au otherwise
+    '''
+    if weighted:
+        # weighted undirected
+        W  = g.adjacency_matrix(weights=weights)
+
+        if normed:
+            W /= W.max()
+
+        # remove potential self-loops
+        W.setdiag(0.)
+
+        if exponent is not None:
+            W = W.power(exponent)
+
+        Wu = W
+
+        if g.is_directed():
+            if directed:
+                Wu  = W + W.T
+            elif not directed:
+                if combine_weights == "sum":
+                    Wu = W + W.T
+
+                    if normed:
+                        Wu /= Wu.max()
+                elif combine_weights == "mean":
+                    A = g.adjacency_matrix().astype(float)
+                    A += A.T
+
+                    Wu = (W + W.T).multiply(A.power(-1))
+                elif combine_weights == "max":
+                    Wu = W.maximum(W.T)
+                elif combine_weights == "min":
+                    A = g.adjacency_matrix()
+
+                    s = A.multiply(A.T)
+                    a = (A - s).maximum(0)
+
+                    wa = W.multiply(a)
+
+                    Wu = wa + wa.T + W.multiply(s).minimum(W.T.multiply(s))
+                else:
+                    raise ValueError("Unknown `combine_weights`: '{}'.".format(
+                                     combine_weights))
+
+        return W, Wu
+
+    # binary undirected
+    A = g.adjacency_matrix()
+
+    # remove potential self-loops
+    A.setdiag(0.)
+
+    Au = A
+
+    if g.is_directed():
+        Au = Au + Au.T
+
+        if not directed:
+            Au.data = np.ones(len(Au.data))
+
+    return A, Au
+
+
 # ------------------ #
 # Graph-tool helpers #
 # ------------------ #
@@ -207,19 +277,36 @@ def _get_gt_weights(g, weights):
     raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
 
 
-def _get_gt_graph(g, directed, weights):
+def _get_gt_graph(g, directed, weights, combine_weights=None,
+                  return_all=False):
     ''' Returns the correct graph(view) given the options '''
     import graph_tool as gt
     from graph_tool.stats import label_parallel_edges
 
+    directed = g.is_directed() if directed is None else directed
+
+    weights = "weight" if weights is True else weights
+    weights = None if weights is False else weights
+
     if not directed and g.is_directed():
         if weights is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
+            u, weights = _to_undirected(g, weights, combine_weights)
+
+            if return_all:
+                return u, u.graph, u.edge_attributes[weights]
+
+            return u.graph
 
         graph = gt.GraphView(g.graph, directed=False)
+        graph = gt.GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
 
-        return gt.GraphView(graph, efilt=label_parallel_edges(graph).fa == 0)
+        if return_all:
+            return g, graph, None
+
+        return graph
+
+    if return_all:
+        return g, g.graph, weights
 
     return g.graph
 
@@ -245,14 +332,30 @@ def _get_ig_weights(g, weights):
     raise ValueError("Unknown edge attribute '" + str(weights) + "'.")
 
 
-def _get_ig_graph(g, directed, weights):
+def _get_ig_graph(g, directed, weights, combine_weights=None,
+                  return_all=False):
     ''' Returns the correct graph(view) given the options '''
+    directed = g.is_directed() if directed is None else directed
+
+    weights = "weight" if weights is True else weights
+    weights = None if weights is False else weights
+
     if not directed and g.is_directed():
         if weights is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
+            u, weights = _to_undirected(g, weights, combine_weights)
+
+            if return_all:
+                return u, u.graph, u.edge_attributes[weights]
+
+            return u.graph
+
+        if return_all:
+            return g, g.graph.as_undirected(), None
 
         return g.graph.as_undirected()
+
+    if return_all:
+        return g, g.graph, weights
 
     return g.graph
 
@@ -283,13 +386,39 @@ def _get_nx_weights(g, weights):
     raise ValueError("Unknown attribute '{}' for `weights`.".format(weights))
 
 
-def _get_nx_graph(g, directed, weights):
+def _get_nx_graph(g, directed, weights, combine_weights=None,
+                  return_all=False):
     ''' Returns the correct graph(view) given the options '''
+    directed = g.is_directed() if directed is None else directed
+
+    weights = "weight" if weights is True else weights
+    weights = None if weights is False else weights
+
     if not directed and g.is_directed():
         if weights is not None:
-            raise ValueError(
-                "Cannot make graph undirected if `weights` are used.")
+            u, weights = _to_undirected(g, weights, combine_weights)
+
+            if return_all:
+                return u, u.graph, u.edge_attributes[weights]
+
+            return u.graph
+
+        if return_all:
+            return g, g.graph.to_undirected(as_view=True), None
 
         return g.graph.to_undirected(as_view=True)
 
+    if return_all:
+        return g, g.graph, weights
+
     return g.graph
+
+
+def _to_undirected(g, weights, combine_weights):
+    if nonstring_container(weights):
+        g = g.copy()
+        g.new_edge_attribute("tmp", "double", values=weights)
+
+        weights = "tmp"
+
+    return g.to_undirected(combine_weights), weights

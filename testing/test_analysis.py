@@ -644,7 +644,7 @@ def test_iedges():
 def test_swp():
     ''' Check small-world propensity '''
     num_nodes = 500
-    k_latt = 16
+    k_latt = 20
 
     # SWP for different extreme p values (0, 1)
     expected = 1 - 1/np.sqrt(2)
@@ -655,19 +655,22 @@ def test_swp():
         for w in (None, weights):
             for p in (0, 1):
                 use_weights = None if w is None else "weight"
+
+                if use_weights and not p:
+                    # for weighted SWP, it only works for the ER graph limit,
+                    # not for the lattice limit since the weights are uniform
+                    continue
+
                 g = ng.watts_strogatz(k_latt, p, nodes=num_nodes,
                                       directed=directed, weights=w)
 
+                swp = na.small_world_propensity(
+                    g, use_diameter=True, weights=use_weights)
+
                 if w is None:
-                    assert np.isclose(
-                        na.small_world_propensity(g, use_diameter=True,
-                                                  weights=use_weights),
-                        expected, atol=0.01)
+                    assert np.isclose(swp, expected, atol=0.01)
                 else:
-                    assert np.isclose(
-                        na.small_world_propensity(g, use_diameter=True,
-                                                  weights=use_weights),
-                        expected, atol=0.02)
+                    assert np.isclose(swp, expected, atol=0.02)
 
     # check options for binary only
     g = ng.watts_strogatz(k_latt, 0, nodes=num_nodes, directed=True)
@@ -683,7 +686,18 @@ def test_swp():
     # algorithm
     for directed in (False, True):
         g = ng.newman_watts(10, 0.03, nodes=num_nodes, directed=directed)
-        na.small_world_propensity(g, use_diameter=True, weights=use_weights)
+        na.small_world_propensity(g, use_diameter=True)
+
+    # check that undirected option works
+    g = ng.newman_watts(10, 0.03, nodes=num_nodes, weighted=False)
+    u = g.to_undirected()
+
+    swp_g = na.small_world_propensity(g, use_diameter=True, directed=False)
+    swp_u = na.small_world_propensity(u, use_diameter=True)
+
+    if not (np.isnan(swp_g) or np.isnan(swp_u)):
+        # check is necessary as the rewired graph might be unconnected
+        assert np.isclose(swp_g, swp_u, 0.01)
 
 
 @pytest.mark.mpi_skip

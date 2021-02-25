@@ -228,7 +228,7 @@ def connect_neural_types(network, source_type, target_type, graph_model,
 
 
 @deprecated("1.3.1", reason="the library is moving to more generic names",
-            alternative="connect_groups", removal="a later version")
+            alternative="connect_groups", removal="3.0")
 def connect_neural_groups(*args, **kwargs):
     ''' Deprecatd alias of :func:`connect_groups`. '''
     return connect_groups(*args, **kwargs)
