@@ -318,9 +318,13 @@ class _IGraph(GraphInterface):
         2-tuple.
         '''
         g = self._graph
-        return np.array([(e.source, e.target) for e in g.es], dtype=int)
+        return np.array([e.tuple for e in g.es], dtype=int)
 
     def _get_edges(self, source_node=None, target_node=None):
+        '''
+        Called by Graph.get_edges if either source_node or target_node is not
+        None and they are not both integers.
+        '''
         g = self._graph
 
         edges = None
@@ -331,9 +335,20 @@ class _IGraph(GraphInterface):
             else:
                 edges = g.es.select(_target_in=target_node)
         elif is_integer(source_node):
-            edges = g.es.select(_source_eq=source_node)
+            if target_node is None:
+                edges = g.es.select(_source_eq=source_node)
+            else:
+                edges = g.es.select(_source_eq=source_node,
+                                    _target_in=target_node)
         else:
-            edges = g.es.select(_source_in=source_node)
+            if target_node is None:
+                edges = g.es.select(_source_in=source_node)
+            elif is_integer(target_node):
+                edges = g.es.select(_source_in=source_node,
+                                    _target_eq=target_node)
+            else:
+                edges = g.es.select(_source_in=source_node,
+                                    _target_in=target_node)
 
         return [e.tuple for e in edges]
 

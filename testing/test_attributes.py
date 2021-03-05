@@ -216,12 +216,12 @@ class TestAttributes(TestBasis):
 
         graph.new_edge_attribute("elist", value_type="object", val=[])
 
-        nodes = [i for i in range(8, 49)]
+        nodes = list(range(8, 49))
         edges = graph.get_edges(source_node=nodes, target_node=nodes)
         graph.set_edge_attribute("elist", val=[1], edges=edges)
 
         # update a fraction of the previously updated nodes
-        nodes  = [i for i in range(0, 41)]
+        nodes  = list(range(0, 41))
         edges2 = graph.get_edges(source_node=nodes, target_node=nodes)
 
         # to update the values, we need to get them to update the lists

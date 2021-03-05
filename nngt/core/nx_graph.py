@@ -392,22 +392,43 @@ class _NxGraph(GraphInterface):
         return edges
 
     def _get_edges(self, source_node=None, target_node=None):
+        '''
+        Called by graph.get_edges if either source_node or target_node is not
+        None and they are not both integers.
+        '''
+        nx = nngt._config["library"]
+
         g = self._graph
+
+        target_node = \
+            [target_node] if is_integer(target_node) else target_node
 
         if source_node is not None:
             source_node = \
                 [source_node] if is_integer(source_node) else source_node
 
-            return list(
-                g.out_edges(source_node) if g.is_directed()
-                else g.edges(source_node))
+            if target_node is None:
 
-        target_node = \
-            [target_node] if is_integer(target_node) else target_node
+                if g.is_directed():
+                    return list(g.out_edges(source_node))
 
-        return list(
-            g.in_edges(target_node) if g.is_directed()
-            else g.edges(target_node))
+                return [
+                    e if e[0] <= e[1] else e[::-1] for e in g.edges(source_node)
+                ]
+
+            res_iter = nx.edge_boundary(g, source_node, target_node)
+
+            if g.is_directed():
+                return list(res_iter)
+
+            return [e if e[0] <= e[1] else e[::-1] for e in res_iter]
+
+        if g.is_directed():
+            return list(g.in_edges(target_node))
+
+        return [
+            e if e[0] <= e[1] else e[::-1] for e in g.edges(target_node)
+        ]
 
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):

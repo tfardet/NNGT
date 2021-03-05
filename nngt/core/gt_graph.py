@@ -479,34 +479,74 @@ class _GtGraph(GraphInterface):
         return edges[order, :2]
 
     def _get_edges(self, source_node=None, target_node=None):
+        '''
+        Called by Graph.get_edges if either source_node or target_node is not
+        None and they are not both integers.
+        '''
         g = self._graph
 
         edges = set()
 
         if source_node is not None:
-            if is_integer(source_node):
-                return g.get_out_edges(source_node)
+            if target_node is None:
+                if is_integer(source_node):
+                    if g.is_directed():
+                        return [
+                            tuple(e) for e in g.iter_out_edges(source_node)
+                        ]
 
-            for s in source_node:
-                if g.is_directed():
-                    edges.update((tuple(e) for e in g.get_out_edges(s)))
-                else:
-                    for e in g.get_all_edges(s):
-                        if tuple(e[::-1]) not in edges:
-                            edges.add(tuple(e))
+                    return [
+                        tuple(e) if e[0] < e[1] else tuple(e[::-1])
+                        for e in g.iter_all_edges(source_node)
+                    ]
+
+                for s in source_node:
+                    if g.is_directed():
+                        edges.update((tuple(e) for e in g.iter_out_edges(s)))
+                    else:
+                        for e in g.iter_all_edges(s):
+                            edges.add(
+                                tuple(e) if e[0] <= e[1] else tuple(e[::-1]))
+            else:
+                target_node = {target_node} if is_integer(target_node) \
+                              else set(target_node)
+
+                if is_integer(source_node):
+                    if g.is_directed():
+                        return [tuple(e) for e in g.get_out_edges(source_node)
+                                if e[1] in target_node]
+
+                    return [tuple(e) for e in g.get_all_edges(source_node)
+                            if e[0] in target_node or e[1] in target_node]
+
+                for s in source_node:
+                    if g.is_directed():
+                        edges.update((tuple(e) for e in g.iter_out_edges(s)
+                                      if e[1] in target_node))
+                    else:
+                        for e in g.iter_all_edges(s):
+                            e = tuple(e) if e[0] <= e[1] else tuple(e[::-1])
+
+                            if e[0] in target_node or e[1] in target_node:
+                                edges.add(e)
 
             return list(edges)
 
         if is_integer(target_node):
-            return g.get_in_edges(target_node)
+            if g.is_directed():
+                return [tuple(e) for e in g.iter_in_edges(target_node)]
+
+            return [
+                tuple(e) if e[0] <= e[1] else tuple(e[::-1])
+                for e in g.iter_all_edges(target_node)
+            ]
 
         for t in target_node:
             if g.is_directed():
-                edges.update((tuple(e) for e in g.get_in_edges(t)))
+                edges.update((tuple(e) for e in g.iter_in_edges(t)))
             else:
-                for e in g.get_all_edges(t):
-                    if tuple(e[::-1]) not in edges:
-                        edges.add(tuple(e))
+                for e in g.iter_all_edges(t):
+                    edges.add(tuple(e) if e[0] <= e[1] else tuple(e[::-1]))
 
         return list(edges)
 

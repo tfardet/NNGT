@@ -964,11 +964,14 @@ class Graph(nngt.core.GraphObject):
         '''
         Return the edges in the network fulfilling a given condition.
 
+        For undirected graphs, edges are always returned in the order
+        :math:`(u, v)` where :math:`u <= v`.
+
         Parameters
         ----------
         attribute : str, optional (default: all nodes)
-            Whether the `attribute` of the returned edges should have a specific
-            value.
+            Whether the `attribute` of the returned edges should have a
+            specific value.
         value : object, optional (default : None)
             If an `attribute` name is passed, then only edges with `attribute`
             being equal to `value` will be returned.
@@ -990,44 +993,9 @@ class Graph(nngt.core.GraphObject):
             self.edge_id((source_node, target_node))
             edges = np.array([[source_node, target_node]])
         else:
-            if source_node is None or target_node is None:
-                # backend-specific implementation for source or target
-                edges = self._get_edges(source_node=source_node,
-                                        target_node=target_node)
-            else:
-                # we need to use the adjacency matrix, get its subparts,
-                # then use the list of nodes to get the original ids back
-                # to do that we first convert source/target_node to lists
-                # (note that this has no significant speed impact)
-                src, tgt = None, None
-
-                if source_node is None:
-                    src = np.array(
-                        [i for i in range(self.node_nb())], dtype=int)
-                elif is_integer(source_node):
-                    src = np.array([source_node], dtype=int)
-                else:
-                    src = np.sort(source_node)
-
-                if target_node is None:
-                    tgt = np.array(
-                        [i for i in range(self.node_nb())], dtype=int)
-                elif is_integer(target_node):
-                    tgt = np.array([target_node], dtype=int)
-                else:
-                    tgt = np.sort(target_node)
-
-                mat = self.adjacency_matrix()
-
-                nnz = mat[src].tocsc()[:, tgt].nonzero()
-
-                edges = np.array([src[nnz[0]], tgt[nnz[1]]], dtype=int).T
-
-                # remove reciprocal if graph is undirected
-                if not self.is_directed():
-                    edges.sort()
-
-                    edges = _unique_rows(edges)
+            # backend-specific implementation for source or target
+            edges = self._get_edges(source_node=source_node,
+                                    target_node=target_node)
 
         # check attributes
         if attribute is None:

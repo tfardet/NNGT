@@ -398,44 +398,45 @@ class _NNGTGraph(GraphInterface):
         return np.asarray(list(self._graph._unique), dtype=int)
 
     def _get_edges(self, source_node=None, target_node=None):
+        '''
+        Called by Graph.get_edges if either source_node or target_node is not
+        None and they are not both integers.
+        '''
         g = self._graph
-
-        edges = None
 
         if source_node is not None:
             source_node = \
-                [source_node] if is_integer(source_node) else source_node
+                {source_node} if is_integer(source_node) else set(source_node)
+
+            # source only
+            if target_node is None:
+                if g.is_directed():
+                    return [e for e in g._unique if e[0] in source_node]
+
+                return [e for e in g._unique
+                        if e[0] in source_node or e[1] in source_node]
+
+            # source and target
+            target_node = \
+                {target_node} if is_integer(target_node) else set(target_node)
 
             if g.is_directed():
-                edges = [e for e in g._unique if e[0] in source_node]
-            else:
-                edges = set()
+                return [e for e in g._unique
+                        if e[0] in source_node and e[1] in target_node]
 
-                for e in g._unique:
-                    if e[0] in source_node or e[1] in source_node:
-                        if e[::-1] not in edges:
-                            edges.add(e)
+            return [e for e in g._unique
+                    if e[0] in source_node and e[1] in target_node
+                    or e[1] in source_node and e[0] in target_node]
 
-                edges = list(edges)
-
-            return edges
-
+        # target only
         target_node = \
-            [target_node] if is_integer(target_node) else target_node
+            {target_node} if is_integer(target_node) else set(target_node)
 
         if g.is_directed():
-            edges = [e for e in g._unique if e[1] in target_node]
-        else:
-            edges = set()
+            return [e for e in g._unique if e[1] in target_node]
 
-            for e in g._unique:
-                if e[0] in target_node or e[1] in target_node:
-                    if e[::-1] not in edges:
-                        edges.add(e)
-
-            edges = list(edges)
-
-        return edges
+        return [e for e in g._unique
+                if e[0] in target_node or e[1] in target_node]
 
     def is_connected(self):
         raise NotImplementedError("Not available with 'nngt' backend, please "
