@@ -322,15 +322,17 @@ class _IGraph(GraphInterface):
 
     def _get_edges(self, source_node=None, target_node=None):
         '''
-        Called by Graph.get_edges if either source_node or target_node is not
-        None and they are not both integers.
+        Called by Graph.get_edges if source_node and target_node are not both
+        integers.
         '''
         g = self._graph
 
         edges = None
 
         if source_node is None:
-            if is_integer(target_node):
+            if target_node is None:
+                edges = g.es
+            elif is_integer(target_node):
                 edges = g.es.select(_target_eq=target_node)
             else:
                 edges = g.es.select(_target_in=target_node)

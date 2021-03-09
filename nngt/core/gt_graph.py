@@ -470,8 +470,7 @@ class _GtGraph(GraphInterface):
         2-tuple.
         '''
         g = self._graph
-        if not "eid" in g.edge_properties:
-            print("eid not in edge properties")
+
         edges = g.get_edges([g.edge_properties["eid"]])
 
         order = np.argsort(edges[:, 2])
@@ -480,8 +479,8 @@ class _GtGraph(GraphInterface):
 
     def _get_edges(self, source_node=None, target_node=None):
         '''
-        Called by Graph.get_edges if either source_node or target_node is not
-        None and they are not both integers.
+        Called by Graph.get_edges if source_node and target_node are not both
+        integers.
         '''
         g = self._graph
 
@@ -531,6 +530,10 @@ class _GtGraph(GraphInterface):
                                 edges.add(e)
 
             return list(edges)
+
+        if target_node is None:
+            # return all edges
+            return list(g.get_edges())
 
         if is_integer(target_node):
             if g.is_directed():

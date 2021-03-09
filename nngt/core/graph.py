@@ -967,6 +967,14 @@ class Graph(nngt.core.GraphObject):
         For undirected graphs, edges are always returned in the order
         :math:`(u, v)` where :math:`u <= v`.
 
+        .. warning ::
+            Contrary to :func:`~nngt.Graph.edges_array` that returns edges
+            ordered by creation time (i.e. corresponding to the order of the
+            edge attribute array), this function does not enforce any specific
+            edge order.
+            This also  means that, if order does not matter, it may be faster
+            to call ``get_edges`` that to call ``edges_array``.
+
         Parameters
         ----------
         attribute : str, optional (default: all nodes)
@@ -980,18 +988,21 @@ class Graph(nngt.core.GraphObject):
         target_node : int or list of ints, optional (default: all nodes)
             Retrict the edges to those arriving at `target_node`.
 
+        Returns
+        -------
+        A list of edges (2-tuples).
+
         See also
         --------
-        :func:`~nngt.Graph.get_nodes`, :attr:`~nngt.Graph.edge_attributes`
+        :func:`~nngt.Graph.get_nodes`, :attr:`~nngt.Graph.edge_attributes`,
+        :func:`~nngt.Graph.edges_array`
         '''
         edges = None
 
-        if source_node is None and target_node is None:
-            edges = self.edges_array
-        elif is_integer(source_node) and is_integer(target_node):
+        if is_integer(source_node) and is_integer(target_node):
             # check that the edge exists, throw error otherwise
             self.edge_id((source_node, target_node))
-            edges = np.array([[source_node, target_node]])
+            edges = [(source_node, target_node)]
         else:
             # backend-specific implementation for source or target
             edges = self._get_edges(source_node=source_node,
@@ -1009,7 +1020,7 @@ class Graph(nngt.core.GraphObject):
 
         desired = (self.get_edge_attributes(edges, attribute) == value)
 
-        return self.edges_array[desired]
+        return [tuple(e) for e in self.edges_array[desired]]
 
     def get_edge_attributes(self, edges=None, name=None):
         '''

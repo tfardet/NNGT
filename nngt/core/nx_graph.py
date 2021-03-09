@@ -393,8 +393,8 @@ class _NxGraph(GraphInterface):
 
     def _get_edges(self, source_node=None, target_node=None):
         '''
-        Called by graph.get_edges if either source_node or target_node is not
-        None and they are not both integers.
+        Called by Graph.get_edges if source_node and target_node are not both
+        integers.
         '''
         nx = nngt._config["library"]
 
@@ -422,6 +422,10 @@ class _NxGraph(GraphInterface):
                 return list(res_iter)
 
             return [e if e[0] <= e[1] else e[::-1] for e in res_iter]
+
+        if target_node is None:
+            # return all edges
+            return list(g.edges)
 
         if g.is_directed():
             return list(g.in_edges(target_node))
