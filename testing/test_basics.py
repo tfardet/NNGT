@@ -594,10 +594,12 @@ def test_get_edges():
     def to_set(ee):
         return {tuple(e) for e in ee}
 
+    assert g.get_edges(source_node=0) == [(0, 1)]
+    assert g.get_edges(target_node=2) == [(1, 2)]
     assert to_set(g.get_edges(source_node=[0, 1])) == to_set(edges[:3])
     assert to_set(g.get_edges(target_node=[0, 1])) == to_set(edges[:2])
     assert to_set(g.get_edges(source_node=[0, 2],
-                  target_node=[0, 1])) == {(0, 1)}
+                              target_node=[0, 1])) == {(0, 1)}
 
     # undirected
     g = nngt.Graph(4, directed=False)
@@ -606,12 +608,14 @@ def test_get_edges():
 
     g.new_edges(edges)
     
-    res = [(0, 1), (1, 2)]
+    res = {(0, 1), (1, 2)}
 
-    assert to_set(g.get_edges(source_node=[0, 1])) == to_set(res)
-    assert to_set(g.get_edges(target_node=[0, 1])) == to_set(res)
+    assert g.get_edges(source_node=0) == [(0, 1)]
+    assert to_set(g.get_edges(target_node=2)) == {(1, 2), (2, 3)}
+    assert to_set(g.get_edges(source_node=[0, 1])) == res
+    assert to_set(g.get_edges(target_node=[0, 1])) == res
     assert to_set(g.get_edges(source_node=[0, 2],
-                              target_node=[0, 1])) == to_set(res)
+                              target_node=[0, 1])) == res
 
     assert to_set(g.get_edges(source_node=0, target_node=1)) == {(0, 1)}
     assert to_set(g.get_edges(source_node=0, target_node=[0, 1])) == {(0, 1)}

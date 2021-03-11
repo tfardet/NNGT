@@ -965,11 +965,22 @@ class Graph(nngt.core.GraphObject):
         '''
         Return the edges in the network fulfilling a given condition.
 
+        For undirected graphs, edges are always returned in the order
+        :math:`(u, v)` where :math:`u <= v`.
+
+        .. warning ::
+            Contrary to :func:`~nngt.Graph.edges_array` that returns edges
+            ordered by creation time (i.e. corresponding to the order of the
+            edge attribute array), this function does not enforce any specific
+            edge order.
+            This also  means that, if order does not matter, it may be faster
+            to call ``get_edges`` that to call ``edges_array``.
+
         Parameters
         ----------
         attribute : str, optional (default: all nodes)
-            Whether the `attribute` of the returned edges should have a specific
-            value.
+            Whether the `attribute` of the returned edges should have a
+            specific value.
         value : object, optional (default : None)
             If an `attribute` name is passed, then only edges with `attribute`
             being equal to `value` will be returned.
@@ -978,57 +989,25 @@ class Graph(nngt.core.GraphObject):
         target_node : int or list of ints, optional (default: all nodes)
             Retrict the edges to those arriving at `target_node`.
 
+        Returns
+        -------
+        A list of edges (2-tuples).
+
         See also
         --------
-        :func:`~nngt.Graph.get_nodes`, :attr:`~nngt.Graph.edge_attributes`
+        :func:`~nngt.Graph.get_nodes`, :attr:`~nngt.Graph.edge_attributes`,
+        :func:`~nngt.Graph.edges_array`
         '''
         edges = None
 
-        if source_node is None and target_node is None:
-            edges = self.edges_array
-        elif is_integer(source_node) and is_integer(target_node):
+        if is_integer(source_node) and is_integer(target_node):
             # check that the edge exists, throw error otherwise
             self.edge_id((source_node, target_node))
-            edges = np.array([[source_node, target_node]])
+            edges = [(source_node, target_node)]
         else:
-            if source_node is None or target_node is None:
-                # backend-specific implementation for source or target
-                edges = self._get_edges(source_node=source_node,
-                                        target_node=target_node)
-            else:
-                # we need to use the adjacency matrix, get its subparts,
-                # then use the list of nodes to get the original ids back
-                # to do that we first convert source/target_node to lists
-                # (note that this has no significant speed impact)
-                src, tgt = None, None
-
-                if source_node is None:
-                    src = np.array(
-                        [i for i in range(self.node_nb())], dtype=int)
-                elif is_integer(source_node):
-                    src = np.array([source_node], dtype=int)
-                else:
-                    src = np.sort(source_node)
-
-                if target_node is None:
-                    tgt = np.array(
-                        [i for i in range(self.node_nb())], dtype=int)
-                elif is_integer(target_node):
-                    tgt = np.array([target_node], dtype=int)
-                else:
-                    tgt = np.sort(target_node)
-
-                mat = self.adjacency_matrix()
-
-                nnz = mat[src].tocsc()[:, tgt].nonzero()
-
-                edges = np.array([src[nnz[0]], tgt[nnz[1]]], dtype=int).T
-
-                # remove reciprocal if graph is undirected
-                if not self.is_directed():
-                    edges.sort()
-
-                    edges = _unique_rows(edges)
+            # backend-specific implementation for source or target
+            edges = self._get_edges(source_node=source_node,
+                                    target_node=target_node)
 
         # check attributes
         if attribute is None:
@@ -1042,7 +1021,7 @@ class Graph(nngt.core.GraphObject):
 
         desired = (self.get_edge_attributes(edges, attribute) == value)
 
-        return self.edges_array[desired]
+        return [tuple(e) for e in self.edges_array[desired]]
 
     def get_edge_attributes(self, edges=None, name=None):
         '''
