@@ -2,21 +2,40 @@ import os
 
 import numpy as np
 
+import cartopy
 import geopandas as gpd
+
+from ._cartopy_ne import natural_earth
 from shapely.geometry import Point
-
-
-folder = os.path.abspath(os.path.dirname(__file__)) + "/world_maps/"
 
 
 # --------------------------------------------- #
 # Load and store the worlds at different scales #
 # --------------------------------------------- #
 
-world_110 = gpd.read_file(folder + "ne_110m_admin_0_countries.shp")
-world_50  = gpd.read_file(folder + "ne_50m_admin_0_countries.shp")
-world_10  = gpd.read_file(folder + "ne_10m_admin_0_map_units.shp")
-cities    = gpd.read_file(folder + "ne_10m_populated_places_simple.shp")
+try:
+    fname_110 = natural_earth(resolution='110m', category='cultural',
+                              name='admin_0_countries')
+
+    fname_50 = natural_earth(resolution='50m', category='cultural',
+                             name='admin_0_countries')
+
+    fname_10 = natural_earth(resolution='10m', category='cultural',
+                             name='admin_0_map_units')
+
+    fname_cities = natural_earth(resolution='10m', category='cultural',
+                                 name='populated_places_simple')
+except Exception as e:
+    print("Error excountered:", e)
+    raise RuntimeError("The `geography` module needs to download the "
+                       "NaturalEarth maps on its first run, please make sure "
+                       "you are connected to the internet or manually add the "
+                       "files to '{}'".format(cartopy.config['data_dir']))
+
+world_110 = gpd.read_file(fname_110)
+world_50  = gpd.read_file(fname_50)
+world_10  = gpd.read_file(fname_10)
+cities    = gpd.read_file(fname_cities)
 
 maps = {
     "110m": world_110,
@@ -105,7 +124,6 @@ for i, v in world_50.iterrows():
 
 
 world = world_110.append(world_50.iloc[list(new_countries)], ignore_index=True)
-
 
 new_countries = []
 size_adaptive = len(world)
