@@ -110,6 +110,8 @@ for i, v in world_50.iterrows():
         country_codes_adaptive[code] = len(new_countries) + size_adaptive
         ctn_adaptive[code] = name
 
+        new_countries.add(i)
+
     for cval in cvalues:
         if v.TYPE in countries and cval not in country_codes_50:
             country_codes_50[cval] = i
@@ -119,9 +121,6 @@ for i, v in world_50.iterrows():
                 country_codes_adaptive[cval] = \
                     len(new_countries) + size_adaptive
                 ctn_adaptive[cval] = name
-
-            new_countries.add(i)
-
 
 world = world_110.append(world_50.iloc[list(new_countries)], ignore_index=True)
 
@@ -263,7 +262,7 @@ for _, v in world.iterrows():
             continue
         elif len(idx) > 1:
             pop = cities.iloc[idx].pop_max
-            idx = np.argmax(pop)
+            idx = idx[np.argmax(pop)]
             points.append(cities.iloc[idx].geometry)
             continue
         else:
