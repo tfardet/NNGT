@@ -4,6 +4,9 @@ sources:
 secrets:
     - ceb490c3-68b4-41f7-9aa9-eb2e4b91d424
 tasks:
+    - check: |
+        cd NNGT
+        python3 extra/check_headers.py
     - setup: |
         sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt focal main\n" >> /etc/apt/sources.list'
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25
