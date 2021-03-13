@@ -22,5 +22,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 """
-Input/output (I/O) module.
+The Input/output (I/O) module contains function to read and write network
+files.
 """

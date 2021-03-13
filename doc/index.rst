@@ -102,6 +102,7 @@ The docs
    modules/analysis
    modules/database
    modules/generation
+   modules/geography
    modules/geometry
    modules/lib
    modules/plot

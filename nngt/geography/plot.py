@@ -20,6 +20,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -43,7 +44,7 @@ def draw_map(graph, node_names, geodata=None, geodata_names=None,
         Name of the node attribute containing the nodes names that will be
         used to place them on the map. By default (if no `geodata` is
         provided), these must be country names or (better) A3 codes.
-    geodata : :class:`geopandas.GeoDataFrame`, optional (default: world map)
+    geodata : :class:`~geopandas.GeoDataFrame`, optional (default: world map)
         Optional dataframe containing the geospatial information.
         Predefined geodatas are "110m", "50m", and "10m" for world maps with
         respectively 110, 50, and 10 meter resolutions, or "adaptive" (default)
@@ -70,7 +71,7 @@ def draw_map(graph, node_names, geodata=None, geodata_names=None,
         width between 0. and `max_esize`.
     threshold : float, optional (default: 0.5)
         Size under which edges are not plotted.
-    proj : cartopy crs object, optional (default: cartesian plane)
+    proj : :mod:`cartopy.crs` object, optional (default: cartesian plane)
         Projection that will be used to draw the map.
     all_geodata : bool, optional (default: True)
         Whether all the data contained in `geodata` should be plotted, even if
@@ -162,19 +163,13 @@ def draw_map(graph, node_names, geodata=None, geodata_names=None,
     pos = []
 
     if points in dataframe:
-        if show_points:
-            dataframe[elements, points].plot(ax=axis, zorder=2)
         pos = [(p.xy[0][0], p.xy[1][0])
                for p in dataframe.iloc[elements, points]]
     elif points == "centroid":
         df = dataframe.loc[elements, "geometry"].centroid
-        if show_points:
-            df.plot(ax=axis, zorder=2)
         pos = [(p.xy[0][0], p.xy[1][0]) for p in df]
     elif points == "representative":
         df = dataframe.loc[elements, "geometry"].representative_point()
-        if show_points:
-            df.plot(ax=axis, zorder=2)
         pos = [(p.xy[0][0], p.xy[1][0]) for p in df]
     elif points is None and geodata in (None, "adaptive"):
         try:

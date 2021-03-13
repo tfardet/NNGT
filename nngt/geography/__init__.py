@@ -20,6 +20,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+"""
+The geography module contains functions and objects that enable straightforward
+network plots together with geospatial data.
+
+It relies on `geopandas <geopandas.org>`_ and
+`cartopy <https://scitools.org.uk/cartopy/docs/latest>`_ in the background.
+"""
+
 from .countries import (maps, country_names, country_codes, convertors, cities,
                         codes_to_names)
+
 from .plot import draw_map

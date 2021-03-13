@@ -531,6 +531,8 @@ napoleon_use_rtype = False
 imported_members = True
 
 intersphinx_mapping = {
+    'cartopy': ('https://scitools.org.uk/cartopy/docs/latest/', None),
+    'geopandas': ('https://geopandas.org/', None),
     'gt': ('https://graph-tool.skewed.de/static/doc/', None),
     'ipython': ('https://ipython.org/ipython-doc/stable/', None),
     'matplotlib': ('https://matplotlib.org/', None),

@@ -287,10 +287,11 @@ class NeuralPop(Structure):
             those of the second group) as value. If provided, all connections
             between groups will be set according to the values contained in
             `syn_spec`. Valid keys are:
-                - `('excitatory', 'excitatory')`
-                - `('excitatory', 'inhibitory')`
-                - `('inhibitory', 'excitatory')`
-                - `('inhibitory', 'inhibitory')`
+
+            - `('excitatory', 'excitatory')`
+            - `('excitatory', 'inhibitory')`
+            - `('inhibitory', 'excitatory')`
+            - `('inhibitory', 'inhibitory')`
         parent : :class:`~nngt.Network`, optional (default: None)
             Network associated to this population.
         meta_groups : list dict of str/:class:`~nngt.NeuralGroup` items
