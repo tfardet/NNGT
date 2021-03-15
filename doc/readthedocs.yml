@@ -1,0 +1,26 @@
+conda:
+    file: environment.yml
+
+## bootstrap theming ##
+sphinx_bootstrap_theme
+
+##    Plot module    ##
+matplotlib
+
+##   Database tools  ##
+peewee
+
+##    Geography      ##
+cython
+geopandas
+cartopy
+
+##    Numpy/Scipy    ##
+numpy
+scipy
+
+##      Gallery      ##
+sphinx-gallery
+networkx
+shapely
+dxfgrabber
