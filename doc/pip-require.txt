@@ -1,0 +1,11 @@
+## bootstrap theming ##
+sphinx_bootstrap_theme
+
+##   Database tools  ##
+peewee
+
+##      Gallery      ##
+sphinx-gallery
+networkx
+shapely
+dxfgrabber
