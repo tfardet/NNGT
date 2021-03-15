@@ -27,6 +27,8 @@ network plots together with geospatial data.
 
 It relies on `geopandas <geopandas.org>`_ and
 `cartopy <https://scitools.org.uk/cartopy/docs/latest>`_ in the background.
+
+See ":ref:`sphx_glr_gallery_graph_structure_plot_map.py`" for an example.
 """
 
 from .countries import (maps, country_names, country_codes, convertors, cities,

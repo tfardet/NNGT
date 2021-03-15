@@ -54,7 +54,11 @@ def draw_map(graph, node_names, geodata=None, geodata_names=None,
         for full country names or A3 codes).
     points : str, optional (default: capitals and representative points)
         Whether a precise point should be associated to each node.
-        Either an entry in `geodata`, "centroid", or "representative".
+        It can be either an entry in `geodata`, the "centroid" of each geometry
+        entry, or a "representative" point.
+        By default, if the world map is used, each country will be associated
+        to its capital (contained in the module's ``cities`` object); if
+        another `geodata` element is provided, it defaults to "representative".
     show_points : bool, optional (default: False)
         Wether the points should be displayed.
     linecolor : str, char, float or array, optional (default: current palette)

@@ -4,6 +4,11 @@ sphinx_bootstrap_theme
 ##   Database tools  ##
 peewee
 
+##     Geography     ##
+cython
+geopandas
+cartopy
+
 ##      Gallery      ##
 sphinx-gallery
 networkx
