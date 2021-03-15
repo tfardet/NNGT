@@ -1,5 +1,5 @@
 requirements_file:
-  docs/pip-require.txt
+  doc/pip-require.txt
 
 conda:
-    file: docs/environment.yml
+    file: doc/environment.yml
