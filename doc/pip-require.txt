@@ -8,6 +8,7 @@ matplotlib
 peewee
 
 ##    Geography      ##
+cython
 geopandas
 cartopy
 
