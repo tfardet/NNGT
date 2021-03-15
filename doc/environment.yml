@@ -7,6 +7,7 @@ dependencies:
     - scipy
     - pandas
     - matplotlib
+    - cartopy
     - pip:
         - sphinx_bootstrap_theme
         - peewee
@@ -15,4 +16,3 @@ dependencies:
         - shapely
         - dxfgrabber
         - geopandas
-        - cartopy
