@@ -14,3 +14,5 @@ dependencies:
         - networkx
         - shapely
         - dxfgrabber
+        - geopandas
+        - cartopy
