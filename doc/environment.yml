@@ -1,9 +1,16 @@
 channels:
-- conda-forge
+    - conda-forge
 dependencies:
-- cython
-- python
-- numpy
-- scipy
-- pandas
-- matplotlib
+    - cython
+    - python=3.8
+    - numpy
+    - scipy
+    - pandas
+    - matplotlib
+    - pip:
+        - sphinx_bootstrap_theme
+        - peewee
+        - sphinx-gallery
+        - networkx
+        - shapely
+        - dxfgrabber
