@@ -1,5 +1,5 @@
-sphinx:
-   configuration: doc/conf.py
+requirements_file:
+  doc/pip-require.txt
 
 conda:
-    environment: doc/environment.yml
+    file: doc/environment.yml
