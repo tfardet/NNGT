@@ -71,8 +71,9 @@ def test_config():
 
     assert key_error
 
-    # except for "palette"
-    nngt.set_config("palette", "viridis")
+    # except for palettes
+    nngt.set_config("palette_continuous", "viridis")
+    nngt.set_config("palette_discrete", "Set2")
 
     # restore old config
     nngt.set_config(old_cfg)
@@ -112,18 +113,13 @@ def test_edge_creation():
     g = nngt.Graph(num_nodes)
     g.new_edges(edges)
 
-    error_raised = False
+    # empty edge list
+    assert not g.new_edges([])
 
     # all following should trigger an error
     for e in [(11, 10), (4, 4), (0, 1)]:
-        error_raised = False
-
-        try:
+        with pytest.raises(InvalidArgument):
             g.new_edge(*e)
-        except InvalidArgument:
-            error_raised = True
-
-        assert error_raised
 
     # all following should also trigger an error
     lst_edges = [
@@ -134,56 +130,26 @@ def test_edge_creation():
     ]
 
     for elist in lst_edges:
-        error_raised = False
-
-        try:
+        with pytest.raises(InvalidArgument):
             g.new_edges(elist)
-        except InvalidArgument:
-            error_raised = True
-
-        assert error_raised
 
     # check specific filters
     # self-loop
-    error_raised = False
-
-    try:
+    with pytest.raises(InvalidArgument):
         g.new_edges(lst_edges[0], check_duplicates=False, check_existing=False)
-    except InvalidArgument:
-        error_raised = True
-
-    assert error_raised
 
     # duplicate
-    error_raised = False
-
-    try:
+    with pytest.raises(InvalidArgument):
         g.new_edges(lst_edges[1], check_duplicates=True,
                     check_self_loops=False, check_existing=False)
-    except InvalidArgument:
-        error_raised = True
-
-    assert error_raised
 
     # existing
-    error_raised = False
-
-    try:
+    with pytest.raises(InvalidArgument):
         g.new_edges(lst_edges[2], check_self_loops=False)
-    except InvalidArgument:
-        error_raised = True
-
-    assert error_raised
 
     # out-of-range
-    error_raised = False
-
-    try:
+    with pytest.raises(InvalidArgument):
         g.new_edges(lst_edges[3], check_self_loops=False, check_existing=False)
-    except InvalidArgument:
-        error_raised = True
-
-    assert error_raised
 
     # working calls
     g.new_edge(0, 1, ignore=True)
@@ -207,14 +173,8 @@ def test_edge_creation():
 
     # all following should trigger an error
     for e in [(1, 0), (0, 1)]:
-        error_raised = False
-
-        try:
+        with pytest.raises(InvalidArgument):
             g.new_edge(*e)
-        except InvalidArgument:
-            error_raised = True
-
-        assert error_raised
 
     # all following should also trigger an error
     lst_edges = [
@@ -225,14 +185,8 @@ def test_edge_creation():
     ]
 
     for elist in lst_edges:
-        error_raised = False
-
-        try:
+        with pytest.raises(InvalidArgument):
             g.new_edges(elist)
-        except InvalidArgument:
-            error_raised = True
-
-        assert error_raised
 
     # working calls
     g.new_edge(0, 1, ignore=True)

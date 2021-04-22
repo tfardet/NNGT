@@ -549,34 +549,35 @@ class _IGraph(GraphInterface):
         num_edges  = len(edge_list)
 
         # check that all nodes exist
-        if np.max(edge_list) >= self.node_nb():
-            raise InvalidArgument("Some nodes do no exist.")
+        if num_edges:
+            if np.max(edge_list) >= self.node_nb():
+                raise InvalidArgument("Some nodes do no exist.")
 
-        # set default values for attributes that were not passed
-        _set_default_edge_attributes(self, attributes, num_edges)
+            # set default values for attributes that were not passed
+            _set_default_edge_attributes(self, attributes, num_edges)
 
-        # check edges
-        new_attr = None
+            # check edges
+            new_attr = None
 
-        if check_duplicates or check_self_loops or check_existing:
-            edge_list, new_attr = _cleanup_edges(
-                self, edge_list, attributes, check_duplicates,
-                check_self_loops, check_existing, ignore_invalid)
-        else:
-            new_attr = attributes
+            if check_duplicates or check_self_loops or check_existing:
+                edge_list, new_attr = _cleanup_edges(
+                    self, edge_list, attributes, check_duplicates,
+                    check_self_loops, check_existing, ignore_invalid)
+            else:
+                new_attr = attributes
 
-        self._graph.add_edges(edge_list)
+            self._graph.add_edges(edge_list)
 
-        # check distance
-        _set_dist_new_edges(new_attr, self, edge_list)
+            # check distance
+            _set_dist_new_edges(new_attr, self, edge_list)
 
-        # call parent function to set the attributes
-        self._attr_new_edges(edge_list, attributes=new_attr)
+            # call parent function to set the attributes
+            self._attr_new_edges(edge_list, attributes=new_attr)
 
-        if len(edge_list) == 0:
-            return None
-        elif len(edge_list) == 1:
-            return edge_list[0]
+            if len(edge_list) == 0:
+                return None
+            elif len(edge_list) == 1:
+                return edge_list[0]
 
         return edge_list
 

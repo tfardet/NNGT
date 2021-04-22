@@ -775,48 +775,49 @@ class _GtGraph(GraphInterface):
         num_nodes  = self.node_nb()
 
         # check that all nodes exist
-        if np.max(edge_list) >= num_nodes:
-            raise InvalidArgument("Some nodes do no exist.")
+        if num_edges:
+            if np.max(edge_list) >= num_nodes:
+                raise InvalidArgument("Some nodes do no exist.")
 
-        # set default values for attributes that were not passed
-        _set_default_edge_attributes(self, attributes, num_edges)
+            # set default values for attributes that were not passed
+            _set_default_edge_attributes(self, attributes, num_edges)
 
-        # check edges
-        new_attr = None
+            # check edges
+            new_attr = None
 
-        if check_duplicates or check_self_loops or check_existing:
-            edge_list, new_attr = _cleanup_edges(
-                self, edge_list, attributes, check_duplicates,
-                check_self_loops, check_existing, ignore_invalid)
-        else:
-            edge_list = np.asarray(edge_list)
-            new_attr  = attributes
-
-        # check distance
-        _set_dist_new_edges(new_attr, self, edge_list)
-
-        # create the edges
-        if len(edge_list):
-            g.add_edge_list(edge_list)
-
-            # call parent function to set the attributes
-            self._attr_new_edges(edge_list, attributes=new_attr)
-
-            # set edge id
-            n_e = len(edge_list)
-
-            if self._edges_deleted:
-                Edge = g.edge
-
-                for e in edge_list:
-                    g.edge_properties["eid"][Edge(*e)] = self._max_eid
-
-                    self._max_eid += 1
+            if check_duplicates or check_self_loops or check_existing:
+                edge_list, new_attr = _cleanup_edges(
+                    self, edge_list, attributes, check_duplicates,
+                    check_self_loops, check_existing, ignore_invalid)
             else:
-                g.edge_properties["eid"].a[-n_e:] = \
-                    list(range(self._max_eid, self._max_eid + n_e))
+                edge_list = np.asarray(edge_list)
+                new_attr  = attributes
 
-                self._max_eid += n_e
+            # check distance
+            _set_dist_new_edges(new_attr, self, edge_list)
+
+            # create the edges
+            if len(edge_list):
+                g.add_edge_list(edge_list)
+
+                # call parent function to set the attributes
+                self._attr_new_edges(edge_list, attributes=new_attr)
+
+                # set edge id
+                n_e = len(edge_list)
+
+                if self._edges_deleted:
+                    Edge = g.edge
+
+                    for e in edge_list:
+                        g.edge_properties["eid"][Edge(*e)] = self._max_eid
+
+                        self._max_eid += 1
+                else:
+                    g.edge_properties["eid"].a[-n_e:] = \
+                        list(range(self._max_eid, self._max_eid + n_e))
+
+                    self._max_eid += n_e
 
         return edge_list
 

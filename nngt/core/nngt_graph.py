@@ -746,59 +746,58 @@ class _NNGTGraph(GraphInterface):
         _set_default_edge_attributes(self, attributes, num_edges)
 
         # check that all nodes exist
-        if np.max(edge_list) >= self.node_nb():
-            raise InvalidArgument("Some nodes do no exist.")
+        if num_edges:
+            if np.max(edge_list) >= self.node_nb():
+                raise InvalidArgument("Some nodes do no exist.")
 
-        # check edges
-        new_attr = None
+            # check edges
+            new_attr = None
 
-        if check_duplicates or check_self_loops or check_existing:
-            edge_list, new_attr = _cleanup_edges(
-                self, edge_list, attributes, check_duplicates,
-                check_self_loops, check_existing, ignore_invalid)
-        else:
-            new_attr = attributes
-
-        # create the edges
-        initial_eid = self._max_eid
-
-        ws        = None
-        num_added = len(edge_list)
-
-        if "weight" in new_attr:
-            if nonstring_container(new_attr["weight"]):
-                ws = new_attr["weight"]
+            if check_duplicates or check_self_loops or check_existing:
+                edge_list, new_attr = _cleanup_edges(
+                    self, edge_list, attributes, check_duplicates,
+                    check_self_loops, check_existing, ignore_invalid)
             else:
-                ws = (new_attr["weight"] for _ in range(num_added))
-        else:
-            ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
+                new_attr = attributes
 
-        for i, (e, w) in enumerate(zip(edge_list, ws)):
-            eid = self._max_eid
+            # create the edges
+            initial_eid = self._max_eid
 
-            g._unique[tuple(e)] = eid
+            ws        = None
+            num_added = len(edge_list)
 
-            self._max_eid += 1
+            if "weight" in new_attr:
+                if nonstring_container(new_attr["weight"]):
+                    ws = new_attr["weight"]
+                else:
+                    ws = (new_attr["weight"] for _ in range(num_added))
+            else:
+                ws = _get_edge_attr(self, edge_list, "weight", last_edges=True)
 
-            g._out_deg[e[0]] += 1
-            g._in_deg[e[1]]  += 1
+            for i, (e, w) in enumerate(zip(edge_list, ws)):
+                eid = self._max_eid
 
-            if not g._directed:
-                # edges and unique are different objects, so update _edges
-                g._edges[tuple(e)] = eid
-                # reciprocal edge
-                g._edges[tuple(e[::-1])] = eid
+                g._unique[tuple(e)] = eid
 
-                g._out_deg[e[1]] += 1
-                g._in_deg[e[0]]  += 1
+                self._max_eid += 1
 
-        
+                g._out_deg[e[0]] += 1
+                g._in_deg[e[1]]  += 1
 
-        # check distance
-        _set_dist_new_edges(new_attr, self, edge_list)
+                if not g._directed:
+                    # edges and unique are different objects, so update _edges
+                    g._edges[tuple(e)] = eid
+                    # reciprocal edge
+                    g._edges[tuple(e[::-1])] = eid
 
-        # call parent function to set the attributes
-        self._attr_new_edges(edge_list, attributes=new_attr)
+                    g._out_deg[e[1]] += 1
+                    g._in_deg[e[0]]  += 1
+
+            # check distance
+            _set_dist_new_edges(new_attr, self, edge_list)
+
+            # call parent function to set the attributes
+            self._attr_new_edges(edge_list, attributes=new_attr)
 
         return edge_list
 
