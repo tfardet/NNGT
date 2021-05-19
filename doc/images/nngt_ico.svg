@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
 <svg
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
@@ -10,12 +8,12 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="18"
-   height="18"
+   width="18.401171"
+   height="18.136753"
    id="svg6330"
    version="1.1"
-   inkscape:version="0.48.5 r10040"
-   sodipodi:docname="nngt_logo.pdf"
+   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07, custom)"
+   sodipodi:docname="nngt_ico.svg"
    inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_ico.png"
    inkscape:export-xdpi="90"
    inkscape:export-ydpi="90">
@@ -71,21 +69,22 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1"
-     inkscape:cx="7.4469645"
-     inkscape:cy="11.008608"
+     inkscape:zoom="22.627417"
+     inkscape:cx="20.636196"
+     inkscape:cy="12.948489"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     fit-margin-top="0"
-     fit-margin-left="0"
-     fit-margin-right="0"
-     fit-margin-bottom="0"
+     fit-margin-top="0.1"
+     fit-margin-left="0.1"
+     fit-margin-right="0.1"
+     fit-margin-bottom="0.1"
      inkscape:window-width="1920"
-     inkscape:window-height="1028"
+     inkscape:window-height="1029"
      inkscape:window-x="0"
-     inkscape:window-y="26"
-     inkscape:window-maximized="1" />
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:document-rotation="0" />
   <metadata
      id="metadata6335">
     <rdf:RDF>
@@ -102,71 +101,93 @@
      inkscape:label="Calque 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-482.14822,-257.48311)">
+     transform="translate(-481.9715,-257.4625)">
+    <path
+       id="path897"
+       style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-variant-east-asian:normal;font-feature-settings:normal;font-variation-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;shape-margin:0;inline-size:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;vector-effect:none;fill:#2d3336;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;stop-color:#000000"
+       d="m 485.3797,257.81211 c -1.68653,0 -3.05859,1.37401 -3.05859,3.06055 0,1.66844 1.34421,3.02374 3.00586,3.05273 l 1.46094,6.41016 -2.71875,4.52929 -0.004,0.004 c -0.006,0.0107 -0.0112,0.0218 -0.0156,0.0332 -9.9e-4,0.005 -0.003,0.009 -0.004,0.0137 -0.004,0.0102 -0.007,0.0206 -0.01,0.0312 -0.003,0.0122 -0.005,0.0246 -0.006,0.0371 -10e-6,0.001 -10e-6,0.003 0,0.004 -7e-5,0.003 -7e-5,0.007 0,0.01 -7e-5,0.003 -7e-5,0.009 0,0.0117 6.8e-4,0.0105 0.002,0.019 0.004,0.0293 0.002,0.0112 0.005,0.0223 0.008,0.0332 0.003,0.0106 0.007,0.0212 0.0117,0.0312 0.002,0.003 0.004,0.009 0.006,0.0117 0.004,0.007 0.007,0.0145 0.0117,0.0215 0.003,0.005 0.006,0.0105 0.01,0.0156 l 0.0117,0.0117 c 0.004,0.005 0.009,0.0106 0.0137,0.0156 0.003,0.002 0.005,0.004 0.008,0.006 0.0103,0.009 0.0214,0.0179 0.0332,0.0254 l 0.004,0.004 c 0.008,0.004 0.0154,0.008 0.0234,0.0117 0.003,10e-4 0.007,0.003 0.01,0.004 0.002,6.9e-4 0.006,9.5e-4 0.008,0.002 0.0114,0.005 0.0232,0.009 0.0352,0.0117 0.001,1e-5 0.003,1e-5 0.004,0 0.0122,0.003 0.0246,0.005 0.0371,0.006 0.002,2e-5 0.004,2e-5 0.006,0 0.003,4e-5 0.005,4e-5 0.008,0 h 8.13867 c 0.19474,4.6e-4 0.31523,-0.21204 0.21484,-0.37891 l -1.19726,-1.99414 2.65039,-0.44531 c 0.41796,1.19198 1.54205,2.05469 2.875,2.05469 1.68653,0 3.05859,-1.37206 3.05859,-3.0586 0,-1.51924 -1.11664,-2.77558 -2.57031,-3.01172 l -0.44922,-3.91601 c 1.37762,-0.29738 2.41602,-1.52144 2.41602,-2.98633 0,-1.68653 -1.37402,-3.05859 -3.06055,-3.05859 -1.38819,0 -2.54956,0.93571 -2.92188,2.20508 l -5.03906,-0.21094 c -0.20906,-1.48493 -1.47626,-2.63672 -3.01758,-2.63672 z m 3.0586,3.03906 4.9082,0.20508 c -0.0228,0.15035 -0.0469,0.30041 -0.0469,0.45703 0,0.86419 0.36319,1.64245 0.94141,2.19922 l -1.77148,3.10156 -4.77344,-3.96484 c 0.45768,-0.53466 0.74414,-1.21953 0.74414,-1.97656 0,-0.007 -0.002,-0.0141 -0.002,-0.0215 z m -0.94141,2.22266 4.82031,4.00586 -2.125,3.71875 -1.62695,-2.70899 c -0.0442,-0.0736 -0.12315,-0.11928 -0.20898,-0.12109 l -0.002,-0.002 c -0.0893,-0.002 -0.1727,0.0446 -0.21875,0.12109 l -0.45703,0.76172 -1.16992,-5.13867 c 0.37015,-0.14777 0.7054,-0.36503 0.98828,-0.63672 z m 7.75977,1.28515 c 0.1737,0.0675 0.35371,0.1213 0.54101,0.15625 l 0.45117,3.94532 c -0.42135,0.10195 -0.80522,0.29217 -1.13867,0.54882 l -1.70312,-1.41601 z m -2.00196,3.5 1.61914,1.34571 c -0.59337,0.55873 -0.96875,1.3456 -0.96875,2.22265 0,0.24743 0.038,0.48429 0.0937,0.71485 l -2.72656,0.45898 -0.37305,-0.62109 z"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035" />
     <path
        inkscape:connector-curvature="0"
        id="path6115"
        d="M 497.16774,270.9481 484.87113,260.72845"
-       style="color:#000000;fill:none;stroke:#2d3336;stroke-width:0.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
-       sodipodi:nodetypes="cc" />
+       style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:none;stroke:#2d3336;stroke-width:0.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
+       sodipodi:nodetypes="cc"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035" />
     <path
        inkscape:connector-curvature="0"
        id="path6117"
        d="m 497.2193,271.7841 -8.32663,1.39944"
-       style="color:#000000;fill:none;stroke:#2d3336;stroke-width:0.30000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
-       sodipodi:nodetypes="cc" />
+       style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:none;stroke:#2d3336;stroke-width:0.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
+       sodipodi:nodetypes="cc"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035" />
     <path
-       style="fill:none;stroke:#2d3336;stroke-width:1.20000005;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       style="fill:none;stroke:#2d3336;stroke-width:1.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 485.21097,260.7541 2.89923,12.72426 1.67866,-0.73661 6.28824,-11.00261 1.14367,9.98245"
        id="path6119"
        inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccccc" />
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035" />
     <path
        inkscape:connector-curvature="0"
        id="path6121"
        d="m 484.26143,260.50798 11.66356,0.48821"
-       style="fill:none;stroke:#2d3336;stroke-width:0.40000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       sodipodi:nodetypes="cc" />
-    <path
+       style="fill:none;stroke:#2d3336;stroke-width:0.4;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       sodipodi:nodetypes="cc"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035" />
+    <circle
        transform="matrix(0.13520726,0,0,0.13520726,368.49253,265.50628)"
-       sodipodi:type="arc"
-       style="fill:#729fcf;fill-opacity:1;stroke:#2d3336;stroke-width:3.69802618;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       style="fill:#729fcf;fill-opacity:1;stroke:#2d3336;stroke-width:3.69803;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="path6157"
-       sodipodi:cx="950.16736"
-       sodipodi:cy="44.021336"
-       sodipodi:rx="20.776255"
-       sodipodi:ry="20.776255"
-       d="m 970.94361,44.021336 a 20.776255,20.776255 0 1 1 -41.55251,0 20.776255,20.776255 0 1 1 41.55251,0 z" />
+       cx="950.16736"
+       cy="44.021336"
+       r="20.776255"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035" />
     <g
        id="g7174"
        transform="matrix(1.1982631,0,0,1.1982631,-96.384136,-51.848737)"
-       style="stroke-width:0.41727063;stroke-miterlimit:4;stroke-dasharray:none">
+       style="stroke-width:0.417271;stroke-miterlimit:4;stroke-dasharray:none"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035">
       <path
          id="path6133"
-         d="m 484.58736,272.79309 6.79144,0 -3.39572,-5.65951 -3.39572,5.65951"
-         style="color:#000000;fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#2d3336;stroke-width:0.41727063;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+         d="m 484.58736,272.79309 h 6.79144 l -3.39572,-5.65951 -3.39572,5.65951"
+         style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#2d3336;stroke-width:0.417271;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cccc" />
     </g>
-    <path
-       d="m 970.94361,44.021336 a 20.776255,20.776255 0 1 1 -41.55251,0 20.776255,20.776255 0 1 1 41.55251,0 z"
-       sodipodi:ry="20.776255"
-       sodipodi:rx="20.776255"
-       sodipodi:cy="44.021336"
-       sodipodi:cx="950.16736"
+    <circle
        id="path7178"
-       style="fill:#729fcf;fill-opacity:1;stroke:#2d3336;stroke-width:3.69802618;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
-       sodipodi:type="arc"
-       transform="matrix(0.13520726,0,0,0.13520726,367.88769,255.59292)" />
-    <path
+       style="fill:#729fcf;fill-opacity:1;stroke:#2d3336;stroke-width:3.69803;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       cx="950.16736"
+       cy="44.021336"
+       r="20.776255"
+       transform="matrix(0.13520726,0,0,0.13520726,367.88769,255.59292)"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035" />
+    <circle
        transform="matrix(0.13520726,0,0,0.13520726,356.90926,254.95146)"
-       sodipodi:type="arc"
-       style="fill:#729fcf;fill-opacity:1;stroke:#2d3336;stroke-width:3.69802618;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       style="fill:#729fcf;fill-opacity:1;stroke:#2d3336;stroke-width:3.69803;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="path7180"
-       sodipodi:cx="950.16736"
-       sodipodi:cy="44.021336"
-       sodipodi:rx="20.776255"
-       sodipodi:ry="20.776255"
-       d="m 970.94361,44.021336 a 20.776255,20.776255 0 1 1 -41.55251,0 20.776255,20.776255 0 1 1 41.55251,0 z" />
+       cx="950.16736"
+       cy="44.021336"
+       r="20.776255"
+       inkscape:export-filename="/home/silmathoron/Documents/PhD_NNGA/NNGT/doc/images/nngt_codeberg.png"
+       inkscape:export-xdpi="792.05035"
+       inkscape:export-ydpi="792.05035" />
   </g>
 </svg>

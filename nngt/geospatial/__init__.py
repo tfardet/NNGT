@@ -1,6 +1,6 @@
 #-*- coding:utf-8 -*-
 #
-# io/__init__.py
+# geospatial/__init__.py
 #
 # This file is part of the NNGT project, a graph-library for standardized and
 # and reproducible graph analysis: generate and analyze networks with your
@@ -22,6 +22,16 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 """
-The Input/output (I/O) module contains function to read and write network
-files.
+The geospatial module contains functions and objects that enable
+straightforward network plots together with geospatial data.
+
+It relies on `geopandas <geopandas.org>`_ and
+`cartopy <https://scitools.org.uk/cartopy/docs/latest>`_ in the background.
+
+See ":ref:`sphx_glr_gallery_graph_structure_plot_map.py`" for an example.
 """
+
+from .countries import (maps, country_names, country_codes, convertors, cities,
+                        codes_to_names, natural_earth)
+
+from .plot import draw_map

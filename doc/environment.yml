@@ -1,0 +1,18 @@
+channels:
+    - conda-forge
+dependencies:
+    - cython
+    - python=3.8
+    - numpy
+    - scipy
+    - pandas
+    - matplotlib
+    - cartopy
+    - pip:
+        - sphinx_bootstrap_theme
+        - peewee
+        - sphinx-gallery
+        - networkx
+        - shapely
+        - dxfgrabber
+        - geopandas

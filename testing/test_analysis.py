@@ -716,6 +716,13 @@ def test_local_closure():
         na.local_closure(g, weights="weight"),
         [4/7, 1, 0, 4/7]))
 
+    # check weight normalization
+    g.set_weights(2*np.array([1, 0.5, 0.25, 1]))
+
+    assert np.all(np.isclose(
+        na.local_closure(g, weights="weight"),
+        [4/7, 1, 0, 4/7]))
+
     # undirected weighted (continuous)
     g.set_weights([1, 1/64, 1/4, 1])
 

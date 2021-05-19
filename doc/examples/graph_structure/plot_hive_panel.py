@@ -29,6 +29,12 @@ import matplotlib.pyplot as plt
 import nngt
 
 
+plt.rcParams.update({
+    "figure.facecolor": (0, 0, 0, 0),
+    "axes.titlecolor": "grey", "text.color": "grey"
+})
+
+
 dirpath  = os.path.abspath(os.getcwd())
 rootpath = os.path.abspath(dirpath + "/../../..")
 

@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 
 import nngt
 
+plt.rcParams["figure.facecolor"] = (0, 0, 0, 0)
 
 nngt.seed(0)
 
@@ -58,5 +59,5 @@ nngt.generation.connect_groups(g, room4, room3, "erdos_renyi", avg_deg=10)
 
 sg = g.get_structure_graph()
 
-nngt.plot.chord_diagram(sg, names="name", sort="distance",
+nngt.plot.chord_diagram(sg, names="name", sort="distance", fontcolor="grey",
                         use_gradient=True, show=True)

@@ -4,6 +4,8 @@ Analysis module
 
 Tools to analyze neuronal networks, using either their topological properties,
 their activity, or more importantly, taking both into account.
+See also :ref:`graph-analysis` for more details on consistent analysis across
+graph libraries.
 
 Content
 =======

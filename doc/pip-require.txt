@@ -1,15 +1,13 @@
 ## bootstrap theming ##
 sphinx_bootstrap_theme
 
-##    Plot module    ##
-matplotlib
-
 ##   Database tools  ##
 peewee
 
-##    Numpy/Scipy    ##
-numpy
-scipy
+##     geospatial     ##
+cython
+geopandas
+cartopy
 
 ##      Gallery      ##
 sphinx-gallery

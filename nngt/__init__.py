@@ -167,7 +167,7 @@ _init_logger(_logger)
 
 # IMPORTANT: afterwards, import config
 from .lib.nngt_config import (get_config, set_config, _load_config, _convert,
-                              _log_conf_changed, _lazy_load)
+                              _log_conf_changed, _lazy_load, _config_info)
 
 # check that config file exists
 if not _os.path.isfile(_new_config):  # if it does not, create it
@@ -302,6 +302,25 @@ __all__ = [
 ]
 
 
+# test geometry supports
+
+try:
+    import svg.path as _svg
+    _has_svg = True
+except:
+    _has_svg = False
+try:
+    import dxfgrabber as _dxf
+    _has_dxf = True
+except:
+    _has_dxf = False
+try:
+    import shapely as _shapely
+    _has_shapely = _shapely.__version__
+except:
+    _has_shapely = False
+
+
 # test if plot module is supported
 
 try:
@@ -314,10 +333,22 @@ except ImportError as e:
     _config['with_plot'] = False
 
 
+# lazy load for simulation module
+
 if _imputil.find_spec("nest") is not None:
     _config['with_nest'] = True
     simulation = _lazy_load("nngt.simulation")
     __all__.append("simulation")
+
+
+# lazy load for geospatial module
+
+_has_geospatial = False
+
+if _imputil.find_spec("geopandas") is not None and _has_shapely:
+    geospatial = _lazy_load("nngt.geospatial")
+    __all__.append("geospatial")
+    _has_geospatial = True
 
 
 # load database module if required
@@ -338,36 +369,8 @@ if _config["use_database"]:
 _glib_version = (_config["library"].__version__[:5]
                  if _config["library"] is not None else __version__)
 
-try:
-    import svg.path as _svg
-    _has_svg = True
-except:
-    _has_svg = False
-try:
-    import dxfgrabber as _dxf
-    _has_dxf = True
-except:
-    _has_dxf = False
-try:
-    import shapely as _shapely
-    _has_shapely = _shapely.__version__
-except:
-    _has_shapely = False
 
-_log_info = '''
-# ----------- #
-# NNGT loaded #
-# ----------- #
-Graph library:  {gl}
-Multithreading: {thread} ({omp} thread{s})
-MPI:            {mpi}
-Plotting:       {plot}
-NEST support:   {nest}
-Shapely:        {shapely}
-SVG support:    {svg}
-DXF support:    {dxf}
-Database:       {db}
-'''.format(
+_log_info = _config_info.format(
     gl      = _config["backend"] + ' ' + _glib_version,
     thread  = _config["multithreading"],
     plot    = _config["with_plot"],
@@ -379,6 +382,7 @@ Database:       {db}
     shapely = _has_shapely,
     svg     = _has_svg,
     dxf     = _has_dxf,
+    geotool = _has_geospatial,
 )
 
 _log_conf_changed(_log_info)

@@ -110,9 +110,14 @@ procedures are detailed in the documentation.
 Known bugs
 ----------
 
-* erratic key release issue with animation of spiking networks,
-* see `the issue tracker <https://github.com/Silmathoron/NNGT/issues>`_ for an
-  updated list.
+* Calling ``nngt.geospatial`` or ``nngt.simulation`` directly in python causes
+  a ``ValueError: module object substituted in sys.modules during a lazy load``
+  which I don't know how to avoided... use
+  ``from nngt.geospatial/simulation import whatever_you_want`` or
+  ``import nngt.geospatial/simulation as ng/ns`` instead.
+* See the issue trackers on
+  `Codeberg <https://codeberg.org/tfardet/NNGT/issues>`_ or
+  `GitHub <https://github.com/Silmathoron/NNGT/issues>`_ for up-to-date lists.
 
 
 .. _DeNSE: https://dense.readthedocs.io

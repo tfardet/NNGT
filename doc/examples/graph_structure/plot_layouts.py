@@ -30,6 +30,12 @@ import matplotlib.pyplot as plt
 import nngt
 
 
+plt.rcParams.update({
+    "figure.facecolor": (0, 0, 0, 0),
+    "axes.labelcolor": "grey", "axes.titlecolor": "grey", "text.color": "grey"
+})
+
+
 nngt.seed(0)
 
 
@@ -78,7 +84,8 @@ nngt.generation.connect_groups(g, (room1, room2), struct, "erdos_renyi",
 
 nngt.generation.connect_groups(g, room3, room1, "erdos_renyi", avg_deg=5)
 
-nngt.plot.library_draw(g, tight=False, axis=axes[0, 0], show=False)
+nngt.plot.library_draw(g, tight=False, axis=axes[0, 0], ecolor="grey",
+                       show=False)
 
 axes[0, 0].set_title("Spring-block layout")
 
@@ -90,7 +97,7 @@ sw = nngt.generation.watts_strogatz(4, 0.3, nodes=num_nodes)
 betw = nngt.analysis.betweenness(sw, "node")
 
 nngt.plot.draw_network(sw, nsize=betw, ncolor="out-degree", axis=axes[0, 1],
-                       tight=False, show=False)
+                       ecolor="lightgrey", tight=False, show=False)
 
 axes[0, 1].set_title("Random layout")
 
@@ -98,7 +105,7 @@ axes[0, 1].set_title("Random layout")
 # circular layout for small-world networks
 
 nngt.plot.draw_network(sw, nsize=betw, ncolor="out-degree", layout="circular",
-                       axis=axes[1, 0], show=False, tight=False)
+                       ecolor="lightgrey", axis=axes[1, 0], show=False, tight=False)
 
 axes[1, 0].set_title("Circular layout")
 
@@ -116,7 +123,8 @@ g = nngt.generation.distance_rule(10, shape=shape, nodes=num_nodes, avg_deg=5)
 
 cc = nngt.analysis.local_clustering(g)
 
-nngt.plot.draw_network(g, ncolor=cc, axis=axes[1, 1], tight=False, show=False)
+nngt.plot.draw_network(g, ncolor=cc, axis=axes[1, 1], ecolor="lightgrey",
+                       tight=False, show=False)
 
 axes[1, 1].set_title("Spatial layout")
 

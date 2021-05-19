@@ -10,6 +10,7 @@
     --img-invert: 0;
     --alert-info: #5bc0de;
     --admonition-a: #555555;
+    --a-color: #008cba;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +24,7 @@
         --img-invert: 1;
         --alert-info: #1e7bb3;
         --admonition-a: #cccccc;
+        --a-color: #2ec5f6;
     }
 }
 
@@ -37,6 +39,7 @@
         --img-invert: 0;
         --alert-info: #5bc0de;
         --admonition-a: #555555;
+        --a-color: #008cba;
     }
 }
 
@@ -117,9 +120,15 @@ img.logo {
     height: auto;
 }
 
+
 /*
 Documentation functions
 */
+
+a {
+    color: var(--a-color);
+    text-decoration: none;
+}
 
 table {
     font-size: 100%;
@@ -214,6 +223,10 @@ table.citation td.label {
     color: var(--admonition-a);
 }
 
+a.fn-backref {
+    color: var(--fg-color);
+}
+
 .alert-info {
     background-color: var(--alert-info) !important;
 }
@@ -240,6 +253,8 @@ Sphinx gallery image size
 .sphx-glr-thumbcontainer {
     min-height: 330px !important;
     margin-bottom: 10px !important;
+    background: var(--bg-color) !important;
+    border-color: var(--admonition-a) !important;
 }
 
 .sphx-glr-thumbcontainer .figure {

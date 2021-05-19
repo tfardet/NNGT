@@ -25,6 +25,15 @@ Plot the degree distributions of a graph
 import nngt
 import nngt.plot as nplt
 
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({
+    'axes.edgecolor': 'grey', 'xtick.color': 'grey', 'ytick.color': 'grey',
+    "figure.facecolor": (0, 0, 0, 0), "axes.facecolor": (0, 0, 0, 0),
+    "axes.labelcolor": "grey", "axes.titlecolor": "grey", "text.color": "grey",
+    "legend.facecolor": "none"
+})
+
 
 nngt.seed(0)
 

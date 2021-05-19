@@ -597,6 +597,7 @@ class Graph(nngt.core.GraphObject):
         '''
         if nngt.get_config("mpi"):
             raise NotImplementedError("`copy` is not MPI-safe yet.")
+
         gc_instance = Graph(name=self._name + '_copy',
                             weighted=self.is_weighted(), copy_graph=self,
                             directed=self.is_directed())

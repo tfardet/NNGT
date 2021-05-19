@@ -103,11 +103,11 @@ except:
 # import nngt
 import nngt
 
-# import simulation & geography explicitely to avoid import conflict with
+# import simulation & geospatial explicitely to avoid import conflict with
 # lazy load
 import nngt.simulation
 try:
-    import nngt.geography
+    import nngt.geospatial
 except:
     pass
 
@@ -531,6 +531,8 @@ napoleon_use_rtype = False
 imported_members = True
 
 intersphinx_mapping = {
+    'cartopy': ('https://scitools.org.uk/cartopy/docs/latest/', None),
+    'geopandas': ('https://geopandas.org/', None),
     'gt': ('https://graph-tool.skewed.de/static/doc/', None),
     'ipython': ('https://ipython.org/ipython-doc/stable/', None),
     'matplotlib': ('https://matplotlib.org/', None),

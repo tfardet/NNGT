@@ -164,7 +164,11 @@ setup_params = dict(
     extras_require = {
         'matplotlib': 'matplotlib',
         'nx': ['networkx>=2.4'],
-        'ig': ['python-igraph']
+        'ig': ['python-igraph'],
+        'geometry': ['matplotlib', 'shapely', 'dxfgrabber', 'svg.path'],
+        'geospatial': ['matplotlib', 'geopandas', 'descartes', 'cartopy'],
+        'full': ['cython', 'networkx>=2.4', 'shapely', 'dxfgrabber',
+                 'svg.path', 'matplotlib', 'geopandas', 'descartes', 'cartopy']
     },
 
     # Cython module

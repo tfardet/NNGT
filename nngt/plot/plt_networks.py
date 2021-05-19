@@ -25,6 +25,8 @@ from itertools import cycle
 from collections import defaultdict
 
 import numpy as np
+
+import matplotlib as mpl
 from matplotlib.artist import Artist
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
 from matplotlib.patches import Arc, RegularPolygon, PathPatch
@@ -168,9 +170,19 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                          dpi=dpi)
         axis = fig.add_subplot(111, frameon=0, aspect=1)
 
-    axis.set_axis_off()
+    # projections for geographic plots
+
+    proj = kwargs.get("proj", None)
+
+    kw = {} if proj is None else {"transform": proj}
+
+    if proj is None:
+        axis.set_axis_off()
 
     pos = None
+
+    # arrow style
+    arrowstyle = "-|>" if network.is_directed() else "-"
 
     # restrict sources and targets
     restrict_sources = _convert_to_nodes(restrict_sources,
@@ -261,9 +273,7 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
     default_ecmap = (palette_discrete() if not nonstring_container(ncolor) and
                      ecolor == "group" else palette_continuous())
 
-    if isinstance(ecolor, float):
-        ecolor = np.repeat(ecolor, e)
-    elif ecolor == "groups" or ecolor == "group":
+    if ecolor == "groups" or ecolor == "group":
         if not network.is_network():
             raise TypeError(
                 "The graph must be a Network to use `ecolor='groups'`.")
@@ -283,30 +293,33 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                             ecolor[(src, tgt)] = \
                                 np.abs(0.8*node_color[idx1]
                                        - 0.2*node_color[idx2])
+    elif not nonstring_container(ecolor):
+        ecolor = np.repeat(ecolor, e)
 
     # draw
-    pos = np.zeros((n, 2))
+    pos = kwargs.get("positions", None)
 
-    if layout == "circular":
+    spatial *= (network.is_spatial() or pos is not None)
+
+    if nonstring_container(layout):
+        assert np.shape(layout) == (n, 2), "One position per node is required."
+        pos = np.asarray(layout)
+    elif layout == "circular":
         pos = _circular_layout(network, nsize)
-    elif layout is None and spatial and network.is_spatial():
+    elif pos is None and spatial:
         if show_environment:
-            nngt.geometry.plot.plot_shape(network.shape, axis=axis,
-                                          show=False)
+            nngt.geometry.plot.plot_shape(network.shape, axis=axis, show=False)
 
         nodes = None if restrict_nodes is None else list(restrict_nodes)
 
         pos = network.get_positions(nodes=nodes)
-    elif nonstring_container(layout):
-        assert np.shape(layout) == (n, 2), "One position per node is required."
-        pos = np.asarray(layout)
     else:
+        pos = np.full((n, 2), np.NaN)
+
         pos[:, 0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)
 
-    # make nodes
-    nodes = []
-
+    # prepare node colors
     if nonstring_container(c) and not isinstance(c[0], str):
         # make the colorbar for the nodes
         cmap = ncmap
@@ -377,6 +390,8 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                          marker=nshape, zorder=2, edgecolor=nborder_color,
                          linewidths=nborder_width, alpha=nalpha)
     else:
+        nodes = []
+
         axis.set_aspect(1.)
 
         if network.is_network():
@@ -403,57 +418,78 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
         nodes.set_zorder(2)
         axis.add_collection(nodes)
 
-    if not show_environment or not spatial or not network.is_spatial():
+    if not show_environment or not spatial or proj is not None:
         # axis.get_data()
         _set_ax_lim(axis, pos[:, 0], pos[:, 1], xlims, ylims)
 
     # use quiver to draw the edges
     if e and decimate_connections != -1:
         avg_size = np.average(nsize)
-        arr_style = ArrowStyle.Simple(head_length=0.15*avg_size,
-                                      head_width=0.1*avg_size,
-                                      tail_width=0.05*avg_size)
+
         arrows = []
+
         if group_based:
             for src_name, src_group in network.population.items():
                 for tgt_name, tgt_group in network.population.items():
-                    s_ids        = src_group.ids
+                    s_ids = src_group.ids
+
                     if restrict_sources is not None:
                         s_ids = list(set(restrict_sources).intersection(s_ids))
-                    t_ids        = tgt_group.ids
+
+                    t_ids = tgt_group.ids
+
                     if restrict_targets is not None:
                         t_ids = list(set(restrict_targets).intersection(t_ids))
+
                     if t_ids and s_ids:
                         s_min, s_max = np.min(s_ids), np.max(s_ids) + 1
                         t_min, t_max = np.min(t_ids), np.max(t_ids) + 1
-                        edges        = np.array(
+
+                        edges = np.array(
                             adj_mat[s_min:s_max, t_min:t_max].nonzero(),
                             dtype=int)
+
                         edges[0, :] += s_min
                         edges[1, :] += t_min
-                        if nonstring_container(esize):
-                            keep = (esize > 0)
-                            edges = edges[:, keep]
-                            esize = esize[keep]
-                        if decimate_connections > 1:
-                            edges = edges[:, ::decimate_connections]
-                            if nonstring_container(esize):
-                                esize = esize[::decimate_connections]
+
+                        strght_edges, self_loops, strght_sizes, loop_sizes = \
+                            _split_edges_sizes(edges, esize,
+                                               decimate_connections)
+
                         # plot
                         ec = default_ecmap(ecolor[(src_name, tgt_name)])
+
                         if fast:
                             dl       = 0.5*np.max(nsize)
-                            arrow_x  = pos[edges[1], 0] - pos[edges[0], 0]
+                            arrow_x  = pos[strght_edges[1], 0] - \
+                                       pos[strght_edges[0], 0]
                             arrow_x -= np.sign(arrow_x) * dl
-                            arrow_y  = pos[edges[1], 1] - pos[edges[0], 1]
+                            arrow_y  = pos[strght_edges[1], 1] - \
+                                       pos[strght_edges[0], 1]
                             arrow_x -= np.sign(arrow_y) * dl
+
                             axis.quiver(
-                                pos[edges[0], 0], pos[edges[0], 1], arrow_x,
+                                pos[strght_edges[0], 0],
+                                pos[strght_edges[0], 1], arrow_x,
                                 arrow_y, scale_units='xy', angles='xy',
                                 scale=1, alpha=ealpha, width=1.5e-3,
-                                linewidths=0.5*esize, edgecolors=ec, zorder=1)
+                                linewidths=0.5*strght_sizes, edgecolors=ec,
+                                zorder=1, **kw)
+
+                            for i, s in enumerate(self_loops):
+                                es = loop_sizes[i]
+                                ec = loop_colors[i]
+                                cs = _connectionstyle(axis, nsize[s],
+                                                      loop_sizes[i])
+
+                                arrow = FancyArrowPatch(
+                                    pos[s], pos[s], arrowstyle=arrowstyle,
+                                    shrinkA=nsize[s], color=ec,
+                                    linewidth=es, connectionstyle=cs, zorder=1)
+
+                                axis.add_patch(arrow)
                         else:
-                            for s, t in zip(edges[0], edges[1]):
+                            for s, t in zip(strght_edges[0], strght_edges[1]):
                                 xs, ys = pos[s, 0], pos[s, 1]
                                 xt, yt = pos[t, 0], pos[t, 1]
                                 dl     = 0.5*nsize[t]
@@ -465,9 +501,18 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                                 if curved_edges:
                                     arrow = FancyArrowPatch(
                                         posA=(xs, ys), posB=(xt, yt),
-                                        arrowstyle=arr_style,
+                                        arrowstyle=arrowstyle,
                                         connectionstyle='arc3,rad=0.1',
                                         alpha=ealpha, fc=ec, lw=0.5)
+                                    axis.add_patch(arrow)
+                                elif s == t:
+                                    # self-loop
+                                    arrow = FancyArrowPatch(
+                                        posA=(xs, ys), posB=(xt, yt),
+                                        arrowstyle=arrowstyle,
+                                        connectionstyle='arc3,rad=1',
+                                        alpha=ealpha, fc=ec, lw=0.5)
+
                                     axis.add_patch(arrow)
                                 else:
                                     arrows.append(FancyArrow(
@@ -477,98 +522,141 @@ def draw_network(network, nsize="total-degree", ncolor="group", nshape="o",
                                         length_includes_head=True,
                                         alpha=ealpha, fc=ec, lw=0.5))
         else:
-            if e and decimate_connections != -1:
-                # keep only large edges
-                if nonstring_container(esize):
-                    keep = (esize > 0)
-                    edges  = edges[keep]
-                    if nonstring_container(ecolor):
-                        ecolor = ecolor[keep]
-                    esize = esize[keep]
+            if e and decimate_connections >= 1:
+                strght_colors, loop_colors = [], []
 
-                if decimate_connections > 1:
-                    edges = edges[::decimate_connections]
-                    if nonstring_container(esize):
-                        esize = esize[::decimate_connections]
-                    if nonstring_container(ecolor):
-                        ecolor = ecolor[::decimate_connections]
+                strght_edges, self_loops, strght_sizes, loop_sizes = \
+                    _split_edges_sizes(edges, esize, decimate_connections,
+                    ecolor, strght_colors, loop_colors)
 
                 # keep only desired edges
                 if None not in (restrict_sources, restrict_targets):
                     new_edges = []
+                    new_colors = []
 
-                    for edge in edges:
+                    for edge, ec in zip(strght_edges, strght_colors):
                         s, t = edge
 
                         if s in restrict_sources and t in restrict_targets:
                             new_edges.append(edge)
+                            new_colors.append(ec)
 
-                    edges = np.array(new_edges, dtype=int)
+                    strght_edges = np.array(new_edges, dtype=int)
+                    strght_colors = new_colors
 
                     if restrict_nodes is not None:
-                        nodes = list(restrict_nodes)
+                        nodes = list(self_loops)
                         nodes.sort()
 
-                        for i, node in enumerate(nodes):
-                            edges[edges == node] = i
+                        new_loops = set()
+                        new_colors = []
+
+                        for i, node in enumerate(restrict_nodes):
+                            strght_edges[strght_edges == node] = i
+
+                            if node in self_loops:
+                                idx = nodes.index(node)
+                                new_loops.add(i)
+                                new_colors.append(loop_colors[idx])
+
+                        self_loops = new_loops
+                        loop_colors = new_colors
                 elif restrict_sources is not None:
                     new_edges = []
+                    new_colors = []
 
-                    for edge in edges:
+                    for edge, ec in zip(strght_edges, strght_colors):
                         s, _ = edge
 
                         if s in restrict_sources:
                             new_edges.append(edge)
+                            new_colors.append(ec)
 
-                    edges = np.array(new_edges, dtype=int)
+                    strght_edges = np.array(new_edges, dtype=int)
+
+                    loop_colors = [ec for ec, n in zip(loop_colors, self_loops)
+                                   if n in restrict_sources]
+                    self_loops  = self_loops.intersection(restrict_sources)
                 elif restrict_targets is not None:
                     new_edges = []
+                    new_colors = []
 
-                    for edge in edges:
+                    for edge, ec in zip(strght_edges, strght_colors):
                         _, t = edge
 
                         if t in restrict_targets:
                             new_edges.append(edge)
+                            new_colors.append(ec)
 
-                    edges = np.array(new_edges, dtype=int)
+                    strght_edges = np.array(new_edges, dtype=int)
 
-            if isinstance(ecolor, str):
-                ecolor = [ecolor for i in range(0, e, decimate_connections)]
+                    loop_colors = [ec for ec, n in zip(loop_colors, self_loops)
+                                   if n in restrict_targets]
+                    self_loops  = self_loops.intersection(restrict_targets)
 
-            if len(edges) and fast:
-                dl = 0.5*np.max(nsize) if not simple_nodes else 0.
+            if fast:
+                if len(strght_edges):
+                    dl = 0.5*np.max(nsize) if not simple_nodes else 0.
 
-                arrow_x  = pos[edges[:, 1], 0] - pos[edges[:, 0], 0]
-                arrow_x -= np.sign(arrow_x) * dl
-                arrow_y  = pos[edges[:, 1], 1] - pos[edges[:, 0], 1]
-                arrow_x -= np.sign(arrow_y) * dl
+                    arrow_x  = pos[strght_edges[:, 1], 0] - \
+                               pos[strght_edges[:, 0], 0]
+                    arrow_x -= np.sign(arrow_x) * dl
+                    arrow_y  = pos[strght_edges[:, 1], 1] - \
+                               pos[strght_edges[:, 0], 1]
+                    arrow_x -= np.sign(arrow_y) * dl
 
-                axis.quiver(pos[edges[:, 0], 0], pos[edges[:, 0], 1], arrow_x,
-                            arrow_y, scale_units='xy', angles='xy', scale=1,
-                            alpha=ealpha, width=1.5e-3, linewidths=0.5*esize,
-                            ec=ecolor, fc=ecolor, zorder=1)
-            elif len(edges):
-                for i, (s, t) in enumerate(edges):
-                    xs, ys = pos[s, 0], pos[s, 1]
-                    xt, yt = pos[t, 0], pos[t, 1]
+                    axis.quiver(
+                        pos[strght_edges[:, 0], 0], pos[strght_edges[:, 0], 1],
+                        arrow_x, arrow_y, scale_units='xy', angles='xy',
+                        scale=1, alpha=ealpha, width=1.5e-3,
+                        linewidths=0.5*esize, ec=ecolor, fc=ecolor, zorder=1)
 
-                    if curved_edges:
-                        arrow = FancyArrowPatch(
-                            posA=(xs, ys), posB=(xt, yt), arrowstyle=arr_style,
-                            connectionstyle='arc3,rad=0.1',
-                            alpha=ealpha, fc=ecolor[i], lw=0.5)
-                        axis.add_patch(arrow)
-                    else:
-                        dl     = 0.5*nsize[t]
-                        dx     = xt-xs
-                        dx -= np.sign(dx) * dl
-                        dy     = yt-ys
-                        dy -= np.sign(dy) * dl
-                        arrows.append(FancyArrow(
-                            xs, ys, dx, dy, width=0.3*avg_size,
-                            head_length=0.7*avg_size, head_width=0.7*avg_size,
-                            length_includes_head=True, alpha=ealpha,
-                            fc=ecolor[i], lw=0.5))
+                for i, s in enumerate(self_loops):
+                    es = loop_sizes[i]
+                    ec = loop_colors[i]
+                    cs = _connectionstyle(axis, nsize[s], loop_sizes[i])
+
+                    arrow = FancyArrowPatch(
+                        pos[s], pos[s], arrowstyle=arrowstyle,
+                        shrinkA=nsize[s], color=ec, linewidth=es,
+                        connectionstyle=cs, zorder=1)
+
+                    axis.add_patch(arrow)
+            else:
+                if len(strght_edges):
+                    for i, (s, t) in enumerate(strght_edges):
+                        xs, ys = pos[s, 0], pos[s, 1]
+                        xt, yt = pos[t, 0], pos[t, 1]
+
+                        if curved_edges:
+                            arrow = FancyArrowPatch(
+                                posA=(xs, ys), posB=(xt, yt),
+                                arrowstyle=arrowstyle,
+                                connectionstyle='arc3,rad=0.1',
+                                alpha=ealpha, fc=ecolor[i], lw=0.5)
+                            axis.add_patch(arrow)
+                        else:
+                            dl     = 0.5*nsize[t]
+                            dx     = xt-xs
+                            dx -= np.sign(dx) * dl
+                            dy     = yt-ys
+                            dy -= np.sign(dy) * dl
+                            arrows.append(FancyArrow(
+                                xs, ys, dx, dy, width=0.3*avg_size,
+                                head_length=0.7*avg_size, head_width=0.7*avg_size,
+                                length_includes_head=True, alpha=ealpha,
+                                fc=strght_colors[i], lw=0.5))
+
+                for i, s in enumerate(self_loops):
+                    es = loop_sizes[i]
+                    ec = loop_colors[i]
+
+                    arrow = FancyArrowPatch(
+                        pos[s], pos[s], arrowstyle=arrowstyle,
+                        shrinkA=nsize[s], color=ec, linewidth=es,
+                        connectionstyle='arc3,rad=1', zorder=1)
+
+                    arrows.append(arrow)
 
         if not fast:
             arrows = PatchCollection(arrows, match_original=True, alpha=ealpha)
@@ -979,7 +1067,6 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         "Set1" for groups) and the boolean `simple_nodes` to make node
         plotting faster.
     '''
-    import matplotlib as mpl
     import matplotlib.pyplot as plt
 
     # backend and axis
@@ -1015,6 +1102,8 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
             spatial=spatial, restrict_nodes=restrict_nodes,
             show_environment=show_environment, size=size, axis=axis,
             layout=layout, show=show, **kwargs)
+
+        return
 
     # otherwise, preapre data
     restrict_nodes = _convert_to_nodes(restrict_nodes,
@@ -1200,6 +1289,18 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
         for k, v in convert_shape.items():
             shape_dict[k] = v
 
+        if nonstring_container(nsize):
+            nsize = list(nsize)
+
+        if nonstring_container(node_color):
+            node_color = list(node_color)
+
+        if nonstring_container(esize):
+            esize = list(esize)
+
+        if nonstring_container(ecolor):
+            ecolor = list(ecolor)
+
         visual_style = {
             "vertex_size": nsize,
             "vertex_color": node_color,
@@ -1229,8 +1330,8 @@ def library_draw(network, nsize="total-degree", ncolor="group", nshape="o",
 
 def chord_diagram(network, weights=True, names=None, order=None, width=0.1,
                   pad=2., gap=0.03, chordwidth=0.7, axis=None, colors=None,
-                  cmap=None, alpha=0.7, use_gradient=False, show=False,
-                  **kwargs):
+                  cmap=None, alpha=0.7, use_gradient=False, chord_colors=None,
+                  show=False, **kwargs):
     """
     Plot a chord diagram.
 
@@ -1259,17 +1360,40 @@ def chord_diagram(network, weights=True, names=None, order=None, width=0.1,
     colors : list, optional (default: from `cmap`)
         List of user defined colors or floats.
     cmap : str or colormap object (default: viridis)
-        Colormap to use.
+        Colormap that will be used to color the arcs and chords by default.
+        See `chord_colors` to use different colors for chords.
     alpha : float in [0, 1], optional (default: 0.7)
         Opacity of the chord diagram.
     use_gradient : bool, optional (default: False)
         Whether a gradient should be use so that chord extremities have the
         same color as the arc they belong to.
-    **kwargs : keyword arguments
-        Available kwargs are "fontsize" and "sort" (either "size" or
-        "distance"), "zero_entry_size" (in degrees, default: 0.5),
-        "rotate_names" (a bool or list of bools) to rotate (some of) the
-        names by 90°.
+    chord_colors : str, or list of colors, optional (default: None)
+        Specify color(s) to fill the chords differently from the arcs.
+        When the keyword is not used, chord colors default to the colomap given
+        by `colors`.
+        Possible values for `chord_colors` are:
+
+        * a single color (do not use an RGB tuple, use hex format instead),
+          e.g. "red" or "#ff0000"; all chords will have this color
+        * a list of colors, e.g. ``["red", "green", "blue"]``, one per node
+          (in this case, RGB tuples are accepted as entries to the list).
+          Each chord will get its color from its associated source node, or
+          from both nodes if `use_gradient` is True.
+    show : bool, optional (default: False)
+        Whether the plot should be displayed immediately via an automatic call
+        to `plt.show()`.
+    kwargs : keyword arguments
+        Available kwargs are:
+
+        ================  ==================  ===============================
+              Name               Type           Purpose and possible values
+        ================  ==================  ===============================
+        fontcolor         str or list         Color of the names
+        fontsize          int                 Size of the font for names
+        rotate_names      (list of) bool(s)   Rotate names by 90°
+        sort              str                 Either "size" or "distance"
+        zero_entry_size   float               Size of zero-weight reciprocal
+        ================  ==================  ===============================
     """
     ww = 'weight' if weights is True else weights
     nn = network.node_attributes[names] if isinstance(names, str) else names
@@ -1279,7 +1403,8 @@ def chord_diagram(network, weights=True, names=None, order=None, width=0.1,
     return _chord_diag(
         mat, nn, order=order, width=width, pad=pad, gap=gap,
         chordwidth=chordwidth, ax=axis, colors=colors, cmap=cmap, alpha=alpha,
-        use_gradient=use_gradient, show=show, **kwargs)
+        use_gradient=use_gradient, chord_colors=chord_colors, show=show,
+        **kwargs)
 
 
 # ----- #
@@ -1330,7 +1455,14 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, esize, max_esize,
     elif isinstance(nsize, (float, int, np.number)):
         nsize = np.full(n, nsize, dtype=float)
     elif nonstring_container(nsize):
-        nsize *= max_nsize / np.max(nsize)
+        if len(nsize) == n:
+            nsize *= max_nsize / np.max(nsize)
+        elif len(nsize) == network.node_nb() and restrict_nodes is not None:
+            nsize = np.asarray(nsize)[list(restrict_nodes)]
+            nsize /= max_nsize / np.max(nsize)
+        else:
+            raise ValueError("`nsize` must contain either one entry per node "
+                             "or be the same length as `restrict_nodes`.")
 
     nsize *= 0.01 * size[0]
 
@@ -1773,3 +1905,86 @@ def _circular_layout(graph, node_size):
     y = r*np.sin(thetas)
 
     return np.array((x, y)).T
+
+
+
+def _connectionstyle(axis, nsize, esize):
+    def cs(posA, posB, *args, **kwargs):
+        # check if we need to do a self-loop
+        if np.all(posA == posB):
+            # Self-loops are scaled by node size
+            vshift = 0.1*max(nsize, 2*esize)
+            hshift = 0.7*vshift
+            # this is called with _screen space_ values so covert back
+            # to data space
+
+            s1 = np.asarray([-hshift, vshift])
+            s2 = np.asarray([hshift, vshift])
+
+            p1 = axis.transData.inverted().transform(posA)
+            p2 = axis.transData.inverted().transform(posA + s1)
+            p3 = axis.transData.inverted().transform(posA + s2)
+
+            path = [p1, p2, p3, p1]
+
+            ret = mpl.path.Path(axis.transData.transform(path), [1, 2, 2, 2])
+        # if not, fall back to the user specified behavior
+        else:
+            return None
+
+        return ret
+
+    return cs
+
+def _split_edges_sizes(edges, esize, decimate_connections, ecolor=None,
+                       strght_colors=None, loop_colors=None):
+    strght_edges, self_loops = None, None
+    strght_sizes, loop_sizes = None, None
+
+    keep  = (esize > 0) if nonstring_container(esize) else True
+    loops = (edges[:, 0] == edges[:, 1])
+
+    strght = keep*(~loops)
+
+    strght_edges = edges[strght]
+
+    self_loops = set(edges[loops, 0])
+
+    if ecolor is not None:
+        if nonstring_container(ecolor):
+            if decimate_connections < 1:
+                strght_colors.extend(ecolor[strght])
+            loop_colors.extend(ecolor[loops])
+        else:
+            if decimate_connections < 1:
+                strght_colors.extend([ecolor]*len(strght_edges))
+            loop_colors.extend([ecolor]*len(self_loops))
+
+    if nonstring_container(esize):
+        strght_sizes = esize[strght]
+        loop_sizes = esize[loops]
+    else:
+        strght_sizes = esize
+        loop_sizes = [esize]*len(self_loops)
+
+    if decimate_connections > 1:
+        strght_edges = \
+            strght_edges[::decimate_connections]
+
+        if nonstring_container(esize):
+            strght_sizes = \
+                strght_sizes[::decimate_connections]
+
+        if ecolor is not None:
+            if nonstring_container(ecolor):
+                strght_colors.extend(ecolor[strght][::decimate_connections])
+            else:
+                strght_colors.extend(
+                    [ecolor] * (len(strght_edges) // decimate_connections))
+    elif ecolor is not None:
+        if nonstring_container(ecolor):
+            strght_colors.extend(ecolor[strght])
+        else:
+            strght_colors.extend([ecolor]*len(strght_edges))
+
+    return strght_edges, self_loops, strght_sizes, loop_sizes
