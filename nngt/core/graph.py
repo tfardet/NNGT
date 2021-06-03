@@ -702,29 +702,29 @@ class Graph(nngt.core.GraphObject):
                 lambda: "sum", **combine_numeric_eattr)
 
         # find integer eattr
-        integer_eattr = "weight" if "weight" in eattrs else None
-        integer_types = ("int", "double")
+        numeric_eattr = "weight" if "weight" in eattrs else None
+        numeric_types = ("int", "double")
 
-        if integer_eattr is None:
+        if numeric_eattr is None:
             for eattr in eattrs:
-                if self.get_attribute_type(eattr, "edge") in integer_types:
-                    integer_eattr = eattr
+                if self.get_attribute_type(eattr, "edge") in numeric_types:
+                    numeric_eattr = eattr
                     break
 
-        if integer_eattr is not None:
-            eattrs.discard(integer_eattr)
+        if numeric_eattr is not None:
+            eattrs.discard(numeric_eattr)
 
-            combine = combine_numeric_eattr[integer_eattr]
+            combine = combine_numeric_eattr[numeric_eattr]
 
             _, umat = _get_matrices(
-                self, directed=False, weights=integer_eattr, weighted=True,
-                combine_weights=combine)
+                self, directed=False, weights=numeric_eattr, weighted=True,
+                combine_weights=combine, remove_self_loops=False)
 
             umat = ssp.tril(umat, format="csr")
 
             # create the initial edge attribute
             g.new_edge_attribute(
-                integer_eattr, self.get_attribute_type(integer_eattr, "edge"))
+                numeric_eattr, self.get_attribute_type(numeric_eattr, "edge"))
 
             indptr = umat.indptr
 
@@ -740,18 +740,52 @@ class Graph(nngt.core.GraphObject):
 
             # add all other edge attributes
             for eattr in eattrs:
-                if self.get_attribute_type(eattr, "edge") in integer_types:
-                    combine = combine_numeric_eattr[eattr]
+                etype = self.get_attribute_type(eattr, "edge")
 
-                    _, umat = _get_matrices(
-                        self, directed=False, weights=eattr, weighted=True,
-                        combine_weights=combine)
+                combine = combine_numeric_eattr[eattr]
 
-                    umat = ssp.tril(umat, format="csr")
+                if etype in numeric_types:
+                    if np.all(self.edge_attributes[eattr] > 0):
+                        _, umat = _get_matrices(
+                            self, directed=False, weights=eattr, weighted=True,
+                            combine_weights=combine, remove_self_loops=False)
 
-                    g.new_edge_attribute(
-                        eattr, self.get_attribute_type(eattr, "edge"),
-                        values=umat.data)
+                        umat = ssp.tril(umat, format="csr")
+
+                        g.new_edge_attribute(
+                            eattr, self.get_attribute_type(eattr, "edge"),
+                            values=umat.data)
+                    else:
+                        aa = list(self.edge_attributes[eattr])
+
+                        adict = {
+                            tuple(e): val
+                            for e, val in zip(self.edges_array, aa)
+                        }
+
+                        f = None
+
+                        if combine == "max":
+                            f = np.max
+                        elif combine == "min":
+                            f = np.min
+                        elif combine == "mean":
+                            f = np.mean
+                        elif combine == "sum":
+                            f = np.sum
+                        else:
+                            raise ValueError(
+                                "Invalid combination mode '{}'.".format(
+                                    combine))
+
+                        values = [
+                            f([adict[e] for e in {tuple(e0), tuple(e0[::-1])}
+                               if e in adict]) for e0 in g.edges_array
+                        ]
+
+                        g.new_edge_attribute(
+                            eattr, self.get_attribute_type(eattr, "edge"),
+                            values=values)
         else:
             # hide existing edge warning
             from nngt.lib.connect_tools import logger as lg

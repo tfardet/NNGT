@@ -206,7 +206,7 @@ def _post_del_update(graph, nodes, remapping=None):
 
 
 def _get_matrices(g, directed, weights, weighted, combine_weights,
-                  normed=False, exponent=None):
+                  normed=False, exponent=None, remove_self_loops=True):
     '''
     Return the relevant matrices:
     * W, Wu if weighted
@@ -220,7 +220,8 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
             W /= W.max()
 
         # remove potential self-loops
-        W.setdiag(0.)
+        if remove_self_loops:
+            W.setdiag(0.)
 
         if exponent is not None:
             W = W.power(exponent)
@@ -262,7 +263,8 @@ def _get_matrices(g, directed, weights, weighted, combine_weights,
     A = g.adjacency_matrix()
 
     # remove potential self-loops
-    A.setdiag(0.)
+    if remove_self_loops:
+        A.setdiag(0.)
 
     Au = A
 

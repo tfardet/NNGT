@@ -420,6 +420,29 @@ def test_attributes_are_copied():
     assert not np.all(np.isclose(vv, ntest))
 
 
+@pytest.mark.mpi_skip
+def test_combined_attr():
+    ''' Check combined attributes '''
+    g = nngt.Graph(3)
+    g.new_edges(((0, 1), (1, 1), (1, 2), (2, 1)), check_self_loops=False)
+
+    ww = (0.1, 1, 0.5, 0.2)
+    dd = (2., 0., 0.3, 0.3)
+    rr = (0.8, 0.4, -0.5, 0.5)
+
+    g.set_weights(ww)
+    g.new_edge_attribute("distance", "double", dd)
+    g.new_edge_attribute("rnd", "double", rr)
+
+    combine = {"weight": "max", "distance": "mean", "rnd": "sum"}
+
+    u = g.to_undirected(combine)
+
+    assert np.all(u.get_weights() == (0.1, 1, 0.5))
+    assert np.all(u.edge_attributes["distance"] == (2, 0, 0.3))
+    assert np.all(u.edge_attributes["rnd"] == (0.8, 0.4, 0))
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -432,3 +455,4 @@ if not nngt.get_config('mpi'):
         test_str_attr()
         test_delays()
         test_attributes_are_copied()
+        test_combined_attr()

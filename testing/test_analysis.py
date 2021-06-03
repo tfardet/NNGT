@@ -697,7 +697,7 @@ def test_swp():
 
     if not (np.isnan(swp_g) or np.isnan(swp_u)):
         # check is necessary as the rewired graph might be unconnected
-        assert np.isclose(swp_g, swp_u, 0.01)
+        assert np.isclose(swp_g, swp_u, 0.02)
 
 
 @pytest.mark.mpi_skip
