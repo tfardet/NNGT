@@ -221,7 +221,7 @@ with specific connectivities using the
 :func:`~nngt.generation.connect_groups` function.
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 114-123, 164-176
+   :lines: 103-127
 
 For more details, see the full page on :ref:`neural_groups`.
 
@@ -241,7 +241,7 @@ Since we are using NEST, these properties are:
 * the type of the neurons (``1`` for excitatory or ``-1`` for inhibitory)
 
 .. literalinclude:: ../examples/nest_network.py
-   :lines: 29-74
+   :lines: 29-52, 62-83
 
 Once this network is created, it can simply be sent to nest through the
 command: ``gids = net.to_nest()``, and the NEST gids are returned.

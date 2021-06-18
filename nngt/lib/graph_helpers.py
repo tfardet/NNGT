@@ -119,8 +119,10 @@ def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec,
     Priority is given to source (presynaptic properties): they come last.
     '''
     group_keys = []
+
     for k in syn_spec.keys():
         group_keys.extend(k)
+
     group_keys = set(group_keys)
 
     src_type = src_group.neuron_type
@@ -129,6 +131,7 @@ def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec,
     # entry for source type and target type
     dict_prop = syn_spec.get((src_type, tgt_type), {})
     key_prop = dict_prop.get(key, None)
+
     # entry for source type and target name
     if tgt_name in group_keys:
         dict_prop = syn_spec.get((src_type, tgt_name), dict_prop)
@@ -141,10 +144,11 @@ def _get_syn_param(src_name, src_group, tgt_name, tgt_group, syn_spec,
     if src_name in group_keys and tgt_name in group_keys:
         dict_prop = syn_spec.get((src_name, tgt_name), dict_prop)
         key_prop = dict_prop.get(key, key_prop)
+
     if key is not None:
         return deepcopy(key_prop)
-    else:
-        return deepcopy(dict_prop)
+
+    return deepcopy(dict_prop)
 
 
 def _get_dtype(value):

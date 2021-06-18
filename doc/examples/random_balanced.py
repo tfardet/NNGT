@@ -31,9 +31,6 @@ import nngt
 import nngt.generation as ng
 
 
-# np.random.seed(0)
-
-
 '''
 Simulation parameters
 '''
@@ -46,7 +43,7 @@ dt = 0.1         # the resolution in ms
 simtime = 1000.  # Simulation time in ms
 delay = 1.5      # synaptic delay in ms
 
-g = 5.0          # ratio inhibitory weight/excitatory weight
+g = 4.0          # ratio inhibitory weight/excitatory weight
 eta = 2.0        # external rate relative to threshold rate
 epsilon = 0.1    # connection probability
 
@@ -99,13 +96,13 @@ neuron_params = {"C_m": CMem,
                  "V_th": theta}
 
 J_unit = ComputePSPnorm(tauMem, CMem, tauSyn)
-J = 0.2            # postsynaptic amplitude in mV
+J = 0.8            # postsynaptic amplitude in mV
 J_ex = J / J_unit  # amplitude of excitatory postsynaptic current
 J_in = g * J_ex    # amplitude of inhibitory postsynaptic current
 
 nu_th = (theta * CMem) / (J_ex * CE * np.e * tauMem * tauSyn)
 nu_ex = eta * nu_th
-p_rate = 1000. * nu_ex * CE
+p_rate = 400. * nu_ex * CE
 
 
 '''
@@ -118,13 +115,11 @@ pop = nngt.NeuralPop.exc_and_inhib(
 
 net = nngt.Network(population=pop)
 
-ng.connect_groups(net, "excitatory", ["excitatory", "inhibitory"],
-                  "gaussian_degree", degree_type="out", avg=CE, std=0.2*CE,
-                  weights=J_ex, delays=delay)
+ng.connect_groups(net, pop, "excitatory", "gaussian_degree", degree_type="in",
+                  avg=CE, std=0.1*CE, weights=J_ex, delays=delay)
 
-ng.connect_groups(net, "inhibitory", ["excitatory", "inhibitory"],
-                  "gaussian_degree", degree_type="out", avg=CI, std=0.2*CI,
-                  weights=J_in, delays=delay)
+ng.connect_groups(net, pop, "inhibitory", "gaussian_degree", degree_type="in",
+                  avg=CI, std=0.1*CI, weights=J_in, delays=delay)
 
 
 '''
@@ -136,7 +131,8 @@ def coefficient_of_variation(spikes):
     times = np.array(spikes["times"])
     nrns  = np.array(spikes["senders"])
 
-    return np.nanmean([variation(np.diff(times[nrns == i])) for i in np.unique(nrns)])
+    return np.nanmean([variation(np.diff(times[nrns == i]))
+                       for i in np.unique(nrns)])
 
 
 def cross_correlation(spikes, time, numbins=1000):
@@ -159,21 +155,19 @@ Send the network to NEST, set noise and randomize parameters
 '''
 
 if nngt.get_config('with_nest'):
-    import nngt.simulation as ns
     import nest
+    import nngt.simulation as ns
+    from nngt.analysis import get_spikes
 
     nest.ResetKernel()
 
     nest.SetKernelStatus({"resolution": dt, "print_time": True,
-                          "overwrite_files": True, 'local_num_threads': 4,
-                          "rng_seeds": [5, 6, 7, 8]})
+                          "overwrite_files": True, 'local_num_threads': 4})
 
     gids = net.to_nest()
 
     pg = ns.set_poisson_input(gids, rate=p_rate,
                               syn_spec={"weight": J_ex, "delay": delay})
-
-    ns.set_minis(net, base_rate=0.1, weight=0.04)
 
     recorders, records = ns.monitor_groups(
         ["excitatory", "inhibitory"], network=net)
@@ -208,12 +202,13 @@ if nngt.get_config('with_nest'):
             show=True)
 
         # print the CV and CC
-        data_exc = nest.GetStatus([recorders[0]], "events")[0]
-        data_inh = nest.GetStatus([recorders[1]], "events")[0]
+        data_exc = get_spikes(recorders[0], astype="np")
+        data_inh = get_spikes(recorders[1], astype="np")
 
         spikes = {
-            "times": list(data_exc["times"]) + list(data_inh["times"]),
-            "senders": list(data_exc["senders"]) + list(data_inh["senders"]),
+            "senders": list(data_exc[:, 0]) + list(data_inh[:, 0]),
+            "times": list(data_exc[:, 1]) + list(data_inh[:, 1]),
         }
 
-        print(coefficient_of_variation(spikes), cross_correlation(spikes, simtime))
+        print(coefficient_of_variation(spikes),
+              cross_correlation(spikes, simtime))

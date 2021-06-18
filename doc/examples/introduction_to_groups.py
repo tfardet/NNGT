@@ -119,6 +119,8 @@ fsi = NeuralGroup(200, neuron_type=-1, neuron_model="iaf_psc_alpha",
 # Creating neuronal populations #
 # --------------------------- '''
 
+pop = NeuralPop.from_groups((pyr, fsi))
+
 # making populations from scratch
 pop = nngt.NeuralPop(with_models=False)              # empty population
 pop.create_group(200, "first_group")                 # create excitatory group
@@ -162,7 +164,7 @@ print("E/I population has size", ei_pop2.size,
 
 # optional synaptic properties
 syn_spec = {
-    'default': {"model": "tsodyks2_synapse"},           # default connections
+    'default': {"synaptic_model": "tsodyks2_synapse"},  # default connections
     ("pyramidal_cells", "pyramidal_cells"): {"U": 0.6}  # change a parameter
 }
 

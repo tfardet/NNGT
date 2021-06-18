@@ -31,7 +31,7 @@ import nest
 import numpy as np
 
 from nngt.lib import InvalidArgument, nonstring_container
-from .nest_utils import nest_version, _get_nest_gids
+from .nest_utils import nest_version, spike_rec, _get_nest_gids
 
 
 __all__ = [
@@ -140,7 +140,7 @@ def get_recording(network, record, recorder=None, nodes=None):
     record : str or list
         Name of the record(s) to obtain.
     recorder : tuple of ints, optional (default: all multimeters)
-        GID of the "spike_detector" objects recording the network activity.
+        GID of the spike recorder objects recording the network activity.
     nodes : array-like, optional (default: all nodes)
         NNGT ids of the nodes for which the recording should be returned.
 
@@ -206,7 +206,7 @@ def get_recording(network, record, recorder=None, nodes=None):
     return values
 
 
-def activity_types(spike_detector, limits, network=None,
+def activity_types(spike_recorder, limits, network=None,
                    phase_coeff=(0.5, 10.), mbis=0.5, mfb=0.2, mflb=0.05,
                    skip_bursts=0, simplify=False, fignums=[], show=False):
     '''
@@ -218,7 +218,7 @@ def activity_types(spike_detector, limits, network=None,
 
     Parameters
     ----------
-    spike_detector : NEST node(s) (tuple or list of tuples)
+    spike_recorder : NEST node(s) (tuple or list of tuples)
         The recording device that monitored the network's spikes.
     limits : tuple of floats
         Time limits of the simulation region which should be studied (in ms).
@@ -273,13 +273,13 @@ def activity_types(spike_detector, limits, network=None,
     # check if there are several recorders
     senders, times = [], []
 
-    if True in nest.GetStatus(spike_detector, "to_file"):
-        for fpath in nest.GetStatus(spike_detector, "record_to"):
+    if True in nest.GetStatus(spike_recorder, "to_file"):
+        for fpath in nest.GetStatus(spike_recorder, "record_to"):
             data = _get_data(fpath)
             times.extend(data[:, 1])
             senders.extend(data[:, 0])
     else:
-        for events in nest.GetStatus(spike_detector, "events"):
+        for events in nest.GetStatus(spike_recorder, "events"):
             times.extend(events["times"])
             senders.extend(events["senders"])
 

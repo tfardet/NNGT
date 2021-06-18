@@ -70,10 +70,10 @@ def make_nest_network(network, send_only=None, weights=True):
 
     Returns
     -------
-    gids : tuple (nodes in NEST)
-        GIDs of the neurons in the network.
+    gids : tuple or NodeCollection (nodes in NEST)
+        GIDs of the neurons in the NEST network.
     '''
-    gids = []
+    gids = _get_nest_gids([])
     pop  = network.population
 
     send = list(network.population.keys())
@@ -128,7 +128,7 @@ def make_nest_network(network, send_only=None, weights=True):
             ia_nest_gids[current_size:current_size + group_size] = gids_tmp
             ia_nngt_nest[idx_nest] = gids_tmp
             current_size += group_size
-            gids.extend(gids_tmp)
+            gids += gids_tmp
 
     # conversions ids/gids
     network.nest_gids = ia_nngt_nest
@@ -147,10 +147,13 @@ def make_nest_network(network, send_only=None, weights=True):
     for src_name in send:
         src_group = pop[src_name]
         syn_sign = src_group.neuron_type
+
         # local connectivity matrix and offset to correct neuron id
-        local_csr = csr_weights[src_group.ids, :]
+        arr_idx = np.sort(src_group.ids).astype(int)
+
+        local_csr = csr_weights[arr_idx, :]
+
         assert local_csr.shape[1] == network.node_nb()
-        arr_idx  = np.sort(src_group.ids).astype(int)
 
         if len(src_group.ids) > 0 and pop.syn_spec is not None:
             # check whether custom synapses should be used
@@ -160,15 +163,20 @@ def make_nest_network(network, send_only=None, weights=True):
                 tgt_group = pop[tgt_name]
                 # get list of targets for each
                 arr_tgt_idx = np.sort(tgt_group.ids).astype(int)
+
+                # get non-wero entries (global NNGT ids)
                 keep = local_csr[:, arr_tgt_idx].nonzero()
+
                 local_tgt_ids = arr_tgt_idx[keep[1]]
                 local_src_ids = arr_idx[keep[0]]
+
                 if len(local_tgt_ids) and len(local_src_ids):
                     # get the synaptic parameters
                     syn_spec = _get_syn_param(
                         src_name, src_group, tgt_name, tgt_group, pop.syn_spec)
+
                     # using A1 to get data from matrix
-                    if weights not in {None, False}:
+                    if weights:
                         syn_spec[WEIGHT] = syn_sign *\
                             csr_weights[local_src_ids, local_tgt_ids].A1
                     else:
@@ -219,7 +227,7 @@ def make_nest_network(network, send_only=None, weights=True):
     # tell the populaton that the network it describes was sent to NEST
     network.population._sent_to_nest()
 
-    return tuple(ia_nest_gids[:current_size])
+    return gids
 
 
 def get_nest_adjacency(id_converter=None):

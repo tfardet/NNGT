@@ -444,7 +444,7 @@ def small_world_propensity(g, directed=None, use_global_clustering=False,
             delta_l, delta_c
     else:
         return 1 - np.sqrt(
-            0.5*(np.clip(delta_l, 0, 1)**2 + np.clip(delta_c**2, 0, 1)**2))
+            0.5*(np.clip(delta_l, 0, 1)**2 + np.clip(delta_c, 0, 1)**2))
 
 
 def shortest_path(g, source, target, directed=True, weights=None):

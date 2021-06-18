@@ -7,12 +7,12 @@ Interacting with the NEST simulator
 This section details how to create detailed neuronal networks, then run
 simulations on them using the NEST simulator.
 
-Readers are supposed to have a good grap of the way NEST handles neurons and
+Readers are supposed to have a good grasp of the way NEST handles neurons and
 models, and how to create and setup NEST nodes.
 If this is not the case, please see the `NEST user doc`_ and the
 `PyNEST tutorials`_ first.
 
-NNGT tools with regard to NEST_ can be separated into
+NNGT tools should work for NEST_ version 2 or 3; they can be separated into
 
 * the structural tools (:class:`~nngt.Network`, :class:`~nngt.NeuralPop` ...)
   that are used to prepare the neuronal network and setup its properties and
@@ -119,7 +119,7 @@ Since we are using NEST, these properties are:
 * the type of the neurons (``1`` for excitatory or ``-1`` for inhibitory)
 
 .. literalinclude:: ../examples/nest_network.py
-   :lines: 29-73
+   :lines: 29-53, 63-83
 
 Once this network is created, it can simply be sent to nest through the
 command: ``gids = net.to_nest()``, and the NEST gids are returned.

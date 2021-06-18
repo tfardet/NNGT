@@ -51,11 +51,20 @@ adapt = nngt.NeuralGroup(
     nodes=200, neuron_model='aeif_psc_alpha', neuron_type=1,
     neuron_param=base_params)
 
+model = 'model'
+
+try:
+    import nest
+    nest.NodeCollection()
+    model = 'synapse_model'
+except:
+    pass
+
 synapses = {
-    'default': {'model': 'tsodyks2_synapse'},
-    ('oscillators', 'bursters'): {'model': 'tsodyks2_synapse', 'U': 0.6},
-    ('oscillators', 'oscillators'): {'model': 'tsodyks2_synapse', 'U': 0.7},
-    ('oscillators', 'adaptive'): {'model': 'tsodyks2_synapse', 'U': 0.5}
+    'default': {model: 'tsodyks2_synapse'},
+    ('oscillators', 'bursters'): {model: 'tsodyks2_synapse', 'U': 0.6},
+    ('oscillators', 'oscillators'): {model: 'tsodyks2_synapse', 'U': 0.7},
+    ('oscillators', 'adaptive'): {model: 'tsodyks2_synapse', 'U': 0.5}
 }
 
 '''

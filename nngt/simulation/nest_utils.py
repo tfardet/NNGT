@@ -45,8 +45,10 @@ from nngt.lib.sorting import _sort_groups
 try:
     from nest import NodeCollection
     nest_version = 3
+    spike_rec = 'spike_recorder'
 except ImportError:
     nest_version = 2
+    spike_rec = 'spike_detector'
 
 
 __all__ = [
@@ -87,7 +89,7 @@ def set_noise(gids, mean, std):
     noise = nest.Create("noise_generator", params={"mean": mean, "std": std},
                         _warn=False)
 
-    nest.Connect(noise, list(gids), _warn=False)
+    nest.Connect(noise, _get_nest_gids(gids), _warn=False)
 
     return noise
 
@@ -191,17 +193,22 @@ def set_minis(network, base_rate, weight, syn_type=1, nodes=None, gids=None):
     pgs        = nest.Create("poisson_generator", len(deg_set), _warn=False)
 
     for d, pg in zip(deg_set, pgs):
-        nest.SetStatus([pg], {"rate": d*base_rate}, _warn=False)
+        if nest_version == 2:
+            pg = (pg,)
+
+        nest.SetStatus(pg, {"rate": d*base_rate}, _warn=False)
 
     # connect
     for i, n in enumerate(nodes):
         gid, d = gids[i], degrees[n]
 
+        pg = pgs[map_deg_pg[d]]
+
         if nest_version == 2:
             gid = (gid,)
+            pg = (pg,)
 
         w  = weight[i]
-        pg = [pgs[map_deg_pg[d]]]
 
         nest.Connect(pg, gid, syn_spec={'weight': w}, _warn=False)
 
@@ -232,7 +239,7 @@ def set_step_currents(gids, times, currents):
 
     params = {"amplitude_times": times, "amplitude_values":currents}
 
-    scg = nest.Create("step_current_generator", params, _warn=False)
+    scg = nest.Create("step_current_generator", params=params, _warn=False)
 
     gids = _get_nest_gids(gids)
 
@@ -282,6 +289,7 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
         else:
             raise AttributeError(
                 '`network` has not been sent to NEST yet.')
+
     gids = []
 
     if nodes is not None and groups is not None:
@@ -306,7 +314,7 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
         nest.SetStatus(gids, key, state, _warn=False)
 
         if nodes is None:
-            nodes = network.id_from_nest_gid(gids)
+            nodes = network.id_from_nest_gid(np.asarray(gids))
 
         # store the values in the node attributes
         if key not in ("V_m", "w"):
@@ -330,7 +338,7 @@ def monitor_groups(group_names, network, nest_recorder=None, params=None):
         Names of the groups that should be recorded.
     network : :class:`~nngt.Network` or subclass
         Network which population will be used to differentiate groups.
-    nest_recorder : strings or list, optional (default: "spike_detector"0)
+    nest_recorder : strings or list, optional (default: spike recorder)
         Device(s) to monitor the network.
     params : dict or list of, optional (default: `{}`)
         Dictionarie(s) containing the parameters for each recorder (see
@@ -343,7 +351,7 @@ def monitor_groups(group_names, network, nest_recorder=None, params=None):
     recordables : list of the recordables' names.
     '''
     if nest_recorder is None:
-        nest_recorder = ["spike_detector"]
+        nest_recorder = [spike_rec]
     elif not nonstring_container(nest_recorder):
         nest_recorder = [nest_recorder]
 
@@ -376,7 +384,7 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
         GIDs of the neurons in the NEST subnetwork; either one list per
         recorder if they should monitor different neurons or a unique list
         which will be monitored by all devices.
-    nest_recorder : strings or list, optional (default: "spike_detector")
+    nest_recorder : strings or list, optional (default: spike recorder)
         Device(s) to monitor the network.
     params : dict or list of, optional (default: `{}`)
         Dictionarie(s) containing the parameters for each recorder (see
@@ -391,7 +399,7 @@ def monitor_nodes(gids, nest_recorder=None, params=None, network=None):
     recordables : list of the recordables' names.
     '''
     if nest_recorder is None:
-        nest_recorder = ["spike_detector"]
+        nest_recorder = [spike_rec]
     elif not nonstring_container(nest_recorder):
         nest_recorder = [nest_recorder]
 
@@ -429,7 +437,7 @@ def _monitor(gids, nest_recorder, params):
             nest.SetStatus(device, params[i], _warn=False)
             nest.Connect(device, gids, conn_spec=di_spec, _warn=False)
         # event detectors
-        elif "detector" in rec:
+        elif rec == spike_rec:
             device = nest.Create(rec, _warn=False)
 
             recorders += device if nest_version == 3 else list(device)
@@ -460,7 +468,7 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
         Path to the file where the activity should be saved.
     recorder : tuple or list of tuples, optional (default: None)
         The NEST gids of the recording devices. If None, then all existing
-        "spike_detector"s are used.
+        spike recorders are used.
     network : :class:`~nngt.Network` or subclass, optional (default: None)
         Network which activity will be monitored.
     save_positions : bool, optional (default: True)
@@ -494,9 +502,9 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
 
             if nest_version == 3:
                 if len(rcrdrs) == 1:
-                    assert recrdrs.model == "spike_detector", \
+                    assert recrdrs.model == spike_rec, \
                         'Only spike_detectors are supported.'
-                    assert recrdrs.model == ("spike_detector",)*len(rcrdrs), \
+                    assert recrdrs.model == (spike_rec,)*len(rcrdrs), \
                         'Only spike_detectors are supported.'
             else:
                 assert (nest.GetStatus(rcrdrs, 'model')
@@ -504,7 +512,7 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
                        'Only spike_detectors are supported.'
     else:
         if nest_version == 3:
-            rcrdrs = nest.GetNodes(properties={'model': 'spike_detector'})
+            rcrdrs = nest.GetNodes(properties={'model': spike_rec})
         else:
             rcrdrs = [[n] for n in nest.GetNodes(
                 (0,), properties={'model': 'spike_detector'})[0]]
@@ -547,6 +555,9 @@ def _get_nest_gids(gids):
         if isinstance(gids, NodeCollection):
             return gids
 
-        return NodeCollection(gids)
+        return NodeCollection(sorted(gids))
 
-    return list(gids)
+    if nonstring_container(gids):
+        return list(gids)
+
+    return [gids]

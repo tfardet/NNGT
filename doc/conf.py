@@ -25,6 +25,7 @@ import os, errno
 import shlex
 import re
 import fnmatch
+import importlib.util as imputil
 
 import sphinx_bootstrap_theme
 
@@ -52,7 +53,9 @@ If on rtd, the graph libraries are not available so they need to be mocked
 '''
 
 try:
-    import nest
+    if imputil.find_spec("nest") is None:
+        # NEST is not available
+        raise ImportError
 except:
     import mock
     mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
@@ -105,11 +108,12 @@ import nngt
 
 # import simulation & geospatial explicitely to avoid import conflict with
 # lazy load
-import nngt.simulation
 try:
     import nngt.geospatial
 except:
     pass
+
+import nngt.simulation
 
 from autosum import gen_autosum
 
@@ -372,7 +376,7 @@ html_favicon = 'images/nngt_ico.png'
 html_static_path = ['_static']
 
 # Add permalinks to headers
-html_add_permalinks = "#"
+html_permalinks_icon = "#"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

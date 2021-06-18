@@ -116,7 +116,7 @@ To create a population, you can start from scratch by creating an empty
 population, then adding groups to it:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 123-125
+   :lines: 124-127
 
 NNGT also provides a two default routine to create simple populations:
 
@@ -131,13 +131,13 @@ the time.
 To create such populations, just use:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 131-122
+   :lines: 132-134
 
 Eventually, a population can be created from exiting groups using
 :func:`~nngt.NeuralPop.from_groups`:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 144-145
+   :lines: 147-148
 
 Note that, here, we pass ``with_models=False`` to the population because these
 groups were created without the information necessary to create a network in
@@ -157,7 +157,7 @@ Otherwise, one can build the population from groups that already contain these
 properties, e.g. the previous ``pyr`` and ``fsi`` groups:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 163-169
+   :lines: 165-171
 
 .. warning::
     `syn_spec` can contain any synaptic model and parameters associated to the
@@ -189,12 +189,12 @@ and same with pyramidal neurons or interneurons.
 First create the normal groups:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 181-195
+   :lines: 183-197
 
 Then make the metagroups for the layers:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 199-203
+   :lines: 201-205
 
 Note that I used :class:`MetaNeuralGroup` for layers 3 and 5 because it enables
 to differenciate inhibitory and excitatory neurons using
@@ -205,12 +205,12 @@ Otherwise normal :class:`~nngt.MetaGroup` are equivalent and sufficient.
 Create the population:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 206-207
+   :lines: 208-209
 
 Then add additional metagroups for cell types:
 
 .. literalinclude:: ../examples/introduction_to_groups.py
-   :lines: 211-216
+   :lines: 213-218
 
 ----
 

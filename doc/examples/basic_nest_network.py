@@ -104,15 +104,28 @@ if nngt.get_config('with_nest'):
 
     # sign of NNGT versus NEST inhibitory connections
     igroup = net.population["inhibitory"]
+
     # in NNGT
     iedges = net.get_edges(source_node=igroup.ids)
     w_nngt = set(net.get_weights(edges=iedges))
+
     # in NEST
-    iconn  = nest.GetConnections(
-        source=list(net.population["inhibitory"].nest_gids),
-        target=list(net.population.nest_gids))
+    try:
+        # nest 2
+        iconn  = nest.GetConnections(
+            source=list(net.population["inhibitory"].nest_gids),
+            target=list(net.population.nest_gids))
+    except:
+        # nest 3
+        import nest
+        s = nest.NodeCollection(net.population["inhibitory"].nest_gids)
+        t = nest.NodeCollection(net.population.nest_gids)
+
+        iconn  = nest.GetConnections(source=s, target=t)
+
     w_nest = set(nest.GetStatus(iconn, "weight"))
-    # in NNGT, inhibitory weights are positive to work with graph analysis
+
+    # In NNGT, inhibitory weights are positive to work with graph analysis
     # methods; they are automatically converted to negative weights in NEST
     print("NNGT weights:", w_nngt, "versus NEST weights", w_nest)
 

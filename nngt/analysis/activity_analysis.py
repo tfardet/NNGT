@@ -245,15 +245,16 @@ def get_spikes(recorder=None, spike_times=None, senders=None, astype="ssp"):
     (columns).
     '''
     if recorder is not None:
+        from ..simulation.nest_utils import _get_nest_gids
         import nest
-        data = nest.GetStatus(recorder[0])[0]["events"]
+        data = nest.GetStatus(_get_nest_gids(recorder))[0]["events"]
         spike_times = data["times"]
         senders = data["senders"]
     elif spike_times is None and senders is None:
+        from ..simulation.nest_utils import _get_nest_gids, spike_rec
         import nest
-        nodes = nest.GetNodes(
-            (0,), properties={'model': 'spike_detector'})
-        data = nest.GetStatus(nodes[0])[0]["events"]
+        nodes = nest.GetNodes(properties={'model': spike_rec})
+        data = nest.GetStatus(nodes)[0]["events"]
         spike_times = data["times"]
         senders = data["senders"]
 
@@ -298,21 +299,29 @@ def _b2_from_data(ids, data):
 
 def _fr_from_data(ids, data):
     fr = np.zeros(len(ids))
-    T = float(np.max(data[:, 1]) - np.min(data[:, 1]))
-    for i, neuron in enumerate(ids):
-        ids = np.where(data[:, 0] == neuron)[0]
-        fr[i] = len(ids) / T
+
+    if len(data[:, 0]):
+        T = float(np.max(data[:, 1]) - np.min(data[:, 1]))
+
+        for i, neuron in enumerate(ids):
+            ids = np.where(data[:, 0] == neuron)[0]
+            fr[i] = len(ids) / T
+
     return fr
 
 
 def _set_data_nodes(network, data, nodes):
+    from ..simulation.nest_utils import _get_nest_gids
+
     if data is None:
         data = [[], []]
+
     if nodes is None:
         nodes = network.nest_gids
     else:
         nodes = network.nest_gids[nodes]
-    return data, nodes
+
+    return data, _get_nest_gids(nodes)
 
 
 def _set_spike_data(data, spike_detector):
@@ -320,15 +329,24 @@ def _set_spike_data(data, spike_detector):
     Data must be [[], []]
     '''
     import nest
+    from ..simulation.nest_utils import _get_nest_gids, spike_rec, nest_version
+
     if not len(data[0]):
         if spike_detector is None:
-            spike_detector = nest.GetNodes(
-                (0,), properties={'model': 'spike_detector'})[0]
+            prop = {'model': spike_rec}
+            if nest_version == 3:
+                spike_detector = nest.GetNodes(properties=prop)
+            else:
+                spike_detector = nest.GetNodes((0,), properties=prop)[0]
+
         events = nest.GetStatus(spike_detector, "events")
+
         for ev_dict in events:
             data[0].extend(ev_dict["senders"])
             data[1].extend(ev_dict["times"])
+
     sorter = np.argsort(data[1])
+
     return np.array(data)[:, sorter].T
 
 

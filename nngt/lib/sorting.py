@@ -89,23 +89,37 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
     the neurons, i.e. an integer between 1 and N.
     '''
     from nngt.analysis import node_attributes, get_b2
+    from nngt.simulation.nest_utils import nest_version
+
     min_nest_gid = network.nest_gids.min()
     max_nest_gid = network.nest_gids.max()
+
     sorting = np.zeros(max_nest_gid + 1)
+
     attribute = None
     sorted_ids = None
+
     if isinstance(sort, str):
         if sort == "firing_rate":
             # compute number of spikes per neuron
             spikes = np.bincount(data[:, 0].astype(int))
-            if spikes.shape[0] < max_nest_gid: # one entry per neuron
-                spikes.resize(max_nest_gid)
+
+            # shift from 1 in NEST 3+
+            max_entry = max_nest_gid + 1 if nest_version == 3 else max_nest_gid
+
+            if spikes.shape[0] < max_entry: # one entry per neuron
+                spikes.resize(max_entry)
+
             # sort them (neuron with least spikes arrives at min_nest_gid)
             sorted_ids = np.argsort(spikes)[min_nest_gid:] - min_nest_gid
+
             # get attribute
-            idx_min = int(np.min(data[:, 0]))
-            attribute = spikes[idx_min:] \
-                        / (np.max(data[:, 1]) - np.min(data[:, 1]))
+            if len(data[:, 0]):
+                idx_min = int(np.min(data[:, 0]))
+                attribute = spikes[idx_min:] \
+                            / (np.max(data[:, 1]) - np.min(data[:, 1]))
+            else:
+                attribute = []
         elif sort.lower() == "b2":
             attribute = get_b2(network, data=data, nodes=gids)
             sorted_ids = np.argsort(attribute)
@@ -113,7 +127,7 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
             num_b2 = attribute.shape[0]
             if num_b2 < network.node_nb():
                 spikes = np.bincount(data[:, 0])
-                non_spiking = np.where(spikes[min_nest_gid] == 0)[0]
+                non_spiking = np.where(spikes[min_nest_gid:] == 0)[0]
                 sorted_ids.resize(network.node_nb())
                 for i, n in enumerate(non_spiking):
                     sorted_ids[sorted_ids >= n] += 1
@@ -167,8 +181,8 @@ def _sort_neurons(sort, gids, network, data=None, return_attr=False):
 
     if return_attr:
         return sorting.astype(int), attribute
-    else:
-        return sorting.astype(int)
+
+    return sorting.astype(int)
 
 
 def _sort_groups(pop):
