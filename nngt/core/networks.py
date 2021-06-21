@@ -228,10 +228,13 @@ class Network(Graph):
     # Constructor, destructor and attributes
 
     def __init__(self, name="Network", weighted=True, directed=True,
-                 from_graph=None, population=None, inh_weight_factor=1.,
+                 copy_graph=None, population=None, inh_weight_factor=1.,
                  **kwargs):
         '''
         Initializes :class:`~nngt.Network` instance.
+
+        .. versionchanged: 2.4
+            Move `from_graph` to `copy_graph` to reflect changes in Graph.
 
         Parameters
         ----------
@@ -243,7 +246,7 @@ class Network(Graph):
             Whether the graph edges have weight properties.
         directed : bool, optional (default: True)
             Whether the graph is directed or undirected.
-        from_graph : :class:`~nngt.core.GraphObject`, optional (default: None)
+        copy_graph : :class:`~nngt.core.GraphObject`, optional (default: None)
             An optional :class:`~nngt.core.GraphObject` to serve as base.
         population : :class:`nngt.NeuralPop`, (default: None)
             An object containing the neural groups and their properties:
@@ -280,14 +283,10 @@ class Network(Graph):
             kwargs["delays"] = 1.
 
         super().__init__(nodes=nodes, name=name, weighted=weighted,
-                         directed=directed, from_graph=from_graph,
+                         directed=directed, copy_graph=copy_graph,
                          inh_weight_factor=inh_weight_factor, **kwargs)
 
         self._init_bioproperties(population)
-
-        if "shape" in kwargs or "positions" in kwargs:
-            self.make_spatial(self, shape=kwargs.get("shape", None),
-                              positions=kwargs.get("positions", None))
 
     def __del__(self):
         super().__del__()
@@ -327,16 +326,36 @@ class Network(Graph):
         for group in self.population.values():
             group._nest_gids = gids[group.ids]
 
-    def get_edge_types(self):
-        inhib_neurons = {}
-        types         = np.ones(self.edge_nb())
+    def get_edge_types(self, edges=None):
+        '''
+        Return the type of all or a subset of the edges.
+        For all edges, the types are ordered according to the edges ids, i.e.
+        in the same order as :property:`~nngt.Graph.edges_array`.
+
+        .. versionchanged:: 2.4
+            Updated it to make it compatible with the default
+            :class:`~nngt.Graph` function, including the `edges` argument.
+
+        Parameters
+        ----------
+        edges : (E, 2) array, optional (default: all edges)
+            Edges for which the type should be returned.
+
+        Returns
+        -------
+        the list of types (1 for excitatory, -1 for inhibitory)
+        '''
+        edges = self.edges_array if edges is None else edges
+
+        types = np.ones(len(edges))
+
+        inhib_neurons = set()
 
         for g in self._population.values():
             if g.neuron_type == -1:
-                for n in g.ids:
-                    inhib_neurons[n] = None
+                inhib_neurons.update(g.ids)
 
-        for i, e in enumerate(self.edges_array):
+        for i, e in enumerate(edges):
             if e[0] in inhib_neurons:
                 types[i] = -1
 
@@ -473,10 +492,13 @@ class SpatialNetwork(Network, SpatialGraph):
     # Constructor, destructor, and attributes
 
     def __init__(self, population, name="SpatialNetwork", weighted=True,
-                 directed=True, shape=None, from_graph=None, positions=None,
+                 directed=True, shape=None, copy_graph=None, positions=None,
                  **kwargs):
         '''
-        Initialize SpatialNetwork instance
+        Initialize SpatialNetwork instance.
+
+        .. versionchanged: 2.4
+            Move `from_graph` to `copy_graph` to reflect changes in Graph.
 
         Parameters
         ----------
@@ -512,7 +534,7 @@ class SpatialNetwork(Network, SpatialGraph):
         super().__init__(
             nodes=nodes, name=name, weighted=weighted, directed=directed,
             shape=shape, positions=positions, population=population,
-            from_graph=from_graph, **kwargs)
+            copy_graph=copy_graph, **kwargs)
 
     def __del__ (self):
         super().__del__()

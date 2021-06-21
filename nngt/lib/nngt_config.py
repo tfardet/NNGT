@@ -329,7 +329,7 @@ def _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi):
                              "'omp' greater than one.")
             elif mt not in new_config and not old_mt:
                 new_config[mt] = True
-                _log_message(logger, "WARNING",
+                _log_message(logger, "INFO",
                              "'multithreading' was set to False but new "
                              "'omp' is greater than one. Updating "
                              "'multithreading' to True.")
@@ -342,7 +342,7 @@ def _pre_update_parallelism(new_config, old_mt, old_omp, old_mpi):
     elif new_config.get('mpi', False):
         if old_mt:
             new_config[mt] = False
-            _log_message(logger, "WARNING",
+            _log_message(logger, "INFO",
                          '"mpi" set to True but previous configuration was '
                          'using OpenMP; setting "multithreading" to False '
                          'to switch to mpi algorithms.')

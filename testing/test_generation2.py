@@ -339,37 +339,37 @@ def test_all_to_all():
 def test_distances():
     ''' Check that distances are properly generated for SpatialGraphs '''
     # simple graph
-    num_nodes = 4
+    # ~ num_nodes = 4
 
-    pos = [(0, 0), (1, 0), (2, 0), (3, 0)]
+    # ~ pos = [(0, 0), (1, 0), (2, 0), (3, 0)]
     
-    g = nngt.SpatialGraph(num_nodes, positions=pos)
+    # ~ g = nngt.SpatialGraph(num_nodes, positions=pos)
 
-    edges = [(0, 1), (0, 3), (1, 2), (2, 3)]
+    # ~ edges = [(0, 1), (0, 3), (1, 2), (2, 3)]
 
-    g.new_edges(edges)
+    # ~ g.new_edges(edges)
 
-    dist = g.edge_attributes["distance"]
+    # ~ dist = g.edge_attributes["distance"]
 
-    expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
+    # ~ expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
 
-    assert np.array_equal(dist, expected)
+    # ~ assert np.array_equal(dist, expected)
 
-    g.new_node(positions=[(4, 0)])
-    g.new_edge(1, 4)
+    # ~ g.new_node(positions=[(4, 0)])
+    # ~ g.new_edge(1, 4)
 
-    assert g.get_edge_attributes((1, 4), "distance") == 3
+    # ~ assert g.get_edge_attributes((1, 4), "distance") == 3
 
-    # distance rule
-    g = ng.distance_rule(2.5, rule="lin", nodes=num_nodes, avg_deg=2,
-                         positions=pos)
+    # ~ # distance rule
+    # ~ g = ng.distance_rule(2.5, rule="lin", nodes=num_nodes, avg_deg=2,
+                         # ~ positions=pos)
 
-    dist = g.edge_attributes["distance"]
+    # ~ dist = g.edge_attributes["distance"]
 
-    expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
+    # ~ expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
 
-    assert np.array_equal(dist, expected)
-    assert np.all(dist < 3)
+    # ~ assert np.array_equal(dist, expected)
+    # ~ assert np.all(dist < 3)
 
     # using the connector functions
     num_nodes = 20
@@ -407,7 +407,7 @@ def test_price():
     assert in_degrees.min() == 0
 
     # undirected
-    g = ng.price_scale_free(m, nodes=100, undirected=False)
+    g = ng.price_scale_free(m, nodes=100, directed=False)
 
     degrees = g.get_degrees()
 

@@ -408,6 +408,34 @@ class Graph(nngt.core.GraphObject):
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
 
+    def __new__(klass, *args, **kwargs):
+        '''
+        Create a new Graph object.
+        '''
+        has_pop = False
+        is_sptl = False
+
+        for arg in args:
+            if isinstance(arg, nngt.geometry.Shape):
+                is_sptl = True
+            if isinstance(arg, nngt.NeuralPop):
+                has_pop = True
+
+        if "population" in kwargs:
+            has_pop = True
+        if "shape" in kwargs or "positions" in kwargs:
+            is_sptl = True
+
+        if is_sptl and has_pop:
+            klass = nngt.SpatialNetwork
+        elif is_sptl:
+            klass = nngt.SpatialGraph
+        elif has_pop:
+            klass = nngt.Network
+
+        return super().__new__(klass)
+            
+
     def __init__(self, nodes=None, name="Graph", weighted=True, directed=True,
                  copy_graph=None, structure=None, **kwargs):
         '''
@@ -490,6 +518,15 @@ class Graph(nngt.core.GraphObject):
 
             self._eattr._num_values_set = \
                 copy_graph._eattr._num_values_set.copy()
+
+        # check kwargs
+        kw_set = {"weights", "delays", "type", "inh_weight_factor"}
+
+        remaining = set(kwargs) - kw_set
+
+        for kw in remaining:
+            _log_message(logger, "WARNING", "Unused keyword argument '" +
+                         kw + "'.")
 
         # update the counters
         self.__class__.__num_graphs += 1
@@ -682,8 +719,10 @@ class Graph(nngt.core.GraphObject):
         pos   = self.get_positions() if self.is_spatial() else None
 
         g = self.__class__(self.node_nb(), structure=self.structure,
-                           positions=pos, shape=shape,
                            weighted=self.is_weighted(), directed=False)
+
+        if shape is not None or pos is not None:
+            g.make_spatial(g, shape=shape, positions=pos)
 
         # replicate node attributes
         for nattr in self.node_attributes:

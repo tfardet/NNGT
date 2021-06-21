@@ -493,7 +493,7 @@ class _IGraph(GraphInterface):
             if not ignore and not self_loop:
                 raise InvalidArgument("Trying to add a self-loop.")
             elif ignore:
-                _log_message(logger, "WARNING",
+                _log_message(logger, "INFO",
                              "Self-loop on {} ignored.".format(source))
 
                 return None

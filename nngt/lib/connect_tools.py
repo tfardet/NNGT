@@ -239,7 +239,7 @@ def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
 
         if len(new_edges) != len(edges):
             if ignore:
-                _log_message(logger, "WARNING",
+                _log_message(logger, "INFO",
                              "Self-loops ignored: {}.".format(edges[~test]))
             else:
                 raise InvalidArgument(
@@ -261,14 +261,14 @@ def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
 
             if tpl_e in edge_set or (not directed and tpl_e[::-1] in edge_set):
                 if ignore:
-                    _log_message(logger, "WARNING",
+                    _log_message(logger, "INFO",
                                  "Existing edge {} ignored.".format(tpl_e))
                 else:
                     raise InvalidArgument(
                         "Edge {} already exists.".format(tpl_e))
             elif loops and e[0] == e[1]:
                 if ignore:
-                    _log_message(logger, "WARNING",
+                    _log_message(logger, "INFO",
                                  "Self-loop on {} ignored.".format(e[0]))
                 else:
                     raise InvalidArgument("Self-loop on {}.".format(e[0]))

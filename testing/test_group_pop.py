@@ -22,7 +22,6 @@ def test_groups():
     assert g1.neuron_model is None
     assert g1.neuron_type is None
     assert not g1.has_model
-    assert g1.is_valid
     assert g1.is_metagroup
 
     g2 = nngt.NeuralGroup(ids, neuron_type=None)

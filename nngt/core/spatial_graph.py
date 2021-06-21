@@ -54,10 +54,13 @@ class SpatialGraph(Graph):
     # Constructor, destructor, attributes
 
     def __init__(self, nodes=0, name="SpatialGraph", weighted=True,
-                 directed=True, from_graph=None, shape=None, positions=None,
+                 directed=True, copy_graph=None, shape=None, positions=None,
                  **kwargs):
         '''
         Initialize SpatialClass instance.
+
+        .. versionchanged: 2.4
+            Move `from_graph` to `copy_graph` to reflect changes in Graph.
 
         Parameters
         ----------
@@ -90,12 +93,10 @@ class SpatialGraph(Graph):
         self._shape = None
         self._pos   = None
 
-        super().__init__(nodes, name, weighted, directed, from_graph, **kwargs)
+        super().__init__(nodes, name=name, weighted=weighted,
+                         directed=directed, copy_graph=copy_graph, **kwargs)
 
         self._init_spatial_properties(shape, positions, **kwargs)
-
-        if "population" in kwargs:
-            self.make_network(self, kwargs["population"])
 
     def __del__(self):
         if hasattr(self, '_shape'):

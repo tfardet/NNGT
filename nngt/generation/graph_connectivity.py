@@ -1135,5 +1135,9 @@ def generate(di_instructions, **kwargs):
     '''
     graph_type = di_instructions["graph_type"]
     instructions = deepcopy(di_instructions)
+
+    del instructions["graph_type"]
+    
     instructions.update(kwargs)
+
     return _di_generator[graph_type](**instructions)

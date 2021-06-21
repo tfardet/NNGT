@@ -598,14 +598,14 @@ class _NxGraph(GraphInterface):
             if not ignore:
                 raise InvalidArgument("Trying to add existing edge.")
 
-            _log_message(logger, "WARNING",
+            _log_message(logger, "INFO",
                          "Existing edge {} ignored.".format((source, target)))
         else:
             if source == target:
                 if not ignore and not self_loop:
                     raise InvalidArgument("Trying to add a self-loop.")
                 elif ignore:
-                    _log_message(logger, "WARNING",
+                    _log_message(logger, "INFO",
                                  "Self-loop on {} ignored.".format(source))
 
                     return None

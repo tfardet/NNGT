@@ -23,9 +23,11 @@
 
 """ Logging for the NNGT module """
 
-import os
+import inspect
 import logging
+import os
 import warnings
+
 from datetime import date
 
 import scipy.sparse as ssp
@@ -77,7 +79,7 @@ def _configure_logger(logger):
 def _log_to_file(logger, create_writer):
     if create_writer:
         logFileFormatter = logging.Formatter(
-            '[%(levelname)s @ %(name)s] %(asctime)s:\n\t%(message)s')
+            '[%(levelname)s @ %(funcName)s] %(asctime)s:\n\t%(message)s')
         today = date.today()
         fileName = "/nngt_{}-{}-{}".format(today.month, today.day, today.year)
         fileHandler = logging.FileHandler(
@@ -91,6 +93,16 @@ def _log_to_file(logger, create_writer):
 
 @mpi_checker(logging=True)
 def _log_message(logger, level, message):
+
+    stack = inspect.stack()
+
+    fn = stack[-1][1]
+    ln = stack[-1][2]
+
+    location = 'from ' + fn[fn.rfind("/") + 1:] + ' (L{}) - '.format(ln)
+
+    message = location + message
+
     if level == 'DEBUG':
         logger.debug(message)
     elif level == 'WARNING':

@@ -158,6 +158,29 @@ def test_structure_graph():
         assert np.array_equal(sg.get_weights(edges=expected), expected_weights)
 
 
+@pytest.mark.mpi_skip
+def test_autoclass():
+    '''
+    Check that Graph is automatically converted to Network or SpatialGraph
+    if the relevant arguments are provided.
+    '''
+    pop = nngt.NeuralPop.exc_and_inhib(100)
+
+    g = nngt.Graph(population=pop)
+
+    assert isinstance(g, nngt.Network)
+
+    shape = nngt.geometry.Shape.disk(50.)
+
+    g = nngt.Graph(shape=shape)
+
+    assert isinstance(g, nngt.SpatialGraph)
+
+    g = nngt.Graph(population=pop, shape=shape)
+
+    assert isinstance(g, nngt.SpatialNetwork)
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -168,3 +191,4 @@ if not nngt.get_config('mpi'):
     if __name__ == "__main__":
         unittest.main()
         test_structure_graph()
+        test_autoclass()
