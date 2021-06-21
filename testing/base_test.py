@@ -39,7 +39,6 @@ import nngt
 from tools_testing import _bool_from_string, _xml_to_dict, _list_from_string
 
 
-
 # ------------------- #
 # Path to input files #
 # ------------------- #

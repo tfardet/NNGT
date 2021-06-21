@@ -127,6 +127,7 @@ def connect_nodes(network, sources, targets, graph_model, density=None,
             attr['weight'] = _generate_random(len(elist), ww)
         else:
             attr['weight'] = ww
+
     if 'delays' in kwargs:
         dd = kwargs['delays']
 
@@ -134,6 +135,7 @@ def connect_nodes(network, sources, targets, graph_model, density=None,
             attr['delay'] = _generate_random(len(elist), dd)
         else:
             attr['delay'] = dd
+
     if network.is_spatial() and distance:
         attr['distance'] = distance
 

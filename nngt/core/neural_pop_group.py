@@ -826,7 +826,7 @@ class NeuralGroup(Group):
 
     def __new__(cls, *args, **kwargs):
         # check neuron type for MetaGroup
-        neuron_type = None
+        neuron_type = 1 if cls == NeuralGroup else None
 
         if "neuron_type" in kwargs:
             neuron_type = kwargs["neuron_type"]
@@ -1013,7 +1013,7 @@ class MetaNeuralGroup(MetaGroup, NeuralGroup):
         -------
         A new :class:`~nngt.MetaNeuralGroup` object.
         '''
-        kwargs["neuron_type"] = kwargs.get("neuron_type",None)
+        kwargs["neuron_type"] = kwargs.get("neuron_type", None)
 
         super().__init__(nodes=nodes, name=name, properties=properties,
                          **kwargs)

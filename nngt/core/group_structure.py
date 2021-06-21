@@ -402,9 +402,9 @@ class Structure(OrderedDict):
         replace : bool, optional (default: False)
             Whether to override previous exiting meta group with same name.
         '''
-        neuron_param = {} if neuron_param is None else neuron_param.copy()
+        properties = {} if properties is None else properties.copy()
 
-        group = MetaGroup(nodes, name=name, neuron_param=neuron_param)
+        group = MetaGroup(nodes, name=name, properties=properties)
 
         self.add_meta_group(group, replace=replace)
 

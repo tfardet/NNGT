@@ -33,6 +33,11 @@ def test_groups():
     g3 = nngt.NeuralGroup(ids, neuron_type=1, name="test")
     assert g1 != g3
     assert g3.name == "test"
+    assert g3.neuron_type == 1
+
+    g4 = nngt.NeuralGroup()
+
+    assert g4.neuron_type == 1
 
 
 def test_add_nodes():
@@ -146,6 +151,8 @@ def test_group_structure():
 
     with pytest.raises(AssertionError):
         g = nngt.Graph(100, structure=struct)
+
+    struct.create_meta_group(range(20, 70), name="meta2")
 
     g = nngt.Graph(structure=struct)
 

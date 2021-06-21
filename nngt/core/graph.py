@@ -1394,9 +1394,6 @@ class Graph(nngt.core.GraphObject):
         '''
         Return the type of all or a subset of the edges.
 
-        .. versionchanged:: 1.0.1
-            Added the possibility to ask for a subset of edges.
-
         Parameters
         ----------
         edges : (E, 2) array, optional (default: all edges)

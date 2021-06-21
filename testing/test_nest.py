@@ -51,9 +51,18 @@ def test_net_creation():
 
     assert len(conn) == net.edge_nb()
 
-    weights = {d['weight'] for d in nest.GetStatus(conn)}
+    weights = np.array([d['weight'] for d in nest.GetStatus(conn)])
 
-    assert weights == {-w, w}
+    # check inhibitory connections
+    etypes = net.get_edge_types()
+
+    num_i = np.sum(etypes == -1)
+
+    assert num_i == int(0.2*net.edge_nb())
+
+    assert np.sum(weights == -w) == num_i
+
+    assert set(weights) == {-w, w}
 
 
 @pytest.mark.skipif(nngt.get_config('mpi'), reason="Don't test for MPI")
