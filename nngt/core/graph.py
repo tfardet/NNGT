@@ -1101,15 +1101,9 @@ class Graph(nngt.core.GraphObject):
         '''
         Attributes of the graph's edges.
 
-        .. versionchanged:: 1.0
-            Returns the full dict of edges attributes if called without
-            arguments.
-
-        .. versionadded:: 0.8
-
         Parameters
         ----------
-        edge : tuple or list of tuples, optional (default: ``None``)
+        edges : tuple or list of tuples, optional (default: ``None``)
             Edge whose attribute should be displayed.
         name : str, optional (default: ``None``)
             Name of the desired attribute.
@@ -1135,18 +1129,17 @@ class Graph(nngt.core.GraphObject):
         :func:`~nngt.Graph.set_node_attribute`
         '''
         if name is not None and edges is not None:
-            if isinstance(edges, slice):
-                return self._eattr[name][edges]
-            elif len(edges):
-                return self._eattr[edges][name]
+            if len(edges):
+                return self._eattr.get_eattr(edges=edges, name=name)
+
             return np.array([])
         elif name is None and edges is None:
             return {k: self._eattr[k]
                     for k in self._eattr.keys()}
         elif name is None:
-            return self._eattr[edges]
-        else:
-            return self._eattr[name]
+            return self._eattr.get_eattr(edges=edges)
+
+        return self._eattr[name]
 
     def get_node_attributes(self, nodes=None, name=None):
         '''
@@ -1428,14 +1421,15 @@ class Graph(nngt.core.GraphObject):
         if self.is_weighted():
             if edges is None:
                 return self._eattr["weight"]
-            else:
-                if len(edges) == 0:
-                    return np.array([])
 
-                return np.asarray(self._eattr[edges]["weight"])
-        else:
-            size = self.edge_nb() if edges is None else len(edges)
-            return np.ones(size)
+            if len(edges) == 0:
+                return np.array([])
+
+            return self._eattr.get_eattr(edges, "weight")
+
+        size = self.edge_nb() if edges is None else len(edges)
+
+        return np.ones(size)
 
     def get_delays(self, edges=None):
         '''
@@ -1455,8 +1449,8 @@ class Graph(nngt.core.GraphObject):
         '''
         if edges is None:
             return self._eattr["delay"]
-        else:
-            return self._eattr[edges]["delay"]
+
+        return self._eattr.get_eattr(edges, "delay")
 
     def neighbours(self, node, mode="all"):
         '''

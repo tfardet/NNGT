@@ -56,7 +56,9 @@ class _IgNProperty(BaseProperty):
 
     def __getitem__(self, name):
         g = self.parent()._graph
+
         dtype = _np_dtype(super(_IgNProperty, self).__getitem__(name))
+
         return _to_np_array(g.vs[name], dtype=dtype)
 
     def __setitem__(self, name, value):
@@ -138,25 +140,6 @@ class _IgEProperty(BaseProperty):
     def __getitem__(self, name):
         g = self.parent()._graph
 
-        if isinstance(name, slice):
-            eprop = {}
-            for k in self.keys():
-                dtype = _np_dtype(super(_IgEProperty, self).__getitem__(k))
-                eprop[k] = _to_np_array(g.es[k], dtype=dtype)[name]
-            return eprop
-        elif nonstring_container(name):
-            eprop = {}
-            if nonstring_container(name[0]):
-                eids = [g.get_eid(*e) for e in name]
-                for k in self.keys():
-                    dtype = _np_dtype(super(_IgEProperty, self).__getitem__(k))
-                    eprop[k] = _to_np_array(g.es[k], dtype=dtype)[eids]
-            else:
-                eid = g.get_eid(*name)
-                for k in self.keys():
-                    eprop[k] = g.es[k][eid]
-            return eprop
-
         dtype = _np_dtype(super(_IgEProperty, self).__getitem__(name))
 
         return _to_np_array(g.es[name], dtype=dtype)
@@ -174,6 +157,40 @@ class _IgEProperty(BaseProperty):
         else:
             raise InvalidArgument("Attribute does not exist yet, use "
                                   "set_attribute to create it.")
+
+    def get_eattr(self, edges, name=None):
+        g = self.parent()._graph
+
+        if nonstring_container(edges[0]):
+            # many edges
+            eids = [g.get_eid(*e) for e in edges]
+
+            if name is None:
+                eprop = {}
+
+                if nonstring_container(name[0]):
+                    for k in self.keys():
+                        dtype = _np_dtype(super().__getitem__(k))
+                        eprop[k] = _to_np_array(
+                            [g.es[eid][k] for eid in eids], dtype=dtype)
+
+            dtype = _np_dtype(super().__getitem__(name))
+            return _to_np_array([g.es[eid][name] for eid in eids], dtype=dtype)
+        elif not nonstring_container(edges):
+            raise ValueError("Invalid `edges` entry: {}.".format(edges))
+
+        # single edge
+        eid = g.get_eid(*edges)
+
+        if name is None:
+            eprop = {}
+
+            for k in self.keys():
+                eprop[k] = g.es[eid][k]
+
+            return eprop
+
+        return g.es[eid][name]
 
     def new_attribute(self, name, value_type, values=None, val=None):
         g = self.parent()._graph
@@ -448,7 +465,10 @@ class _IGraph(GraphInterface):
         '''
         Remove nodes (and associated edges) from the graph.
         '''
-        self._graph.delete_vertices(nodes)
+        if nodes is None:
+            self._graph.delete_vertices()
+        else:
+            self._graph.delete_vertices(nodes)
 
         for key in self._nattr:
             self._nattr._num_values_set[key] = self.node_nb()
@@ -596,7 +616,7 @@ class _IGraph(GraphInterface):
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''
-        self._graph.delete_edges(None)
+        self._graph.delete_edges()
         self._eattr.clear()
 
     #-------------------------------------------------------------------------#

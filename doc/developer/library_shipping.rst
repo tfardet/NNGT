@@ -45,7 +45,7 @@ to build NNGT
     done
 
     # Bundle external shared libraries into the wheels
-    for whl in wheelhouse/*.whl; do
+    for whl in wheelhouse/nngt*.whl; do
         auditwheel repair "$whl" -w wheelhouse/
     done
 

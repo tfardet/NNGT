@@ -141,55 +141,18 @@ class _NxEProperty(BaseProperty):
     ''' Class for generic interactions with edge properties (networkx)  '''
 
     def __getitem__(self, name):
-        g     = self.parent()._graph
-        edges = None
+        g = self.parent()._graph
 
-        if isinstance(name, slice):
-            edges = self.parent().edges_array[name]
-        elif nonstring_container(name):
-            if len(name) == 0:
-                return []
+        dtype = _np_dtype(super().__getitem__(name))
+        eprop = np.empty(g.number_of_edges(), dtype=dtype)
 
-            if nonstring_container(name[0]):
-                edges = name
-            else:
-                if len(name) != 2:
-                    raise InvalidArgument(
-                        "key for edge attribute must be one of the following: "
-                        "slice, list of edges, edges or attribute name.")
-                return g[name[0]][name[1]]
+        edges = list(g.edges(data=name))
 
-        if isinstance(name, str):
-            dtype = _np_dtype(super(_NxEProperty, self).__getitem__(name))
-            eprop = np.empty(g.number_of_edges(), dtype=dtype)
+        if len(edges):
+            eids = np.asarray(list(g.edges(data="eid")))[:, 2]
 
-            edges = list(g.edges(data=name))
-
-            if len(edges):
-                eids  = np.asarray(list(g.edges(data="eid")))[:, 2]
-
-                for i, eid in enumerate(np.argsort(eids)):
-                    eprop[i] = edges[eid][2]
-
-            return eprop
-
-        eprop = {k: [] for k in self.keys()}
-
-        for edge in edges:
-            data = g.get_edge_data(edge[0], edge[1])
-
-            if data is None:
-                raise ValueError("Edge {} does not exist.".format(edge))
-
-            for k, v in data.items():
-                if k != "eid":
-                    eprop[k].append(v)
-
-        dtype = None
-
-        for k, v in eprop.items():
-            dtype    = _np_dtype(super(_NxEProperty, self).__getitem__(k))
-            eprop[k] = _to_np_array(v, dtype)
+            for i, eid in enumerate(np.argsort(eids)):
+                eprop[i] = edges[eid][2]
 
         return eprop
 
@@ -217,6 +180,46 @@ class _NxEProperty(BaseProperty):
         else:
             raise InvalidArgument("Attribute does not exist yet, use "
                                   "set_attribute to create it.")
+
+    def get_eattr(self, edges, name=None):
+        g = self.parent()._graph
+
+        if nonstring_container(edges[0]):
+            # many edges
+            name = self.keys() if name is None else [name]
+
+            eprop = {k: [] for k in self.keys()}
+
+            for edge in edges:
+                data = g.get_edge_data(*edge)
+
+                if data is None:
+                    raise ValueError(
+                        "Edge {} does not exist.".format(edge))
+
+                [eprop[k].append(data[k]) for k in name]
+
+            for k, v in eprop.items():
+                dtype    = _np_dtype(super().__getitem__(k))
+                eprop[k] = _to_np_array(v, dtype)
+
+            if len(name) == 1:
+                return eprop[name[0]]
+
+            return eprop
+
+        # single edge
+        data = deepcopy(g.get_edge_data(*edges))
+
+        if not data:
+            raise ValueError("Edge {} does not exist.".format(edges))
+
+        if name is None:
+            del data["eid"]
+
+            return data
+
+        return data[name]
 
     def new_attribute(self, name, value_type, values=None, val=None):
         g = self.parent()._graph

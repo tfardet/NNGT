@@ -31,8 +31,10 @@ from scipy.spatial.distance import cdist
 from numpy.random import randint
 
 import nngt
-from nngt.lib import InvalidArgument, nonstring_container
-from nngt.lib.logger import _log_message
+from .errors import InvalidArgument
+from .test_functions import nonstring_container
+from .logger import _log_message
+from .converters import _np_dtype
 
 
 logger = logging.getLogger(__name__)
@@ -245,7 +247,12 @@ def _cleanup_edges(g, edges, attributes, duplicates, loops, existing, ignore):
                 raise InvalidArgument(
                     "Self-loops are present: {}.".format(edges[~test]))
 
-        new_attr  = {k: np.asarray(v)[test] for v, k in attributes.items()}
+        new_attr = {}
+
+        for k, v in attributes.items():
+            dtype = _np_dtype(g.get_attribute_type(k))
+
+            new_attr[k] = np.asarray(v, dtype=dtype)[test]
     else:
         # check (also) either duplicates or existing
         new_attr = {key: [] for key in attributes}

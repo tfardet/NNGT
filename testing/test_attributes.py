@@ -204,8 +204,9 @@ class TestAttributes(TestBasis):
         # check that all lists are present
         nlists = graph.get_node_attributes(name="nlist")
 
-        self.assertTrue(
-            np.all(np.unique(nlists) == np.unique([[], [1], [2], [1, 2]])))
+        res = np.unique(np.array([[], [1], [2], [1, 2]], dtype=object))
+
+        self.assertTrue(np.all(np.unique(nlists) == res))
 
         # check that all nodes from 0 to 48 were updated
         self.assertTrue([] not in nlists[:49].tolist())
@@ -235,8 +236,9 @@ class TestAttributes(TestBasis):
         # check that all lists are present
         elists = graph.get_edge_attributes(name="elist")
 
-        self.assertTrue(
-            np.all(np.unique(elists) == np.unique([[], [1], [2], [1, 2]])))
+        res = np.unique(np.array([[], [1], [2], [1, 2]], dtype=object))
+
+        self.assertTrue(np.all(np.unique(elists) == res))
 
         # check that all edges where updated
         eattr1 = graph.get_edge_attributes(name="elist", edges=edges).tolist()
@@ -452,7 +454,7 @@ if not nngt.get_config('mpi'):
 
     if __name__ == "__main__":
         unittest.main()
-        test_str_attr()
-        test_delays()
-        test_attributes_are_copied()
-        test_combined_attr()
+        # ~ test_str_attr()
+        # ~ test_delays()
+        # ~ test_attributes_are_copied()
+        # ~ test_combined_attr()

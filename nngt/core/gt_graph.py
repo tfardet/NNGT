@@ -175,43 +175,6 @@ class _GtEProperty(BaseProperty):
 
         Edge = g.edge
 
-        if isinstance(name, slice):
-            eprop = {}
-            for k in self:
-                ep = g.edge_properties[k]
-
-                if self._edges_deleted:
-                    Edge = g.edge
-                    data = [ep[Edge(*e)] for e in self.parent().edges_array]
-
-                    eprop[k] = data[name]
-                else:
-                    eprop[k] = ep.a[name]
-
-            return eprop
-        elif nonstring_container(name):
-            # name is and edge or contains edges
-            if len(name) == 0:
-                return {k: [] for k in self}
-
-            eprop = {}
-            if nonstring_container(name[0]):
-                # name is a list of edges
-                for k in self.keys():
-                    tmp = g.edge_properties[k]
-
-                    dtype = super().__getitem__(k)
-
-                    eprop[k] = _to_np_array(
-                        [tmp[Edge(*e)] for e in name], dtype)
-            else:
-                # name is a single edge
-                for k in self.keys():
-                    eprop[k] = g.edge_properties[k][Edge(*name)]
-
-            return eprop
-
-        # name is a string
         dtype = super().__getitem__(name)
 
         if self._edges_deleted:
@@ -256,6 +219,45 @@ class _GtEProperty(BaseProperty):
                                   "set_attribute to create it.")
 
         self._num_values_set[name] = len(value)
+
+    def get_eattr(self, edges, name=None):
+        g = self.parent()._graph
+
+        Edge = g.edge
+
+        if nonstring_container(edges[0]):
+            # many edges
+            if name is None:
+                eprop = {}
+
+                for k in self.keys():
+                    tmp = g.edge_properties[k]
+
+                    dtype = super().__getitem__(k)
+
+                    eprop[k] = _to_np_array(
+                        [tmp[Edge(*e)] for e in edges], dtype)
+
+                return eprop
+
+            tmp = g.edge_properties[name]
+
+            dtype = super().__getitem__(name)
+
+            return _to_np_array([tmp[Edge(*e)] for e in edges], dtype)
+
+        if name is None:
+            eprop = {}
+            for k in self.keys():
+                tmp = g.edge_properties[k]
+
+                eprop[k] = tmp[Edge(*edges)]
+
+            return eprop
+
+        tmp = g.edge_properties[name]
+
+        return tmp[Edge(*edges)]
 
     def set_attribute(self, name, values, edges=None, last_edges=False):
         '''

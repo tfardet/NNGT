@@ -142,7 +142,8 @@ def _make_matrix(graph, ecount, values, elist=None):
     mat_distrib = None
     n = graph.node_nb()
     if elist is not None and graph.edge_nb():
-        mat_distrib = ssp.coo_matrix((values,(elist[:,0],elist[:,1])),(n,n))
+        mat_distrib = ssp.coo_matrix(
+            (values, (elist[:, 0], elist[:, 1])), (n, n))
     else:
         mat_distrib = graph.adjacency_matrix()
         mat_distrib.data = values
@@ -265,8 +266,7 @@ def lin_correlated_distrib(graph, elist=None, correl_attribute="betweenness",
             'Graph has no "distance" edge attribute.'
         if 'distance' not in kwargs:
             if last_edges:
-                slc  = slice(-len(elist), None)
-                data = graph.get_edge_attributes(slc, 'distance')
+                data = graph._eattr['distance'][-len(elist):]
             else:
                 data = graph.get_edge_attributes(elist, 'distance')
         else:

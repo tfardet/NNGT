@@ -197,6 +197,42 @@ class _EProperty(BaseProperty):
                                   "set_attribute to create it.")
         self._num_values_set[name] = len(value)
 
+    def get_eattr(self, edges, name=None):
+        g = self.parent()
+
+        eid = g.edge_id
+
+        if nonstring_container(edges[0]):
+            # many edges
+            if name is None:
+                eprop = {}
+
+                for k in self.keys():
+                    prop = self.prop[k]
+
+                    dtype = super().__getitem__(k)
+
+                    eprop[k] = _to_np_array(
+                        [prop[eid(tuple(e))] for e in edges], dtype)
+
+                return eprop
+
+            prop = self.prop[name]
+
+            dtype = super().__getitem__(name)
+
+            return _to_np_array([prop[eid(tuple(e))] for e in edges], dtype)
+
+        # single edge
+        if name is None:
+            eprop = {}
+            for k in self.keys():
+                eprop[k] = self.prop[k][eid(tuple(edges))]
+
+            return eprop
+
+        return self.prop[name][eid(tuple(edges))]
+
     def set_attribute(self, name, values, edges=None, last_edges=False):
         '''
         Set the edge property.

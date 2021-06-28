@@ -35,7 +35,8 @@ def _neighbour_list(graph, separator, secondary, attributes):
     for v1 in range(graph.node_nb()):
         for i, v2 in enumerate(lst_neighbours[v1]):
             str_edge = str(v2)
-            eattr    = graph.get_edge_attributes((v1, v2))
+
+            eattr = graph.get_edge_attributes((v1, v2))
 
             for attr in attributes:
                 str_edge += "{}{}".format(secondary, eattr[attr])
@@ -112,8 +113,10 @@ def _gml(graph, *args, **kwargs):
     for i, e in enumerate(edges):
         lst_attr = []
 
-        for k, v in graph.edge_attributes.items():
-            lst_attr.append(attr_str.format(key=k, val=v[i]))
+        attrs = graph.get_edge_attributes(e)
+
+        for k, v in attrs.items():
+            lst_attr.append(attr_str.format(key=k, val=v))
 
         eattr = "\n".join(lst_attr)
 
