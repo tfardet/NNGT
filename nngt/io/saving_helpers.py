@@ -23,14 +23,27 @@
 
 """ IO tools for NNGT """
 
+import logging
 
-def _neighbour_list(graph, separator, secondary, attributes):
+from nngt.lib.logger import _log_message
+
+logger = logging.getLogger(__name__)
+
+
+def _neighbour_list(graph, separator, secondary, attributes, **kwargs):
     '''
     Generate a string containing the neighbour list of the graph as well as a
     dict containing the notifiers as key and the associated values.
     @todo: speed this up!
     '''
-    lst_neighbours = list(graph.adjacency_matrix(mformat="lil").rows)
+    lst_neighbours = None
+
+    if graph.is_directed():
+        lst_neighbours = list(graph.adjacency_matrix(mformat="lil").rows)
+    else:
+        import scipy.sparse as ssp
+        lst_neighbours = list(
+            ssp.tril(graph.adjacency_matrix(), format="lil").rows)
 
     for v1 in range(graph.node_nb()):
         for i, v2 in enumerate(lst_neighbours[v1]):
@@ -51,7 +64,7 @@ def _neighbour_list(graph, separator, secondary, attributes):
     return str_neighbours
 
 
-def _edge_list(graph, separator, secondary, attributes):
+def _edge_list(graph, separator, secondary, attributes, **kwargs):
     ''' Generate a string containing the edge list and their properties. '''
     edges = graph.edges_array
 
@@ -129,8 +142,99 @@ def _gml(graph, *args, **kwargs):
     return str_gml
 
 
-def _xml(graph, attributes, **kwargs):
-    pass
+def _xml(graph, attributes=None, additional_notif=None, **kwargs):
+    try:
+        from lxml import etree as ET
+        lxml = True
+    except:
+        lxml = False
+        import xml.etree.ElementTree as ET
+        _log_message(logger, "WARNING",
+                     "LXML is not installed, using Python XML for export. "
+                     "Some apps like Gephi <= 0.9.2 will not read attributes "
+                     "from the generated GraphML file due to elements' order.")
+
+    NS_GRAPHML = "http://graphml.graphdrawing.org/xmlns"
+    NS_XSI = "http://www.w3.org/2001/XMLSchema-instance"
+    NS_Y = "http://www.yworks.com/xml/graphml"
+    NSMAP = {
+        "xsi": NS_XSI
+    }
+    SCHEMALOCATION = " ".join(
+        [
+            "http://graphml.graphdrawing.org/xmlns",
+            "http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd",
+        ]
+    )
+
+    doc = ET.Element(
+        "graphml",
+        {
+            "xmlns": NS_GRAPHML,
+        },
+        nsmap=NSMAP
+    )
+
+    n = doc.set("{{}}xsi".format(NS_GRAPHML), NS_XSI)
+    n = doc.set("{{}}schemaLocation".format(NS_XSI), SCHEMALOCATION)
+
+    # make graph element
+    directedness = "directed" if graph.is_directed() else "undirected"
+
+    eg = ET.SubElement(doc, "graph", edgedefault=directedness, id=graph.name)
+
+    # prepare graph data
+    del additional_notif["directed"]
+    del additional_notif["name"]
+
+    nattrs = additional_notif.pop("node_attributes")
+    ntypes = additional_notif.pop("node_attr_types")
+
+    for attr, atype in zip(nattrs, ntypes):
+        kw = {"for": "node", "attr.name": attr, "attr.type": atype}
+        if lxml:
+            key = ET.Element("key", id=attr, **kw)
+            eg.addprevious(key)
+        else:
+            ET.SubElement(doc, "key", id=attr, **kw)
+
+    eattrs = additional_notif.pop("edge_attributes")
+    etypes = additional_notif.pop("edge_attr_types")
+
+    for attr, atype in zip(eattrs, etypes):
+        kw = {"for": "edge", "attr.name": attr, "attr.type": atype}
+        if lxml:
+            key = ET.Element("key", id=attr, **kw)
+            eg.addprevious(key)
+        else:
+            ET.SubElement(doc, "key", id=attr, **kw)
+
+    # add remaining information as data to the graph
+    for k, v in additional_notif.items():
+        elt = ET.SubElement(doc, "data", key=k)
+        elt.text = str(v)
+
+    # add node information
+    nattr = graph.get_node_attributes()
+
+    for n in graph.get_nodes():
+        nelt = ET.SubElement(eg, "node", id=str(n))
+
+        for k, v in nattr.items():
+            elt = ET.SubElement(nelt, "data", key=k)
+            elt.text = str(v[n])
+
+    # add edge information
+    for e in graph.get_edges():
+        nelt = ET.SubElement(eg, "edge", id="e{}".format(graph.edge_id(e)),
+                             source=str(e[0]), target=str(e[1]))
+        for k in eattrs:
+            elt = ET.SubElement(nelt, "data", key=k)
+            elt.text = str(graph.get_edge_attributes(e, name=k))
+
+    kw = {"pretty_print": True} if lxml else {}
+
+    return ET.tostring(doc, encoding="unicode", **kw)
 
 
 def _gt(graph, attributes, **kwargs):
@@ -158,6 +262,11 @@ def _gml_info(graph_info, *args, **kwargs):
             info_str += "  {} {}\n".format(key, val)
 
     return info_str
+
+
+def _xml_info(*args, **kwargs):
+    ''' Return empty string '''
+    return ""
 
 
 def _str_bytes_len(s):

@@ -119,7 +119,7 @@ def test_structure_graph():
         d2 = 5
         ng.connect_groups(g, room2, room3, "erdos_renyi", avg_deg=d2)
         ng.connect_groups(g, room2, room4, "erdos_renyi", avg_deg=d2,
-                                       weights=2)
+                          weights=2)
 
         d3 = 20
         ng.connect_groups(g, room3, room1, "erdos_renyi", avg_deg=d3)

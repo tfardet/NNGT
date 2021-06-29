@@ -23,13 +23,14 @@
 
 """ Loading helpers """
 
+from collections import defaultdict
 import re
 import types
 
 import numpy as np
 
 from ..lib.converters import (_np_dtype, _to_int, _to_string, _to_list,
-                              _string_from_object)
+                              _string_from_object, _python_type)
 
 
 __all__ = [
@@ -37,6 +38,7 @@ __all__ = [
     "_gen_convert",
     "_get_edges_elist",
     "_get_edges_gml",
+    "_get_edges_graphml",
     "_get_edges_neighbour",
     "_get_node_attr",
     "_get_notif",
@@ -62,13 +64,13 @@ def _process_file(f, fmt, separator):
             elif clean_line.endswith("]") and len(clean_line) > 1:
                 lines.append(clean_line[:-1].strip())
                 lines.append("]")
-            else:
+            elif clean_line:
                 lines.append(clean_line)
 
         return lines
 
     # otherwise just cleanup the lines
-    return [_cleanup_line(line, separator) for line in f.readlines()]
+    return [_cleanup_line(line, separator) for line in f.readlines() if line]
 
 
 # ---------------- #
@@ -94,13 +96,13 @@ def _format_notif(notif_name, notif_val):
         return notif_val
 
 
-def _get_notif(lines, notifier, attributes, fmt=None, atypes=None):
+def _get_notif(filename, lines, notifier, attributes, fmt=None, atypes=None):
     di_notif = {
         "node_attributes": [], "edge_attributes": [], "node_attr_types": [],
         "edge_attr_types": [],
     }
 
-    # special case for GML
+    # special cases for GML and GraphML
     if fmt == "gml":
         start = 0
 
@@ -109,20 +111,32 @@ def _get_notif(lines, notifier, attributes, fmt=None, atypes=None):
                 start = i
                 break
 
-        # nodes
         nodes = [i for i, l in enumerate(lines) if l == "node" and i > start]
-        num_nodes = len(nodes)
+        edges = [i for i, l in enumerate(lines) if l == "edge" and i > start]
 
+        num_nodes = len(nodes)
+        num_edges = len(edges)
+
+        # nodes
         di_notif["size"]  = num_nodes
         di_notif["nodes"] = nodes
 
         # node attributes
         diff = np.diff(nodes) - 4  # number of lines other than node spec
 
-        num_nattr = diff[0]
+        num_nattr = 0
 
-        if not np.all(diff == num_nattr):
-            raise RuntimeError("All nodes should have the same attributes.")
+        if num_nodes > 1:
+            num_nattr = diff[0]
+
+            if not np.all(diff == num_nattr):
+                raise RuntimeError(
+                    "All nodes should have the same attributes.")
+        elif num_nodes:
+            if num_edges:
+                num_nattr = edges[0] - nodes[0] - 4
+            else:
+                num_nattr = len(lines) - nodes[0] - 5
 
         if num_nattr > len(di_notif["node_attributes"]):
             for i in range(nodes[0] + 3, nodes[0] + num_nattr + 3):
@@ -143,16 +157,20 @@ def _get_notif(lines, notifier, attributes, fmt=None, atypes=None):
             di_notif[key] = _format_notif(key, val)
 
         # edges
-        edges = [i for i, l in enumerate(lines) if l == "edge" and i > start]
-
         di_notif["edges"] = edges
 
         diff = np.diff(edges) - 5  # number of lines other than edge spec
 
-        num_eattr = diff[0]
+        num_eattr = 0
 
-        if not np.all(diff == num_eattr):
-            raise RuntimeError("All edges should have the same attributes.")
+        if num_edges > 1:
+            num_eattr = diff[0]
+
+            if not np.all(diff == num_eattr):
+                raise RuntimeError(
+                    "All edges should have the same attributes.")
+        elif num_edges == 1:
+            num_eattr = len(lines) - edges[0] - 6
 
         if num_eattr > len(di_notif["edge_attributes"]):
             for i in range(edges[0] + 4, edges[0] + num_eattr + 4):
@@ -164,7 +182,65 @@ def _get_notif(lines, notifier, attributes, fmt=None, atypes=None):
                         _string_from_object(atypes.get(name, object)))
                 else:
                     di_notif["edge_attr_types"].append("object")
+    elif fmt == "graphml" or fmt == "xml":
+        try:
+            from lxml import etree as ET
+            lxml = True
+        except:
+            lxml = False
+            import xml.etree.ElementTree as ET
+            from io import StringIO
+
+        root = ET.parse(filename).getroot()
+
+        ns = root.nsmap if lxml else dict([
+                node for _, node in ET.iterparse(filename, events=['start-ns'])
+             ])
+
+        di_notif["namespace"] = ns
+
+        graph = root.find("graph", ns)
+
+        di_notif["nodes"] = list(graph.findall("node", ns))
+        di_notif["edges"] = list(graph.findall("edge", ns))
+
+        # graph properties
+        for elt in root.findall("data", ns):
+            di_notif[elt.get("key")] = elt.text
+
+        for elt in graph.findall("data", ns):
+            di_notif[elt.get("key")] = elt.text
+
+        if "size" in di_notif:
+            di_notif["size"] = int(di_notif["size"])
+        else:
+            di_notif["size"] = len(di_notif["nodes"])
+
+        # directedness
+        di_notif["directed"] = \
+            True if graph.get("edgedefault") == "directed" else False
+
+        # node and edge attributes
+        di_notif["node_attributes"] = []
+        di_notif["edge_attributes"] = []
+        di_notif["node_attr_types"] = []
+        di_notif["edge_attr_types"] = []
+        di_notif["nattr_keytoname"] = {}
+        di_notif["eattr_keytoname"] = {}
+
+        for elt in root.findall("./key", ns):
+            if elt.get("for") == "node":
+                di_notif["node_attributes"].append(elt.get("attr.name"))
+                di_notif["node_attr_types"].append(elt.get("attr.type"))
+                di_notif["nattr_keytoname"][elt.get("id")] = \
+                    elt.get("attr.name")
+            elif elt.get("for") == "edge":
+                di_notif["edge_attributes"].append(elt.get("attr.name"))
+                di_notif["edge_attr_types"].append(elt.get("attr.type"))
+                di_notif["eattr_keytoname"][elt.get("id")] = \
+                    elt.get("attr.name")
     else:
+        # edge list and neighbour formatting
         for line in lines:
             if line.startswith(notifier):
                 idx_eq = line.find("=")
@@ -192,7 +268,7 @@ def _get_notif(lines, notifier, attributes, fmt=None, atypes=None):
 # ----- #
 
 def _get_edges_neighbour(lst_lines, attributes, ignore, notifier, separator,
-                         secondary, di_attributes, di_convert, **kwargs):
+                         secondary, di_attributes, convertor, **kwargs):
     '''
     Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
     format.
@@ -223,15 +299,15 @@ def _get_edges_neighbour(lst_lines, attributes, ignore, notifier, separator,
                         attr_val = content[1:] if len(content) > 1 else []
 
                         for name, val in zip(attributes, attr_val):
-                            di_attributes[name].append(di_convert[name](val))
+                            di_attributes[name].append(convertor[name](val))
 
     return edges
 
 
 def _get_edges_elist(lst_lines, attributes, ignore, notifier, separator,
-                     secondary, di_attributes, di_convert, **kwargs):
+                     secondary, di_attributes, convertor, **kwargs):
     '''
-    Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
+    Add edges and attributes to `edges` and `di_attributes` for the edge list
     format.
     '''
     edges = []
@@ -250,41 +326,77 @@ def _get_edges_elist(lst_lines, attributes, ignore, notifier, separator,
             if len(data) == 3 and secondary in data[2]:  # secondary notifier
                 attr_data = data[2].split(secondary)
                 for name, val in zip(attributes, attr_data):
-                    di_attributes[name].append(di_convert[name](val))
+                    di_attributes[name].append(convertor[name](val))
             elif len(data) == len(attributes) + 2:  # regular columns
                 for name, val in zip(attributes, data[2:]):
-                    di_attributes[name].append(di_convert[name](val))
+                    di_attributes[name].append(convertor[name](val))
 
     return edges
 
 
 def _get_edges_gml(lst_lines, attributes, *args, di_attributes=None,
-                   di_convert=None, di_notif=None):
+                   convertor=None, di_notif=None):
     '''
-    Add edges and attributes to `edges` and `di_attributes` for the "neighbour"
-    format.
+    Add edges and attributes to `edges` and `di_attributes` for the gml format.
     '''
     edges = []
 
-    edge_lines = di_notif["edges"]
     num_eattr  = len(di_attributes)
 
-    for line_num in edge_lines:
+    for line_num in di_notif["edges"]:
         source = int(lst_lines[line_num + 2][7:])
         target = int(lst_lines[line_num + 3][7:])
 
         edges.append((source, target))
 
-        for i, name in zip(range(num_eattr), attributes):
+        for i, name in enumerate(attributes):
             lnum  = line_num + 4 + i
             start = lst_lines[lnum].find(" ") + 1
             attr  = lst_lines[lnum][start:]
-            di_attributes[name].append(di_convert[name](attr))
+            di_attributes[name].append(convertor[name](attr))
 
     return edges
 
 
-def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
+def _get_edges_graphml(lst_lines, attributes, *args, di_attributes=None,
+                       convertor=None, di_notif=None):
+    '''
+    Add edges and attributes to `edges` and `di_attributes` for the graphml
+    format.
+    '''
+    edges = []
+
+    num_eattr = len(di_attributes)
+
+    ns = di_notif["namespace"]
+
+    try:
+        int(di_notif["edges"][0].source)
+        ids = True
+    except:
+        ids = False
+        nid = {elt.get("id"): i for i, elt in enumerate(di_notif["nodes"])}
+
+    for elt in di_notif["edges"]:
+        if ids:
+            source = int(elt.get("source"))
+            target = int(elt.get("target"))
+        else:
+            source = int(nid[elt.get("source")])
+            target = int(nid[elt.get("target")])
+
+        edges.append((source, target))
+
+        key_to_name = di_notif["eattr_keytoname"]
+
+        for attr in elt.findall("data", ns):
+            name = key_to_name[attr.get("key")]
+            di_attributes[name].append(convertor[name](attr.text))
+
+    return edges
+
+
+def _get_node_attr(di_notif, separator, fmt=None, lines=None, convertor=None):
     '''
     Return node attributes.
 
@@ -293,13 +405,11 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
 
     For GML, need to get them from the nodes.
     '''
-    di_nattr   = {}
+    di_nattr = {}
 
     if fmt == "gml":
         node_lines = di_notif["nodes"]
         num_nattr  = node_lines[1] - node_lines[0] - 3  # lines other than attr
-
-        has_types = len(di_notif["node_attr_types"]) == num_nattr
 
         if num_nattr:
             for line_num in node_lines:
@@ -314,13 +424,20 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, atypes=None):
                     if name not in di_nattr:
                         di_nattr[name] = []
 
-                    dtype = str if atypes is None else atypes.get(name, str)
+                    di_nattr[name].append(convertor[name](val))
+    elif fmt == "graphml" or fmt == "xml":
+        ns = di_notif["namespace"]
+        key_to_name = di_notif["nattr_keytoname"]
 
-                    if has_types:
-                        dtype = _type_converter(di_notif["node_attr_types"][i])
+        for elt in di_notif["nodes"]:
+            for attr in elt.findall("data", ns):
+                name = key_to_name[attr.get("key")]
+                if name not in di_nattr:
+                    di_nattr[name] = []
 
-                    di_nattr[name].append(dtype(val))
+                di_nattr[name].append(convertor[name](attr.text))
     else:
+        # edge list and neighbors formatting
         nattr_name = {str("na_" + k): k for k in di_notif["node_attributes"]}
         nattr_type = di_notif["node_attr_types"]
 
@@ -358,7 +475,7 @@ def _gen_convert(attributes, attr_types, attributes_types=None):
     Generate a conversion dictionary that associates the right type to each
     attribute
     '''
-    di_convert = {}
+    di_convert = defaultdict(lambda: (lambda x: x))
 
     if attributes and not attr_types:
         attr_types.extend(("string" for _ in attributes))
@@ -370,14 +487,18 @@ def _gen_convert(attributes, attr_types, attributes_types=None):
         elif attr_type in ("double", "float", "real"):
             di_convert[attr] = float
         elif attr_type in ("str", "string"):
-            di_convert[attr] = lambda x: str(x).strip("\"'")
+            def string_convertor(s):
+                if s:
+                    start, end = s[0], s[-1]
+                    if start == end and start in ("'", '"'):
+                        return s[1:-1]
+                return s
+            di_convert[attr] = lambda x: string_convertor(x)
         elif attr_type in ("int", "integer"):
             di_convert[attr] = _to_int
         elif attr_type in ("lst", "list", "tuple", "array"):
             di_convert[attr] = _to_list
-        elif attr_type == "object":
-            di_convert[attr] = lambda x: x
-        else:
+        elif attr_type != "object":
             raise TypeError("Invalid attribute type: '{}'.".format(attr_type))
 
     return di_convert

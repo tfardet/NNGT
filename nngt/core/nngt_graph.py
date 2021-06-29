@@ -786,6 +786,10 @@ class _NNGTGraph(GraphInterface):
             if np.max(edge_list) >= self.node_nb():
                 raise InvalidArgument("Some nodes do no exist.")
 
+            for k, v in attributes.items():
+                assert nonstring_container(v) and len(v) == num_edges, \
+                    "One attribute per edge is required."
+
             # check edges
             new_attr = None
 

@@ -125,16 +125,20 @@ def connect_nodes(network, sources, targets, graph_model, density=None,
 
         if isinstance(ww, dict):
             attr['weight'] = _generate_random(len(elist), ww)
-        else:
+        elif nonstring_container(ww):
             attr['weight'] = ww
+        else:
+            attr['weight'] = np.full(len(elist), ww)
 
     if 'delays' in kwargs:
         dd = kwargs['delays']
 
         if isinstance(ww, dict):
             attr['delay'] = _generate_random(len(elist), dd)
+        elif nonstring_container(dd):
+            attr['weight'] = dd
         else:
-            attr['delay'] = dd
+            attr['weight'] = np.full(len(elist), dd)
 
     if network.is_spatial() and distance:
         attr['distance'] = distance

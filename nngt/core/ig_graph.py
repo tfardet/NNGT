@@ -507,7 +507,8 @@ class _IGraph(GraphInterface):
         -------
         The new connection or None if nothing was added.
         '''
-        attributes = {} if attributes is None else deepcopy(attributes)
+        attributes = {} if attributes is None \
+                     else {k: [v] for k, v in attributes.items()}
 
         if source == target:
             if not ignore and not self_loop:
@@ -572,6 +573,10 @@ class _IGraph(GraphInterface):
         if num_edges:
             if np.max(edge_list) >= self.node_nb():
                 raise InvalidArgument("Some nodes do no exist.")
+
+            for k, v in attributes.items():
+                assert nonstring_container(v) and len(v) == num_edges, \
+                    "One attribute per edge is required."
 
             # set default values for attributes that were not passed
             _set_default_edge_attributes(self, attributes, num_edges)

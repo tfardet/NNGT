@@ -40,8 +40,9 @@ from nngt.lib.logger import _log_message
 
 from ..geometry import Shape, _shapely_support
 from .io_helpers import _get_format
-from .saving_helpers import (_neighbour_list, _edge_list, _gml, _custom_info,
-                           _gml_info, _str_bytes_len)
+from .saving_helpers import (_neighbour_list, _edge_list, _gml, _xml,
+                             _custom_info, _gml_info, _xml_info,
+                             _str_bytes_len)
 
 
 logger = logging.getLogger(__name__)
@@ -54,11 +55,15 @@ logger = logging.getLogger(__name__)
 di_format = {
     "neighbour": _neighbour_list,
     "edge_list": _edge_list,
-    "gml": _gml
+    "gml": _gml,
+    "graphml": _xml,
+    "xml": _xml,
 }
 
 format_graph_info = defaultdict(lambda: _custom_info)
 format_graph_info["gml"] = _gml_info
+format_graph_info["xml"] = _xml_info
+format_graph_info["graphml"] = _xml_info
 
 
 # --------------- #
@@ -233,26 +238,27 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
     }
 
     # add node attributes to the notifications
-    for nattr in additional_notif["node_attributes"]:
-        key = "na_" + nattr
+    if fmt != "graphml":
+        for nattr in additional_notif["node_attributes"]:
+            key = "na_" + nattr
 
-        tmp = np.array2string(
-            graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
-            separator=separator)[1:-1].replace("'" + separator + "'",
-                                               '"' + separator + '"')
+            tmp = np.array2string(
+                graph.get_node_attributes(name=nattr), max_line_width=np.NaN,
+                separator=separator)[1:-1].replace("'" + separator + "'",
+                                                   '"' + separator + '"')
 
-        # replace possible variants
-        tmp = tmp.replace("'" + separator + '"', '"' + separator + '"')
-        tmp = tmp.replace('"' + separator + "'", '"' + separator + '"')
+            # replace possible variants
+            tmp = tmp.replace("'" + separator + '"', '"' + separator + '"')
+            tmp = tmp.replace('"' + separator + "'", '"' + separator + '"')
 
-        if tmp.startswith("'"):
-            tmp = '"' + tmp[1:]
+            if tmp.startswith("'"):
+                tmp = '"' + tmp[1:]
 
-        if tmp.endswith("'"):
-             tmp = tmp[:-1] + '"'
+            if tmp.endswith("'"):
+                 tmp = tmp[:-1] + '"'
 
-        # make and store final string
-        additional_notif[key] = tmp
+            # make and store final string
+            additional_notif[key] = tmp
 
     # save positions for SpatialGraph (and shape if Shapely is available)
     if graph.is_spatial():
@@ -308,7 +314,8 @@ def _as_string(graph, fmt="neighbour", separator=" ", secondary=";",
             g._net    = weakref.ref(graph)
 
     str_graph = di_format[fmt](graph, separator=separator,
-                               secondary=secondary, attributes=attributes)
+                               secondary=secondary, attributes=attributes,
+                               additional_notif=additional_notif)
 
     # set numpy cut threshold back on
     np.set_printoptions(threshold=old_threshold)

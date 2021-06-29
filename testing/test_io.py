@@ -29,6 +29,10 @@ from tools_testing import foreach_graph
 current_dir = os.path.dirname(os.path.abspath(__file__)) + '/'
 error = 'Wrong {{val}} for {graph}.'
 
+formats = ("neighbour", "edge_list", "gml", "graphml")
+
+filetypes = ("nn", "el", "gml", "graphml")
+
 gfilename = current_dir + 'g.graph'
 
 
@@ -64,8 +68,8 @@ class TestIO(TestBasis):
             except:
                 pass
         try:
-            for fmt in ("nn", "el", "gml"):
-                os.remove(current_dir + 'test.' + fmt)
+            for ft in filetypes:
+                os.remove(current_dir + 'test.' + ft)
         except:
             pass
     
@@ -77,11 +81,6 @@ class TestIO(TestBasis):
     def gen_graph(self, graph_name):
         # check whether we are loading from file
         if "." in graph_name:
-            with_nngt = nngt.get_config("backend") == "nngt"
-
-            if "graphml" in graph_name and with_nngt:
-                return None
-
             abspath = network_dir + graph_name
             di_instructions = self.parser.get_graph_options(graph_name)
             graph = nngt.Graph.from_file(abspath, **di_instructions,
@@ -170,9 +169,9 @@ class TestIO(TestBasis):
 
         old_edges = g.edges_array
 
-        for fmt in ("nn", "el", "gml"):
-            g.to_file(current_dir + 'test.' + fmt)
-            h = nngt.Graph.from_file(current_dir + 'test.' + fmt)
+        for ft in filetypes:
+            g.to_file(current_dir + 'test.' + ft)
+            h = nngt.Graph.from_file(current_dir + 'test.' + ft)
 
             # for neighbour list, we need to give the edge list to have
             # the edge attributes in the same order as the original graph
@@ -181,10 +180,10 @@ class TestIO(TestBasis):
                                                          name="test_attr"))
             if not allclose:
                 print("Results differed for '{}'.".format(g.name))
-                print("using file 'test.{}'.".format(fmt))
+                print("using file 'test.{}'.".format(ft))
                 print(g.get_edge_attributes(name="test_attr"))
                 print(h.get_edge_attributes(edges=old_edges, name="test_attr"))
-                with open(current_dir + 'test.' + fmt, 'r') as f:
+                with open(current_dir + 'test.' + ft, 'r') as f:
                     for line in f.readlines():
                         print(line.strip())
 
@@ -197,7 +196,7 @@ def test_empty_out_degree():
 
     g.new_edge(0, 1)
 
-    for fmt in ("neighbour", "edge_list"):
+    for fmt in formats:
         nngt.save_to_file(g, gfilename, fmt=fmt)
 
         h = nngt.load_from_file(gfilename, fmt=fmt)
@@ -217,7 +216,7 @@ def test_str_attributes():
     g.new_node_attribute("rnd", "string")
     g.set_node_attribute("rnd", values=["s'adf", 'sd fr"'])
 
-    for fmt in ("neighbour", "edge_list"):
+    for fmt in formats:
         nngt.save_to_file(g, gfilename, fmt=fmt)
 
         h = nngt.load_from_file(gfilename, fmt=fmt)
@@ -245,20 +244,46 @@ def test_structure():
 
     g = nngt.Graph(structure=struct)
 
-    g.to_file(gfilename, fmt="edge_list")
+    for fmt in formats:
+        g.to_file(gfilename, fmt=fmt)
 
-    h = nngt.load_from_file(gfilename, fmt="edge_list")
+        h = nngt.load_from_file(gfilename, fmt=fmt)
 
-    assert g.structure == h.structure
+        assert g.structure == h.structure
 
     # with a neuronal population
     g = nngt.Network.exc_and_inhib(100)
 
-    g.to_file(gfilename, fmt="edge_list")
+    for fmt in formats:
+        g.to_file(gfilename, fmt=fmt)
 
-    h = nngt.load_from_file(gfilename, fmt="edge_list")
+        h = nngt.load_from_file(gfilename, fmt=fmt)
 
-    assert g.population == h.population
+        assert g.population == h.population
+
+
+@pytest.mark.mpi_skip
+def test_spatial():
+    from nngt.geometry import Shape
+
+    shape = Shape.disk(100, default_properties={"plop": 0.2, "height": 1.})
+    area = Shape.rectangle(10, 10, default_properties={"height": 10.})
+    shape.add_area(area, name="center")
+
+    g = nngt.SpatialGraph(20, shape=shape)
+
+    for fmt in formats:
+        g.to_file(gfilename, fmt=fmt)
+
+        h = nngt.load_from_file(gfilename, fmt=fmt)
+
+        assert np.all(np.isclose(g.get_positions(), h.get_positions()))
+        assert g.shape.almost_equals(h.shape)
+
+        for name, area in g.shape.areas.items():
+            assert area.almost_equals(h.shape.areas[name])
+
+            assert area.properties == h.shape.areas[name].properties
 
 
 @pytest.mark.mpi_skip
@@ -268,11 +293,13 @@ def test_node_attributes():
 
     g.new_node_attribute("size", "int", [2*(i+1) for i in range(num_nodes)])
 
-    g.to_file(gfilename, fmt="edge_list")
+    for fmt in formats:
+        g.to_file(gfilename, fmt=fmt)
 
-    h = nngt.load_from_file(gfilename, fmt="edge_list")
+        h = nngt.load_from_file(gfilename, fmt=fmt)
 
-    assert np.array_equal(g.node_attributes["size"], h.node_attributes["size"])
+        assert np.array_equal(g.node_attributes["size"],
+                              h.node_attributes["size"])
 
 
 # ---------- #
@@ -287,4 +314,5 @@ if __name__ == "__main__":
         test_str_attributes()
         test_structure()
         test_node_attributes()
+        test_spatial()
         unittest.main()

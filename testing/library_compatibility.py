@@ -140,6 +140,7 @@ def test_assortativity():
 
     # UNDIRECTED
     edge_list = [(0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3)]
+    weights = weights[:len(edge_list)]
 
     # expected results
     assort_unweighted = -0.33333333333333215

@@ -781,6 +781,10 @@ class _GtGraph(GraphInterface):
             if np.max(edge_list) >= num_nodes:
                 raise InvalidArgument("Some nodes do no exist.")
 
+            for k, v in attributes.items():
+                assert nonstring_container(v) and len(v) == num_edges, \
+                    "One attribute per edge is required."
+
             # set default values for attributes that were not passed
             _set_default_edge_attributes(self, attributes, num_edges)
 

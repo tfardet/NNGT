@@ -50,6 +50,8 @@ di_get_edges = {
     "neighbour": _get_edges_neighbour,
     "edge_list": _get_edges_elist,
     "gml": _get_edges_gml,
+    "graphml": _get_edges_graphml,
+    "xml": _get_edges_graphml,
 }
 
 
@@ -209,31 +211,34 @@ def _load_from_file(filename, fmt="auto", separator=" ", secondary=";",
     lst_lines, struct, shape, positions = None, None, None, None
     fmt = _get_format(fmt, filename)
 
-    if fmt not in ("neighbour", "edge_list", "gml"):
-        return [None]*7
+    if fmt not in di_get_edges:
+        raise ValueError("Unsupported format: '{}'".format(fmt))
 
     with open(filename, "r") as filegraph:
         lst_lines = _process_file(filegraph, fmt, separator)
 
     # notifier lines
-    di_notif = _get_notif(lst_lines, notifier, attributes, fmt=fmt,
+    di_notif = _get_notif(filename, lst_lines, notifier, attributes, fmt=fmt,
                           atypes=attributes_types)
 
     # get nodes attributes
+    nattr_convertor = _gen_convert(di_notif["node_attributes"],
+                                   di_notif["node_attr_types"],
+                                   attributes_types=attributes_types)
     di_nattributes = _get_node_attr(di_notif, separator, fmt=fmt,
-                                    lines=lst_lines, atypes=attributes_types)
+                                    lines=lst_lines, convertor=nattr_convertor)
 
     # make edges and attributes
     eattributes     = di_notif["edge_attributes"]
     di_eattributes  = {name: [] for name in eattributes}
-    di_edge_convert = _gen_convert(di_notif["edge_attributes"],
+    eattr_convertor = _gen_convert(di_notif["edge_attributes"],
                                    di_notif["edge_attr_types"],
                                    attributes_types=attributes_types)
 
     # process file
     edges = di_get_edges[fmt](
         lst_lines, eattributes, ignore, notifier, separator, secondary,
-        di_attributes=di_eattributes, di_convert=di_edge_convert,
+        di_attributes=di_eattributes, convertor=eattr_convertor,
         di_notif=di_notif)
 
     if cleanup:

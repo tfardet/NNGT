@@ -168,7 +168,8 @@ setup_params = dict(
         'geometry': ['matplotlib', 'shapely', 'dxfgrabber', 'svg.path'],
         'geospatial': ['matplotlib', 'geopandas', 'descartes', 'cartopy'],
         'full': ['cython', 'networkx>=2.4', 'shapely', 'dxfgrabber',
-                 'svg.path', 'matplotlib', 'geopandas', 'descartes', 'cartopy']
+                 'svg.path', 'matplotlib', 'geopandas', 'descartes', 'cartopy',
+                 'lxml']
     },
 
     # Cython module

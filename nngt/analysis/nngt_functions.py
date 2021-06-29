@@ -30,18 +30,21 @@ import scipy.sparse as ssp
 def adj_mat(g, weight=None, mformat="csr"):
     data = None
 
+    num_nodes = g.node_nb()
+    num_edges = g.edge_nb()
+
     if weight in g.edge_attributes:
         data = g.get_edge_attributes(name=weight)
     else:
-        data = np.ones(g.edge_nb())
+        data = np.ones(num_edges)
 
     if not g.is_directed():
         data = np.repeat(data, 2)
         
-    edges     = np.array(list(g._graph._edges), dtype=int)
-    num_nodes = g.node_nb()
-    mat       = ssp.coo_matrix((data, (edges[:, 0], edges[:, 1])),
-                               shape=(num_nodes, num_nodes))
+    edges = np.array(list(g._graph._edges), dtype=int)
+    edges = (edges[:, 0], edges[:, 1]) if num_edges else [[], []]
+
+    mat = ssp.coo_matrix((data, edges), shape=(num_nodes, num_nodes))
 
     return mat.asformat(mformat)
 

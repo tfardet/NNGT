@@ -688,8 +688,11 @@ class _NxGraph(GraphInterface):
             if np.max(edge_list) >= g.number_of_nodes():
                 raise InvalidArgument("Some nodes do no exist.")
 
-            for attr in attributes:
-                if "_corr" in attr:
+            for k, v in attributes.items():
+                assert nonstring_container(v) and len(v) == num_edges, \
+                    "One attribute per edge is required."
+
+                if "_corr" in k:
                     raise NotImplementedError("Correlated attributes are not "
                                               "available with networkx.")
 

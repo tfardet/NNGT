@@ -105,6 +105,18 @@ def _np_dtype(attribute_type):
     return object
 
 
+def _python_type(attribute_type):
+    '''
+    Return a relevant numpy dtype entry.
+    '''
+    if attribute_type in ("double", "float", "real"):
+        return float
+    elif attribute_type in ("int", "integer"):
+        return int
+
+    return str
+
+
 def _type_converter(attribute_type):
     if not isinstance(attribute_type, str):
         return attribute_type

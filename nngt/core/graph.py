@@ -36,7 +36,7 @@ import nngt
 import nngt.analysis as na
 
 from nngt import save_to_file
-from nngt.io.graph_loading import _load_from_file, _library_load
+from nngt.io.graph_loading import _load_from_file, _library_load, di_get_edges
 from nngt.io.io_helpers import _get_format
 from nngt.io.graph_saving import _as_string
 from nngt.lib import InvalidArgument, nonstring_container
@@ -256,7 +256,7 @@ class Graph(nngt.core.GraphObject):
         '''
         fmt = _get_format(fmt, filename)
 
-        if fmt not in ("neighbour", "edge_list", "gml"):
+        if fmt not in di_get_edges:
             # only partial support for these formats, relying on backend
             libgraph = _library_load(filename, fmt)
 

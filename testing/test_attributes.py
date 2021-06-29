@@ -454,7 +454,7 @@ if not nngt.get_config('mpi'):
 
     if __name__ == "__main__":
         unittest.main()
-        # ~ test_str_attr()
-        # ~ test_delays()
-        # ~ test_attributes_are_copied()
-        # ~ test_combined_attr()
+        test_str_attr()
+        test_delays()
+        test_attributes_are_copied()
+        test_combined_attr()

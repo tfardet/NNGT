@@ -49,8 +49,18 @@ NNGT requires Python 3.5+ since version 2.0, and is directly available on Pypi.
 To install it, make sure you have a valid Python installation, then do:
 
 ```
-pip install --user nngt
+pip install nngt
 ```
+
+If you want to use it with advanced geometry, geospatial or other tools, you
+can use the various extra to automatically download the relevant dependencies
+keep only one of the listed possibilities)
+
+```
+pip install nngt[matplotlib|nx|ig|geometry|geospatial]
+```
+
+To install all dependencies, use `pip install nngt[full]`.
 
 To use it, once installed, open a Python terminal or script file and type
 
