@@ -32,23 +32,23 @@ The library has two main targets:
 Main classes
 ------------
 
-NNGT provides four main classes, the two first being aimed at the
-graph-theoretical community, the third and fourth are more for the neuroscience
-community:
+NNGT provides four main classes.
+The two first are aimed at the graph-theoretical community, the third and
+fourth are more for the neuroscience community.
+Additional details are provided on the :ref:`main_api` page.
 
 :class:`~nngt.Graph`
-  provides a simple implementation over graphs objects from graph libraries
-  (namely the addition of a name, management of detailed nodes and connection
-  properties, and simple access to basic graph measurements).
+  provides a simple implementation to access and analyse topological graphs by
+  wrapping any graph object from other graph libraries.
 :class:`~nngt.SpatialGraph`
   a Graph embedded in space (nodes have positions and connections are
-  associated to a distance)
+  associated to a distance).
 :class:`~nngt.Network`
   provides more detailed characteristics to emulate biological neural
   networks, such as classes of inhibitory and excitatory neurons, synaptic
   properties...
 :class:`~nngt.SpatialNetwork`
-  combines spatial embedding and biological properties
+  combines spatial embedding and biological properties.
 
 
 Generation of graphs

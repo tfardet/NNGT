@@ -1,0 +1,102 @@
+Graph classes
+=============
+
+NNGT provides four main graph classes that provide specific features to work
+as conveniently as possible with different object types: topological versus
+space-embedded graphs or neuronal networks.
+
+.. autosummary::
+
+    nngt.Graph
+    nngt.SpatialGraph
+    nngt.Network
+    nngt.SpatialNetwork
+
+
+A summary of the methods provided by these classes as well as more detailed
+descriptions are provided below.
+Unless specified, child classes can use all methods from the parent class
+(the only exception is :meth:`~nngt.Graph.set_types` which is not available
+to the :class:`~nngt.Network` subclasses).
+
+.. contents::
+   :local:
+
+
+Summary of the class members and methods
+----------------------------------------
+
+Graph
++++++
+
+The main class for topological graphs.
+
+.. autosummary::
+
+    nngt.Graph
+
+@autosum@
+
+
+SpatialGraph
+++++++++++++
+
+Subclass of :class:`~nngt.Graph` providing additional tools to work with
+spatial graphs. It works together with the :class:`~nngt.geometry.Shape` object
+from the :mod:`~nngt.geometry` module.
+
+.. autosummary::
+
+    nngt.SpatialGraph
+@autosum@
+
+
+Network
++++++++
+
+Subclass of :class:`~nngt.Graph` providing additional tools to work with
+neuronal networks. It works together with the
+:class:`~nngt.NeuralPop` object.
+
+.. autosummary::
+
+    nngt.Network
+@autosum@
+
+
+SpatialNetwork
+++++++++++++++
+
+Subclass of :class:`~nngt.Graph` providing additional tools to work with
+spatial neuronal networks. It works together with both
+:class:`~nngt.NeuralPop` and the
+:class:`~nngt.geometry.Shape` object from the :mod:`~nngt.geometry` module.
+
+.. autosummary::
+
+    nngt.SpatialNetwork
+@autosum@
+
+
+Details
+-------
+
+.. currentmodule:: nngt
+.. autoclass:: Graph
+   :inherited-members:
+   :no-undoc-members:
+
+.. currentmodule:: nngt
+.. autoclass:: SpatialGraph
+   :members:
+   :no-undoc-members:
+
+.. currentmodule:: nngt
+.. autoclass:: Network
+   :members:
+   :no-undoc-members:
+
+.. currentmodule:: nngt
+.. autoclass:: SpatialNetwork
+   :members:
+   :no-undoc-members:

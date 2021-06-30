@@ -1,8 +1,63 @@
 Side classes
 ============
 
+The following side classes are used to structure graphs into groups that
+can then be used to generate specific connectivity patterns via the
+:func:`~nngt.generation.connect_groups` function or to assign specific
+properties to neuronal assemblies to use them in simulations with NEST_.
+
 .. autosummary::
 
+@autosum@
+
+
+Summary of the classes
+----------------------
+
+A summary of the methods provided by these classes as well as more detailed
+descriptions are provided below.
+Unless specified, child classes can use all methods from the parent class
+(:class:`~nngt.MetaGroup`, :class:`~nngt.NeuralGroup`, and
+:class:`~nngt.MetaNeuralGroup` inherit from :class:`~nngt.Group` while
+:class:`~nngt.NeuralPop` inherits from :class:`~nngt.Structure`).
+
+.. contents::
+   :local:
+
+
+Group
++++++
+
+.. autosummary::
+
+    nngt.Group
+@autosum@
+
+
+NeuralGroup
++++++++++++
+
+.. autosummary::
+
+    nngt.NeuralGroup
+@autosum@
+
+
+Structure
++++++++++
+
+.. autosummary::
+
+    nngt.Structure
+@autosum@
+
+
+NeuralPop
++++++++++
+
+.. autosummary::
+
+    nngt.NeuralPop
 @autosum@
 
 
@@ -11,3 +66,5 @@ Details
 
 .. currentmodule:: nngt
 @autosum@
+
+.. _NEST: nest-simulator.readthedocs.io/

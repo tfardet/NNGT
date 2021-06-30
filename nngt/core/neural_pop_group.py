@@ -47,6 +47,8 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+undefined = "undefined"
+
 
 # --------- #
 # NeuralPop #
@@ -205,9 +207,6 @@ class NeuralPop(Structure):
         Make a NeuralPop of identical neurons belonging to a single "default"
         group.
 
-        .. versionchanged:: 1.2
-            Added `neuron_type` and `meta_groups` parameters
-
         Parameters
         ----------
         size : int
@@ -258,12 +257,6 @@ class NeuralPop(Structure):
         '''
         Make a NeuralPop with a given ratio of inhibitory and excitatory
         neurons.
-
-        .. versionchanged:: 0.8
-            Added `syn_spec` parameter.
-
-        .. versionchanged:: 1.2
-            Added `meta_groups` parameter
 
         Parameters
         ----------
@@ -425,8 +418,6 @@ class NeuralPop(Structure):
     def nest_gids(self):
         '''
         Return the NEST gids of the nodes inside the population.
-
-        .. versionadded:: 1.3
         '''
         gids = []
 
@@ -439,8 +430,6 @@ class NeuralPop(Structure):
     def excitatory(self):
         '''
         Return the ids of all excitatory nodes inside the population.
-
-        .. versionadded:: 1.3
         '''
         ids = []
 
@@ -454,8 +443,6 @@ class NeuralPop(Structure):
     def inhibitory(self):
         '''
         Return the ids of all inhibitory nodes inside the population.
-
-        .. versionadded:: 1.3
         '''
         ids = []
 
@@ -491,8 +478,6 @@ class NeuralPop(Structure):
                     'delay': ('normal', 5., 2.)}
                 }
             }
-
-        .. versionadded:: 0.8
         '''
         return deepcopy(self._syn_spec)
 
@@ -502,6 +487,7 @@ class NeuralPop(Structure):
 
     @property
     def has_models(self):
+        ''' Whether all groups have been assigned a neuronal model. '''
         return self._has_models
 
     #-------------------------------------------------------------------------#
@@ -824,20 +810,17 @@ class NeuralGroup(Group):
 
     __num_created = 0
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, nodes=None, neuron_type=undefined, neuron_model=None,
+                neuron_param=None, name=None, **kwargs):
         # check neuron type for MetaGroup
-        neuron_type = 1 if cls == NeuralGroup else None
-
-        if "neuron_type" in kwargs:
-            neuron_type = kwargs["neuron_type"]
-        elif len(args) > 1 and is_integer(args[1]):
-            neuron_type = arg[1]
+        if neuron_type == undefined:
+            neuron_type = 1 if cls == NeuralGroup else None
 
         metagroup = (neuron_type is None)
 
         kwargs["metagroup"] = metagroup
 
-        obj = super().__new__(cls, *args, **kwargs)
+        obj = super().__new__(cls, nodes=nodes, name=name, **kwargs)
 
         if metagroup:
             obj.__class__ = nngt.MetaNeuralGroup
@@ -925,10 +908,12 @@ class NeuralGroup(Group):
 
     @property
     def neuron_model(self):
+        ''' Model that will be used to simulate the neurons of this group. '''
         return self._neuron_model
 
     @property
     def neuron_type(self):
+        ''' Type of the neurons in the group (excitatory or inhibitory). '''
         return self._neuron_type
 
     @neuron_model.setter
@@ -941,6 +926,7 @@ class NeuralGroup(Group):
 
     @property
     def neuron_param(self):
+        ''' Parameters associated to the group's neurons. '''
         if self._to_nest:
             return _frozendict(self._neuron_param, message="Cannot set " +
                                "neuron params after the network has been " +
@@ -957,6 +943,7 @@ class NeuralGroup(Group):
 
     @Group.ids.setter
     def ids(self, value):
+        ''' Ids of the group's neurons. '''
         if self._to_nest:
             raise RuntimeError("Ids cannot be changed after the "
                                "network has been sent to NEST!")
@@ -965,19 +952,26 @@ class NeuralGroup(Group):
 
     @property
     def nest_gids(self):
+        ''' Global ids associated to the neurons in the NEST simulator. '''
         return self._nest_gids
 
     @property
     def has_model(self):
+        ''' Whether this group have been given a model for the simulation. '''
         return self._has_model
 
     @property
     def properties(self):
+        '''
+        Properties of the neurons in this group, including `neuron_type`,
+        `neuron_model` and `neuron_params`.
+        '''
         dic = {
             "neuron_type": self.neuron_type,
             "neuron_model": self._neuron_model,
             "neuron_param": deepcopy(self._neuron_param)
         }
+
         return dic
 
 

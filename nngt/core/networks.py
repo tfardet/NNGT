@@ -424,6 +424,11 @@ class Network(Graph):
     # Setter
 
     def set_types(self, edge_type, nodes=None, fraction=None):
+        '''
+        .. warning::
+            This function is not available for :class:`~nngt.Network`
+            subclasses.
+        '''
         raise NotImplementedError("Cannot be used on :class:`~nngt.Network`.")
 
     def get_neuron_type(self, neuron_ids):
@@ -544,5 +549,10 @@ class SpatialNetwork(Network, SpatialGraph):
     # Setter
 
     def set_types(self, syn_type, nodes=None, fraction=None):
+        '''
+        .. warning::
+            This function is not available for :class:`~nngt.Network`
+            subclasses.
+        '''
         raise NotImplementedError("Cannot be used on "
                                   ":class:`~nngt.SpatialNetwork`.")

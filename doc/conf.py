@@ -120,7 +120,8 @@ from autosum import gen_autosum
 # find all *.in files
 
 inputs = []
-skip   = ('main-functions.rst.in', 'side-classes.rst.in', 'geometry.rst.in')
+skip   = ('main-functions.rst.in', 'side-classes.rst.in', 'geometry.rst.in',
+          'graph-classes.rst.in')
 
 for root, dirnames, filenames in os.walk('.'):
     for filename in fnmatch.filter(filenames, '*.in'):
@@ -156,15 +157,32 @@ target = current_directory + "/modules/nngt/main-functions.rst"
 gen_autosum(source, target, 'nngt', 'summary', dtype="func")
 gen_autosum(target, target, 'nngt', 'autofunction', dtype="func")
 
+# nngt (main classes)
+source = current_directory + "/modules/nngt/graph-classes.rst.in"
+target = current_directory + "/modules/nngt/graph-classes.rst"
+gen_autosum(source, target, 'nngt.Graph', 'summary', dtype="classmembers")
+gen_autosum(target, target, 'nngt.SpatialGraph', 'summary',
+            dtype="classmembers")
+gen_autosum(target, target, 'nngt.Network', 'summary', dtype="classmembers")
+gen_autosum(target, target, 'nngt.SpatialNetwork', 'summary', dtype="classmembers")
+
 # nngt (side classes)
 source = current_directory + "/modules/nngt/side-classes.rst.in"
 target = current_directory + "/modules/nngt/side-classes.rst"
 
 gen_autosum(source, target, 'nngt', 'summary', dtype="class",
-            ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
+            ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork",
+                    "GroupProperty"))
+
+gen_autosum(target, target, 'nngt.Group', 'summary', dtype="classmembers")
+gen_autosum(target, target, 'nngt.NeuralGroup', 'summary', 
+            dtype="classmembers")
+gen_autosum(target, target, 'nngt.Structure', 'summary', dtype="classmembers")
+gen_autosum(target, target, 'nngt.NeuralPop', 'summary', dtype="classmembers")
 
 gen_autosum(target, target, 'nngt', 'autoclass', dtype="class",
-            ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork"))
+            ignore=("Graph", "Network", "SpatialGraph", "SpatialNetwork",
+                    "GroupProperty"))
 
 # geometry
 source = current_directory + "/modules/geometry.rst.in"

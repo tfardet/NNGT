@@ -89,21 +89,6 @@ class GraphInterface:
     def edges_array(self):
         pass
 
-    def remove_edge(self, edge):
-        raise NotImplementedError(
-            "This function has been removed because it makes using edge "
-            "properties too complicated.")
-
-    def remove_vertex(self, node, fast=False):
-        raise NotImplementedError(
-            "This function has been removed because it makes using node"
-            "properties too complicated.")
-
-    def remove_node(self, node, fast=False):
-        raise NotImplementedError(
-            "This function has been removed because it makes using node"
-            "properties too complicated.")
-
     #------------------------------------------------------------------#
     # Properties and methods to implement
 

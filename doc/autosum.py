@@ -20,6 +20,7 @@
 
 """ Fill autosummary entries """
 
+import types
 import importlib
 import inspect
 
@@ -49,8 +50,27 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
         Names of the objects that should not be included in the summary.
     '''
     # load module and get content
-    mod     = importlib.import_module(module)
-    mod_dir = dir(mod)
+    try:
+        mod = importlib.import_module(module)
+        mod_dir = dir(mod)
+    except:
+        # for the main classes
+        import nngt
+
+        lastdot = module.rfind(".")
+        modname, objname = module[:lastdot], module[lastdot + 1:]
+        mod = getattr(importlib.import_module(modname), objname)
+
+        mod_dir = set(dir(mod))
+
+        if objname != "Graph" and issubclass(mod, nngt.Graph):
+            mod_dir = mod_dir.difference(dir(nngt.Graph))
+        elif objname != "Structure" and issubclass(mod, nngt.Structure):
+            mod_dir = mod_dir.difference(dir(nngt.Structure))
+        elif objname != "Group" and issubclass(mod, nngt.Group):
+            mod_dir = mod_dir.difference(dir(nngt.Group))
+
+        mod_dir = sorted(mod_dir)
 
     # set ignored classes
     ignore = [] if ignore is None else ignore
@@ -62,12 +82,13 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
                    '.. module:: ' + module + '\n\n')
 
     for member in mod_dir:
-        if not member.startswith('_') and not member in ignore:
+        if not (member.startswith('_') or member in ignore):
             m = getattr(mod, member)
             keep = 1
 
-            isfunc  = inspect.isfunction(m)
-            isclass = inspect.isclass(m)
+            isfunc   = inspect.isfunction(m)
+            isclass  = inspect.isclass(m)
+            ismember = isinstance(m, (property, types.MethodType))
 
             currenttype = None
 
@@ -82,6 +103,8 @@ def gen_autosum(source, target, module, autotype, dtype="all", ignore=None):
                 keep *= isfunc
             elif dtype == "class":
                 keep *= isclass
+            elif dtype == "classmembers":
+                keep *= ismember + isfunc
             else:
                 keep *= isfunc + isclass
 

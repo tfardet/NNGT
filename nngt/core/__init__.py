@@ -25,8 +25,18 @@
 Core classes and functions. Most of them are not visible in the module as they
 are directly loaded at :mod:`nngt` level.
 
-Content
-=======
+.. class:: Graph
+   :noindex:
+
+.. class:: SpatialGraph
+   :noindex:
+
+.. class:: Network
+   :noindex:
+
+.. class:: SpatialNetwork
+   :noindex:
+
 """
 
 import nngt

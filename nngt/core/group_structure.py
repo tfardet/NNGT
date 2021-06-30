@@ -329,8 +329,6 @@ class Structure(OrderedDict):
     def ids(self):
         '''
         Return all the ids of the nodes inside the structure.
-
-        .. versionadded:: 1.2
         '''
         ids = []
 
@@ -659,7 +657,7 @@ class Group:
 
     __num_created = 0
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, nodes=None, properties=None, name=None, **kwargs):
         obj = super().__new__(cls)
 
         metagroup = \
@@ -714,7 +712,7 @@ class Group:
 
         Group.__num_created += 1
 
-    def __eq__ (self, other):
+    def __eq__(self, other):
         if isinstance(other, Group):
             same_size = self.size == other.size
             same_prop = (self.properties == other.properties)
@@ -761,6 +759,7 @@ class Group:
 
     @property
     def name(self):
+        ''' The name of the group. '''
         return self._name
 
     @property
@@ -775,6 +774,7 @@ class Group:
 
     @property
     def size(self):
+        ''' The (desired) number of nodes in the group. '''
         if self._desired_size is not None:
             return self._desired_size
 
@@ -782,6 +782,7 @@ class Group:
 
     @property
     def ids(self):
+        ''' Ids of the nodes belonging to the group. '''
         return list(self._ids)
 
     @ids.setter
@@ -808,10 +809,12 @@ class Group:
 
     @property
     def is_metagroup(self):
+        ''' Whether the group is a meta-group. '''
         return self._metagroup
 
     @property
     def properties(self):
+        ''' Properties associated to the nodes in the group. '''
         return self._props
 
 

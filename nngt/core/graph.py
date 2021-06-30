@@ -1490,12 +1490,12 @@ class Graph(nngt.core.GraphObject):
     #-------------------------------------------------------------------------#
     # Setters
 
-    def set_name(self, name=""):
-        ''' set graph name '''
-        if name != "":
-            self._name = name
-        else:
+    def set_name(self, name=None):
+        ''' Set graph name '''
+        if name is None:
             self._name = "Graph_" + str(self.__id)
+        else:
+            self._name = name
 
     def new_edge_attribute(self, name, value_type, values=None, val=None):
         '''

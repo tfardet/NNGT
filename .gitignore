@@ -17,6 +17,7 @@ doc/modules/plot.rst
 doc/modules/simulation.rst
 doc/modules/nngt/main-functions.rst
 doc/modules/nngt/side-classes.rst
+doc/modules/nngt/graph-classes.rst
 
 *.tmp
 
