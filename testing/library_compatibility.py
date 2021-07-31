@@ -133,10 +133,9 @@ def test_assortativity():
             nngt.analyze_graph["assortativity"](g, "in"), assort_unweighted)
 
         # not check weighted version for networkx for now
-        if bckd != "networkx":
-            assert np.isclose(
-                nngt.analyze_graph["assortativity"](g, "in", weights=True),
-                assort_weighted)
+        assert np.isclose(
+            nngt.analyze_graph["assortativity"](g, "in", weights=True),
+            assort_weighted)
 
     # UNDIRECTED
     edge_list = [(0, 3), (1, 0), (1, 2), (2, 4), (4, 1), (4, 3)]

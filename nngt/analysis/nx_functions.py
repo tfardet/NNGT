@@ -115,14 +115,10 @@ def assortativity(g, degree, weights=None):
     .. [nx-assortativity]
        :nxdoc:`algorithms.assortativity.degree_assortativity_coefficient`
     '''
-    if weights is not None:
-        raise NotImplementedError("Weighted assortatibity is not yet "
-                                  "implemented for networkx backend.")
-
     w = _get_nx_weights(g, weights)
 
-    return nx.degree_assortativity_coefficient(g.graph, x=degree, y=degree,
-                                               weight=w)
+    return nx.degree_pearson_correlation_coefficient(
+        g.graph, x=degree, y=degree, weight=w)
 
 
 def reciprocity(g):
@@ -741,7 +737,8 @@ def adj_mat(g, weights=None, mformat="csr"):
     '''
     w = _get_nx_weights(g, weights)
 
-    return nx.to_scipy_sparse_matrix(g.graph, weight=w, format=mformat)
+    return nx.to_scipy_sparse_matrix(g.graph, nodelist=range(g.node_nb()),
+                                     weight=w, format=mformat)
 
 
 def get_edges(g):

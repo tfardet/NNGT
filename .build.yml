@@ -3,8 +3,10 @@ sources:
     - https://git.sr.ht/~tfardet/NNGT
 secrets:
     - ceb490c3-68b4-41f7-9aa9-eb2e4b91d424
+    - 0b249c79-8eaf-4b82-b1d1-f3c38c7eae4b
 tasks:
     - check: |
+        mv .coveralls.yml NNGT/.coveralls.yml
         cd NNGT
         python3 extra/check_headers.py
     - setup: |
@@ -19,7 +21,7 @@ tasks:
         pip3 install numpy scipy cython mpi4py
         pip3 install networkx python-igraph
         pip3 install pycairo matplotlib seaborn shapely svg.path dxfgrabber
-        pip3 install pytest pytest-mpi cov-core coverage
+        pip3 install pytest pytest-mpi cov-core coverage coveralls[yaml]
         cd NNGT
         python3 setup.py install --user
         echo 'export PATH=$PATH:/home/build/.local/bin' >> /home/build/.buildenv
@@ -33,4 +35,5 @@ tasks:
         GL=gt OMP=2 coverage run -p -m pytest testing
         GL=gt OMP=0 MPI=1 mpirun -n 2 coverage run -p -m pytest --with-mpi testing
         coverage combine
-        coverage report
+        GIT_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ', /' '\n' | grep -v HEAD | sed -n 2p)
+        CI_NAME=$BUILD_SUBMITTER CI_BUILD_NUMBER=$JOB_ID CI_BUILD_URL=$JOB_URL CI_BRANCH=$GIT_BRANCH coveralls

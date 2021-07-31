@@ -75,6 +75,8 @@ def get_config(key=None, detailed=False):
             del cfg["use_tex"]
             del cfg["mpl_backend"]
             del cfg["color_lib"]
+            del cfg["load_nest"]
+            del cfg["load_gis"]
 
             # hide database config if not used
             rm = []
@@ -195,7 +197,7 @@ def set_config(config, value=None, silent=False):
                         "This functionality is not available")
 
     # update nest
-    if imputil.find_spec("nest") is not None:
+    if nngt._config["load_nest"] and imputil.find_spec("nest") is not None:
         _lazy_load("nngt.simulation")
         nngt._config["with_nest"] = True
     else:
@@ -220,8 +222,9 @@ def set_config(config, value=None, silent=False):
 
     # check geospatial
     has_geospatial = False
+    has_geopandas = imputil.find_spec("geopandas") is not None
 
-    if imputil.find_spec("geopandas") is not None and has_shapely:
+    if nngt._config["load_gis"] and has_geopandas and has_shapely:
         _lazy_load("nngt.geospatial")
         has_geospatial = True
 

@@ -120,6 +120,8 @@ _config = {
     'use_database': False,
     'use_tex': False,
     'seeds': None,
+    'load_nest': True,
+    'load_gis': True,
     'with_nest': False,
     'with_plot': False,
 }
@@ -335,7 +337,7 @@ except ImportError as e:
 
 # lazy load for simulation module
 
-if _imputil.find_spec("nest") is not None:
+if _config['load_nest'] and _imputil.find_spec("nest") is not None:
     _config['with_nest'] = True
     simulation = _lazy_load("nngt.simulation")
     __all__.append("simulation")
@@ -344,8 +346,9 @@ if _imputil.find_spec("nest") is not None:
 # lazy load for geospatial module
 
 _has_geospatial = False
+_has_geopandas = _imputil.find_spec("geopandas")
 
-if _imputil.find_spec("geopandas") is not None and _has_shapely:
+if _config["load_gis"] is not None and _has_shapely:
     geospatial = _lazy_load("nngt.geospatial")
     __all__.append("geospatial")
     _has_geospatial = True

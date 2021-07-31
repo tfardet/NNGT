@@ -19,5 +19,6 @@ omit =
     nngt/geometry/*
     nngt/database/*
     nngt/simulation/*
+    nngt/geospatial/*
     nngt/lib/db_tools.py
     nngt/plot/chord_diag/*

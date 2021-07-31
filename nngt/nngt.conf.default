@@ -83,3 +83,21 @@ multithreading = True
 # Note that the MPI version is not locally multithreaded.
 
 mpi = False
+
+
+#----------------------------
+## Third party libraries -----------------------------------------------------
+#----------------------------
+
+# NNGT uses some 3rd party libraries for neuroscience and geospatial
+# applications. Because these use compiled code, it can sometime lead to
+# unexpected issues. You can prevent them from being loaded by setting their
+# load option to False if you encounter such issues.
+
+# try to load NEST on import
+
+load_nest = True
+
+# try to load geospatial tools on import
+
+load_gis = True
