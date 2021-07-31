@@ -27,7 +27,6 @@ dirpath = os.path.abspath(os.path.dirname(__file__))
 def test_plot_config():
     ''' Test the default plot configuration '''
     nngt.set_config("color_lib", "seaborn")
-    nngt.set_config("palette", "viridis")
     nngt.set_config("palette_discrete", "Set3")
     nngt.set_config("palette_continuous", "magma")
 
@@ -55,6 +54,9 @@ def test_draw_network_options():
     net = nngt.generation.erdos_renyi(nodes=100, avg_deg=10)
 
     net.set_weights(np.random.randint(0, 20, net.edge_nb()))
+    
+    net.new_node_attribute("attr", "int",
+                           values=np.random.randint(-10, 20, 100))
 
     nplt.draw_network(net, ncolor="in-degree", nsize=3, esize=2,
                       colorbar=True, show=False)
@@ -63,6 +65,8 @@ def test_draw_network_options():
         nplt.draw_network(net, ncolor="betweenness", nsize="total-degree",
                           decimate_connections=3, curved_edges=True,
                           show=False)
+
+    # restrict nodes
 
     nplt.draw_network(net, ncolor="g", nshape='s', ecolor="b",
                       restrict_targets=[1, 2, 3], show=False)
@@ -73,6 +77,22 @@ def test_draw_network_options():
     nplt.draw_network(net, restrict_targets=[4, 5, 6, 7, 8], show=False)
 
     nplt.draw_network(net, restrict_sources=[4, 5, 6, 7, 8], show=False)
+
+    # colors and sizes
+    for fast in (True, False):
+        maxns = 50 if fast else 10
+        minns = 5 if fast else 1
+        maxes = 2 if fast else 10
+        mines = 0.2 if fast else 1
+
+        nplt.draw_network(net, ncolor="r", nalpha=0.5, ecolor="#999999",
+                          ealpha=0.5, nsize="in-degree", max_nsize=maxns,
+                          min_nsize=minns, esize="weight", max_esize=maxes,
+                          min_esize=mines, fast=fast, show=False)
+
+        nplt.draw_network(net, ncolor="attr", nalpha=1, ecolor="slateblue",
+                          ealpha=0.2, nsize=maxns, esize=maxes, fast=fast,
+                          show=False)
 
     # plot on a single axis
     import matplotlib.pyplot as plt
@@ -182,9 +202,9 @@ def test_plot_spatial_alpha():
 
 
 if __name__ == "__main__":
-    test_plot_config()
-    test_plot_prop()
+    # ~ test_plot_config()
+    # ~ test_plot_prop()
     test_draw_network_options()
-    test_library_plot()
-    test_hive_plot()
-    test_plot_spatial_alpha()
+    # ~ test_library_plot()
+    # ~ test_hive_plot()
+    # ~ test_plot_spatial_alpha()

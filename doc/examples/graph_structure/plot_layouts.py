@@ -105,7 +105,8 @@ axes[0, 1].set_title("Random layout")
 # circular layout for small-world networks
 
 nngt.plot.draw_network(sw, nsize=betw, ncolor="out-degree", layout="circular",
-                       ecolor="lightgrey", axis=axes[1, 0], show=False, tight=False)
+                       ecolor="lightgrey", axis=axes[1, 0],
+                       show=False, tight=False)
 
 axes[1, 0].set_title("Circular layout")
 
