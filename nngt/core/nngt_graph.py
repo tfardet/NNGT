@@ -31,6 +31,7 @@ import numpy as np
 from scipy.sparse import coo_matrix, lil_matrix
 
 import nngt
+from nngt.analysis.nngt_functions import _dfs
 from nngt.lib import InvalidArgument, nonstring_container, is_integer
 from nngt.lib.connect_tools import (_cleanup_edges, _set_dist_new_edges,
                                     _set_default_edge_attributes)
@@ -480,10 +481,35 @@ class _NNGTGraph(GraphInterface):
         return [e for e in g._unique
                 if e[0] in target_node or e[1] in target_node]
 
-    def is_connected(self):
-        raise NotImplementedError("Not available with 'nngt' backend, please "
-                                  "install a graph library (networkx, igraph, "
-                                  "or graph-tool).")
+    def is_connected(self, mode="strong"):
+        '''
+        Return whether the graph is connected.
+
+        Parameters
+        ----------
+        mode : str, optional (default: "strong")
+            Whether to test connectedness with directed ("strong") or
+            undirected ("weak") connections.
+        '''
+        num_nodes = g.node_nb()
+
+        # get adjacency matrix
+        A = g.adjacency_matrix()
+
+        if mode == "weak" and g.is_directed():
+            A = A + A.T
+
+        visited = _dfs(A, 0)
+
+        if len(visited) != num_nodes:
+            return False
+        elif mode == "strong" and g.is_directed():
+            visited = _dfs(A.T, 0)
+
+            if len(visited) != num_nodes:
+                return False
+
+        return True
 
     def new_node(self, n=1, neuron_type=1, attributes=None, value_types=None,
                  positions=None, groups=None):

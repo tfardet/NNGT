@@ -20,6 +20,8 @@ import nngt.analysis as na
 
 backends = ["networkx", "igraph", "graph-tool"]
 
+all_backends = ["networkx", "igraph", "graph-tool", "nngt"]
+
 
 def test_weighted_undirected_clustering():
     '''
@@ -63,7 +65,7 @@ def test_weighted_undirected_clustering():
     gc_barrat = np.sum(np.multiply(barrat, triplets)) / np.sum(triplets)
 
     # check for all backends
-    for bckd in ["networkx", "igraph", "graph-tool", "nngt"]:
+    for bckd in all_backends:
         nngt.set_config("backend", bckd)
 
         g = nngt.Graph(nodes=num_nodes, directed=False)
@@ -352,7 +354,7 @@ def test_components():
 
     edge_list.append((7, 3))
 
-    for bckd in backends:
+    for bckd in all_backends:
         nngt.set_config("backend", bckd)
 
         g = nngt.Graph(nodes=num_nodes, directed=True)
