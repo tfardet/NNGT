@@ -48,10 +48,13 @@ __all__ = [
 
 def degree_distribution(network, deg_type="total", nodes=None,
                         num_bins='doane', weights=False, logx=False,
-                        logy=False, axis=None, axis_num=None, colors=None,
+                        logy=False, axis=None, colors=None,
                         norm=False, show=True, title=None, **kwargs):
     '''
     Plotting the degree distribution of a graph.
+
+    .. versionchanged :: 2.5.0
+        Removed unused `axis_num` argument.
 
     Parameters
     ----------
@@ -76,6 +79,10 @@ def degree_distribution(network, deg_type="total", nodes=None,
     axis : :class:`matplotlib.axes.Axes` instance, optional (default: new one)
         Axis which should be used to plot the histogram, if None, a new one is
         created.
+    colors : (list of) matplotlib colors, optional (default: from palette)
+        Colors associated to each degree type.
+    title : str, optional (default: no title)
+        Title of the axis.
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
     **kwargs : keyword arguments for :func:`matplotlib.axes.Axes.bar`.
@@ -89,8 +96,10 @@ def degree_distribution(network, deg_type="total", nodes=None,
 
     axis.axis('tight')
 
+    single_deg = isinstance(deg_type, str) or len(deg_type) == 1
+
     if "alpha" not in kwargs:
-        kwargs["alpha"] = 1 if isinstance(deg_type, str) else 0.5
+        kwargs["alpha"] = 1 if single_deg else 0.5
 
     labels = kwargs.get('label', None)
 
@@ -100,25 +109,25 @@ def degree_distribution(network, deg_type="total", nodes=None,
     # get degrees
     mincounts, maxcounts, allbins = np.inf, 0, []
 
+    deg_string = None
+
     if isinstance(deg_type, str):
         counts, bins = degree_distrib(network, deg_type, nodes,
                                       weights, logx, num_bins)
-        bottom_count = -1 if logy else 0
+
         if norm:
             counts = counts / float(np.sum(counts))
-        if logy:
-            counts = counts.astype(float)
-            counts[counts<1] = 0.1
-            counts = np.log(counts)
 
         max_nnz = np.where(counts > 0)[0][-1]
         maxcounts, mincounts = counts.max(), np.min(counts[counts > 0])
         allbins.extend(bins)
 
+        deg_string = deg_type[0].upper() + deg_type[1:] + " degree"
+
         if "label" not in kwargs:
-            kwargs["label"] = deg_type[0].upper() + deg_type[1:] + " degree"
-        axis.bar(
-            bins[:-1], counts, np.diff(bins), bottom=bottom_count, **kwargs)
+            kwargs["label"] = deg_string
+    
+        axis.bar(bins[:-1], counts, np.diff(bins), **kwargs)
     else:
         if colors is None:
             colors = palette_continuous(np.linspace(0.,0.5, len(deg_type)))
@@ -130,14 +139,8 @@ def degree_distribution(network, deg_type="total", nodes=None,
             counts, bins = degree_distrib(network, s_type, nodes,
                                           weights, logx, num_bins[i])
 
-            bottom_count = -1 if logy else 0
-
             if norm:
                 counts = counts / float(np.sum(counts))
-            if logy:
-                counts = counts.astype(float)
-                counts[counts<1] = 0.1
-                counts = np.log(counts) + 1
 
             maxcounts_tmp = counts.max()
             mincounts_tmp = np.min(counts[counts>0])
@@ -147,19 +150,28 @@ def degree_distribution(network, deg_type="total", nodes=None,
 
             allbins.extend(bins)
 
+            deg_string = s_type[0].upper() + s_type[1:] + "-degree"
+
             if labels is None:
-                kwargs['label'] = s_type[0].upper() + s_type[1:] + " degree"
+                kwargs['label'] = deg_string
             else:
                 kwargs['label'] = labels[i]
 
             axis.bar(
                 bins[:-1], counts, np.diff(bins), color=colors[i],
-                bottom=bottom_count, align='edge', **kwargs)
+                align='edge', **kwargs)
 
-    axis.set_xlabel("Degree")
+    if single_deg:
+        axis.set_xlabel(deg_string)
+    else:
+        axis.legend()
+        axis.set_xlabel("Degree")
+
     axis.set_ylabel("Node count")
+
     title_start = (deg_type[0].upper() + deg_type[1:] + '-d'
                    if isinstance(deg_type, str) else 'D')
+
     if title != "":
         str_title = title
         if title is None:
@@ -169,8 +181,6 @@ def degree_distribution(network, deg_type="total", nodes=None,
 
     # restore ylims and xlims and adapt if necessary
     _set_scale(axis, np.array(allbins), mincounts, maxcounts, logx, logy)
-
-    plt.legend()
 
     if show:
         plt.show()
@@ -251,9 +261,12 @@ def attribute_distribution(network, attribute, num_bins='auto', logx=False,
 def betweenness_distribution(
     network, btype="both", weights=False, nodes=None, logx=False, logy=False,
     num_nbins=None, num_ebins=None, axes=None, colors=None, norm=False,
-    legend_location='right', show=True, **kwargs):
+    legend_location='right', title=None, show=True, **kwargs):
     '''
     Plotting the betweenness distribution of a graph.
+
+    .. versionchanged :: 2.5.0
+        Added `title` argument.
 
     Parameters
     ----------
@@ -283,6 +296,8 @@ def betweenness_distribution(
         created.
     legend_location : str, optional (default; 'right')
         Location of the legend.
+    title : str, optional (default: auto-generated)
+        Title of the axis.
     show : bool, optional (default: True)
         Show the Figure right away if True, else keep it warm for later use.
     '''
@@ -295,29 +310,29 @@ def betweenness_distribution(
     num_axes = 2 if btype == "both" else 1
 
     # create new axes or get them from existing ones
-    ax = None
+    ax1, ax2 = None, None
 
     if axes is None:
-        fig, ax = plt.subplots()
+        fig, ax1 = plt.subplots()
         fig.patch.set_visible(False)
-        ax.grid(False, axis='y')
-        axes = [ax.twinx()]
+        ax1.grid(False, axis='y')
+
+        axes = [ax1.twinx()]
+
         if num_axes == 2:
             ax2 = ax.twiny()
             axes.append(ax2)
-            ax.grid(False, axis='x')
-            ax.yaxis.tick_right()
-            ax.yaxis.set_label_position("right")
+            ax1.grid(False, axis='x')
+            ax1.yaxis.tick_right()
+            ax1.yaxis.set_label_position("right")
         else:
-            ax.set_yticks([])
+            ax1.set_yticks([])
     else:
-        ax = axes[0]
+        ax1 = axes[0]
 
-    ax1 = axes[0]
-
-    ax1.yaxis.tick_left()
-    ax1.yaxis.set_label_position("left")
-    ax2 = axes[-1]
+        ax1.yaxis.tick_left()
+        ax1.yaxis.set_label_position("left")
+        ax2 = axes[-1]
 
     # get betweenness
     if num_ebins is None:
@@ -351,11 +366,7 @@ def betweenness_distribution(
             nbins[:-1], ncounts, np.diff(nbins), color=colors[0], align='edge',
             **kwargs)
 
-        ax1.legend(
-            ["Node betweenness"], bbox_to_anchor=[x, 1],
-            loc='upper ' + legend_location)
-
-        ax.set_xlabel("Node betweenness")
+        ax1.set_xlabel("Node betweenness")
         ax1.set_ylabel("Node count")
         ax1.ticklabel_format(axis='x', style='sci', scilimits=(-3, 2))
 
@@ -366,14 +377,10 @@ def betweenness_distribution(
             ebins[:-1], ecounts, np.diff(ebins), color=colors[-1],
             align='edge', **kwargs)
 
-        ax2.legend(
-            ["Edge betweenness"], bbox_to_anchor=[x, 1],
-            loc='upper ' + legend_location)
-
         ax2.set_xlim([ebins.min(), ebins.max()])
-        ax.set_ylim([0, 1.1*ecounts.max()])
+        ax1.set_ylim([0, 1.1*ecounts.max()])
         ax2.set_xlabel("Edge betweenness")
-        ax.set_ylabel("Edge count")
+        ax1.set_ylabel("Edge count")
         ax2.ticklabel_format(axis='x', style='sci', scilimits=(-3, 2))
 
         _set_scale(ax2, ebins, np.min(ecounts[ecounts>0]), ecounts.max(),
@@ -385,24 +392,23 @@ def betweenness_distribution(
         ax1.legend(
             ["Node betweenness"], bbox_to_anchor=[x, 0.88],
             loc='lower ' + legend_location)
-        #~ ax1.spines['top'].set_color('none')
-        #~ ax1.spines['right'].set_color('none')
+
         plt.subplots_adjust(top=0.85)
-        #~ ax.xaxis.set_label_position("top")
+
         ax1.grid(False)
         ax2.grid(False)
+
         if not logx:
             ax2 = format_exponent(ax2, 'x', (1., 1.1))
             ax1 = format_exponent(ax1, 'x', (1., -0.05))
 
     y = 1.15 if btype == "both" else 1.05 
 
-    ax1.set_title(
-        "Betweenness distribution for {}".format(network.name), x=0., y=y,
-        loc='left')
+    title = "Betweenness distribution for {}".format(network.name) \
+            if title is None else title
 
-    # ~ ax1.axis('tight')
-    # ~ ax2.axis('tight')
+    ax1.set_title(title, x=0., y=y, loc='left')
+
     plt.tight_layout()
 
     if show:
@@ -415,10 +421,13 @@ def betweenness_distribution(
 
 def node_attributes_distribution(network, attributes, nodes=None,
                                  num_bins='auto', logx=False, logy=False,
-                                 norm=False, title=None, colors=None,
-                                 show=True, **kwargs):
+                                 norm=False, title=None, axtitles=None,
+                                 colors=None, axes=None, show=True, **kwargs):
     '''
     Return node `attributes` for a set of `nodes`.
+
+    .. versionchanged :: 2.5.0
+        Added `axtitles` and `axes` arguments.
 
     Parameters
     ----------
@@ -426,6 +435,7 @@ def node_attributes_distribution(network, attributes, nodes=None,
         The graph where the `nodes` belong.
     attributes : str or list
         Attributes which should be returned, among:
+        * any user-defined node attribute
         * "betweenness"
         * "clustering"
         * "closeness"
@@ -444,6 +454,21 @@ def node_attributes_distribution(network, attributes, nodes=None,
         Use log-spaced bins.
     logy : bool or list, optional (default: False)
         use logscale for the node count.
+    norm : bool, optional (default: False)
+        Whether the histogram should be normed such that the sum of the counts
+        is 1.
+    title : str, optional (default: no title)
+        Title of the figure.
+    axtitles : list of str, optional (default: auto-generated)
+        Titles of the axes. Use "" or False to turn them of.
+    colors : (list of) matplotlib colors, optional (default: from palette)
+        Colors associated to each degree type.
+    axes : list of :class:`matplotlib.axis.Axis`, optional (default: new ones)
+        Axess which should be used to plot the histograms, if None, a new axis
+        is created for each attribute.
+    show : bool, optional (default: True)
+        Show the Figure right away if True, else keep it warm for later use.
+    **kwargs : keyword arguments for :func:`matplotlib.axes.Axes.bar`.
     '''
     import matplotlib.pyplot as plt
 
@@ -451,6 +476,12 @@ def node_attributes_distribution(network, attributes, nodes=None,
         attributes = [attributes]
     else:
         attributes = [name for name in attributes]
+
+    if axtitles in ("", False):
+        axtitles = [""]*len(attributes)
+    elif nonstring_container(axtitles):
+        assert len(axtitles) == len(attributes), \
+            "One entry per attribute is required for `axtitles`."
 
     num_attr = len(attributes)
     num_bins = _format_arg(num_bins, num_attr, 'num_bins')
@@ -462,15 +493,27 @@ def node_attributes_distribution(network, attributes, nodes=None,
     # kwargs that will not be passed:
     ignore = ["degree", "betweenness"] + attributes
     new_kwargs = {k: v for k, v in kwargs.items() if k not in ignore}
+
     fig = None
-    if new_kwargs == kwargs:
-        fig = plt.figure()
+
+    if axes is None:
+        if new_kwargs == kwargs:
+            fig = plt.figure()
+            fig.patch.set_visible(False)
+        else:
+            fig = plt.figure(plt.get_fignums()[-1])
     else:
-        fig = plt.figure(plt.get_fignums()[-1])
-    fig.patch.set_visible(False)
+        if not nonstring_container(axes):
+            axes = [axes]
+
+        fig = axes[0].get_figure()
+
+        assert len(axes) == len(attributes), \
+            "One entry per attribute is required."
 
     # plot degrees if required
     degrees = []
+
     for name in attributes:
         if "degree" in name.lower():
             degrees.append(name[:name.find("-")])
@@ -478,6 +521,7 @@ def node_attributes_distribution(network, attributes, nodes=None,
     if degrees:
         # get the indices where a degree-related attribute is required
         indices, colors_deg, logx_deg, logy_deg = [], [], 0, 0
+
         for i, name in enumerate(attributes):
             if "degree" in name:
                 indices.append(i)
@@ -485,56 +529,83 @@ def node_attributes_distribution(network, attributes, nodes=None,
                     colors_deg.append(colors[i])
                 logx_deg += logx[i]
                 logy_deg += logy[i]
+
         colors_deg = None if colors is None else colors_deg
+
         indices.sort()
+
         deg_bin = [num_bins[i] for i in indices]
+
         for idx in indices[::-1]:
             del num_bins[idx]
             del attributes[idx]
             del logx[idx]
             del logy[idx]
+
             if colors is not None:
                 del colors[idx]
+
         if "degree" in kwargs:
             degree_distribution(
                 network, deg_type=degrees, nodes=nodes, num_bins=deg_bin,
                 logx=logx_deg, logy=logy_deg, norm=norm, axis=kwargs["degree"],
                 colors=colors_deg, show=False, **new_kwargs)
         else:
-            fig, ax = _set_new_plot(
-                fignum=fig.number, num_new_plots=1,
-                names=['Degree distribution'])
+            ax = None
+
+            if axes is None:
+                fig, ax = _set_new_plot(
+                    fignum=fig.number, num_new_plots=1,
+                    names=['Degree distribution'])
+            else:
+                ax = [axes[indices[0]]]
+
+                for idx in indices:
+                    del axes[idx]
+
             degree_distribution(
                 network, deg_type=degrees, nodes=nodes, num_bins=deg_bin,
                 logx=logx_deg, logy=logy_deg, axis=ax[0], colors=colors_deg,
                 norm=norm, show=False)
+
         num_plot += 1
 
     # plot betweenness if needed
     if "betweenness" in attributes:
         idx = attributes.index("betweenness")
+
         if "betweenness" in kwargs:
             betweenness_distribution(
                 network, btype="node", nodes=nodes, logx=logx[idx],
                 logy=logy[idx], axes=kwargs["betweenness"],
                 colors=[colors[idx]], norm=norm, show=False, **new_kwargs)
         else:
-            fig, axes = _set_new_plot(
-                fignum=fig.number, num_new_plots=1,
-                names=['Betweenness distribution'])
+            ax = None
+
+            if axes is None:
+                fig, ax = _set_new_plot(
+                    fignum=fig.number, num_new_plots=1,
+                    names=['Betweenness distribution'])
+            else:
+                ax = [axes[idx]]
+
+                del axes[idx]
+
             betweenness_distribution(
-                network, btype="node", nodes=nodes, logx=logx[idx],
-                logy=logy[idx], norm=norm, axes=axes, show=False)
+                network, btype="node", nodes=nodes, logx=logx[idx], axes=ax,
+                logy=logy[idx], colors=[colors[idx]], norm=norm, show=False)
+
         del attributes[idx]
         del num_bins[idx]
         del logx[idx]
         del logy[idx]
-        if colors is not None:
-            del colors[idx]
+        del colors[idx]
+
         num_plot += 1
 
     # plot the remaining attributes
     values = node_attributes(network, attributes, nodes=nodes)
+
     for i, (attr, val) in enumerate(values.items()):
         if attr in kwargs:
             new_kwargs['color'] = colors[i]
@@ -542,18 +613,30 @@ def node_attributes_distribution(network, attributes, nodes=None,
                 val, num_bins[i], norm, logx[i], attr, kwargs[attr],
                 **new_kwargs)
         else:
-            fig, ax = _set_new_plot(fignum=fig.number, names=[attr])
+            ax = None
+
+            if axes is None:
+                fig, ax = _set_new_plot(fignum=fig.number, names=[attr])
+                ax = ax[0]
+            else:
+                ax = axes[i]
+
             counts, bins = _hist(
-                val, num_bins[i], norm, logx[i], attr, ax[0], **kwargs)
+                val, num_bins[i], norm, logx[i], attr, ax, color=colors[i],
+                **kwargs)
+
             end_attr = attr[1:]
+
             if nngt._config["use_tex"]:
                 end_attr = end_attr.replace("_", "\\_")
-            ax[0].set_title("{}{} distribution for {}".format(
+
+            ax.set_title("{}{} distribution for {}".format(
                 attr[0].upper(), end_attr, network.name), y=1.05)
-            ax[0].set_ylabel("Node count")
-            ax[0].set_xlabel(attr[0].upper() + end_attr)
-            _set_scale(ax[0], bins, np.min(counts[counts>0]),
+            ax.set_ylabel("Node count")
+            ax.set_xlabel(attr[0].upper() + end_attr)
+            _set_scale(ax, bins, np.min(counts[counts>0]),
                        counts.max(), logx[i], logy[i])
+
         num_plot += 1
 
     # adjust space, set title, and show
@@ -562,12 +645,13 @@ def node_attributes_distribution(network, attributes, nodes=None,
 
 def edge_attributes_distribution(network, attributes, edges=None,
                                  num_bins='auto', logx=False, logy=False,
-                                 norm=False, title=None, colors=None,
-                                 show=True, **kwargs):
+                                 norm=False, title=None, axtitles=None,
+                                 colors=None, axes=None, show=True, **kwargs):
     '''
     Return node `attributes` for a set of `nodes`.
 
-    .. versionadded:: 1.0.3
+    .. versionchanged :: 2.5.0
+        Added `axtitles` and `axes` arguments.
 
     Parameters
     ----------
@@ -587,12 +671,34 @@ def edge_attributes_distribution(network, attributes, edges=None,
         Use log-spaced bins.
     logy : bool or list, optional (default: False)
         use logscale for the node count.
+    norm : bool, optional (default: False)
+        Whether the histogram should be normed such that the sum of the counts
+        is 1.
+    title : str, optional (default: no title)
+        Title of the figure.
+    axtitles : list of str, optional (default: auto-generated)
+        Titles of the axes. Use "" or False to turn them of.
+    colors : (list of) matplotlib colors, optional (default: from palette)
+        Colors associated to each degree type.
+    axes : list of :class:`matplotlib.axis.Axis`, optional (default: new ones)
+        Axess which should be used to plot the histograms, if None, a new axis
+        is created for each attribute.
+    show : bool, optional (default: True)
+        Show the Figure right away if True, else keep it warm for later use.
+    **kwargs : keyword arguments for :func:`matplotlib.axes.Axes.bar`.
     '''
     import matplotlib.pyplot as plt
+
     if not nonstring_container(attributes):
         attributes = [attributes]
     else:
         attributes = [name for name in attributes]
+
+    if axtitles in ("", False):
+        axtitles = [""]*len(attributes)
+    elif nonstring_container(axtitles):
+        assert len(axtitles) == len(attributes), \
+            "One entry per attribute is required for `axtitles`."
 
     num_attr = len(attributes)
     num_bins = _format_arg(num_bins, num_attr, 'num_bins')
@@ -605,26 +711,49 @@ def edge_attributes_distribution(network, attributes, edges=None,
     ignore = ["weight", "delay", "betweenness"] + attributes
     new_kwargs = {k: v for k, v in kwargs.items() if k not in ignore}
 
-    fig = plt.figure()
-    fig.patch.set_visible(False)
+    fig = None
+
+    if axes is None:
+        fig = plt.figure()
+        fig.patch.set_visible(False)
+    else:
+        if not nonstring_container(axes):
+            axes = [axes]
+
+        fig = axes[0].get_figure()
+
+        assert len(axes) == len(attributes), \
+            "One entry per attribute is required."
 
     # plot betweenness if needed
     if "betweenness" in attributes:
         idx = attributes.index("betweenness")
-        fig, axes = _set_new_plot(
+
+        ax = None
+
+        if axes is None:
+            fig, ax = _set_new_plot(
                 fignum=fig.number, num_new_plots=1,
                 names=['Betweenness distribution'])
+        else:
+            ax = [axes[idx]]
+
+            del axes[idx]
+
+        axtitle = axtitles[idx] if axtitles is not None else None
+
         betweenness_distribution(
-            network, btype="edges", edges=edges, logx=logx[idx],
-            logy=logy[idx], norm=norm, axes=axes, show=False)
+            network, btype="edge", logx=logx[idx], logy=logy[idx], norm=norm,
+            title=axtitle, axes=ax, colors=[colors[idx]], show=False)
+
+        if axtitles is not None:
+            del axtitles[idx]
 
         del attributes[idx]
         del num_bins[idx]
         del logx[idx]
         del logy[idx]
-
-        if colors is not None:
-            del colors[idx]
+        del colors[idx]
 
         num_plot += 1
 
@@ -638,22 +767,37 @@ def edge_attributes_distribution(network, attributes, edges=None,
                 val, num_bins[i], norm, logx[i], attr, kwargs[attr],
                 **new_kwargs)
         else:
-            fig, ax = _set_new_plot(fignum=fig.number, names=[attr])
+            ax = None
+
+            if axes is None:
+                fig, ax = _set_new_plot(fignum=fig.number, names=[attr])
+                ax = ax[0]
+            else:
+                ax = axes[i]
 
             counts, bins = _hist(
-                val, num_bins[i], norm, logx[i], attr, ax[0], **kwargs)
+                val, num_bins[i], norm, logx[i], attr, ax, color=colors[i],
+                **kwargs)
 
             end_attr = attr[1:]
 
             if nngt._config["use_tex"]:
                 end_attr = end_attr.replace("_", "\\_")
 
-            ax[0].set_title("{}{} distribution for {}".format(
-                attr[0].upper(), end_attr, network.name), y=1.05)
-            ax[0].set_ylabel("Node count")
-            ax[0].set_xlabel(attr[0].upper() + end_attr)
-            _set_scale(ax[0], bins, np.min(counts[counts>0]), counts.max(),
+            axtitle = None if axtitles is None else axtitles[i]
+
+            if axtitle != "":
+                if axtitle is None:
+                    axtitle = "{}{} distribution for {}".format(
+                        attr[0].upper(), end_attr, network.name)
+                ax.set_title(axtitle, y=1.05)
+
+            ax.set_ylabel("Edge count")
+            ax.set_xlabel(attr[0].upper() + end_attr)
+
+            _set_scale(ax, bins, np.min(counts[counts>0]), counts.max(),
                        logx[i], logy[i])
+
         num_plot += 1
 
     # adjust space, set title, and show
@@ -963,13 +1107,9 @@ def _set_ylim(ax, maxy, miny, log):
 
 def _format_and_show(fig, num_plot, values, title, show):
     import matplotlib.pyplot as plt
-    num_cols = max(int(np.ceil(np.sqrt(num_plot + len(values)))), 1)
-    ratio = (num_plot + len(values)) / float(num_cols)
-    num_rows = int(ratio)
-    if int(ratio) != int(np.ceil(ratio)):
-        num_rows += 1
-    #~ plt.subplots_adjust(hspace=num_rows*0.2, wspace=num_cols*0.1, left=0.075,
-                        #~ right=0.95, top=0.9, bottom=0.075)
+
+    plt.tight_layout()
+    
     if title is not None:
         fig.suptitle(title)
     if show:
@@ -982,4 +1122,7 @@ def _format_arg(arg, num_expected, arg_name):
             "required for `" + arg_name + "`."
     elif arg is not None:
         arg = [arg for _ in range(num_expected)]
+    elif arg is None:
+        arg = [None]*num_expected
+
     return arg

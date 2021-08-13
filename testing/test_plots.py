@@ -33,20 +33,31 @@ def test_plot_config():
 
 @pytest.mark.mpi_skip
 def test_plot_prop():
-    net = ng.erdos_renyi(nodes=100, avg_deg=10)
+    num_nodes = 50
+    net = ng.erdos_renyi(nodes=num_nodes, avg_deg=5)
+
     net.set_weights(distribution="gaussian",
                     parameters={"avg": 5, "std": 0.5})
+
     net.new_node_attribute("attr", "int",
-                           values=np.random.randint(-10, 20, 100))
+                           values=np.random.randint(-10, 20, num_nodes))
 
     nplt.degree_distribution(net, ["in", "out", "total"], show=False)
 
-    nplt.edge_attributes_distribution(net, "weight", show=False)
+    nplt.edge_attributes_distribution(
+        net, "weight", colors="g", show=False)
 
-    nplt.node_attributes_distribution(net, "attr", show=False)
+    nplt.node_attributes_distribution(
+        net, "out-degree", colors="r", show=False)
 
     if nngt.get_config("backend") != "nngt":
-        nplt.betweenness_distribution(net, show=False)
+        nplt.edge_attributes_distribution(
+            net, ["betweenness", "weight"], colors=["g", "b"],
+            axtitles=["Edge betw.", "Weights"], show=False)
+
+        nplt.node_attributes_distribution(
+            net, ["betweenness", "attr", "out-degree"], colors=["r", "g", "b"],
+            show=True)
 
 
 @pytest.mark.mpi_skip
@@ -195,16 +206,19 @@ def test_plot_spatial_alpha():
     g = nngt.SpatialGraph(num_nodes, positions=pos)
     g.new_edges([(0, 1), (0, 2), (1, 3), (3, 2)])
 
-    nplt.draw_network(g, nsize=0.02, ealpha=1)
+    for fast in (True, False):
+        nplt.draw_network(g, nsize=0.02 + 30*fast, ealpha=1, esize=0.1 + fast,
+                          fast=fast)
 
-    nplt.draw_network(g, layout=[(y, x) for (x, y) in pos],
-                      show_environment=False, nsize=0.02, nalpha=0.5)
+        nplt.draw_network(g, layout=[(y, x) for (x, y) in pos],
+                          show_environment=False, nsize=0.02 + 30*fast,
+                          nalpha=0.5, esize=0.1 + 3*fast, fast=fast)
 
 
 if __name__ == "__main__":
-    # ~ test_plot_config()
-    # ~ test_plot_prop()
+    test_plot_config()
+    test_plot_prop()
     test_draw_network_options()
-    # ~ test_library_plot()
-    # ~ test_hive_plot()
-    # ~ test_plot_spatial_alpha()
+    test_library_plot()
+    test_hive_plot()
+    test_plot_spatial_alpha()

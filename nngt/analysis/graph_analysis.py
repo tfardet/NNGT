@@ -1043,6 +1043,11 @@ def degree_distrib(graph, deg_type="total", nodes=None, weights=None,
 
     if num_bins == 'bayes' or is_integer(num_bins):
         num_bins = binning(degrees, bins=num_bins, log=log)
+    elif log:
+        deg = degrees[degrees > 0]
+        counts, bins = np.histogram(np.log(deg), num_bins)
+
+        return counts, np.exp(bins)
 
     return np.histogram(degrees, num_bins)
 

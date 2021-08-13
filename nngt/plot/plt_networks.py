@@ -355,6 +355,8 @@ def draw_network(network, nsize="total-degree", ncolor=None, nshape="o",
         pos[:, 0] = size[0]*(np.random.uniform(size=n)-0.5)
         pos[:, 1] = size[1]*(np.random.uniform(size=n)-0.5)
 
+    pos = np.array(pos).astype(float)
+
     # prepare node colors
     if nonstring_container(c) and not isinstance(c[0], str):
         # make the colorbar for the nodes
@@ -515,7 +517,7 @@ def draw_network(network, nsize="total-degree", ncolor=None, nshape="o",
                                 pos[strght_edges[0], 0],
                                 pos[strght_edges[0], 1], arrow_x,
                                 arrow_y, scale_units='xy', angles='xy',
-                                scale=1, alpha=ealpha, width=1.5e-3,
+                                scale=1, alpha=ealpha, width=0.005*size[0],
                                 linewidths=0.5*strght_sizes, edgecolors=ec,
                                 zorder=1, **kw)
 
@@ -651,7 +653,7 @@ def draw_network(network, nsize="total-degree", ncolor=None, nshape="o",
                     axis.quiver(
                         pos[strght_edges[:, 0], 0], pos[strght_edges[:, 0], 1],
                         arrow_x, arrow_y, scale_units='xy', angles='xy',
-                        scale=1, alpha=ealpha, width=1.5e-3,
+                        scale=1, alpha=ealpha, width=1.5e-3, headlength=0.02*size[0], headwidth=0.01*size[0],
                         linewidths=0.5*esize, ec=ecolor, fc=ecolor, zorder=1)
 
                 for i, s in enumerate(self_loops):
@@ -676,7 +678,7 @@ def draw_network(network, nsize="total-degree", ncolor=None, nshape="o",
                                 posA=(xs, ys), posB=(xt, yt),
                                 arrowstyle=arrowstyle,
                                 connectionstyle='arc3,rad=0.1',
-                                alpha=ealpha, fc=ecolor[i], lw=0.5)
+                                alpha=ealpha, fc=ecolor[i], lw=0)
                             axis.add_patch(arrow)
                         else:
                             dl     = 0.5*nsize[t]
@@ -689,7 +691,7 @@ def draw_network(network, nsize="total-degree", ncolor=None, nshape="o",
                                 head_length=0.7*strght_sizes[i],
                                 head_width=0.7*strght_sizes[i],
                                 length_includes_head=True, alpha=ealpha,
-                                fc=strght_colors[i], lw=0.5))
+                                fc=strght_colors[i], lw=0))
 
                 for i, s in enumerate(self_loops):
                     es = loop_sizes[i]
@@ -1473,11 +1475,11 @@ def chord_diagram(network, weights=True, names=None, order=None, width=0.1,
 
 def _norm_size(size, max_size, min_size):
     ''' Normalize the size array '''
-    if min_size is None:
-        return size * max_size / np.max(size)
-
     maxs = np.max(size)
     mins = np.min(size)
+
+    if min_size is None or maxs == mins:
+        return size * max_size / np.max(size)
 
     return min_size + (max_size - min_size) * (size - mins) / (maxs - mins)
 

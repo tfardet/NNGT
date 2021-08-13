@@ -426,8 +426,8 @@ def test_price():
     E  = g.edge_nb()
     Er = 2 * r * E  / (1 + r)
 
-    rmin = (Er - 3*np.sqrt(Er)) / E
-    rmax = (Er + 3*np.sqrt(Er)) / E
+    rmin = (Er - 4*np.sqrt(Er)) / E
+    rmax = (Er + 4*np.sqrt(Er)) / E
 
     assert rmin < na.reciprocity(g) < rmax
 
