@@ -491,19 +491,19 @@ class _NNGTGraph(GraphInterface):
             Whether to test connectedness with directed ("strong") or
             undirected ("weak") connections.
         '''
-        num_nodes = g.node_nb()
+        num_nodes = self.node_nb()
 
         # get adjacency matrix
-        A = g.adjacency_matrix()
+        A = self.adjacency_matrix()
 
-        if mode == "weak" and g.is_directed():
+        if mode == "weak" and self.is_directed():
             A = A + A.T
 
         visited = _dfs(A, 0)
 
         if len(visited) != num_nodes:
             return False
-        elif mode == "strong" and g.is_directed():
+        elif mode == "strong" and self.is_directed():
             visited = _dfs(A.T, 0)
 
             if len(visited) != num_nodes:

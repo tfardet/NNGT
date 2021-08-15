@@ -6,7 +6,7 @@ secrets:
     - 0b249c79-8eaf-4b82-b1d1-f3c38c7eae4b
 tasks:
     - check: |
-        mv .coveralls.yml NNGT/.coveralls.yml 2>/dev/null
+        mv .coveralls.yml NNGT/.coveralls.yml || true
         cd NNGT
         python3 extra/check_headers.py
     - setup: |

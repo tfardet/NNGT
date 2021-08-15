@@ -320,7 +320,7 @@ def betweenness_distribution(
         axes = [ax1.twinx()]
 
         if num_axes == 2:
-            ax2 = ax.twiny()
+            ax2 = ax1.twiny()
             axes.append(ax2)
             ax1.grid(False, axis='x')
             ax1.yaxis.tick_right()
