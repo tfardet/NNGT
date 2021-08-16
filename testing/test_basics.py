@@ -590,6 +590,9 @@ def test_delete():
     num_nodes = 6
     num_edges = 12
 
+    in_deg = [2, 3, 2, 1, 2, 2]
+    out_deg = [3, 2, 2, 2, 2, 1]
+
     # make positions and structure
     rng = np.random.default_rng()
 
@@ -608,6 +611,9 @@ def test_delete():
     # delete one edge (eid = 2)
     edge = (0, 5)
 
+    in_deg[5] -= 1
+    out_deg[0] -= 1
+
     g.delete_edges(edge)
 
     num_edges -= 1
@@ -615,6 +621,9 @@ def test_delete():
     assert g.edge_nb() == num_edges
 
     assert len(g.get_weights()) == num_edges
+
+    assert np.array_equal(in_deg, g.get_degrees("in"))
+    assert np.array_equal(out_deg, g.get_degrees("out"))
 
     mat[edge] = 0
 
@@ -627,11 +636,19 @@ def test_delete():
 
     g.delete_edges(edges)
 
+    in_deg[4] -= 1
+    out_deg[1] -= 1
+    in_deg[1] -= 1
+    out_deg[3] -= 1
+
     num_edges -= len(edges)
 
     assert g.edge_nb() == num_edges
 
     assert len(g.get_weights()) == num_edges
+
+    assert np.array_equal(in_deg, g.get_degrees("in"))
+    assert np.array_equal(out_deg, g.get_degrees("out"))
 
     for e in edges:
         mat[e] = 0

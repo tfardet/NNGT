@@ -896,6 +896,12 @@ class _NNGTGraph(GraphInterface):
                     del g._edges[e]
                     del g._edges[e[::-1]]
 
+            # update in and out degrees
+            s, t = e
+
+            g._in_deg[t] -= 1
+            g._out_deg[s] -= 1
+
         # reset eids
         for i, e in enumerate(g._unique):
             g._unique[e] = i

@@ -36,4 +36,4 @@ tasks:
         GL=gt OMP=0 MPI=1 mpirun -n 2 coverage run -p -m pytest --with-mpi testing
         coverage combine
         GIT_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ', /' '\n' | grep -v HEAD | sed -n 2p)
-        CI_NAME=$BUILD_SUBMITTER CI_BUILD_NUMBER=$JOB_ID CI_BUILD_URL=$JOB_URL CI_BRANCH=$GIT_BRANCH coveralls
+        CI_NAME=$BUILD_SUBMITTER CI_BUILD_NUMBER=$JOB_ID CI_BUILD_URL=$JOB_URL CI_BRANCH=$GIT_BRANCH coveralls || true
