@@ -30,7 +30,8 @@ import numpy as np
 
 import nngt
 from nngt.geometry.geom_utils import conversion_magnitude
-from nngt.lib.connect_tools import _set_options
+from nngt.lib.connect_tools import (_set_options, _connect_ccs,
+                                    _independent_edges)
 from nngt.lib.logger import _log_message
 from nngt.lib.test_functions import (mpi_checker, mpi_random, deprecated,
                                      on_master_process)
@@ -45,8 +46,9 @@ __all__ = [
     'from_degree_list',
     'gaussian_degree',
     'newman_watts',
-    'random_scale_free',
     'price_scale_free',
+    'random_scale_free',
+    'sparse_clustered',
     'watts_strogatz',
 ]
 
@@ -190,17 +192,14 @@ def from_degree_list(degrees, degree_type='in', weighted=True,
         The list of degrees for each node in the graph.
     degree_type : str, optional (default: 'in')
         The type of the fixed degree, among ``'in'``, ``'out'`` or ``'total'``.
-        @todo `'total'` not implemented yet.
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     weighted : bool, optional (default: True)
         Whether the graph edges have weights.
     directed : bool, optional (default: True)
-        @todo: only for directed graphs for now. Whether the graph is directed
-        or not.
+        Whether the graph is directed or not.
     multigraph : bool, optional (default: False)
-        Whether the graph can contain multiple edges between two
-        nodes.
+        Whether the graph can contain multiple edges between two nodes.
     name : string, optional (default: "ER")
         Name of the created graph.
     shape : :class:`~nngt.geometry.Shape`, optional (default: None)
@@ -269,10 +268,6 @@ def fixed_degree(degree, degree_type='in', nodes=0, reciprocity=-1.,
         The value of the constant degree.
     degree_type : str, optional (default: 'in')
         The type of the fixed degree, among ``'in'``, ``'out'`` or ``'total'``.
-
-        @todo
-            `'total'` not implemented yet.
-
     nodes : int, optional (default: None)
         The number of nodes in the graph.
     reciprocity : double, optional (default: -1 to let it free)
@@ -989,6 +984,493 @@ def watts_strogatz(coord_nb, proba_shortcut=None, reciprocity_circular=1.,
     return graph_nw
 
 
+def sparse_clustered(c, nodes=0, edges=None, avg_deg=None, connected=True,
+                     rtol=None, exact_edge_nb=False, weighted=True,
+                     directed=True, multigraph=False, name="FC", shape=None,
+                     positions=None, population=None, from_graph=None,
+                     **kwargs):
+    r'''
+    Generate a sparse random graph with given average clustering coefficient
+    and degree.
+
+    .. versionadded:: 2.5
+
+    The original algorithm is adapted from [newman-clustered-2003]_ and leads
+    to a graph with approximate clustering coefficient and number of edges.
+
+    .. warning::
+
+        This algorithm can only give reasonable results for sparse graphs and
+        will raise an error if the requested graph density is above `c`.
+
+    Nodes are distributed among :math:`\mu` overlapping groups of size
+    :math:`\nu` and, each time two nodes belong to a common group, they are
+    connected with a probability :math:`p = c`.
+
+    For sparse graphs, the average (in/out-)degree can be approximmated as
+    :math:`k = \mu p(\nu - 1)`, and the average clustering as:
+
+    .. math::
+
+        C^{(u)} = \frac{p \left[ p(\nu - 1) - 1 \right]}{k - 1}
+
+    for undirected graphs and
+
+    .. math::
+
+        C^{(d)} = \frac{p\mu \left[ p(2\nu - 3) - 1 \right]}{2k - 1 - p}
+
+    for all clustering modes in directed graphs.
+
+    From these relations, we compute :math:`\mu` and :math:`\nu` as:
+
+    .. math::
+
+        \nu^{(u)} = 1 + \frac{1}{p} + \frac{C^{(u)} (k - 1)}{p^2}
+
+    or
+
+    .. math::
+
+        \nu^{(d)} = \frac{3}{2} + \frac{1}{2p} +
+                    \frac{C^{(u)} (2k - 1 - p)}{2p^2}
+
+    and
+
+    .. math::
+
+        \mu = \frac{k}{p (\nu - 1)}.
+
+    Parameters
+    ----------
+    c : float
+        Desired value for the final average clustering in the graph.
+    nodes : int, optional (default: None)
+        The number of nodes in the graph.
+    edges : int, optional
+        The number of edges between the nodes
+    avg_deg : double, optional
+        Average degree of the neurons given by `edges / nodes`.
+    connected : bool, optional (default: True)
+        Whether the resulting graph must be connected (True) or may be
+        unconnected (False).
+    rtol : float, optional (default: not checked)
+        Tolerance on the relative error between the target clustering `c` and
+        the actual clustering of the final graph.
+        If the algorithm leads to a relative error greater than `rtol`, then
+        an error is raised.
+    exact_edge_nb : bool, optional (default: False)
+        Whether the final graph should have precisely the number of edges
+        required.
+    weighted : bool, optional (default: True)
+        Whether the graph edges have weights.
+    directed : bool, optional (default: True)
+        Whether the graph should be directed or not.
+    multigraph : bool, optional (default: False)
+        Whether the graph can contain multiple edges between two nodes.
+    name : string, optional (default: "ER")
+        Name of the created graph.
+    shape : :class:`~nngt.geometry.Shape`, optional (default: None)
+        Shape of the neurons' environment.
+    positions : :class:`numpy.ndarray`, optional (default: None)
+        A 2D or 3D array containing the positions of the neurons in space.
+    population : :class:`~nngt.NeuralPop`, optional (default: None)
+        Population of neurons defining their biological properties (to create a
+        :class:`~nngt.Network`).
+    from_graph : :class:`Graph` or subclass, optional (default: None)
+        Initial graph whose nodes are to be connected.
+    **kwargs : keyword arguments
+        If connected is True, `method` can be passed to define how the
+        components should be connected among themselves. Available methods are
+        "sequential", where the components are connected sequentially, forming
+        a long thread and increasing the graph's diameter, "star-component",
+        where all components are connected to the largest one, and "random",
+        where components are connected randomly, or "central-node", where one
+        node from the largest component is chosen to reconnect all disconnected
+        components.
+        If not provided, defaults to "random".
+
+    Note
+    ----
+    `nodes` is required unless `from_graph` or `population` is provided.
+    If `from_graph` is provided, all preexistent edges in the
+    object will be deleted before the new connectivity is implemented.
+
+    Returns
+    -------
+    graph_fc : :class:`~nngt.Graph`, or subclass
+        A new generated graph or the modified `from_graph`.
+
+    References
+    ----------
+
+    .. [newman-clustered-2003] Newman, M. E. J. Properties of Highly
+        Clustered Networks, Phys. Rev. E 2003 68 (2).
+        :doi:`10.1103/PhysRevE.68.026121`, :arxiv:`cond-mat/0303183`.
+    '''
+    # get method
+    method = "star-component"
+
+    if "method" in kwargs:
+        method = kwargs.pop("method")
+
+    # set node number and library graph
+    graph_fc = from_graph
+
+    if graph_fc is not None:
+        nodes = graph_fc.node_nb()
+        graph_fc.clear_all_edges()
+    else:
+        nodes = population.size if population is not None else nodes
+        graph_fc = nngt.Graph(
+            name=name, nodes=nodes, directed=directed, **kwargs)
+
+    _set_options(graph_fc, population, shape, positions)
+
+    # compute average degree and set the number of nodes
+    if (avg_deg is None and edges is None) or None not in (avg_deg, edges):
+        raise ValueError("Either `avg_deg` or `edges` should be provided.")
+
+    # add edges
+    ia_edges = None
+
+    if nodes > 1:
+        k = edges / nodes if avg_deg is None else avg_deg
+
+        num_edges = int(k*nodes) if edges is None else edges
+
+        if k/nodes > c:
+            raise ValueError('Clustering cannot be lower than avg_deg/nodes, '
+                             'or, equivalently, edges/nodes**2. Got '
+                             'c = {} against {}.'.format(c, k/nodes))
+
+        def func_nu(p, directed):
+            if directed:
+                return np.around(
+                    1.5 + 1/(2*p) + (2*k - 1 - p) * c / (2*p**2)).astype(int)
+
+            return np.around(1 + 1/p + (k - 1) * c / p**2).astype(int)
+
+        def func_mu(nu, p):
+            return k / (p * (nu - 1))
+
+        p = c
+        nu = func_nu(p, directed)
+
+        if nu >= nodes:
+            raise ValueError('Theoretical group size computed was '
+                             'greater than the number of nodes.')
+
+        mu = func_mu(nu, p)
+
+        # assign the neurons to groups
+        n_to_g = {}
+        g_to_n = {}
+
+        rng = nngt._rng
+
+        gid = 0
+
+        # to minimize the number of groups, we start with distributed groups
+        for i in range(int(nodes / nu)):
+            g_to_n[gid] = list(range(nu*i, nu*(i+1)))
+            for j in range(nu*i, nu*(i+1)):
+                if j in n_to_g:
+                    n_to_g[j].add(gid)
+                else:
+                    n_to_g[j] = {gid}
+
+            gid += 1
+
+        if int(nodes / nu) * nu < nodes:
+            s = set(range(nu*gid, nodes))
+
+            # to minimize the number of disconnected components, we are going
+            # to fill the remaining nodes of s with previous nodes (one from
+            # each previous set until s is full) and assign a new random node
+            # to each of these previous sets
+
+            for g, ids in g_to_n.items():
+                # get a node from nodes
+                u = ids[0]
+                group = set(ids) - {u}
+
+                n_to_g[u] -= {g}
+
+                while len(group) < nu:
+                    v = rng.choice(nodes, 1)[0]
+
+                    group.add(v)
+
+                    if len(group) == nu:
+                        if v in n_to_g:
+                            n_to_g[v] = n_to_g[v].union({g})
+                        else:
+                            n_to_g[v] = {g}
+
+                assert len(group) == nu
+
+                g_to_n[g] = list(group)
+
+                s.add(u)
+
+                if len(s) == nu:
+                    break
+
+            g_to_n[gid] = list(s)
+
+            for j in s:
+                if j in n_to_g:
+                    n_to_g[j].add(gid)
+                else:
+                    n_to_g[j] = {gid}
+
+            gid += 1
+
+        # check that all nodes belong to a group
+        assert len(n_to_g) == nodes
+
+        if nu < nodes or mu > 1:
+            while gid < mu*nodes/nu:
+                ids = rng.choice(nodes, nu, replace=False)
+
+                g_to_n[gid] = ids
+
+                for i in ids:
+                    if i in n_to_g:
+                        n_to_g[i].add(gid)
+                    else:
+                        n_to_g[i] = {gid}
+
+                gid += 1
+
+        # generate the edges
+        edges = set()
+
+        for group, ids in g_to_n.items():
+            probas = rng.random(nu*(nu - 1))
+
+            count = 0
+
+            for i, u in enumerate(ids):
+                targets = list(ids[i + 1:])
+
+                if directed:
+                    targets += list(ids[:i])
+                for v in targets:
+                    prob = probas[count]
+                    count += 1
+
+                    if directed:
+                        if prob < p and (u, v) not in edges:
+                            edges.add((u, v))
+                    elif prob < p:
+                        if (u, v) not in edges and (v, u) not in edges:
+                            edges.add((u, v))
+
+        graph_fc.new_edges(list(edges))
+
+        # final optional checks for connectedness and edge number
+        bridges = set()
+
+        cc, cmean = None, None
+
+        if connected:
+            # make the graph fully connected
+            cc = nngt.analysis.local_clustering(graph_fc)
+
+            cmean = cc.mean()
+
+            disconnected = True
+
+            while disconnected:
+                cids, hist = nngt.analysis.connected_components(graph_fc)
+
+                disconnected = len(hist) > 1
+
+                if not disconnected:
+                    break
+
+                # connect nodes from separate connected components
+                if method == "star-component":
+                    idx = np.argmax(hist)
+                    idx_nodes = np.where(cids == idx)[0]
+
+                    select_source = lambda x: rng.choice(len(x))
+
+                    for i in (set(range(len(hist))) - {idx}):
+                        u, _ = _connect_ccs(graph_fc, cids, idx, i, cc, c,
+                                            cmean, edges, bridges,
+                                            select_source=select_source)
+
+                        if directed:
+                            u_idx = np.where(idx_nodes == u)[0][0]
+                            select_target = lambda x: u_idx
+
+                            _connect_ccs(
+                                graph_fc, cids, i, idx, cc, c, cmean, edges,
+                                bridges, select_source=select_source,
+                                select_target=select_target)
+                elif method == "random":
+                    n = len(hist)
+
+                    # almost surely connected random graph requires
+                    # n*log(n) connections so we ask for half that to use as
+                    # few edges as possible while limiting the number of loops
+                    # since each iteration requires to compute the CCs
+                    mult = max(1, int(0.5*np.ceil(np.log(n))))
+                    sources = list(range(n))*mult
+
+                    if directed and n > 2:
+                        sources *= 2
+
+                    targets = sources[::-1]
+
+                    if n > 2:
+                        rng.shuffle(targets)
+                        
+                    cset = set()
+
+                    for i in sources:
+                        j = i
+
+                        while i == j or (i, j) in cset:
+                            j = rng.integers(0, len(hist))
+
+                        _connect_ccs(graph_fc, cids, i, j, cc, c, cmean,
+                                     edges, bridges)
+
+                        cset.add((i, j))
+                elif method == "sequential":
+                    for i in range(1, len(hist)):
+                        _connect_ccs(graph_fc, cids, i - 1, i, cc, c, cmean,
+                                     edges, bridges)
+
+                    if directed:
+                        _connect_ccs(graph_fc, cids, i, 0, cc, c, cmean, edges,
+                                     bridges)
+                elif method == "central-node":
+                    idx = np.argmax(hist)
+
+                    for i in (set(range(len(hist))) - {idx}):
+                        _connect_ccs(graph_fc, cids, idx, i, cc, c, cmean,
+                                     edges, bridges)
+
+                        if directed:
+                            _connect_ccs(graph_fc, cids, i, idx, cc, c, cmean,
+                                         edges, bridges)
+                else:
+                    raise ValueError("Invalid `method`: '" + method + "'.")
+        else:
+            cc = nngt.analysis.local_clustering(graph_fc)
+
+            cmean = cc.mean()
+
+        if exact_edge_nb:
+            proba = 1 - cc if cmean < c else cc
+            proba /= proba.sum()
+
+            while graph_fc.edge_nb() < num_edges:
+                # add edges
+                sources, targets = None, None
+
+                missing = num_edges - graph_fc.edge_nb()
+
+                if missing > 1:
+                    sources = rng.choice(nodes, missing, p=proba)
+                    targets = sources.copy()
+
+                    rng.shuffle(targets)
+                else:
+                    sources = [rng.choice(nodes)]
+                    targets = [rng.choice(nodes)]
+
+                new_edges = []
+
+                for u, v in zip(sources, targets):
+                    cond = (u, v) not in edges
+
+                    if not directed:
+                        cond *= (v, u) not in edges
+
+                    if u != v and cond:
+                        new_edges.append((u, v))
+                        edges.add((u, v))
+
+                graph_fc.new_edges(new_edges)
+
+            check_ind_edges = True
+            count = 0
+
+            while graph_fc.edge_nb() > num_edges and count < 1000:
+                # remove edges
+                remove = graph_fc.edge_nb() - num_edges
+
+                sources, targets, chosen = [], [], None
+
+                # remove edges that do not belong to triangles if possible
+                if check_ind_edges:
+                    ind_edges = \
+                        _independent_edges(graph_fc).difference(bridges)
+
+                    if ind_edges:
+                        ind_edges = np.asarray(list(ind_edges))
+
+                        if len(ind_edges) > remove:
+                            chosen = rng.choice(len(ind_edges), remove,
+                                                replace=False)
+                        else:
+                            chosen = slice(None)
+
+                        sources = list(ind_edges[chosen, 0])
+                        targets = list(ind_edges[chosen, 1])
+                    else:
+                        check_ind_edges = False
+
+                if len(sources) < remove:
+                    remaining = remove - len(sources)
+                    proba = np.square(
+                        graph_fc.get_degrees("out")).astype(float)
+                    proba /= proba.sum()
+                    sources.extend(rng.choice(nodes, remaining, p=proba))
+
+                    proba = np.square(graph_fc.get_degrees("in")).astype(float)
+                    proba /= proba.sum()
+                    targets.extend(rng.choice(nodes, remaining, p=proba))
+
+                delete = []
+
+                for u, v in zip(sources, targets):
+                    if (u, v) in edges and (u, v) not in bridges:
+                        delete.append((u, v))
+                        edges.discard((u, v))
+                    elif not directed:
+                        if (v, u) in edges and (v, u) not in bridges:
+                            delete.append((v, u))
+                            edges.discard((v, u))
+
+                graph_fc.delete_edges(delete)
+
+                count += 1
+
+            if count == 1000:
+                raise RuntimeError("Algorithm did not converge, try with "
+                                   "exact_edge_nb=False to avoid that issue.")
+
+    if rtol is not None:
+        cmean = nngt.analysis.local_clustering(graph_fc).mean()
+
+        err = np.abs(c - cmean) / c
+
+        if err > rtol:
+            raise RuntimeError("Relative error greater than `rtol`: "
+                               "{} > {}".format(err, rtol))
+
+    graph_fc._graph_type = "fixed_clustering"
+
+    return graph_fc
+
+
 # --------------------- #
 # Distance-based models #
 # --------------------- #
@@ -1110,6 +1592,7 @@ _di_generator = {
     "newman_watts": newman_watts,
     "price_scale_free": price_scale_free,
     "random_scale_free": random_scale_free,
+    "sparse_clustered": sparse_clustered,
     "watts_strogatz": watts_strogatz,
 }
 

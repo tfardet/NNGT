@@ -84,9 +84,9 @@ class _NxNProperty(BaseProperty):
         g = self.parent()._graph
 
         if val is None:
-            if value_type == "int":
+            if value_type in ("int", "integer"):
                 val = int(0)
-            elif value_type == "double":
+            elif value_type in ("double", "float"):
                 val = np.NaN
             elif value_type == "string":
                 val = ""
@@ -225,9 +225,9 @@ class _NxEProperty(BaseProperty):
         g = self.parent()._graph
 
         if val is None:
-            if value_type == "int":
+            if value_type in ("int", "integer"):
                 val = int(0)
-            elif value_type == "double":
+            elif value_type in ("double", "float"):
                 val = np.NaN
             elif value_type == "string":
                 val = ""
@@ -736,13 +736,14 @@ class _NxGraph(GraphInterface):
 
     def delete_edges(self, edges):
         ''' Remove a list of edges '''
-        if nonstring_container(edges[0]):
-            self._graph.remove_edges_from(edges)
-        else:
-            self._graph.remove_edge(*edges)
+        if len(edges):
+            if nonstring_container(edges[0]):
+                self._graph.remove_edges_from(edges)
+            else:
+                self._graph.remove_edge(*edges)
 
-        for key in self._eattr:
-            self._eattr._num_values_set[key] = self.edge_nb()
+            for key in self._eattr:
+                self._eattr._num_values_set[key] = self.edge_nb()
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''

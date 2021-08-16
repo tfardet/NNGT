@@ -79,9 +79,9 @@ class _IgNProperty(BaseProperty):
         g = self.parent()._graph
 
         if val is None:
-            if value_type == "int":
+            if value_type in ("int", "integer"):
                 val = int(0)
-            elif value_type == "double":
+            elif value_type in ("double", "float"):
                 val = np.NaN
             elif value_type == "string":
                 val = ""
@@ -196,9 +196,9 @@ class _IgEProperty(BaseProperty):
         g = self.parent()._graph
 
         if val is None:
-            if value_type == "int":
+            if value_type in ("int", "integer"):
                 val = int(0)
-            elif value_type == "double":
+            elif value_type in ("double", "float"):
                 val = np.NaN
             elif value_type == "string":
                 val = ""
@@ -608,16 +608,17 @@ class _IGraph(GraphInterface):
 
     def delete_edges(self, edges):
         ''' Remove a list of edges '''
-        if nonstring_container(edges[0]):
-            if isinstance(edges[0], tuple):
-                self._graph.delete_edges(edges)
+        if len(edges):
+            if nonstring_container(edges[0]):
+                if isinstance(edges[0], tuple):
+                    self._graph.delete_edges(edges)
+                else:
+                    self._graph.delete_edges([tuple(e) for e in edges])
             else:
-                self._graph.delete_edges([tuple(e) for e in edges])
-        else:
-            self._graph.delete_edges([edges])
+                self._graph.delete_edges([edges])
 
-        for key in self._eattr:
-            self._eattr._num_values_set[key] = self.edge_nb()
+            for key in self._eattr:
+                self._eattr._num_values_set[key] = self.edge_nb()
 
     def clear_all_edges(self):
         ''' Remove all edges from the graph '''

@@ -90,10 +90,10 @@ class _GtNProperty(BaseProperty):
         g     = self.parent()._graph
 
         if val is None:
-            if value_type == "int":
+            if value_type in ("int", "integer"):
                 val = int(0)
                 dtype = int
-            elif value_type == "double":
+            elif value_type in ("double", "float"):
                 val = np.NaN
                 dtype = float
             elif value_type == "string":
@@ -307,9 +307,9 @@ class _GtEProperty(BaseProperty):
             self._num_values_set[name] = num_edges
 
         if val is None:
-            if value_type == "int":
+            if value_type in ("int", "integer"):
                 val = int(0)
-            elif value_type == "double":
+            elif value_type in ("double", "float"):
                 val = np.NaN
             elif value_type == "string":
                 val = ""
@@ -829,17 +829,17 @@ class _GtGraph(GraphInterface):
 
     def delete_edges(self, edges):
         ''' Remove a list of edges '''
-        g = self._graph
-
-        Edge = g.edge
-
-        if nonstring_container(edges[0]):
-            # fast loop
-            [self._graph.remove_edge(Edge(*e)) for e in edges]
-        else:
-            self._graph.remove_edge(Edge(*edges))
-
         if len(edges):
+            g = self._graph
+
+            Edge = g.edge
+
+            if nonstring_container(edges[0]):
+                # fast loop
+                [self._graph.remove_edge(Edge(*e)) for e in edges]
+            else:
+                self._graph.remove_edge(Edge(*edges))
+
             self._eattr.edges_deleted()
 
             self._edges_deleted = True

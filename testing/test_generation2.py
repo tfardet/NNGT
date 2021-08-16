@@ -524,6 +524,47 @@ def test_circular():
     assert np.isclose(na.reciprocity(gc), recip, 1e-3)
 
 
+@pytest.mark.mpi_skip
+def test_sparse_clustered():
+    ccs = np.linspace(0.1, 0.9, 4)
+
+    num_nodes = 500
+
+    degrees = [10, 40]
+
+    methods = ["star-component", "sequential", "random", "central-node"]
+
+    for directed in (True, False):
+        # check errors
+        with pytest.raises(ValueError):
+            g = ng.sparse_clustered(0, nodes=num_nodes, avg_deg=10,
+                                    directed=directed)
+
+        with pytest.raises(RuntimeError):
+            g = ng.sparse_clustered(1, nodes=num_nodes, avg_deg=10,
+                                    directed=directed, rtol=1e-10)
+
+        # check graphs
+        for i, c in enumerate(ccs):
+            for deg in degrees:
+                if c*num_nodes > deg:
+                    g = ng.sparse_clustered(
+                        c, nodes=num_nodes, avg_deg=deg, connected=False,
+                        directed=directed, rtol=0.08)
+
+                    g = ng.sparse_clustered(
+                        c, nodes=num_nodes, avg_deg=deg, directed=directed,
+                        exact_edge_nb=True)
+
+                    assert g.edge_nb() == deg*num_nodes
+
+                    g = ng.sparse_clustered(
+                        c, nodes=num_nodes, avg_deg=deg, directed=directed,
+                        connected=True, method=methods[i])
+
+                    assert g.is_connected()
+
+
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
         test_circular()
@@ -535,6 +576,7 @@ if __name__ == "__main__":
         test_distances()
         test_price()
         test_connect_switch_distance_rule_max_proba()
+        test_sparse_clustered()
 
     if nngt.get_config("mpi"):
         test_mpi_from_degree_list()

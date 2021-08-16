@@ -121,6 +121,59 @@ def test_random_rewire():
 
 
 @pytest.mark.mpi_skip
+def test_clst_rewire():
+    ''' Test rewire preserving clustering '''
+    num_nodes = 200
+    coord_nb  = 8
+    recip     = 0.7
+    shortcut  = 0.1
+
+    g = ng.newman_watts(coord_nb, shortcut, reciprocity_circular=recip,
+                        nodes=num_nodes)
+
+    num_edges = g.edge_nb()
+
+    # make some node and edge attributes
+    g.new_node_attribute("random_int", "int",
+                         values=nngt._rng.integers(1, 2000, num_nodes))
+    g.new_node_attribute("attr2", "float",
+                         values=nngt._rng.uniform(size=num_nodes))
+
+    ww = np.arange(1, num_edges + 1, dtype=float)
+    g.set_weights(ww)
+
+    g.new_edge_attribute("my-edge-attr", "int", values=-ww[::-1].astype(int))
+
+    # rewire
+    rtol = 0.1
+
+    rc = ng.random_rewire(g, constraints="clustering",
+                          node_attr_constraints="preserve",
+                          edge_attr_constraints="together", rtol=rtol)
+
+    r1 = ng.random_rewire(g)
+
+    c0 = nngt.analysis.local_clustering(g).mean()
+    c1 = nngt.analysis.local_clustering(r1).mean()
+    cc = nngt.analysis.local_clustering(rc).mean()
+
+    assert c0 - c1 > c0 - cc
+    assert np.abs(c0 - cc) / c0 < rtol
+
+    # check node attributes
+    assert g.node_attributes == rc.node_attributes
+    assert np.array_equal(g.node_attributes["random_int"],
+                          rc.node_attributes["random_int"])
+    assert np.all(np.isclose(g.node_attributes["attr2"],
+                             rc.node_attributes["attr2"]))
+    # check that attributes were moved together
+    weights  = rc.get_weights()
+    my_eattr = rc.edge_attributes["my-edge-attr"]
+
+    assert np.array_equal(my_eattr, (weights - (num_edges + 1)).astype(int))
+
+
+@pytest.mark.mpi_skip
 def test_complete_lattice_rewire():
     ''' Check lattice rewiring method. '''
     num_nodes = 10
@@ -260,6 +313,7 @@ def test_reciprocity_lattice_rewire():
 if __name__ == "__main__":
     if not nngt.get_config("mpi"):
         test_random_rewire()
+        test_clst_rewire()
         test_complete_lattice_rewire()
         test_incomplete_lattice_rewire()
         test_reciprocity_lattice_rewire()

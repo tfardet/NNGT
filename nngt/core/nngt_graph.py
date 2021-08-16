@@ -74,11 +74,12 @@ class _NProperty(BaseProperty):
 
     def new_attribute(self, name, value_type, values=None, val=None):
         dtype = object
+
         if val is None:
-            if value_type == "int":
+            if value_type in ("int", "integer"):
                 val = int(0)
                 dtype = int
-            elif value_type == "double":
+            elif value_type in ("double", "float"):
                 val = np.NaN
                 dtype = float
             elif value_type == "string":
@@ -278,9 +279,9 @@ class _EProperty(BaseProperty):
             self._num_values_set[name] = num_edges
 
         if val is None:
-            if value_type == "int":
+            if value_type in ("int", "integer"):
                 val = int(0)
-            elif value_type == "double":
+            elif value_type in ("double", "float"):
                 val = np.NaN
             elif value_type == "string":
                 val = ""
@@ -869,48 +870,49 @@ class _NNGTGraph(GraphInterface):
 
     def delete_edges(self, edges):
         ''' Remove a list of edges '''
-        g = self._graph
+        if len(edges):
+            g = self._graph
 
-        old_enum = len(g._unique)
+            old_enum = len(g._unique)
 
-        if not nonstring_container(edges[0]):
-            edges = [edges]
+            if not nonstring_container(edges[0]):
+                edges = [edges]
 
-        if not isinstance(edges[0], tuple):
-            edges = [tuple(e) for e in edges]
+            if not isinstance(edges[0], tuple):
+                edges = [tuple(e) for e in edges]
 
-        # get edge ids
-        e_to_eid = g._unique
+            # get edge ids
+            e_to_eid = g._unique
 
-        eids = {e_to_eid[e] for e in edges}
+            eids = {e_to_eid[e] for e in edges}
 
-        # remove
-        directed = g._directed
+            # remove
+            directed = g._directed
 
-        for e in edges:
-            if e in g._unique:
-                del g._unique[e]
+            for e in edges:
+                if e in g._unique:
+                    del g._unique[e]
 
-            if not directed:
-                if e in g._edges:
-                    del g._edges[e]
-                    del g._edges[e[::-1]]
+                if not directed:
+                    if e in g._edges:
+                        del g._edges[e]
+                        del g._edges[e[::-1]]
 
-            # update in and out degrees
-            s, t = e
+                # update in and out degrees
+                s, t = e
 
-            g._in_deg[t] -= 1
-            g._out_deg[s] -= 1
+                g._in_deg[t] -= 1
+                g._out_deg[s] -= 1
 
-        # reset eids
-        for i, e in enumerate(g._unique):
-            g._unique[e] = i
+            # reset eids
+            for i, e in enumerate(g._unique):
+                g._unique[e] = i
 
-            if not directed:
-                e._edges[e] = i
-                e._edges[e[::-1]] = i
+                if not directed:
+                    e._edges[e] = i
+                    e._edges[e[::-1]] = i
 
-        self._eattr.edges_deleted(eids)
+            self._eattr.edges_deleted(eids)
 
     def clear_all_edges(self):
         g = self._graph

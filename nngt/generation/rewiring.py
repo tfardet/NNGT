@@ -236,7 +236,7 @@ def lattice_rewire(g, target_reciprocity=1., node_attr_constraints=None,
 
 
 def random_rewire(g, constraints=None, node_attr_constraints=None,
-                  edge_attr_constraints=None):
+                  edge_attr_constraints=None, **kwargs):
     '''
     Generate a new rewired graph from `g`.
 
@@ -267,6 +267,26 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
         attributes are randomized by groups (all attributes of a given edge are
         sent to the same new edge). By default, attributes are completely and
         separately randomized.
+    **kwargs : optional keyword arguments
+        These are optional arguments in the case `constraints` is "clustering".
+        In that case, the user can provide both:
+
+        * `rtol` : float, optional (default: 5%)
+          The tolerance on the relative error to the average clustering for the
+          rewired graph.
+        * `connected` : bool, optional (default: False)
+          Whether the generated graph should be connected (this reduces the
+          precision of the final clustering).
+        * `method` : str, optional (default: "star-component")
+          Defines how the initially disconnected components of the generated
+          graph should be connected among themselves.
+          Available methods are "sequential", where the components are
+          connected sequentially, forming a long thread and increasing the
+          graph's diameter, "star-component", where all disconnected components
+          are connected to random nodes in the largest component,
+          "central-node" , where all disconnected components are connected to
+          the same node in the largest component, and "random", where
+          components are connected randomly.
     '''
     directed  = g.is_directed()
     num_nodes = g.node_nb()
@@ -305,8 +325,15 @@ def random_rewire(g, constraints=None, node_attr_constraints=None,
         new_graph = gc.from_degree_list(degrees, constraints,
                                         directed=directed)
     elif constraints == "clustering":
-        raise NotImplementedError("Rewiring with constrained clustering is "
-                                  "not yet available.")
+        rtol = kwargs.get("rtol", 0.05)
+        connected = kwargs.get("connected", g.is_connected())
+        method = kwargs.get("method", "star-component")
+
+        c = nngt.analysis.local_clustering(g).mean()
+
+        new_graph = gc.sparse_clustered(
+            c, edges=g.edge_nb(), nodes=num_nodes, connected=connected,
+            method=method, exact_edge_nb=True, rtol=rtol)
 
     rng = nngt._rng
 

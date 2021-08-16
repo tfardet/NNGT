@@ -409,3 +409,102 @@ def _set_default_edge_attributes(g, attributes, num_edges):
                 attributes[k] = [0 for _ in range(num_edges)]
             elif not skip:
                 attributes[k] = [None for _ in range(num_edges)]
+
+
+def _connect_ccs(g, cids, cc1, cc2, cc, c, cmean, edges, bridges,
+                 select_source=None, select_target=None):
+    '''
+    Connect connected components together.
+
+    Parameters
+    ----------
+    g : graph
+    cids : index of the connected component to which each node belongs
+    cc1 : first connected component index
+    cc2 : second connected component index
+    cc : list of local clustering coefficients
+    c : target average clustering
+    cmean : current average clustering
+    edges : set of edges to update
+    bridges : set of edges bridging connected components
+    '''
+    # we connect nodes with the lowest/highest clustering
+    if select_source is None:
+        select_source = np.argmin if cmean < c else np.argmax
+
+    if select_target is None:
+        select_target = np.argmin if cmean < c else np.argmax
+
+    # find suitable nodes
+    other_nodes = np.where(cids == cc1)[0]
+    inodes = np.where(cids == cc2)[0]
+
+    def compare(a, b, cmean, c):
+        if cmean < c:
+            return a < b
+
+        return a > b
+
+    # get those with desired clustering
+    change_nodes = True
+
+    while change_nodes:
+        u = other_nodes[select_source(cc[other_nodes])]
+        v = inodes[select_target(cc[inodes])]
+
+        change_nodes = (u, v) in edges or (u, v) in bridges or u == v
+
+        if not g.is_directed():
+            change_nodes += (v, u) in edges or (v, u) in bridges
+
+        if change_nodes:
+            # remove the node with the larger or smaller cc based on cmean & c
+            if compare(cc[u], cc[v], cmean, c) and len(inodes) > 1:
+                inodes = list(set(inodes) - {v})
+                v = inodes[select_target(cc[inodes])]
+            elif len(other_nodes) > 1:
+                other_nodes = list(set(other_nodes) - {u})
+                u = other_nodes[select_source(cc[other_nodes])]
+            else:
+                raise RuntimeError("Algorithm did not converge.")
+
+    if (u, v) not in edges:
+        g.new_edge(u, v)
+        edges.add((u, v))
+        bridges.add((u, v))
+
+    return (u, v)
+
+
+def _independent_edges(g):
+    '''
+    Return the independent edges in the graph, i.e. the those that do not
+    participate to any triangle.
+
+    Parameters
+    ----------
+    g : :class:`~nngt.Graph`
+        Graph to analyze.
+    '''
+    # prepare adjacency matrices
+    A = g.adjacency_matrix()
+
+    A.setdiag(0)  # remove self-loops for the computation
+
+    A2 = A*A
+    A2.data = np.ones(len(A2.data))
+    A2.setdiag(1)
+
+    ind_edges = set()
+
+    if g.is_directed():
+        [ind_edges.add((i, j)) for i in g.get_nodes()
+            for j in np.where(
+                A.getrow(i).todense().A1*(1 - A2.getrow(i).todense().A1))[0]]
+    else:
+        [ind_edges.add((i, j)) for i in g.get_nodes()
+            for j in np.where(
+                A.getrow(i).todense().A1*(1 - A2.getrow(i).todense().A1))[0]
+            if (j, i) not in ind_edges]
+
+    return ind_edges
