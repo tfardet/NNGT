@@ -75,7 +75,7 @@ https://twine.readthedocs.io/en/latest/
 First test it:
 
     twine upload --repository-url https://test.pypi.org/legacy/ *
-    pip install --user --index-url https://test.pypi.org/simple/ nngt
+    pip install --index-url https://test.pypi.org/simple/ nngt
 
 Then upload "for real"
 

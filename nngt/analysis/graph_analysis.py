@@ -809,7 +809,8 @@ def spectral_radius(graph, typed=True, weights=True):
     -------
     the spectral radius as a float.
     '''
-    mat_adj  = graph.adjacency_matrix(types=typed, weights=weights)
+    mat_adj  = graph.adjacency_matrix(types=typed,
+                                      weights=weights).astype(float)
     eigenval = []
 
     try:

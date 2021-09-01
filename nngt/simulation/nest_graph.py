@@ -108,7 +108,7 @@ def make_nest_network(network, send_only=None, weights=True):
 
             for key, val in group.neuron_param.items():
                 if key in defaults and key != "model":
-                    if nonstring_container(val):
+                    if nonstring_container(val) and len(val) == group_size:
                         ns_param[key] = val
                     else:
                         scalar_param[key] = val
@@ -175,12 +175,20 @@ def make_nest_network(network, send_only=None, weights=True):
                     syn_spec = _get_syn_param(
                         src_name, src_group, tgt_name, tgt_group, pop.syn_spec)
 
+                    # check whether sign must be given or not
+                    local_sign = syn_sign
+                    if "receptor_type" in syn_spec:
+                        if "cond" in tgt_group.neuron_model:
+                            # do not specify the sign for conductance-based
+                            # multisynapse model
+                            local_sign = 1
+
                     # using A1 to get data from matrix
                     if weights:
-                        syn_spec[WEIGHT] = syn_sign *\
+                        syn_spec[WEIGHT] = local_sign *\
                             csr_weights[local_src_ids, local_tgt_ids].A1
                     else:
-                        syn_spec[WEIGHT] = np.repeat(syn_sign, len(tgt_ids))
+                        syn_spec[WEIGHT] = np.repeat(local_sign, len(tgt_ids))
     
                     syn_spec[DELAY] = \
                         csr_delays[local_src_ids, local_tgt_ids].A1

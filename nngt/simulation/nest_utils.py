@@ -502,14 +502,16 @@ def save_spikes(filename, recorder=None, network=None, save_positions=True,
 
             if nest_version == 3:
                 if len(rcrdrs) == 1:
-                    assert recrdrs.model == spike_rec, \
+                    assert rcrdrs.model == spike_rec, \
                         'Only spike_detectors are supported.'
-                    assert recrdrs.model == (spike_rec,)*len(rcrdrs), \
+                else:
+                    assert rcrdrs.model == (spike_rec,)*len(rcrdrs), \
                         'Only spike_detectors are supported.'
             else:
-                assert (nest.GetStatus(rcrdrs, 'model')
-                        == ('spike_detector',)*len(rcrdrs)), \
-                       'Only spike_detectors are supported.'
+                for rec in rcrdrs:
+                    assert (nest.GetStatus(rec, 'model')
+                            == ('spike_detector',)*len(rec)), \
+                           'Only spike_detectors are supported.'
     else:
         if nest_version == 3:
             rcrdrs = nest.GetNodes(properties={'model': spike_rec})
