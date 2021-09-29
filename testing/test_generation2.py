@@ -550,7 +550,7 @@ def test_sparse_clustered():
                 if c*num_nodes > deg:
                     g = ng.sparse_clustered(
                         c, nodes=num_nodes, avg_deg=deg, connected=False,
-                        directed=directed, rtol=0.08)
+                        directed=directed, rtol=0.09)
 
                     g = ng.sparse_clustered(
                         c, nodes=num_nodes, avg_deg=deg, directed=directed,

@@ -408,7 +408,7 @@ class Graph(nngt.core.GraphObject):
     #-------------------------------------------------------------------------#
     # Constructor/destructor and properties
 
-    def __new__(klass, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
         '''
         Create a new Graph object.
         '''
@@ -423,18 +423,18 @@ class Graph(nngt.core.GraphObject):
 
         if "population" in kwargs:
             has_pop = True
-        if "shape" in kwargs or "positions" in kwargs:
+        if kwargs.get("shape") is not None \
+           or kwargs.get("positions") is not None:
             is_sptl = True
 
         if is_sptl and has_pop:
-            klass = nngt.SpatialNetwork
+            cls = nngt.SpatialNetwork
         elif is_sptl:
-            klass = nngt.SpatialGraph
+            cls = nngt.SpatialGraph
         elif has_pop:
-            klass = nngt.Network
+            cls = nngt.Network
 
-        return super().__new__(klass)
-            
+        return super().__new__(cls)
 
     def __init__(self, nodes=None, name="Graph", weighted=True, directed=True,
                  copy_graph=None, structure=None, **kwargs):
@@ -525,8 +525,9 @@ class Graph(nngt.core.GraphObject):
         remaining = set(kwargs) - kw_set
 
         for kw in remaining:
-            _log_message(logger, "WARNING", "Unused keyword argument '" +
-                         kw + "'.")
+            if kwargs[kw] is not None:
+                _log_message(logger, "WARNING", "Unused keyword argument '" +
+                             kw + "'.")
 
         # update the counters
         self.__class__.__num_graphs += 1
@@ -718,11 +719,19 @@ class Graph(nngt.core.GraphObject):
         shape = self.shape if self.is_spatial() else None
         pos   = self.get_positions() if self.is_spatial() else None
 
-        g = self.__class__(self.node_nb(), structure=self.structure,
-                           weighted=self.is_weighted(), directed=False)
+        # Network cannot be undirected so convert NeuralPop to Structure and
+        # Network to Graph if necessary
+        structure = None
 
-        if shape is not None or pos is not None:
-            g.make_spatial(g, shape=shape, positions=pos)
+        if isinstance(self.structure, nngt.NeuralPop):
+            structure = nngt.Structure.from_groups(self.structure)
+
+        cls = nngt.SpatialGraph if isinstance(self, nngt.SpatialGraph) \
+              else nngt.Graph
+
+        g = cls(nodes=self.node_nb(), weighted=self.is_weighted(),
+                shape=shape, positions=pos, directed=False,
+                structure=structure)
 
         # replicate node attributes
         for nattr in self.node_attributes:

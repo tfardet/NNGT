@@ -351,9 +351,7 @@ class _GtEProperty(BaseProperty):
 class _GtGraph(GraphInterface):
 
     '''
-    Subclass of :class:`gt.Graph` that (with
-    :class:`~nngt.core._SnapGraph`) unifies the methods to work with either
-    `graph-tool` or `SNAP`.
+    Container for :class:`gt.Graph`
     '''
 
     _nattr_class = _GtNProperty

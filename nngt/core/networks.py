@@ -496,7 +496,7 @@ class SpatialNetwork(Network, SpatialGraph):
     #-------------------------------------------------------------------------#
     # Constructor, destructor, and attributes
 
-    def __init__(self, population, name="SpatialNetwork", weighted=True,
+    def __init__(self, population=None, name="SpatialNetwork", weighted=True,
                  directed=True, shape=None, copy_graph=None, positions=None,
                  **kwargs):
         '''
@@ -531,13 +531,8 @@ class SpatialNetwork(Network, SpatialGraph):
         self.__class__.__num_networks += 1
         self.__class__.__max_id += 1
 
-        if population is None:
-            raise InvalidArgument("Network needs a NeuralPop to be created")
-
-        nodes = population.size
-
         super().__init__(
-            nodes=nodes, name=name, weighted=weighted, directed=directed,
+            name=name, weighted=weighted, directed=directed,
             shape=shape, positions=positions, population=population,
             copy_graph=copy_graph, **kwargs)
 

@@ -749,6 +749,10 @@ def test_to_undirected():
 
     assert np.array_equal(u.edge_attributes["rnd"], [2, 10, 8, 3, 14])
 
+    # make spatial
+    pos = nngt._rng.uniform(size=(g.node_nb(), 2))
+    g.make_spatial(g, positions=pos)
+
     # undirected max
     u = g.to_undirected("max")
 
@@ -759,6 +763,10 @@ def test_to_undirected():
     ))
 
     assert np.array_equal(u.edge_attributes["rnd"], [2, 6, 8, 3, 9])
+
+    # make network
+    pop = nngt.NeuralPop.uniform(g.node_nb())
+    g.make_network(g, pop)
 
     # undirected min
     u = g.to_undirected("min")

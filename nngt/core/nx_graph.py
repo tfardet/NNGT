@@ -301,7 +301,7 @@ class _NxEProperty(BaseProperty):
 class _NxGraph(GraphInterface):
 
     '''
-    Subclass of networkx Graph
+    Container for networkx Graph
     '''
 
     _nattr_class = _NxNProperty

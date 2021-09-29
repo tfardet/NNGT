@@ -83,7 +83,7 @@ class Structure(OrderedDict):
 
         Parameters
         ----------
-        groups : list of :class:`~nngt.Group` objects
+        groups : dict or list of :class:`~nngt.Group` objects
             Groups that will be used to form the structure. Note that a given
             node can only belong to a single group, so the groups should form
             pairwise disjoints complementary sets.
@@ -129,6 +129,9 @@ class Structure(OrderedDict):
         '''
         if not nonstring_container(groups):
             groups = [groups]
+        elif isinstance(groups, dict):
+            names = list(groups) if names is None else names
+            groups = list(groups.values())
 
         gsize = len(groups)
         names = [] if names is None else list(names)

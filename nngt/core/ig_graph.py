@@ -263,7 +263,7 @@ class _IgEProperty(BaseProperty):
 class _IGraph(GraphInterface):
 
     '''
-    Subclass of :class:`igraph.Graph`.
+    Container for :class:`igraph.Graph`.
     '''
 
     _nattr_class = _IgNProperty
