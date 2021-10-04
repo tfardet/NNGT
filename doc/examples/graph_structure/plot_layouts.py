@@ -118,14 +118,17 @@ c2 = nngt.geometry.Shape.disk(100, centroid=(50, 0))
 
 shape = nngt.geometry.Shape.from_polygon(c1.union(c2))
 
-npos  = shape.seed_neurons(num_nodes)
+max_nsize = 15
+npos  = shape.seed_neurons(num_nodes, soma_radius=0.5*max_nsize)
 
-g = nngt.generation.distance_rule(10, shape=shape, nodes=num_nodes, avg_deg=5)
+g = nngt.generation.distance_rule(10, shape=shape, nodes=num_nodes, avg_deg=5,
+                                  positions=npos)
 
 cc = nngt.analysis.local_clustering(g)
 
-nngt.plot.draw_network(g, ncolor=cc, axis=axes[1, 1], ecolor="lightgrey",
-                       tight=False, show=False)
+nngt.plot.draw_network(g, ncolor=cc, axis=axes[1, 1], ecolor="grey", show=False,
+                       eborder_width=0.5, eborder_color="w", esize=10,
+                       max_nsize=max_nsize, tight=False)
 
 axes[1, 1].set_title("Spatial layout")
 

@@ -53,6 +53,9 @@ class NEShpDownloader(Downloader):
     _NE_URL_TEMPLATE = ('https://naciscdn.org/naturalearth/{resolution}'
                         '/{category}/ne_{resolution}_{name}.zip')
 
+    _NE_URL_BACKUP = ('https://naturalearth.s3.amazonaws.com/{resolution}'
+                      '_{category}/ne_{resolution}_{name}.zip')
+
     def __init__(self, url_template=_NE_URL_TEMPLATE,
                  target_path_template=None, pre_downloaded_path_template=''):
         ''' adds some NE defaults to the __init__ of a Downloader'''
@@ -99,8 +102,8 @@ class NEShpDownloader(Downloader):
 
         return target_path
 
-    @staticmethod
-    def default_downloader():
+    @classmethod
+    def default_downloader(cls, backup=False):
         '''
         Return a generic, standard, NEShpDownloader instance.
 
@@ -115,10 +118,16 @@ ne_{resolution}_{name}.shp
         '''
         default_spec = ('shapefiles', 'natural_earth', '{category}',
                         'ne_{resolution}_{name}.shp')
+
         ne_path_template = os.path.join('{config[data_dir]}', *default_spec)
+
         pre_path_template = os.path.join('{config[pre_existing_data_dir]}',
                                          *default_spec)
-        return NEShpDownloader(target_path_template=ne_path_template,
+
+        url_template = cls._NE_URL_BACKUP if backup else cls._NE_URL_TEMPLATE
+
+        return NEShpDownloader(url_template=url_template,
+                               target_path_template=ne_path_template,
                                pre_downloaded_path_template=pre_path_template)
 
     
@@ -152,8 +161,15 @@ def natural_earth(resolution='110m', category='physical', name='coastline'):
     # get hold of the Downloader (typically a NEShpDownloader instance)
     # which we can then simply call its path method to get the appropriate
     # shapefile (it will download if necessary)
-    ne_downloader = NEShpDownloader.default_downloader()
     format_dict = {'config': cartopy.config, 'category': category,
-                   'name': name, 'resolution': resolution}
+                    'name': name, 'resolution': resolution}
+
+    try:
+        ne_downloader = NEShpDownloader.default_downloader()
+        return ne_downloader.path(format_dict)
+    except:
+        ne_downloader = NEShpDownloader.default_downloader(backup=True)
+
     return ne_downloader.path(format_dict)
+
                                          

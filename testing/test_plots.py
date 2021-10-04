@@ -57,7 +57,7 @@ def test_plot_prop():
 
         nplt.node_attributes_distribution(
             net, ["betweenness", "attr", "out-degree"], colors=["r", "g", "b"],
-            show=True)
+            show=False)
 
 
 @pytest.mark.mpi_skip
@@ -80,21 +80,22 @@ def test_draw_network_options():
     # restrict nodes
 
     nplt.draw_network(net, ncolor="g", nshape='s', ecolor="b",
-                      restrict_targets=[1, 2, 3], show=False)
+                      restrict_targets=[1, 2, 3], curved_edges=True, show=False)
 
     nplt.draw_network(net, restrict_nodes=list(range(10)), fast=True,
                       show=False)
 
     nplt.draw_network(net, restrict_targets=[4, 5, 6, 7, 8], show=False)
 
-    nplt.draw_network(net, restrict_sources=[4, 5, 6, 7, 8], show=False)
+    nplt.draw_network(net, restrict_sources=[4, 5, 6, 7, 8], simple_nodes=True,
+                      show=False)
 
     # colors and sizes
     for fast in (True, False):
-        maxns = 50 if fast else 10
-        minns = 5 if fast else 1
-        maxes = 2 if fast else 10
-        mines = 0.2 if fast else 1
+        maxns = 100 if fast else 20
+        minns = 10 if fast else 2
+        maxes = 2 if fast else 20
+        mines = 0.2 if fast else 2
 
         nplt.draw_network(net, ncolor="r", nalpha=0.5, ecolor="#999999",
                           ealpha=0.5, nsize="in-degree", max_nsize=maxns,
@@ -113,9 +114,43 @@ def test_draw_network_options():
     nplt.draw_network(net, simple_nodes=True, ncolor="k",
                       decimate_connections=-1, axis=ax, show=False)
 
-    nplt.draw_network(net, simple_nodes=True, ncolor="r", nsize=2,
+    nplt.draw_network(net, simple_nodes=True, ncolor="r", nsize=20,
                       restrict_nodes=list(range(10)), esize='weight',
                       ecolor="b", fast=True, axis=ax, show=False)
+
+
+@pytest.mark.mpi_skip
+def test_group_plot():
+    ''' Test plotting with a Network and group colors '''
+    gsize = 5
+
+    g1 = nngt.Group(gsize)
+    g2 = nngt.Group(gsize)
+
+    s = nngt.Structure.from_groups({"1": g1, "2": g2})
+
+    positions = np.concatenate((
+        nngt._rng.uniform(-5, -2, size=(gsize, 2)),
+        nngt._rng.uniform(2, 5, size=(gsize, 2))))
+
+    g = nngt.SpatialGraph(2*gsize, structure=s, positions=positions)
+
+    nngt.generation.connect_groups(g, g1, g1, "erdos_renyi", edges=5)
+    nngt.generation.connect_groups(g, g1, g2, "erdos_renyi", edges=5)
+    nngt.generation.connect_groups(g, g2, g2, "erdos_renyi", edges=5)
+    nngt.generation.connect_groups(g, g2, g1, "erdos_renyi", edges=5)
+
+    g.new_edge(6, 6, self_loop=True)
+
+    nplt.draw_network(g, ncolor="group", ecolor="group", show_environment=False,
+                      fast=True, show=False)
+
+    nplt.draw_network(g, ncolor="group", ecolor="group", max_nsize=0.4,
+                      esize=0.3, show_environment=False, show=False)
+
+    nplt.draw_network(g, ncolor="group", ecolor="group", max_nsize=0.4,
+                      esize=0.3, show_environment=False, curved_edges=True,
+                      show=False)
 
 
 @pytest.mark.mpi_skip
@@ -215,6 +250,21 @@ def test_plot_spatial_alpha():
                           nalpha=0.5, esize=0.1 + 3*fast, fast=fast)
 
 
+@pytest.mark.mpi_skip
+def test_annotations():
+    num_nodes = 5
+    positions = nngt._rng.uniform(-10, 10, (num_nodes, 2))
+
+    g = nngt.generation.erdos_renyi(edges=10, nodes=num_nodes,
+                                    positions=positions)
+
+    g.new_node_attribute("name", "string", values=["a", "b", "c", "d", "e"])
+
+    nplt.draw_network(g, annotate=False, show=False)
+    nplt.draw_network(g, show=False)
+    nplt.draw_network(g, annotations="name", show=False)
+
+
 if __name__ == "__main__":
     test_plot_config()
     test_plot_prop()
@@ -222,3 +272,5 @@ if __name__ == "__main__":
     test_library_plot()
     test_hive_plot()
     test_plot_spatial_alpha()
+    test_group_plot()
+    test_annotations()

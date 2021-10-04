@@ -31,6 +31,8 @@ from nngt.analysis import (degree_distrib, betweenness_distrib,
                            node_attributes, binning)
 from .custom_plt import palette_continuous, palette_discrete, format_exponent
 
+from matplotlib.gridspec import SubplotSpec
+
 
 __all__ = [
     'degree_distribution',
@@ -38,7 +40,7 @@ __all__ = [
     'edge_attributes_distribution',
     'node_attributes_distribution',
     'compare_population_attributes',
-    "correlation_to_attribute",
+    'correlation_to_attribute',
 ]
 
 
@@ -1015,8 +1017,11 @@ def _set_new_plot(fignum=None, num_new_plots=1, names=None, sharex=None):
     if int(ratio) != int(np.ceil(ratio)):
         num_rows += 1
     # change the geometry
+    gs = fig.add_gridspec(num_rows, num_cols)
     for i in range(num_axes - num_new_plots):
-        fig.axes[i].change_geometry(num_rows, num_cols, i+1)
+        y = i // num_cols
+        x = i - num_cols*y
+        fig.axes[i].set_subplotspec(gs[y, x])
     lst_new_axes = []
     n_old = num_axes-num_new_plots+1
     for i in range(num_new_plots):

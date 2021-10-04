@@ -60,7 +60,7 @@ g.set_weights(nngt._rng.exponential(2, g.edge_nb()))
 
 # plot using draw_map and the A3 codes stored in "code"
 ng.draw_map(g, "code", ncolor="in-degree", esize="weight", threshold=0,
-            ecolor="grey", proj=ccrs.EqualEarth(), show=False)
+            ecolor="grey", proj=ccrs.EqualEarth(), max_nsize=20, show=False)
 
 plt.tight_layout()
 plt.show()

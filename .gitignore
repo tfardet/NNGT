@@ -38,3 +38,6 @@ nngt.egg-info/
 
 # visualcode
 *.vscode
+
+# KDevelop
+*.kdev4
