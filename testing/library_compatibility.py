@@ -206,48 +206,28 @@ def test_closeness():
         g = nngt.Graph(nodes=num_nodes, directed=True)
         g.new_edges(edge_list, attributes={"weight": weights})
 
-        if bckd == "igraph":
-            # assert igraph fails as expected
-            try:
-                print(nngt.analyze_graph["closeness"](g, harmonic=True))
-                errored = False
-            except NotImplementedError:
-                errored = True
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
 
-            assert errored
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, harmonic=False), arithmetic,
+            equal_nan=True))
 
-            try:
-                nngt.analyze_graph["closeness"](g, harmonic=False)
-                runtime_error = False
-            except RuntimeError:
-                runtime_error = True
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, mode="in", harmonic=True),
+            harmonic_in))
 
-            assert runtime_error
-        else:
-            assert np.all(np.isclose(
-                nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, mode="in", harmonic=False),
+            arithmetic_in, equal_nan=True))
 
-            assert np.all(np.isclose(
-                nngt.analyze_graph["closeness"](g, harmonic=False), arithmetic,
-                equal_nan=True))
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, weights=True, harmonic=True),
+            harmonic_wght))
 
-            assert np.all(np.isclose(
-                nngt.analyze_graph["closeness"](g, mode="in", harmonic=True),
-                harmonic_in))
-
-            assert np.all(np.isclose(
-                nngt.analyze_graph["closeness"](g, mode="in", harmonic=False),
-                arithmetic_in, equal_nan=True))
-
-            assert np.all(np.isclose(
-                nngt.analyze_graph["closeness"](g, weights=True,
-                                                harmonic=True),
-                harmonic_wght))
-
-            assert np.all(np.isclose(
-                nngt.analyze_graph["closeness"](g, weights=True,
-                                                harmonic=False),
-                arithmetic_wght, equal_nan=True))
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, weights=True, harmonic=False),
+            arithmetic_wght, equal_nan=True))
 
     # UNDIRECTED
     harmonic   = [7/8, 3/4, 7/8, 1., 3/4]
@@ -262,14 +242,12 @@ def test_closeness():
         g = nngt.Graph(nodes=num_nodes, directed=False)
         g.new_edges(edge_list, attributes={"weight": weights})
 
-        if bckd != "igraph":
-            assert np.all(np.isclose(
-                nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, harmonic=True), harmonic))
 
-            assert np.all(np.isclose(
-                nngt.analyze_graph["closeness"](g, weights=True,
-                                                harmonic=True),
-                harmonic_wght))
+        assert np.all(np.isclose(
+            nngt.analyze_graph["closeness"](g, weights=True, harmonic=True),
+            harmonic_wght))
 
         assert np.all(np.isclose(
             nngt.analyze_graph["closeness"](g, harmonic=False), arithmetic,

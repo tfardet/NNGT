@@ -161,7 +161,7 @@ def reciprocity(g):
     return gtt.edge_reciprocity(g.graph)
 
 
-def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
+def closeness(g, weights=None, nodes=None, mode="out", harmonic=True,
               default=np.NaN):
     r'''
     Returns the closeness centrality of some `nodes`.
@@ -204,19 +204,14 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
     mode : str, optional (default: "out")
         For directed graphs, whether the distances are computed from ("out") or
         to ("in") each of the nodes.
-    harmonic : bool, optional (default: False)
-        Whether the arithmetic (default) or the harmonic (recommended) version
+    harmonic : bool, optional (default: True)
+        Whether the arithmetic or the harmonic (recommended) version
         of the closeness should be used.
 
     Returns
     -------
     c : :class:`np.ndarray`
         The list of closeness centralities, on per node.
-
-    .. warning ::
-        For compatibility reasons (harmonic closeness is not implemented for
-        igraph), the arithmetic version is used by default; however, it is
-        recommended to use the harmonic version instead whenever possible.
 
     References
     ----------

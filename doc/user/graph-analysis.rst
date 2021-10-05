@@ -50,17 +50,17 @@ Methods that are not defined for weighted or directed graphs are marked by NA.
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.betweenness_distrib`         |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
-| :func:`~nngt.analysis.closeness` [2]_              |    gt, nx, (ig)       |   gt, nx, (ig)      |   gt, nx, (ig)      |   gt, nx, (ig)     |
+| :func:`~nngt.analysis.closeness`                   |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.connected_components`        |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.degree_distrib`              |    gt, nx, ig, nngt   |   gt, nx, ig, nngt  |   gt, nx, ig, nngt  |   gt, nx, ig, nngt |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
-| :func:`~nngt.analysis.diameter` [3]_               |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
+| :func:`~nngt.analysis.diameter` [2]_               |    gt, nx, ig         |   gt, nx, ig        |   gt, nx, ig        |   gt, nx, ig       |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.global_clustering`           |    gt, nx, ig, nngt   |   nngt              |   nngt              |   nngt             |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
-| :func:`~nngt.analysis.local_clustering` [4]_       |    gt, nx, ig, nngt   |   nngt              |   nngt              |   nngt             |
+| :func:`~nngt.analysis.local_clustering` [3]_       |    gt, nx, ig, nngt   |   nngt              |   nngt              |   nngt             |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.reciprocity`                 |    gt, nx, ig, nngt   |   gt, nx, ig, nngt  |   NA                |   NA               |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
@@ -72,23 +72,19 @@ Methods that are not defined for weighted or directed graphs are marked by NA.
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 | :func:`~nngt.analysis.subgraph_centrality`         |    nngt               |   nngt              |   nngt              |   nngt             |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
-| :func:`~nngt.analysis.transitivity` [5]_           |    gt, nx, ig, nngt   |   nngt              |   nngt              |   nngt             |
+| :func:`~nngt.analysis.transitivity` [4]_           |    gt, nx, ig, nngt   |   nngt              |   nngt              |   nngt             |
 +----------------------------------------------------+-----------------------+---------------------+---------------------+--------------------+
 
 
 .. [1] networkx could be used via a workaround but `an issue
        <https://github.com/networkx/networkx/issues/3917>`_ has been raised to
        find out how to best deal with this.
-.. [2] since definitions of the maximum distances differ between libraries,
-       igraph is currently not usable if the in- or out-degree of any of the
-       nodes is zero; it also does not provide an implementation for the
-       harmonic closeness.
-.. [3] the implementation of the diameter for graph-tool is approximmate so
+.. [2] the implementation of the diameter for graph-tool is approximmate so
        results may occasionaly be inexact with this backend.
-.. [4] for directed and weighted networks, definitions and implementations
+.. [3] for directed and weighted networks, definitions and implementations
        differ between graph libraries, so generic implementations are provided
        in NNGT. See ":ref:`clustering`" for details.
-.. [5] identical to ``global_clustering``.
+.. [4] identical to ``global_clustering``.
 
 
 .. _clustering:
@@ -96,7 +92,7 @@ Methods that are not defined for weighted or directed graphs are marked by NA.
 Clustering in weighted and directed networks
 --------------------------------------------
 
-For directed clustering, NNGT provides the total clustering porposed in
+For directed clustering, NNGT provides the total clustering proposed in
 [Fagiolo2007]_
 
 .. math::
@@ -106,7 +102,8 @@ For directed clustering, NNGT provides the total clustering porposed in
 with :math:`d_i^{\leftrightarrow} = A^2_{ii}` is the reciprocal degree.
 
 For undirected weighted clustering, NNGT provides the definition proposed in
-[Barrat2004]_, [Onnela2005]_ as well as a new continuous definition.
+[Barrat2004]_, [Onnela2005]_, [Zhang2005]_ as well as a new continuous definition
+[Fardet2021]_.
 
 .. math::
 
@@ -118,14 +115,20 @@ For undirected weighted clustering, NNGT provides the definition proposed in
 
 .. math::
 
+    C_{Z,i}^u = \frac{(W^3)_{ii}}{\sum_{j \neq k} w_{ij} w_{ik}}
+
+.. math::
+
     C_{c,i}^u = \frac{\left(W^{\left[\frac{2}{3}\right]}\right)^3_{ii}}{\left(s^{\left[\frac{1}{2}\right]}_i\right)^2 - s_i}
 
 with :math:`s^{\left[\frac{1}{2}\right]}` the generalized strength associated to the
 matrix :math:`W^{\left[\frac{1}{2}\right]} = \{\sqrt{w_{ij}}\}`.
 
 For directed weighted clustering, the generalization of Barrat from
-[Clemente2018]_ is provided, as well as a generalization of Onnela and of the
-continuous clustering:
+[Clemente2018]_ is provided, as well as a generalization of Onnela,
+Zhang--Horvath, and of the continuous clustering [Fardet2020]_, for all four
+directed modes (middleman, cycle, fan-in, and fan-out), as well as their sum,
+the total clustering:
 
 .. math::
 
@@ -138,6 +141,10 @@ reciprocal strength,
 .. math::
 
     C_{O,i}^d = \frac{\frac{1}{2}(W^{\left[\frac{1}{3}\right]} + (W^{\left[\frac{1}{3}\right]})^T)^3_{ii}}{d_i^{tot}(d_i^{tot} - 1) - d_i^{\leftrightarrow}}
+
+.. math::
+
+    C_{Z,i}^d = \frac{(W + W^T)^3_{ii}}{\sum_{j \neq k} (w_{ij} + w_{ji})(w_{ik} + w_{ki})}
 
 .. math::
 
@@ -180,6 +187,10 @@ References
     and Molecular Biology 2005, 4 (1). :doi:`10.2202/1544-6115.1128`,
     `PDF <https://dibernardo.tigem.it/files/papers/2008/
     zhangbin-statappsgeneticsmolbio.pdf>`_.
+
+.. [Fardet2021] Fardet, Levina. Weighted directed clustering: interpretations
+    and requirements for heterogeneous, inferred, and measured networks. 2021.
+    :arxiv:`2105.06318`.
 
 
 ----

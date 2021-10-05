@@ -141,7 +141,7 @@ def reciprocity(g):
     return g.graph.reciprocity(ignore_loops=True, mode="default")
 
 
-def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
+def closeness(g, weights=None, nodes=None, mode="out", harmonic=True,
               default=np.NaN):
     r'''
     Returns the closeness centrality of some `nodes`.
@@ -184,19 +184,14 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
     mode : str, optional (default: "out")
         For directed graphs, whether the distances are computed from ("out") or
         to ("in") each of the nodes.
-    harmonic : bool, optional (default: False)
-        Whether the arithmetic (default) or the harmonic (recommended) version
-        of the closeness should be used.
+    harmonic : bool, optional (default: True)
+        Whether the arithmetic or the harmonic (recommended) version of the
+        closeness centrality should be used.
 
     Returns
     -------
     c : :class:`numpy.ndarray`
         The list of closeness centralities, on per node.
-
-    .. warning ::
-        For compatibility reasons (harmonic closeness is not implemented for
-        igraph), the arithmetic version is used by default; however, it is
-        recommended to use the harmonic version instead whenever possible.
 
     Note
     ----
@@ -208,16 +203,17 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=False,
     .. [ig-closeness] :igdoc:`closeness`
     '''
     if harmonic:
-        raise NotImplementedError("`harmonic` closeness is not available with "
-                                  "igraph backend.")
+        ww = _get_ig_weights(g, weights)
 
-    if not np.all(g.get_degrees("in")) or not np.all(g.get_degrees("out")):
-        raise RuntimeError("igraph backend does not support closeness for "
-                           "graphs containing nodes with zero in/out-degree.")
+        try:
+            return np.asarray(g.graph.harmonic_centrality(nodes, mode=mode,
+                                                          weights=ww))
+        except:
+            raise RuntimeError("This function requires igraph >= 0.9.0.")
 
     ww = _get_ig_weights(g, weights)
 
-    return g.graph.closeness(nodes, mode=mode, weights=ww)
+    return np.asarray(g.graph.closeness(nodes, mode=mode, weights=ww))
 
 
 def betweenness(g, btype="both", weights=None):
