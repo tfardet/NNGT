@@ -35,7 +35,7 @@ import nngt.geospatial as ng
 plt.rcParams.update({
     'axes.edgecolor': 'grey', 'xtick.color': 'grey', 'ytick.color': 'grey',
     "figure.facecolor": (0, 0, 0, 0), "axes.facecolor": (0, 0, 0, 0),
-    "axes.labelcolor": "grey", "axes.titlecolor": "grey", "text.color": "grey"
+    "axes.labelcolor": "grey", "text.color": "grey"
 })
 
 
@@ -62,5 +62,6 @@ g.set_weights(nngt._rng.exponential(2, g.edge_nb()))
 ng.draw_map(g, "code", ncolor="in-degree", esize="weight", threshold=0,
             ecolor="grey", proj=ccrs.EqualEarth(), max_nsize=20, show=False)
 
-plt.tight_layout()
-plt.show()
+if nngt.get_config("with_plot"):
+    plt.tight_layout()
+    plt.show()

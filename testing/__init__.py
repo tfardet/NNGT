@@ -26,15 +26,12 @@ Testing module
 ==============
 
 This module tests the various functionalities of NNGT to make sure that all
-implementations remain compatible with the graph libraries and versions 2.7 and
-3.x of python.
+implementations remain compatible with the graph libraries and versions 3.X of
+python.
 
 note ::
     When adding new tests, filename should be of the form `test_xxx.py` and the
-    code should contain:
-    * a ``TestXXX`` class,
-    * a ``suite = unittest.TestLoader().loadTestsFromTestCase(TestXXX)``
-      declaration.
+    code should contain a list of functions called `test_yyy`
 """
 
 # std imports

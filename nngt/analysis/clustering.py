@@ -82,8 +82,8 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
-        [Barrat2004]_, 'continuous', 'onnela' [Onnela2005]_, or 'zhang'
-        [Zhang2005]_.
+        [Barrat2004]_, 'continuous' [Fardet2021]_, 'onnela' [Onnela2005]_, or
+        'zhang' [Zhang2005]_.
     mode : str, optional (default: "total")
         Type of clustering to use for directed graphs, among "total", "fan-in",
         "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
@@ -119,6 +119,9 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         and Molecular Biology 2005, 4 (1). :doi:`10.2202/1544-6115.1128`,
         `PDF <https://dibernardo.tigem.it/files/papers/2008/
         zhangbin-statappsgeneticsmolbio.pdf>`_.
+    .. [Fardet2021] Fardet, Levina. Weighted directed clustering:
+        interpretations and requirements for heterogeneous, inferred, and
+        measured networks. 2021. :arxiv:`2105.06318`.
 
     See also
     --------
@@ -183,6 +186,8 @@ def local_closure(g, directed=True, weights=None, method=None,
     * "fan-in" is given by the pattern [(k, j), (j, i), (k, i)],
     * "fan-out" is given by the pattern [(i, j), (j, k), (i, k)].
 
+    See [Fardet2021]_ for more details.
+
     Parameters
     ----------
     g : :class:`~nngt.Graph`
@@ -219,6 +224,9 @@ def local_closure(g, directed=True, weights=None, method=None,
         International Conference on Web Search and Data Mining 2019, 303-311.
         :doi:`10.1145/3289600.3290991`, `PDF <https://www.cs.cornell.edu/~arb/
         papers/closure-coefficients-WSDM-2019.pdf>`_.
+    .. [Fardet2021] Fardet, Levina. Weighted directed clustering:
+        interpretations and requirements for heterogeneous, inferred, and
+        measured networks. 2021. :arxiv:`2105.06318`.
     '''
     directed *= g.is_directed()
     weighted  = weights not in (False, None)
@@ -345,8 +353,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     normalized to dimensionless values between 0 and 1 through a division by
     the highest weight.
 
-    The default `method` for weighted networks is based on a modification of
-    the proposal in [Zhang2005]_ with:
+    The default `method` for weighted networks is the continuous definition
+    [Fardet2021]_ and is defined as:
 
     .. math::
 
@@ -384,7 +392,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
     * equivalence between no-edge and zero-weight edge cases,
     * normalized (always between zero and 1).
 
-    Using either 'continuous' or 'zhang' is recommended for weighted graphs.
+    Using either 'continuous' or 'zhang' is usually recommended for weighted
+    graphs, see the discussion in [Fardet2021]_ for details.
 
     Parameters
     ----------
@@ -400,8 +409,8 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         otherwise uses any valid edge attribute required.
     method : str, optional (default: 'continuous')
         Method used to compute the weighted clustering, either 'barrat'
-        [Barrat2004]_/[Clemente2018]_, 'continuous', 'onnela' [Onnela2005]_/
-        [Fagiolo2007]_, or 'zhang' [Zhang2005]_.
+        [Barrat2004]_/[Clemente2018]_, 'continuous' [Fardet2021]_, 'onnela'
+        [Onnela2005]_/[Fagiolo2007]_, or 'zhang' [Zhang2005]_.
     mode : str, optional (default: "total")
         Type of clustering to use for directed graphs, among "total", "fan-in",
         "fan-out", "middleman", and "cycle" [Fagiolo2007]_.
@@ -445,6 +454,9 @@ def local_clustering(g, nodes=None, directed=True, weights=None,
         and Molecular Biology 2005, 4 (1). :doi:`10.2202/1544-6115.1128`,
         `PDF <https://dibernardo.tigem.it/files/papers/2008/
         zhangbin-statappsgeneticsmolbio.pdf>`_.
+    .. [Fardet2021] Fardet, Levina. Weighted directed clustering:
+        interpretations and requirements for heterogeneous, inferred, and
+        measured networks. 2021. :arxiv:`2105.06318`.
 
     See also
     --------

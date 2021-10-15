@@ -317,18 +317,18 @@ def betweenness_distribution(
     if axes is None:
         fig, ax1 = plt.subplots()
         fig.patch.set_visible(False)
-        ax1.grid(False, axis='y')
 
-        axes = [ax1.twinx()]
+        axes = [ax1]
 
         if num_axes == 2:
             ax2 = ax1.twiny()
             axes.append(ax2)
-            ax1.grid(False, axis='x')
-            ax1.yaxis.tick_right()
-            ax1.yaxis.set_label_position("right")
+            ax2.grid(False)
+            ax2.yaxis.set_visible(True)
+            ax2.yaxis.set_ticks_position("right")
+            ax2.yaxis.set_label_position("right")
         else:
-            ax1.set_yticks([])
+            ax2 = ax1
     else:
         ax1 = axes[0]
 
@@ -374,19 +374,21 @@ def betweenness_distribution(
 
         _set_scale(ax1, nbins, np.min(ncounts[ncounts>0]), ncounts.max(),
                    logx, logy)
+
     if btype in ("edge", "both"):
         ax2.bar(
             ebins[:-1], ecounts, np.diff(ebins), color=colors[-1],
             align='edge', **kwargs)
 
         ax2.set_xlim([ebins.min(), ebins.max()])
-        ax1.set_ylim([0, 1.1*ecounts.max()])
+        ax2.set_ylim([0, 1.1*ecounts.max()])
         ax2.set_xlabel("Edge betweenness")
-        ax1.set_ylabel("Edge count")
+        ax2.set_ylabel("Edge count")
         ax2.ticklabel_format(axis='x', style='sci', scilimits=(-3, 2))
 
         _set_scale(ax2, ebins, np.min(ecounts[ecounts>0]), ecounts.max(),
                    logx, logy)
+
     if btype == "both":
         ax2.legend(
             ["Edge betweenness"], bbox_to_anchor=[x, 0.88],
@@ -1007,41 +1009,42 @@ def _set_new_plot(fignum=None, num_new_plots=1, names=None, sharex=None):
     import matplotlib.pyplot as plt
     # get the figure and compute the new number of rows and cols
     fig = plt.figure(num=fignum)
+
     num_axes = len(fig.axes) + num_new_plots
+
     if names is not None:
         num_axes = len(fig.axes) + len(names)
         num_new_plots = len(names)
+
     num_cols = max(int(np.ceil(np.sqrt(num_axes))), 1)
     ratio = num_axes/float(num_cols)
     num_rows = int(ratio)
+
     if int(ratio) != int(np.ceil(ratio)):
         num_rows += 1
+
     # change the geometry
     gs = fig.add_gridspec(num_rows, num_cols)
+
     for i in range(num_axes - num_new_plots):
         y = i // num_cols
         x = i - num_cols*y
         fig.axes[i].set_subplotspec(gs[y, x])
+
     lst_new_axes = []
     n_old = num_axes-num_new_plots+1
+
     for i in range(num_new_plots):
         if fig.axes:
             lst_new_axes.append(
                 fig.add_subplot(num_rows, num_cols, n_old+i, sharex=sharex))
         else:
             lst_new_axes.append(fig.add_subplot(num_rows, num_cols, n_old+i))
+
         if names is not None:
             lst_new_axes[-1].name = names[i]
+
     return fig, lst_new_axes
-
-
-def _log_format(y, pos):
-    '''
-    Needed to move log values by one, so first increment, then decrement
-    '''
-    # rounding err for 4 so add 0.4 to avoid it
-    #~ return '{}'.format(int(np.e*np.e**(y-1) + 0.4)) if y > -1 else 0
-    return y
 
 
 def _set_scale(ax1, xbins, mincounts, maxcounts, logx, logy):

@@ -32,7 +32,7 @@ import nngt
 
 plt.rcParams.update({
     "figure.facecolor": (0, 0, 0, 0),
-    "axes.labelcolor": "grey", "axes.titlecolor": "grey", "text.color": "grey"
+    "axes.labelcolor": "grey", "text.color": "grey"
 })
 
 
@@ -43,7 +43,6 @@ nngt.seed(0)
 mpl_backend = mpl.get_backend()
 
 if nngt.get_config("backend") in ("graph-tool", "igraph"):
-
     if mpl_backend.startswith("Qt4"):
         if mpl_backend != "Qt4Cairo":
             plt.switch_backend("Qt4Cairo")
@@ -53,13 +52,18 @@ if nngt.get_config("backend") in ("graph-tool", "igraph"):
     elif mpl_backend.startswith("GTK"):
         if mpl_backend != "GTK3Cairo":
             plt.switch_backend("GTK3Cairo")
-    elif mpl_backend != "cairo":
+    else:
         plt.switch_backend("cairo")
 
 
 # prepare figure and parameters
 
-_, axes = plt.subplots(2, 2, figsize=(10, 8))
+fig = plt.figure(figsize=(10, 8), constrained_layout=False)
+
+gs = fig.add_gridspec(nrows=2, ncols=2, left=0, right=1, bottom=0, top=0.97,
+                      wspace=0, hspace=0.05)
+
+axes = [fig.add_subplot(gs[i, j]) for i in (0, 1) for j in (0, 1)]
 
 num_nodes = 50
 
@@ -84,10 +88,10 @@ nngt.generation.connect_groups(g, (room1, room2), struct, "erdos_renyi",
 
 nngt.generation.connect_groups(g, room3, room1, "erdos_renyi", avg_deg=5)
 
-nngt.plot.library_draw(g, tight=False, axis=axes[0, 0], ecolor="grey",
+nngt.plot.library_draw(g, tight=False, axis=axes[0], ecolor="grey",
                        show=False)
 
-axes[0, 0].set_title("Spring-block layout")
+axes[0].set_title("Spring-block layout")
 
 
 # random layout
@@ -96,19 +100,19 @@ sw = nngt.generation.watts_strogatz(4, 0.3, nodes=num_nodes)
 
 betw = nngt.analysis.betweenness(sw, "node")
 
-nngt.plot.draw_network(sw, nsize=betw, ncolor="out-degree", axis=axes[0, 1],
+nngt.plot.draw_network(sw, nsize=betw, ncolor="out-degree", axis=axes[1],
                        ecolor="lightgrey", tight=False, show=False)
 
-axes[0, 1].set_title("Random layout")
+axes[1].set_title("Random layout")
 
 
 # circular layout for small-world networks
 
 nngt.plot.draw_network(sw, nsize=betw, ncolor="out-degree", layout="circular",
-                       ecolor="lightgrey", axis=axes[1, 0],
+                       ecolor="lightgrey", axis=axes[2],
                        show=False, tight=False)
 
-axes[1, 0].set_title("Circular layout")
+axes[2].set_title("Circular layout")
 
 
 # spatial layout
@@ -126,13 +130,11 @@ g = nngt.generation.distance_rule(10, shape=shape, nodes=num_nodes, avg_deg=5,
 
 cc = nngt.analysis.local_clustering(g)
 
-nngt.plot.draw_network(g, ncolor=cc, axis=axes[1, 1], ecolor="grey", show=False,
+nngt.plot.draw_network(g, ncolor=cc, axis=axes[3], ecolor="grey", show=False,
                        eborder_width=0.5, eborder_color="w", esize=10,
                        max_nsize=max_nsize, tight=False)
 
-axes[1, 1].set_title("Spatial layout")
-
-plt.tight_layout()
+axes[3].set_title("Spatial layout")
 
 # save figure
 

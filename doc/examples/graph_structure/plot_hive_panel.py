@@ -22,7 +22,8 @@ Hive plot panel
 ===============
 """
 
-import os
+import inspect
+from os.path import abspath, dirname
 
 import matplotlib.pyplot as plt
 
@@ -30,13 +31,12 @@ import nngt
 
 
 plt.rcParams.update({
-    "figure.facecolor": (0, 0, 0, 0),
-    "axes.titlecolor": "grey", "text.color": "grey"
+    "figure.facecolor": (0, 0, 0, 0), "text.color": "grey"
 })
 
 
-dirpath  = os.path.abspath(os.getcwd())
-rootpath = os.path.abspath(dirpath + "/../../..")
+dirpath  = dirname(inspect.getframeinfo(inspect.currentframe()).filename)
+rootpath = abspath(dirpath + "/../../..")
 
 
 # load graph
@@ -82,10 +82,7 @@ for i in range(len(todo)):
         ax = axes[i, j]
 
         if i == 0:
-            ax.set_title(ax_name)
-
-        if j == 0:
-            ax.set_ylabel(radial)
+            ax.set_title(ax_name + " (groups)")
 
         size = todo[list(set([0, 1, 2]).difference([i, j]))[0]]
 
@@ -94,7 +91,8 @@ for i in range(len(todo)):
             axes_bins=ax_bins, axes_units="native", axis=ax, show_names=False)
 
 for i in range(len(todo)):
-    fig.text(0.03, 0.8 - i*0.33, todo[i], rotation=90, fontsize="large")
+    fig.text(0.03, 0.83 - i*0.33, todo[i] + " (radius)", rotation=90,
+             fontsize="large", va="center")
 
 plt.tight_layout()
 

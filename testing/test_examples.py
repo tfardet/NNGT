@@ -12,7 +12,7 @@ Check that the examples work.
 
 import os
 from os import environ
-from os.path import dirname, abspath, isfile, join
+from os.path import dirname, abspath, isfile, isdir, join
 import unittest
 
 import pytest
@@ -20,14 +20,31 @@ from scipy.special import lambertw
 
 import nngt
 
+
+''' Set state, paths, and global variables '''
+
+with_plot, with_nest = None, None
+
+
+def setup_module():
+    ''' setup any state specific to the execution of the current module.'''
+    with_plot = nngt.get_config("with_plot")
+    with_nest = nngt.get_config("with_nest")
+
+    nngt.set_config("with_plot", False)
+    nngt.set_config("with_nest", False)
+
+
+def teardown_module():
+    ''' teardown any state that was previously setup with setup_module. '''
+    nngt.set_config("with_plot", with_plot)
+    nngt.set_config("with_nest", with_nest)
+
+
 # set example dir
 current_dir = dirname(abspath(__file__))
 idx_testing = current_dir.find('testing')
 example_dir = current_dir[:idx_testing] + 'doc/examples/'
-
-# remove plotting and NEST
-nngt.set_config("with_plot", False)
-nngt.set_config("with_nest", False)
 
 # set globals
 glob = {"lambertw": lambertw}
@@ -39,15 +56,22 @@ glob = {"lambertw": lambertw}
 
 @pytest.mark.mpi_skip
 class TestExamples(unittest.TestCase):
-    
+
     '''
     Class testing saving and loading functions.
     '''
-    
-    example_files = [
-        example_dir + f for f in os.listdir(example_dir)
-        if isfile(join(example_dir, f))
-    ]
+
+    example_files = []
+
+    for f in os.listdir(example_dir):
+        joint = join(example_dir, f)
+        if joint.endswith(".py"):
+            example_files.append(joint)
+        elif isdir(joint):
+            for f in os.listdir(joint):
+                newjoint = join(joint, f)
+                if newjoint.endswith(".py"):
+                    example_files.append(newjoint)
 
     @classmethod
     def tearDownClass(cls):
@@ -55,7 +79,7 @@ class TestExamples(unittest.TestCase):
             os.remove("sp_graph.el")
         except:
             pass
-    
+
     @property
     def test_name(self):
         return "test_examples"

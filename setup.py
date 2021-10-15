@@ -159,7 +159,7 @@ setup_params = dict(
     ]},
 
     # Requirements
-    install_requires = ['numpy>=1.17', 'scipy>=0.11'],
+    install_requires = ['numpy>=1.17', 'scipy>=0.11', 'cython'],
     python_requires = '>=3.5, <4',
     extras_require = {
         'matplotlib': 'matplotlib',
@@ -167,9 +167,8 @@ setup_params = dict(
         'ig': ['python-igraph'],
         'geometry': ['matplotlib', 'shapely', 'dxfgrabber', 'svg.path'],
         'geospatial': ['matplotlib', 'geopandas', 'descartes', 'cartopy'],
-        'full': ['cython', 'networkx>=2.4', 'shapely', 'dxfgrabber',
-                 'svg.path', 'matplotlib', 'geopandas', 'descartes', 'cartopy',
-                 'lxml']
+        'full': ['networkx>=2.4', 'shapely', 'dxfgrabber', 'svg.path',
+                 'matplotlib', 'geopandas', 'descartes', 'cartopy', 'lxml']
     },
 
     # Cython module
@@ -181,7 +180,7 @@ setup_params = dict(
     author_email = 'tanguy.fardet@tuebingen.mpg.de',
     license = 'GPL3',
     keywords = 'network graph structure simulation neuron NEST DeNSE topology '
-               'growth',
+               'growth igraph graph-tool networkx geospatial',
     long_description = long_descr,
     classifiers = [
         'Development Status :: 5 - Production/Stable',

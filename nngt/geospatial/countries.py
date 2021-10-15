@@ -286,8 +286,7 @@ for _, v in world.iterrows():
             continue
         elif len(idx) > 1:
             pop = cities.iloc[idx].pop_max
-            idx = idx[np.argmax(pop)]
-            points.append(cities.iloc[idx].geometry)
+            points.append(cities.iloc[pop.idxmax()].geometry)
             continue
         else:
             idx = np.where((cities.sov_a3 == v.SU_A3)*cities.adm0cap)[0]
@@ -297,8 +296,7 @@ for _, v in world.iterrows():
                 continue
             elif len(idx) > 1:
                 pop = cities.iloc[idx].pop_max
-                idx = idx[np.argmax(pop)]
-                points.append(cities.iloc[idx].geometry)
+                points.append(cities.iloc[pop.idxmax()].geometry)
                 continue
 
     points.append(v.geometry.representative_point())

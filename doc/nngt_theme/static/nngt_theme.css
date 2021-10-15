@@ -7,10 +7,10 @@
     --hv-color: #eeeeee;
     --sb-color: #f7f5fa;
     --dt-color: #f3f3fb;
-    --img-invert: 0;
     --alert-info: #5bc0de;
     --admonition-a: #555555;
     --a-color: #008cba;
+    --highlighted: #fbe54e;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,10 +21,37 @@
         --hv-color: #333333;
         --sb-color: #3f3f3f;
         --dt-color: #111111;
-        --img-invert: 1;
         --alert-info: #1e7bb3;
-        --admonition-a: #cccccc;
+        --admonition-a: #bbbbbb;
         --a-color: #2ec5f6;
+        --highlighted: #80731e;
+    }
+
+    /* math */
+
+    img.math {
+        -webkit-filter: invert(100%);
+        filter: invert(100%);
+    }
+
+    div.math img {
+        -webkit-filter: invert(100%);
+        filter: invert(100%);
+    }
+
+    div.highlight {
+        -webkit-filter: invert(100%) hue-rotate(180deg);
+        filter: invert(100%) hue-rotate(180deg);
+    }
+
+    code {
+        -webkit-filter: invert(100%) hue-rotate(180deg);
+        filter: invert(100%) hue-rotate(180deg);
+    }
+
+    code span.pre {
+        -webkit-filter: hue-rotate(180deg);
+        filter: hue-rotate(180deg);
     }
 }
 
@@ -36,7 +63,6 @@
         --hv-color: #eeeeee;
         --sb-color: #f7f5fa;
         --dt-color: #f3f3fb;
-        --img-invert: 0;
         --alert-info: #5bc0de;
         --admonition-a: #555555;
         --a-color: #008cba;
@@ -227,18 +253,12 @@ a.fn-backref {
     color: var(--fg-color);
 }
 
+dt:target, span.highlighted {
+    background-color: var(--highlighted);
+}
+
 .alert-info {
     background-color: var(--alert-info) !important;
-}
-
-div.highlight {
-   -webkit-filter: invert(var(--img-invert));
-   filter: invert(var(--img-invert));
-}
-
-code {
-   -webkit-filter: invert(var(--img-invert));
-   filter: invert(var(--img-invert));
 }
 
 .form-control {
@@ -279,17 +299,4 @@ div.sphx-glr-download a {
 
 div.sphx-glr-download a:hover {
     background-image: linear-gradient(to top, var(--sb-color), var(--sb-color)) !important;
-}
-
-
-/* math */
-
-img.math {
-   -webkit-filter: invert(var(--img-invert));
-   filter: invert(var(--img-invert));
-}
-
-div.math img {
-   -webkit-filter: invert(var(--img-invert));
-   filter: invert(var(--img-invert));
 }

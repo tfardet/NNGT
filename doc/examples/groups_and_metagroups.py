@@ -90,30 +90,33 @@ print(pop["left"])
 Plot the graph
 '''
 
+plt = None
+
+# we plot the graph, setting the node shape from the left and right groups
+# and the color from the neuronal type (exc. and inhib.)
+
+nngt.plot.draw_network(net, nshape=[left, right], nsize=20,
+                       show_environment=False)
+
 if nngt.get_config("with_plot"):
     import matplotlib.pyplot as plt
-
-    # we plot the graph, setting the node shape from the left and right groups
-    # and the color from the neuronal type (exc. and inhib.)
-
-    nngt.plot.draw_network(net, nshape=[left, right], show_environment=False)
-
     plt.show()
 
-    # further tests to make sure every configuration works
+# further tests to make sure every configuration works
 
-    nngt.plot.draw_network(net, nshape=[left, right], show_environment=False,
-                           simple_nodes=True)
+nngt.plot.draw_network(net, nshape=[left, right], show_environment=False,
+                       max_nsize=20, simple_nodes=True)
 
-    nngt.plot.draw_network(net, nshape=["o" for _ in range(net.node_nb())],
-                           show_environment=False, simple_nodes=True)
+nngt.plot.draw_network(net, nshape=["o" for _ in range(net.node_nb())],
+                       show_environment=False, simple_nodes=True)
 
-    nngt.plot.draw_network(net, nshape=["o" for _ in range(net.node_nb())],
-                           show_environment=False)
+nngt.plot.draw_network(net, nshape=["o" for _ in range(net.node_nb())],
+                       show_environment=False)
 
-    nngt.plot.draw_network(net, nshape="s", show_environment=False,
-                           simple_nodes=True)
+nngt.plot.draw_network(net, nshape="s", show_environment=False,
+                       simple_nodes=True)
 
-    nngt.plot.draw_network(net, nshape="s", show_environment=False)
+nngt.plot.draw_network(net, nshape="s", show_environment=False)
 
+if nngt.get_config("with_plot"):
     plt.show()

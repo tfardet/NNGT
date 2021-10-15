@@ -204,6 +204,8 @@ def draw_network(network, nsize="total-degree", ncolor=None, nshape="o",
     else:
         fig = axis.get_figure()
 
+    fig.patch.set_visible(False)
+
     # projections for geographic plots
 
     proj = kwargs.get("proj", None)
@@ -476,9 +478,9 @@ def draw_network(network, nsize="total-degree", ncolor=None, nshape="o",
 
                 for i in ids:
                     scatter.append(axis.scatter(
-                        pos[i, 0], pos[i, 1], color=c[i], ms=0.5*nsize[i],
-                        marker=nshape[i], zorder=2, mec=nborder_color[i],
-                        mew=nborder_width, alpha=nalpha))
+                        pos[i, 0], pos[i, 1], color=c[i], s=0.5*nsize[i],
+                        marker=nshape[i], zorder=2, edgecolors=nborder_color[i],
+                        linewidths=nborder_width, alpha=nalpha))
         else:
             scatter.append(axis.scatter(
                 pos[:, 0], pos[:, 1], color=c, s=0.5*np.array(nsize),
@@ -1642,8 +1644,8 @@ def _node_edge_shape_size(network, nshape, nsize, max_nsize, min_nsize, esize,
                     shapes[ids] = m
 
             markers = list(shapes)
-        if len(nshape) == network.node_nb() and restrict_nodes is not None:
-            nshape = nshape[list(restrict_nodes)]
+        elif len(nshape) == network.node_nb() and restrict_nodes is not None:
+            markers = nshape[list(restrict_nodes)]
         elif len(nshape) != n:
             raise ValueError("When passing an array of markers to "
                              "`nshape`, one entry per node in the "

@@ -50,10 +50,7 @@ class NEShpDownloader(Downloader):
     # Define the NaturalEarth URL template. The natural earth website
     # returns a 302 status if accessing directly, so we use the naciscdn
     # URL directly.
-    _NE_URL_TEMPLATE = ('https://naciscdn.org/naturalearth/{resolution}'
-                        '/{category}/ne_{resolution}_{name}.zip')
-
-    _NE_URL_BACKUP = ('https://naturalearth.s3.amazonaws.com/{resolution}'
+    _NE_URL_TEMPLATE = ('https://naturalearth.s3.amazonaws.com/{resolution}'
                       '_{category}/ne_{resolution}_{name}.zip')
 
     def __init__(self, url_template=_NE_URL_TEMPLATE,
@@ -102,8 +99,8 @@ class NEShpDownloader(Downloader):
 
         return target_path
 
-    @classmethod
-    def default_downloader(cls, backup=False):
+    @staticmethod
+    def default_downloader():
         '''
         Return a generic, standard, NEShpDownloader instance.
 
@@ -118,20 +115,14 @@ ne_{resolution}_{name}.shp
         '''
         default_spec = ('shapefiles', 'natural_earth', '{category}',
                         'ne_{resolution}_{name}.shp')
-
         ne_path_template = os.path.join('{config[data_dir]}', *default_spec)
-
         pre_path_template = os.path.join('{config[pre_existing_data_dir]}',
                                          *default_spec)
-
-        url_template = cls._NE_URL_BACKUP if backup else cls._NE_URL_TEMPLATE
-
-        return NEShpDownloader(url_template=url_template,
-                               target_path_template=ne_path_template,
+        return NEShpDownloader(target_path_template=ne_path_template,
                                pre_downloaded_path_template=pre_path_template)
 
-    
-# add a generic Natural Earth shapefile downloader to the cartopy config 
+
+# add a generic Natural Earth shapefile downloader to the cartopy config
 # dictionary's 'downloaders' section.
 _ne_key = ('shapefiles', 'natural_earth')
 cartopy.config['downloaders'].setdefault(_ne_key,
@@ -161,15 +152,7 @@ def natural_earth(resolution='110m', category='physical', name='coastline'):
     # get hold of the Downloader (typically a NEShpDownloader instance)
     # which we can then simply call its path method to get the appropriate
     # shapefile (it will download if necessary)
+    ne_downloader = NEShpDownloader.default_downloader()
     format_dict = {'config': cartopy.config, 'category': category,
-                    'name': name, 'resolution': resolution}
-
-    try:
-        ne_downloader = NEShpDownloader.default_downloader()
-        return ne_downloader.path(format_dict)
-    except:
-        ne_downloader = NEShpDownloader.default_downloader(backup=True)
-
+                   'name': name, 'resolution': resolution}
     return ne_downloader.path(format_dict)
-
-                                         
