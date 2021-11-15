@@ -1502,12 +1502,11 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
             eids  = [network.edge_id(e) for e in restrict_edges]
             graph = network.graph.subgraph_edges(eids, delete_vertices=False)
 
-        if igv > '0.9.6':
-            igraph.plot(graph, target=axis, **visual_style)
-        else:
-            graph_artist = GraphArtist(graph, axis, **visual_style)
+        # matplotlib interface is not working as of November 2021
+        #  igraph.plot(graph, target=axis, **visual_style)
 
-            axis.artists.append(graph_artist)
+        graph_artist = GraphArtist(graph, axis, **visual_style)
+        axis.artists.append(graph_artist)
 
     if "title" in kwargs:
         axis.set_title(kwargs["title"])

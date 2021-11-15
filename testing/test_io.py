@@ -278,10 +278,11 @@ def test_spatial():
         h = nngt.load_from_file(gfilename, fmt=fmt)
 
         assert np.all(np.isclose(g.get_positions(), h.get_positions()))
-        assert g.shape.almost_equals(h.shape)
+        assert g.shape.normalize().almost_equals(h.shape.normalize(), 1e-5)
 
         for name, area in g.shape.areas.items():
-            assert area.almost_equals(h.shape.areas[name])
+            assert area.normalize().almost_equals(
+                h.shape.areas[name].normalize(), 1e-5)
 
             assert area.properties == h.shape.areas[name].properties
 
