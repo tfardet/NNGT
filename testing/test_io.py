@@ -303,6 +303,27 @@ def test_node_attributes():
                               h.node_attributes["size"])
 
 
+@pytest.mark.mpi_skip
+def test_partial_graphml():
+    '''
+    Check that the GraphML file loads fine if some attributes are missing.
+    '''
+    g = nngt.load_from_file(os.path.join(current_dir,
+                                         "Networks/missing_attrs.graphml"))
+
+    nattrs = {0: "A", 1: "", 2: "C", 3: "D"}
+    eattrs = {(0, 1): 4, (0, 2): 1, (2, 3): np.NaN, (3, 1): 0.5}
+
+    for n, name in nattrs.items():
+        assert g.node_attributes["name"][n] == name
+
+    for e, value in eattrs.items():
+        if np.isnan(value):
+            assert np.isnan(g.get_edge_attributes(edges=e, name="eattr"))
+        else:
+            assert g.get_edge_attributes(edges=e, name="eattr") == value
+
+
 # ---------- #
 # Test suite #
 # ---------- #
@@ -316,4 +337,5 @@ if __name__ == "__main__":
         test_structure()
         test_node_attributes()
         test_spatial()
+        test_partial_graphml()
         unittest.main()

@@ -24,13 +24,15 @@
 """ Loading helpers """
 
 from collections import defaultdict
+import logging
 import re
 import types
 
 import numpy as np
 
+from ..lib.logger import _log_message
 from ..lib.converters import (_np_dtype, _to_int, _to_string, _to_list,
-                              _string_from_object, _python_type)
+                              _string_from_object, _python_type, _default_value)
 
 
 __all__ = [
@@ -44,6 +46,9 @@ __all__ = [
     "_get_notif",
     "_process_file",
 ]
+
+
+logger = logging.getLogger(__name__)
 
 
 # ----------------------- #
@@ -377,6 +382,8 @@ def _get_edges_graphml(lst_lines, attributes, *args, di_attributes=None,
         ids = False
         nid = {elt.get("id"): i for i, elt in enumerate(di_notif["nodes"])}
 
+    missing_attrs = False
+
     for elt in di_notif["edges"]:
         if ids:
             source = int(elt.get("source"))
@@ -389,9 +396,22 @@ def _get_edges_graphml(lst_lines, attributes, *args, di_attributes=None,
 
         key_to_name = di_notif["eattr_keytoname"]
 
+        eattrs = {k: v for k, v in
+                  zip(di_notif["edge_attributes"], di_notif["edge_attr_types"])}
+
         for attr in elt.findall("data", ns):
             name = key_to_name[attr.get("key")]
             di_attributes[name].append(convertor[name](attr.text))
+            del eattrs[name]
+
+        for k, v in eattrs.items():
+            missing_attrs = True
+            di_attributes[k].append(_default_value(v))
+
+    if missing_attrs:
+        _log_message(logger, "WARNING",
+                     "GraphML file has missing edge attributes, they "
+                     "have been replaced by default values.")
 
     return edges
 
@@ -429,13 +449,32 @@ def _get_node_attr(di_notif, separator, fmt=None, lines=None, convertor=None):
         ns = di_notif["namespace"]
         key_to_name = di_notif["nattr_keytoname"]
 
+        nattrs = {k: v for k, v in
+                  zip(di_notif["node_attributes"], di_notif["node_attr_types"])}
+
+        missing_attrs = False
+
         for elt in di_notif["nodes"]:
+            all_attrs = nattrs.copy()
+
             for attr in elt.findall("data", ns):
                 name = key_to_name[attr.get("key")]
+
                 if name not in di_nattr:
                     di_nattr[name] = []
 
+                del all_attrs[name]
+
                 di_nattr[name].append(convertor[name](attr.text))
+
+            for k, v in all_attrs.items():
+                missing_attrs = True
+                di_nattr[k].append(_default_value(v))
+
+        if missing_attrs:
+            _log_message(logger, "WARNING",
+                         "GraphML file has missing node attributes, they "
+                         "have been replaced by default values.")
     else:
         # edge list and neighbors formatting
         nattr_name = {str("na_" + k): k for k in di_notif["node_attributes"]}

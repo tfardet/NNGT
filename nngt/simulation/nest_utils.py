@@ -295,8 +295,12 @@ def randomize_neural_states(network, instructions, groups=None, nodes=None,
     if nodes is not None and groups is not None:
         raise InvalidArgument('`nodes` and `groups` cannot be set together.')
     elif groups is not None:
+        if isinstance(groups, nngt.Group):
+            groups = [groups]
+
         for group in groups:
             gids.extend(group.nest_gids)
+
         gids = list(set(gids))
     else:
         gids.extend(

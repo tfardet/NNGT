@@ -122,3 +122,12 @@ def _type_converter(attribute_type):
         return attribute_type
 
     return _np_dtype(attribute_type)
+
+
+def _default_value(attribute_type):
+    if attribute_type in ("double", "float", "real"):
+        return np.NaN
+    elif attribute_type in ("int", "integer"):
+        return 0
+
+    return ""
