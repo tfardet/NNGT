@@ -37,6 +37,7 @@ except ImportError:
 import nest
 import numpy as np
 
+import nngt
 from nngt.lib import InvalidArgument, nonstring_container
 from nngt.lib.rng_tools import _generate_random
 from nngt.lib.sorting import _sort_groups
