@@ -6,7 +6,7 @@
 # and reproducible graph analysis: generate and analyze networks with your
 # favorite graph library (graph-tool/igraph/networkx) on any platform, without
 # any change to your code.
-# Copyright (C) 2015-2021 Tanguy Fardet
+# Copyright (C) 2015-2022 Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1239,12 +1239,31 @@ class Graph(nngt.core.GraphObject):
                 raise InvalidArgument(
                     "Unknown attribute class '{}'.".format(attribute_class))
 
-    def get_density(self):
+    def get_density(self, ignore_loops=True):
         '''
-        Density of the graph: :math:`\\frac{E}{N^2}`, where `E` is the number
-        of edges and `N` the number of nodes.
+        Density of the graph.
+
+        Parameters
+        ----------
+        ignore_loops : bool, optional (default: True)
+            Whether self-loops should be considered.
+
+        Note
+        ----
+
+        The density is computed via :math:`(2 - d)\\frac{E}{N(N - 1)}` if
+        `ignore_loops` is True, or via :math:`\\frac{E}{N(N - 1) / (2 - d) + N}`
+        if it is False.
+        `E` is the number of edges, `N` the number of nodes, and `d` is 0 if
+        the graph is undirected and 1 if it is directed.
         '''
-        return self.edge_nb() / self.node_nb()**2
+        E = self.edge_nb()
+        N = self.node_nb()
+
+        if ignore_loops:
+            return E / (N * (N - 1) / (2 - self.is_directed()) + N)
+
+        return (2 - self.is_directed()) * E / (N * (N - 1))
 
     def is_weighted(self):
         ''' Whether the edges have weights '''

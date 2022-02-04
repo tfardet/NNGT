@@ -816,6 +816,29 @@ def test_to_undirected():
     assert np.array_equal(u.adjacency_matrix().todense(), m)
 
 
+@pytest.mark.mpi_skip
+def test_density():
+    # directed
+    num_nodes = 3
+    g = nngt.Graph(num_nodes)
+
+    edges = [(0, 1), (1, 2), (2, 0)]
+
+    g.new_edges(edges)
+
+    assert np.isclose(g.get_density(ignore_loops=True), 1/3)
+    assert np.isclose(g.get_density(ignore_loops=False), 0.5)
+
+    # undirected
+    g = nngt.Graph(num_nodes, directed=False)
+
+    edges = [(0, 1), (1, 2), (2, 0)]
+
+    g.new_edges(edges)
+
+    assert np.isclose(g.get_density(ignore_loops=True), 0.5)
+    assert np.isclose(g.get_density(ignore_loops=False), 1)
+
 
 # ---------- #
 # Test suite #
@@ -836,3 +859,4 @@ if __name__ == "__main__":
         test_edge_creation()
         test_has_edges_edge_id()
         test_delete()
+        test_density()
