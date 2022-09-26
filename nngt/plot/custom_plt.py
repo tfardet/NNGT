@@ -58,7 +58,7 @@ def palette_discrete(numbers=None):
         return pal(numbers)
 
 # markers list
-markers = [m for m in MS().filled_markers if m != '.']
+markers = [m for m in MS.filled_markers if m != '.']
 
 if nngt._config["color_lib"] == "seaborn":
     try:
@@ -122,9 +122,9 @@ def format_exponent(ax, axis='y', pos=(1.,0.), valign="top", halign="right"):
         ax_axis = ax.xaxis
     # Run plt.tight_layout() because otherwise the offset text doesn't update
     plt.tight_layout()
-    ##### THIS IS A BUG 
+    ##### THIS IS A BUG
     ##### Well, at least it's sub-optimal because you might not
-    ##### want to use tight_layout(). If anyone has a better way of 
+    ##### want to use tight_layout(). If anyone has a better way of
     ##### ensuring the offset text is updated appropriately
     ##### please comment!
 

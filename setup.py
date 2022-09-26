@@ -166,9 +166,10 @@ setup_params = dict(
         'nx': ['networkx>=2.4'],
         'ig': ['python-igraph'],
         'geometry': ['matplotlib', 'shapely', 'dxfgrabber', 'svg.path'],
-        'geospatial': ['matplotlib', 'geopandas', 'descartes', 'cartopy'],
+        'geospatial': ['matplotlib', 'geopandas', 'descartes', 'cartopy>=0.19'],
         'full': ['networkx>=2.4', 'shapely', 'dxfgrabber', 'svg.path',
-                 'matplotlib', 'geopandas', 'descartes', 'cartopy', 'lxml']
+                 'matplotlib', 'geopandas', 'descartes', 'cartopy>=0.19',
+                 'lxml']
     },
 
     # Cython module

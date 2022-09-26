@@ -72,7 +72,7 @@ class TestIO(TestBasis):
                 os.remove(current_dir + 'test.' + ft)
         except:
             pass
-    
+
     @property
     def test_name(self):
         return "test_io"
@@ -277,12 +277,14 @@ def test_spatial():
 
         h = nngt.load_from_file(gfilename, fmt=fmt)
 
+        tolerance = np.average(np.abs(h.shape.exterior.coords))*1e-5
+
         assert np.all(np.isclose(g.get_positions(), h.get_positions()))
-        assert g.shape.normalize().almost_equals(h.shape.normalize(), 1e-5)
+        assert g.shape.normalize().equals_exact(h.shape.normalize(), tolerance)
 
         for name, area in g.shape.areas.items():
-            assert area.normalize().almost_equals(
-                h.shape.areas[name].normalize(), 1e-5)
+            assert area.normalize().equals_exact(
+                h.shape.areas[name].normalize(), tolerance)
 
             assert area.properties == h.shape.areas[name].properties
 

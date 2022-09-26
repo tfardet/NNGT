@@ -94,7 +94,7 @@ def test_newman_watts():
 
     for e in lattice_edges:
         assert g.has_edge(e)
-    
+
     assert g.edge_nb() == 6  # min_edges + one shortcut
 
     # directed
@@ -339,37 +339,37 @@ def test_all_to_all():
 def test_distances():
     ''' Check that distances are properly generated for SpatialGraphs '''
     # simple graph
-    # ~ num_nodes = 4
+    num_nodes = 4
 
-    # ~ pos = [(0, 0), (1, 0), (2, 0), (3, 0)]
-    
-    # ~ g = nngt.SpatialGraph(num_nodes, positions=pos)
+    pos = [(0, 0), (1, 0), (2, 0), (3, 0)]
 
-    # ~ edges = [(0, 1), (0, 3), (1, 2), (2, 3)]
+    g = nngt.SpatialGraph(num_nodes, positions=pos)
 
-    # ~ g.new_edges(edges)
+    edges = [(0, 1), (0, 3), (1, 2), (2, 3)]
 
-    # ~ dist = g.edge_attributes["distance"]
+    g.new_edges(edges)
 
-    # ~ expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
+    dist = g.edge_attributes["distance"]
 
-    # ~ assert np.array_equal(dist, expected)
+    expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
 
-    # ~ g.new_node(positions=[(4, 0)])
-    # ~ g.new_edge(1, 4)
+    assert np.array_equal(dist, expected)
 
-    # ~ assert g.get_edge_attributes((1, 4), "distance") == 3
+    g.new_node(positions=[(4, 0)])
+    g.new_edge(1, 4)
 
-    # ~ # distance rule
-    # ~ g = ng.distance_rule(2.5, rule="lin", nodes=num_nodes, avg_deg=2,
-                         # ~ positions=pos)
+    assert g.get_edge_attributes((1, 4), "distance") == 3
 
-    # ~ dist = g.edge_attributes["distance"]
+    # distance rule
+    g = ng.distance_rule(2.5, rule="lin", nodes=num_nodes, avg_deg=2,
+                         positions=pos)
 
-    # ~ expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
+    dist = g.edge_attributes["distance"]
 
-    # ~ assert np.array_equal(dist, expected)
-    # ~ assert np.all(dist < 3)
+    expected = np.abs(np.diff(g.edges_array, axis=1)).ravel()
+
+    assert np.array_equal(dist, expected)
+    assert np.all(dist < 3)
 
     # using the connector functions
     num_nodes = 20
@@ -550,7 +550,7 @@ def test_sparse_clustered():
                 if c*num_nodes > deg:
                     g = ng.sparse_clustered(
                         c, nodes=num_nodes, avg_deg=deg, connected=False,
-                        directed=directed, rtol=0.09)
+                        directed=directed, rtol=0.11)
 
                     g = ng.sparse_clustered(
                         c, nodes=num_nodes, avg_deg=deg, directed=directed,

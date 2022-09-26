@@ -23,12 +23,12 @@
 
 import os
 
-import numpy as np
-
 import cartopy
 import geopandas as gpd
+import numpy as np
+import pandas as pd
 
-from ._cartopy_ne import natural_earth
+from cartopy.io.shapereader import natural_earth
 from shapely.geometry import Point
 
 
@@ -145,7 +145,8 @@ for i, v in world_50.iterrows():
                     len(new_countries) + size_adaptive
                 ctn_adaptive[cval] = name
 
-world = world_110.append(world_50.iloc[list(new_countries)], ignore_index=True)
+world = pd.concat((world_110, world_50.iloc[list(new_countries)]),
+                  ignore_index=True)
 
 new_countries = []
 size_adaptive = len(world)
@@ -171,7 +172,8 @@ for i, v in world_10.iterrows():
 
         # check if it's a subunit, if so, add only if it does not overlap
         # with sovereign territory (special case for Antigua and Barbuda)
-        if v.LEVEL == 3 and sovc != "ATG":
+        # ignore Israel unrecognized territories
+        if v.LEVEL == 3 and sovc not in ("ATG", "IS1"):
             geom = v.geometry
 
             # get soverign territory
@@ -199,7 +201,7 @@ for i, v in world_10.iterrows():
         new_countries.append(i)
 
 
-world = world.append(world_10.iloc[new_countries], ignore_index=True)
+world = pd.concat((world, world_10.iloc[new_countries]), ignore_index=True)
 
 maps["adaptive"] = world
 
@@ -300,7 +302,7 @@ for _, v in world.iterrows():
                 continue
 
     points.append(v.geometry.representative_point())
-        
+
 
 country_points = gpd.GeoDataFrame({
     'country': world.NAME_LONG,

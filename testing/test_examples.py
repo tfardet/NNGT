@@ -12,39 +12,27 @@ Check that the examples work.
 
 import os
 from os import environ
-from os.path import dirname, abspath, isfile, isdir, join
-import unittest
+from os.path import dirname, abspath, join
 
 import pytest
 from scipy.special import lambertw
+import matplotlib as mpl
 
 import nngt
 
 
 ''' Set state, paths, and global variables '''
 
-with_plot, with_nest = None, None
+# prevent drawing
+mpl.use("agg")
 
-
-def setup_module():
-    ''' setup any state specific to the execution of the current module.'''
-    with_plot = nngt.get_config("with_plot")
-    with_nest = nngt.get_config("with_nest")
-
-    nngt.set_config("with_plot", False)
-    nngt.set_config("with_nest", False)
-
-
-def teardown_module():
-    ''' teardown any state that was previously setup with setup_module. '''
-    nngt.set_config("with_plot", with_plot)
-    nngt.set_config("with_nest", with_nest)
-
+# set multithreading
+nngt.set_config("omp", int(environ.get("OMP", 2)))
 
 # set example dir
 current_dir = dirname(abspath(__file__))
 idx_testing = current_dir.find('testing')
-example_dir = current_dir[:idx_testing] + 'doc/examples/'
+example_dir = join(current_dir[:idx_testing], 'doc/examples/')
 
 # set globals
 glob = {"lambertw": lambertw}
@@ -55,52 +43,55 @@ glob = {"lambertw": lambertw}
 # ---------- #
 
 @pytest.mark.mpi_skip
-class TestExamples(unittest.TestCase):
-
-    '''
-    Class testing saving and loading functions.
-    '''
-
-    example_files = []
-
-    for f in os.listdir(example_dir):
-        joint = join(example_dir, f)
-        if joint.endswith(".py"):
-            example_files.append(joint)
-        elif isdir(joint):
-            for f in os.listdir(joint):
-                newjoint = join(joint, f)
-                if newjoint.endswith(".py"):
-                    example_files.append(newjoint)
-
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            os.remove("sp_graph.el")
-        except:
-            pass
-
-    @property
-    def test_name(self):
-        return "test_examples"
-
-    @unittest.skipIf(int(environ.get("OMP", 1)) == 1, 'Check only with OMP')
-    def test_examples(self):
-        '''
-        Test that the example files execute correctly.
-        '''
-        for example in self.example_files:
-            if example.endswith('.py'):
-                with open(example) as f:
-                    code = compile(f.read(), example, 'exec')
-                    exec(code, glob)
+@pytest.mark.skipif(int(environ.get("OMP", 1)) == 1, reason='Run only with OMP')
+def test_example_graph_struct():
+    for root, _, files in os.walk(join(example_dir, "graph_structure")):
+        for fname in files:
+            if fname.endswith(".py"):
+                fullname = join(root, fname)
+                with open(fullname) as f:
+                    code = compile(f.read(), fullname, 'exec')
+                    try:
+                        exec(code, {})
+                    except Exception as e:
+                        print(f"Running example file {fname} failed.")
+                        raise e
 
 
-# ---------- #
-# Test suite #
-# ---------- #
+@pytest.mark.mpi_skip
+@pytest.mark.skipif(int(environ.get("OMP", 1)) == 1, reason='Run only with OMP')
+def test_example_graph_prop():
+    for root, _, files in os.walk(join(example_dir, "graph_properties")):
+        for fname in files:
+            if fname.endswith(".py"):
+                fullname = join(root, fname)
+                with open(fullname) as f:
+                    code = compile(f.read(), fullname, 'exec')
+                    try:
+                        exec(code)
+                    except Exception as e:
+                        print(f"Running example file {fname} failed.")
+                        raise e
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestExamples)
+
+@pytest.mark.mpi_skip
+@pytest.mark.skipif(int(environ.get("OMP", 1)) == 1, reason='Run only with OMP')
+def test_examples():
+    for root, _, files in os.walk(example_dir):
+        if root == example_dir:
+            for fname in files:
+                if fname.endswith(".py"):
+                    fullname = join(root, fname)
+                    with open(fullname) as f:
+                        code = compile(f.read(), fullname, 'exec')
+                        try:
+                            exec(code, glob)
+                        except Exception as e:
+                            print(f"Running example file {fname} failed.")
+                            raise e
 
 if __name__ == "__main__":
-    unittest.main()
+    if not nngt.get_config("mpi"):
+        test_example_graph_struct()
+        test_example_graph_prop()
+        test_examples()

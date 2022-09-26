@@ -23,6 +23,7 @@
 
 from itertools import cycle
 from collections import defaultdict
+from pkg_resources import parse_version
 
 import numpy as np
 
@@ -1236,11 +1237,13 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
     # backend and axis
     try:
         import igraph
-        igv = igraph.__version__
+        igv = parse_version(igraph.__version__)
     except:
-        igv = '1.0'
+        igv = parse_version('1.0')
 
-    ig_test = nngt.get_config("backend") == "igraph" and igv <= '0.9.6'
+    min_ig_version = parse_version('0.10.0')
+
+    ig_test = nngt.get_config("backend") == "igraph" and igv < min_ig_version
 
     if nngt.get_config("backend") == "graph-tool" or ig_test:
         mpl_backend = mpl.get_backend()
@@ -1251,9 +1254,15 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
         elif mpl_backend.startswith("Qt5"):
             if mpl_backend != "Qt5Cairo":
                 plt.switch_backend("Qt5Cairo")
-        elif mpl_backend.startswith("GTK"):
+        elif mpl_backend.startswith("Qt"):
+            if mpl_backend != "QtCairo":
+                plt.switch_backend("QtCairo")
+        elif mpl_backend.startswith("GTK3"):
             if mpl_backend != "GTK3Cairo":
                 plt.switch_backend("GTK3Cairo")
+        elif mpl_backend.startswith("GTK4"):
+            if mpl_backend != "GTK4Cairo":
+                plt.switch_backend("GTK4Cairo")
         elif mpl_backend != "cairo":
             plt.switch_backend("cairo")
 
@@ -1311,7 +1320,7 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
 
     if nonstring_container(esize) and len(esize):
         esize *= max_esize / np.max(esize)
-    
+
     # environment
     if spatial and network.is_spatial():
         if show_environment:
@@ -1426,9 +1435,9 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
             pos = nx.spring_layout(network.graph)
 
         # normalize sizes compared to igraph
-        nsize = _increase_nx_size(nsize)
+        nsize = _scale_node_size(nsize)
 
-        nborder_width = _increase_nx_size(nborder_width, 2)
+        nborder_width = _scale_node_size(nborder_width, 2)
 
         edges = None if restrict_edges is None else list(restrict_edges)
 
@@ -1474,6 +1483,10 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
         for k, v in convert_shape.items():
             shape_dict[k] = v
 
+        if igv >= min_ig_version:
+            # scale to normalize node size compared to other libraries
+            nsize = _scale_node_size(nsize, factor=0.1)
+
         if nonstring_container(nsize):
             nsize = list(nsize)
 
@@ -1502,11 +1515,11 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
             eids  = [network.edge_id(e) for e in restrict_edges]
             graph = network.graph.subgraph_edges(eids, delete_vertices=False)
 
-        # matplotlib interface is not working as of November 2021
-        #  igraph.plot(graph, target=axis, **visual_style)
-
-        graph_artist = GraphArtist(graph, axis, **visual_style)
-        axis.artists.append(graph_artist)
+        if igv >= min_ig_version:
+            igraph.plot(graph, target=axis, **visual_style)
+        else:
+            graph_artist = GraphArtist(graph, axis, **visual_style)
+            axis.add_artist(graph_artist)
 
     if "title" in kwargs:
         axis.set_title(kwargs["title"])
@@ -1942,7 +1955,7 @@ def _convert_to_nodes(node_restriction, name, network):
                 ids.update(g.ids)
             return ids
 
-        return set(node_restriction) 
+        return set(node_restriction)
     elif isinstance(node_restriction, str):
         assert network.is_network(), \
             "`" + name + "` can be string only for Network."
@@ -2019,8 +2032,8 @@ def _to_ig_color(color):
     return color
 
 
-def _increase_nx_size(size, factor=4):
-    
+def _scale_node_size(size, factor=4):
+    ''' Multiply size by `factor` '''
     if isinstance(size, float) or is_integer(size):
         return factor*size
     elif nonstring_container(size) and len(size):
@@ -2033,7 +2046,7 @@ def _increase_nx_size(size, factor=4):
 def _to_gt_prop(graph, value, cmap, ptype='node', color=False):
     pmap = (graph.new_vertex_property if ptype == 'node'
             else graph.new_edge_property)
-    
+
     if nonstring_container(value) and len(value):
         if isinstance(value[0], str):
             if color:

@@ -11,16 +11,16 @@ tasks:
         python3 extra/check_headers.py
     - setup: |
         sudo apt install -y software-properties-common
-        sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt focal main\n" >> /etc/apt/sources.list'
+        sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt jammy main\n" >> /etc/apt/sources.list'
         sudo apt-key adv --keyserver keys.openpgp.org --recv-key 612DEFB798507F25
         sudo add-apt-repository -y ppa:nest-simulator/nest
         sudo apt-get update -qq
         sudo apt install -y gcc libcairo2-dev pkg-config build-essential autoconf automake python3-dev libblas-dev libgeos-dev proj-bin libproj-dev
         sudo apt install -y nest liblapack-dev libatlas-base-dev gfortran libxml2-dev openmpi-bin libopenmpi-dev libgmp-dev
-        sudo apt install -y python3-pip python3-tk libigraph0v5 libigraph0-dev python3-graph-tool python3-cairo python3-cairocffi
+        sudo apt install -y python3-pip python3-tk libigraph-dev python3-graph-tool python3-cairo python3-cairocffi
         pip3 install numpy scipy cython mpi4py
         pip3 install networkx python-igraph
-        pip3 install matplotlib seaborn shapely svg.path dxfgrabber 'cartopy<0.20' geopandas descartes
+        pip3 install matplotlib seaborn shapely svg.path dxfgrabber cartopy geopandas descartes
         pip3 install pytest pytest-mpi cov-core coverage coveralls[yaml]
         cd NNGT
         python3 setup.py install --user
@@ -32,7 +32,7 @@ tasks:
         GL=nx coverage run -p -m pytest testing
         GL=ig coverage run -p -m pytest testing
         GL=nngt coverage run -p -m pytest testing
-        GL=gt OMP=2 coverage run -p -m pytest -s testing
+        GL=ig OMP=2 coverage run -p -m pytest -s testing
         GL=gt OMP=0 MPI=1 mpirun -n 2 coverage run -p -m pytest --with-mpi testing
         coverage combine
         GIT_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ', /' '\n' | grep -v HEAD | sed -n 2p)

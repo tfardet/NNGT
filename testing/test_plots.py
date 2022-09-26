@@ -17,6 +17,9 @@ import nngt.generation as ng
 import nngt.plot as nplt
 
 
+nngt.use_backend("igraph")
+
+
 # absolute directory path
 
 dirpath = os.path.abspath(os.path.dirname(__file__))
@@ -65,7 +68,7 @@ def test_draw_network_options():
     net = nngt.generation.erdos_renyi(nodes=100, avg_deg=10)
 
     net.set_weights(np.random.randint(0, 20, net.edge_nb()))
-    
+
     net.new_node_attribute("attr", "int",
                            values=np.random.randint(-10, 20, 100))
 

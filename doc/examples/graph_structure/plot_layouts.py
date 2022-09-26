@@ -42,16 +42,22 @@ nngt.seed(0)
 # set matplotlib backend depending on the library
 mpl_backend = mpl.get_backend()
 
-if nngt.get_config("backend") in ("graph-tool", "igraph"):
+if nngt.get_config("backend") == "graph-tool":
     if mpl_backend.startswith("Qt4"):
         if mpl_backend != "Qt4Cairo":
             plt.switch_backend("Qt4Cairo")
     elif mpl_backend.startswith("Qt5"):
         if mpl_backend != "Qt5Cairo":
             plt.switch_backend("Qt5Cairo")
-    elif mpl_backend.startswith("GTK"):
+    elif mpl_backend.startswith("Qt"):
+        if mpl_backend != "QtCairo":
+            plt.switch_backend("QtCairo")
+    elif mpl_backend.startswith("GTK3"):
         if mpl_backend != "GTK3Cairo":
             plt.switch_backend("GTK3Cairo")
+    elif mpl_backend.startswith("GTK4"):
+        if mpl_backend != "GTK4Cairo":
+            plt.switch_backend("GTK4Cairo")
     else:
         plt.switch_backend("cairo")
 

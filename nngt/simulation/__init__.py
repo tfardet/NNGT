@@ -30,14 +30,72 @@ Module to interact easily with the NEST simulator. It allows to:
 * plot the activity while separating the behaviours of predefined neural groups
 """
 
-import sys as _sys
 import logging as _logging
+import sys as _sys
+import types as _types
 
 import nngt as _nngt
 from nngt.lib.logger import _log_message
 
 
 _logger = _logging.getLogger(__name__)
+
+
+# --------- #
+# Wrap nest #
+# --------- #
+
+import nest
+
+warnlist = [
+    "Connect", "Disconnect", "Create", "SetStatus", "get", "set",
+    "ResetNetwork"
+]
+
+def _wrap_reset_kernel(func):
+    '''
+    Reset all NeuralPops and parent Networks before calling nest.ResetKernel.
+    '''
+    def wrapper(*args, **kwargs):
+        _nngt.NeuralPop._nest_reset()
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def _wrap_warn(func):
+    '''
+    Warn when risky nest functions are called.
+    '''
+    def wrapper(*args, _warn=True, **kwargs):
+        if _warn:
+            _log_message(_logger, "WARNING", "This function could interfere "
+                         "with NNGT, making your Network obsolete compared to "
+                         "the one in NEST... make sure to check what is "
+                         "modified!")
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+class NestMod(_types.ModuleType):
+
+    '''
+    Wrapped module to replace nest.
+    '''
+
+    def __getattribute__(self, attr):
+        if attr in warnlist:
+            return _wrap_warn(getattr(nest, attr))
+        elif attr == "ResetKernel":
+            return _wrap_reset_kernel(nest.ResetKernel)
+
+        return getattr(nest, attr)
+
+
+_sys.modules["nest"] = NestMod("nest")
 
 
 # -------------- #
@@ -72,83 +130,3 @@ except ImportError:
 if _with_plot:
     from .nest_plot import plot_activity, raster_plot
     __all__.extend(("plot_activity", "raster_plot"))
-
-
-# ---------------- #
-# Wrap ResetKernel #
-# ---------------- #
-
-from nest import ResetKernel as _rk
-from nest import Connect as _conn
-from nest import Disconnect as _disc
-from nest import Create as _cr
-from nest import SetStatus as _setstat
-
-try:
-    from nest import ResetNetwork as _rn
-except ImportError:
-    pass
-
-# store old functions
-if not _nngt._old_nest_func:
-    _nngt._old_nest_func["ResetKernel"] = _rk
-    _nngt._old_nest_func["Connect"]     = _conn
-    _nngt._old_nest_func["Disconnect"]  = _disc
-    _nngt._old_nest_func["Create"]      = _cr
-    _nngt._old_nest_func["SetStatus"]   = _setstat
-
-    try:
-        _nngt._old_nest_func["ResetNetwork"] = _rn
-    except NameError:
-        pass
-else:
-    _rk      = _nngt._old_nest_func["ResetKernel"]
-    _conn    = _nngt._old_nest_func["Connect"]
-    _disc    = _nngt._old_nest_func["Disconnect"]
-    _cr      = _nngt._old_nest_func["Create"]
-    _setstat = _nngt._old_nest_func["SetStatus"]
-
-    try:
-        _rn = _nngt._old_nest_func["ResetNetwork"]
-    except KeyError:
-        pass
-
-
-def _new_reset_kernel():
-    '''
-    Call nest.ResetKernel, then reset all NeuralPops and parent Networks.
-    '''
-    _rk()
-    _nngt.NeuralPop._nest_reset()
-
-
-def _new_nest_func(old_nest_func):
-    '''
-    Print a warning to make sure user know what they are doing.
-    '''
-    def wrapper(*args, **kwargs):
-        if kwargs.get("_warn", True):
-            _log_message(_logger, "WARNING", "This function could interfere "
-                         "with NNGT, making your Network obsolete compared to "
-                         "the one in NEST... make sure to check what is "
-                         "modified!")
-
-        if "_warn" in kwargs:
-            del kwargs["_warn"]
-
-        return old_nest_func(*args, **kwargs)
-
-    return wrapper
-
-
-# nest is in sysmodules because it was imported in the main __init__.py
-_sys.modules["nest"].ResetKernel = _new_reset_kernel
-_sys.modules["nest"].Connect     = _new_nest_func(_conn)
-_sys.modules["nest"].Disconnect  = _new_nest_func(_disc)
-_sys.modules["nest"].Create      = _new_nest_func(_cr)
-_sys.modules["nest"].SetStatus   = _new_nest_func(_setstat)
-
-try:
-    _sys.modules["nest"].ResetNetwork = _new_nest_func(_rn)
-except NameError:
-    pass
