@@ -21,14 +21,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from matplotlib import cm
 from matplotlib.colors import ColorConverter
-from matplotlib.path import Path
 from matplotlib.patches import PathPatch
+from matplotlib.path import Path
 
 import numpy as np
 
 from ..lib.test_functions import nonstring_container
+from .custom_plt import get_cmap
 from .chord_diag.gradient import linear_gradient
 
 
@@ -265,7 +265,7 @@ def _get_colors(axes_colors, edge_colors, angles, num_axes, intra_connections,
     if axes_colors is None or isinstance(axes_colors, str):
         named_cmap = "Set1" if axes_colors is None else axes_colors
 
-        cmap = cm.get_cmap(named_cmap)
+        cmap = get_cmap(named_cmap)
 
         values = list(range(num_axes))
 

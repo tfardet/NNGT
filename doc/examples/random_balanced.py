@@ -155,13 +155,15 @@ Send the network to NEST, set noise and randomize parameters
 '''
 
 if nngt.get_config('with_nest'):
-    import nest
     import nngt.simulation as ns
     from nngt.analysis import get_spikes
+    import nest
+
+    print_time = bool(os.environ.get("PYNEST_QUIET", False))
 
     nest.ResetKernel()
 
-    nest.SetKernelStatus({"resolution": dt, "print_time": True,
+    nest.SetKernelStatus({"resolution": dt, "print_time": print_time,
                           "overwrite_files": True, 'local_num_threads': 4})
 
     gids = net.to_nest()

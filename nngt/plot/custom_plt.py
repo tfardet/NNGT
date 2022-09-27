@@ -26,9 +26,10 @@
 import itertools
 import logging
 
+from pkg_resources import parse_version
+
 import matplotlib as mpl
-import matplotlib.cm as cm
-import matplotlib.colors as clrs
+from matplotlib.colors import Colormap
 from matplotlib.markers import MarkerStyle as MS
 
 import nngt
@@ -43,19 +44,50 @@ logger = logging.getLogger(__name__)
 
 with_seaborn = False
 
+
+def get_cmap(colormap, n=None):
+    '''
+    Get a colormap.
+
+    Parameters
+    ----------
+    colormap : str or colormap
+        Colormap to return.
+    n : int, optional
+        Take `n` samples from the colormap.
+    '''
+    if not isinstance(colormap, Colormap):
+        colormap = mpl.colormaps[colormap]
+
+    if n is None:
+        return colormap
+
+    # check version for call to resampled
+    # @TODO require matplotlib > 3.6.0 in 2024 or something
+    mpl_version = parse_version(mpl.__version__)
+    min_version = parse_version("3.6.0")
+
+    if mpl_version < min_version:
+        return colormap._resample(n)
+
+    return colormap.resampled(n)
+
+
 def palette_continuous(numbers=None):
-    pal = cm.get_cmap(nngt._config["palette_continuous"])
+    pal = get_cmap(nngt._config["palette_continuous"])
     if numbers is None:
         return pal
     else:
         return pal(numbers)
 
+
 def palette_discrete(numbers=None):
-    pal = cm.get_cmap(nngt._config["palette_discrete"])
+    pal = get_cmap(nngt._config["palette_discrete"])
     if numbers is None:
         return pal
     else:
         return pal(numbers)
+
 
 # markers list
 markers = [m for m in MS.filled_markers if m != '.']

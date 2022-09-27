@@ -17,9 +17,6 @@ import nngt.generation as ng
 import nngt.plot as nplt
 
 
-nngt.use_backend("igraph")
-
-
 # absolute directory path
 
 dirpath = os.path.abspath(os.path.dirname(__file__))

@@ -32,7 +32,7 @@ tasks:
         GL=nx coverage run -p -m pytest testing
         GL=ig coverage run -p -m pytest testing
         GL=nngt coverage run -p -m pytest testing
-        GL=ig OMP=2 coverage run -p -m pytest -s testing
+        GL=ig OMP=2 PYNEST_QUIET=1 coverage run -p -m pytest testing
         GL=gt OMP=0 MPI=1 mpirun -n 2 coverage run -p -m pytest --with-mpi testing
         coverage combine
         GIT_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ', /' '\n' | grep -v HEAD | sed -n 2p)

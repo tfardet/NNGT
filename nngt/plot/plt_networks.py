@@ -32,7 +32,6 @@ from matplotlib.artist import Artist
 from matplotlib.path import Path
 from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
 from matplotlib.patches import Arc, RegularPolygon, PathPatch, Patch
-from matplotlib.cm import get_cmap
 from matplotlib.collections import PatchCollection, PathCollection
 from matplotlib.colors import ListedColormap, Normalize, ColorConverter
 from matplotlib.markers import MarkerStyle
@@ -41,7 +40,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import nngt
 from nngt.lib import POS, nonstring_container, is_integer
-from .custom_plt import palette_continuous, palette_discrete, format_exponent
+from .custom_plt import (get_cmap, palette_continuous, palette_discrete,
+                         format_exponent)
 from .chord_diag import chord_diagram as _chord_diag
 from .hive_helpers import *
 
@@ -1925,14 +1925,11 @@ def _discrete_cmap(N, base_cmap=None, discrete=False):
     # Modified from Jake VanderPlas
     # License: BSD-style
     '''
-    import matplotlib.pyplot as plt
-    # Note that if base_cmap is a string or None, you can simply do
-    #    return plt.cm.get_cmap(base_cmap, N)
-    # The following works for string, None, or a colormap instance:
-    base = plt.cm.get_cmap(base_cmap, N)
+    base = get_cmap(base_cmap, N)
 
     color_list = base(np.arange(N))
     cmap_name = base.name + str(N)
+
     try:
         return base.from_list(cmap_name, color_list, N)
     except:

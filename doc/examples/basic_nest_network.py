@@ -74,8 +74,8 @@ ng.connect_neural_types(net, -1, -1, "erdos_renyi", density=0.04)
 # ------------------ #
 
 if nngt.get_config('with_nest'):
-    import nest
     import nngt.simulation as ns
+    import nest
 
     '''
     Prepare the network and devices.
