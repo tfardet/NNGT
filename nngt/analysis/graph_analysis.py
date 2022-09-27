@@ -52,17 +52,17 @@ __all__ = [
     "betweenness",
     "betweenness_distrib",
     "binning",
-	"closeness",
-	"connected_components",
+    "closeness",
+    "connected_components",
     "degree_distrib",
-	"diameter",
+    "diameter",
     "node_attributes",
-	"num_iedges",
-	"reciprocity",
+    "num_iedges",
+    "reciprocity",
     "shortest_distance",
     "shortest_path",
     "small_world_propensity",
-	"spectral_radius",
+    "spectral_radius",
     "subgraph_centrality",
     "transitivity",
 ]
@@ -477,7 +477,7 @@ def shortest_path(g, source, target, directed=True, weights=None):
     References
     ----------
     .. [gt-sd] :gtdoc:`topology.shortest_distance`
-    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [ig-dist] :igdoc:`distances`
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.shortest_path`
     '''
     raise NotImplementedError(_backend_required)
@@ -554,7 +554,7 @@ def shortest_distance(g, sources=None, targets=None, directed=True,
     References
     ----------
     .. [gt-sd] :gtdoc:`topology.shortest_distance`
-    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [ig-dist] :igdoc:`distances`
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.weighted.multi_source_dijkstra`
     '''
     raise NotImplementedError(_backend_required)
@@ -602,7 +602,7 @@ def average_path_length(g, sources=None, targets=None, directed=None,
     References
     ----------
     .. [gt-sd] :gtdoc:`topology.shortest_distance`
-    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [ig-dist] :igdoc:`distances`
     .. [nx-sp] :nxdoc:`algorithms.shortest_paths.generic.average_shortest_path_length`
 
     See also

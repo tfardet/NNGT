@@ -295,7 +295,7 @@ def connected_components(g, ctype=None):
 
     References
     ----------
-    .. [ig-connected-components] :igdoc:`clusters`
+    .. [ig-connected-components] :igdoc:`connected_components`
     '''
     if ctype is None:
         ctype = "scc" if g.is_directed() else "wcc"
@@ -307,14 +307,14 @@ def connected_components(g, ctype=None):
     elif ctype != "scc":
         raise ValueError("`ctype` must be either 'scc' or 'wcc'.")
 
-    clusters = g.graph.clusters(ig_type)
+    igcc = g.graph.connected_components(ig_type)
 
     cc = np.zeros(g.node_nb(), dtype=int)
 
-    for i, nodes in enumerate(clusters):
+    for i, nodes in enumerate(igcc):
         cc[nodes] = i
 
-    hist = np.array([len(c) for c in clusters], dtype=int)
+    hist = np.array([len(c) for c in igcc], dtype=int)
 
     return cc, hist
 
@@ -469,7 +469,7 @@ def shortest_distance(g, sources=None, targets=None, directed=None,
 
     References
     ----------
-    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [ig-dist] :igdoc:`distances`
     '''
     # weighted or selective algorithm
     g, graph, w = _get_ig_graph(g, directed, weights, combine_weights,
@@ -479,12 +479,12 @@ def shortest_distance(g, sources=None, targets=None, directed=None,
 
     # special case for one source/one target
     if is_integer(sources) and is_integer(targets):
-        return graph.shortest_paths(source=sources, target=targets,
-                                    weights=w)[0][0]
+        return graph.distances(source=sources, target=targets,
+                               weights=w)[0][0]
 
     # multiple sources/targets
-    mat_dist = graph.shortest_paths(source=sources, target=targets,
-                                    weights=w)
+    mat_dist = graph.distances(source=sources, target=targets,
+                               weights=w)
 
     mat_dist = np.array(mat_dist, dtype=float)
 
@@ -549,7 +549,7 @@ def average_path_length(g, sources=None, targets=None, directed=None,
 
     References
     ----------
-    .. [ig-sp] :igdoc:`shortest_paths`
+    .. [ig-dist] :igdoc:`distances`
     '''
     directed = g.is_directed() if directed is None else directed
 

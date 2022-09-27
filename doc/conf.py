@@ -57,13 +57,11 @@ try:
         # NEST is not available
         raise ImportError
 except:
-    import mock
-    mock_object = mock.Mock(__name__ = "Mock", __bases__ = (object,))
-
     class Mock(object):
 
         def __init__(self, *args, **kwargs):
-            super(Mock, self).__init__()
+            super().__init__()
+            self.__file__ = None
 
         def __call__(self, *args, **kwargs):
             return self
@@ -175,7 +173,7 @@ gen_autosum(source, target, 'nngt', 'summary', dtype="class",
                     "GroupProperty"))
 
 gen_autosum(target, target, 'nngt.Group', 'summary', dtype="classmembers")
-gen_autosum(target, target, 'nngt.NeuralGroup', 'summary', 
+gen_autosum(target, target, 'nngt.NeuralGroup', 'summary',
             dtype="classmembers")
 gen_autosum(target, target, 'nngt.Structure', 'summary', dtype="classmembers")
 gen_autosum(target, target, 'nngt.NeuralPop', 'summary', dtype="classmembers")
