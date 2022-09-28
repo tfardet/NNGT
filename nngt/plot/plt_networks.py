@@ -1531,7 +1531,7 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
 def chord_diagram(network, weights=True, names=None, order=None, width=0.1,
                   pad=2., gap=0.03, chordwidth=0.7, axis=None, colors=None,
                   cmap=None, alpha=0.7, use_gradient=False, chord_colors=None,
-                  show=False, **kwargs):
+                  start_at=0, extent=360, directed=None, show=False, **kwargs):
     """
     Plot a chord diagram.
 
@@ -1579,6 +1579,17 @@ def chord_diagram(network, weights=True, names=None, order=None, width=0.1,
           (in this case, RGB tuples are accepted as entries to the list).
           Each chord will get its color from its associated source node, or
           from both nodes if `use_gradient` is True.
+    start_at : float, optional (default : 0)
+        Location, in degrees, where the diagram should start on the unit circle.
+        Default is to start at 0 degrees, i.e. (x, y) = (1, 0) or 3 o'clock),
+        and move counter-clockwise
+    extent : float, optional (default : 360)
+        The angular aperture, in degrees, of the diagram.
+        Default is to use the whole circle, i.e. 360 degrees, but in some cases
+        it can be useful to use only a part of it.
+    directed : bool, optional (default: same as network)
+        Whether the chords should be directed with one part of each arc
+        dedicated to outgoing chords and the other to incoming ones.
     show : bool, optional (default: False)
         Whether the plot should be displayed immediately via an automatic call
         to `plt.show()`.
@@ -1600,11 +1611,14 @@ def chord_diagram(network, weights=True, names=None, order=None, width=0.1,
 
     mat = network.adjacency_matrix(weights=ww)
 
+    if directed is None:
+        directed = network.is_directed()
+
     return _chord_diag(
         mat, nn, order=order, width=width, pad=pad, gap=gap,
         chordwidth=chordwidth, ax=axis, colors=colors, cmap=cmap, alpha=alpha,
-        use_gradient=use_gradient, chord_colors=chord_colors, show=show,
-        **kwargs)
+        use_gradient=use_gradient, chord_colors=chord_colors, start_at=start_at,
+        extent=extent, directed=directed, show=show, **kwargs)
 
 
 # ----- #

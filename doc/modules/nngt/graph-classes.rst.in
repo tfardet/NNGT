@@ -19,9 +19,6 @@ Unless specified, child classes can use all methods from the parent class
 (the only exception is :meth:`~nngt.Graph.set_types` which is not available
 to the :class:`~nngt.Network` subclasses).
 
-.. contents::
-   :local:
-
 
 Summary of the class members and methods
 ----------------------------------------

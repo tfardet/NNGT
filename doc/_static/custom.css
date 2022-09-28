@@ -1,0 +1,24 @@
+footer {
+    font-size: 95%;
+}
+
+.toc-drawer {
+    font-size: 110%;
+}
+
+.sidebar-logo {
+    max-width: 90% !important;
+}
+
+.sphx-glr-thumbnails{
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+}
+
+.sphx-glr-thumbcontainer img {
+  max-height: 320px !important;
+  max-width: 320px !important;
+}
+
+.admonition {
+    font-size: 90%;
+}

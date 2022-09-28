@@ -4,9 +4,6 @@
 Activity analysis
 =================
 
-.. contents::
-   :local:
-
 Principle
 =========
 

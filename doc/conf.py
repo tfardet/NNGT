@@ -228,6 +228,7 @@ extensions = [
     'linksourcecode',
     'extlinks_fancy',
     'sphinx_gallery.gen_gallery',
+    'sphinx_copybutton',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -268,7 +269,7 @@ release = nngt_version
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -309,75 +310,45 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#~ html_theme = 'sphinx_rtd_theme'
 
-html_theme = 'nngt_theme'
-html_theme_path = ["."] + sphinx_bootstrap_theme.get_html_theme_path()
-html_use_smartypants = False
+html_theme = 'furo'
 
-html_theme_options = {
-    # A list of tuples containing pages or urls to link to.
-    # Valid tuples should be in the following forms:
-    #    (name, page)                 # a link to a page
-    #    (name, "/aa/bb", 1)          # a link to an arbitrary relative url
-    #    (name, "http://example.com", True) # arbitrary absolute url
-    # Note the "1" or "True" value above as the third argument to indicate
-    # an arbitrary url.
-    'navbar_links': [
-        ("Modules", "py-modindex"),
-        ("Index", "genindex"),
-        ("SourceHut", "https://git.sr.ht/~tfardet/NNGT", True),
-        ("GitHub", "https://github.com/tfardet/NNGT", True),
-    ],
-
-    # Render the next and previous page links in navbar. (Default: true)
-    'navbar_sidebarrel': False,
-
-    # Render the current pages TOC in the navbar. (Default: true)
-    'navbar_pagenav': True,
-
-    # Tab name for the current pages TOC. (Default: "Page")
-    'navbar_pagenav_name': "Current",
-
-    # Global TOC depth for "site" navbar tab. (Default: 1)
-    # Switching to -1 shows all levels.
-    'globaltoc_depth': 2,
-
-    # Include hidden TOCs in Site navbar?
-    #
-    # Note: If this is "false", you cannot have mixed ``:hidden:`` and
-    # non-hidden ``toctree`` directives in the same page, or else the build
-    # will break.
-    #
-    # Values: "true" (default) or "false"
-    'globaltoc_includehidden': "true",
-
-    # Fix navigation bar to top of page?
-    # Values: "true" (default) or "false"
-    'navbar_fixed_top': "false",
-
-    # Location of link to source.
-    # Options are "nav" (default), "footer" or anything else to exclude.
-    'source_link_position': "",
-
-    # Bootswatch (http://bootswatch.com/) theme.
-    'bootswatch_theme': "yeti"
+html_sidebars = {
+    "**": [
+        "sidebar/scroll-start.html",
+        "sidebar/brand.html",
+        "sidebar/search.html",
+        "sidebar/navigation.html",
+        "sidebar/scroll-end.html",
+    ]
 }
 
-html_sidebars = {'**': ['customtoc.html', 'searchbox.html']}
+html_theme_options = {
+    "light_css_variables": {
+        "color-brand-primary": "#527fbf",
+        "color-brand-content": "#527fbf",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#82afdf",
+        "color-brand-content": "#82afdf",
+    },
+}
+
+html_css_files = [
+    'custom.css',
+]
 
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-#html_title = None
+html_title = f'NNGT {nngt.__version__}'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#~ html_logo = 'images/nngt_logo.png'
-#~ html_logo = 'images/nngt_ico.png'
+html_logo = '_static/nngt_logo.svg'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

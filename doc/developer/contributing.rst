@@ -3,10 +3,6 @@ Contributing to NNGT
 ====================
 
 
-.. contents::
-   :local:
-
-
 Signaling issues and bugs
 =========================
 

@@ -11,10 +11,6 @@ The commands are then used by calling ``nngt.database`` to access the database
 tools.
 
 
-.. contents::
-   :local:
-
-
 Functions
 ---------
 

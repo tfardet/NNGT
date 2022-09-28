@@ -42,7 +42,7 @@ names = ["R1", "R2", "R3", "R4"]
 
 struct = nngt.Structure.from_groups((room1, room2, room3, room4), names)
 
-g = nngt.Graph(structure=struct)
+g = nngt.Graph(structure=struct, directed=True)
 
 for room in struct:
     nngt.generation.connect_groups(g, room, room, "all_to_all")
@@ -59,5 +59,10 @@ nngt.generation.connect_groups(g, room4, room3, "erdos_renyi", avg_deg=10)
 
 sg = g.get_structure_graph()
 
+# undirected version of the chord diagram
 nngt.plot.chord_diagram(sg, names="name", sort="distance", fontcolor="grey",
-                        use_gradient=True, show=True)
+                        use_gradient=True, directed=False, show=False)
+
+# directed chord diagram
+nngt.plot.chord_diagram(sg, names="name", sort="distance", fontcolor="grey",
+                        use_gradient=True, directed=True, show=True)

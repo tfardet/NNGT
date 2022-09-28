@@ -35,12 +35,6 @@ The source file for the tutorial can be found here:
     * :ref:`graph-prop`
 
 
-**Content:**
-
-.. contents::
-   :local:
-
-
 NNGT properties and configuration
 =================================
 

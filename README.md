@@ -18,8 +18,13 @@ activity simulators to make the study of neuronal activity as easy and
 efficient as possible.
 
 Source code is available and contributions are accepted on
-[SourceHut](https://sr.ht/~tfardet/NNGT) and
+[SourceHut](https://sr.ht/~tfardet/NNGT) (preferred),
+[Codeberg](https://codeberg.org/tfardet/NNGT), and
 [GitHub](https://github.com/tfardet/NNGT).
+
+For questions or issues, please check the
+[mailing list](https://lists.sr.ht/~tfardet/nngt-users) and the
+[issue tracker](https://codeberg.org/tfardet/NNGT/issues).
 
 
 ## Principle

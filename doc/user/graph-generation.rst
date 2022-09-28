@@ -12,12 +12,6 @@ The example files can be found at: :source:`docs/examples/simple_graphs.py`,
 :source:`docs/examples/nest_receptor_ports.py`.
 
 
-**Content:**
-
-.. contents::
-   :local:
-
-
 Principle
 =========
 

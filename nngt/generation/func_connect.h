@@ -5,13 +5,13 @@
 #ifndef FUNC_CONNECT_H
 #define FUNC_CONNECT_H
 
+#include <algorithm>
+#include <cmath>
+#include <functional>
 #include <string>
 #include <vector>
 #include <tuple>
 #include <unordered_set>
-
-#include <cmath>
-#include <algorithm>
 
 
 namespace generation {
@@ -46,7 +46,7 @@ typedef std::unordered_set<edge_t, key_hash, key_equal> set_t;
  * Sort a vector to move the N unique numbers in the N first entries.
  *
  * \param a - Source array.
- * 
+ *
  * .. note::
  *   The array is modified inplace.
  *
@@ -60,7 +60,7 @@ size_t _unique_1d(std::vector<size_t>& a,
  * Sort a 2-D vector to move the N unique pairs in the N first columns.
  *
  * \param a - Source array.
- * 
+ *
  * .. note::
  *   The array is modified inplace.
  *
@@ -119,7 +119,7 @@ void _gen_edges(
 
 /*
  * Parallel distance-rule generator.
- * 
+ *
  * \param ia_edges       - array that will contain the edges
  * \param source_nodes   - array containing the ids of the source nodes
  * \param target_nodes   - array containing the ids of the target nodes
@@ -151,7 +151,7 @@ static inline float _proba(
 {
     float p = 0.;  // probability value
 
-    switch (rule) 
+    switch (rule)
     {
         case 0:  // linear
             p = norm*std::max(0., 1. - distance * inv_scale);

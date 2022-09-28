@@ -7,11 +7,6 @@ Properties of graph components
 This section details the different attributes and properties which can be
 associated to nodes/neurons and connections in graphs and networks.
 
-**Content:**
-
-.. contents::
-   :local:
-
 
 Components of a graph
 =====================

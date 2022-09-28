@@ -37,12 +37,6 @@ found here: :source:`docs/examples/nest_network.py` /
 :source:`docs/examples/nest_receptor_ports.py`.
 
 
-**Content:**
-
-.. contents::
-   :local:
-
-
 Creating detailed neuronal networks
 ===================================
 

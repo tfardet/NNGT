@@ -21,9 +21,6 @@ Unless specified, child classes can use all methods from the parent class
 :class:`~nngt.MetaNeuralGroup` inherit from :class:`~nngt.Group` while
 :class:`~nngt.NeuralPop` inherits from :class:`~nngt.Structure`).
 
-.. contents::
-   :local:
-
 
 Group
 +++++

@@ -92,6 +92,9 @@ The docs
    :caption: Contributing
 
    developer/contributing
+   SourceHut <https://git.sr.ht/~tfardet/NNGT>
+   Codeberg <https://codeberg.org/tfardet/NNGT>
+   GitHub <https://github.com/tfardet/NNGT>
 
 .. toctree::
    :glob:

@@ -13,11 +13,6 @@ additional information on how to access :class:`~nngt.NeuralGroup` and
 :class:`~nngt.NeuralPop` properties can be found there:
 :source:`docs/examples/introduction_to_groups.py`.
 
-**Contents**
-
-.. contents::
-   :local:
-
 
 Neuronal groups
 ===============
