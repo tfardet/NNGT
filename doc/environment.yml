@@ -9,9 +9,10 @@ dependencies:
     - matplotlib
     - cartopy
     - pip:
-        - sphinx_bootstrap_theme
+        - furo
         - peewee
         - sphinx-gallery
+        - sphinx-copybutton
         - networkx
         - shapely
         - dxfgrabber
