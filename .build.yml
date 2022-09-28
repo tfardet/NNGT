@@ -4,6 +4,7 @@ sources:
 secrets:
     - ceb490c3-68b4-41f7-9aa9-eb2e4b91d424
     - 0b249c79-8eaf-4b82-b1d1-f3c38c7eae4b
+    - 3a7c042a-24d8-4f53-b75c-f061f7517b65
 tasks:
     - check: |
         mv .coveralls.yml NNGT/.coveralls.yml || true
@@ -37,3 +38,10 @@ tasks:
         coverage combine
         GIT_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ', /' '\n' | grep -v HEAD | sed -n 2p)
         CI_NAME=$BUILD_SUBMITTER CI_BUILD_NUMBER=$JOB_ID CI_BUILD_URL=$JOB_URL CI_BRANCH=$GIT_BRANCH coveralls || true
+    - doc: |
+        cd NNGT
+        GIT_BRANCH=$(git show -s --pretty=%D HEAD | tr -s ', /' '\n' | grep -v HEAD | sed -n 2p)
+        set +x
+        . ~/.rtd_nngt
+        if [ "$GIT_BRANCH" == "main" ]; then curl -X POST -d "branches=main" -d "token=$rtd_nngt_token" https://readthedocs.org/api/v2/webhook/nngt/214030/; fi
+        set -x

@@ -15,25 +15,24 @@ The manylinux wheels
 ====================
 
 To prepare the ``manylinux`` wheels, one must use the docker containers
-provided by https://github.com/pypa/manylinux
+provided by https://github.com/pypa/manylinux ::
+
+    docker pull quay.io/pypa/manylinux1_x86_64
 
 .. note::
     Reminder for docker: dockerd must be running, for issue on archlinux,
     see https://unix.stackexchange.com/questions/478387/running-a-centos-docker-image-on-arch-linux-exits-with-code-139
 
-
-    docker pull quay.io/pypa/manylinux1_x86_64
-
-Run the container and give it a name
+Run the container and give it a name ::
 
     docker run -it --name=manylinux quay.io/pypa/manylinux1_x86_64
 
-It can also be started afterwards with
+It can also be started afterwards with ::
 
     docker start -i manylinux
 
 Once in the container, I wrote an automatic install file (``build_wheels.sh``)
-to build NNGT
+to build NNGT ::
 
     #!/bin/bash
     set -e -x
@@ -49,7 +48,7 @@ to build NNGT
         auditwheel repair "$whl" -w wheelhouse/
     done
 
-associated to a ``requirements.txt`` file
+associated to a ``requirements.txt`` file ::
 
     numpy>=1.17
     scipy
@@ -60,7 +59,7 @@ the ``setup.py``), and create a ``wheelhouse`` folder also next to it, then
 just run ``build_wheels.sh``.
 
 Once the "repaired" wheels have been saved, you can extract them from the
-docker container using
+docker container using ::
 
     docker cp manylinux:/home/wheelhouse/ /where/you/want/it
 
@@ -72,12 +71,12 @@ Pushing to PyPi
 
 https://twine.readthedocs.io/en/latest/
 
-First test it:
+First test it: ::
 
     twine upload --repository-url https://test.pypi.org/legacy/ *
     pip install --index-url https://test.pypi.org/simple/ nngt
 
-Then upload "for real"
+Then upload "for real" ::
 
     twine upload dist/*
 

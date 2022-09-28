@@ -11,14 +11,26 @@ footer {
 }
 
 .sphx-glr-thumbnails{
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
 }
 
 .sphx-glr-thumbcontainer img {
-  max-height: 320px !important;
-  max-width: 320px !important;
+    max-height: 320px !important;
+    max-width: 320px !important;
 }
 
 .admonition {
     font-size: 90%;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) .math {
+        filter: invert(100%);
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    body[data-theme="dark"] .math {
+        filter: invert(100%);
+    }
 }

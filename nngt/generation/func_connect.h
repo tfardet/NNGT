@@ -22,15 +22,18 @@ namespace generation {
 
 typedef std::tuple<size_t, size_t> edge_t;
 
-struct key_hash : public std::unary_function<edge_t, std::size_t>
+struct key_hash
 {
-   std::size_t operator()(const edge_t& k) const
-   {
-      return std::get<0>(k) ^ std::get<1>(k);
-   }
+    std::size_t operator()(const edge_t& k) const
+    {
+        std::size_t h1 = std::hash<size_t>{}(std::get<0>(k));
+        std::size_t h2 = std::hash<size_t>{}(std::get<1>(k));
+
+        return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+    }
 };
 
-struct key_equal : public std::binary_function<edge_t, edge_t, bool>
+struct key_equal
 {
    bool operator()(const edge_t& v0, const edge_t& v1) const
    {

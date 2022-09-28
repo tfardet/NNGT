@@ -1,6 +1,6 @@
-================
+=================
 Geospatial module
-================
+=================
 
 .. currentmodule:: nngt.geospatial
 
