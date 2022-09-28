@@ -27,8 +27,6 @@ import re
 import fnmatch
 import importlib.util as imputil
 
-import sphinx_bootstrap_theme
-
 
 # Paths
 current_directory = os.path.abspath('.')
