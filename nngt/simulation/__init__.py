@@ -48,8 +48,7 @@ _logger = _logging.getLogger(__name__)
 import nest
 
 warnlist = [
-    "Connect", "Disconnect", "Create", "SetStatus", "get", "set",
-    "ResetNetwork"
+    "Connect", "Disconnect", "Create", "SetStatus", "ResetNetwork"
 ]
 
 def _wrap_reset_kernel(func):
@@ -73,7 +72,9 @@ def _wrap_warn(func):
             _log_message(_logger, "WARNING", "This function could interfere "
                          "with NNGT, making your Network obsolete compared to "
                          "the one in NEST... make sure to check what is "
-                         "modified!")
+                         "modified! Pass the `_warn=False` keyword to the "
+                         "function if you know what you are doing and want to "
+                         "hide this message.")
 
         return func(*args, **kwargs)
 

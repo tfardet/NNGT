@@ -89,7 +89,7 @@ import logging as _logging
 import numpy as _np
 
 
-__version__ = '2.5.3'
+__version__ = '2.6.0'
 
 
 # ----------------------- #
@@ -224,8 +224,8 @@ _libs = ['graph-tool', 'igraph', 'networkx']
 _glib = _config['backend']
 
 assert _glib in _libs or _glib == 'nngt', \
-	   "Internal error for graph library loading, please report " +\
-	   "this on GitHub."
+       "Internal error for graph library loading, please report " +\
+       "this on GitHub."
 
 try:
     use_backend(_config['backend'], False, silent=True)
