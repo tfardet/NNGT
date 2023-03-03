@@ -6,7 +6,7 @@
 # and reproducible graph analysis: generate and analyze networks with your
 # favorite graph library (graph-tool/igraph/networkx) on any platform, without
 # any change to your code.
-# Copyright (C) 2015-2022 Tanguy Fardet
+# Copyright (C) 2015-2023 Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@ import logging as _logging
 import numpy as _np
 
 
-__version__ = '2.6.0'
+__version__ = '2.7.0-dev'
 
 
 # ----------------------- #

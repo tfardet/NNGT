@@ -6,7 +6,7 @@
 # and reproducible graph analysis: generate and analyze networks with your
 # favorite graph library (graph-tool/igraph/networkx) on any platform, without
 # any change to your code.
-# Copyright (C) 2015-2022 Tanguy Fardet
+# Copyright (C) 2015-2023 Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -491,20 +491,40 @@ def _independent_edges(g):
 
     A.setdiag(0)  # remove self-loops for the computation
 
-    A2 = A*A
+    A2 = A@A
     A2.data = np.ones(len(A2.data))
     A2.setdiag(1)
 
     ind_edges = set()
 
     if g.is_directed():
-        [ind_edges.add((i, j)) for i in g.get_nodes()
-            for j in np.where(
-                A.getrow(i).todense().A1*(1 - A2.getrow(i).todense().A1))[0]]
+        if isinstance(A, ssp.csr_array):
+            [
+                ind_edges.add((i, j)) for i in g.get_nodes()
+                for j in np.where(
+                    A.getrow(i).todense()*(1 - A2.getrow(i).todense()))[0]
+            ]
+        else:
+            [
+                ind_edges.add((i, j)) for i in g.get_nodes()
+                for j in np.where(
+                    A.getrow(i).todense().A1*(1 - A2.getrow(i).todense().A1)
+                )[0]
+            ]
     else:
-        [ind_edges.add((i, j)) for i in g.get_nodes()
-            for j in np.where(
-                A.getrow(i).todense().A1*(1 - A2.getrow(i).todense().A1))[0]
-            if (j, i) not in ind_edges]
+        if isinstance(A, ssp.csr_array):
+            [
+                ind_edges.add((i, j)) for i in g.get_nodes()
+                for j in np.where(
+                    A.getrow(i).todense()*(1 - A2.getrow(i).todense())
+                )[0] if (j, i) not in ind_edges
+            ]
+        else:
+            [
+                ind_edges.add((i, j)) for i in g.get_nodes()
+                for j in np.where(
+                    A.getrow(i).todense().A1*(1 - A2.getrow(i).todense().A1)
+                )[0] if (j, i) not in ind_edges
+            ]
 
     return ind_edges

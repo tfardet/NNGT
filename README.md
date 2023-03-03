@@ -5,7 +5,7 @@
  alt="Logo of NNGT: a conceptual sketch of a pyramidal neuron linked to three
  simple circular nodes to form a graph." />
 
-[![builds.sr.ht status](https://builds.sr.ht/~tfardet/nngt/commits.svg)](https://builds.sr.ht/~tfardet/nngt/commits?)
+[![builds.sr.ht status](https://builds.sr.ht/~tfardet/nngt/commits/main.svg)](https://builds.sr.ht/~tfardet/nngt/commits?)
 [![Coverage Status](https://coveralls.io/repos/github/tfardet/NNGT/badge.svg?branch=main)](https://coveralls.io/github/tfardet/NNGT?branch=main)
 [![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html)<br>
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg)](https://doi.org/10.5281/zenodo.3402493)

@@ -6,7 +6,7 @@
 # and reproducible graph analysis: generate and analyze networks with your
 # favorite graph library (graph-tool/igraph/networkx) on any platform, without
 # any change to your code.
-# Copyright (C) 2015-2022 Tanguy Fardet
+# Copyright (C) 2015-2023 Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -365,7 +365,7 @@ class Animation2d(_SpikeAnimator, anim.FuncAnimation):
     def __init__(self, source, multimeter, start=0., timewindow=None,
                  trace=5., x='time', y='V_m', sort_neurons=None,
                  network=None, interval=50, vector_field=False, **kwargs):
-        '''
+        r'''
         Generate a SubplotAnimation instance to plot a network activity.
 
         Parameters
@@ -880,7 +880,7 @@ def _save_movie(animation, filename, fps, video_encoder, codec, bitrate,
 
 
 def _vector_field(q, dotx_func, doty_func, x, y, Is):
-    '''
+    r'''
     Add the vector field of the x and y derivatives in phase space.
 
     Parameters

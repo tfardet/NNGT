@@ -6,7 +6,7 @@
 # and reproducible graph analysis: generate and analyze networks with your
 # favorite graph library (graph-tool/igraph/networkx) on any platform, without
 # any change to your code.
-# Copyright (C) 2015-2022 Tanguy Fardet
+# Copyright (C) 2015-2023 Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -515,7 +515,7 @@ def random_scale_free(in_exp, out_exp, nodes=0, density=None, edges=None,
                       directed=True, multigraph=False, name="RandomSF",
                       shape=None, positions=None, population=None,
                       from_graph=None, **kwargs):
-    """
+    r"""
     Generate a free-scale graph of given reciprocity and otherwise
     devoid of correlations.
 
@@ -1481,7 +1481,7 @@ def distance_rule(scale, rule="exp", shape=None, neuron_density=1000.,
                   avg_deg=None, unit='um', weighted=True, directed=True,
                   multigraph=False, name="DR", positions=None, population=None,
                   from_graph=None, **kwargs):
-    """
+    r"""
     Create a graph using a 2D distance rule to create the connection between
     neurons. Available rules are linear and exponential.
 

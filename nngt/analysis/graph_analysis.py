@@ -6,7 +6,7 @@
 # and reproducible graph analysis: generate and analyze networks with your
 # favorite graph library (graph-tool/igraph/networkx) on any platform, without
 # any change to your code.
-# Copyright (C) 2015-2022 Tanguy Fardet
+# Copyright (C) 2015-2023 Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -844,7 +844,7 @@ def adjacency_matrix(graph, types=False, weights=False):
     References
     ----------
     .. [gt-adjacency] :gtdoc:`spectral.adjacency`
-    .. [nx-adjacency] :nxdoc:`.convert_matrix.to_scipy_sparse_matrix`
+    .. [nx-adjacency] :nxdoc:`.convert_matrix.to_scipy_sparse_array`
     '''
     return graph.adjacency_matrix(types=types, weights=weights)
 

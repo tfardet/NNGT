@@ -6,7 +6,7 @@
 # and reproducible graph analysis: generate and analyze networks with your
 # favorite graph library (graph-tool/igraph/networkx) on any platform, without
 # any change to your code.
-# Copyright (C) 2015-2022 Tanguy Fardet
+# Copyright (C) 2015-2023 Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -252,21 +252,21 @@ def local_closure(g, directed=True, weights=None, method=None,
             sqmat = mat.sqrt()
             cbmat = mat.power(2/3)
 
-            mat2 = sqmat*sqmat
+            mat2 = sqmat@sqmat
 
             if mode in ("cycle-in", "cycle-out"):
-                mat3 = cbmat*cbmat*cbmat
+                mat3 = cbmat@cbmat@cbmat
             elif mode in ("fan-in", "fan-out"):
-                mat3 = cbmat*cbmat*cbmat.T
+                mat3 = cbmat@cbmat@cbmat.T
             else:
                 raise ValueError("Unknown `mode`: '" + mode + "'.'")
         elif method in ("normal", "zhang", None):
-            mat2 = mat*mat
+            mat2 = mat@mat
 
             if mode in ("cycle-in", "cycle-out"):
-                mat3 = mat2*mat
+                mat3 = mat2@mat
             elif mode in ("fan-in", "fan-out"):
-                mat3 = mat2*mat.T
+                mat3 = mat2@mat.T
             else:
                 raise ValueError("Unknown `mode`: '" + mode + "'.'")
         else:
@@ -277,16 +277,16 @@ def local_closure(g, directed=True, weights=None, method=None,
             sqmat = mat.sqrt()
             cbmat = mat.power(2/3)
 
-            mat2 = sqmat*sqmat
-            mat3 = cbmat*cbmat*cbmat
+            mat2 = sqmat@sqmat
+            mat3 = cbmat@cbmat@cbmat
         elif method in ("normal", "zhang", None):
-            mat2 = mat*mat
-            mat3 = mat2*mat
+            mat2 = mat@mat
+            mat3 = mat2@mat
         else:
             raise ValueError("Unknown `method`: '" + method + "'.'")
 
     numer = mat3.diagonal()
-    denom = mat2.sum(axis=1).A1 - mat2.diagonal()
+    denom = _sum(mat2, axis=1) - mat2.diagonal()
 
     denom[denom == 0] = 1
 
@@ -653,9 +653,9 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
                                           combine_weights)
 
                 if nodes is None:
-                    deg = adjsym.sum(axis=0).A1
+                    deg = _sum(adjsym, axis=0)
                 else:
-                    deg = adjsym.sum(axis=0).A1[nodes]
+                    deg = _sum(adjsym, axis=0)[nodes]
             else:
                 deg = g.get_degrees(nodes=nodes)
 
@@ -668,7 +668,7 @@ def triplet_count(g, nodes=None, directed=True, weights=None,
         if mode in ("total", "cycle", "middleman"):
             adj = g.adjacency_matrix()
 
-            d_recip = (adj*adj).diagonal()
+            d_recip = (adj@adj).diagonal()
 
             if nodes is not None:
                 d_recip = d_recip[nodes]
@@ -787,15 +787,15 @@ def _triangle_count(mat, matsym, adj, adjsym, method, mode, weighted, directed,
 
     if method == "barrat":
         if mode == "total":
-            tr = 0.5*(matsym*adjsym*adjsym).diagonal()
+            tr = 0.5*(matsym@adjsym@adjsym).diagonal()
         elif mode == "cycle":
-            tr = 0.5*(mat*adj*adj + mat.T*adj.T*adj.T).diagonal()
+            tr = 0.5*(mat@adj@adj + mat.T@adj.T@adj.T).diagonal()
         elif mode == "middleman":
-            tr = 0.5*(mat.T*adj*adj.T + mat*adj.T*adj).diagonal()
+            tr = 0.5*(mat.T@adj@adj.T + mat@adj.T@adj).diagonal()
         elif mode == "fan-in":
-            tr = 0.5*(mat.T*adjsym*adj).diagonal()
+            tr = 0.5*(mat.T@adjsym@adj).diagonal()
         elif mode == "fan-out":
-            tr = 0.5*(mat*adjsym*adj.T).diagonal()
+            tr = 0.5*(mat@adjsym@adj.T).diagonal()
         else:
             raise ValueError("Unknown mode ''.".format(mode))
     else:
@@ -805,17 +805,20 @@ def _triangle_count(mat, matsym, adj, adjsym, method, mode, weighted, directed,
             raise ValueError("Invalid `method`: '{}'".format(method))
 
         if mode == "total":
-            tr = 0.5*(matsym*matsym*matsym).diagonal()
+            tr = 0.5*(matsym@matsym@matsym).diagonal()
         elif mode == "cycle":
-            tr = (mat*mat*mat).diagonal()
+            tr = (mat@mat@mat).diagonal()
         elif mode == "middleman":
-            tr = (mat*mat.T*mat).diagonal()
+            tr = (mat@mat.T@mat).diagonal()
         elif mode == "fan-in":
-            tr = (mat.T*mat*mat).diagonal()
+            tr = (mat.T@mat@mat).diagonal()
         elif mode == "fan-out":
-            tr = (mat*mat*mat.T).diagonal()
+            tr = (mat@mat@mat.T).diagonal()
         else:
             raise ValueError("Unknown mode ''.".format(mode))
+
+    if isinstance(tr, np.matrix):
+        tr = tr.A1
 
     if nodes is None:
         return tr
@@ -837,22 +840,22 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
             sqmat = mat.sqrt()
 
             if mode == "total":
-                s2_sq_tot = np.square(sqmat.sum(axis=0).A1 +
-                                      sqmat.sum(axis=1).A1)
-                s_tot     = mat.sum(axis=0).A1 + mat.sum(axis=1).A1
-                s_recip   = 2*(sqmat*sqmat).diagonal()
+                s2_sq_tot = np.square(
+                    _sum(sqmat, axis=0) + _sum(sqmat, axis=1))
+                s_tot     = _sum(mat, axis=0) + _sum(mat, axis=1)
+                s_recip   = 2*(sqmat@sqmat).diagonal()
 
                 tr = s2_sq_tot - s_tot - s_recip
             elif mode in ("cycle", "middleman"):
-                s_sq_out = sqmat.sum(axis=0).A1
-                s_sq_in  = sqmat.sum(axis=1).A1
-                s_recip  = (sqmat*sqmat).diagonal()
+                s_sq_out = _sum(sqmat, axis=0)
+                s_sq_in  = _sum(sqmat, axis=1)
+                s_recip  = (sqmat@sqmat).diagonal()
 
                 tr = s_sq_in*s_sq_out - s_recip
             elif mode in ("fan-in", "fan-out"):
                 axis  = 0 if mode == "fan-in" else 1
-                s2_sq = np.square(sqmat.sum(axis=axis).A1)
-                sgth  = mat.sum(axis=axis).A1
+                s2_sq = np.square(_sum(sqmat, axis=axis))
+                sgth  = _sum(mat, axis=axis)
 
                 tr = s2_sq - sgth
             else:
@@ -860,8 +863,8 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
         else:
             sqmat = matsym.sqrt()
 
-            s2_sq = np.square(sqmat.sum(axis=0).A1)
-            s     = matsym.sum(axis=0).A1
+            s2_sq = np.square(_sum(sqmat, axis=0))
+            s = _sum(matsym, axis=0)
 
             tr = 0.5*(s2_sq - s)
     elif method == "zhang":
@@ -869,22 +872,21 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
             mat2 = mat.power(2)
 
             if mode == "total":
-                s2_sq_tot = np.square(mat.sum(axis=0).A1 +
-                                      mat.sum(axis=1).A1)
-                s_tot     = mat2.sum(axis=0).A1 + mat2.sum(axis=1).A1
-                s_recip   = 2*(mat*mat).diagonal()
+                s2_sq_tot = np.square(_sum(mat, axis=0) + _sum(mat, axis=1))
+                s_tot     = _sum(mat2, axis=0) + _sum(mat2, axis=1)
+                s_recip   = 2*(mat@mat).diagonal()
 
                 tr = s2_sq_tot - s_tot - s_recip
             elif mode in ("cycle", "middleman"):
-                s_sq_out = mat.sum(axis=0).A1
-                s_sq_in  = mat.sum(axis=1).A1
-                s_recip  = (mat*mat).diagonal()
+                s_sq_out = _sum(mat, axis=0)
+                s_sq_in  = _sum(mat, axis=1)
+                s_recip  = (mat@mat).diagonal()
 
                 tr = s_sq_in*s_sq_out - s_recip
             elif mode in ("fan-in", "fan-out"):
                 axis  = 0 if mode == "fan-in" else 1
-                s2_sq = np.square(mat.sum(axis=axis).A1)
-                sgth  = mat2.sum(axis=axis).A1
+                s2_sq = np.square(_sum(mat, axis=axis))
+                sgth  = _sum(mat2, axis=axis)
 
                 tr = s2_sq - sgth
             else:
@@ -892,15 +894,15 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
         else:
             mat2 = matsym.power(2)
 
-            s2_sq = np.square(matsym.sum(axis=0).A1)
-            s     = mat2.sum(axis=0).A1
+            s2_sq = np.square(_sum(matsym, axis=0))
+            s = _sum(mat2, axis=0)
 
             tr = 0.5*(s2_sq - s)
     elif method == "barrat":
         if directed:
             # specifc definition of the reciprocal strength from Clemente
             if mode == "total":
-                s_recip = 0.5*(mat*adj + adj*mat).diagonal()
+                s_recip = 0.5*(mat@adj + adj@mat).diagonal()
 
                 dtot = g.get_degrees("total")
                 wmax = np.max(g.get_weights())
@@ -908,29 +910,29 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
 
                 tr = stot*(dtot - 1) - 2*s_recip
             elif mode in ("cycle", "middleman"):
-                s_recip = 0.5*(mat*adj + adj*mat).diagonal()
-                s_in    = mat.sum(axis=0).A1
-                s_out   = mat.sum(axis=1).A1
+                s_recip = 0.5*(mat@adj + adj@mat).diagonal()
+                s_in    = _sum(mat, axis=0)
+                s_out   = _sum(mat, axis=1)
                 d_in    = g.get_degrees("in")
                 d_out   = g.get_degrees("out")
 
                 tr = 0.5*(s_in*d_out + s_out*d_in) - s_recip
             elif mode in ("fan-in", "fan-out"):
                 axis = 0 if mode == "fan-in" else 1
-                sgth = mat.sum(axis=axis).A1
+                sgth = _sum(mat, axis=axis)
                 deg  = g.get_degrees(mode[4:])
 
                 tr = sgth*(deg - 1)
             else:
                 raise ValueError("Unknown mode ''.".format(mode))
         elif g.is_directed():
-            d = adjsym.sum(axis=0).A1
-            s = matsym.sum(axis=0).A1
+            d = _sum(adjsym, axis=0)
+            s = _sum(matsym, axis=0)
 
             tr = 0.5*s*(d - 1)
         else:
             d = g.get_degrees()
-            s = matsym.sum(axis=0).A1
+            s = _sum(matsym, axis=0)
 
             tr = 0.5*s*(d - 1)
     else:
@@ -941,3 +943,13 @@ def _triplet_count_weighted(g, mat, matsym, adj, adjsym, method, mode,
         return tr
 
     return tr[nodes]
+
+
+def _sum(mat, axis):
+    ''' Sum either sparse matrix or array '''
+    res = mat.sum(axis=axis)
+
+    if "matrix" in str(type(mat)):
+        return res.A1
+
+    return res

@@ -6,7 +6,7 @@
 # and reproducible graph analysis: generate and analyze networks with your
 # favorite graph library (graph-tool/igraph/networkx) on any platform, without
 # any change to your code.
-# Copyright (C) 2015-2022 Tanguy Fardet
+# Copyright (C) 2015-2023 Tanguy Fardet
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1317,7 +1317,7 @@ class Graph(nngt.core.GraphObject):
         Returns
         -------
         degrees : :class:`numpy.array`
-        
+
         .. warning ::
             When using MPI with "nngt" (distributed) backend, returns only the
             degrees associated to local edges. "Complete" degrees are obtained
