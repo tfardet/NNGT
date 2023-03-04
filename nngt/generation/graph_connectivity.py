@@ -1,25 +1,7 @@
-#-*- coding:utf-8 -*-
-#
-# generation/graph_connectivity.py
-#
-# This file is part of the NNGT project, a graph-library for standardized and
-# and reproducible graph analysis: generate and analyze networks with your
-# favorite graph library (graph-tool/igraph/networkx) on any platform, without
-# any change to your code.
-# Copyright (C) 2015-2023 Tanguy Fardet
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
+# nngt/generation/graph_connectivity.py
 
 """ Connectivity generators for nngt.Graph """
 
@@ -89,7 +71,7 @@ if nngt.get_config("multithreading"):
 
             if on_master_process():
                 from .cconnect import *
-    
+
             nngt.lib.mpi_barrier()
 
             from .cconnect import *
@@ -787,7 +769,7 @@ def circular(coord_nb, reciprocity=1., reciprocity_choice="random", nodes=0,
     graph_circ._graph_type = "circular"
 
     return graph_circ
-    
+
 
 # ------------------ #
 # Small-world models #
@@ -1328,7 +1310,7 @@ def sparse_clustered(c, nodes=0, edges=None, avg_deg=None, connected=True,
 
                     if n > 2:
                         rng.shuffle(targets)
-                        
+
                     cset = set()
 
                     for i in sources:
@@ -1620,7 +1602,7 @@ def generate(di_instructions, **kwargs):
     instructions = deepcopy(di_instructions)
 
     del instructions["graph_type"]
-    
+
     instructions.update(kwargs)
 
     return _di_generator[graph_type](**instructions)

@@ -1,25 +1,7 @@
-#-*- coding:utf-8 -*-
-#
-# plot/plt_properties.py
-#
-# This file is part of the NNGT project, a graph-library for standardized and
-# and reproducible graph analysis: generate and analyze networks with your
-# favorite graph library (graph-tool/igraph/networkx) on any platform, without
-# any change to your code.
-# Copyright (C) 2015-2023 Tanguy Fardet
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
+# nngt/plot/plt_properties.py
 
 """ Tools to plot graph properties """
 
@@ -128,7 +110,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
 
         if "label" not in kwargs:
             kwargs["label"] = deg_string
-    
+
         axis.bar(bins[:-1], counts, np.diff(bins), **kwargs)
     else:
         if colors is None:
@@ -146,7 +128,7 @@ def degree_distribution(network, deg_type="total", nodes=None,
 
             maxcounts_tmp = counts.max()
             mincounts_tmp = np.min(counts[counts>0])
-            
+
             mincounts = min(mincounts, mincounts_tmp)
             maxcounts = max(maxcounts, maxcounts_tmp)
 
@@ -359,7 +341,7 @@ def betweenness_distribution(
     if alpha is None:
         kwargs["alpha"] = 0.5 if btype == "both" else 1
 
-    
+
     x = 0 if legend_location == 'left' else 1
 
     # plot
@@ -406,7 +388,7 @@ def betweenness_distribution(
             ax2 = format_exponent(ax2, 'x', (1., 1.1))
             ax1 = format_exponent(ax1, 'x', (1., -0.05))
 
-    y = 1.15 if btype == "both" else 1.05 
+    y = 1.15 if btype == "both" else 1.05
 
     title = "Betweenness distribution for {}".format(network.name) \
             if title is None else title
@@ -1117,7 +1099,7 @@ def _format_and_show(fig, num_plot, values, title, show):
     import matplotlib.pyplot as plt
 
     plt.tight_layout()
-    
+
     if title is not None:
         fig.suptitle(title)
     if show:

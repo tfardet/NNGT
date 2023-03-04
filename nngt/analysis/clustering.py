@@ -1,25 +1,7 @@
-#-*- coding:utf-8 -*-
-#
-# analysis/clustering.py
-#
-# This file is part of the NNGT project, a graph-library for standardized and
-# and reproducible graph analysis: generate and analyze networks with your
-# favorite graph library (graph-tool/igraph/networkx) on any platform, without
-# any change to your code.
-# Copyright (C) 2015-2023 Tanguy Fardet
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
+# nngt/analysis/clustering.py
 
 """ Tools for directed/weighted clsutering analysis """
 
@@ -31,7 +13,7 @@ from nngt.lib.graph_helpers import _get_matrices
 
 
 __all__ = [
-	"global_clustering",
+    "global_clustering",
     "global_clustering_binary_undirected",
     "local_closure",
     "local_clustering",
@@ -100,8 +82,8 @@ def global_clustering(g, directed=True, weights=None, method="continuous",
         * "max": the maximum of the edge attribute values will be used for the
           new edge.
 
-    References
-    ----------
+    Reference
+    ---------
     .. [gt-global-clustering] :gtdoc:`clustering.global_clustering`
     .. [ig-global-clustering] :igdoc:`transitivity_undirected`
     .. [nx-global-clustering] :nxdoc:`algorithms.cluster.transitivity`

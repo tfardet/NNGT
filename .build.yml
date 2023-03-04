@@ -1,15 +1,22 @@
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: CC0-1.0
+
 image: ubuntu/lts
 sources:
     - https://git.sr.ht/~tfardet/NNGT
+packages:
+    - python3-pip
 secrets:
     - ceb490c3-68b4-41f7-9aa9-eb2e4b91d424
     - 0b249c79-8eaf-4b82-b1d1-f3c38c7eae4b
     - 3a7c042a-24d8-4f53-b75c-f061f7517b65
 tasks:
     - check: |
-        mv .coveralls.yml NNGT/.coveralls.yml || true
+        export PATH="/home/build/.local/bin:$PATH"
         cd NNGT
         python3 extra/check_headers.py
+        pip3 install reuse
+        reuse lint
     - setup: |
         sudo apt install -y software-properties-common
         sudo sh -c 'echo -n "deb https://downloads.skewed.de/apt jammy main\n" >> /etc/apt/sources.list'
@@ -17,13 +24,15 @@ tasks:
         sudo apt-get update -qq
         sudo apt install -y gcc python3-dev libgeos-dev proj-bin libproj-dev openmpi-bin libopenmpi-dev libgmp-dev
         sudo apt install -y python3-pip python3-tk libigraph-dev python3-graph-tool python3-cairo python3-cairocffi
-        pip3 install numpy scipy cython mpi4py
-        pip3 install networkx python-igraph lxml
-        pip3 install "matplotlib<3.7" seaborn shapely svg.path dxfgrabber cartopy geopandas descartes
-        pip3 install pytest pytest-mpi cov-core coverage coveralls[yaml]
+        pip3 install --upgrade pip setuptools
+        pip install --upgrade numpy scipy cython mpi4py
+        pip install --upgrade "networkx>=2.4" python-igraph
+        pip install --upgrade "matplotlib<3.7" seaborn shapely svg.path dxfgrabber cartopy geopandas descartes lxml
+        pip install --upgrade pytest pytest-mpi cov-core coverage coveralls[yaml]
+        mv .coveralls.yml NNGT/.coveralls.yml || true
         cd NNGT
-        python3 setup.py install --user
-        echo 'export PATH=$PATH:/home/build/.local/bin' >> /home/build/.buildenv
+        pip install .
+        echo 'export PATH=/home/build/.local/bin:$PATH' >> /home/build/.buildenv
     - test: |
         cd NNGT
         GL=all coverage run -p -m pytest testing/library_compatibility.py

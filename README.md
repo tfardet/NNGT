@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2022 Tanguy Fardet
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # NNGT: a unified interface for networks in python
 
 <img align="left" style="padding-top: 5px; margin-right: 15px;"

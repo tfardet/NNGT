@@ -1,10 +1,15 @@
+..
+    SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+    SPDX-License-Identifier: CC-BY-SA-4.0
+    doc/index.rst
+
 .. NNGT documentation master file
 
 ================================
 Welcome to NNGT's documentation!
 ================================
 
-.. image:: https://builds.sr.ht/~tfardet/nngt/commits.svg
+.. image:: https://builds.sr.ht/~tfardet/nngt/commits/main.svg
     :target: https://builds.sr.ht/~tfardet/nngt
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg
    :target: https://doi.org/10.5281/zenodo.3402493

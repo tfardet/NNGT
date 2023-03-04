@@ -1,5 +1,6 @@
-Creator "Mark Newman on Fri Jul 21 12:39:27 2006"
-Comment social network of friendships between 34 members of a karate club at a US university in the 1970s. Please cite W. W. Zachary, An information flow model for conflict and fission in small groups, Journal of Anthropological Research 33, 452-473 (1977).
+SPDX-FileCopyrightText: 1977 W. Zachary
+SPDX-License-Identifier: CC-BY-SA-4.0
+
 graph
 [
   node

@@ -1,4 +1,5 @@
-Creator "Mark Newman on Wed Oct 18 16:42:04 2006"
+SPDX-FileCopyrightText: 2006 Mark Newman
+SPDX-License-Identifier: CC-BY-SA-4.0
 graph
 [
   directed 0

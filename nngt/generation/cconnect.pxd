@@ -1,6 +1,8 @@
 #cython: language_level=3
 #!/usr/bin/env cython
 #-*- coding:utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 """ Cython headers for C++ parallel generation tools for NNGT """
 

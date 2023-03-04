@@ -1,10 +1,7 @@
-#-*- coding:utf-8 -*-
-
-# test_gallery.py
-
-# This file is part of the NNGT module
-# Distributed as a free software, in the hope that it will be useful, under the
-# terms of the GNU General Public License.
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
+# testing/test_gallery.py
 
 
 """ Testing main functions """

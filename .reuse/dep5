@@ -1,0 +1,16 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: NNGT
+Upstream-Contact: Tanguy Fardet
+Source: https://git.sr.ht/~tfardet/NNGT
+
+# Library: PyNCulture:
+
+Files: nngt/geometry/*
+Copyright: Tanguy Fardet
+License: GPL-3.0-or-later
+
+# Library: mpl_chord_diagram:
+
+Files: nngt/plot/chord_diag/*
+Copyright: Tanguy Fardet and Guillermo Pérez-Hernández
+License: MIT

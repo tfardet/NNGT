@@ -1,108 +1,30 @@
-#-*- coding:utf-8 -*-
-#
-# lib/decorator.py
-#
-# This file is part of the NNGT project, a graph-library for standardized and
-# and reproducible graph analysis: generate and analyze networks with your
-# favorite graph library (graph-tool/igraph/networkx) on any platform, without
-# any change to your code.
-# Copyright (C) 2015-2023 Tanguy Fardet
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-# Copyright (c) 2005-2018, Michele Simionato
-# All rights reserved.
-
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-
-#   Redistributions of source code must retain the above copyright
-#   notice, this list of conditions and the following disclaimer.
-#   Redistributions in bytecode form must reproduce the above copyright
-#   notice, this list of conditions and the following disclaimer in
-#   the documentation and/or other materials provided with the
-#   distribution.
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-# TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-# USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-# DAMAGE.
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2005 Michele Simionato
+# SPDX-License-Identifier: BSD-2-Clause
+# orgmatt/_utils/decorator.py
 
 """
-Decorator module, see http://pypi.python.org/pypi/decorator
+Decorator module, see
+https://github.com/micheles/decorator/blob/master/docs/documentation.md
 for the documentation.
 """
-from __future__ import print_function
-
 import re
 import sys
 import inspect
 import operator
 import itertools
-import collections
+from contextlib import _GeneratorContextManager
+from inspect import getfullargspec, iscoroutinefunction, isgeneratorfunction
 
-__version__ = '4.2.1'
-
-if sys.version >= '3':
-    from inspect import getfullargspec
-
-    def get_init(cls):
-        return cls.__init__
-else:
-    FullArgSpec = collections.namedtuple(
-        'FullArgSpec', 'args varargs varkw defaults '
-        'kwonlyargs kwonlydefaults')
-
-    def getfullargspec(f):
-        "A quick and dirty replacement for getfullargspec for Python 2.X"
-        return FullArgSpec._make(inspect.getargspec(f) + ([], None))
-
-    def get_init(cls):
-        return cls.__init__.__func__
-
-try:
-    iscoroutinefunction = inspect.iscoroutinefunction
-except AttributeError:
-    # let's assume there are no coroutine functions in old Python
-    def iscoroutinefunction(f):
-        return False
-
-# getargspec has been deprecated in Python 3.5
-ArgSpec = collections.namedtuple(
-    'ArgSpec', 'args varargs varkw defaults')
-
-
-def getargspec(f):
-    """A replacement for inspect.getargspec"""
-    spec = getfullargspec(f)
-    return ArgSpec(spec.args, spec.varargs, spec.varkw, spec.defaults)
-
+__version__ = '5.1.1'
 
 DEF = re.compile(r'\s*def\s*([_\w][_\w\d]*)\s*\(')
+POS = inspect.Parameter.POSITIONAL_OR_KEYWORD
+EMPTY = inspect.Parameter.empty
 
 
-# basic functionality
-class FunctionMaker:
+# this is not used anymore in the core, but kept for backward compatibility
+class FunctionMaker(object):
     """
     An object with the ability to create functions with a given signature.
     It has attributes name, doc, module, signature, defaults, dict and
@@ -125,7 +47,7 @@ class FunctionMaker:
                 self.name = '_lambda_'
             self.doc = func.__doc__
             self.module = func.__module__
-            if inspect.isfunction(func):
+            if inspect.isroutine(func):
                 argspec = getfullargspec(func)
                 self.annotations = getattr(func, '__annotations__', {})
                 for a in ('args', 'varargs', 'varkw', 'defaults', 'kwonlyargs',
@@ -168,7 +90,9 @@ class FunctionMaker:
             raise TypeError('You are decorating a non function: %s' % func)
 
     def update(self, func, **kw):
-        "Update the signature of func with the data in self"
+        """
+        Update the signature of func with the data in self
+        """
         func.__name__ = self.name
         func.__doc__ = getattr(self, 'doc', None)
         func.__dict__ = getattr(self, 'dict', {})
@@ -185,7 +109,9 @@ class FunctionMaker:
         func.__dict__.update(kw)
 
     def make(self, src_templ, evaldict=None, addsource=False, **attrs):
-        "Make a new function from a given template and update the signature"
+        """
+        Make a new function from a given template and update the signature
+        """
         src = src_templ % vars(self)  # expand name and signature
         evaldict = evaldict or {}
         mo = DEF.search(src)
@@ -204,11 +130,11 @@ class FunctionMaker:
         # Ensure each generated function has a unique filename for profilers
         # (such as cProfile) that depend on the tuple of (<filename>,
         # <definition line>, <function name>) being unique.
-        filename = '<decorator-gen-%d>' % (next(self._compile_count),)
+        filename = '<decorator-gen-%d>' % next(self._compile_count)
         try:
             code = compile(src, filename, 'single')
             exec(code, evaldict)
-        except:
+        except Exception:
             print('Error in generated code:', file=sys.stderr)
             print(src, file=sys.stderr)
             raise
@@ -246,88 +172,127 @@ class FunctionMaker:
         return self.make(body, evaldict, addsource, **attrs)
 
 
-def decorate(func, caller, extras=()):
+def fix(args, kwargs, sig):
     """
-    decorate(func, caller) decorates a function using a caller.
+    Fix args and kwargs to be consistent with the signature
     """
-    evaldict = dict(_call_=caller, _func_=func)
-    es = ''
-    for i, extra in enumerate(extras):
-        ex = '_e%d_' % i
-        evaldict[ex] = extra
-        es += ex + ', '
-    fun = FunctionMaker.create(
-        func, "return _call_(_func_, %s%%(shortsignature)s)" % es,
-        evaldict, __wrapped__=func)
-    if hasattr(func, '__qualname__'):
-        fun.__qualname__ = func.__qualname__
+    ba = sig.bind(*args, **kwargs)
+    ba.apply_defaults()  # needed for test_dan_schult
+    return ba.args, ba.kwargs
+
+
+def decorate(func, caller, extras=(), kwsyntax=False):
+    """
+    Decorates a function/generator/coroutine using a caller.
+    If kwsyntax is True calling the decorated functions with keyword
+    syntax will pass the named arguments inside the ``kw`` dictionary,
+    even if such argument are positional, similarly to what functools.wraps
+    does. By default kwsyntax is False and the the arguments are untouched.
+    """
+    sig = inspect.signature(func)
+    if iscoroutinefunction(caller):
+        async def fun(*args, **kw):
+            if not kwsyntax:
+                args, kw = fix(args, kw, sig)
+            return await caller(func, *(extras + args), **kw)
+    elif isgeneratorfunction(caller):
+        def fun(*args, **kw):
+            if not kwsyntax:
+                args, kw = fix(args, kw, sig)
+            for res in caller(func, *(extras + args), **kw):
+                yield res
+    else:
+        def fun(*args, **kw):
+            if not kwsyntax:
+                args, kw = fix(args, kw, sig)
+            return caller(func, *(extras + args), **kw)
+    fun.__name__ = func.__name__
+    fun.__doc__ = func.__doc__
+    fun.__wrapped__ = func
+    fun.__signature__ = sig
+    fun.__qualname__ = func.__qualname__
+    # builtin functions like defaultdict.__setitem__ lack many attributes
+    try:
+        fun.__defaults__ = func.__defaults__
+    except AttributeError:
+        pass
+    try:
+        fun.__kwdefaults__ = func.__kwdefaults__
+    except AttributeError:
+        pass
+    try:
+        fun.__annotations__ = func.__annotations__
+    except AttributeError:
+        pass
+    try:
+        fun.__module__ = func.__module__
+    except AttributeError:
+        pass
+    try:
+        fun.__dict__.update(func.__dict__)
+    except AttributeError:
+        pass
     return fun
 
 
-def decorator(caller, _func=None):
-    """decorator(caller) converts a caller function into a decorator"""
+def decoratorx(caller):
+    """
+    A version of "decorator" implemented via "exec" and not via the
+    Signature object. Use this if you are want to preserve the `.__code__`
+    object properties (https://github.com/micheles/decorator/issues/129).
+    """
+    def dec(func):
+        return FunctionMaker.create(
+            func,
+            "return _call_(_func_, %(shortsignature)s)",
+            dict(_call_=caller, _func_=func),
+            __wrapped__=func, __qualname__=func.__qualname__)
+    return dec
+
+
+def decorator(caller, _func=None, kwsyntax=False):
+    """
+    decorator(caller) converts a caller function into a decorator
+    """
     if _func is not None:  # return a decorated function
         # this is obsolete behavior; you should use decorate instead
-        return decorate(_func, caller)
+        return decorate(_func, caller, (), kwsyntax)
     # else return a decorator function
-    defaultargs, defaults = '', ()
-    if inspect.isclass(caller):
-        name = caller.__name__.lower()
-        doc = 'decorator(%s) converts functions/generators into ' \
-            'factories of %s objects' % (caller.__name__, caller.__name__)
-    elif inspect.isfunction(caller):
-        if caller.__name__ == '<lambda>':
-            name = '_lambda_'
+    sig = inspect.signature(caller)
+    dec_params = [p for p in sig.parameters.values() if p.kind is POS]
+
+    def dec(func=None, *args, **kw):
+        na = len(args) + 1
+        extras = args + tuple(kw.get(p.name, p.default)
+                              for p in dec_params[na:]
+                              if p.default is not EMPTY)
+        if func is None:
+            return lambda func: decorate(func, caller, extras, kwsyntax)
         else:
-            name = caller.__name__
-        doc = caller.__doc__
-        nargs = caller.__code__.co_argcount
-        ndefs = len(caller.__defaults__ or ())
-        defaultargs = ', '.join(caller.__code__.co_varnames[nargs-ndefs:nargs])
-        if defaultargs:
-            defaultargs += ','
-        defaults = caller.__defaults__
-    else:  # assume caller is an object with a __call__ method
-        name = caller.__class__.__name__.lower()
-        doc = caller.__call__.__doc__
-    evaldict = dict(_call=caller, _decorate_=decorate)
-    dec = FunctionMaker.create(
-        '%s(func, %s)' % (name, defaultargs),
-        'if func is None: return lambda func:  _decorate_(func, _call, (%s))\n'
-        'return _decorate_(func, _call, (%s))' % (defaultargs, defaultargs),
-        evaldict, doc=doc, module=caller.__module__, __wrapped__=caller)
-    if defaults:
-        dec.__defaults__ = (None,) + defaults
+            return decorate(func, caller, extras, kwsyntax)
+    dec.__signature__ = sig.replace(parameters=dec_params)
+    dec.__name__ = caller.__name__
+    dec.__doc__ = caller.__doc__
+    dec.__wrapped__ = caller
+    dec.__qualname__ = caller.__qualname__
+    dec.__kwdefaults__ = getattr(caller, '__kwdefaults__', None)
+    dec.__dict__.update(caller.__dict__)
     return dec
+
 
 # ####################### contextmanager ####################### #
 
-try:  # Python >= 3.2
-    from contextlib import _GeneratorContextManager
-except ImportError:  # Python >= 2.5
-    from contextlib import GeneratorContextManager as _GeneratorContextManager
-
 
 class ContextManager(_GeneratorContextManager):
+    def __init__(self, g, *a, **k):
+        _GeneratorContextManager.__init__(self, g, a, k)
+
     def __call__(self, func):
-        """Context manager decorator"""
-        return FunctionMaker.create(
-            func, "with _self_: return _func_(%(shortsignature)s)",
-            dict(_self_=self, _func_=func), __wrapped__=func)
+        def caller(f, *a, **k):
+            with self.__class__(self.func, *self.args, **self.kwds):
+                return f(*a, **k)
+        return decorate(func, caller)
 
-
-init = getfullargspec(_GeneratorContextManager.__init__)
-n_args = len(init.args)
-if n_args == 2 and not init.varargs:  # (self, genobj) Python 2.7
-    def __init__(self, g, *a, **k):
-        return _GeneratorContextManager.__init__(self, g(*a, **k))
-    ContextManager.__init__ = __init__
-elif n_args == 2 and init.varargs:  # (self, gen, *a, **k) Python 3.4
-    pass
-elif n_args == 4:  # (self, gen, args, kwds) Python 3.5
-    def __init__(self, g, *a, **k):
-        return _GeneratorContextManager.__init__(self, g, a, k)
-    ContextManager.__init__ = __init__
 
 _contextmanager = decorator(ContextManager)
 

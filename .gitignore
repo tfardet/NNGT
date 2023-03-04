@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: CC0-1.0
+
 # doc
 doc/.build/
 doc/_build/
@@ -33,7 +36,7 @@ nngt/testing/Ref/*
 *.pyxbldc
 build
 dist/
-nngt.egg-info/
+*.egg-info/
 *.so
 
 # visualcode

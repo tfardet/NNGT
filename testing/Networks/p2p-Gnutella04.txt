@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2002 Matei, R. and Iamnitchi, A. and Foster, P.
+# SPDX-License-Identifier: CC-BY-SA-4.0
 # Directed graph (each unordered pair of nodes is saved once): p2p-Gnutella04.txt 
 # Directed Gnutella P2P network from August 4 2002
 # Nodes: 10879 Edges: 39994

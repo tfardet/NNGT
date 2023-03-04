@@ -1,3 +1,5 @@
+% SPDX-FileCopyrightText: 2010 Tore Opsahl
+% SPDX-License-Identifier: CC-BY-SA-4.0
 % category: Infrastructure
 % code: AF
 % name: US airports

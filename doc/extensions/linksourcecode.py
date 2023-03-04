@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2008-2014 Georg Brandl
+# SPDX-License-Identifier: Python-2.0
+# docs/extensions/linksourcecode.py
+
 """
 Sphinx extension taken from the Python doc-specific markup.
-(https://github.com/python/cpython/blob/master/Doc/tools/extensions/pyspecific.py)
-
-:copyright: 2008-2014 by Georg Brandl.
-:license: Python license.
+https://github.com/python/cpython/blob/master/Doc/tools/extensions/pyspecific.py
 """
 
 from docutils import nodes, utils
@@ -13,7 +15,8 @@ from sphinx.util.nodes import split_explicit_title
 SOURCE_URI = 'https://git.sr.ht/~tfardet/NNGT/tree/main/item/{}'
 
 
-def source_role(typ, rawtext, text, lineno, inliner, options=None, content=None):
+def source_role(typ, rawtext, text, lineno, inliner, options=None,
+                content=None):
     '''
     Support for linking to Python source files easily through the :source:
     keyword

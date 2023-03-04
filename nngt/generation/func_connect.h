@@ -1,4 +1,6 @@
-// connect.h
+// SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+// SPDX-License-Identifier: GPL-3.0-or-later
+// nngt/generation/fun_connect.h
 //
 // Accelerated network generation functions
 

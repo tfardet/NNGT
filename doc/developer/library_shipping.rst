@@ -1,3 +1,8 @@
+..
+    SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+    SPDX-License-Identifier: CC-BY-SA-4.0
+    doc/developer/library_shipping.rst
+
 ================
 Library shipping
 ================
@@ -9,6 +14,13 @@ Multiplatform usage:
   available platforms
 * To simplify things, precompiled binaries for Linux and Mac (@todo windows)
   are provided directly on PyPi.
+
+
+Moving to cibuildwheel
+======================
+
+Install https://cibuildwheel.readthedocs.io/en/stable/setup/
+Configure Docker to run rootless https://docs.docker.com/engine/security/rootless/
 
 
 The manylinux wheels
@@ -48,6 +60,22 @@ to build NNGT ::
         auditwheel repair "$whl" -w wheelhouse/
     done
 
+To skip python 3.11 (not working with scipy at the moment)
+
+    #!/bin/bash
+    set -e -x
+
+    # Compile wheels
+    for PYBIN in /opt/python/cp3[1-9][!1]*/bin; do
+        "${PYBIN}/pip" install -r requirements.txt
+        "${PYBIN}/pip" wheel NNGT/ -w wheelhouse/
+    done
+
+    # Bundle external shared libraries into the wheels
+    for whl in wheelhouse/nngt*.whl; do
+        auditwheel repair "$whl" -w wheelhouse/
+    done
+
 associated to a ``requirements.txt`` file ::
 
     numpy>=1.17
@@ -78,5 +106,6 @@ First test it: ::
 
 Then upload "for real" ::
 
-    twine upload dist/*
+    twine upload -r NNGT whhelhouse/*
 
+with NNGT and the token configured in ~/.pypirc

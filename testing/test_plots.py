@@ -1,7 +1,7 @@
-#!/usr/bin/env python
-#-*- coding:utf-8 -*-
-
-# test_attributes.py
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
+# testing/test_plots.py
 
 """
 Test the validity of the plotting functions.

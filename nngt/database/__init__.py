@@ -1,25 +1,7 @@
-#-*- coding:utf-8 -*-
-#
-# database/__init__.py
-#
-# This file is part of the NNGT project, a graph-library for standardized and
-# and reproducible graph analysis: generate and analyze networks with your
-# favorite graph library (graph-tool/igraph/networkx) on any platform, without
-# any change to your code.
-# Copyright (C) 2015-2023 Tanguy Fardet
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
+# nngt/database/__init__.py
 
 """
 Module dedicated to logging the simulations and networks generated via the
@@ -33,21 +15,25 @@ Content
 """
 
 import os, errno
+import logging
 
 from peewee import *
 from playhouse.db_url import connect
 
 import nngt
+from nngt.lib.logger import _log_message
 
 
 __all__ = [
-	'get_results',
-	'is_clear',
-	'log_simulation_end',
-	'log_simulation_start',
-	'reset',
+    'get_results',
+    'is_clear',
+    'log_simulation_end',
+    'log_simulation_start',
+    'reset',
 ]
 
+
+logger = logging.getLogger(__name__)
 
 
 # --------------------------------------- #
@@ -55,6 +41,8 @@ __all__ = [
 # --------------------------------------- #
 
 def _set_main_db():
+    _log_message(logger, "WARNING", "The database module will be removed in "
+                 "version 2.8.0, please get in touch if you are using it.")
     if nngt.get_config("db_url") is None or nngt.get_config("db_to_file"):
         # check for db_folder
         abs_dbfolder = os.path.abspath(

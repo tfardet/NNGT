@@ -1,6 +1,9 @@
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: CC0-1.0
+
 [submodule "nngt/geometry"]
-	path = nngt/geometry
-	url = https://github.com/SENeC-Initiative/PyNCulture.git
+    path = nngt/geometry
+    url = https://github.com/SENeC-Initiative/PyNCulture.git
 [submodule "nngt/plot/chord_diag"]
-	path = nngt/plot/chord_diag
-	url = https://codeberg.org/tfardet/mpl_chord_diagram.git
+    path = nngt/plot/chord_diag
+    url = https://codeberg.org/tfardet/mpl_chord_diagram.git

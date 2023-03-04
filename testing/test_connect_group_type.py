@@ -1,7 +1,7 @@
-#!/usr/bin/env python
-#-*- coding:utf-8 -*-
-
-# test_generation.py
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
+# testing/test_connect_group_type.py
 
 # This file is part of the NNGT module
 # Distributed as a free software, in the hope that it will be useful, under the

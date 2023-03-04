@@ -1,23 +1,18 @@
-# Include the license file
-include LICENSE.txt
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: CC0-1.0
+
+# Include the license files
+recursive-include LICENSES *.txt
 
 # Include the Cython/C++ files
-recursive-include . *.cpp
-prune nngt/generation/cconnect.cpp
-recursive-include . *.h
-recursive-include . *.pyx
-recursive-include . *.pxd
-recursive-include . *.pyxbld
+include nngt/generation/func_connect.*
+recursive-include nngt/ *.pyx
+recursive-include nngt/ *.pxd
+recursive-include nngt/ *.pyxbld
 
-# Include the doc files
-recursive-include doc *
-prune doc/.build
+global-exclude __pycache__
+global-exclude cconnect.cpp
+global-exclude *.pyc
 
-# Exclude build and generated files
-recursive-exclude * build
-recursive-exclude * __pycache__
-
-# include setup.py (this makes no sense to me)
-# but without it, sdist does not include it...
-include setup.py
+# include config file
 include nngt/nngt.conf.default

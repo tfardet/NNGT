@@ -1,4 +1,6 @@
-// connect.cpp
+// SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+// SPDX-License-Identifier: GPL-3.0-or-later
+// nngt/generation/fun_connect.cpp
 //
 // Accelerated network generation functions
 //
@@ -186,7 +188,7 @@ std::vector<size_t> _gen_edge_complement(
 
     ecurrent = result.size();
     result.resize(ecurrent + degree);
-    
+
     size_t remaining = degree;
     size_t cplt, j;
     const size_t target_degree = ecurrent + degree;
@@ -341,7 +343,7 @@ void _cdistance_rule(int64_t* ia_edges, const std::vector<size_t>& source_nodes,
                 }
                 #pragma omp barrier
                 #pragma omp flush(current_enum)
-                
+
                 // the static schedule is CAPITAL: each thread must always
                 // handle the same nodes
                 #pragma omp for schedule(static)

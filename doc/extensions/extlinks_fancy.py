@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2007-2017 The Sphinx team
+# SPDX-License-Identifier: BSD-2-Clause
+# docs/extensions/extlink_fancy.py
+
 """
     Extension to save typing and prevent hard-coding of base URLs in the reST
     files.

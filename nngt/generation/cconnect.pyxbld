@@ -1,18 +1,75 @@
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: CC0-1.0
+
 import os
+import platform
+import re
+import sys
+import sysconfig
+
 from setuptools import Extension
+
 import numpy
+
 
 dirname = os.path.dirname(__file__)
 
+
+# ------------------ #
+# Paths and platform #
+# ------------------ #
+
+# OS name: Linux/Darwin (Mac)/Windows
+os_name = platform.system()
+
+# OpenMP
+omp_lib = [] if os_name == "Windows" else ["gomp"]
+omp_pos = sys.argv.index("--omp") if "--omp" in sys.argv else -1
+omp_lib_dir = "/usr/lib" if omp_pos == -1 else sys.argv[omp_pos + 1]
+
+dirname = os.path.join(".", "nngt/generation/")
+
+
+# ------------------------ #
+# Compiling OMP algorithms #
+# ------------------------ #
+
+# compiler options
+
+copt =  {
+    'msvc': ['/openmp', '/O2', '/fp:precise', '/permissive-', '/Zc:twoPhase-'],
+    'unix': [
+        '-std=c++11', '-Wno-cpp', '-Wno-unused-function', '-fopenmp',
+        '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
+    ]
+}
+
+lopt =  {
+    'unix': ['-fopenmp'],
+    'clang': ['-fopenmp'],
+}
+
+c = os.environ.get('CC', os.environ.get('CXX'))
+
+if c is None:
+    c = sysconfig.get_config_var('CC')
+
+if re.match(r"gcc|g\+\+|mingw|clang", c):
+    c = "unix"
+elif "msvc" in c:
+    c = "msvc"
+
+if c is None:
+    # last recourse, based on platform
+    c = "msvc" if os_name == "Windows" else "unix"
+
 def make_ext(modname, pyxfilename):
     return Extension(
-        name = modname,
-        sources = [pyxfilename, "func_connect.cpp"],
-        extra_compile_args = [
-            "-O2", "-ggdb", "-std=c++11", "-fopenmp", "-ftree-vectorize", "-msse",
-            "-Wno-cpp", "-ffast-math", "-Wno-unused-function"
-        ],
-        extra_link_args=['-fopenmp'],
-        language = "c++",
-        include_dirs = [dirname, numpy.get_include()]
+        name=modname,
+        sources=[pyxfilename, "func_connect.cpp"],
+        extra_compile_args=copt.get(c, []),
+        extra_link_args=lopt.get(c, []),
+        language="c++",
+        include_dirs=[dirname, numpy.get_include()],
+        library_dirs=[dirname, omp_lib_dir]
     )

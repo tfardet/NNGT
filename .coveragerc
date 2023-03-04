@@ -1,4 +1,5 @@
-# .coveragerc file to configure coverage report
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: CC0-1.0
 
 [run]
 branch = True

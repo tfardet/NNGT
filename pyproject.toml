@@ -1,0 +1,71 @@
+# SPDX-FileCopyrightText: 2022 Tanguy Fardet
+# SPDX-License-Identifier: CC0-1.0
+
+[build-system]
+requires = ["setuptools>=61.0", "numpy>=1.17", "cython>=0.18"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "NNGT"
+authors = [
+  { name="Tanguy Fardet", email="tanguyfardet@protonmail.com" },
+]
+license = {file = "LICENSES/GPL-3.0-or-later.txt"}
+description = """Python package to generate and study graphs and detailed
+spatial or biological networks."""
+readme = "README.md"
+keywords = [
+    "network", "graph", "structure", "igraph", "graph-tool", "networkx",
+    "simulation", "neuron", "NEST", "DeNSE", "topology", "growth", "geospatial"
+]
+requires-python = ">=3.7"
+dynamic = ["dependencies", "version"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Cython",
+    "Programming Language :: C++",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Physics"
+]
+
+[project.urls]
+repository = "https://git.sr.ht/~tfardet/NNGT"
+
+[project.optional-dependencies]
+matplotlib = ["matplotlib"]
+nx = ["networkx>=2.4"]
+ig = ["igraph"]
+geometry = ["matplotlib", "shapely>=2", "dxfgrabber", "svg.path"]
+geospatial = ["matplotlib", "geopandas", "descartes", "cartopy>=0.20"]
+full = [
+    "networkx>=2.4", "shapely>=2", "dxfgrabber", "svg.path>=4", "matplotlib",
+    "geopandas", "descartes", "cartopy>=0.20", "lxml"
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nngt*"]
+
+[tool.setuptools.package-data]
+"*" = ["README.md"]
+"nngt" = ["nngt.conf.default"]
+"nngt.generation" = ["*.p*", "func_connect.cpp", "func_connect.h"]
+
+[tool.setuptools.cmdclass]
+build_ext = "setup.build_ext"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+version = {attr = "nngt.__version__"}

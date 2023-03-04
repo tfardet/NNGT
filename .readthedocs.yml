@@ -1,2 +1,5 @@
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: CC0-1.0
+
 conda:
     file: doc/environment.yml

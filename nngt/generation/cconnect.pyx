@@ -1,6 +1,8 @@
 #cython: cdivision=True, language_level=3
 #!/usr/bin/env cython
 #-*- coding:utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 """ Cython interface to C++ parallel generation tools for NNGT """
 
@@ -308,7 +310,7 @@ def _total_degree_list(cnp.ndarray[int64, ndim=1] source_ids,
                         break
 
                     tpl_e = tuple(e)
-                        
+
                     if tpl_e in edges_hash:
                         skip = True
                         break
@@ -343,9 +345,9 @@ def _total_degree_list(cnp.ndarray[int64, ndim=1] source_ids,
 
                 np.add.at(degree_list, incr, 1)
                 np.add.at(degree_list, decr, -1)
-                
+
                 ecurrent += len(new_edges)
-                
+
             num_tests += 1
 
         if num_tests == MAXTESTS:

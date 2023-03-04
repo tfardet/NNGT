@@ -1,25 +1,7 @@
-#-*- coding:utf-8 -*-
-#
-# database/db_main.py
-#
-# This file is part of the NNGT project, a graph-library for standardized and
-# and reproducible graph analysis: generate and analyze networks with your
-# favorite graph library (graph-tool/igraph/networkx) on any platform, without
-# any change to your code.
-# Copyright (C) 2015-2023 Tanguy Fardet
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: 2015-2023 Tanguy Fardet
+# SPDX-License-Identifier: GPL-3.0-or-later
+# nngt/database/db_main.py
 
 """ Main object for database management """
 
@@ -47,7 +29,7 @@ class NNGTdb:
     Class containing the database object and methods to store the simulation
     properties.
     '''
-    
+
     tables = {
         'activity': Activity,
         'computer': Computer,
@@ -70,7 +52,7 @@ class NNGTdb:
         self.neuralnet = None
         self.connections = {}
         self.nodes = {}
-    
+
     def _update_class(self, table, **kwargs):
         ''' Add a field for each property of the considered node. '''
         klass = self.tables[table]
@@ -95,7 +77,7 @@ class NNGTdb:
                     except peewee.OperationalError:
                         pass
         return klass
-    
+
     def _update_models(self):
         ''' Update the models so that we can query the database with them '''
         tables = self.db.get_tables()
@@ -246,7 +228,7 @@ class NNGTdb:
             Post-synaptic neuron entry.
         synapse : :class:`~nngt.database.Synapse`
             Synapse entry.
-        
+
         Returns
         -------
         :class:`~nngt.database.Connection`
@@ -256,7 +238,7 @@ class NNGTdb:
     def _get_simulation_prop(self, network, simulator):
         '''
         Get the simulation properties.
-        
+
         Parameters
         ----------
         network : :class:`~nngt.Network`
@@ -304,7 +286,7 @@ class NNGTdb:
         activity_entry = Activity(**di_activity)
         self.current_simulation['activity'] = activity_entry
         return activity_entry
-        
+
     def log_simulation_start(self, network, simulator, save_network=True):
         '''
         Record the simulation start time, all nodes, connections, network, and
@@ -348,7 +330,7 @@ class NNGTdb:
             conn = self._make_connection_entry(self.nodes[name_pre],
                                                self.nodes[name_post], synapse)
             self.connections["{}->{}".format(name_pre, name_post)] = conn
-        
+
 
     def log_simulation_end(self, network=None, log_activity=True):
         '''
@@ -390,12 +372,12 @@ class NNGTdb:
             # ~ dump_csv(q, "{}_{}.csv".format(self.computer.name,
                                            # ~ simul_data.completion_time))
         self.reset()
-    
+
     def get_results(self, table, column=None, value=None):
         '''
         Return the entries where the attribute `column` satisfies the required
         equality.
-        
+
         Parameters
         ----------
         table : str
@@ -408,7 +390,7 @@ class NNGTdb:
         value : `column` corresponding type, optional (default: None)
             Specific value for the variable of interest. If None, the whole
             column is returned.
-        
+
         Returns
         -------
         :class:`peewee.SelectQuery` with entries matching the request.
