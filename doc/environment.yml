@@ -16,7 +16,8 @@ dependencies:
         - peewee
         - sphinx-gallery
         - sphinx-copybutton
-        - networkx
+        - networkx>=2.4
         - shapely
         - dxfgrabber
         - geopandas
+        - cartopy>=0.20
