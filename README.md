@@ -10,9 +10,11 @@ SPDX-License-Identifier: CC-BY-SA-4.0
  alt="Logo of NNGT: a conceptual sketch of a pyramidal neuron linked to three
  simple circular nodes to form a graph." />
 
-[![builds.sr.ht status](https://builds.sr.ht/~tfardet/nngt/commits/main.svg)](https://builds.sr.ht/~tfardet/nngt/commits/main)
+[![CI status](https://builds.sr.ht/~tfardet/nngt/commits/main.svg)](https://builds.sr.ht/~tfardet/nngt/commits/main)
+[![REUSE compliant](https://api.reuse.software/badge/git.sr.ht/~tfardet/NNGT)](https://api.reuse.software/info/git.sr.ht/~tfardet/NNGT)
 [![Coverage Status](https://coveralls.io/repos/github/tfardet/NNGT/badge.svg?branch=main)](https://coveralls.io/github/tfardet/NNGT?branch=main)
-[![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest) [![License](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html)<br>
+[![Documentation Status](https://readthedocs.org/projects/nngt/badge/?version=latest)](http://nngt.readthedocs.org/en/latest/?badge=latest)
+[![License: GPLv3+](http://img.shields.io/:license-GPLv3+-yellow.svg)](http://www.gnu.org/licenses/gpl-3.0.html)<br>
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg)](https://doi.org/10.5281/zenodo.3402493)
 ![PyPI](https://img.shields.io/pypi/v/nngt)
 

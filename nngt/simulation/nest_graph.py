@@ -30,7 +30,7 @@ __all__ = [
 
 @mpi_checker()
 def make_nest_network(network, send_only=None, weights=True):
-    '''
+    r'''
     Create a new network which will be filled with neurons and
     connector objects to reproduce the topology from the initial network.
 

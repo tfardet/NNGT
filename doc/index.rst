@@ -11,8 +11,16 @@ Welcome to NNGT's documentation!
 
 .. image:: https://builds.sr.ht/~tfardet/nngt/commits/main.svg
     :target: https://builds.sr.ht/~tfardet/nngt
+    :alt: CI status
+.. image:: _static/license-GPLv3+-yellow.svg
+    :target: https://spdx.org/licenses/GPL-3.0-or-later.html
+    :alt: GPLv3+ license
+.. image:: https://api.reuse.software/badge/git.sr.ht/~tfardet/NNGT
+    :target: https://api.reuse.software/info/git.sr.ht/~tfardet/NNGT
+    :alt: REUSE compliant
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3402493.svg
-   :target: https://doi.org/10.5281/zenodo.3402493
+    :target: https://doi.org/10.5281/zenodo.3402493
+    :alt: DOI
 
 
 Overview

@@ -38,6 +38,7 @@ classifiers = [
 
 [project.urls]
 repository = "https://git.sr.ht/~tfardet/NNGT"
+documentation = "https://nngt.readthedocs.io/en/stable"
 
 [project.optional-dependencies]
 matplotlib = ["matplotlib"]
@@ -53,6 +54,7 @@ full = [
 [tool.setuptools]
 package-dir = {"" = "."}
 include-package-data = false
+license-files = ["LICENSES/*.txt"]
 
 [tool.setuptools.packages.find]
 where = ["."]
