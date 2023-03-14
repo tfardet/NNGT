@@ -398,7 +398,6 @@ class _IGraph(GraphInterface):
                 if k not in self._nattr:
                     self._nattr.new_attribute(k, value_types[k], val=v)
                 else:
-                    v = v if nonstring_container(v) else [v]
                     self._nattr.set_attribute(k, v, nodes=nodes)
 
         # set default values for all attributes that were not set
@@ -414,8 +413,6 @@ class _IGraph(GraphInterface):
                 elif dtype == "double":
                     self._nattr.set_attribute(k, [np.NaN for _ in nodes],
                                               nodes=nodes)
-
-        g.vs[nodes[0]:nodes[-1] + 1]['type'] = neuron_type
 
         if self.is_spatial():
             old_pos      = self._pos
