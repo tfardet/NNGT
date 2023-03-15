@@ -208,6 +208,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.napoleon',
+    'sphinx.ext.imgconverter',
     'linksourcecode',
     'extlinks_fancy',
     'sphinx_gallery.gen_gallery',
