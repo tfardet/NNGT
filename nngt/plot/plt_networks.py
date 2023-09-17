@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # nngt/plot/plt_networks.py
 
+import re
+
 from itertools import cycle
 from collections import defaultdict
 from pkg_resources import parse_version
@@ -12,8 +14,8 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib.artist import Artist
 from matplotlib.path import Path
-from matplotlib.patches import FancyArrowPatch, ArrowStyle, FancyArrow, Circle
-from matplotlib.patches import Arc, RegularPolygon, PathPatch, Patch
+from matplotlib.patches import FancyArrowPatch, ArrowStyle, Circle
+from matplotlib.patches import PathPatch, Patch
 from matplotlib.collections import PatchCollection, PathCollection
 from matplotlib.colors import ListedColormap, Normalize, ColorConverter
 from matplotlib.markers import MarkerStyle
@@ -21,9 +23,8 @@ from matplotlib.transforms import Affine2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import nngt
-from nngt.lib import POS, nonstring_container, is_integer
-from .custom_plt import (get_cmap, palette_continuous, palette_discrete,
-                         format_exponent)
+from nngt.lib import nonstring_container, is_integer
+from .custom_plt import get_cmap, palette_continuous, palette_discrete
 from .chord_diag import chord_diagram as _chord_diag
 from .hive_helpers import *
 
@@ -1221,7 +1222,7 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
     try:
         import igraph
         igv = parse_version(igraph.__version__)
-    except:
+    except Exception:
         igv = parse_version('1.0')
 
     min_ig_version = parse_version('0.10.0')
@@ -1231,21 +1232,13 @@ def library_draw(network, nsize="total-degree", ncolor=None, nshape="o",
     if nngt.get_config("backend") == "graph-tool" or ig_test:
         mpl_backend = mpl.get_backend()
 
-        if mpl_backend.startswith("Qt4"):
-            if mpl_backend != "Qt4Cairo":
-                plt.switch_backend("Qt4Cairo")
-        elif mpl_backend.startswith("Qt5"):
-            if mpl_backend != "Qt5Cairo":
-                plt.switch_backend("Qt5Cairo")
+        if re.match(r"^Qt\d", mpl_backend):
+            plt.switch_backend(f"{mpl_backend[:3]}Cairo")
         elif mpl_backend.startswith("Qt"):
             if mpl_backend != "QtCairo":
                 plt.switch_backend("QtCairo")
-        elif mpl_backend.startswith("GTK3"):
-            if mpl_backend != "GTK3Cairo":
-                plt.switch_backend("GTK3Cairo")
-        elif mpl_backend.startswith("GTK4"):
-            if mpl_backend != "GTK4Cairo":
-                plt.switch_backend("GTK4Cairo")
+        elif re.match(r"^GTK\d", mpl_backend):
+            plt.switch_backend(f"{mpl_backend[:4]}Cairo")
         elif mpl_backend != "cairo":
             plt.switch_backend("cairo")
 

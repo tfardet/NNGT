@@ -122,7 +122,7 @@ To update your local repository, do:
 ## Features
 
 **Compatibility**
-* Currently supports graph-tool (> 2.22), igraph, and networkx (>= 2.4).
+* Currently supports graph-tool (>= 2.46), igraph, and networkx (>= 2.4).
 * Interactions with [NEST](https://nest-simulator.readthedocs.io/) and
   [DeNSE](https://dense.readthedocs.io/).
 

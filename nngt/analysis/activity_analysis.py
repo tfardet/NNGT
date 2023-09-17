@@ -347,6 +347,6 @@ def _smooth(data, kernel_size, std, mode='same'):
     -------
     convolved array.
     '''
-    kernel = sps.gaussian(kernel_size, std)
+    kernel = sps.windows.gaussian(kernel_size, std)
     kernel /= np.sum(kernel)
     return sps.convolve(data, kernel, mode=mode)

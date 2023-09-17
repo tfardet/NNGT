@@ -289,7 +289,7 @@ def _get_gt_graph(g, directed, weights, combine_weights=None,
                   return_all=False):
     ''' Returns the correct graph(view) given the options '''
     import graph_tool as gt
-    from graph_tool.stats import label_parallel_edges
+    from graph_tool.generation import label_parallel_edges
 
     directed = g.is_directed() if directed is None else directed
 

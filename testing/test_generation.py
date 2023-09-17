@@ -129,15 +129,11 @@ def _distance_rule_theo(instruct):
         distances = np.arange(0.02*scale, 7*scale, 0.02*scale)
         def dist_distrib(d, space_dens, scale):
             fact = 2*np.pi*space_dens
-            #~ max_val = fact*scale/np.e
-            #~ norm = fact*scale**2
             return fact*d*np.exp(-d/scale)
     else:  # linear
         distances = np.arange(0.005*scale, scale, 0.005*scale)
         def dist_distrib(d, space_dens, scale):
             fact = 2*np.pi*space_dens
-            #~ max_val = fact*scale/4.
-            #~ norm = fact*scale**2 / 6.
             return fact*d*np.clip(scale-d, 0., np.inf) / scale
     distrib = dist_distrib(distances, spatial_density, scale)
     res.extend(distrib / distrib.sum())
@@ -159,7 +155,7 @@ def _distance_rule_exp(graph, instruct):
     else:
         bins = np.linspace(0, scale, 200)
     hist, _ = np.histogram(distances, bins)
-    kernel = sps.gaussian(20, 3)
+    kernel = sps.windows.gaussian(20, 3)
     hist = sps.convolve(hist, kernel, mode='same')
     res.extend(hist / hist.sum())
     return res
@@ -170,11 +166,11 @@ def _distance_rule_exp(graph, instruct):
 # ---------- #
 
 class TestGeneration(TestBasis):
-    
+
     '''
     Class testing the main methods of the :mod:`~nngt.generation` module.
     '''
-    
+
     theo_prop = {
         "fixed_degree": _fixed_deg_theo,
         "gaussian_degree": _gaussian_deg_theo,
@@ -183,7 +179,7 @@ class TestGeneration(TestBasis):
         "newman_watts": _newman_watts_theo,
         "distance_rule": _distance_rule_theo,
     }
-    
+
     exp_prop = {
         "fixed_degree": _fixed_deg_exp,
         "gaussian_degree": _gaussian_deg_exp,
@@ -194,7 +190,7 @@ class TestGeneration(TestBasis):
     }
 
     tolerance = 0.08
-    
+
     @property
     def test_name(self):
         return "test_generation"

@@ -4,16 +4,16 @@
 channels:
     - conda-forge
 dependencies:
-    - cython
     - python=3.8
-    - numpy
-    - scipy
-    - pandas
-    - matplotlib
-    - cartopy
     - pip:
+        - cython
         - furo
         - peewee
+        - numpy
+        - scipy
+        - pandas
+        - matplotlib
+        - cartopy
         - sphinx-gallery
         - sphinx-copybutton
         - networkx>=2.4

@@ -5,15 +5,13 @@
 
 """ Graph-tool Graph subclassing """
 
-from collections import OrderedDict
 from copy import deepcopy
 import logging
 
 import numpy as np
-import scipy.sparse as ssp
 
 import nngt
-from nngt.lib import InvalidArgument, BWEIGHT, nonstring_container, is_integer
+from nngt.lib import InvalidArgument, nonstring_container, is_integer
 from nngt.lib.connect_tools import (_cleanup_edges, _set_dist_new_edges,
                                     _set_default_edge_attributes)
 from nngt.lib.converters import _to_np_array
@@ -904,8 +902,9 @@ class _GtGraph(GraphInterface):
         elif mode == "out":
             return set(int(n) for n in v.out_neighbours())
         else:
-            raise ArgumentError('''Invalid `mode` argument {}; possible values
-                                are "all", "out" or "in".'''.format(mode))
+            raise InvalidArgument(
+                f"Invalid `mode` argument {mode}; possible "
+                "values are 'all', 'out' or 'in'.")
 
     def _from_library_graph(self, graph, copy=True):
         ''' Initialize `self._graph` from existing library object. '''

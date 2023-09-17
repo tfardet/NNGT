@@ -153,6 +153,11 @@ def test_group_plot():
                       show=False)
 
 
+@pytest.mark.skipif(
+    nngt.get_config("backend") == "graph-tool" and
+    nngt._config["library"].__version__ > '2.52',
+    reason="GT issue with OMP and graph_draw import"
+)
 @pytest.mark.mpi_skip
 def test_library_plot():
     ''' Check that plotting with the underlying backend library works '''

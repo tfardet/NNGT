@@ -13,7 +13,7 @@ from graph_tool.centrality import closeness as gt_closeness
 from graph_tool.centrality import betweenness as gt_betweenness
 from graph_tool.correlations import scalar_assortativity
 from graph_tool.spectral import libgraph_tool_spectral
-from graph_tool.stats import label_parallel_edges
+from graph_tool.generation import label_parallel_edges
 
 import graph_tool.topology as gtt
 import graph_tool.clustering as gtc

@@ -722,7 +722,7 @@ def adj_mat(g, weights=None, mformat="csr"):
         if mformat == "dense":
             return mat
 
-        cls = getattr(ssp._arrays, f'{mat.format}_matrix')
+        cls = getattr(ssp, f'{mat.format}_matrix')
 
         return cls(mat)
 
