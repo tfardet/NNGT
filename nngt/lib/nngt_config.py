@@ -391,7 +391,7 @@ def _post_update_parallelism(new_config, old_gl, old_msd, old_mt, old_mpi):
         if rank == 0:
             if None not in msd:
                 msd = np.array(msd, dtype=int)
-                if not np.alltrue(msd == msd[0]):
+                if not (msd == msd[0]).all():
                     nngt._config["mpi"] = False
                     raise InvalidArgument("'msd' entry must be the same on "
                                           "all MPI processes.")

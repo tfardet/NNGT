@@ -5,6 +5,8 @@ channels:
     - conda-forge
 dependencies:
     - python=3.8
+    - cartopy>=0.20
+    - pip
     - pip:
         - cython
         - furo
@@ -13,11 +15,9 @@ dependencies:
         - scipy
         - pandas
         - matplotlib
-        - cartopy
         - sphinx-gallery
         - sphinx-copybutton
         - networkx>=2.4
         - shapely
         - dxfgrabber
         - geopandas
-        - cartopy>=0.20
