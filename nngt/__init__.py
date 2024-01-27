@@ -64,14 +64,13 @@ Main classes and functions
 import os as _os
 import errno as _errno
 import importlib.util as _imputil
-import shutil as _shutil
 import sys as _sys
 import logging as _logging
 
 import numpy as _np
 
 
-__version__ = '2.7.0.dev'
+__version__ = '2.7.1.dev'
 
 
 # ----------------------- #
@@ -81,14 +80,14 @@ __version__ = '2.7.0.dev'
 # IMPORTANT: configuration MUST come first
 _config = {
     'color_lib': 'matplotlib',
-    'db_folder': "~/.nngt/database",
+    'db_folder': "",
     'db_name': "main",
     'db_to_file': False,
     'db_url': None,
     'graph': object,
     'backend': "nngt",
     'library': None,
-    'log_folder': "~/.nngt/log",
+    'log_folder': "",
     'log_level': 10,
     'log_to_file': False,
     'mpi': False,
@@ -128,20 +127,6 @@ _used_local   = False
 _db      = None
 _main_db = None
 
-# configuration folders and files
-
-_lib_folder = _os.path.expanduser('~') + '/.nngt'
-_new_config = _os.path.expanduser('~') + '/.nngt/nngt.conf'
-_default_config = _os.path.dirname(_os.path.realpath(__file__)) + \
-                  '/nngt.conf.default'
-
-# check that library config folder exists
-if not _os.path.isdir(_lib_folder):
-    try:
-        _os.mkdir(_lib_folder)
-    except OSError as e:
-        if e.errno != _errno.EEXIST:
-            raise
 
 # IMPORTANT: first create logger
 from .lib.logger import _init_logger, _log_message
@@ -150,83 +135,13 @@ _logger = _logging.getLogger(__name__)
 _init_logger(_logger)
 
 # IMPORTANT: afterwards, import config
-from .lib.nngt_config import (get_config, set_config, _load_config, _convert,
-                              _log_conf_changed, _lazy_load, _config_info)
-
-# check that config file exists
-if not _os.path.isfile(_new_config):  # if it does not, create it
-    _shutil.copy(_default_config, _new_config)
-else:                                 # if it does check it is up-to-date
-    with open(_new_config, 'r+') as fconfig:
-        _options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
-        config_version = ""
-        for _opt in _options:
-            sep = _opt.find("=")
-            _opt_name = _opt[:sep].strip()
-            _opt_val = _convert(_opt[sep+1:].strip())
-            if _opt_name == "version":
-                config_version = _opt_val
-        if config_version != __version__:
-            fconfig.seek(0)
-            data = []
-            with open(_default_config) as fdefault:
-                data = [l for l in fdefault]
-            i = 0
-            for line in data:
-                if '{version}' in line:
-                    fconfig.write(line.format(version=__version__))
-                    i += 1
-                    break
-                else:
-                    fconfig.write(line)
-                    i += 1
-            for line in data[i:]:
-                fconfig.write(line)
-            fconfig.truncate()
-            _log_message(_logger, "WARNING",
-                         "Updating the configuration file, your previous "
-                         "settings have be overwritten.")
-
-_load_config(_new_config)
-
-# multithreading
-_config["omp"] = int(_os.environ.get("OMP", 1))
-
-if _config["omp"] > 1:
-    _config["multithreading"] = True
-
-
-# --------------------- #
-# Loading graph library #
-#---------------------- #
+from .lib.nngt_config import (
+    _config_info, _init_config, _lazy_load, _log_conf_changed, get_config,
+    save_config, set_config, reset_config)
 
 from .lib.graph_backends import use_backend, analyze_graph
 
-_libs = ['graph-tool', 'igraph', 'networkx']
-_glib = _config['backend']
-
-assert _glib in _libs or _glib == 'nngt', \
-       "Internal error for graph library loading, please report " +\
-       "this on GitHub."
-
-try:
-    use_backend(_config['backend'], False, silent=True)
-except ImportError:
-    idx = _libs.index(_config['backend'])
-    del _libs[idx]
-    keep_trying = True
-    while _libs and keep_trying:
-        try:
-            use_backend(_libs[-1], False, silent=True)
-            keep_trying = False
-        except ImportError:
-            _libs.pop()
-
-if not _libs:
-    use_backend('nngt', False, silent=True)
-    _log_message(_logger, "WARNING",
-                 "This module needs one of the following graph libraries to "
-                 "study networks: `graph_tool`, `igraph`, or `networkx`.")
+_init_config()
 
 
 # ------- #
@@ -291,17 +206,17 @@ __all__ = [
 try:
     import svg.path as _svg
     _has_svg = True
-except:
+except ImportError:
     _has_svg = False
 try:
     import dxfgrabber as _dxf
     _has_dxf = True
-except:
+except ImportError:
     _has_dxf = False
 try:
     import shapely as _shapely
     _has_shapely = _shapely.__version__
-except:
+except ImportError:
     _has_shapely = False
 
 

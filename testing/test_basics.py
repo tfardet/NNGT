@@ -8,14 +8,19 @@
 Test the validity of the most basic graph functions.
 """
 
-import pytest
+import json
+
+from os.path import isfile, join
 
 import numpy as np
 import numpy.testing as npt
+import pytest
+
+from platformdirs import user_config_dir
 
 import nngt
 import nngt.generation as ng
-from nngt.lib import InvalidArgument
+from nngt.lib import InvalidArgument, on_master_process, mpi_barrier
 
 
 tolerance = 1e-6
@@ -51,7 +56,7 @@ def test_config():
     try:
         import mpi4py
         has_mpi = True
-    except:
+    except ImportError:
         pass
 
     if has_mpi:
@@ -60,6 +65,8 @@ def test_config():
         assert nngt.get_config("mpi")
         assert not nngt.get_config("multithreading")
         assert nngt.get_config("omp") == 1
+
+    nngt.set_config("mpi", False)
 
     # key error
     key_error = False
@@ -74,6 +81,31 @@ def test_config():
     # except for palettes
     nngt.set_config("palette_continuous", "viridis")
     nngt.set_config("palette_discrete", "Set2")
+
+    # save and reset config
+    nngt.save_config()
+
+    savedfile = join(
+        user_config_dir("nngt", appauthor=False), "nngt.conf.saved")
+
+    print("here", nngt.get_config("mpi_comm").Get_rank())
+    assert isfile(savedfile)
+
+    mpi_barrier()
+    print("here", nngt.get_config("mpi_comm").Get_rank())
+    with open(savedfile, "r") as f:
+        saved_conf = json.load(f)
+
+        current_conf = nngt.get_config(detailed=True)
+
+        for k, v in saved_conf.items():
+            assert v == current_conf[k]
+
+    nngt.reset_config()
+
+    assert not isfile(savedfile)
+
+    assert nngt.get_config() != current_conf
 
     # restore old config
     nngt.set_config(old_cfg)

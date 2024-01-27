@@ -5,21 +5,36 @@
 
 """ Configuration tools for NNGT """
 
-import os
-import sys
-import logging
 import importlib.util as imputil
+import json
+import logging
+import os
+import shutil
+import sys
+
 from copy import deepcopy
 from importlib import reload
+from os.path import dirname, isfile, join
+from platformdirs import user_config_dir
 
 import numpy as np
 
 import nngt
 from .errors import InvalidArgument
+from .graph_backends import use_backend
 from .logger import _configure_logger, _init_logger, _log_message
 from .rng_tools import seed as nngt_seed
-from .test_functions import mpi_checker, num_mpi_processes, mpi_barrier
+from .test_functions import (
+    on_master_process, mpi_checker, num_mpi_processes, mpi_barrier)
 
+
+configdir = user_config_dir("nngt", appauthor=False)
+
+os.makedirs(configdir, exist_ok=True)
+
+defaultfile = join(dirname(__file__), "..", "nngt.conf.default")
+currentfile = join(configdir, "nngt.conf")
+savedfile = join(configdir, "nngt.conf.saved")
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +60,6 @@ def get_config(key=None, detailed=False):
         if detailed:
             return cfg
         else:
-            # hide mpi conf if not used
-            if not nngt._config["mpi"]:
-                del cfg['mpi_comm']
-
             # hide technical stuff
             del cfg["graph"]
             del cfg["library"]
@@ -59,6 +70,7 @@ def get_config(key=None, detailed=False):
             del cfg["color_lib"]
             del cfg["load_nest"]
             del cfg["load_gis"]
+            del cfg['mpi_comm']
 
             # hide database config if not used
             rm = []
@@ -80,6 +92,27 @@ def get_config(key=None, detailed=False):
     res = nngt._config[key]
 
     return res
+
+
+@mpi_checker(logging=True)
+def save_config():
+    ''' Save configuration to make it persistent '''
+    conf = nngt.get_config(detailed=True)
+
+    # delete unprocessable entities
+    del conf["graph"]
+    del conf["library"]
+    del conf["mpi_comm"]
+
+    with open(savedfile, "w") as f:
+        json.dump(conf, f)
+
+
+def reset_config():
+    ''' Removed saved configuration and switch back to default '''
+    _remove_saved()
+    _remove_current()
+    _init_config()
 
 
 @mpi_barrier
@@ -267,15 +300,86 @@ def _convert(value):
         return value
 
 
-def _load_config(path_config):
-    ''' Load `~/.nngt.conf` and parse it, return the settings '''
-    with open(path_config, 'r') as fconfig:
-        options = [l.strip() for l in fconfig if l.strip() and l[0] != "#"]
-        for opt in options:
-            sep = opt.find("=")
-            opt_name = opt[:sep].strip()
-            nngt._config[opt_name] = _convert(opt[sep+1:].strip())
+def _copy_default():
+    if not isfile(currentfile) and on_master_process():
+        # check that config file exists
+        shutil.copy(defaultfile, currentfile)
+
+    mpi_barrier()
+
+
+@mpi_checker(logging=True)
+def _remove_saved():
+    if isfile(savedfile):
+        os.remove(savedfile)
+
+
+@mpi_checker(logging=True)
+def _remove_current():
+    if isfile(currentfile):
+        os.remove(currentfile)
+
+
+@mpi_barrier
+def _init_config():
+    _copy_default()
+
+    if isfile(savedfile):
+        try:
+            with open(savedfile, "r") as f:
+                for k, v in json.load(f).items():
+                    nngt._config[k] = v
+        except Exception:
+            # invalid saved file
+            _remove_saved()
+    else:
+        _copy_default()
+
+        with open(currentfile, 'r') as fconfig:
+            options = [
+                l.strip() for l in fconfig if l.strip() and l[0] != "#"
+            ]
+
+            for opt in options:
+                sep = opt.find("=")
+                opt_name = opt[:sep].strip()
+                nngt._config[opt_name] = _convert(opt[sep+1:].strip())
+
     _init_logger(nngt._logger)
+
+    # multithreading
+    nngt._config["omp"] = int(os.environ.get("OMP", 1))
+
+    if nngt._config["omp"] > 1:
+        nngt._config["multithreading"] = True
+
+    # backend
+    libs = ['graph-tool', 'igraph', 'networkx']
+    glib = nngt._config['backend']
+
+    assert glib in libs or glib == 'nngt', \
+        "Internal error for graph library loading, please report " +\
+        "this on GitHub."
+
+    try:
+        use_backend(glib, False, silent=True)
+    except ImportError:
+        idx = libs.index(glib)
+        del libs[idx]
+        keep_trying = True
+        while libs and keep_trying:
+            try:
+                use_backend(libs[-1], False, silent=True)
+                keep_trying = False
+            except ImportError:
+                libs.pop()
+
+    if not libs:
+        use_backend('nngt', False, silent=True)
+        _log_message(
+            logger, "WARNING",
+            "This module needs one of the following graph libraries to "
+            "study networks: `graph_tool`, `igraph`, or `networkx`.")
 
 
 @mpi_checker(logging=True)
@@ -294,7 +398,8 @@ def _set_gt_config(old_gl, new_config):
             import nest
             omp_nest = nest.GetKernelStatus("local_num_threads")
         if omp_nest == new_config["omp"]:
-            nngt._config["library"].openmp_set_num_threads(nngt._config["omp"])
+            import graph_tool as gt
+            gt.openmp_set_num_threads(nngt._config["omp"])
         else:
             _log_message(logger, "WARNING",
                          "Using NEST and graph_tool, OpenMP number must be "

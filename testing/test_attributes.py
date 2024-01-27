@@ -279,10 +279,6 @@ class TestAttributes(TestBasis):
             ref_result, computed_result, self.tolerance),
             '''Error on graph {}: unequal delays for tolerance {}.
             '''.format(graph.name, self.tolerance))
-        # @todo
-        #~ if nngt._config['with_nest']:
-            #~ from nngt.simulation import make_nest_network
-            #~ gids = make_nest_network(graph)
 
 
 # ---------------------- #

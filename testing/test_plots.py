@@ -155,7 +155,7 @@ def test_group_plot():
 
 @pytest.mark.skipif(
     nngt.get_config("backend") == "graph-tool" and
-    nngt._config["library"].__version__ > '2.52',
+    nngt.get_config("library").__version__ > '2.52',
     reason="GT issue with OMP and graph_draw import"
 )
 @pytest.mark.mpi_skip

@@ -39,8 +39,7 @@ dist/
 *.egg-info/
 *.so
 
-# visualcode
+# editors
 *.vscode
-
-# KDevelop
 *.kdev4
+*.kate-swp

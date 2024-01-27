@@ -11,6 +11,7 @@ import os
 import warnings
 
 from datetime import date
+from platformdirs import user_log_dir
 
 import scipy.sparse as ssp
 
@@ -26,9 +27,11 @@ warnings.filterwarnings("ignore", message="Couldn't reach some vertices at")
 
 # check that log folder exists, otherwise create it
 
-nngt._config["log_folder"] = os.path.expanduser(nngt._config["log_folder"])
-if not os.path.isdir(nngt._config["log_folder"]):
-    os.mkdir(nngt._config["log_folder"])
+logdir = user_log_dir("nngt", appauthor=False)
+
+nngt._config["log_folder"] = logdir
+
+os.makedirs(logdir, exist_ok=True)
 
 
 # configure logger
