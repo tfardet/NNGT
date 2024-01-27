@@ -188,12 +188,12 @@ def closeness(g, weights=None, nodes=None, mode="out", harmonic=True,
     .. [nx-harmonic] :nxdoc:`algorithms.centrality.harmonic_centrality`
     .. [nx-closeness] :nxdoc:`algorithms.centrality.closeness_centrality`
     '''
-    w = _get_nx_weights(g, weights)
-
     graph = g.graph
 
     if graph.is_directed() and mode == "out":
         graph = g.graph.reverse(copy=False)
+
+    w = _get_nx_weights(g, weights, reverse=True)
 
     c = None
 

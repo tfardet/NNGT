@@ -372,12 +372,19 @@ def _get_ig_graph(g, directed, weights, combine_weights=None,
 # Networkx helpers #
 # ---------------- #
 
-def _get_nx_weights(g, weights):
+def _get_nx_weights(g, weights, reverse=False):
     ''' Return the properly formatted weights '''
     if nonstring_container(weights):
         # generate a function that returns the weights
-        def f(source, target, attr):
-            eid = g.edge_id((source, target))
+        if reverse:
+            def f(s, t, _):
+                eid = g.edge_id((t, s))
+                return weights[eid]
+
+            return f
+
+        def f(s, t, _):
+            eid = g.edge_id((s, t))
             return weights[eid]
 
         return f
