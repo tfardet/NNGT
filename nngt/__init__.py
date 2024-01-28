@@ -70,7 +70,7 @@ import logging as _logging
 import numpy as _np
 
 
-__version__ = '2.7.1.dev'
+__version__ = '2.7.1'
 
 
 # ----------------------- #
@@ -193,9 +193,11 @@ __all__ = [
     "on_master_process",
     "save_to_file",
     "seed",
+    "save_config",
     "set_config",
     "SpatialGraph",
     "SpatialNetwork",
+    "reset_config",
     "use_backend",
     "__version__"
 ]
