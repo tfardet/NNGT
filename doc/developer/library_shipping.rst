@@ -12,7 +12,7 @@ Multiplatform usage:
 * NNGT can be used in pure-python mode on any platform
 * Compilation of the multithreading algorithms can also be done on all
   available platforms
-* To simplify things, precompiled binaries for Linux and Mac (@todo windows)
+* To simplify things, precompiled binaries for Linux (@todo MacOS/Windows)
   are provided directly on PyPi.
 
 
@@ -20,7 +20,6 @@ Moving to cibuildwheel
 ======================
 
 Install https://cibuildwheel.readthedocs.io/en/stable/setup/
-Configure Docker to run rootless https://docs.docker.com/engine/security/rootless/
 
 
 The manylinux wheels
@@ -29,70 +28,15 @@ The manylinux wheels
 To prepare the ``manylinux`` wheels, one must use the docker containers
 provided by https://github.com/pypa/manylinux ::
 
-    docker pull quay.io/pypa/manylinux1_x86_64
+    podman pull quay.io/pypa/manylinux_2_28_x86_64
 
-.. note::
-    Reminder for docker: dockerd must be running, for issue on archlinux,
-    see https://unix.stackexchange.com/questions/478387/running-a-centos-docker-image-on-arch-linux-exits-with-code-139
+Then run ``extra/build_wheels.sh`` in it (you must be in the ``NNGT/`` folder)::
 
-Run the container and give it a name ::
+    podman run -v `pwd`:/io quay.io/pypa/manylinux_2_28_x86_64 /io/extra/build_wheels.sh
 
-    docker run -it --name=manylinux quay.io/pypa/manylinux1_x86_64
+This links the current folder to the ``/io/`` folder in the container so a ``wheelhouse/``
+folder will apear on the host system.
 
-It can also be started afterwards with ::
-
-    docker start -i manylinux
-
-Once in the container, I wrote an automatic install file (``build_wheels.sh``)
-to build NNGT ::
-
-    #!/bin/bash
-    set -e -x
-
-    # Compile wheels
-    for PYBIN in /opt/python/cp3[5-9]*/bin; do
-        "${PYBIN}/pip" install -r requirements.txt
-        "${PYBIN}/pip" wheel NNGT/ -w wheelhouse/
-    done
-
-    # Bundle external shared libraries into the wheels
-    for whl in wheelhouse/nngt*.whl; do
-        auditwheel repair "$whl" -w wheelhouse/
-    done
-
-To skip python 3.11 (not working with scipy at the moment)
-
-    #!/bin/bash
-    set -e -x
-
-    # Compile wheels
-    for PYBIN in /opt/python/cp3[1-9][!1]*/bin; do
-        "${PYBIN}/pip" install -r requirements.txt
-        "${PYBIN}/pip" wheel NNGT/ -w wheelhouse/
-    done
-
-    # Bundle external shared libraries into the wheels
-    for whl in wheelhouse/nngt*.whl; do
-        auditwheel repair "$whl" -w wheelhouse/
-    done
-
-associated to a ``requirements.txt`` file ::
-
-    numpy>=1.17
-    scipy
-    cython
-
-Save these as on the same level as the root ``NNGT`` folder (the one containing
-the ``setup.py``), and create a ``wheelhouse`` folder also next to it, then
-just run ``build_wheels.sh``.
-
-Once the "repaired" wheels have been saved, you can extract them from the
-docker container using ::
-
-    docker cp manylinux:/home/wheelhouse/ /where/you/want/it
-
-NB: unfortunately one must remove manually all unnecessary files from the
-wheels before running the build to prevent them from being included...
 
 Pushing to PyPi
 ===============
@@ -101,11 +45,26 @@ https://twine.readthedocs.io/en/latest/
 
 First test it: ::
 
-    twine upload --repository-url https://test.pypi.org/legacy/ *
-    pip install --index-url https://test.pypi.org/simple/ nngt
+    twine upload -r testpypi whhelhouse/NNGT*
+    pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple nngt
 
 Then upload "for real" ::
 
-    twine upload -r NNGT whhelhouse/*
+    twine upload -r NNGT whhelhouse/NNGT*
 
-with NNGT and the token configured in ~/.pypirc
+with NNGT, testpypi, and the tokens configured in ~/.pypirc::
+
+    [distutils]
+    index-servers =
+        NNGT
+        testpypi
+
+    [NNGT]
+    repository = https://upload.pypi.org/legacy/
+    username = __token__
+    password =
+
+    [testpypi]
+    repository = https://test.pypi.org/legacy/
+    username = __token__
+    password =
