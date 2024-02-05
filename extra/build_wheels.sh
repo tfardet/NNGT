@@ -4,7 +4,7 @@
 set -e -x
 
 # cleanup
-rm /io/wheelhouse/NNGT*
+rm -f /io/wheelhouse/NNGT*
 
 # get NNGT
 git clone https://git.sr.ht/~tfardet/NNGT

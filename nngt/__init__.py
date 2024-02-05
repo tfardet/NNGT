@@ -70,7 +70,7 @@ import logging as _logging
 import numpy as _np
 
 
-__version__ = '2.7.1'
+__version__ = '2.7.2'
 
 
 # ----------------------- #

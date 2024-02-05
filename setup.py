@@ -9,7 +9,9 @@ import platform
 import re
 import sys
 import sysconfig
+import tempfile
 
+from distutils.errors import CompileError
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext as _build_ext
 
@@ -41,16 +43,31 @@ dirname = os.path.join(".", "nngt/generation/")
 
 copt =  {
     'msvc': ['/openmp', '/O2', '/fp:precise', '/permissive-', '/Zc:twoPhase-'],
-    'unix': [
-        '-std=c++11', '-Wno-cpp', '-Wno-unused-function', '-fopenmp',
-        '-ffast-math', '-msse', '-ftree-vectorize', '-O2', '-g',
+    'gcc': [
+        '-std=c++14', '-Wno-cpp', '-Wno-unused-function', '-ffast-math',
+        '-msse', '-ftree-vectorize', '-O2', '-g', '-fopenmp'
+    ],
+    'clang': [
+        '-std=c++14', '-Wno-cpp', '-Wno-unused-function', '-ffast-math',
+        '-msse', '-ftree-vectorize', '-O2', '-g',
     ]
 }
 
 lopt =  {
-    'unix': ['-fopenmp'],
-    'clang': ['-fopenmp'],
+    'gcc': ['-fopenmp'],
+    'clang': [],
 }
+
+# check whether compiler supports a flag
+def has_flag(compiler, flagname):
+    with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f:
+        f.write('int main (int argc, char **argv) { return 0; }')
+        try:
+            compiler.compile([f.name], extra_postargs=[flagname])
+        except CompileError:
+            return False
+    return True
+
 
 extensions = Extension(
     "nngt.generation.cconnect",
@@ -74,8 +91,6 @@ class build_ext(_build_ext):
         if self.distribution.ext_modules is None:
             self.distribution.ext_modules = []
 
-        self.distribution.ext_modules = cythonize(extensions)
-
     def build_extensions(self):
         # only Unix compilers and their ports have `compiler_so`
         c = getattr(self.compiler, 'compiler_so', None)
@@ -86,10 +101,18 @@ class build_ext(_build_ext):
             c = c[0]
 
         if c is None:
-            c = sysconfig.get_config_var('CC')
+            # if we really don't get anything, we're probably on windows
+            c = sysconfig.get_config_var('CC') or self.compiler.compiler_type
 
-        if re.match(r"gcc|g\+\+|mingw|clang", c):
-            c = "unix"
+        if re.match(r"gcc|g\+\+|mingw", c):
+            c = "gcc"
+        if "clang" in c:
+            c = "clang"
+
+            # macos clang compiler is bad
+            if has_flag(self.compiler, "-fopenmp"):
+                copt["clang"].append("-fopenmp")
+                lopt["clang"].append("-fopenmp")
         elif "msvc" in c:
             c = "msvc"
 
@@ -99,12 +122,21 @@ class build_ext(_build_ext):
 
         try:
             self.compiler.compiler_so.remove("-Wstrict-prototypes")
+        except Exception:
+            pass
+
+        try:
             self.compiler.compiler_so.remove("-O3")
-        except:
+        except Exception:
             pass
 
         super().build_extensions()
 
 
 if __name__ == "__main__":
-    setup(cmdclass={"build_ext": build_ext}, ext_modules=cythonize(extensions))
+    try:
+        extensions = cythonize(extensions)
+    except Exception:
+        extensions = []
+
+    setup(cmdclass={"build_ext": build_ext}, ext_modules=extensions)
