@@ -11,13 +11,20 @@ import sys
 import sysconfig
 import tempfile
 
-from distutils.errors import CompileError
+from distutils.errors import (
+    CCompilerError, CompileError, DistutilsExecError, DistutilsPlatformError)
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext as _build_ext
 
 import numpy as np
 
 from Cython.Build import cythonize
+
+
+ext_errors = (
+    CCompilerError, DistutilsExecError, DistutilsPlatformError, IOError,
+    SystemExit
+)
 
 
 # ------------------ #
@@ -42,7 +49,9 @@ dirname = os.path.join(".", "nngt/generation/")
 # compiler options
 
 copt =  {
-    'msvc': ['/openmp', '/O2', '/fp:precise', '/permissive-', '/Zc:twoPhase-'],
+    'msvc': [
+        '/openmp:llvm', '/O2', '/fp:precise', '/permissive-', '/Zc:twoPhase-'
+    ],
     'gcc': [
         '-std=c++14', '-Wno-cpp', '-Wno-unused-function', '-ffast-math',
         '-msse', '-ftree-vectorize', '-O2', '-g', '-fopenmp'
@@ -58,6 +67,7 @@ lopt =  {
     'clang': [],
 }
 
+
 # check whether compiler supports a flag
 def has_flag(compiler, flagname):
     with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f:
@@ -67,20 +77,6 @@ def has_flag(compiler, flagname):
         except CompileError:
             return False
     return True
-
-
-extensions = Extension(
-    "nngt.generation.cconnect",
-    sources=[
-        os.path.join(dirname, "cconnect.pyx"),
-        os.path.join(dirname, "func_connect.cpp")
-    ],
-    extra_compile_args=[],
-    language="c++",
-    include_dirs=[dirname, np.get_include()],
-    libraries=omp_lib,
-    library_dirs=[dirname, omp_lib_dir]
-)
 
 
 class build_ext(_build_ext):
@@ -135,8 +131,21 @@ class build_ext(_build_ext):
 
 if __name__ == "__main__":
     try:
-        extensions = cythonize(extensions)
-    except Exception:
+        extensions = cythonize(
+            Extension(
+                "nngt.generation.cconnect",
+                sources=[
+                    os.path.join(dirname, "cconnect.pyx"),
+                    os.path.join(dirname, "func_connect.cpp")
+                ],
+                extra_compile_args=[],
+                language="c++",
+                include_dirs=[dirname, np.get_include()],
+                libraries=omp_lib,
+                library_dirs=[dirname, omp_lib_dir]
+            )
+        )
+    except ext_errors:
         extensions = []
 
     setup(cmdclass={"build_ext": build_ext}, ext_modules=extensions)

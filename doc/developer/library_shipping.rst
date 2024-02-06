@@ -32,7 +32,7 @@ provided by https://github.com/pypa/manylinux ::
 
 Then run ``extra/build_wheels.sh`` in it (you must be in the ``NNGT/`` folder)::
 
-    podman run -v `pwd`:/io quay.io/pypa/manylinux_2_28_x86_64 /io/extra/build_wheels.sh
+    podman run --rm -v `pwd`:/io quay.io/pypa/manylinux_2_28_x86_64 /io/extra/build_wheels.sh
 
 This links the current folder to the ``/io/`` folder in the container so a ``wheelhouse/``
 folder will apear on the host system.
@@ -45,12 +45,12 @@ https://twine.readthedocs.io/en/latest/
 
 First test it: ::
 
-    twine upload -r testpypi whhelhouse/NNGT*
+    twine upload -r testpypi wheelhouse/NNGT*
     pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple nngt
 
 Then upload "for real" ::
 
-    twine upload -r NNGT whhelhouse/NNGT*
+    twine upload -r NNGT wheelhouse/NNGT*
 
 with NNGT, testpypi, and the tokens configured in ~/.pypirc::
 
